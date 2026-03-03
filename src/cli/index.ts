@@ -5,7 +5,7 @@ import { loadScenarios } from "../scenario/loader.js";
 import { probe } from "../core/probe.js";
 
 program
-	.name("agentprobe")
+	.name("probeai")
 	.description("Test and evaluate AI coding agents")
 	.version("0.1.0");
 

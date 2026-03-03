@@ -1,19 +1,19 @@
-# AgentProbe
+# ProbeAI
 
 Test and evaluate AI coding agents with YAML scenarios.
 
-AgentProbe runs your AI agent, captures its output, and scores it using rule-based checks and LLM judges. Get a pass/fail verdict with detailed reports.
+ProbeAI runs your AI agent, captures its output, and scores it using rule-based checks and LLM judges. Get a pass/fail verdict with detailed reports.
 
 ## Install
 
 ```bash
-npm install -g agentprobe
+npm install -g probeai
 ```
 
 Or run directly:
 
 ```bash
-npx agentprobe run my-scenario.yaml
+npx probeai run my-scenario.yaml
 ```
 
 ## Quick Start
@@ -50,7 +50,7 @@ evaluate:
 **2. Run it:**
 
 ```bash
-agentprobe run test-my-agent.yaml
+probeai run test-my-agent.yaml
 ```
 
 **3. See results:**
@@ -68,20 +68,20 @@ All 1 scenario(s) passed!
 
 ```bash
 # Run one or more scenarios
-agentprobe run scenario.yaml
-agentprobe run tests/*.yaml
+probeai run scenario.yaml
+probeai run tests/*.yaml
 
 # Verbose output (shows stdout, stderr, timing)
-agentprobe run scenario.yaml -v
+probeai run scenario.yaml -v
 
 # Generate markdown report
-agentprobe run scenario.yaml --md
+probeai run scenario.yaml --md
 
 # Custom output directory
-agentprobe run scenario.yaml -o ./my-results
+probeai run scenario.yaml -o ./my-results
 
 # Validate scenario files without running
-agentprobe validate scenario.yaml
+probeai validate scenario.yaml
 ```
 
 ## Scenario Format
@@ -185,15 +185,15 @@ Starter templates in `templates/`:
 
 Copy and edit:
 ```bash
-cp node_modules/agentprobe/templates/cli-smoke.yaml my-test.yaml
+cp node_modules/probeai/templates/cli-smoke.yaml my-test.yaml
 ```
 
 ## Reports
 
-AgentProbe generates JSON reports by default. Add `--md` for markdown.
+ProbeAI generates JSON reports by default. Add `--md` for markdown.
 
 ```bash
-agentprobe run tests/*.yaml --md -o ./reports
+probeai run tests/*.yaml --md -o ./reports
 ```
 
 Reports include:

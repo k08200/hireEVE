@@ -1,5 +1,5 @@
 {
-  "name": "agentprobe",
+  "name": "probeai",
   "version": "0.1.0",
   "description": "CLI tool for testing and evaluating AI coding agents",
   "main": "dist/index.js",
@@ -35,7 +35,7 @@
     "typescript": "^5.9.3"
   },
   "bin": {
-    "agentprobe": "./dist/cli/index.js"
+    "probeai": "./dist/cli/index.js"
   },
   "type": "module"
 }
