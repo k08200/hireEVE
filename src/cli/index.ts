@@ -1,13 +1,11 @@
 #!/usr/bin/env node
-import { program } from "commander";
+import { existsSync } from "node:fs";
 import chalk from "chalk";
-import { loadScenarios } from "../scenario/loader.js";
+import { program } from "commander";
 import { probe } from "../core/probe.js";
+import { loadScenarios } from "../scenario/loader.js";
 
-program
-	.name("probeai")
-	.description("Test and evaluate AI coding agents")
-	.version("0.1.0");
+program.name("probeai").description("Test and evaluate AI coding agents").version("0.2.2");
 
 program
 	.command("run")
@@ -18,7 +16,19 @@ program
 	.option("-v, --verbose", "Verbose output", false)
 	.action(async (files: string[], opts: { output: string; md: boolean; verbose: boolean }) => {
 		try {
+			// Validate files exist before loading
+			const missing = files.filter((f) => !existsSync(f));
+			if (missing.length > 0) {
+				console.error(chalk.red(`File(s) not found:\n  ${missing.join("\n  ")}`));
+				process.exit(1);
+			}
+
 			const scenarios = loadScenarios(files);
+			if (scenarios.length === 0) {
+				console.error(chalk.yellow("No valid scenarios to run."));
+				process.exit(1);
+			}
+
 			const results = await probe(scenarios, {
 				outputDir: opts.output,
 				markdown: opts.md,
@@ -41,6 +51,11 @@ program
 	.action((files: string[]) => {
 		let hasError = false;
 		for (const file of files) {
+			if (!existsSync(file)) {
+				console.log(chalk.red(`  FAIL: ${file} — file not found`));
+				hasError = true;
+				continue;
+			}
 			try {
 				loadScenarios([file]);
 				console.log(chalk.green(`  OK: ${file}`));

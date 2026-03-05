@@ -18,8 +18,20 @@ export interface EvalResult {
 export async function evaluate(config: EvaluationConfig, output: RunOutput): Promise<EvalResult> {
 	const threshold = config.passThreshold ?? 60;
 
+	if (threshold < 0 || threshold > 100) {
+		throw new Error(`Invalid passThreshold: ${threshold} (must be 0-100)`);
+	}
+
+	const validMethods = ["rules", "llm", "hybrid"];
+	if (!validMethods.includes(config.method)) {
+		throw new Error(`Unknown evaluation method: "${config.method}" (valid: ${validMethods.join(", ")})`);
+	}
+
 	if (config.method === "rules") {
 		const rules = config.rules ?? [];
+		if (rules.length === 0) {
+			return { score: 0, passed: false, method: "rules", ruleScore: 0, ruleDetails: [] };
+		}
 		const results = evaluateRules(rules, output);
 		const score = calculateRuleScore(results);
 		return {
@@ -37,7 +49,7 @@ export async function evaluate(config: EvaluationConfig, output: RunOutput): Pro
 
 	if (config.method === "llm") {
 		const rubric = config.rubric ?? "Evaluate the agent's output quality and correctness.";
-		const llmResult = await evaluateWithLlm(rubric, output, config.ollamaHost, config.model);
+		const llmResult = await evaluateWithLlm(rubric, output, config.ollamaHost, config.model, threshold);
 		return {
 			score: llmResult.score,
 			passed: llmResult.score >= threshold,
@@ -53,7 +65,7 @@ export async function evaluate(config: EvaluationConfig, output: RunOutput): Pro
 
 	const ruleResults = evaluateRules(rules, output);
 	const ruleScore = calculateRuleScore(ruleResults);
-	const llmResult = await evaluateWithLlm(rubric, output, config.ollamaHost, config.model);
+	const llmResult = await evaluateWithLlm(rubric, output, config.ollamaHost, config.model, threshold);
 
 	const score = Math.round((ruleScore + llmResult.score) / 2);
 
