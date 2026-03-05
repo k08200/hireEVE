@@ -1,6 +1,6 @@
 {
   "name": "probeai",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "CLI tool for testing and evaluating AI coding agents",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
