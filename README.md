@@ -334,6 +334,45 @@ if (failed.length > 0) {
 }
 ```
 
+## Troubleshooting
+
+**"Cannot connect to Ollama" / "ECONNREFUSED"**
+```bash
+# Make sure Ollama is running
+ollama serve
+
+# Then pull the model you need
+ollama pull qwen2.5:14b
+```
+
+**"Model not found on Ollama"**
+```bash
+# Check available models
+ollama list
+
+# Pull the model specified in your scenario
+ollama pull <model-name>
+```
+
+**"Invalid YAML" / parse errors**
+- Use spaces, not tabs, for indentation
+- Check for missing colons or quotes
+- Validate before running: `probeai validate my-scenario.yaml`
+
+**"File not found"**
+- Check the file path — relative paths resolve from your current directory
+- Use glob patterns for multiple files: `probeai run tests/*.yaml`
+
+**Scenario loads but score is 0**
+- Run with `-v` for verbose output: `probeai run scenario.yaml -v`
+- Check that `target` is correct (`stdout`, `stderr`, `exit`, or `file:<path>`)
+- For `exit_code` rules, the value must be a string: `value: "0"` not `value: 0`
+
+**Process times out (TIMEOUT)**
+- Default timeout is 120 seconds
+- Increase with `timeout: 300` in your scenario YAML
+- Check that the command actually exits (not waiting for input)
+
 ## Requirements
 
 - Node.js 20+
