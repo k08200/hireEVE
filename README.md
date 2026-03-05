@@ -202,6 +202,126 @@ Reports include:
 - Execution duration
 - Overall summary
 
+## GitHub Actions
+
+Run ProbeAI automatically on every PR and push.
+
+**1. Add scenarios** to your repo (e.g. `tests/probeai/build-check.yaml`):
+
+```yaml
+id: build-check
+name: "Build Check"
+description: "Verify the project compiles"
+
+agent:
+  type: command
+  command: "npx tsc --noEmit 2>&1"
+
+steps:
+  - action: check_output
+    expect: ""
+
+evaluate:
+  method: rules
+  passThreshold: 100
+  rules:
+    - type: exit_code
+      target: exit
+      value: "0"
+      weight: 1
+```
+
+More scenario ideas:
+
+```yaml
+# Lint check
+id: lint-check
+name: "Lint Check"
+agent:
+  type: command
+  command: "npx biome check src/ 2>&1"
+steps:
+  - action: check_output
+    expect: ""
+evaluate:
+  method: rules
+  passThreshold: 100
+  rules:
+    - type: exit_code
+      target: exit
+      value: "0"
+      weight: 1
+```
+
+```yaml
+# Test check
+id: test-check
+name: "Test Check"
+agent:
+  type: command
+  command: "npm test 2>&1"
+steps:
+  - action: check_output
+    expect: ""
+evaluate:
+  method: rules
+  passThreshold: 100
+  rules:
+    - type: exit_code
+      target: exit
+      value: "0"
+      weight: 1
+```
+
+**2. Create workflow** (`.github/workflows/probeai.yml`):
+
+```yaml
+name: ProbeAI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  verify:
+    name: ProbeAI Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      - name: Run ProbeAI scenarios
+        run: npx probeai run tests/probeai/*.yaml -v
+```
+
+**3. Push and check** — ProbeAI results appear as a GitHub check on your PRs.
+
+## Programmatic Usage
+
+Use ProbeAI as a library in your Node.js code:
+
+```typescript
+import { probe, loadScenarios } from "probeai";
+
+const scenarios = loadScenarios(["tests/build.yaml", "tests/lint.yaml"]);
+const results = await probe(scenarios, {
+  outputDir: "./results",
+  markdown: false,
+  verbose: false,
+});
+
+const failed = results.filter((r) => !r.evaluation.passed);
+if (failed.length > 0) {
+  console.log(`${failed.length} scenario(s) failed`);
+  process.exit(1);
+}
+```
+
 ## Requirements
 
 - Node.js 20+
