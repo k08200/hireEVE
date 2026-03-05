@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
-import type { RuleCheck } from "../scenario/types.js";
 import type { RunOutput } from "../core/runner.js";
+import type { RuleCheck } from "../scenario/types.js";
 
 /** Result of evaluating a single rule */
 export interface RuleResult {
@@ -11,6 +11,9 @@ export interface RuleResult {
 
 /** Evaluate all rules against a run output */
 export function evaluateRules(rules: RuleCheck[], output: RunOutput): RuleResult[] {
+	if (!rules || rules.length === 0) {
+		return [];
+	}
 	return rules.map((rule) => evaluateRule(rule, output));
 }
 
@@ -23,6 +26,7 @@ export function calculateRuleScore(results: RuleResult[]): number {
 
 	for (const r of results) {
 		const weight = r.rule.weight ?? 1;
+		if (weight < 0) continue; // skip invalid weights
 		totalWeight += weight;
 		if (r.passed) earnedWeight += weight;
 	}
@@ -31,20 +35,30 @@ export function calculateRuleScore(results: RuleResult[]): number {
 }
 
 function evaluateRule(rule: RuleCheck, output: RunOutput): RuleResult {
-	const target = resolveTarget(rule.target, output);
+	const targetResult = resolveTarget(rule.target, output);
+
+	if (targetResult.error) {
+		return { rule, passed: false, detail: targetResult.error };
+	}
+
+	const target = targetResult.value;
 
 	switch (rule.type) {
 		case "contains":
 			return {
 				rule,
 				passed: target.includes(rule.value),
-				detail: target.includes(rule.value)
-					? `Found "${rule.value}"`
-					: `"${rule.value}" not found in ${rule.target}`,
+				detail: target.includes(rule.value) ? `Found "${rule.value}"` : `"${rule.value}" not found in ${rule.target}`,
 			};
 
 		case "regex": {
-			const re = new RegExp(rule.value, "i");
+			let re: RegExp;
+			try {
+				re = new RegExp(rule.value, "i");
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				return { rule, passed: false, detail: `Invalid regex "/${rule.value}/": ${msg}` };
+			}
 			const match = re.test(target);
 			return {
 				rule,
@@ -64,6 +78,9 @@ function evaluateRule(rule: RuleCheck, output: RunOutput): RuleResult {
 
 		case "exit_code": {
 			const expected = Number.parseInt(rule.value, 10);
+			if (Number.isNaN(expected)) {
+				return { rule, passed: false, detail: `Invalid exit_code value "${rule.value}" — must be an integer` };
+			}
 			const actual = output.exitCode;
 			return {
 				rule,
@@ -82,29 +99,37 @@ function evaluateRule(rule: RuleCheck, output: RunOutput): RuleResult {
 					passed: match,
 					detail: match ? "JSON structure matches" : "JSON structure mismatch",
 				};
-			} catch {
-				return { rule, passed: false, detail: "Failed to parse JSON" };
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				return { rule, passed: false, detail: `JSON parse failed: ${msg}` };
 			}
 		}
 
 		default:
-			return { rule, passed: false, detail: `Unknown rule type: ${rule.type}` };
+			return { rule, passed: false, detail: `Unknown rule type: "${rule.type}"` };
 	}
 }
 
-function resolveTarget(target: string, output: RunOutput): string {
-	if (target === "stdout") return output.stdout;
-	if (target === "stderr") return output.stderr;
-	if (target === "exit") return String(output.exitCode);
+function resolveTarget(target: string, output: RunOutput): { value: string; error?: string } {
+	if (target === "stdout") return { value: output.stdout };
+	if (target === "stderr") return { value: output.stderr };
+	if (target === "exit") return { value: String(output.exitCode) };
 	if (target.startsWith("file:")) {
 		const path = target.slice(5);
+		if (!path) {
+			return { value: "", error: `Invalid file target: "${target}" — path is empty` };
+		}
 		try {
-			return readFileSync(path, "utf-8");
-		} catch {
-			return "";
+			return { value: readFileSync(path, "utf-8") };
+		} catch (err) {
+			const code = (err as NodeJS.ErrnoException).code;
+			if (code === "ENOENT") {
+				return { value: "", error: `Target file not found: ${path}` };
+			}
+			return { value: "", error: `Cannot read target file "${path}": ${code ?? "unknown error"}` };
 		}
 	}
-	return output.stdout;
+	return { value: "", error: `Unknown target "${target}" — valid targets: stdout, stderr, exit, file:<path>` };
 }
 
 function shallowMatch(actual: Record<string, unknown>, expected: Record<string, unknown>): boolean {

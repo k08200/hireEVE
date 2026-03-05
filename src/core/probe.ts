@@ -17,6 +17,11 @@ export interface ProbeOptions {
 
 /** Run all scenarios and produce reports */
 export async function probe(scenarios: Scenario[], options: ProbeOptions): Promise<ProbeResult[]> {
+	if (scenarios.length === 0) {
+		console.log(chalk.yellow("No scenarios to run."));
+		return [];
+	}
+
 	const results: ProbeResult[] = [];
 
 	console.log(chalk.blue(`\nRunning ${scenarios.length} scenario(s)...\n`));
@@ -39,11 +44,18 @@ export async function probe(scenarios: Scenario[], options: ProbeOptions): Promi
 				console.log(chalk.gray(`    exit: ${output.exitCode}, duration: ${output.durationMs}ms`));
 			}
 
+			if (output.timedOut) {
+				console.log(chalk.yellow(`    TIMEOUT: process killed after ${scenario.timeout ?? 120}s`));
+			}
+
 			// Evaluate
 			evaluation = await evaluate(scenario.evaluate, output);
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err);
 			console.log(chalk.red(`    ERROR: ${msg}`));
+			if (options.verbose && err instanceof Error && err.stack) {
+				console.log(chalk.gray(`    ${err.stack.split("\n").slice(1, 4).join("\n    ")}`));
+			}
 			output = { stdout: "", stderr: msg, exitCode: 1, durationMs: 0, stepResults: [] };
 			evaluation = { score: 0, passed: false, method: scenario.evaluate.method };
 		}
@@ -60,12 +72,22 @@ export async function probe(scenarios: Scenario[], options: ProbeOptions): Promi
 	}
 
 	// Generate reports
-	const jsonPath = saveJsonReport(results, options.outputDir);
-	console.log(chalk.gray(`\nJSON report: ${jsonPath}`));
+	try {
+		const jsonPath = saveJsonReport(results, options.outputDir);
+		console.log(chalk.gray(`\nJSON report: ${jsonPath}`));
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		console.error(chalk.yellow(`Warning: Failed to save JSON report: ${msg}`));
+	}
 
 	if (options.markdown) {
-		const mdPath = saveMarkdownReport(results, options.outputDir);
-		console.log(chalk.gray(`Markdown report: ${mdPath}`));
+		try {
+			const mdPath = saveMarkdownReport(results, options.outputDir);
+			console.log(chalk.gray(`Markdown report: ${mdPath}`));
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			console.error(chalk.yellow(`Warning: Failed to save Markdown report: ${msg}`));
+		}
 	}
 
 	// Summary
