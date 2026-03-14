@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,7 +10,25 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-gray-950 text-gray-100 min-h-screen">{children}</body>
+      <body className="bg-gray-950 text-gray-100 min-h-screen">
+        <nav className="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-8">
+            <Link href="/" className="text-lg font-bold">
+              Probe<span className="text-blue-400">AI</span>
+            </Link>
+            <Link href="/agents" className="text-sm text-gray-400 hover:text-white transition">
+              Agents
+            </Link>
+            <Link href="/tests" className="text-sm text-gray-400 hover:text-white transition">
+              Tests
+            </Link>
+            <Link href="/billing" className="text-sm text-gray-400 hover:text-white transition">
+              Billing
+            </Link>
+          </div>
+        </nav>
+        {children}
+      </body>
     </html>
   );
 }
