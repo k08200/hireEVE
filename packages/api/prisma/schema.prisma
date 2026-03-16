@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  plan      Plan     @default(FREE)
-  stripeId  String?  @unique
-  agents    Agent[]
-  testRuns  TestRun[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String?
+  plan          Plan           @default(FREE)
+  stripeId      String?        @unique
+  agents        Agent[]
+  testRuns      TestRun[]
+  conversations Conversation[]
+  tokens        UserToken[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Agent {
@@ -81,4 +83,43 @@ enum Verdict {
   PASS
   FAIL
   WARNING
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  title     String?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           Role
+  content        String
+  createdAt      DateTime     @default(now())
+}
+
+enum Role {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model UserToken {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  provider     String   // "google"
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, provider])
 }
