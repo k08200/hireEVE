@@ -3,8 +3,8 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ProbeAI — AI Agent Testing Platform",
-  description: "Test and evaluate your AI agents with automated scenarios",
+  title: "EVE — Your First AI Employee",
+  description: "An autonomous AI teammate that handles coding, email, scheduling, and more for solo founders.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -14,13 +14,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <nav className="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-8">
             <Link href="/" className="text-lg font-bold">
-              Probe<span className="text-blue-400">AI</span>
+              <span className="text-blue-400">EVE</span>
             </Link>
-            <Link href="/agents" className="text-sm text-gray-400 hover:text-white transition">
-              Agents
-            </Link>
-            <Link href="/tests" className="text-sm text-gray-400 hover:text-white transition">
-              Tests
+            <Link href="/chat" className="text-sm text-gray-400 hover:text-white transition">
+              Chat
             </Link>
             <Link href="/billing" className="text-sm text-gray-400 hover:text-white transition">
               Billing

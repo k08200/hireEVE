@@ -12,10 +12,12 @@
     "test": "echo 'no tests yet'"
   },
   "dependencies": {
-    "@probeai/core": "workspace:*",
-    "fastify": "^5.3.3",
     "@fastify/cors": "^11.0.1",
     "@prisma/client": "^6.8.2",
+    "@probeai/core": "workspace:*",
+    "fastify": "^5.3.3",
+    "googleapis": "^171.4.0",
+    "openai": "^6.29.0",
     "stripe": "^18.1.0"
   },
   "devDependencies": {
