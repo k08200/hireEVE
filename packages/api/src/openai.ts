@@ -1,17 +1,17 @@
 import OpenAI from "openai";
 
-if (!process.env.GEMINI_API_KEY) {
-  console.warn("GEMINI_API_KEY not set — chat endpoints will fail");
+if (!process.env.OPENROUTER_API_KEY) {
+  console.warn("OPENROUTER_API_KEY not set — chat endpoints will fail");
 }
 
-export const openai = process.env.GEMINI_API_KEY
+export const openai = process.env.OPENROUTER_API_KEY
   ? new OpenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: "https://openrouter.ai/api/v1",
     })
   : (null as unknown as OpenAI);
 
-export const MODEL = "gemini-2.5-flash-lite";
+export const MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
 
 export const EVE_SYSTEM_PROMPT = `You are EVE, an autonomous AI assistant — the "first employee" for solo founders and indie hackers.
 

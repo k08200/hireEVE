@@ -10,7 +10,7 @@ import { authRoutes } from "./routes/auth.js";
 
 const app = Fastify({ logger: true });
 
-await app.register(cors, { origin: true });
+await app.register(cors, { origin: true, methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] });
 
 // Raw body support for Stripe webhook signature verification
 app.addContentTypeParser(
