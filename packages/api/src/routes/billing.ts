@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../db.js";
-import { stripe, PLANS } from "../stripe.js";
+import { PLANS, stripe } from "../stripe.js";
 
 export async function billingRoutes(app: FastifyInstance) {
   // POST /api/billing/checkout — Create Stripe checkout session

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 
 interface TestRun {
@@ -64,9 +64,7 @@ export default function TestsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold">{test.agent.name}</p>
-                  <p className={`text-sm mt-1 ${statusColors[test.status]}`}>
-                    {test.status}
-                  </p>
+                  <p className={`text-sm mt-1 ${statusColors[test.status]}`}>{test.status}</p>
                 </div>
                 <div className="text-right">
                   {test.score !== null ? (

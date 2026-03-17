@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../db.js";
-import { openai, EVE_SYSTEM_PROMPT, MODEL } from "../openai.js";
-import { GMAIL_TOOLS, executeToolCall } from "../gmail.js";
+import { executeToolCall, GMAIL_TOOLS } from "../gmail.js";
+import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
 
 export async function chatRoutes(app: FastifyInstance) {
   // POST /api/chat/conversations — Create new conversation
@@ -78,7 +78,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
     // Auto-generate title from first message
     if (!conversation.title && conversation.messages.length === 0) {
-      const title = content.length > 50 ? content.slice(0, 50) + "..." : content;
+      const title = content.length > 50 ? `${content.slice(0, 50)}...` : content;
       await prisma.conversation.update({
         where: { id },
         data: { title },
@@ -94,7 +94,7 @@ export async function chatRoutes(app: FastifyInstance) {
     // Build message history
     const history = [
       { role: "system" as const, content: EVE_SYSTEM_PROMPT },
-      ...conversation.messages.map((m) => ({
+      ...conversation.messages.map((m: { role: string; content: string }) => ({
         role: m.role.toLowerCase() as "user" | "assistant",
         content: m.content,
       })),
@@ -129,13 +129,19 @@ export async function chatRoutes(app: FastifyInstance) {
           const choice = response.choices[0];
           const toolCalls = choice.message.tool_calls;
 
-          console.log("[CHAT] finish_reason:", choice.finish_reason, "tool_calls:", toolCalls?.length || 0);
+          console.log(
+            "[CHAT] finish_reason:",
+            choice.finish_reason,
+            "tool_calls:",
+            toolCalls?.length || 0,
+          );
 
           if (choice.finish_reason === "tool_calls" || (toolCalls && toolCalls.length > 0)) {
             messages.push(choice.message);
 
             for (const toolCall of toolCalls || []) {
-              const fn = (toolCall as unknown as { function: { name: string; arguments: string } }).function;
+              const fn = (toolCall as unknown as { function: { name: string; arguments: string } })
+                .function;
               const args = JSON.parse(fn.arguments);
 
               console.log("[CHAT] Calling tool:", fn.name, "args:", JSON.stringify(args));

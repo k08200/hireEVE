@@ -3,9 +3,10 @@ import { prisma } from "./db.js";
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
-const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || "http://localhost:8000/api/auth/google/callback";
+const REDIRECT_URI =
+  process.env.GOOGLE_REDIRECT_URI || "http://localhost:8000/api/auth/google/callback";
 
-export function getOAuth2Client() {
+export function getOAuth2Client(): InstanceType<typeof google.auth.OAuth2> {
   return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 }
 
@@ -22,7 +23,9 @@ export function getAuthUrl() {
   });
 }
 
-export async function getAuthedClient(_userId: string) {
+export async function getAuthedClient(
+  _userId: string,
+): Promise<InstanceType<typeof google.auth.OAuth2> | null> {
   // MVP: find any google token
   const token = await prisma.userToken.findFirst({
     where: { provider: "google" },
@@ -41,7 +44,7 @@ export async function getAuthedClient(_userId: string) {
     await prisma.userToken.update({
       where: { id: token.id },
       data: {
-        accessToken: newTokens.access_token!,
+        accessToken: newTokens.access_token ?? "",
         expiresAt: newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
       },
     });
@@ -69,7 +72,7 @@ export async function listEmails(userId: string, maxResults = 10) {
   for (const msg of messages.slice(0, maxResults)) {
     const detail = await gmail.users.messages.get({
       userId: "me",
-      id: msg.id!,
+      id: msg.id ?? "",
       format: "metadata",
       metadataHeaders: ["From", "Subject", "Date"],
     });
@@ -127,7 +130,7 @@ export async function sendEmail(userId: string, to: string, subject: string, bod
 
   const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`;
   const raw = Buffer.from(
-    `To: ${to}\r\nSubject: ${encodedSubject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}`
+    `To: ${to}\r\nSubject: ${encodedSubject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}`,
   ).toString("base64url");
 
   const res = await gmail.users.messages.send({

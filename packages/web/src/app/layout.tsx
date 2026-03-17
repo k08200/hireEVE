@@ -4,7 +4,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "EVE — Your First AI Employee",
-  description: "An autonomous AI teammate that handles coding, email, scheduling, and more for solo founders.",
+  description:
+    "An autonomous AI teammate that handles coding, email, scheduling, and more for solo founders.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

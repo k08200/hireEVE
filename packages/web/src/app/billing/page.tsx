@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 
 interface BillingStatus {
@@ -49,12 +49,7 @@ const PLANS = [
     price: "Custom",
     period: "",
     tests: "Unlimited",
-    features: [
-      "Everything in Team",
-      "On-premise option",
-      "SLA guarantee",
-      "Custom integrations",
-    ],
+    features: ["Everything in Team", "On-premise option", "SLA guarantee", "Custom integrations"],
   },
 ];
 

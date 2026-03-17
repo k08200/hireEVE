@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
+import type Stripe from "stripe";
 import { prisma } from "../db.js";
 import { stripe } from "../stripe.js";
-import type Stripe from "stripe";
 
 export async function webhookRoutes(app: FastifyInstance) {
   // POST /api/webhook/stripe — Stripe webhook handler
