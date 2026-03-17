@@ -85,9 +85,9 @@ export async function chatRoutes(app: FastifyInstance) {
       });
     }
 
-    // Check if Gmail is connected for this user
-    const token = await (prisma as unknown as { userToken: { findUnique: (args: unknown) => Promise<unknown> } }).userToken.findUnique({
-      where: { userId_provider: { userId: conversation.userId, provider: "google" } },
+    // Check if Gmail is connected (MVP: any google token)
+    const token = await prisma.userToken.findFirst({
+      where: { provider: "google" },
     });
     const tools = token ? GMAIL_TOOLS : [];
 
@@ -103,7 +103,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
     // SSE headers
     reply.raw.writeHead(200, {
-      "Content-Type": "text/event-stream",
+      "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
       "Access-Control-Allow-Origin": "*",
@@ -117,6 +117,8 @@ export async function chatRoutes(app: FastifyInstance) {
         const messages: unknown[] = [...history];
         let maxIterations = 5;
 
+        console.log("[CHAT] Tools enabled, starting function calling loop");
+
         while (maxIterations-- > 0) {
           const response = await openai.chat.completions.create({
             model: MODEL,
@@ -127,6 +129,8 @@ export async function chatRoutes(app: FastifyInstance) {
           const choice = response.choices[0];
           const toolCalls = choice.message.tool_calls;
 
+          console.log("[CHAT] finish_reason:", choice.finish_reason, "tool_calls:", toolCalls?.length || 0);
+
           if (choice.finish_reason === "tool_calls" || (toolCalls && toolCalls.length > 0)) {
             messages.push(choice.message);
 
@@ -134,11 +138,15 @@ export async function chatRoutes(app: FastifyInstance) {
               const fn = (toolCall as unknown as { function: { name: string; arguments: string } }).function;
               const args = JSON.parse(fn.arguments);
 
+              console.log("[CHAT] Calling tool:", fn.name, "args:", JSON.stringify(args));
+
               reply.raw.write(
                 `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
               );
 
               const result = await executeToolCall(conversation.userId, fn.name, args);
+
+              console.log("[CHAT] Tool result:", result.substring(0, 200));
 
               messages.push({
                 role: "tool",
@@ -152,6 +160,7 @@ export async function chatRoutes(app: FastifyInstance) {
             }
           } else {
             fullResponse = choice.message.content || "";
+            console.log("[CHAT] Final response length:", fullResponse.length);
             reply.raw.write(
               `data: ${JSON.stringify({ type: "token", content: fullResponse })}\n\n`,
             );

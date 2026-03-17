@@ -41,6 +41,12 @@ export default function ChatListPage() {
     router.push(`/chat/${conv.id}`);
   };
 
+  const deleteConversation = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    await fetch(`${API_BASE}/api/chat/conversations/${id}`, { method: "DELETE" });
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+  };
+
   return (
     <main className="max-w-3xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
@@ -92,9 +98,17 @@ export default function ChatListPage() {
                 <span className="font-medium">
                   {conv.title || "New conversation"}
                 </span>
-                <span className="text-xs text-gray-500">
-                  {conv._count.messages} messages
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    {conv._count.messages} messages
+                  </span>
+                  <span
+                    onClick={(e) => deleteConversation(e, conv.id)}
+                    className="text-gray-600 hover:text-red-400 text-sm px-1 transition"
+                  >
+                    ✕
+                  </span>
+                </div>
               </div>
               {conv.messages[0] && (
                 <p className="text-sm text-gray-400 mt-1 truncate">

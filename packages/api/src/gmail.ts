@@ -22,9 +22,10 @@ export function getAuthUrl() {
   });
 }
 
-export async function getAuthedClient(userId: string) {
-  const token = await prisma.userToken.findUnique({
-    where: { userId_provider: { userId, provider: "google" } },
+export async function getAuthedClient(_userId: string) {
+  // MVP: find any google token
+  const token = await prisma.userToken.findFirst({
+    where: { provider: "google" },
   });
 
   if (!token) return null;
@@ -36,12 +37,12 @@ export async function getAuthedClient(userId: string) {
   });
 
   // Auto-refresh expired tokens
-  oauth2.on("tokens", async (tokens) => {
+  oauth2.on("tokens", async (newTokens) => {
     await prisma.userToken.update({
-      where: { userId_provider: { userId, provider: "google" } },
+      where: { id: token.id },
       data: {
-        accessToken: tokens.access_token!,
-        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+        accessToken: newTokens.access_token!,
+        expiresAt: newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
       },
     });
   });
@@ -124,8 +125,9 @@ export async function sendEmail(userId: string, to: string, subject: string, bod
 
   const gmail = google.gmail({ version: "v1", auth });
 
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`;
   const raw = Buffer.from(
-    `To: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}`
+    `To: ${to}\r\nSubject: ${encodedSubject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}`
   ).toString("base64url");
 
   const res = await gmail.users.messages.send({
