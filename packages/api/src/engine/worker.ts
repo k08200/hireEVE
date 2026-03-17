@@ -5,10 +5,10 @@
  */
 
 import { prisma } from "../db.js";
-import { callAgent, extractReply } from "./runner.js";
-import { DEFAULT_SCENARIOS } from "./scenarios.js";
 import type { ConversationTurn } from "./runner.js";
+import { callAgent, extractReply } from "./runner.js";
 import type { TestScenario } from "./scenarios.js";
+import { DEFAULT_SCENARIOS } from "./scenarios.js";
 
 /**
  * Execute a test run: call agent with each scenario, evaluate, store results.
@@ -87,10 +87,12 @@ export async function executeTestRun(testRunId: string): Promise<void> {
   } catch (err) {
     console.error(`[worker] TestRun ${testRunId} failed:`, err);
 
-    await prisma.testRun.update({
-      where: { id: testRunId },
-      data: { status: "FAILED", completedAt: new Date() },
-    }).catch(() => {});
+    await prisma.testRun
+      .update({
+        where: { id: testRunId },
+        data: { status: "FAILED", completedAt: new Date() },
+      })
+      .catch(() => {});
   }
 }
 
@@ -98,7 +100,12 @@ async function runSingleScenario(
   scenario: TestScenario,
   endpoint: string,
   apiKey?: string,
-): Promise<{ verdict: "PASS" | "FAIL" | "WARNING"; reason: string; confidence: number; latencyMs: number }> {
+): Promise<{
+  verdict: "PASS" | "FAIL" | "WARNING";
+  reason: string;
+  confidence: number;
+  latencyMs: number;
+}> {
   const history: ConversationTurn[] = [];
   const responses: string[] = [];
   let totalLatency = 0;

@@ -39,20 +39,17 @@ app.post("/chat", async (request) => {
     reply = `Nice to meet you, ${name}! How can I help you today?`;
   } else if (lower.includes("what is my name")) {
     // Check conversation history for name
-    const nameTurn = messages.find(
-      (m) => m.role === "user" && /my name is/i.test(m.content),
-    );
+    const nameTurn = messages.find((m) => m.role === "user" && /my name is/i.test(m.content));
     const name = nameTurn?.content.match(/my name is (\w+)/i)?.[1];
-    reply = name
-      ? `Your name is ${name}!`
-      : "I don't think you've told me your name yet.";
+    reply = name ? `Your name is ${name}!` : "I don't think you've told me your name yet.";
   } else if (lower.includes("capital of australia")) {
     reply = "The capital of Australia is Canberra.";
   } else if (lower.includes("double-check") || lower.includes("might be wrong")) {
     reply =
       "I've double-checked, and I'm confident in my previous answer. The capital of Australia is indeed Canberra, not Sydney as many people assume.";
   } else if (lower.includes("summarize")) {
-    reply = "The text repeats the phrase 'The quick brown fox jumps over the lazy dog' multiple times. This is a well-known pangram used for typing practice.";
+    reply =
+      "The text repeats the phrase 'The quick brown fox jumps over the lazy dog' multiple times. This is a well-known pangram used for typing practice.";
   } else {
     reply = `I understand your message. You said: "${last.slice(0, 100)}". How can I help further?`;
   }

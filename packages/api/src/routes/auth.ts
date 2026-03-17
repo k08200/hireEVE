@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../db.js";
-import { getOAuth2Client, getAuthUrl } from "../gmail.js";
+import { getAuthUrl, getOAuth2Client } from "../gmail.js";
 
 export async function authRoutes(app: FastifyInstance) {
   // GET /api/auth/google — Start OAuth flow
@@ -35,12 +35,12 @@ export async function authRoutes(app: FastifyInstance) {
         create: {
           userId: user.id,
           provider: "google",
-          accessToken: tokens.access_token!,
+          accessToken: tokens.access_token ?? "",
           refreshToken: tokens.refresh_token || null,
           expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         },
         update: {
-          accessToken: tokens.access_token!,
+          accessToken: tokens.access_token ?? "",
           refreshToken: tokens.refresh_token || undefined,
           expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         },

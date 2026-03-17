@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../../lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -32,13 +32,13 @@ export default function ChatPage() {
   // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
+  }, []);
 
   // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     e.target.style.height = "auto";
-    e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
   };
 
   const sendMessage = async () => {
@@ -148,9 +148,7 @@ export default function ChatPage() {
             >
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  msg.role === "USER"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-800 text-gray-100"
+                  msg.role === "USER" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-100"
                 }`}
               >
                 {msg.role !== "USER" && (

@@ -27,7 +27,7 @@ export async function callAgent(
   timeoutMs = 30_000,
 ): Promise<AgentResponse> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
   const body = JSON.stringify({
     messages: [

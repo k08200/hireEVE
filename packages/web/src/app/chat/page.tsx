@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 
 interface Conversation {
@@ -31,7 +31,7 @@ export default function ChatListPage() {
       .then((r) => r.json())
       .then((data) => setGmailConnected(data.connected))
       .catch(() => {});
-  }, []);
+  }, [API_BASE]);
 
   const createConversation = async () => {
     const conv = await apiFetch<Conversation>("/api/chat/conversations", {
@@ -95,13 +95,9 @@ export default function ChatListPage() {
               className="w-full text-left bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-lg p-4 transition"
             >
               <div className="flex items-center justify-between">
-                <span className="font-medium">
-                  {conv.title || "New conversation"}
-                </span>
+                <span className="font-medium">{conv.title || "New conversation"}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
-                    {conv._count.messages} messages
-                  </span>
+                  <span className="text-xs text-gray-500">{conv._count.messages} messages</span>
                   <span
                     onClick={(e) => deleteConversation(e, conv.id)}
                     className="text-gray-600 hover:text-red-400 text-sm px-1 transition"
@@ -111,9 +107,7 @@ export default function ChatListPage() {
                 </div>
               </div>
               {conv.messages[0] && (
-                <p className="text-sm text-gray-400 mt-1 truncate">
-                  {conv.messages[0].content}
-                </p>
+                <p className="text-sm text-gray-400 mt-1 truncate">{conv.messages[0].content}</p>
               )}
               <p className="text-xs text-gray-600 mt-2">
                 {new Date(conv.updatedAt).toLocaleString()}

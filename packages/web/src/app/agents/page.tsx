@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api";
 
 interface Agent {
@@ -56,9 +56,7 @@ export default function AgentsPage() {
                   <p className="text-sm text-gray-500 mt-1">{agent.endpoint}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-400">
-                    {agent._count?.testRuns ?? 0} tests
-                  </p>
+                  <p className="text-sm text-gray-400">{agent._count?.testRuns ?? 0} tests</p>
                   <p className="text-xs text-gray-600 mt-1">
                     {new Date(agent.createdAt).toLocaleDateString()}
                   </p>

@@ -1,30 +1,29 @@
-import Fastify from "fastify";
 import cors from "@fastify/cors";
+import Fastify from "fastify";
 import { prisma } from "./db.js";
-import { testRoutes } from "./routes/tests.js";
 import { agentRoutes } from "./routes/agents.js";
-import { billingRoutes } from "./routes/billing.js";
-import { webhookRoutes } from "./routes/webhook.js";
-import { chatRoutes } from "./routes/chat.js";
 import { authRoutes } from "./routes/auth.js";
+import { billingRoutes } from "./routes/billing.js";
+import { chatRoutes } from "./routes/chat.js";
+import { testRoutes } from "./routes/tests.js";
+import { webhookRoutes } from "./routes/webhook.js";
 
 const app = Fastify({ logger: true });
 
-await app.register(cors, { origin: true, methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] });
+await app.register(cors, {
+  origin: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+});
 
 // Raw body support for Stripe webhook signature verification
-app.addContentTypeParser(
-  "application/json",
-  { parseAs: "string" },
-  (req, body, done) => {
-    try {
-      (req as unknown as { rawBody: string }).rawBody = body as string;
-      done(null, JSON.parse(body as string));
-    } catch (err) {
-      done(err as Error, undefined);
-    }
-  },
-);
+app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
+  try {
+    (req as unknown as { rawBody: string }).rawBody = body as string;
+    done(null, JSON.parse(body as string));
+  } catch (err) {
+    done(err as Error, undefined);
+  }
+});
 
 await app.register(testRoutes, { prefix: "/api/tests" });
 await app.register(agentRoutes, { prefix: "/api/agents" });
