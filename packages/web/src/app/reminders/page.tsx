@@ -1,0 +1,208 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+interface Reminder {
+  id: string;
+  title: string;
+  description: string | null;
+  remindAt: string;
+  status: "PENDING" | "SENT" | "DISMISSED";
+}
+
+export default function RemindersPage() {
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", remindAt: "" });
+
+  const load = () => {
+    fetch(`${API_BASE}/api/reminders?userId=demo-user`)
+      .then((r) => r.json())
+      .then((d) => setReminders(d.reminders || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const create = async () => {
+    await fetch(`${API_BASE}/api/reminders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: "demo-user", ...form }),
+    });
+    setShowForm(false);
+    setForm({ title: "", description: "", remindAt: "" });
+    load();
+  };
+
+  const dismiss = async (id: string) => {
+    await fetch(`${API_BASE}/api/reminders/${id}/dismiss`, { method: "PATCH" });
+    setReminders((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: "DISMISSED" as const } : r)),
+    );
+  };
+
+  const remove = async (id: string) => {
+    await fetch(`${API_BASE}/api/reminders/${id}`, { method: "DELETE" });
+    setReminders((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const active = reminders.filter((r) => r.status !== "DISMISSED");
+  const dismissed = reminders.filter((r) => r.status === "DISMISSED");
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString("ko-KR", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const isPast = (iso: string) => new Date(iso) < new Date();
+
+  return (
+    <main className="max-w-3xl mx-auto px-6 py-10">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold">Reminders</h1>
+          <p className="text-gray-400 text-sm mt-1">Never forget anything</p>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+        >
+          + Add Reminder
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 space-y-3">
+          <input
+            placeholder="Title *"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+          <textarea
+            placeholder="Description (optional)"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={2}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500"
+          />
+          <input
+            type="datetime-local"
+            value={form.remindAt}
+            onChange={(e) => setForm({ ...form, remindAt: e.target.value })}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={create}
+              disabled={!form.title || !form.remindAt}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-gray-500">Loading...</p>
+      ) : active.length === 0 && dismissed.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-gray-500 mb-2">No reminders yet</p>
+          <p className="text-gray-600 text-sm">Tell EVE: &quot;내일 3시에 미팅 알려줘&quot;</p>
+        </div>
+      ) : (
+        <>
+          {active.length > 0 && (
+            <div className="space-y-2 mb-8">
+              <h2 className="text-sm font-medium text-gray-400 mb-2">Active ({active.length})</h2>
+              {active.map((r) => (
+                <div key={r.id} className="bg-gray-900 border border-gray-800 rounded-lg p-4 group">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-medium">{r.title}</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className={`text-xs ${isPast(r.remindAt) ? "text-red-400" : "text-gray-400"}`}
+                        >
+                          {formatDate(r.remindAt)}
+                        </span>
+                        {isPast(r.remindAt) && (
+                          <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">
+                            overdue
+                          </span>
+                        )}
+                      </div>
+                      {r.description && (
+                        <p className="text-xs text-gray-500 mt-1">{r.description}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                      <button
+                        onClick={() => dismiss(r.id)}
+                        className="text-xs text-gray-500 hover:text-green-400 transition"
+                      >
+                        Done
+                      </button>
+                      <button
+                        onClick={() => remove(r.id)}
+                        className="text-xs text-gray-500 hover:text-red-400 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {dismissed.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-medium text-gray-500 mb-2">
+                Dismissed ({dismissed.length})
+              </h2>
+              {dismissed.map((r) => (
+                <div
+                  key={r.id}
+                  className="bg-gray-900/50 border border-gray-800/50 rounded-lg p-4 opacity-60 group"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-medium line-through">{r.title}</span>
+                      <p className="text-xs text-gray-500 mt-1">{formatDate(r.remindAt)}</p>
+                    </div>
+                    <button
+                      onClick={() => remove(r.id)}
+                      className="text-xs text-gray-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </main>
+  );
+}

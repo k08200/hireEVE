@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Markdown } from "../../../components/markdown";
 import { apiFetch } from "../../../lib/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -19,6 +20,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [activeTools, setActiveTools] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -32,7 +34,7 @@ export default function ChatPage() {
   // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  }, [messages, streamingContent]);
 
   // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -88,6 +90,10 @@ export default function ChatPage() {
               if (data.type === "token") {
                 fullContent += data.content;
                 setStreamingContent(fullContent);
+              } else if (data.type === "tool_call") {
+                setActiveTools((prev) => [...prev, data.name]);
+              } else if (data.type === "tool_result") {
+                setActiveTools((prev) => prev.filter((t) => t !== data.name));
               } else if (data.type === "error") {
                 fullContent += `\n\n[Error: ${data.content}]`;
                 setStreamingContent(fullContent);
@@ -119,6 +125,7 @@ export default function ChatPage() {
 
     setStreaming(false);
     setStreamingContent("");
+    setActiveTools([]);
     inputRef.current?.focus();
   };
 
@@ -131,13 +138,44 @@ export default function ChatPage() {
 
   return (
     <main className="flex flex-col h-[calc(100vh-3.5rem)]">
+      {/* Header */}
+      <div className="flex items-center justify-end px-4 pt-2">
+        <a
+          href={`${API_BASE}/api/chat/conversations/${id}/export`}
+          download
+          className="text-xs text-gray-500 hover:text-gray-300 transition px-2 py-1 rounded border border-gray-800 hover:border-gray-600"
+        >
+          Export .md
+        </a>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-4">
           {messages.length === 0 && !streaming && (
             <div className="text-center py-20">
               <h2 className="text-xl font-semibold mb-2">EVE</h2>
-              <p className="text-gray-400">How can I help you today?</p>
+              <p className="text-gray-400 mb-6">How can I help you today? / 무엇을 도와드릴까요?</p>
+              <div className="flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
+                {[
+                  "오늘 브리핑 해줘",
+                  "메일 확인해줘",
+                  "할 일 보여줘",
+                  "보고서 써줘",
+                  "일정 잡아줘",
+                  "연락처 검색",
+                ].map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => {
+                      setInput(q);
+                    }}
+                    className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-3 py-1.5 rounded-lg text-xs transition"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -154,7 +192,11 @@ export default function ChatPage() {
                 {msg.role !== "USER" && (
                   <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>
                 )}
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                {msg.role === "USER" ? (
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                ) : (
+                  <Markdown content={msg.content} />
+                )}
               </div>
             </div>
           ))}
@@ -164,16 +206,30 @@ export default function ChatPage() {
             <div className="flex justify-start">
               <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gray-800 text-gray-100">
                 <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {streamingContent}
+                <div>
+                  <Markdown content={streamingContent} />
                   <span className="inline-block w-2 h-4 bg-blue-400 animate-pulse ml-1" />
-                </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tool call indicator */}
+          {streaming && activeTools.length > 0 && (
+            <div className="flex justify-start">
+              <div className="rounded-2xl px-4 py-2 bg-gray-800/50 border border-gray-700">
+                {activeTools.map((tool) => (
+                  <div key={tool} className="flex items-center gap-2 text-xs text-yellow-400">
+                    <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                    {tool.replace(/_/g, " ")}...
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* Loading indicator */}
-          {streaming && !streamingContent && (
+          {streaming && !streamingContent && activeTools.length === 0 && (
             <div className="flex justify-start">
               <div className="rounded-2xl px-4 py-3 bg-gray-800">
                 <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>
@@ -198,7 +254,7 @@ export default function ChatPage() {
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message... (Shift+Enter for new line)"
+            placeholder="Type a message... / 메시지를 입력하세요 (Shift+Enter for new line)"
             rows={1}
             className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
           />

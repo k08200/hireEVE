@@ -7,8 +7,8 @@ import { apiFetch } from "../../lib/api";
 interface BillingStatus {
   plan: string;
   planName: string;
-  testLimit: number;
-  testCount: number;
+  messageLimit: number;
+  messageCount: number;
   stripeId: string | null;
 }
 
@@ -18,29 +18,35 @@ const PLANS = [
     name: "Free",
     price: "$0",
     period: "",
-    tests: "10 tests/month",
-    features: ["1 agent", "Basic evaluations", "Community support"],
+    limit: "50 messages/month",
+    features: ["Gmail & Calendar integration", "Task management", "Basic AI assistant"],
   },
   {
     key: "PRO",
     name: "Pro",
-    price: "$49",
+    price: "$29",
     period: "/mo",
-    tests: "500 tests/month",
-    features: ["5 agents", "LLM + rule evaluations", "Priority support", "API access"],
+    limit: "2,000 messages/month",
+    features: [
+      "Everything in Free",
+      "Unlimited tool usage",
+      "Priority response",
+      "Web search",
+      "File attachments",
+    ],
   },
   {
     key: "TEAM",
     name: "Team",
-    price: "$199",
+    price: "$99",
     period: "/mo",
-    tests: "5,000 tests/month",
+    limit: "10,000 messages/month",
     features: [
-      "Unlimited agents",
-      "Custom scenarios",
-      "Team dashboard",
+      "Everything in Pro",
+      "Team workspace",
+      "Shared conversations",
+      "Admin dashboard",
       "Dedicated support",
-      "SSO",
     ],
   },
   {
@@ -48,7 +54,7 @@ const PLANS = [
     name: "Enterprise",
     price: "Custom",
     period: "",
-    tests: "Unlimited",
+    limit: "Unlimited",
     features: ["Everything in Team", "On-premise option", "SLA guarantee", "Custom integrations"],
   },
 ];
@@ -70,7 +76,6 @@ function BillingContent() {
   const canceled = searchParams.get("canceled");
 
   useEffect(() => {
-    // TODO: replace with real auth userId
     apiFetch<BillingStatus>("/api/billing/status?userId=demo-user")
       .then(setStatus)
       .catch(() => {})
@@ -104,6 +109,7 @@ function BillingContent() {
   return (
     <main className="max-w-5xl mx-auto px-6 py-12">
       <h1 className="text-3xl font-bold mb-2">Billing</h1>
+      <p className="text-gray-400 mb-8">Choose a plan that fits your workflow</p>
 
       {success && (
         <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 mb-6">
@@ -123,9 +129,25 @@ function BillingContent() {
               <p className="text-sm text-gray-500">Current Plan</p>
               <p className="text-xl font-bold">{status.planName}</p>
               <p className="text-sm text-gray-400 mt-1">
-                {status.testCount} / {status.testLimit === Infinity ? "∞" : status.testLimit} tests
-                used
+                {status.messageCount} /{" "}
+                {status.messageLimit === Infinity ? "∞" : status.messageLimit} messages used
               </p>
+              {status.messageLimit !== Infinity && status.messageLimit > 0 && (
+                <div className="w-48 bg-gray-800 rounded-full h-2 mt-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      status.messageCount / status.messageLimit > 0.9
+                        ? "bg-red-500"
+                        : status.messageCount / status.messageLimit > 0.7
+                          ? "bg-yellow-500"
+                          : "bg-blue-500"
+                    }`}
+                    style={{
+                      width: `${Math.min((status.messageCount / status.messageLimit) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
+              )}
             </div>
             {status.stripeId && (
               <button
@@ -154,7 +176,7 @@ function BillingContent() {
                 {plan.price}
                 <span className="text-sm text-gray-500 font-normal">{plan.period}</span>
               </p>
-              <p className="text-sm text-gray-400 mb-4">{plan.tests}</p>
+              <p className="text-sm text-gray-400 mb-4">{plan.limit}</p>
 
               <ul className="space-y-2 mb-6 flex-1">
                 {plan.features.map((f) => (
@@ -173,7 +195,7 @@ function BillingContent() {
                 <div />
               ) : plan.key === "ENTERPRISE" ? (
                 <a
-                  href="mailto:sales@probeai.dev"
+                  href="mailto:sales@hireeve.com"
                   className="block text-center bg-gray-800 hover:bg-gray-700 text-white py-2.5 rounded-lg text-sm font-medium transition"
                 >
                   Contact Sales

@@ -19,6 +19,7 @@ export function getAuthUrl() {
       "https://www.googleapis.com/auth/gmail.readonly",
       "https://www.googleapis.com/auth/gmail.send",
       "https://www.googleapis.com/auth/gmail.modify",
+      "https://www.googleapis.com/auth/calendar",
     ],
   });
 }
@@ -141,6 +142,83 @@ export async function sendEmail(userId: string, to: string, subject: string, bod
   return { success: true, messageId: res.data.id };
 }
 
+export async function classifyEmails(userId: string, maxResults = 10) {
+  const result = await listEmails(userId, maxResults);
+  if ("error" in result) return result;
+
+  const classified = result.emails.map((email) => {
+    const from = (email.from || "").toLowerCase();
+    const subject = (email.subject || "").toLowerCase();
+
+    let priority: "high" | "medium" | "low" = "low";
+    let category = "other";
+
+    // High priority signals
+    if (
+      subject.includes("urgent") ||
+      subject.includes("긴급") ||
+      subject.includes("asap") ||
+      subject.includes("important") ||
+      subject.includes("중요") ||
+      subject.includes("action required")
+    ) {
+      priority = "high";
+    }
+
+    // Category detection
+    if (
+      subject.includes("invoice") ||
+      subject.includes("payment") ||
+      subject.includes("결제") ||
+      subject.includes("청구")
+    ) {
+      category = "billing";
+      if (priority === "low") priority = "medium";
+    } else if (
+      subject.includes("meeting") ||
+      subject.includes("미팅") ||
+      subject.includes("invite") ||
+      subject.includes("calendar")
+    ) {
+      category = "meeting";
+      if (priority === "low") priority = "medium";
+    } else if (
+      subject.includes("deploy") ||
+      subject.includes("build") ||
+      subject.includes("error") ||
+      subject.includes("alert")
+    ) {
+      category = "engineering";
+      if (priority === "low") priority = "medium";
+    } else if (
+      from.includes("noreply") ||
+      from.includes("no-reply") ||
+      from.includes("newsletter") ||
+      from.includes("marketing")
+    ) {
+      category = "automated";
+      priority = "low";
+    } else if (subject.includes("re:") || subject.includes("회신")) {
+      category = "conversation";
+      if (priority === "low") priority = "medium";
+    }
+
+    return { ...email, priority, category };
+  });
+
+  // Sort: high → medium → low
+  const order = { high: 0, medium: 1, low: 2 };
+  classified.sort((a, b) => order[a.priority] - order[b.priority]);
+
+  const summary = {
+    high: classified.filter((e) => e.priority === "high").length,
+    medium: classified.filter((e) => e.priority === "medium").length,
+    low: classified.filter((e) => e.priority === "low").length,
+  };
+
+  return { emails: classified, summary };
+}
+
 // Tool definitions for function calling
 export const GMAIL_TOOLS = [
   {
@@ -180,6 +258,24 @@ export const GMAIL_TOOLS = [
   {
     type: "function" as const,
     function: {
+      name: "classify_emails",
+      description:
+        "Classify and prioritize inbox emails by urgency (high/medium/low) and category (billing, meeting, engineering, conversation, automated, other). Returns sorted list with high-priority first.",
+      parameters: {
+        type: "object",
+        properties: {
+          max_results: {
+            type: "number",
+            description: "Number of emails to classify (default 10)",
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
       name: "send_email",
       description: "Send an email on behalf of the user",
       parameters: {
@@ -194,37 +290,3 @@ export const GMAIL_TOOLS = [
     },
   },
 ];
-
-// Execute a tool call
-export async function executeToolCall(
-  userId: string,
-  functionName: string,
-  args: Record<string, unknown>,
-): Promise<string> {
-  try {
-    switch (functionName) {
-      case "list_emails": {
-        const result = await listEmails(userId, (args.max_results as number) || 10);
-        return JSON.stringify(result);
-      }
-      case "read_email": {
-        const result = await readEmail(userId, args.email_id as string);
-        return JSON.stringify(result);
-      }
-      case "send_email": {
-        const result = await sendEmail(
-          userId,
-          args.to as string,
-          args.subject as string,
-          args.body as string,
-        );
-        return JSON.stringify(result);
-      }
-      default:
-        return JSON.stringify({ error: `Unknown function: ${functionName}` });
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return JSON.stringify({ error: message });
-  }
-}

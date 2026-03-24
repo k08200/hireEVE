@@ -1,0 +1,407 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+interface Task {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "TODO" | "IN_PROGRESS" | "DONE";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  dueDate: string | null;
+}
+
+const statusColors: Record<string, string> = {
+  TODO: "bg-gray-700 text-gray-300",
+  IN_PROGRESS: "bg-blue-900 text-blue-300",
+  DONE: "bg-green-900 text-green-300",
+};
+
+const priorityColors: Record<string, string> = {
+  LOW: "text-gray-500",
+  MEDIUM: "text-yellow-500",
+  HIGH: "text-orange-500",
+  URGENT: "text-red-500",
+};
+
+const statusLabels: Record<string, string> = {
+  TODO: "To Do",
+  IN_PROGRESS: "In Progress",
+  DONE: "Done",
+};
+
+export default function TasksPage() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
+  const [editing, setEditing] = useState<Task | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    priority: "MEDIUM",
+    status: "TODO",
+    dueDate: "",
+  });
+
+  const loadTasks = () => {
+    const url =
+      filter === "all"
+        ? `${API_BASE}/api/tasks?userId=demo-user`
+        : `${API_BASE}/api/tasks?userId=demo-user&status=${filter}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => setTasks(data.tasks || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadTasks();
+  }, [filter]);
+
+  const updateStatus = async (taskId: string, status: string) => {
+    await fetch(`${API_BASE}/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    loadTasks();
+  };
+
+  const createTask = async () => {
+    await fetch(`${API_BASE}/api/tasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: "demo-user",
+        title: form.title,
+        description: form.description || undefined,
+        priority: form.priority,
+        dueDate: form.dueDate || undefined,
+      }),
+    });
+    setShowForm(false);
+    setForm({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
+    loadTasks();
+  };
+
+  const startEdit = (task: Task) => {
+    setEditing(task);
+    setEditForm({
+      title: task.title,
+      description: task.description || "",
+      priority: task.priority,
+      status: task.status,
+      dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    await fetch(`${API_BASE}/api/tasks/${editing.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: editForm.title,
+        description: editForm.description || null,
+        priority: editForm.priority,
+        status: editForm.status,
+        dueDate: editForm.dueDate || null,
+      }),
+    });
+    setEditing(null);
+    loadTasks();
+  };
+
+  const deleteTask = async (taskId: string) => {
+    await fetch(`${API_BASE}/api/tasks/${taskId}`, { method: "DELETE" });
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  };
+
+  const filtered = tasks.filter((t) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return t.title.toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q);
+  });
+
+  const doneCount = tasks.filter((t) => t.status === "DONE").length;
+  const overdueCount = tasks.filter(
+    (t) => t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < new Date(),
+  ).length;
+  const progress = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
+
+  return (
+    <main className="max-w-3xl mx-auto px-6 py-10">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-bold">Tasks</h1>
+          <p className="text-gray-400 text-sm mt-1">
+            Managed by EVE or add directly / EVE에게 시키거나 직접 추가
+          </p>
+        </div>
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+          >
+            + Add Task
+          </button>
+        </div>
+      </div>
+
+      {/* Stats bar */}
+      {!loading && tasks.length > 0 && (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">
+              {doneCount}/{tasks.length} completed
+              {overdueCount > 0 && (
+                <span className="text-red-400 ml-2">{overdueCount} overdue</span>
+              )}
+            </span>
+            <span className="text-sm font-medium text-blue-400">{progress}%</span>
+          </div>
+          <div className="w-full bg-gray-800 rounded-full h-2">
+            <div
+              className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 space-y-3">
+          <input
+            placeholder="Task title * / 할 일 제목"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          />
+          <textarea
+            placeholder="Description (optional) / 설명"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={2}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              value={form.priority}
+              onChange={(e) => setForm({ ...form, priority: e.target.value })}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            >
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
+            </select>
+            <input
+              type="date"
+              value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={createTask}
+              disabled={!form.title}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-1 mb-4">
+        {["all", "TODO", "IN_PROGRESS", "DONE"].map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              filter === f ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            {f === "all" ? "All" : statusLabels[f]}
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search tasks... / 할 일 검색..."
+          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+        />
+      </div>
+
+      {/* Edit modal */}
+      {editing && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-semibold mb-4">Edit Task / 할 일 수정</h3>
+            <div className="space-y-3">
+              <input
+                placeholder="Title *"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <textarea
+                placeholder="Description (optional)"
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                rows={2}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500"
+              />
+              <div className="grid grid-cols-3 gap-3">
+                <select
+                  value={editForm.priority}
+                  onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
+                  className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                >
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
+                  <option value="URGENT">Urgent</option>
+                </select>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                >
+                  <option value="TODO">To Do</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="DONE">Done</option>
+                </select>
+                <input
+                  type="date"
+                  value={editForm.dueDate}
+                  onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+                  className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end mt-4">
+              <button
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={!editForm.title}
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-gray-500">Loading...</p>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-gray-500 mb-2">No tasks yet</p>
+          <p className="text-gray-600 text-sm">Tell EVE in chat: &quot;할 일 추가해줘&quot;</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((task) => (
+            <div
+              key={task.id}
+              className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-start gap-3 cursor-pointer hover:border-gray-600 transition"
+              onClick={() => startEdit(task)}
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateStatus(
+                    task.id,
+                    task.status === "DONE"
+                      ? "TODO"
+                      : task.status === "TODO"
+                        ? "IN_PROGRESS"
+                        : "DONE",
+                  );
+                }}
+                className={`mt-0.5 w-5 h-5 rounded border-2 shrink-0 transition ${
+                  task.status === "DONE"
+                    ? "bg-green-600 border-green-600"
+                    : "border-gray-600 hover:border-blue-500"
+                }`}
+              >
+                {task.status === "DONE" && (
+                  <span className="text-white text-xs flex items-center justify-center">✓</span>
+                )}
+              </button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-medium ${task.status === "DONE" ? "line-through text-gray-500" : ""}`}
+                  >
+                    {task.title}
+                  </span>
+                  <span className={`text-xs ${priorityColors[task.priority]}`}>
+                    {task.priority}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[task.status]}`}>
+                    {statusLabels[task.status]}
+                  </span>
+                </div>
+                {task.description && (
+                  <p className="text-sm text-gray-400 mt-1 truncate">{task.description}</p>
+                )}
+                {task.dueDate && (
+                  <p
+                    className={`text-xs mt-1 ${task.status !== "DONE" && new Date(task.dueDate) < new Date() ? "text-red-400" : "text-gray-500"}`}
+                  >
+                    Due: {new Date(task.dueDate).toLocaleDateString()}
+                    {task.status !== "DONE" && new Date(task.dueDate) < new Date() && " (overdue)"}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteTask(task.id);
+                }}
+                className="text-gray-600 hover:text-red-400 text-sm transition shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </main>
+  );
+}

@@ -1,5 +1,5 @@
 {
-  "name": "@probeai/core",
+  "name": "@hireeve/core",
   "version": "0.2.2",
   "description": "Core engine for testing and evaluating AI coding agents",
   "main": "dist/index.js",

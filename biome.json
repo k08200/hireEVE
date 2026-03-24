@@ -14,11 +14,20 @@
       "style": {
         "noNonNullAssertion": "warn"
       },
+      "suspicious": {
+        "noAssignInExpressions": "warn",
+        "noArrayIndexKey": "warn"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "warn"
+      },
       "a11y": {
         "noLabelWithoutControl": "warn",
         "useButtonType": "warn",
         "useKeyWithClickEvents": "warn",
-        "noStaticElementInteractions": "warn"
+        "noStaticElementInteractions": "warn",
+        "noAutofocus": "warn",
+        "noSvgWithoutTitle": "warn"
       }
     }
   },

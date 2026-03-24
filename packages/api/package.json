@@ -1,8 +1,8 @@
 {
-  "name": "@probeai/api",
+  "name": "@hireeve/api",
   "version": "0.1.0",
   "private": true,
-  "description": "ProbeAI API server",
+  "description": "hireEVE API server",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -14,7 +14,7 @@
   "dependencies": {
     "@fastify/cors": "^11.0.1",
     "@prisma/client": "^6.8.2",
-    "@probeai/core": "workspace:*",
+    "@hireeve/core": "workspace:*",
     "fastify": "^5.3.3",
     "googleapis": "^171.4.0",
     "openai": "^6.29.0",
