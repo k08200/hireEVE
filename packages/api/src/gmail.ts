@@ -19,6 +19,7 @@ export function getAuthUrl() {
       "https://www.googleapis.com/auth/gmail.readonly",
       "https://www.googleapis.com/auth/gmail.send",
       "https://www.googleapis.com/auth/gmail.modify",
+      "https://www.googleapis.com/auth/calendar",
     ],
   });
 }
@@ -195,36 +196,3 @@ export const GMAIL_TOOLS = [
   },
 ];
 
-// Execute a tool call
-export async function executeToolCall(
-  userId: string,
-  functionName: string,
-  args: Record<string, unknown>,
-): Promise<string> {
-  try {
-    switch (functionName) {
-      case "list_emails": {
-        const result = await listEmails(userId, (args.max_results as number) || 10);
-        return JSON.stringify(result);
-      }
-      case "read_email": {
-        const result = await readEmail(userId, args.email_id as string);
-        return JSON.stringify(result);
-      }
-      case "send_email": {
-        const result = await sendEmail(
-          userId,
-          args.to as string,
-          args.subject as string,
-          args.body as string,
-        );
-        return JSON.stringify(result);
-      }
-      default:
-        return JSON.stringify({ error: `Unknown function: ${functionName}` });
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return JSON.stringify({ error: message });
-  }
-}

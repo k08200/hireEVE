@@ -40,4 +40,4 @@ app.addHook("onClose", async () => {
 
 const port = Number(process.env.PORT) || 3001;
 await app.listen({ port, host: "0.0.0.0" });
-console.log(`ProbeAI API running on http://localhost:${port}`);
+console.log(`hireEVE API running on http://localhost:${port}`);

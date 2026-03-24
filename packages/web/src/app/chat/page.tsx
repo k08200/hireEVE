@@ -60,10 +60,12 @@ export default function ChatListPage() {
               href={`${API_BASE}/api/auth/google`}
               className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-gray-700"
             >
-              Connect Gmail
+              Connect Google
             </a>
           ) : (
-            <span className="flex items-center text-sm text-green-400 px-3">Gmail connected</span>
+            <span className="flex items-center text-sm text-green-400 px-3">
+              Google connected
+            </span>
           )}
           <button
             onClick={createConversation}

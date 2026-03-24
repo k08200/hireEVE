@@ -1,7 +1,69 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../db.js";
-import { executeToolCall, GMAIL_TOOLS } from "../gmail.js";
+import { CALENDAR_TOOLS, createEvent, deleteEvent, listEvents } from "../calendar.js";
+import { GMAIL_TOOLS, listEmails, readEmail, sendEmail } from "../gmail.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
+import { TASK_TOOLS, createTask, deleteTask, listTasks, updateTask } from "../tasks.js";
+
+const GOOGLE_TOOLS = [...GMAIL_TOOLS, ...CALENDAR_TOOLS];
+const ALL_TOOLS = [...TASK_TOOLS, ...GOOGLE_TOOLS];
+
+async function executeToolCall(
+  userId: string,
+  functionName: string,
+  args: Record<string, unknown>,
+): Promise<string> {
+  try {
+    switch (functionName) {
+      case "list_emails":
+        return JSON.stringify(await listEmails(userId, (args.max_results as number) || 10));
+      case "read_email":
+        return JSON.stringify(await readEmail(userId, args.email_id as string));
+      case "send_email":
+        return JSON.stringify(
+          await sendEmail(userId, args.to as string, args.subject as string, args.body as string),
+        );
+      case "list_events":
+        return JSON.stringify(await listEvents(userId, (args.max_results as number) || 10));
+      case "create_event":
+        return JSON.stringify(
+          await createEvent(
+            userId,
+            args.summary as string,
+            args.start_time as string,
+            args.end_time as string,
+            args.description as string | undefined,
+            args.location as string | undefined,
+          ),
+        );
+      case "delete_event":
+        return JSON.stringify(await deleteEvent(userId, args.event_id as string));
+      case "list_tasks":
+        return JSON.stringify(await listTasks(userId, args.status as string | undefined));
+      case "create_task":
+        return JSON.stringify(
+          await createTask(
+            userId,
+            args.title as string,
+            args.description as string | undefined,
+            args.priority as string | undefined,
+            args.due_date as string | undefined,
+          ),
+        );
+      case "update_task": {
+        const { task_id, ...rest } = args;
+        return JSON.stringify(await updateTask(task_id as string, rest));
+      }
+      case "delete_task":
+        return JSON.stringify(await deleteTask(args.task_id as string));
+      default:
+        return JSON.stringify({ error: `Unknown function: ${functionName}` });
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return JSON.stringify({ error: message });
+  }
+}
 
 export async function chatRoutes(app: FastifyInstance) {
   // POST /api/chat/conversations — Create new conversation
@@ -89,7 +151,7 @@ export async function chatRoutes(app: FastifyInstance) {
     const token = await prisma.userToken.findFirst({
       where: { provider: "google" },
     });
-    const tools = token ? GMAIL_TOOLS : [];
+    const tools = token ? ALL_TOOLS : [...TASK_TOOLS];
 
     // Build message history
     const history = [
