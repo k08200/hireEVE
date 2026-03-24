@@ -19,6 +19,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+  const [activeTools, setActiveTools] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -88,6 +89,10 @@ export default function ChatPage() {
               if (data.type === "token") {
                 fullContent += data.content;
                 setStreamingContent(fullContent);
+              } else if (data.type === "tool_call") {
+                setActiveTools((prev) => [...prev, data.name]);
+              } else if (data.type === "tool_result") {
+                setActiveTools((prev) => prev.filter((t) => t !== data.name));
               } else if (data.type === "error") {
                 fullContent += `\n\n[Error: ${data.content}]`;
                 setStreamingContent(fullContent);
@@ -119,6 +124,7 @@ export default function ChatPage() {
 
     setStreaming(false);
     setStreamingContent("");
+    setActiveTools([]);
     inputRef.current?.focus();
   };
 
@@ -172,8 +178,22 @@ export default function ChatPage() {
             </div>
           )}
 
+          {/* Tool call indicator */}
+          {streaming && activeTools.length > 0 && (
+            <div className="flex justify-start">
+              <div className="rounded-2xl px-4 py-2 bg-gray-800/50 border border-gray-700">
+                {activeTools.map((tool) => (
+                  <div key={tool} className="flex items-center gap-2 text-xs text-yellow-400">
+                    <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                    {tool.replace(/_/g, " ")}...
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Loading indicator */}
-          {streaming && !streamingContent && (
+          {streaming && !streamingContent && activeTools.length === 0 && (
             <div className="flex justify-start">
               <div className="rounded-2xl px-4 py-3 bg-gray-800">
                 <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>

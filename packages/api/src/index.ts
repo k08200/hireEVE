@@ -6,6 +6,7 @@ import { authRoutes } from "./routes/auth.js";
 import { billingRoutes } from "./routes/billing.js";
 import { chatRoutes } from "./routes/chat.js";
 import { testRoutes } from "./routes/tests.js";
+import { taskRoutes } from "./routes/tasks.js";
 import { webhookRoutes } from "./routes/webhook.js";
 
 const app = Fastify({ logger: true });
@@ -30,6 +31,7 @@ await app.register(agentRoutes, { prefix: "/api/agents" });
 await app.register(billingRoutes, { prefix: "/api/billing" });
 await app.register(webhookRoutes, { prefix: "/api/webhook" });
 await app.register(chatRoutes, { prefix: "/api/chat" });
+await app.register(taskRoutes, { prefix: "/api/tasks" });
 await app.register(authRoutes, { prefix: "/api/auth" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));

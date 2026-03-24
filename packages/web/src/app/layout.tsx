@@ -20,6 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/chat" className="text-sm text-gray-400 hover:text-white transition">
               Chat
             </Link>
+            <Link href="/tasks" className="text-sm text-gray-400 hover:text-white transition">
+              Tasks
+            </Link>
             <Link href="/billing" className="text-sm text-gray-400 hover:text-white transition">
               Billing
             </Link>
