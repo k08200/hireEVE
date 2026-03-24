@@ -21,7 +21,9 @@ interface SlackMessage {
   thread_ts?: string;
 }
 
-export async function sendSlackMessage(msg: SlackMessage): Promise<{ ok: boolean; error?: string }> {
+export async function sendSlackMessage(
+  msg: SlackMessage,
+): Promise<{ ok: boolean; error?: string }> {
   if (SLACK_BOT_TOKEN) {
     const res = await fetch("https://slack.com/api/chat.postMessage", {
       method: "POST",
@@ -53,9 +55,12 @@ export async function listSlackChannels(): Promise<{
     return { channels: [] };
   }
 
-  const res = await fetch("https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=100", {
-    headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` },
-  });
+  const res = await fetch(
+    "https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=100",
+    {
+      headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` },
+    },
+  );
   const data = (await res.json()) as {
     ok: boolean;
     channels: { id: string; name: string }[];
@@ -148,7 +153,10 @@ export const SLACK_TOOLS = [
         properties: {
           channel: { type: "string", description: "Slack channel ID or name (e.g. #general)" },
           text: { type: "string", description: "Message text" },
-          thread_ts: { type: "string", description: "Thread timestamp to reply in thread (optional)" },
+          thread_ts: {
+            type: "string",
+            description: "Thread timestamp to reply in thread (optional)",
+          },
         },
         required: ["channel", "text"],
       },

@@ -3,7 +3,8 @@ import { getAuthedClient } from "./gmail.js";
 
 export async function listEvents(userId: string, maxResults = 10) {
   const auth = await getAuthedClient(userId);
-  if (!auth) return { error: "Google Calendar not connected. Please connect your Google account first." };
+  if (!auth)
+    return { error: "Google Calendar not connected. Please connect your Google account first." };
 
   const calendar = google.calendar({ version: "v3", auth });
   const res = await calendar.events.list({
@@ -88,9 +89,10 @@ export async function checkConflicts(userId: string, startTime: string, endTime:
   return {
     hasConflicts: conflicts.length > 0,
     conflicts,
-    message: conflicts.length > 0
-      ? `Found ${conflicts.length} conflicting event(s) in this time range.`
-      : "No conflicts — this time slot is free.",
+    message:
+      conflicts.length > 0
+        ? `Found ${conflicts.length} conflicting event(s) in this time range.`
+        : "No conflicts — this time slot is free.",
   };
 }
 
@@ -140,7 +142,8 @@ export const CALENDAR_TOOLS = [
     type: "function" as const,
     function: {
       name: "check_calendar_conflicts",
-      description: "Check if a time range has any conflicting events. Use before creating events to avoid double-booking.",
+      description:
+        "Check if a time range has any conflicting events. Use before creating events to avoid double-booking.",
       parameters: {
         type: "object",
         properties: {

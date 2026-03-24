@@ -40,7 +40,13 @@ export default function TasksPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
   const [editing, setEditing] = useState<Task | null>(null);
-  const [editForm, setEditForm] = useState({ title: "", description: "", priority: "MEDIUM", status: "TODO", dueDate: "" });
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    priority: "MEDIUM",
+    status: "TODO",
+    dueDate: "",
+  });
 
   const loadTasks = () => {
     const url =
@@ -203,8 +209,19 @@ export default function TasksPage() {
             />
           </div>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowForm(false)} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition">Cancel</button>
-            <button onClick={createTask} disabled={!form.title} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition">Save</button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={createTask}
+              disabled={!form.title}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+            >
+              Save
+            </button>
           </div>
         </div>
       )}
@@ -216,9 +233,7 @@ export default function TasksPage() {
             type="button"
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-              filter === f
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-400 hover:text-white"
+              filter === f ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"
             }`}
           >
             {f === "all" ? "All" : statusLabels[f]}
@@ -239,8 +254,14 @@ export default function TasksPage() {
 
       {/* Edit modal */}
       {editing && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" onClick={() => setEditing(null)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="font-semibold mb-4">Edit Task / 할 일 수정</h3>
             <div className="space-y-3">
               <input
@@ -285,8 +306,19 @@ export default function TasksPage() {
               </div>
             </div>
             <div className="flex gap-2 justify-end mt-4">
-              <button onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition">Cancel</button>
-              <button onClick={saveEdit} disabled={!editForm.title} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Save</button>
+              <button
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={!editForm.title}
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>
@@ -297,9 +329,7 @@ export default function TasksPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No tasks yet</p>
-          <p className="text-gray-600 text-sm">
-            Tell EVE in chat: &quot;할 일 추가해줘&quot;
-          </p>
+          <p className="text-gray-600 text-sm">Tell EVE in chat: &quot;할 일 추가해줘&quot;</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -329,9 +359,7 @@ export default function TasksPage() {
                 }`}
               >
                 {task.status === "DONE" && (
-                  <span className="text-white text-xs flex items-center justify-center">
-                    ✓
-                  </span>
+                  <span className="text-white text-xs flex items-center justify-center">✓</span>
                 )}
               </button>
               <div className="flex-1 min-w-0">
@@ -344,9 +372,7 @@ export default function TasksPage() {
                   <span className={`text-xs ${priorityColors[task.priority]}`}>
                     {task.priority}
                   </span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${statusColors[task.status]}`}
-                  >
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[task.status]}`}>
                     {statusLabels[task.status]}
                   </span>
                 </div>
@@ -354,7 +380,9 @@ export default function TasksPage() {
                   <p className="text-sm text-gray-400 mt-1 truncate">{task.description}</p>
                 )}
                 {task.dueDate && (
-                  <p className={`text-xs mt-1 ${task.status !== "DONE" && new Date(task.dueDate) < new Date() ? "text-red-400" : "text-gray-500"}`}>
+                  <p
+                    className={`text-xs mt-1 ${task.status !== "DONE" && new Date(task.dueDate) < new Date() ? "text-red-400" : "text-gray-500"}`}
+                  >
                     Due: {new Date(task.dueDate).toLocaleDateString()}
                     {task.status !== "DONE" && new Date(task.dueDate) < new Date() && " (overdue)"}
                   </p>
@@ -362,7 +390,10 @@ export default function TasksPage() {
               </div>
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteTask(task.id);
+                }}
                 className="text-gray-600 hover:text-red-400 text-sm transition shrink-0"
               >
                 ✕

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import type React from "react";
 
 /**
  * Lightweight markdown renderer — handles code blocks, inline code, bold, italic, lists.

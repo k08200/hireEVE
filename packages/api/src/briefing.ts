@@ -6,12 +6,12 @@
  */
 
 import type { FastifyInstance } from "fastify";
-import { prisma } from "./db.js";
 import { listEvents } from "./calendar.js";
+import { prisma } from "./db.js";
 import { listEmails } from "./gmail.js";
-import { listTasks } from "./tasks.js";
 import { listNotes } from "./notes.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai } from "./openai.js";
+import { listTasks } from "./tasks.js";
 
 interface BriefingData {
   tasks: unknown;

@@ -8,7 +8,10 @@ interface SearchResult {
   snippet: string;
 }
 
-export async function webSearch(query: string, maxResults = 5): Promise<{ results: SearchResult[] }> {
+export async function webSearch(
+  query: string,
+  maxResults = 5,
+): Promise<{ results: SearchResult[] }> {
   const encoded = encodeURIComponent(query);
   const url = `https://html.duckduckgo.com/html/?q=${encoded}`;
 
@@ -22,7 +25,8 @@ export async function webSearch(query: string, maxResults = 5): Promise<{ result
   const results: SearchResult[] = [];
 
   // Parse DuckDuckGo HTML results
-  const resultRegex = /<a rel="nofollow" class="result__a" href="([^"]+)"[^>]*>(.+?)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
+  const resultRegex =
+    /<a rel="nofollow" class="result__a" href="([^"]+)"[^>]*>(.+?)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
   let match: RegExpExecArray | null;
 
   while ((match = resultRegex.exec(html)) !== null && results.length < maxResults) {
@@ -44,7 +48,8 @@ export async function webSearch(query: string, maxResults = 5): Promise<{ result
 
   // Fallback: simpler pattern
   if (results.length === 0) {
-    const simpleRegex = /<a[^>]*class="result__url"[^>]*href="([^"]+)"[^>]*>[\s\S]*?<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
+    const simpleRegex =
+      /<a[^>]*class="result__url"[^>]*href="([^"]+)"[^>]*>[\s\S]*?<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
     while ((match = simpleRegex.exec(html)) !== null && results.length < maxResults) {
       const u = match[1].trim();
       const s = match[2].replace(/<[^>]+>/g, "").trim();
@@ -62,7 +67,8 @@ export const SEARCH_TOOLS = [
     type: "function" as const,
     function: {
       name: "web_search",
-      description: "Search the web for information. Use this for research, finding answers, checking facts, looking up companies, people, news, etc.",
+      description:
+        "Search the web for information. Use this for research, finding answers, checking facts, looking up companies, people, news, etc.",
       parameters: {
         type: "object",
         properties: {

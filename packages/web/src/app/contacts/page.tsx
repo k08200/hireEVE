@@ -20,9 +20,25 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", role: "", notes: "", tags: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    role: "",
+    notes: "",
+    tags: "",
+  });
   const [editing, setEditing] = useState<Contact | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", phone: "", company: "", role: "", notes: "", tags: "" });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    role: "",
+    notes: "",
+    tags: "",
+  });
 
   const loadContacts = () => {
     const params = new URLSearchParams({ userId: "demo-user" });
@@ -34,7 +50,9 @@ export default function ContactsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadContacts(); }, [search]);
+  useEffect(() => {
+    loadContacts();
+  }, [search]);
 
   const createContact = async () => {
     await fetch(`${API_BASE}/api/contacts`, {
@@ -104,17 +122,64 @@ export default function ContactsPage() {
       {showForm && (
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            <input placeholder="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            <input placeholder="Role / Title" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-            <input placeholder="Tags (comma-separated)" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+            <input
+              placeholder="Name *"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <input
+              placeholder="Email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <input
+              placeholder="Phone"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <input
+              placeholder="Company"
+              value={form.company}
+              onChange={(e) => setForm({ ...form, company: e.target.value })}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <input
+              placeholder="Role / Title"
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <input
+              placeholder="Tags (comma-separated)"
+              value={form.tags}
+              onChange={(e) => setForm({ ...form, tags: e.target.value })}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+            />
           </div>
-          <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500" />
+          <textarea
+            placeholder="Notes"
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            rows={2}
+            className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500"
+          />
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowForm(false)} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition">Cancel</button>
-            <button onClick={createContact} disabled={!form.name} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition">Save</button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={createContact}
+              disabled={!form.name}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+            >
+              Save
+            </button>
           </div>
         </div>
       )}
@@ -125,17 +190,64 @@ export default function ContactsPage() {
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg">
             <h3 className="font-semibold mb-4">Edit Contact / 연락처 수정</h3>
             <div className="grid grid-cols-2 gap-3 mb-3">
-              <input placeholder="Name *" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-              <input placeholder="Email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-              <input placeholder="Phone" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-              <input placeholder="Company" value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-              <input placeholder="Role / Title" value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-              <input placeholder="Tags (comma-separated)" value={editForm.tags} onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })} className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+              <input
+                placeholder="Name *"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <input
+                placeholder="Email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <input
+                placeholder="Phone"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <input
+                placeholder="Company"
+                value={editForm.company}
+                onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <input
+                placeholder="Role / Title"
+                value={editForm.role}
+                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <input
+                placeholder="Tags (comma-separated)"
+                value={editForm.tags}
+                onChange={(e) => setEditForm({ ...editForm, tags: e.target.value })}
+                className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
             </div>
-            <textarea placeholder="Notes" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={2} className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500 mb-4" />
+            <textarea
+              placeholder="Notes"
+              value={editForm.notes}
+              onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+              rows={2}
+              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-blue-500 mb-4"
+            />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition">Cancel</button>
-              <button onClick={saveEdit} disabled={!editForm.name} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">Save</button>
+              <button
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={!editForm.name}
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                Save
+              </button>
             </div>
           </div>
         </div>
@@ -151,7 +263,11 @@ export default function ContactsPage() {
       ) : (
         <div className="space-y-2">
           {contacts.map((c) => (
-            <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-lg p-4 group cursor-pointer hover:border-gray-600 transition" onClick={() => startEdit(c)}>
+            <div
+              key={c.id}
+              className="bg-gray-900 border border-gray-800 rounded-lg p-4 group cursor-pointer hover:border-gray-600 transition"
+              onClick={() => startEdit(c)}
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
@@ -167,7 +283,10 @@ export default function ContactsPage() {
                   {c.tags && (
                     <div className="flex gap-1 mt-1">
                       {c.tags.split(",").map((t) => (
-                        <span key={t.trim()} className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full">
+                        <span
+                          key={t.trim()}
+                          className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full"
+                        >
                           {t.trim()}
                         </span>
                       ))}

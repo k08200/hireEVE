@@ -101,9 +101,7 @@ export default function SettingsPage() {
                     Connect
                   </a>
                 ) : (
-                  <span className="text-sm text-gray-500">
-                    Set env vars to enable
-                  </span>
+                  <span className="text-sm text-gray-500">Set env vars to enable</span>
                 )}
               </div>
             ))
@@ -160,7 +158,8 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold mb-4">About</h2>
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
           <p className="text-sm text-gray-400">
-            <span className="text-blue-400 font-medium">EVE</span> — Your First AI Employee / 당신의 첫 번째 AI 직원
+            <span className="text-blue-400 font-medium">EVE</span> — Your First AI Employee / 당신의
+            첫 번째 AI 직원
           </p>
           <p className="text-sm text-gray-500 mt-1">
             Built for solo founders who wear too many hats. / 1인 창업자를 위해 만들었습니다.

@@ -72,9 +72,7 @@ export default function NotesPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold">Notes</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Quick memos — ask EVE to take notes in chat
-          </p>
+          <p className="text-gray-400 text-sm mt-1">Quick memos — ask EVE to take notes in chat</p>
         </div>
         <button
           onClick={createNote}

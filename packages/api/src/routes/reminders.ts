@@ -27,7 +27,10 @@ export async function reminderRoutes(app: FastifyInstance) {
   app.patch("/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
     const { status } = request.body as { status: string };
-    const reminder = await prisma.reminder.update({ where: { id }, data: { status: status as "PENDING" | "SENT" | "DISMISSED" } });
+    const reminder = await prisma.reminder.update({
+      where: { id },
+      data: { status: status as "PENDING" | "SENT" | "DISMISSED" },
+    });
     return reply.send(reminder);
   });
 

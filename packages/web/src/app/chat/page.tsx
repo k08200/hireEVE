@@ -64,9 +64,7 @@ export default function ChatListPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: editTitle }),
     });
-    setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c)),
-    );
+    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c)));
     setEditingId(null);
   };
 
@@ -86,9 +84,7 @@ export default function ChatListPage() {
               Connect Google
             </a>
           ) : (
-            <span className="flex items-center text-sm text-green-400 px-3">
-              Google connected
-            </span>
+            <span className="flex items-center text-sm text-green-400 px-3">Google connected</span>
           )}
           <button
             onClick={createConversation}
@@ -127,64 +123,69 @@ export default function ChatListPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {conversations.filter((c) => {
-            if (!search) return true;
-            const q = search.toLowerCase();
-            return (c.title || "").toLowerCase().includes(q) || (c.messages[0]?.content || "").toLowerCase().includes(q);
-          }).map((conv) => (
-            <div
-              key={conv.id}
-              onClick={() => !editingId && router.push(`/chat/${conv.id}`)}
-              className="w-full text-left bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-lg p-4 transition cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                {editingId === conv.id ? (
-                  <form
-                    onSubmit={(e) => saveRename(e, conv.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-1 mr-2"
-                  >
-                    <input
-                      autoFocus
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      onBlur={() => setEditingId(null)}
-                      className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-blue-500"
-                    />
-                  </form>
-                ) : (
-                  <span className="font-medium truncate flex-1">
-                    {conv.title || "New conversation"}
-                  </span>
-                )}
-                <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-xs text-gray-500 mr-1">
-                    {conv._count.messages} messages
-                  </span>
-                  <span
-                    onClick={(e) => startRename(e, conv)}
-                    className="text-gray-600 hover:text-blue-400 text-xs px-1 transition cursor-pointer"
-                    title="Rename"
-                  >
-                    ✎
-                  </span>
-                  <span
-                    onClick={(e) => deleteConversation(e, conv.id)}
-                    className="text-gray-600 hover:text-red-400 text-sm px-1 transition cursor-pointer"
-                    title="Delete"
-                  >
-                    ✕
-                  </span>
+          {conversations
+            .filter((c) => {
+              if (!search) return true;
+              const q = search.toLowerCase();
+              return (
+                (c.title || "").toLowerCase().includes(q) ||
+                (c.messages[0]?.content || "").toLowerCase().includes(q)
+              );
+            })
+            .map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => !editingId && router.push(`/chat/${conv.id}`)}
+                className="w-full text-left bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-lg p-4 transition cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  {editingId === conv.id ? (
+                    <form
+                      onSubmit={(e) => saveRename(e, conv.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 mr-2"
+                    >
+                      <input
+                        autoFocus
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onBlur={() => setEditingId(null)}
+                        className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm w-full focus:outline-none focus:border-blue-500"
+                      />
+                    </form>
+                  ) : (
+                    <span className="font-medium truncate flex-1">
+                      {conv.title || "New conversation"}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs text-gray-500 mr-1">
+                      {conv._count.messages} messages
+                    </span>
+                    <span
+                      onClick={(e) => startRename(e, conv)}
+                      className="text-gray-600 hover:text-blue-400 text-xs px-1 transition cursor-pointer"
+                      title="Rename"
+                    >
+                      ✎
+                    </span>
+                    <span
+                      onClick={(e) => deleteConversation(e, conv.id)}
+                      className="text-gray-600 hover:text-red-400 text-sm px-1 transition cursor-pointer"
+                      title="Delete"
+                    >
+                      ✕
+                    </span>
+                  </div>
                 </div>
+                {conv.messages[0] && editingId !== conv.id && (
+                  <p className="text-sm text-gray-400 mt-1 truncate">{conv.messages[0].content}</p>
+                )}
+                <p className="text-xs text-gray-600 mt-2">
+                  {new Date(conv.updatedAt).toLocaleString()}
+                </p>
               </div>
-              {conv.messages[0] && editingId !== conv.id && (
-                <p className="text-sm text-gray-400 mt-1 truncate">{conv.messages[0].content}</p>
-              )}
-              <p className="text-xs text-gray-600 mt-2">
-                {new Date(conv.updatedAt).toLocaleString()}
-              </p>
-            </div>
-          ))}
+            ))}
         </div>
       )}
     </main>

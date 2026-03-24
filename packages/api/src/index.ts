@@ -1,18 +1,18 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
+import { startBackgroundAgent } from "./background.js";
+import { briefingRoutes } from "./briefing.js";
 import { prisma } from "./db.js";
 import { authRoutes } from "./routes/auth.js";
 import { billingRoutes } from "./routes/billing.js";
 import { chatRoutes } from "./routes/chat.js";
-import { noteRoutes } from "./routes/notes.js";
-import { taskRoutes } from "./routes/tasks.js";
-import { briefingRoutes } from "./briefing.js";
 import { contactRoutes } from "./routes/contacts.js";
-import { reminderRoutes } from "./routes/reminders.js";
-import { slackEventRoutes } from "./slack.js";
-import { webhookRoutes } from "./routes/webhook.js";
+import { noteRoutes } from "./routes/notes.js";
 import { notificationRoutes } from "./routes/notifications.js";
-import { startBackgroundAgent } from "./background.js";
+import { reminderRoutes } from "./routes/reminders.js";
+import { taskRoutes } from "./routes/tasks.js";
+import { webhookRoutes } from "./routes/webhook.js";
+import { slackEventRoutes } from "./slack.js";
 
 const app = Fastify({ logger: true });
 
@@ -56,18 +56,57 @@ app.get("/api/activity", async (request) => {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // last 7 days
 
   const [tasks, notes, reminders, conversations] = await Promise.all([
-    prisma.task.findMany({ where: { userId: uid, createdAt: { gte: since } }, orderBy: { createdAt: "desc" }, take: 10 }),
-    prisma.note.findMany({ where: { userId: uid, createdAt: { gte: since } }, orderBy: { createdAt: "desc" }, take: 10 }),
-    prisma.reminder.findMany({ where: { userId: uid, createdAt: { gte: since } }, orderBy: { createdAt: "desc" }, take: 10 }),
-    prisma.conversation.findMany({ where: { userId: uid, createdAt: { gte: since } }, orderBy: { createdAt: "desc" }, take: 5, include: { _count: { select: { messages: true } } } }),
+    prisma.task.findMany({
+      where: { userId: uid, createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    prisma.note.findMany({
+      where: { userId: uid, createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    prisma.reminder.findMany({
+      where: { userId: uid, createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    prisma.conversation.findMany({
+      where: { userId: uid, createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { _count: { select: { messages: true } } },
+    }),
   ]);
 
   const activity = [
-    ...tasks.map((t) => ({ type: "task" as const, title: t.title, status: t.status, createdAt: t.createdAt.toISOString() })),
-    ...notes.map((n) => ({ type: "note" as const, title: n.title, status: null, createdAt: n.createdAt.toISOString() })),
-    ...reminders.map((r) => ({ type: "reminder" as const, title: r.title, status: r.status, createdAt: r.createdAt.toISOString() })),
-    ...conversations.map((c) => ({ type: "conversation" as const, title: c.title || "Chat", status: `${c._count.messages} msgs`, createdAt: c.createdAt.toISOString() })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 20);
+    ...tasks.map((t) => ({
+      type: "task" as const,
+      title: t.title,
+      status: t.status,
+      createdAt: t.createdAt.toISOString(),
+    })),
+    ...notes.map((n) => ({
+      type: "note" as const,
+      title: n.title,
+      status: null,
+      createdAt: n.createdAt.toISOString(),
+    })),
+    ...reminders.map((r) => ({
+      type: "reminder" as const,
+      title: r.title,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+    })),
+    ...conversations.map((c) => ({
+      type: "conversation" as const,
+      title: c.title || "Chat",
+      status: `${c._count.messages} msgs`,
+      createdAt: c.createdAt.toISOString(),
+    })),
+  ]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 20);
 
   return { activity };
 });

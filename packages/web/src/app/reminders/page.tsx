@@ -26,7 +26,9 @@ export default function RemindersPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const create = async () => {
     await fetch(`${API_BASE}/api/reminders`, {
@@ -41,7 +43,9 @@ export default function RemindersPage() {
 
   const dismiss = async (id: string) => {
     await fetch(`${API_BASE}/api/reminders/${id}/dismiss`, { method: "PATCH" });
-    setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, status: "DISMISSED" as const } : r)));
+    setReminders((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: "DISMISSED" as const } : r)),
+    );
   };
 
   const remove = async (id: string) => {
@@ -54,7 +58,12 @@ export default function RemindersPage() {
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
-    return d.toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleString("ko-KR", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const isPast = (iso: string) => new Date(iso) < new Date();
@@ -96,8 +105,19 @@ export default function RemindersPage() {
             className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           />
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowForm(false)} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition">Cancel</button>
-            <button onClick={create} disabled={!form.title || !form.remindAt} className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition">Save</button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={create}
+              disabled={!form.title || !form.remindAt}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+            >
+              Save
+            </button>
           </div>
         </div>
       )}
@@ -120,18 +140,34 @@ export default function RemindersPage() {
                     <div>
                       <span className="font-medium">{r.title}</span>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-xs ${isPast(r.remindAt) ? "text-red-400" : "text-gray-400"}`}>
+                        <span
+                          className={`text-xs ${isPast(r.remindAt) ? "text-red-400" : "text-gray-400"}`}
+                        >
                           {formatDate(r.remindAt)}
                         </span>
                         {isPast(r.remindAt) && (
-                          <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">overdue</span>
+                          <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">
+                            overdue
+                          </span>
                         )}
                       </div>
-                      {r.description && <p className="text-xs text-gray-500 mt-1">{r.description}</p>}
+                      {r.description && (
+                        <p className="text-xs text-gray-500 mt-1">{r.description}</p>
+                      )}
                     </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                      <button onClick={() => dismiss(r.id)} className="text-xs text-gray-500 hover:text-green-400 transition">Done</button>
-                      <button onClick={() => remove(r.id)} className="text-xs text-gray-500 hover:text-red-400 transition">Delete</button>
+                      <button
+                        onClick={() => dismiss(r.id)}
+                        className="text-xs text-gray-500 hover:text-green-400 transition"
+                      >
+                        Done
+                      </button>
+                      <button
+                        onClick={() => remove(r.id)}
+                        className="text-xs text-gray-500 hover:text-red-400 transition"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -141,15 +177,25 @@ export default function RemindersPage() {
 
           {dismissed.length > 0 && (
             <div className="space-y-2">
-              <h2 className="text-sm font-medium text-gray-500 mb-2">Dismissed ({dismissed.length})</h2>
+              <h2 className="text-sm font-medium text-gray-500 mb-2">
+                Dismissed ({dismissed.length})
+              </h2>
               {dismissed.map((r) => (
-                <div key={r.id} className="bg-gray-900/50 border border-gray-800/50 rounded-lg p-4 opacity-60 group">
+                <div
+                  key={r.id}
+                  className="bg-gray-900/50 border border-gray-800/50 rounded-lg p-4 opacity-60 group"
+                >
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="font-medium line-through">{r.title}</span>
                       <p className="text-xs text-gray-500 mt-1">{formatDate(r.remindAt)}</p>
                     </div>
-                    <button onClick={() => remove(r.id)} className="text-xs text-gray-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100">Delete</button>
+                    <button
+                      onClick={() => remove(r.id)}
+                      className="text-xs text-gray-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}

@@ -129,16 +129,22 @@ function BillingContent() {
               <p className="text-sm text-gray-500">Current Plan</p>
               <p className="text-xl font-bold">{status.planName}</p>
               <p className="text-sm text-gray-400 mt-1">
-                {status.messageCount} / {status.messageLimit === Infinity ? "∞" : status.messageLimit}{" "}
-                messages used
+                {status.messageCount} /{" "}
+                {status.messageLimit === Infinity ? "∞" : status.messageLimit} messages used
               </p>
               {status.messageLimit !== Infinity && status.messageLimit > 0 && (
                 <div className="w-48 bg-gray-800 rounded-full h-2 mt-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-500 ${
-                      status.messageCount / status.messageLimit > 0.9 ? "bg-red-500" : status.messageCount / status.messageLimit > 0.7 ? "bg-yellow-500" : "bg-blue-500"
+                      status.messageCount / status.messageLimit > 0.9
+                        ? "bg-red-500"
+                        : status.messageCount / status.messageLimit > 0.7
+                          ? "bg-yellow-500"
+                          : "bg-blue-500"
                     }`}
-                    style={{ width: `${Math.min((status.messageCount / status.messageLimit) * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min((status.messageCount / status.messageLimit) * 100, 100)}%`,
+                    }}
                   />
                 </div>
               )}

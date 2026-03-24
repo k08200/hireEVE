@@ -13,12 +13,12 @@ importers:
       '@fastify/cors':
         specifier: ^11.0.1
         version: 11.2.0
+      '@hireeve/core':
+        specifier: workspace:*
+        version: link:../core
       '@prisma/client':
         specifier: ^6.8.2
         version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
-      '@probeai/core':
-        specifier: workspace:*
-        version: link:../core
       fastify:
         specifier: ^5.3.3
         version: 5.8.2

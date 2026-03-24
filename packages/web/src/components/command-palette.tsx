@@ -20,27 +20,72 @@ export default function CommandPalette() {
   const router = useRouter();
 
   const commands: Command[] = [
-    { id: "chat", label: "Go to Chat", sublabel: "채팅으로 이동", action: () => router.push("/chat") },
-    { id: "new-chat", label: "New conversation", sublabel: "새 대화 시작", action: () => {
-      fetch(`${API_BASE}/api/chat/conversations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: "demo-user" }),
-      })
-        .then((r) => r.json())
-        .then((conv) => router.push(`/chat/${conv.id}`))
-        .catch(() => router.push("/chat"));
-    }},
-    { id: "dashboard", label: "Go to Dashboard", sublabel: "대시보드", action: () => router.push("/dashboard") },
-    { id: "tasks", label: "Go to Tasks", sublabel: "할 일 관리", action: () => router.push("/tasks") },
+    {
+      id: "chat",
+      label: "Go to Chat",
+      sublabel: "채팅으로 이동",
+      action: () => router.push("/chat"),
+    },
+    {
+      id: "new-chat",
+      label: "New conversation",
+      sublabel: "새 대화 시작",
+      action: () => {
+        fetch(`${API_BASE}/api/chat/conversations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: "demo-user" }),
+        })
+          .then((r) => r.json())
+          .then((conv) => router.push(`/chat/${conv.id}`))
+          .catch(() => router.push("/chat"));
+      },
+    },
+    {
+      id: "dashboard",
+      label: "Go to Dashboard",
+      sublabel: "대시보드",
+      action: () => router.push("/dashboard"),
+    },
+    {
+      id: "tasks",
+      label: "Go to Tasks",
+      sublabel: "할 일 관리",
+      action: () => router.push("/tasks"),
+    },
     { id: "notes", label: "Go to Notes", sublabel: "메모", action: () => router.push("/notes") },
-    { id: "contacts", label: "Go to Contacts", sublabel: "연락처", action: () => router.push("/contacts") },
-    { id: "reminders", label: "Go to Reminders", sublabel: "리마인더", action: () => router.push("/reminders") },
-    { id: "settings", label: "Go to Settings", sublabel: "설정", action: () => router.push("/settings") },
-    { id: "billing", label: "Go to Billing", sublabel: "요금제", action: () => router.push("/billing") },
-    { id: "shortcuts", label: "Keyboard shortcuts", sublabel: "단축키 보기 (Cmd+/)", action: () => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "/", metaKey: true }));
-    }},
+    {
+      id: "contacts",
+      label: "Go to Contacts",
+      sublabel: "연락처",
+      action: () => router.push("/contacts"),
+    },
+    {
+      id: "reminders",
+      label: "Go to Reminders",
+      sublabel: "리마인더",
+      action: () => router.push("/reminders"),
+    },
+    {
+      id: "settings",
+      label: "Go to Settings",
+      sublabel: "설정",
+      action: () => router.push("/settings"),
+    },
+    {
+      id: "billing",
+      label: "Go to Billing",
+      sublabel: "요금제",
+      action: () => router.push("/billing"),
+    },
+    {
+      id: "shortcuts",
+      label: "Keyboard shortcuts",
+      sublabel: "단축키 보기 (Cmd+/)",
+      action: () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "/", metaKey: true }));
+      },
+    },
   ];
 
   const filtered = commands.filter((c) => {
@@ -92,8 +137,14 @@ export default function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 pt-[20vh] px-4" onClick={() => setOpen(false)}>
-      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 pt-[20vh] px-4"
+      onClick={() => setOpen(false)}
+    >
+      <div
+        className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-3 border-b border-gray-800">
           <input
             ref={inputRef}
@@ -111,7 +162,10 @@ export default function CommandPalette() {
             filtered.map((cmd, i) => (
               <button
                 key={cmd.id}
-                onClick={() => { cmd.action(); setOpen(false); }}
+                onClick={() => {
+                  cmd.action();
+                  setOpen(false);
+                }}
                 onMouseEnter={() => setSelected(i)}
                 className={`w-full text-left px-4 py-2.5 flex items-center justify-between text-sm transition ${
                   i === selected ? "bg-gray-800 text-white" : "text-gray-400 hover:bg-gray-800/50"

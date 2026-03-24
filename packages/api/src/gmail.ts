@@ -155,24 +155,47 @@ export async function classifyEmails(userId: string, maxResults = 10) {
 
     // High priority signals
     if (
-      subject.includes("urgent") || subject.includes("긴급") ||
-      subject.includes("asap") || subject.includes("important") ||
-      subject.includes("중요") || subject.includes("action required")
+      subject.includes("urgent") ||
+      subject.includes("긴급") ||
+      subject.includes("asap") ||
+      subject.includes("important") ||
+      subject.includes("중요") ||
+      subject.includes("action required")
     ) {
       priority = "high";
     }
 
     // Category detection
-    if (subject.includes("invoice") || subject.includes("payment") || subject.includes("결제") || subject.includes("청구")) {
+    if (
+      subject.includes("invoice") ||
+      subject.includes("payment") ||
+      subject.includes("결제") ||
+      subject.includes("청구")
+    ) {
       category = "billing";
       if (priority === "low") priority = "medium";
-    } else if (subject.includes("meeting") || subject.includes("미팅") || subject.includes("invite") || subject.includes("calendar")) {
+    } else if (
+      subject.includes("meeting") ||
+      subject.includes("미팅") ||
+      subject.includes("invite") ||
+      subject.includes("calendar")
+    ) {
       category = "meeting";
       if (priority === "low") priority = "medium";
-    } else if (subject.includes("deploy") || subject.includes("build") || subject.includes("error") || subject.includes("alert")) {
+    } else if (
+      subject.includes("deploy") ||
+      subject.includes("build") ||
+      subject.includes("error") ||
+      subject.includes("alert")
+    ) {
       category = "engineering";
       if (priority === "low") priority = "medium";
-    } else if (from.includes("noreply") || from.includes("no-reply") || from.includes("newsletter") || from.includes("marketing")) {
+    } else if (
+      from.includes("noreply") ||
+      from.includes("no-reply") ||
+      from.includes("newsletter") ||
+      from.includes("marketing")
+    ) {
       category = "automated";
       priority = "low";
     } else if (subject.includes("re:") || subject.includes("회신")) {
@@ -236,7 +259,8 @@ export const GMAIL_TOOLS = [
     type: "function" as const,
     function: {
       name: "classify_emails",
-      description: "Classify and prioritize inbox emails by urgency (high/medium/low) and category (billing, meeting, engineering, conversation, automated, other). Returns sorted list with high-priority first.",
+      description:
+        "Classify and prioritize inbox emails by urgency (high/medium/low) and category (billing, meeting, engineering, conversation, automated, other). Returns sorted list with high-priority first.",
       parameters: {
         type: "object",
         properties: {
@@ -266,4 +290,3 @@ export const GMAIL_TOOLS = [
     },
   },
 ];
-

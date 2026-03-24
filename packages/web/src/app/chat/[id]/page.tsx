@@ -167,7 +167,9 @@ export default function ChatPage() {
                 ].map((q) => (
                   <button
                     key={q}
-                    onClick={() => { setInput(q); }}
+                    onClick={() => {
+                      setInput(q);
+                    }}
                     className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-3 py-1.5 rounded-lg text-xs transition"
                   >
                     {q}

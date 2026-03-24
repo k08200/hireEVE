@@ -41,11 +41,7 @@ export async function searchNotion(query: string) {
   });
 }
 
-export async function createNotionPage(
-  parentId: string,
-  title: string,
-  content: string,
-) {
+export async function createNotionPage(parentId: string, title: string, content: string) {
   return notionFetch("/pages", {
     method: "POST",
     body: JSON.stringify({

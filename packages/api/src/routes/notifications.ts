@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { getNotifications, clearNotifications } from "../background.js";
+import { clearNotifications, getNotifications } from "../background.js";
 
 export async function notificationRoutes(app: FastifyInstance) {
   // GET /api/notifications?userId=xxx — Get pending notifications

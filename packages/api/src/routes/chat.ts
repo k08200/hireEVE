@@ -1,16 +1,12 @@
 import type { FastifyInstance } from "fastify";
-import { prisma } from "../db.js";
-import { CALENDAR_TOOLS, checkConflicts, createEvent, deleteEvent, listEvents } from "../calendar.js";
-import { GMAIL_TOOLS, classifyEmails, listEmails, readEmail, sendEmail } from "../gmail.js";
-import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
-import { NOTE_TOOLS, createNote, deleteNote, listNotes, updateNote } from "../notes.js";
-import {
-  SLACK_TOOLS,
-  sendSlackMessage,
-  listSlackChannels,
-  readSlackMessages,
-} from "../slack.js";
 import { BRIEFING_TOOLS } from "../briefing.js";
+import {
+  CALENDAR_TOOLS,
+  checkConflicts,
+  createEvent,
+  deleteEvent,
+  listEvents,
+} from "../calendar.js";
 import {
   CONTACT_TOOLS,
   createContact,
@@ -18,23 +14,28 @@ import {
   listContacts,
   updateContact,
 } from "../contacts.js";
+import { prisma } from "../db.js";
+import { classifyEmails, GMAIL_TOOLS, listEmails, readEmail, sendEmail } from "../gmail.js";
+import { createNote, deleteNote, listNotes, NOTE_TOOLS, updateNote } from "../notes.js";
 import {
-  REMINDER_TOOLS,
+  createNotionPage,
+  listNotionDatabases,
+  NOTION_CONFIGURED,
+  NOTION_TOOLS,
+  searchNotion,
+} from "../notion.js";
+import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
+import {
   createReminder,
   deleteReminder,
   dismissReminder,
   listReminders,
+  REMINDER_TOOLS,
 } from "../reminders.js";
 import { SEARCH_TOOLS, webSearch } from "../search.js";
-import { TASK_TOOLS, createTask, deleteTask, listTasks, updateTask } from "../tasks.js";
+import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "../slack.js";
+import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "../tasks.js";
 import { WRITER_TOOLS, writeDocument } from "../writer.js";
-import {
-  NOTION_CONFIGURED,
-  NOTION_TOOLS,
-  searchNotion,
-  createNotionPage,
-  listNotionDatabases,
-} from "../notion.js";
 
 const GOOGLE_TOOLS = [...GMAIL_TOOLS, ...CALENDAR_TOOLS];
 const SLACK_CONFIGURED = !!(process.env.SLACK_BOT_TOKEN || process.env.SLACK_WEBHOOK_URL);
@@ -42,7 +43,8 @@ const TIME_TOOL = {
   type: "function" as const,
   function: {
     name: "get_current_time",
-    description: "Get current date and time in KST (Korean Standard Time) and UTC. Use when user asks about today's date, current time, or when you need to calculate relative dates like 'tomorrow' or 'next week'.",
+    description:
+      "Get current date and time in KST (Korean Standard Time) and UTC. Use when user asks about today's date, current time, or when you need to calculate relative dates like 'tomorrow' or 'next week'.",
     parameters: { type: "object", properties: {}, required: [] },
   },
 };
@@ -94,7 +96,9 @@ async function executeToolCall(
       case "delete_event":
         return JSON.stringify(await deleteEvent(userId, args.event_id as string));
       case "check_calendar_conflicts":
-        return JSON.stringify(await checkConflicts(userId, args.start_time as string, args.end_time as string));
+        return JSON.stringify(
+          await checkConflicts(userId, args.start_time as string, args.end_time as string),
+        );
       case "list_tasks":
         return JSON.stringify(await listTasks(userId, args.status as string | undefined));
       case "create_task":
@@ -214,7 +218,11 @@ async function executeToolCall(
         return JSON.stringify(await searchNotion(args.query as string));
       case "create_notion_page":
         return JSON.stringify(
-          await createNotionPage(args.parent_id as string, args.title as string, args.content as string),
+          await createNotionPage(
+            args.parent_id as string,
+            args.title as string,
+            args.content as string,
+          ),
         );
       case "list_notion_databases":
         return JSON.stringify(await listNotionDatabases());

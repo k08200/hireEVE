@@ -82,7 +82,8 @@ export const CONTACT_TOOLS = [
     type: "function" as const,
     function: {
       name: "list_contacts",
-      description: "List contacts/people in the user's network. Can search by name, email, company, or tags.",
+      description:
+        "List contacts/people in the user's network. Can search by name, email, company, or tags.",
       parameters: {
         type: "object",
         properties: {
@@ -106,7 +107,10 @@ export const CONTACT_TOOLS = [
           company: { type: "string", description: "Company name (optional)" },
           role: { type: "string", description: "Job title/role (optional)" },
           notes: { type: "string", description: "Notes about this contact (optional)" },
-          tags: { type: "string", description: "Comma-separated tags like 'investor,partner' (optional)" },
+          tags: {
+            type: "string",
+            description: "Comma-separated tags like 'investor,partner' (optional)",
+          },
         },
         required: ["name"],
       },

@@ -69,14 +69,14 @@ export const TASK_TOOLS = [
     type: "function" as const,
     function: {
       name: "list_tasks",
-      description:
-        "List the user's tasks. Can filter by status (todo, in_progress, done).",
+      description: "List the user's tasks. Can filter by status (todo, in_progress, done).",
       parameters: {
         type: "object",
         properties: {
           status: {
             type: "string",
-            description: "Filter by status: todo, in_progress, or done (optional, shows all if omitted)",
+            description:
+              "Filter by status: todo, in_progress, or done (optional, shows all if omitted)",
           },
         },
         required: [],
