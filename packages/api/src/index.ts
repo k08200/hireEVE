@@ -80,30 +80,32 @@ app.get("/api/activity", async (request) => {
   ]);
 
   const activity = [
-    ...tasks.map((t) => ({
+    ...tasks.map((t: { title: string; status: string; createdAt: Date }) => ({
       type: "task" as const,
       title: t.title,
       status: t.status,
       createdAt: t.createdAt.toISOString(),
     })),
-    ...notes.map((n) => ({
+    ...notes.map((n: { title: string; createdAt: Date }) => ({
       type: "note" as const,
       title: n.title,
       status: null,
       createdAt: n.createdAt.toISOString(),
     })),
-    ...reminders.map((r) => ({
+    ...reminders.map((r: { title: string; status: string; createdAt: Date }) => ({
       type: "reminder" as const,
       title: r.title,
       status: r.status,
       createdAt: r.createdAt.toISOString(),
     })),
-    ...conversations.map((c) => ({
-      type: "conversation" as const,
-      title: c.title || "Chat",
-      status: `${c._count.messages} msgs`,
-      createdAt: c.createdAt.toISOString(),
-    })),
+    ...conversations.map(
+      (c: { title: string | null; _count: { messages: number }; createdAt: Date }) => ({
+        type: "conversation" as const,
+        title: c.title || "Chat",
+        status: `${c._count.messages} msgs`,
+        createdAt: c.createdAt.toISOString(),
+      }),
+    ),
   ]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 20);

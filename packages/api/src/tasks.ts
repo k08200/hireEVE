@@ -10,14 +10,23 @@ export async function listTasks(userId: string, status?: string) {
   });
 
   return {
-    tasks: tasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      description: t.description,
-      status: t.status,
-      priority: t.priority,
-      dueDate: t.dueDate?.toISOString() || null,
-    })),
+    tasks: tasks.map(
+      (t: {
+        id: string;
+        title: string;
+        description: string | null;
+        status: string;
+        priority: string;
+        dueDate: Date | null;
+      }) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        status: t.status,
+        priority: t.priority,
+        dueDate: t.dueDate?.toISOString() || null,
+      }),
+    ),
   };
 }
 

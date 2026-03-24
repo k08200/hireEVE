@@ -21,16 +21,27 @@ export async function listContacts(userId: string, search?: string) {
   });
 
   return {
-    contacts: contacts.map((c) => ({
-      id: c.id,
-      name: c.name,
-      email: c.email,
-      phone: c.phone,
-      company: c.company,
-      role: c.role,
-      notes: c.notes,
-      tags: c.tags,
-    })),
+    contacts: contacts.map(
+      (c: {
+        id: string;
+        name: string;
+        email: string | null;
+        phone: string | null;
+        company: string | null;
+        role: string | null;
+        notes: string | null;
+        tags: string | null;
+      }) => ({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        phone: c.phone,
+        company: c.company,
+        role: c.role,
+        notes: c.notes,
+        tags: c.tags,
+      }),
+    ),
   };
 }
 

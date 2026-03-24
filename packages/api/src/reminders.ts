@@ -17,13 +17,21 @@ export async function listReminders(userId: string, includeCompleted = false) {
   });
 
   return {
-    reminders: reminders.map((r) => ({
-      id: r.id,
-      title: r.title,
-      description: r.description,
-      remindAt: r.remindAt.toISOString(),
-      status: r.status,
-    })),
+    reminders: reminders.map(
+      (r: {
+        id: string;
+        title: string;
+        description: string | null;
+        remindAt: Date;
+        status: string;
+      }) => ({
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        remindAt: r.remindAt.toISOString(),
+        status: r.status,
+      }),
+    ),
   };
 }
 
@@ -76,17 +84,19 @@ export async function checkDueReminders(): Promise<
   // Mark as sent
   if (due.length > 0) {
     await prisma.reminder.updateMany({
-      where: { id: { in: due.map((r) => r.id) } },
+      where: { id: { in: due.map((r: { id: string }) => r.id) } },
       data: { status: "SENT" },
     });
   }
 
-  return due.map((r) => ({
-    id: r.id,
-    userId: r.userId,
-    title: r.title,
-    description: r.description,
-  }));
+  return due.map(
+    (r: { id: string; userId: string; title: string; description: string | null }) => ({
+      id: r.id,
+      userId: r.userId,
+      title: r.title,
+      description: r.description,
+    }),
+  );
 }
 
 export const REMINDER_TOOLS = [

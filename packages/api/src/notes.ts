@@ -15,7 +15,7 @@ export async function listNotes(userId: string, search?: string) {
   });
 
   return {
-    notes: notes.map((n) => ({
+    notes: notes.map((n: { id: string; title: string; content: string; updatedAt: Date }) => ({
       id: n.id,
       title: n.title,
       content: n.content,
