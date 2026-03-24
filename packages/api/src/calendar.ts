@@ -65,6 +65,35 @@ export async function deleteEvent(userId: string, eventId: string) {
   return { success: true };
 }
 
+export async function checkConflicts(userId: string, startTime: string, endTime: string) {
+  const auth = await getAuthedClient(userId);
+  if (!auth) return { error: "Google Calendar not connected." };
+
+  const calendar = google.calendar({ version: "v3", auth });
+  const res = await calendar.events.list({
+    calendarId: "primary",
+    timeMin: startTime,
+    timeMax: endTime,
+    singleEvents: true,
+    orderBy: "startTime",
+  });
+
+  const conflicts = (res.data.items || []).map((e) => ({
+    id: e.id,
+    summary: e.summary || "(No title)",
+    start: e.start?.dateTime || e.start?.date || "",
+    end: e.end?.dateTime || e.end?.date || "",
+  }));
+
+  return {
+    hasConflicts: conflicts.length > 0,
+    conflicts,
+    message: conflicts.length > 0
+      ? `Found ${conflicts.length} conflicting event(s) in this time range.`
+      : "No conflicts — this time slot is free.",
+  };
+}
+
 export const CALENDAR_TOOLS = [
   {
     type: "function" as const,
@@ -104,6 +133,27 @@ export const CALENDAR_TOOLS = [
           location: { type: "string", description: "Event location (optional)" },
         },
         required: ["summary", "start_time", "end_time"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "check_calendar_conflicts",
+      description: "Check if a time range has any conflicting events. Use before creating events to avoid double-booking.",
+      parameters: {
+        type: "object",
+        properties: {
+          start_time: {
+            type: "string",
+            description: "Start time in ISO 8601 format (e.g. 2026-03-25T14:00:00+09:00)",
+          },
+          end_time: {
+            type: "string",
+            description: "End time in ISO 8601 format (e.g. 2026-03-25T15:00:00+09:00)",
+          },
+        },
+        required: ["start_time", "end_time"],
       },
     },
   },

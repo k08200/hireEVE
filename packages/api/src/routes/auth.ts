@@ -47,7 +47,8 @@ export async function authRoutes(app: FastifyInstance) {
       });
 
       // Redirect back to chat
-      return reply.redirect("http://localhost:8001/chat?gmail=connected");
+      const webUrl = process.env.WEB_URL || "http://localhost:8001";
+      return reply.redirect(`${webUrl}/chat?gmail=connected`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "OAuth failed";
       return reply.code(500).send({ error: message });

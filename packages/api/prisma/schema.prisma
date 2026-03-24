@@ -18,6 +18,9 @@ model User {
   conversations Conversation[]
   tokens        UserToken[]
   tasks         Task[]
+  notes         Note[]
+  reminders     Reminder[]
+  contacts      Contact[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -149,4 +152,46 @@ enum Priority {
   MEDIUM
   HIGH
   URGENT
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Reminder {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  title       String
+  description String?
+  remindAt    DateTime
+  status      ReminderStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  DISMISSED
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  role      String?
+  notes     String?
+  tags      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
