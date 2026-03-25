@@ -29,6 +29,20 @@ const priorityColors: Record<string, string> = {
   URGENT: "text-red-500",
 };
 
+function formatDueDate(dueDate: string, isDone: boolean): string {
+  const due = new Date(dueDate);
+  const now = new Date();
+  const diffMs = due.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (isDone) return `Due: ${due.toLocaleDateString()}`;
+  if (diffDays < 0) return `Overdue by ${Math.abs(diffDays)}d`;
+  if (diffDays === 0) return "Due today";
+  if (diffDays === 1) return "Due tomorrow";
+  if (diffDays <= 7) return `Due in ${diffDays}d`;
+  return `Due: ${due.toLocaleDateString()}`;
+}
+
 const statusLabels: Record<string, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
@@ -410,8 +424,7 @@ export default function TasksPage() {
                   <p
                     className={`text-xs mt-1 ${task.status !== "DONE" && new Date(task.dueDate) < new Date() ? "text-red-400" : "text-gray-500"}`}
                   >
-                    Due: {new Date(task.dueDate).toLocaleDateString()}
-                    {task.status !== "DONE" && new Date(task.dueDate) < new Date() && " (overdue)"}
+                    {formatDueDate(task.dueDate, task.status === "DONE")}
                   </p>
                 )}
               </div>

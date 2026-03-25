@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useConfirm } from "../../components/confirm-dialog";
 import { Markdown } from "../../components/markdown";
+import { RelativeTime } from "../../components/relative-time";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 
@@ -146,6 +147,10 @@ export default function NotesPage() {
                 Preview
               </button>
             </div>
+            <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1">
+              <span>{editContent.trim() ? editContent.trim().split(/\s+/).length : 0} words</span>
+              <span>{editContent.length.toLocaleString()} chars</span>
+            </div>
             {previewing ? (
               <div className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm min-h-[15rem] max-h-[20rem] overflow-y-auto mb-4">
                 {editContent ? (
@@ -221,9 +226,7 @@ export default function NotesPage() {
                   <span className="italic text-gray-500">Empty note</span>
                 )}
               </div>
-              <p className="text-xs text-gray-600 mt-2">
-                {new Date(note.updatedAt).toLocaleDateString()}
-              </p>
+              <RelativeTime date={note.updatedAt} className="text-xs text-gray-600 mt-2 block" />
             </div>
           ))}
         </div>
