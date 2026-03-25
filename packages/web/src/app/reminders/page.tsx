@@ -68,6 +68,15 @@ export default function RemindersPage() {
     toast("Reminder deleted", "info");
   };
 
+  // Escape key closes form
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showForm) setShowForm(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showForm]);
+
   const active = reminders.filter((r) => r.status !== "DISMISSED");
   const dismissed = reminders.filter((r) => r.status === "DISMISSED");
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -79,7 +80,7 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold mb-4">Integrations</h2>
         <div className="space-y-3">
           {loading ? (
-            <p className="text-gray-500">Loading...</p>
+            <ListSkeleton count={3} />
           ) : (
             integrations.map((int) => (
               <div

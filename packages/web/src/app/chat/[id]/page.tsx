@@ -275,7 +275,14 @@ export default function ChatPage() {
                   <button
                     key={q}
                     onClick={() => {
-                      setInput(q);
+                      const userMsg: Message = {
+                        id: crypto.randomUUID(),
+                        role: "USER",
+                        content: q,
+                        createdAt: new Date().toISOString(),
+                      };
+                      setMessages((prev) => [...prev, userMsg]);
+                      streamResponse(q);
                     }}
                     className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-3 py-1.5 rounded-lg text-xs transition"
                   >
