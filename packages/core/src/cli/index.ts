@@ -5,7 +5,7 @@ import { program } from "commander";
 import { probe } from "../core/probe.js";
 import { loadScenarios } from "../scenario/loader.js";
 
-program.name("probeai").description("Test and evaluate AI coding agents").version("0.2.2");
+program.name("hireeve").description("Test and evaluate AI coding agents").version("0.2.2");
 
 program
   .command("run")

@@ -37,7 +37,7 @@
     "typescript": "^5.9.3"
   },
   "bin": {
-    "probeai": "dist/cli/index.js"
+    "hireeve": "dist/cli/index.js"
   },
   "type": "module"
 }

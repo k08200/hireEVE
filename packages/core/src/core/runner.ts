@@ -129,7 +129,7 @@ async function runCommandAgent(scenario: Scenario, start: number): Promise<RunOu
   }
 
   if (stdoutTruncated || stderrTruncated) {
-    fullStderr += "\n[probeai] Warning: output was truncated (exceeded 10MB buffer limit)";
+    fullStderr += "\n[hireeve] Warning: output was truncated (exceeded 10MB buffer limit)";
   }
 
   return {

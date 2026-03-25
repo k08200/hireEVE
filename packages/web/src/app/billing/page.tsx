@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 
 interface BillingStatus {
@@ -71,6 +72,7 @@ function BillingContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   const success = searchParams.get("success");
   const canceled = searchParams.get("canceled");
@@ -90,7 +92,7 @@ function BillingContent() {
       });
       if (url) window.location.href = url;
     } catch {
-      alert("Failed to create checkout session");
+      toast("Failed to create checkout session", "error");
     }
   }
 
@@ -102,7 +104,7 @@ function BillingContent() {
       });
       if (url) window.location.href = url;
     } catch {
-      alert("Failed to open billing portal");
+      toast("Failed to open billing portal", "error");
     }
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const [slackConnected, setSlackConnected] = useState(false);
   const [notionConnected, setNotionConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     Promise.all([
@@ -64,7 +66,7 @@ export default function SettingsPage() {
       body: JSON.stringify({ userId: "demo-user" }),
     });
     const data = await res.json();
-    alert(data.briefing || "Briefing generated — check your Notes page.");
+    toast(data.briefing || "Briefing generated — check your Notes page.", "success");
   };
 
   return (
