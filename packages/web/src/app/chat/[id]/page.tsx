@@ -47,39 +47,15 @@ export default function ChatPage() {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
   };
 
-  const sendMessage = async () => {
-    let content = input.trim();
-    if (!content && !attachment) return;
-    if (streaming) return;
-
-    if (attachment) {
-      const prefix = `[Attached file: ${attachment.name}]\n\`\`\`\n${attachment.content.slice(0, 8000)}\n\`\`\`\n\n`;
-      content = prefix + content;
-      setAttachment(null);
-    }
-
-    // Add user message immediately
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: "USER",
-      content,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
+  const streamResponse = async (messageContent: string) => {
     setStreaming(true);
     setStreamingContent("");
-
-    // Reset textarea height
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-    }
 
     try {
       const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content: messageContent }),
       });
 
       const reader = res.body?.getReader();
@@ -116,7 +92,6 @@ export default function ChatPage() {
         }
       }
 
-      // Replace streaming content with final message
       const assistantMsg: Message = {
         id: crypto.randomUUID(),
         role: "ASSISTANT",
@@ -138,6 +113,105 @@ export default function ChatPage() {
     setStreamingContent("");
     setActiveTools([]);
     inputRef.current?.focus();
+  };
+
+  const sendMessage = async () => {
+    let content = input.trim();
+    if (!content && !attachment) return;
+    if (streaming) return;
+
+    if (attachment) {
+      const prefix = `[Attached file: ${attachment.name}]\n\`\`\`\n${attachment.content.slice(0, 8000)}\n\`\`\`\n\n`;
+      content = prefix + content;
+      setAttachment(null);
+    }
+
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      role: "USER",
+      content,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
+
+    await streamResponse(content);
+  };
+
+  const retryMessage = async (msgIndex: number) => {
+    if (streaming) return;
+    const assistantMsg = messages[msgIndex];
+    if (!assistantMsg || assistantMsg.role !== "ASSISTANT") return;
+
+    // Remove this assistant message from UI
+    setMessages((prev) => prev.filter((m) => m.id !== assistantMsg.id));
+    setStreaming(true);
+    setStreamingContent("");
+
+    try {
+      const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/retry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const text = decoder.decode(value, { stream: true });
+          const lines = text.split("\n");
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "token") {
+                fullContent += data.content;
+                setStreamingContent(fullContent);
+              } else if (data.type === "tool_call") {
+                setActiveTools((prev) => [...prev, data.name]);
+              } else if (data.type === "tool_result") {
+                setActiveTools((prev) => prev.filter((t) => t !== data.name));
+              } else if (data.type === "error") {
+                fullContent += `\n\n[Error: ${data.content}]`;
+                setStreamingContent(fullContent);
+              }
+            } catch {
+              // skip malformed JSON
+            }
+          }
+        }
+      }
+
+      const newAssistantMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "ASSISTANT",
+        content: fullContent,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, newAssistantMsg]);
+    } catch {
+      const errorMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "ASSISTANT",
+        content: "Retry failed. Please try again.",
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    }
+
+    setStreaming(false);
+    setStreamingContent("");
+    setActiveTools([]);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -212,7 +286,7 @@ export default function ChatPage() {
             </div>
           )}
 
-          {messages.map((msg) => (
+          {messages.map((msg, idx) => (
             <div
               key={msg.id}
               className={`group flex ${msg.role === "USER" ? "justify-end" : "justify-start"}`}
@@ -257,6 +331,27 @@ export default function ChatPage() {
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
                   </button>
+                  {msg.role === "ASSISTANT" && (
+                    <button
+                      onClick={() => retryMessage(idx)}
+                      className="text-gray-600 hover:text-yellow-400 p-1 rounded transition"
+                      title="Retry / 다시 생성"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="23 4 23 10 17 10" />
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setMessages((prev) => prev.filter((m) => m.id !== msg.id));

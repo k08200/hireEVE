@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useConfirm } from "../../components/confirm-dialog";
+import { Markdown } from "../../components/markdown";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 
@@ -21,6 +22,7 @@ export default function NotesPage() {
   const [editing, setEditing] = useState<Note | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [previewing, setPreviewing] = useState(false);
   const { toast } = useToast();
   const { confirm } = useConfirm();
 
@@ -43,6 +45,7 @@ export default function NotesPage() {
     setEditing(note);
     setEditTitle(note.title);
     setEditContent(note.content);
+    setPreviewing(false);
   };
 
   const saveNote = async () => {
@@ -117,13 +120,42 @@ export default function NotesPage() {
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium mb-3 focus:outline-none focus:border-blue-500"
               placeholder="Title"
             />
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              rows={10}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm resize-none mb-4 focus:outline-none focus:border-blue-500"
-              placeholder="Write your note..."
-            />
+            {/* Edit / Preview toggle */}
+            <div className="flex gap-1 mb-2">
+              <button
+                type="button"
+                onClick={() => setPreviewing(false)}
+                className={`px-3 py-1 rounded text-xs font-medium transition ${!previewing ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewing(true)}
+                className={`px-3 py-1 rounded text-xs font-medium transition ${previewing ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                Preview
+              </button>
+            </div>
+            {previewing ? (
+              <div className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm min-h-[15rem] max-h-[20rem] overflow-y-auto mb-4">
+                {editContent ? (
+                  <Markdown content={editContent} />
+                ) : (
+                  <p className="text-gray-500 italic">
+                    Nothing to preview / 미리볼 내용이 없습니다
+                  </p>
+                )}
+              </div>
+            ) : (
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={10}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm resize-none mb-4 focus:outline-none focus:border-blue-500 font-mono"
+                placeholder="Write your note... (supports **bold**, *italic*, `code`, ```code blocks```)"
+              />
+            )}
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setEditing(null)}

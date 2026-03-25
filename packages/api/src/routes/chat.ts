@@ -338,6 +338,125 @@ export async function chatRoutes(app: FastifyInstance) {
     }
   });
 
+  // POST /api/chat/conversations/:id/retry — Regenerate last assistant response
+  app.post("/conversations/:id/retry", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+    });
+
+    if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+
+    // Find last user message
+    const lastUserMsg = [...conversation.messages].reverse().find((m) => m.role === "USER");
+    if (!lastUserMsg) return reply.code(400).send({ error: "No user message to retry" });
+
+    // Delete the last assistant message if it exists
+    const lastMsg = conversation.messages[conversation.messages.length - 1];
+    if (lastMsg && lastMsg.role === "ASSISTANT") {
+      await prisma.message.delete({ where: { id: lastMsg.id } });
+    }
+
+    // Build history up to (not including) the deleted assistant message
+    const historyMessages = conversation.messages.filter(
+      (m) => !(lastMsg && lastMsg.role === "ASSISTANT" && m.id === lastMsg.id),
+    );
+
+    const token = await prisma.userToken.findFirst({ where: { provider: "google" } });
+    const tools = token ? ALL_TOOLS : [...ALWAYS_TOOLS];
+
+    const history = [
+      { role: "system" as const, content: EVE_SYSTEM_PROMPT },
+      ...historyMessages.map((m: { role: string; content: string }) => ({
+        role: m.role.toLowerCase() as "user" | "assistant",
+        content: m.content,
+      })),
+    ];
+
+    reply.raw.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "Access-Control-Allow-Origin": "*",
+    });
+
+    let fullResponse = "";
+
+    try {
+      if (tools.length > 0) {
+        const messages: unknown[] = [...history];
+        let maxIterations = 5;
+
+        while (maxIterations-- > 0) {
+          const response = await openai.chat.completions.create({
+            model: MODEL,
+            messages: messages as Parameters<typeof openai.chat.completions.create>[0]["messages"],
+            tools,
+          });
+
+          const choice = response.choices[0];
+          const toolCalls = choice.message.tool_calls;
+
+          if (choice.finish_reason === "tool_calls" || (toolCalls && toolCalls.length > 0)) {
+            messages.push(choice.message);
+            for (const toolCall of toolCalls || []) {
+              const fn = (toolCall as unknown as { function: { name: string; arguments: string } })
+                .function;
+              const args = JSON.parse(fn.arguments);
+              reply.raw.write(
+                `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
+              );
+              const result = await executeToolCall(conversation.userId, fn.name, args);
+              messages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
+              reply.raw.write(
+                `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
+              );
+            }
+          } else {
+            fullResponse = choice.message.content || "";
+            reply.raw.write(
+              `data: ${JSON.stringify({ type: "token", content: fullResponse })}\n\n`,
+            );
+            break;
+          }
+        }
+      } else {
+        const stream = await openai.chat.completions.create({
+          model: MODEL,
+          messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
+          stream: true,
+        });
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0]?.delta?.content;
+          if (delta) {
+            fullResponse += delta;
+            reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
+          }
+        }
+      }
+
+      if (fullResponse) {
+        await prisma.message.create({
+          data: { conversationId: id, role: "ASSISTANT", content: fullResponse },
+        });
+      }
+
+      await prisma.conversation.update({
+        where: { id },
+        data: { updatedAt: new Date() },
+      });
+
+      reply.raw.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
+    }
+
+    reply.raw.end();
+  });
+
   // POST /api/chat/conversations/:id/messages — Send message + SSE streaming response
   app.post("/conversations/:id/messages", async (request, reply) => {
     const { id } = request.params as { id: string };
@@ -356,13 +475,40 @@ export async function chatRoutes(app: FastifyInstance) {
       data: { conversationId: id, role: "USER", content },
     });
 
-    // Auto-generate title from first message
+    // Auto-generate title from first message (LLM-powered, async)
     if (!conversation.title && conversation.messages.length === 0) {
-      const title = content.length > 50 ? `${content.slice(0, 50)}...` : content;
+      // Set a quick fallback title immediately
+      const fallback = content.length > 50 ? `${content.slice(0, 50)}...` : content;
       await prisma.conversation.update({
         where: { id },
-        data: { title },
+        data: { title: fallback },
       });
+
+      // Generate a smarter title in the background (non-blocking)
+      openai.chat.completions
+        .create({
+          model: MODEL,
+          messages: [
+            {
+              role: "system",
+              content:
+                "Generate a short conversation title (max 40 chars) for this message. Reply with ONLY the title, no quotes or explanation. Use the same language as the user.",
+            },
+            { role: "user", content },
+          ],
+        })
+        .then((res) => {
+          const smartTitle = res.choices[0]?.message?.content?.trim();
+          if (smartTitle && smartTitle.length <= 60) {
+            return prisma.conversation.update({
+              where: { id },
+              data: { title: smartTitle },
+            });
+          }
+        })
+        .catch(() => {
+          // Keep fallback title on failure
+        });
     }
 
     // Check if Gmail is connected (MVP: any google token)
