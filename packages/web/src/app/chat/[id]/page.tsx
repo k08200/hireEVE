@@ -23,9 +23,11 @@ export default function ChatPage() {
   const [streamingContent, setStreamingContent] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [attachment, setAttachment] = useState<{ name: string; content: string } | null>(null);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
   const { toast } = useToast();
 
   // Load conversation history
@@ -39,6 +41,18 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
+
+  // Detect scroll position for scroll-to-bottom button
+  useEffect(() => {
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    const handler = () => {
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setShowScrollBtn(distFromBottom > 200);
+    };
+    el.addEventListener("scroll", handler);
+    return () => el.removeEventListener("scroll", handler);
+  }, []);
 
   // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -257,7 +271,7 @@ export default function ChatPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto px-4 py-6 relative">
         <div className="max-w-3xl mx-auto space-y-4">
           {messages.length === 0 && !streaming && (
             <div className="text-center py-20">
@@ -440,6 +454,29 @@ export default function ChatPage() {
 
           <div ref={bottomRef} />
         </div>
+
+        {/* Scroll to bottom button */}
+        {showScrollBtn && (
+          <button
+            type="button"
+            onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+            className="absolute bottom-4 right-6 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 rounded-full w-9 h-9 flex items-center justify-center shadow-lg transition"
+            title="Scroll to bottom"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Input area */}
