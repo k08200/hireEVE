@@ -60,6 +60,15 @@ export default function NotesPage() {
     toast("Note saved", "success");
   };
 
+  // Escape key closes modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && editing) setEditing(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [editing]);
+
   const deleteNote = async (noteId: string) => {
     const ok = await confirm({
       title: "Delete Note / 메모 삭제",

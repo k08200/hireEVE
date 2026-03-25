@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { RelativeTime } from "../../components/relative-time";
 import { DashboardSkeleton, ListSkeleton } from "../../components/skeleton";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -200,12 +201,10 @@ export default function DashboardPage() {
                     </span>
                     <span className="text-sm flex-1 truncate">{a.title}</span>
                     {a.status && <span className="text-[10px] text-gray-500">{a.status}</span>}
-                    <span className="text-[10px] text-gray-600 shrink-0">
-                      {new Date(a.createdAt).toLocaleDateString("ko-KR", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
+                    <RelativeTime
+                      date={a.createdAt}
+                      className="text-[10px] text-gray-600 shrink-0"
+                    />
                   </div>
                 ))}
               </div>

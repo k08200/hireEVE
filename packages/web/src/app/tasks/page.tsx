@@ -138,6 +138,18 @@ export default function TasksPage() {
     toast("Task deleted", "info");
   };
 
+  // Escape key closes modals
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (editing) setEditing(null);
+        else if (showForm) setShowForm(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [editing, showForm]);
+
   const filtered = tasks.filter((t) => {
     if (!search) return true;
     const q = search.toLowerCase();

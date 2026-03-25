@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useConfirm } from "../../components/confirm-dialog";
+import { RelativeTime } from "../../components/relative-time";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
@@ -226,9 +227,7 @@ export default function ChatListPage() {
                 {conv.messages[0] && editingId !== conv.id && (
                   <p className="text-sm text-gray-400 mt-1 truncate">{conv.messages[0].content}</p>
                 )}
-                <p className="text-xs text-gray-600 mt-2">
-                  {new Date(conv.updatedAt).toLocaleString()}
-                </p>
+                <RelativeTime date={conv.updatedAt} className="text-xs text-gray-600 mt-2 block" />
               </div>
             ))}
         </div>

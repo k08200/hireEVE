@@ -96,6 +96,18 @@ export default function ContactsPage() {
     toast("Contact updated", "success");
   };
 
+  // Escape key closes modals
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (editing) setEditing(null);
+        else if (showForm) setShowForm(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [editing, showForm]);
+
   const deleteContact = async (id: string) => {
     const ok = await confirm({
       title: "Delete Contact / 연락처 삭제",
