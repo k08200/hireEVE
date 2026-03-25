@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -17,6 +20,8 @@ export default function RemindersPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", remindAt: "" });
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   const load = () => {
     fetch(`${API_BASE}/api/reminders?userId=demo-user`)
@@ -39,6 +44,7 @@ export default function RemindersPage() {
     setShowForm(false);
     setForm({ title: "", description: "", remindAt: "" });
     load();
+    toast("Reminder created", "success");
   };
 
   const dismiss = async (id: string) => {
@@ -46,11 +52,20 @@ export default function RemindersPage() {
     setReminders((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: "DISMISSED" as const } : r)),
     );
+    toast("Reminder dismissed", "success");
   };
 
   const remove = async (id: string) => {
+    const ok = await confirm({
+      title: "Delete Reminder / 알림 삭제",
+      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/reminders/${id}`, { method: "DELETE" });
     setReminders((prev) => prev.filter((r) => r.id !== id));
+    toast("Reminder deleted", "info");
   };
 
   const active = reminders.filter((r) => r.status !== "DISMISSED");
@@ -123,7 +138,7 @@ export default function RemindersPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <ListSkeleton count={3} />
       ) : active.length === 0 && dismissed.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No reminders yet</p>

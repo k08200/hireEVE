@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -18,6 +21,8 @@ export default function NotesPage() {
   const [editing, setEditing] = useState<Note | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   const loadNotes = () => {
     const params = new URLSearchParams({ userId: "demo-user" });
@@ -49,11 +54,20 @@ export default function NotesPage() {
     });
     setEditing(null);
     loadNotes();
+    toast("Note saved", "success");
   };
 
   const deleteNote = async (noteId: string) => {
+    const ok = await confirm({
+      title: "Delete Note / 메모 삭제",
+      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/notes/${noteId}`, { method: "DELETE" });
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    toast("Note deleted", "info");
   };
 
   const createNote = async () => {
@@ -129,7 +143,9 @@ export default function NotesPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ListSkeleton count={4} />
+        </div>
       ) : notes.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No notes yet</p>

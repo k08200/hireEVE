@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 
 interface Conversation {
@@ -21,6 +24,8 @@ export default function ChatListPage() {
   const [editTitle, setEditTitle] = useState("");
   const [search, setSearch] = useState("");
   const router = useRouter();
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -46,8 +51,16 @@ export default function ChatListPage() {
 
   const deleteConversation = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    const ok = await confirm({
+      title: "Delete Conversation / 대화 삭제",
+      message: "All messages will be lost. / 모든 메시지가 삭제됩니다.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/chat/conversations/${id}`, { method: "DELETE" });
     setConversations((prev) => prev.filter((c) => c.id !== id));
+    toast("Conversation deleted", "info");
   };
 
   const startRename = (e: React.MouseEvent, conv: Conversation) => {
@@ -109,7 +122,7 @@ export default function ChatListPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <ListSkeleton count={3} />
       ) : conversations.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No conversations yet / 대화가 아직 없습니다</p>

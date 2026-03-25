@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -40,6 +43,8 @@ export default function TasksPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
   const [editing, setEditing] = useState<Task | null>(null);
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
@@ -88,6 +93,7 @@ export default function TasksPage() {
     setShowForm(false);
     setForm({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
     loadTasks();
+    toast("Task created", "success");
   };
 
   const startEdit = (task: Task) => {
@@ -116,11 +122,20 @@ export default function TasksPage() {
     });
     setEditing(null);
     loadTasks();
+    toast("Task updated", "success");
   };
 
   const deleteTask = async (taskId: string) => {
+    const ok = await confirm({
+      title: "Delete Task / 할 일 삭제",
+      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/tasks/${taskId}`, { method: "DELETE" });
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    toast("Task deleted", "info");
   };
 
   const filtered = tasks.filter((t) => {
@@ -325,7 +340,7 @@ export default function TasksPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <ListSkeleton count={4} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No tasks yet</p>

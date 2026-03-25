@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -20,6 +23,8 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -63,6 +68,7 @@ export default function ContactsPage() {
     setShowForm(false);
     setForm({ name: "", email: "", phone: "", company: "", role: "", notes: "", tags: "" });
     loadContacts();
+    toast("Contact added", "success");
   };
 
   const startEdit = (c: Contact) => {
@@ -87,11 +93,20 @@ export default function ContactsPage() {
     });
     setEditing(null);
     loadContacts();
+    toast("Contact updated", "success");
   };
 
   const deleteContact = async (id: string) => {
+    const ok = await confirm({
+      title: "Delete Contact / 연락처 삭제",
+      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/contacts/${id}`, { method: "DELETE" });
     setContacts((prev) => prev.filter((c) => c.id !== id));
+    toast("Contact deleted", "info");
   };
 
   return (
@@ -254,7 +269,7 @@ export default function ContactsPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <ListSkeleton count={4} />
       ) : contacts.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No contacts yet</p>

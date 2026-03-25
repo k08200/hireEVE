@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { DashboardSkeleton, ListSkeleton } from "../../components/skeleton";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -139,7 +140,12 @@ export default function DashboardPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <>
+          <DashboardSkeleton />
+          <div className="mt-10">
+            <ListSkeleton count={3} />
+          </div>
+        </>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
