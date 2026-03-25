@@ -327,6 +327,17 @@ export async function chatRoutes(app: FastifyInstance) {
       .send(md);
   });
 
+  // DELETE /api/chat/messages/:msgId — Delete a single message
+  app.delete("/messages/:msgId", async (request, reply) => {
+    const { msgId } = request.params as { msgId: string };
+    try {
+      await prisma.message.delete({ where: { id: msgId } });
+      return reply.code(204).send();
+    } catch {
+      return reply.code(404).send({ error: "Message not found" });
+    }
+  });
+
   // POST /api/chat/conversations/:id/messages — Send message + SSE streaming response
   app.post("/conversations/:id/messages", async (request, reply) => {
     const { id } = request.params as { id: string };

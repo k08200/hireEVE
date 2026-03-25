@@ -71,7 +71,7 @@ export function saveMarkdownReport(results: ProbeResult[], outputDir: string): s
       ? Math.round(results.reduce((s, r) => s + (r.evaluation.score ?? 0), 0) / results.length)
       : 0;
 
-  let md = `# ProbeAI Report\n\n`;
+  let md = `# hireEVE Report\n\n`;
   md += `**Date**: ${new Date().toISOString()}\n`;
   md += `**Scenarios**: ${results.length} total, ${passed} passed, ${failed} failed\n`;
   md += `**Average Score**: ${avgScore}/100\n\n`;
