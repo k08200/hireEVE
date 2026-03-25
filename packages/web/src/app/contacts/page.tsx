@@ -7,6 +7,25 @@ import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+const TAG_COLORS = [
+  "bg-blue-500/20 text-blue-400",
+  "bg-green-500/20 text-green-400",
+  "bg-purple-500/20 text-purple-400",
+  "bg-yellow-500/20 text-yellow-400",
+  "bg-pink-500/20 text-pink-400",
+  "bg-cyan-500/20 text-cyan-400",
+  "bg-orange-500/20 text-orange-400",
+  "bg-red-500/20 text-red-400",
+];
+
+function tagColor(tag: string): string {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
+}
+
 interface Contact {
   id: string;
   name: string;
@@ -312,7 +331,7 @@ export default function ContactsPage() {
                       {c.tags.split(",").map((t) => (
                         <span
                           key={t.trim()}
-                          className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full"
+                          className={`text-[10px] px-2 py-0.5 rounded-full ${tagColor(t.trim())}`}
                         >
                           {t.trim()}
                         </span>

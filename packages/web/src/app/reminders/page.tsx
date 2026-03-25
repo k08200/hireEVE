@@ -55,6 +55,22 @@ export default function RemindersPage() {
     toast("Reminder dismissed", "success");
   };
 
+  const snooze = async (id: string, minutes: number) => {
+    const res = await fetch(`${API_BASE}/api/reminders/${id}/snooze`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ minutes }),
+    });
+    const updated = await res.json();
+    setReminders((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, remindAt: updated.remindAt, status: "PENDING" as const } : r,
+      ),
+    );
+    const label = minutes >= 1440 ? `${minutes / 1440}d` : `${minutes / 60}h`;
+    toast(`Snoozed for ${label}`, "success");
+  };
+
   const remove = async (id: string) => {
     const ok = await confirm({
       title: "Delete Reminder / 알림 삭제",
@@ -179,14 +195,32 @@ export default function RemindersPage() {
                         <p className="text-xs text-gray-500 mt-1">{r.description}</p>
                       )}
                     </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition">
                       <button
+                        type="button"
+                        onClick={() => snooze(r.id, 60)}
+                        className="text-[10px] text-gray-500 hover:text-yellow-400 transition px-1.5 py-0.5 rounded bg-gray-800"
+                        title="Snooze 1 hour"
+                      >
+                        1h
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => snooze(r.id, 1440)}
+                        className="text-[10px] text-gray-500 hover:text-yellow-400 transition px-1.5 py-0.5 rounded bg-gray-800"
+                        title="Snooze 1 day"
+                      >
+                        1d
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => dismiss(r.id)}
                         className="text-xs text-gray-500 hover:text-green-400 transition"
                       >
                         Done
                       </button>
                       <button
+                        type="button"
                         onClick={() => remove(r.id)}
                         className="text-xs text-gray-500 hover:text-red-400 transition"
                       >
