@@ -24,6 +24,7 @@ export default function ChatListPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "messages">("recent");
   const router = useRouter();
   const { toast } = useToast();
   const { confirm } = useConfirm();
@@ -109,16 +110,34 @@ export default function ChatListPage() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Sort */}
       {conversations.length > 0 && (
-        <div className="mb-4">
+        <div className="flex gap-2 mb-4">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations... / 대화 검색..."
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+            className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
           />
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setSortBy("recent")}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition ${sortBy === "recent" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
+              title="Sort by recent / 최신순"
+            >
+              Recent
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortBy("messages")}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition ${sortBy === "messages" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
+              title="Sort by message count / 메시지 수"
+            >
+              Most
+            </button>
+          </div>
         </div>
       )}
 
@@ -177,6 +196,10 @@ export default function ChatListPage() {
                 (c.title || "").toLowerCase().includes(q) ||
                 (c.messages[0]?.content || "").toLowerCase().includes(q)
               );
+            })
+            .sort((a, b) => {
+              if (sortBy === "messages") return b._count.messages - a._count.messages;
+              return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
             })
             .map((conv) => (
               <div
