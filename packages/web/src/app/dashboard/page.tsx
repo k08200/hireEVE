@@ -93,6 +93,13 @@ export default function DashboardPage() {
       .catch(() => {});
   }, []);
 
+  const isEmpty =
+    stats &&
+    stats.tasks.total === 0 &&
+    stats.notes === 0 &&
+    stats.contacts === 0 &&
+    stats.reminders.active === 0;
+
   const cards = stats
     ? [
         {
@@ -147,6 +154,76 @@ export default function DashboardPage() {
             <ListSkeleton count={3} />
           </div>
         </>
+      ) : isEmpty ? (
+        <div className="py-8">
+          <div className="text-center mb-10">
+            <h2 className="text-xl font-bold mb-2">Welcome to EVE / EVE에 오신 걸 환영합니다</h2>
+            <p className="text-gray-400 text-sm max-w-md mx-auto">
+              Get started by trying one of these. / 아래에서 시작해보세요.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-2xl mx-auto">
+            {[
+              {
+                href: "/chat",
+                title: "Chat with EVE",
+                desc: "Ask anything — email, scheduling, research",
+                descKr: "EVE에게 뭐든 물어보세요",
+                color:
+                  "from-blue-600/20 to-blue-800/10 border-blue-500/30 hover:border-blue-400/50",
+              },
+              {
+                href: "/tasks",
+                title: "Create a Task",
+                desc: "Track your to-dos and priorities",
+                descKr: "할 일과 우선순위를 관리하세요",
+                color:
+                  "from-green-600/20 to-green-800/10 border-green-500/30 hover:border-green-400/50",
+              },
+              {
+                href: "/notes",
+                title: "Write a Note",
+                desc: "Capture ideas and memos",
+                descKr: "아이디어와 메모를 기록하세요",
+                color:
+                  "from-purple-600/20 to-purple-800/10 border-purple-500/30 hover:border-purple-400/50",
+              },
+              {
+                href: "/contacts",
+                title: "Add a Contact",
+                desc: "Build your network and CRM",
+                descKr: "네트워크를 구축하세요",
+                color:
+                  "from-yellow-600/20 to-yellow-800/10 border-yellow-500/30 hover:border-yellow-400/50",
+              },
+              {
+                href: "/reminders",
+                title: "Set a Reminder",
+                desc: "Never forget important things",
+                descKr: "중요한 일을 잊지 마세요",
+                color: "from-red-600/20 to-red-800/10 border-red-500/30 hover:border-red-400/50",
+              },
+              {
+                href: "/settings",
+                title: "Connect Integrations",
+                desc: "Gmail, Calendar, Slack, Notion",
+                descKr: "연동 설정",
+                color:
+                  "from-gray-600/20 to-gray-800/10 border-gray-500/30 hover:border-gray-400/50",
+              },
+            ].map((card) => (
+              <Link
+                key={card.href}
+                href={card.href}
+                className={`bg-gradient-to-br ${card.color} border rounded-xl p-5 transition`}
+              >
+                <h3 className="font-semibold mb-1">{card.title}</h3>
+                <p className="text-sm text-gray-400">{card.desc}</p>
+                <p className="text-xs text-gray-500 mt-1">{card.descKr}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">

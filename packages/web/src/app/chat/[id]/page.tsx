@@ -28,6 +28,7 @@ export default function ChatPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [attachment, setAttachment] = useState<{ name: string; content: string } | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
   const { toast } = useToast();
 
   // Load conversation history
@@ -36,6 +37,11 @@ export default function ChatPage() {
       .then((data) => setMessages(data.messages))
       .catch(() => {});
   }, [id]);
+
+  // Auto-focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -65,11 +71,15 @@ export default function ChatPage() {
     setStreaming(true);
     setStreamingContent("");
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: messageContent }),
+        signal: controller.signal,
       });
 
       const reader = res.body?.getReader();
@@ -113,20 +123,39 @@ export default function ChatPage() {
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch {
-      const errorMsg: Message = {
-        id: crypto.randomUUID(),
-        role: "ASSISTANT",
-        content: "Connection failed. Please try again.",
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User stopped generation — save partial content
+        const partial = streamingContent;
+        if (partial) {
+          const partialMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "ASSISTANT",
+            content: `${partial}\n\n_[Generation stopped]_`,
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, partialMsg]);
+        }
+      } else {
+        const errorMsg: Message = {
+          id: crypto.randomUUID(),
+          role: "ASSISTANT",
+          content: "Connection failed. Please try again.",
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMsg]);
+      }
     }
 
+    abortRef.current = null;
     setStreaming(false);
     setStreamingContent("");
     setActiveTools([]);
     inputRef.current?.focus();
+  };
+
+  const stopGeneration = () => {
+    abortRef.current?.abort();
   };
 
   const sendMessage = async () => {
@@ -443,10 +472,13 @@ export default function ChatPage() {
             <div className="flex justify-start">
               <div className="rounded-2xl px-4 py-3 bg-gray-800">
                 <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:0ms]" />
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:150ms]" />
-                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:300ms]" />
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:0ms]" />
+                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:150ms]" />
+                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:300ms]" />
+                  </div>
+                  <span className="text-xs text-gray-500">Thinking...</span>
                 </div>
               </div>
             </div>
@@ -544,14 +576,24 @@ export default function ChatPage() {
               rows={1}
               className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
             />
-            <button
-              type="button"
-              onClick={sendMessage}
-              disabled={(!input.trim() && !attachment) || streaming}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
-            >
-              Send
-            </button>
+            {streaming ? (
+              <button
+                type="button"
+                onClick={stopGeneration}
+                className="bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
+              >
+                Stop
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={sendMessage}
+                disabled={!input.trim() && !attachment}
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
+              >
+                Send
+              </button>
+            )}
           </div>
           <div className="flex justify-between mt-1 px-1">
             <span className="text-[10px] text-gray-600">{messages.length} messages</span>
