@@ -28,13 +28,20 @@ export default function ChatPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [attachment, setAttachment] = useState<{ name: string; content: string } | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [title, setTitle] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Load conversation history
+  // Load conversation history + title
   useEffect(() => {
-    apiFetch<{ messages: Message[] }>(`/api/chat/conversations/${id}`)
-      .then((data) => setMessages(data.messages))
+    apiFetch<{ messages: Message[]; title?: string | null }>(`/api/chat/conversations/${id}`)
+      .then((data) => {
+        setMessages(data.messages);
+        if (data.title) setTitle(data.title);
+      })
       .catch(() => {});
   }, [id]);
 
@@ -47,6 +54,29 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
+
+  // Cmd+F to toggle in-chat search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        setSearchOpen((prev) => {
+          if (!prev) {
+            setTimeout(() => searchInputRef.current?.focus(), 50);
+          } else {
+            setSearchQuery("");
+          }
+          return !prev;
+        });
+      }
+      if (e.key === "Escape" && searchOpen) {
+        setSearchOpen(false);
+        setSearchQuery("");
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [searchOpen]);
 
   // Detect scroll position for scroll-to-bottom button
   useEffect(() => {
@@ -286,18 +316,77 @@ export default function ChatPage() {
     }
   };
 
+  const searchMatchCount = searchQuery
+    ? messages.filter((m) => m.content.toLowerCase().includes(searchQuery.toLowerCase())).length
+    : 0;
+
   return (
     <main className="flex flex-col h-[calc(100vh-3.5rem)]">
       {/* Header */}
-      <div className="flex items-center justify-end px-4 pt-2">
-        <a
-          href={`${API_BASE}/api/chat/conversations/${id}/export`}
-          download
-          className="text-xs text-gray-500 hover:text-gray-300 transition px-2 py-1 rounded border border-gray-800 hover:border-gray-600"
-        >
-          Export .md
-        </a>
+      <div className="flex items-center justify-between px-4 pt-2 gap-2">
+        <h2 className="text-sm font-medium text-gray-400 truncate">
+          {title || "New conversation"}
+        </h2>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setSearchOpen((prev) => !prev);
+              if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
+              else setSearchQuery("");
+            }}
+            className="text-gray-500 hover:text-gray-300 transition p-1"
+            title="Search messages (Cmd+F)"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+          <a
+            href={`${API_BASE}/api/chat/conversations/${id}/export`}
+            download
+            className="text-xs text-gray-500 hover:text-gray-300 transition px-2 py-1 rounded border border-gray-800 hover:border-gray-600"
+          >
+            Export .md
+          </a>
+        </div>
       </div>
+
+      {/* Search bar */}
+      {searchOpen && (
+        <div className="px-4 py-2 border-b border-gray-800 bg-gray-900/50">
+          <div className="max-w-3xl mx-auto flex items-center gap-2">
+            <input
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search in conversation... / 대화에서 검색..."
+              className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
+            />
+            {searchQuery && <span className="text-xs text-gray-500">{searchMatchCount} found</span>}
+            <button
+              type="button"
+              onClick={() => {
+                setSearchOpen(false);
+                setSearchQuery("");
+              }}
+              className="text-gray-500 hover:text-gray-300 text-xs transition"
+            >
+              Esc
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollAreaRef} className="flex-1 overflow-y-auto px-4 py-6 relative">
@@ -336,64 +425,49 @@ export default function ChatPage() {
             </div>
           )}
 
-          {messages.map((msg, idx) => (
-            <div
-              key={msg.id}
-              className={`group flex ${msg.role === "USER" ? "justify-end" : "justify-start"}`}
-            >
-              <div className="relative">
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    msg.role === "USER" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-100"
-                  }`}
-                >
-                  {msg.role !== "USER" && (
-                    <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>
-                  )}
-                  {msg.role === "USER" ? (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
-                  ) : (
-                    <Markdown content={msg.content} />
-                  )}
-                  <p
-                    className={`text-[10px] mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${msg.role === "USER" ? "text-blue-200" : "text-gray-500"}`}
+          {messages.map((msg, idx) => {
+            const isSearchMatch =
+              searchQuery && msg.content.toLowerCase().includes(searchQuery.toLowerCase());
+            const dimmed = searchQuery && !isSearchMatch;
+
+            return (
+              <div
+                key={msg.id}
+                className={`group flex ${msg.role === "USER" ? "justify-end" : "justify-start"} ${dimmed ? "opacity-30" : ""} transition-opacity`}
+              >
+                <div className="relative">
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      msg.role === "USER" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-100"
+                    }`}
                   >
-                    {new Date(msg.createdAt).toLocaleTimeString("ko-KR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-                <div
-                  className={`absolute top-1 ${msg.role === "USER" ? "left-0 -translate-x-full pr-1" : "right-0 translate-x-full pl-1"} opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5`}
-                >
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(msg.content);
-                      toast("Copied to clipboard", "success");
-                    }}
-                    className="text-gray-600 hover:text-gray-300 p-1 rounded transition"
-                    title="Copy"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                    {msg.role !== "USER" && (
+                      <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>
+                    )}
+                    {msg.role === "USER" ? (
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                    ) : (
+                      <Markdown content={msg.content} />
+                    )}
+                    <p
+                      className={`text-[10px] mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${msg.role === "USER" ? "text-blue-200" : "text-gray-500"}`}
                     >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                  </button>
-                  {msg.role === "ASSISTANT" && (
+                      {new Date(msg.createdAt).toLocaleTimeString("ko-KR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <div
+                    className={`absolute top-1 ${msg.role === "USER" ? "left-0 -translate-x-full pr-1" : "right-0 translate-x-full pl-1"} opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5`}
+                  >
                     <button
-                      onClick={() => retryMessage(idx)}
-                      className="text-gray-600 hover:text-yellow-400 p-1 rounded transition"
-                      title="Retry / 다시 생성"
+                      onClick={() => {
+                        navigator.clipboard.writeText(msg.content);
+                        toast("Copied to clipboard", "success");
+                      }}
+                      className="text-gray-600 hover:text-gray-300 p-1 rounded transition"
+                      title="Copy"
                     >
                       <svg
                         width="14"
@@ -405,40 +479,61 @@ export default function ChatPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       >
-                        <polyline points="23 4 23 10 17 10" />
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                       </svg>
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-                      fetch(`${API_BASE}/api/chat/messages/${msg.id}`, { method: "DELETE" }).catch(
-                        () => {},
-                      );
-                      toast("Message deleted", "info");
-                    }}
-                    className="text-gray-600 hover:text-red-400 p-1 rounded transition"
-                    title="Delete"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                    {msg.role === "ASSISTANT" && (
+                      <button
+                        onClick={() => retryMessage(idx)}
+                        className="text-gray-600 hover:text-yellow-400 p-1 rounded transition"
+                        title="Retry / 다시 생성"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="23 4 23 10 17 10" />
+                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        </svg>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+                        fetch(`${API_BASE}/api/chat/messages/${msg.id}`, {
+                          method: "DELETE",
+                        }).catch(() => {});
+                        toast("Message deleted", "info");
+                      }}
+                      className="text-gray-600 hover:text-red-400 p-1 rounded transition"
+                      title="Delete"
                     >
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* Streaming message */}
           {streaming && streamingContent && (
