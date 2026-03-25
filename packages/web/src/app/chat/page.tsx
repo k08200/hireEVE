@@ -124,15 +124,47 @@ export default function ChatListPage() {
       {loading ? (
         <ListSkeleton count={3} />
       ) : conversations.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 mb-2">No conversations yet / 대화가 아직 없습니다</p>
-          <p className="text-gray-600 text-sm mb-4">Press Cmd+N or click below to start</p>
-          <button
-            onClick={createConversation}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition"
-          >
-            Start chatting with EVE / EVE와 대화 시작
-          </button>
+        <div className="py-12">
+          <div className="text-center mb-10">
+            <div className="text-4xl mb-3">👋</div>
+            <h2 className="text-xl font-bold mb-2">Welcome to EVE / EVE에 오신 걸 환영합니다</h2>
+            <p className="text-gray-400 text-sm max-w-md mx-auto">
+              Your AI employee is ready. Here&apos;s what EVE can do for you.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8 max-w-lg mx-auto">
+            {[
+              { icon: "📧", label: "Email", desc: "Read, send, classify" },
+              { icon: "📅", label: "Calendar", desc: "Events, conflicts" },
+              { icon: "✅", label: "Tasks", desc: "Create, track, remind" },
+              { icon: "📝", label: "Notes", desc: "Memos, reports" },
+              { icon: "👤", label: "Contacts", desc: "CRM, tags" },
+              { icon: "🔍", label: "Web Search", desc: "Research anything" },
+            ].map((f) => (
+              <div
+                key={f.label}
+                className="bg-gray-900 border border-gray-800 rounded-lg p-3 flex items-center gap-3"
+              >
+                <span className="text-xl">{f.icon}</span>
+                <div>
+                  <p className="text-sm font-medium">{f.label}</p>
+                  <p className="text-xs text-gray-500">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={createConversation}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition"
+            >
+              Start chatting with EVE / EVE와 대화 시작
+            </button>
+            <p className="text-gray-600 text-xs mt-3">Cmd+N to start anytime</p>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">

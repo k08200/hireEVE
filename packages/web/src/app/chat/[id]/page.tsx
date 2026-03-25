@@ -24,6 +24,8 @@ export default function ChatPage() {
   const [activeTools, setActiveTools] = useState<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [attachment, setAttachment] = useState<{ name: string; content: string } | null>(null);
   const { toast } = useToast();
 
   // Load conversation history
@@ -46,8 +48,15 @@ export default function ChatPage() {
   };
 
   const sendMessage = async () => {
-    const content = input.trim();
-    if (!content || streaming) return;
+    let content = input.trim();
+    if (!content && !attachment) return;
+    if (streaming) return;
+
+    if (attachment) {
+      const prefix = `[Attached file: ${attachment.name}]\n\`\`\`\n${attachment.content.slice(0, 8000)}\n\`\`\`\n\n`;
+      content = prefix + content;
+      setAttachment(null);
+    }
 
     // Add user message immediately
     const userMsg: Message = {
@@ -129,6 +138,28 @@ export default function ChatPage() {
     setStreamingContent("");
     setActiveTools([]);
     inputRef.current?.focus();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 512_000) {
+      toast("File too large (max 500KB)", "error");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachment({ name: file.name, content: reader.result as string });
+    };
+    if (
+      file.type.startsWith("text/") ||
+      file.name.match(/\.(json|csv|md|txt|yaml|yml|xml|log)$/i)
+    ) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsDataURL(file);
+    }
+    e.target.value = "";
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -303,23 +334,78 @@ export default function ChatPage() {
 
       {/* Input area */}
       <div className="border-t border-gray-800 bg-gray-950 px-4 py-4">
-        <div className="max-w-3xl mx-auto flex gap-3 items-end">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message... / 메시지를 입력하세요 (Shift+Enter for new line)"
-            rows={1}
-            className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
-          />
-          <button
-            onClick={sendMessage}
-            disabled={!input.trim() || streaming}
-            className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
-          >
-            Send
-          </button>
+        <div className="max-w-3xl mx-auto">
+          {attachment && (
+            <div className="flex items-center gap-2 mb-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-blue-400 shrink-0"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span className="text-gray-300 truncate flex-1">{attachment.name}</span>
+              <button
+                type="button"
+                onClick={() => setAttachment(null)}
+                className="text-gray-500 hover:text-red-400 transition shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2 items-end">
+            <input
+              ref={fileRef}
+              type="file"
+              onChange={handleFileSelect}
+              accept=".txt,.md,.json,.csv,.yaml,.yml,.xml,.log,.js,.ts,.py,.html,.css"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="text-gray-500 hover:text-gray-300 p-3 transition shrink-0"
+              title="Attach file"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </button>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message... / 메시지를 입력하세요 (Shift+Enter for new line)"
+              rows={1}
+              className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+            />
+            <button
+              type="button"
+              onClick={sendMessage}
+              disabled={(!input.trim() && !attachment) || streaming}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </main>
