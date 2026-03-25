@@ -312,6 +312,14 @@ export default function ChatPage() {
                   ) : (
                     <Markdown content={msg.content} />
                   )}
+                  <p
+                    className={`text-[10px] mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${msg.role === "USER" ? "text-blue-200" : "text-gray-500"}`}
+                  >
+                    {new Date(msg.createdAt).toLocaleTimeString("ko-KR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
                 </div>
                 <div
                   className={`absolute top-1 ${msg.role === "USER" ? "left-0 -translate-x-full pr-1" : "right-0 translate-x-full pl-1"} opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5`}
@@ -507,6 +515,16 @@ export default function ChatPage() {
             >
               Send
             </button>
+          </div>
+          <div className="flex justify-between mt-1 px-1">
+            <span className="text-[10px] text-gray-600">{messages.length} messages</span>
+            {input.length > 0 && (
+              <span
+                className={`text-[10px] ${input.length > 4000 ? "text-red-400" : "text-gray-600"}`}
+              >
+                {input.length.toLocaleString()} chars
+              </span>
+            )}
           </div>
         </div>
       </div>

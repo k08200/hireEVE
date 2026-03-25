@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { CardSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 
@@ -121,6 +122,14 @@ function BillingContent() {
       {canceled && (
         <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-6">
           Checkout was canceled.
+        </div>
+      )}
+
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
       )}
 

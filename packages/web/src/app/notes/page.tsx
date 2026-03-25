@@ -214,7 +214,13 @@ export default function NotesPage() {
                   ✕
                 </button>
               </div>
-              <p className="text-xs text-gray-400 line-clamp-3">{note.content || "Empty note"}</p>
+              <div className="text-xs text-gray-400 line-clamp-3">
+                {note.content ? (
+                  <Markdown content={note.content.slice(0, 200)} />
+                ) : (
+                  <span className="italic text-gray-500">Empty note</span>
+                )}
+              </div>
               <p className="text-xs text-gray-600 mt-2">
                 {new Date(note.updatedAt).toLocaleDateString()}
               </p>
