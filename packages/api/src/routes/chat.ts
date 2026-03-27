@@ -361,7 +361,8 @@ export async function chatRoutes(app: FastifyInstance) {
 
     // Build history up to (not including) the deleted assistant message
     const historyMessages = conversation.messages.filter(
-      (m) => !(lastMsg && lastMsg.role === "ASSISTANT" && m.id === lastMsg.id),
+      (m: { id: string; role: string }) =>
+        !(lastMsg && lastMsg.role === "ASSISTANT" && m.id === lastMsg.id),
     );
 
     const token = await prisma.userToken.findFirst({ where: { provider: "google" } });
