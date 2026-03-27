@@ -179,9 +179,18 @@ function BillingContent() {
             <div
               key={plan.key}
               className={`bg-gray-900 border rounded-xl p-6 flex flex-col ${
-                isCurrent ? "border-blue-500" : "border-gray-800"
+                isCurrent
+                  ? "border-blue-500"
+                  : plan.key === "PRO"
+                    ? "border-blue-500/50 ring-1 ring-blue-500/20"
+                    : "border-gray-800"
               }`}
             >
+              {plan.key === "PRO" && (
+                <span className="text-[10px] uppercase bg-blue-600 text-white px-2 py-0.5 rounded-full font-medium mb-2 self-start">
+                  Most Popular
+                </span>
+              )}
               <p className="text-lg font-bold mb-1">{plan.name}</p>
               <p className="text-2xl font-bold mb-1">
                 {plan.price}

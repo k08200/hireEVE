@@ -25,11 +25,38 @@ export default function ChatListPage() {
   const [editTitle, setEditTitle] = useState("");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"recent" | "messages">("recent");
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const router = useRouter();
   const { toast } = useToast();
   const { confirm } = useConfirm();
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  // Load pinned conversations from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("eve-pinned-chats");
+      if (stored) setPinnedIds(new Set(JSON.parse(stored)));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const togglePin = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        toast("Unpinned", "info");
+      } else {
+        next.add(id);
+        toast("Pinned to top", "success");
+      }
+      localStorage.setItem("eve-pinned-chats", JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   useEffect(() => {
     apiFetch<{ conversations: Conversation[] }>("/api/chat/conversations?userId=demo-user")
@@ -198,6 +225,9 @@ export default function ChatListPage() {
               );
             })
             .sort((a, b) => {
+              const aPinned = pinnedIds.has(a.id) ? 1 : 0;
+              const bPinned = pinnedIds.has(b.id) ? 1 : 0;
+              if (aPinned !== bPinned) return bPinned - aPinned;
               if (sortBy === "messages") return b._count.messages - a._count.messages;
               return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
             })
@@ -230,6 +260,13 @@ export default function ChatListPage() {
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-xs text-gray-500 mr-1">
                       {conv._count.messages} messages
+                    </span>
+                    <span
+                      onClick={(e) => togglePin(e, conv.id)}
+                      className={`text-xs px-1 transition cursor-pointer ${pinnedIds.has(conv.id) ? "text-yellow-400" : "text-gray-600 hover:text-yellow-400"}`}
+                      title={pinnedIds.has(conv.id) ? "Unpin" : "Pin to top"}
+                    >
+                      {pinnedIds.has(conv.id) ? "★" : "☆"}
                     </span>
                     <span
                       onClick={(e) => startRename(e, conv)}
