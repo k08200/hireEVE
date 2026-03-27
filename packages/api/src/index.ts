@@ -45,6 +45,35 @@ await app.register(notificationRoutes, { prefix: "/api/notifications" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
+// User data management
+app.get("/api/user/:userId/export", async (request) => {
+  const { userId } = request.params as { userId: string };
+  const [tasks, notes, contacts, reminders, conversations] = await Promise.all([
+    prisma.task.findMany({ where: { userId } }),
+    prisma.note.findMany({ where: { userId } }),
+    prisma.contact.findMany({ where: { userId } }),
+    prisma.reminder.findMany({ where: { userId } }),
+    prisma.conversation.findMany({
+      where: { userId },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+    }),
+  ]);
+  return { tasks, notes, contacts, reminders, conversations, exportedAt: new Date().toISOString() };
+});
+
+app.delete("/api/user/:userId/data", async (request, reply) => {
+  const { userId } = request.params as { userId: string };
+  await prisma.$transaction([
+    prisma.message.deleteMany({ where: { conversation: { userId } } }),
+    prisma.conversation.deleteMany({ where: { userId } }),
+    prisma.task.deleteMany({ where: { userId } }),
+    prisma.note.deleteMany({ where: { userId } }),
+    prisma.contact.deleteMany({ where: { userId } }),
+    prisma.reminder.deleteMany({ where: { userId } }),
+  ]);
+  return reply.code(204).send();
+});
+
 app.get("/api/notion/status", async () => ({
   configured: !!process.env.NOTION_API_KEY,
 }));
@@ -123,3 +152,12 @@ console.log(`hireEVE API running on http://localhost:${port}`);
 
 // Start autonomous background agent
 startBackgroundAgent();
+
+// Start meeting monitor (auto-joins meetings 1 min before start)
+import("./meeting.js")
+  .then(({ startMeetingMonitor }) => {
+    startMeetingMonitor("demo-user");
+  })
+  .catch(() => {
+    console.log("[MEETING] Meeting monitor disabled (missing dependencies)");
+  });

@@ -93,6 +93,17 @@ export default function RemindersPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [showForm]);
 
+  const quickCreate = async (title: string, minutesFromNow: number) => {
+    const remindAt = new Date(Date.now() + minutesFromNow * 60_000).toISOString();
+    await fetch(`${API_BASE}/api/reminders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: "demo-user", title, remindAt }),
+    });
+    load();
+    toast(`Reminder set: ${title}`, "success");
+  };
+
   const active = reminders.filter((r) => r.status !== "DISMISSED");
   const dismissed = reminders.filter((r) => r.status === "DISMISSED");
 
@@ -116,11 +127,51 @@ export default function RemindersPage() {
           <p className="text-gray-400 text-sm mt-1">Never forget anything</p>
         </div>
         <button
+          type="button"
           onClick={() => setShowForm(!showForm)}
           className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
         >
           + Add Reminder
         </button>
+      </div>
+
+      {/* Quick-create presets */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {[
+          { label: "30min later", labelKr: "30분 후", minutes: 30 },
+          { label: "1 hour", labelKr: "1시간 후", minutes: 60 },
+          { label: "Tomorrow 9AM", labelKr: "내일 오전 9시", minutes: -1 },
+          { label: "Lunch break", labelKr: "점심시간", minutes: -2 },
+          { label: "End of day", labelKr: "퇴근 전", minutes: -3 },
+        ].map((preset) => {
+          let minutes = preset.minutes;
+          if (minutes === -1) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(9, 0, 0, 0);
+            minutes = Math.max(1, Math.round((tomorrow.getTime() - Date.now()) / 60_000));
+          } else if (minutes === -2) {
+            const today = new Date();
+            today.setHours(12, 0, 0, 0);
+            if (today.getTime() < Date.now()) today.setDate(today.getDate() + 1);
+            minutes = Math.max(1, Math.round((today.getTime() - Date.now()) / 60_000));
+          } else if (minutes === -3) {
+            const today = new Date();
+            today.setHours(18, 0, 0, 0);
+            if (today.getTime() < Date.now()) today.setDate(today.getDate() + 1);
+            minutes = Math.max(1, Math.round((today.getTime() - Date.now()) / 60_000));
+          }
+          return (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => quickCreate(`Reminder (${preset.labelKr})`, minutes)}
+              className="bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium transition"
+            >
+              {preset.label}
+            </button>
+          );
+        })}
       </div>
 
       {showForm && (
@@ -146,12 +197,14 @@ export default function RemindersPage() {
           />
           <div className="flex gap-2 justify-end">
             <button
+              type="button"
               onClick={() => setShowForm(false)}
               className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={create}
               disabled={!form.title || !form.remindAt}
               className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
@@ -249,6 +302,7 @@ export default function RemindersPage() {
                       <p className="text-xs text-gray-500 mt-1">{formatDate(r.remindAt)}</p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => remove(r.id)}
                       className="text-xs text-gray-600 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
                     >

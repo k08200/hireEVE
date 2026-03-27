@@ -36,10 +36,19 @@ const typeColors: Record<string, string> = {
   conversation: "bg-purple-500/20 text-purple-400",
 };
 
+function getGreeting(): { text: string; textKr: string } {
+  const hour = new Date().getHours();
+  if (hour < 6) return { text: "Working late", textKr: "늦은 밤이에요" };
+  if (hour < 12) return { text: "Good morning", textKr: "좋은 아침이에요" };
+  if (hour < 18) return { text: "Good afternoon", textKr: "좋은 오후예요" };
+  return { text: "Good evening", textKr: "좋은 저녁이에요" };
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     const userId = "demo-user";
@@ -91,6 +100,17 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((d) => setActivity(d.activity || []))
       .catch(() => {});
+
+    // Load profile name from localStorage
+    try {
+      const stored = localStorage.getItem("eve-profile");
+      if (stored) {
+        const profile = JSON.parse(stored);
+        if (profile.name) setUserName(profile.name);
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   const isEmpty =
@@ -140,11 +160,18 @@ export default function DashboardPage() {
       ]
     : [];
 
+  const greeting = getGreeting();
+
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-gray-400 text-sm mt-1">Overview of your workspace / 워크스페이스 현황</p>
+        <h1 className="text-2xl font-bold">
+          {greeting.text}
+          {userName ? `, ${userName}` : ""}
+        </h1>
+        <p className="text-gray-400 text-sm mt-1">
+          {greeting.textKr} — Overview of your workspace / 워크스페이스 현황
+        </p>
       </div>
 
       {loading ? (

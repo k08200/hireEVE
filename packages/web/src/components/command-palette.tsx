@@ -67,6 +67,12 @@ export default function CommandPalette() {
       action: () => router.push("/reminders"),
     },
     {
+      id: "automations",
+      label: "Go to Automations",
+      sublabel: "자동화 설정",
+      action: () => router.push("/automations"),
+    },
+    {
       id: "settings",
       label: "Go to Settings",
       sublabel: "설정",

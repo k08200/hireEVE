@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/notes", label: "Notes", icon: "📝" },
   { href: "/contacts", label: "Contacts", icon: "👤" },
   { href: "/reminders", label: "Reminders", icon: "⏰" },
+  { href: "/automations", label: "Automations", icon: "⚡" },
   { href: "/settings", label: "Settings", icon: "⚙" },
   { href: "/billing", label: "Billing", icon: "💳" },
 ];
