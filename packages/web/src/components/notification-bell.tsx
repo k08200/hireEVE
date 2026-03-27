@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -12,9 +12,39 @@ interface Notification {
   createdAt: string;
 }
 
+function formatRelative(date: string): string {
+  const diff = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const escHandler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", escHandler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", escHandler);
+    };
+  }, [open]);
 
   const fetchNotifications = () => {
     fetch(`${API_BASE}/api/notifications?userId=demo-user`)
@@ -48,7 +78,7 @@ export default function NotificationBell() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen(!open)}
         className="relative text-gray-400 hover:text-white transition p-1"
@@ -103,9 +133,7 @@ export default function NotificationBell() {
                     <span className="text-sm font-medium truncate">{n.title}</span>
                   </div>
                   <p className="text-xs text-gray-400 mt-1 line-clamp-2">{n.message}</p>
-                  <p className="text-[10px] text-gray-600 mt-1">
-                    {new Date(n.createdAt).toLocaleString()}
-                  </p>
+                  <p className="text-[10px] text-gray-600 mt-1">{formatRelative(n.createdAt)}</p>
                 </div>
               ))
             )}

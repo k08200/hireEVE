@@ -1,0 +1,21 @@
+{
+  "name": "EVE — Your First AI Employee",
+  "short_name": "EVE",
+  "description": "An autonomous AI teammate for solo founders. Chat, email, tasks, scheduling, and more.",
+  "start_url": "/chat",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

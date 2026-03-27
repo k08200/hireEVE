@@ -40,6 +40,17 @@ export async function reminderRoutes(app: FastifyInstance) {
     return reply.send(reminder);
   });
 
+  app.patch("/:id/snooze", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { minutes } = request.body as { minutes: number };
+    const newTime = new Date(Date.now() + minutes * 60 * 1000);
+    const reminder = await prisma.reminder.update({
+      where: { id },
+      data: { remindAt: newTime, status: "PENDING" },
+    });
+    return reply.send(reminder);
+  });
+
   app.delete("/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
     await prisma.reminder.delete({ where: { id } });

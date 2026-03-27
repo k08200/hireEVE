@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -26,6 +29,20 @@ const priorityColors: Record<string, string> = {
   URGENT: "text-red-500",
 };
 
+function formatDueDate(dueDate: string, isDone: boolean): string {
+  const due = new Date(dueDate);
+  const now = new Date();
+  const diffMs = due.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (isDone) return `Due: ${due.toLocaleDateString()}`;
+  if (diffDays < 0) return `Overdue by ${Math.abs(diffDays)}d`;
+  if (diffDays === 0) return "Due today";
+  if (diffDays === 1) return "Due tomorrow";
+  if (diffDays <= 7) return `Due in ${diffDays}d`;
+  return `Due: ${due.toLocaleDateString()}`;
+}
+
 const statusLabels: Record<string, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
@@ -40,6 +57,8 @@ export default function TasksPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
   const [editing, setEditing] = useState<Task | null>(null);
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
   const [editForm, setEditForm] = useState({
     title: "",
     description: "",
@@ -88,6 +107,7 @@ export default function TasksPage() {
     setShowForm(false);
     setForm({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
     loadTasks();
+    toast("Task created", "success");
   };
 
   const startEdit = (task: Task) => {
@@ -116,12 +136,33 @@ export default function TasksPage() {
     });
     setEditing(null);
     loadTasks();
+    toast("Task updated", "success");
   };
 
   const deleteTask = async (taskId: string) => {
+    const ok = await confirm({
+      title: "Delete Task / 할 일 삭제",
+      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/tasks/${taskId}`, { method: "DELETE" });
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    toast("Task deleted", "info");
   };
+
+  // Escape key closes modals
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (editing) setEditing(null);
+        else if (showForm) setShowForm(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [editing, showForm]);
 
   const filtered = tasks.filter((t) => {
     if (!search) return true;
@@ -325,7 +366,7 @@ export default function TasksPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <ListSkeleton count={4} />
       ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No tasks yet</p>
@@ -383,8 +424,7 @@ export default function TasksPage() {
                   <p
                     className={`text-xs mt-1 ${task.status !== "DONE" && new Date(task.dueDate) < new Date() ? "text-red-400" : "text-gray-500"}`}
                   >
-                    Due: {new Date(task.dueDate).toLocaleDateString()}
-                    {task.status !== "DONE" && new Date(task.dueDate) < new Date() && " (overdue)"}
+                    {formatDueDate(task.dueDate, task.status === "DONE")}
                   </p>
                 )}
               </div>

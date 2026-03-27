@@ -1,8 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const TAG_COLORS = [
+  "bg-blue-500/20 text-blue-400",
+  "bg-green-500/20 text-green-400",
+  "bg-purple-500/20 text-purple-400",
+  "bg-yellow-500/20 text-yellow-400",
+  "bg-pink-500/20 text-pink-400",
+  "bg-cyan-500/20 text-cyan-400",
+  "bg-orange-500/20 text-orange-400",
+  "bg-red-500/20 text-red-400",
+];
+
+function tagColor(tag: string): string {
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
+}
 
 interface Contact {
   id: string;
@@ -20,6 +42,8 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -63,6 +87,7 @@ export default function ContactsPage() {
     setShowForm(false);
     setForm({ name: "", email: "", phone: "", company: "", role: "", notes: "", tags: "" });
     loadContacts();
+    toast("Contact added", "success");
   };
 
   const startEdit = (c: Contact) => {
@@ -87,11 +112,32 @@ export default function ContactsPage() {
     });
     setEditing(null);
     loadContacts();
+    toast("Contact updated", "success");
   };
 
+  // Escape key closes modals
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (editing) setEditing(null);
+        else if (showForm) setShowForm(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [editing, showForm]);
+
   const deleteContact = async (id: string) => {
+    const ok = await confirm({
+      title: "Delete Contact / 연락처 삭제",
+      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/contacts/${id}`, { method: "DELETE" });
     setContacts((prev) => prev.filter((c) => c.id !== id));
+    toast("Contact deleted", "info");
   };
 
   return (
@@ -254,7 +300,7 @@ export default function ContactsPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <ListSkeleton count={4} />
       ) : contacts.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No contacts yet</p>
@@ -285,7 +331,7 @@ export default function ContactsPage() {
                       {c.tags.split(",").map((t) => (
                         <span
                           key={t.trim()}
-                          className="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full"
+                          className={`text-[10px] px-2 py-0.5 rounded-full ${tagColor(t.trim())}`}
                         >
                           {t.trim()}
                         </span>

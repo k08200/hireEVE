@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { Markdown } from "../../components/markdown";
+import { RelativeTime } from "../../components/relative-time";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -18,6 +23,9 @@ export default function NotesPage() {
   const [editing, setEditing] = useState<Note | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [previewing, setPreviewing] = useState(false);
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   const loadNotes = () => {
     const params = new URLSearchParams({ userId: "demo-user" });
@@ -38,6 +46,7 @@ export default function NotesPage() {
     setEditing(note);
     setEditTitle(note.title);
     setEditContent(note.content);
+    setPreviewing(false);
   };
 
   const saveNote = async () => {
@@ -49,11 +58,29 @@ export default function NotesPage() {
     });
     setEditing(null);
     loadNotes();
+    toast("Note saved", "success");
   };
 
+  // Escape key closes modal
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && editing) setEditing(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [editing]);
+
   const deleteNote = async (noteId: string) => {
+    const ok = await confirm({
+      title: "Delete Note / 메모 삭제",
+      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/notes/${noteId}`, { method: "DELETE" });
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    toast("Note deleted", "info");
   };
 
   const createNote = async () => {
@@ -103,13 +130,46 @@ export default function NotesPage() {
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium mb-3 focus:outline-none focus:border-blue-500"
               placeholder="Title"
             />
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              rows={10}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm resize-none mb-4 focus:outline-none focus:border-blue-500"
-              placeholder="Write your note..."
-            />
+            {/* Edit / Preview toggle */}
+            <div className="flex gap-1 mb-2">
+              <button
+                type="button"
+                onClick={() => setPreviewing(false)}
+                className={`px-3 py-1 rounded text-xs font-medium transition ${!previewing ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewing(true)}
+                className={`px-3 py-1 rounded text-xs font-medium transition ${previewing ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                Preview
+              </button>
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-600 mb-1 px-1">
+              <span>{editContent.trim() ? editContent.trim().split(/\s+/).length : 0} words</span>
+              <span>{editContent.length.toLocaleString()} chars</span>
+            </div>
+            {previewing ? (
+              <div className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm min-h-[15rem] max-h-[20rem] overflow-y-auto mb-4">
+                {editContent ? (
+                  <Markdown content={editContent} />
+                ) : (
+                  <p className="text-gray-500 italic">
+                    Nothing to preview / 미리볼 내용이 없습니다
+                  </p>
+                )}
+              </div>
+            ) : (
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={10}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-sm resize-none mb-4 focus:outline-none focus:border-blue-500 font-mono"
+                placeholder="Write your note... (supports **bold**, *italic*, `code`, ```code blocks```)"
+              />
+            )}
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setEditing(null)}
@@ -129,7 +189,9 @@ export default function NotesPage() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ListSkeleton count={4} />
+        </div>
       ) : notes.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-gray-500 mb-2">No notes yet</p>
@@ -157,10 +219,14 @@ export default function NotesPage() {
                   ✕
                 </button>
               </div>
-              <p className="text-xs text-gray-400 line-clamp-3">{note.content || "Empty note"}</p>
-              <p className="text-xs text-gray-600 mt-2">
-                {new Date(note.updatedAt).toLocaleDateString()}
-              </p>
+              <div className="text-xs text-gray-400 line-clamp-3">
+                {note.content ? (
+                  <Markdown content={note.content.slice(0, 200)} />
+                ) : (
+                  <span className="italic text-gray-500">Empty note</span>
+                )}
+              </div>
+              <RelativeTime date={note.updatedAt} className="text-xs text-gray-600 mt-2 block" />
             </div>
           ))}
         </div>

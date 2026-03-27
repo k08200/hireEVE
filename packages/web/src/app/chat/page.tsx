@@ -2,6 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useConfirm } from "../../components/confirm-dialog";
+import { RelativeTime } from "../../components/relative-time";
+import { ListSkeleton } from "../../components/skeleton";
+import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 
 interface Conversation {
@@ -20,9 +24,39 @@ export default function ChatListPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"recent" | "messages">("recent");
+  const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const router = useRouter();
+  const { toast } = useToast();
+  const { confirm } = useConfirm();
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  // Load pinned conversations from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("eve-pinned-chats");
+      if (stored) setPinnedIds(new Set(JSON.parse(stored)));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const togglePin = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setPinnedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        toast("Unpinned", "info");
+      } else {
+        next.add(id);
+        toast("Pinned to top", "success");
+      }
+      localStorage.setItem("eve-pinned-chats", JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   useEffect(() => {
     apiFetch<{ conversations: Conversation[] }>("/api/chat/conversations?userId=demo-user")
@@ -46,8 +80,16 @@ export default function ChatListPage() {
 
   const deleteConversation = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    const ok = await confirm({
+      title: "Delete Conversation / 대화 삭제",
+      message: "All messages will be lost. / 모든 메시지가 삭제됩니다.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`${API_BASE}/api/chat/conversations/${id}`, { method: "DELETE" });
     setConversations((prev) => prev.filter((c) => c.id !== id));
+    toast("Conversation deleted", "info");
   };
 
   const startRename = (e: React.MouseEvent, conv: Conversation) => {
@@ -95,31 +137,81 @@ export default function ChatListPage() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Sort */}
       {conversations.length > 0 && (
-        <div className="mb-4">
+        <div className="flex gap-2 mb-4">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations... / 대화 검색..."
-            className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+            className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
           />
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setSortBy("recent")}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition ${sortBy === "recent" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
+              title="Sort by recent / 최신순"
+            >
+              Recent
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortBy("messages")}
+              className={`px-3 py-2 rounded-lg text-xs font-medium transition ${sortBy === "messages" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
+              title="Sort by message count / 메시지 수"
+            >
+              Most
+            </button>
+          </div>
         </div>
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <ListSkeleton count={3} />
       ) : conversations.length === 0 ? (
-        <div className="text-center py-20">
-          <p className="text-gray-500 mb-2">No conversations yet / 대화가 아직 없습니다</p>
-          <p className="text-gray-600 text-sm mb-4">Press Cmd+N or click below to start</p>
-          <button
-            onClick={createConversation}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition"
-          >
-            Start chatting with EVE / EVE와 대화 시작
-          </button>
+        <div className="py-12">
+          <div className="text-center mb-10">
+            <div className="text-4xl mb-3">👋</div>
+            <h2 className="text-xl font-bold mb-2">Welcome to EVE / EVE에 오신 걸 환영합니다</h2>
+            <p className="text-gray-400 text-sm max-w-md mx-auto">
+              Your AI employee is ready. Here&apos;s what EVE can do for you.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8 max-w-lg mx-auto">
+            {[
+              { icon: "📧", label: "Email", desc: "Read, send, classify" },
+              { icon: "📅", label: "Calendar", desc: "Events, conflicts" },
+              { icon: "✅", label: "Tasks", desc: "Create, track, remind" },
+              { icon: "📝", label: "Notes", desc: "Memos, reports" },
+              { icon: "👤", label: "Contacts", desc: "CRM, tags" },
+              { icon: "🔍", label: "Web Search", desc: "Research anything" },
+            ].map((f) => (
+              <div
+                key={f.label}
+                className="bg-gray-900 border border-gray-800 rounded-lg p-3 flex items-center gap-3"
+              >
+                <span className="text-xl">{f.icon}</span>
+                <div>
+                  <p className="text-sm font-medium">{f.label}</p>
+                  <p className="text-xs text-gray-500">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={createConversation}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition"
+            >
+              Start chatting with EVE / EVE와 대화 시작
+            </button>
+            <p className="text-gray-600 text-xs mt-3">Cmd+N to start anytime</p>
+          </div>
         </div>
       ) : (
         <div className="space-y-2">
@@ -131,6 +223,13 @@ export default function ChatListPage() {
                 (c.title || "").toLowerCase().includes(q) ||
                 (c.messages[0]?.content || "").toLowerCase().includes(q)
               );
+            })
+            .sort((a, b) => {
+              const aPinned = pinnedIds.has(a.id) ? 1 : 0;
+              const bPinned = pinnedIds.has(b.id) ? 1 : 0;
+              if (aPinned !== bPinned) return bPinned - aPinned;
+              if (sortBy === "messages") return b._count.messages - a._count.messages;
+              return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
             })
             .map((conv) => (
               <div
@@ -163,6 +262,13 @@ export default function ChatListPage() {
                       {conv._count.messages} messages
                     </span>
                     <span
+                      onClick={(e) => togglePin(e, conv.id)}
+                      className={`text-xs px-1 transition cursor-pointer ${pinnedIds.has(conv.id) ? "text-yellow-400" : "text-gray-600 hover:text-yellow-400"}`}
+                      title={pinnedIds.has(conv.id) ? "Unpin" : "Pin to top"}
+                    >
+                      {pinnedIds.has(conv.id) ? "★" : "☆"}
+                    </span>
+                    <span
                       onClick={(e) => startRename(e, conv)}
                       className="text-gray-600 hover:text-blue-400 text-xs px-1 transition cursor-pointer"
                       title="Rename"
@@ -181,9 +287,7 @@ export default function ChatListPage() {
                 {conv.messages[0] && editingId !== conv.id && (
                   <p className="text-sm text-gray-400 mt-1 truncate">{conv.messages[0].content}</p>
                 )}
-                <p className="text-xs text-gray-600 mt-2">
-                  {new Date(conv.updatedAt).toLocaleString()}
-                </p>
+                <RelativeTime date={conv.updatedAt} className="text-xs text-gray-600 mt-2 block" />
               </div>
             ))}
         </div>

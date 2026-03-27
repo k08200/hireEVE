@@ -26,12 +26,16 @@ export default function MobileNav() {
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setOpen(false);
+      };
+      window.addEventListener("keydown", handler);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", handler);
+      };
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    document.body.style.overflow = "";
   }, [open]);
 
   return (
@@ -85,6 +89,9 @@ export default function MobileNav() {
                   {item.label}
                 </Link>
               ))}
+              <div className="px-6 py-3 text-[10px] text-gray-600 border-t border-gray-800 mt-1">
+                EVE v0.2.0 &middot; Cmd+K palette
+              </div>
             </div>
           </nav>
         </div>
