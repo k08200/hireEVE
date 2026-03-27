@@ -20,6 +20,10 @@ export default function Footer() {
           <a href="mailto:support@hireeve.com" className="hover:text-gray-300 transition">
             Contact
           </a>
+          <span className="hidden sm:inline text-gray-700">|</span>
+          <span className="hidden sm:inline text-gray-600">
+            Cmd+K command palette &middot; Cmd+N new chat &middot; Cmd+/ shortcuts
+          </span>
         </div>
       </div>
     </footer>
