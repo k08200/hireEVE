@@ -15,7 +15,32 @@ import {
   updateContact,
 } from "../contacts.js";
 import { prisma } from "../db.js";
+import {
+  FILE_TOOLS,
+  listRecentDownloads,
+  organizeDownloads,
+  readAndSummarize,
+  searchFiles,
+} from "../files.js";
 import { classifyEmails, GMAIL_TOOLS, listEmails, readEmail, sendEmail } from "../gmail.js";
+import {
+  IMESSAGE_TOOLS,
+  isIMessageAvailable,
+  listRecentChats as listIMessageChats,
+  readIMessages,
+  sendIMessage,
+} from "../imessage.js";
+import {
+  getClipboard,
+  getRunningApps,
+  getSystemInfo,
+  isMacOS,
+  MACOS_TOOLS,
+  openItem,
+  setClipboard,
+  takeScreenshot,
+} from "../macos.js";
+import { getUpcomingMeetings, joinMeeting, MEETING_TOOLS, summarizeMeeting } from "../meeting.js";
 import { createNote, deleteNote, listNotes, NOTE_TOOLS, updateNote } from "../notes.js";
 import {
   createNotionPage,
@@ -57,9 +82,13 @@ const ALWAYS_TOOLS = [
   ...SEARCH_TOOLS,
   ...WRITER_TOOLS,
   ...BRIEFING_TOOLS,
+  ...MEETING_TOOLS,
+  ...FILE_TOOLS,
   TIME_TOOL,
   ...(SLACK_CONFIGURED ? SLACK_TOOLS : []),
   ...(NOTION_CONFIGURED ? NOTION_TOOLS : []),
+  ...(isMacOS() ? MACOS_TOOLS : []),
+  ...(isIMessageAvailable() ? IMESSAGE_TOOLS : []),
 ];
 const ALL_TOOLS = [...ALWAYS_TOOLS, ...GOOGLE_TOOLS];
 
@@ -226,6 +255,52 @@ async function executeToolCall(
         );
       case "list_notion_databases":
         return JSON.stringify(await listNotionDatabases());
+      // iMessage
+      case "send_imessage":
+        return JSON.stringify(await sendIMessage(args.to as string, args.text as string));
+      case "read_imessages":
+        return JSON.stringify(
+          await readIMessages(args.from as string, (args.count as number) || 10),
+        );
+      case "list_imessage_chats":
+        return JSON.stringify(await listIMessageChats((args.count as number) || 20));
+      // macOS
+      case "get_clipboard":
+        return JSON.stringify(await getClipboard());
+      case "set_clipboard":
+        return JSON.stringify(await setClipboard(args.text as string));
+      case "get_running_apps":
+        return JSON.stringify(await getRunningApps());
+      case "open_item":
+        return JSON.stringify(await openItem(args.path as string));
+      case "get_system_info":
+        return JSON.stringify(await getSystemInfo());
+      case "take_screenshot":
+        return JSON.stringify(await takeScreenshot());
+      // Meeting
+      case "get_upcoming_meetings":
+        return JSON.stringify(await getUpcomingMeetings(userId));
+      case "join_meeting":
+        return JSON.stringify(await joinMeeting(args.meeting_link as string));
+      case "summarize_meeting":
+        return JSON.stringify(
+          await summarizeMeeting(
+            args.title as string,
+            args.notes as string,
+            (args.attendees as string[]) || [],
+          ),
+        );
+      // Files
+      case "search_files":
+        return JSON.stringify(
+          await searchFiles(args.query as string, args.folder as string | undefined),
+        );
+      case "read_and_summarize_file":
+        return JSON.stringify(await readAndSummarize(args.file_path as string));
+      case "organize_downloads":
+        return JSON.stringify(await organizeDownloads());
+      case "list_recent_downloads":
+        return JSON.stringify(await listRecentDownloads((args.count as number) || 10));
       default:
         return JSON.stringify({ error: `Unknown function: ${functionName}` });
     }

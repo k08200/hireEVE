@@ -26,6 +26,31 @@ function tagColor(tag: string): string {
   return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
 }
 
+const AVATAR_COLORS = [
+  "bg-blue-600",
+  "bg-green-600",
+  "bg-purple-600",
+  "bg-yellow-600",
+  "bg-pink-600",
+  "bg-cyan-600",
+  "bg-orange-600",
+  "bg-red-600",
+];
+
+function avatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
 interface Contact {
   id: string;
   name: string;
@@ -42,6 +67,7 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const { toast } = useToast();
   const { confirm } = useConfirm();
   const [form, setForm] = useState({
@@ -127,6 +153,26 @@ export default function ContactsPage() {
     return () => window.removeEventListener("keydown", handler);
   }, [editing, showForm]);
 
+  // Collect all unique tags for filter bar
+  const allTags = Array.from(
+    new Set(
+      contacts
+        .flatMap((c) => (c.tags ? c.tags.split(",").map((t) => t.trim()) : []))
+        .filter(Boolean),
+    ),
+  ).sort();
+
+  const filteredContacts = tagFilter
+    ? contacts.filter(
+        (c) =>
+          c.tags &&
+          c.tags
+            .split(",")
+            .map((t) => t.trim())
+            .includes(tagFilter),
+      )
+    : contacts;
+
   const deleteContact = async (id: string) => {
     const ok = await confirm({
       title: "Delete Contact / 연락처 삭제",
@@ -148,6 +194,7 @@ export default function ContactsPage() {
           <p className="text-gray-400 text-sm mt-1">People in your network</p>
         </div>
         <button
+          type="button"
           onClick={() => setShowForm(!showForm)}
           className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
         >
@@ -155,7 +202,7 @@ export default function ContactsPage() {
         </button>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <input
           type="text"
           value={search}
@@ -164,6 +211,37 @@ export default function ContactsPage() {
           className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
         />
       </div>
+
+      {/* Tag filter bar */}
+      {allTags.length > 0 && (
+        <div className="flex gap-1 mb-6 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setTagFilter(null)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              tagFilter === null
+                ? "bg-blue-600 text-white"
+                : "bg-gray-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            All
+          </button>
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                tagFilter === tag
+                  ? "bg-blue-600 text-white"
+                  : `bg-gray-800 text-gray-400 hover:text-white`
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 space-y-3">
@@ -214,12 +292,14 @@ export default function ContactsPage() {
           />
           <div className="flex gap-2 justify-end">
             <button
+              type="button"
               onClick={() => setShowForm(false)}
               className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={createContact}
               disabled={!form.name}
               className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
@@ -282,12 +362,14 @@ export default function ContactsPage() {
             />
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => setEditing(null)}
                 className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={saveEdit}
                 disabled={!editForm.name}
                 className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
@@ -308,14 +390,19 @@ export default function ContactsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {contacts.map((c) => (
+          {filteredContacts.map((c) => (
             <div
               key={c.id}
               className="bg-gray-900 border border-gray-800 rounded-lg p-4 group cursor-pointer hover:border-gray-600 transition"
               onClick={() => startEdit(c)}
             >
-              <div className="flex items-start justify-between">
-                <div>
+              <div className="flex items-start gap-3">
+                <div
+                  className={`w-10 h-10 rounded-full ${avatarColor(c.name)} flex items-center justify-center text-white text-sm font-bold shrink-0`}
+                >
+                  {initials(c.name)}
+                </div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{c.name}</span>
                     {c.company && <span className="text-xs text-gray-500">@ {c.company}</span>}
@@ -325,9 +412,9 @@ export default function ContactsPage() {
                     {c.email && <span className="text-xs text-gray-400">{c.email}</span>}
                     {c.phone && <span className="text-xs text-gray-400">{c.phone}</span>}
                   </div>
-                  {c.notes && <p className="text-xs text-gray-500 mt-1">{c.notes}</p>}
+                  {c.notes && <p className="text-xs text-gray-500 mt-1 truncate">{c.notes}</p>}
                   {c.tags && (
-                    <div className="flex gap-1 mt-1">
+                    <div className="flex gap-1 mt-1 flex-wrap">
                       {c.tags.split(",").map((t) => (
                         <span
                           key={t.trim()}
@@ -340,7 +427,11 @@ export default function ContactsPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => deleteContact(c.id)}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteContact(c.id);
+                  }}
                   className="text-gray-600 hover:text-red-400 text-sm transition shrink-0 opacity-0 group-hover:opacity-100"
                 >
                   ✕

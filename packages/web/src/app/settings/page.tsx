@@ -290,23 +290,48 @@ export default function SettingsPage() {
       {/* Capabilities */}
       <section className="mb-10">
         <h2 className="text-lg font-semibold mb-4">EVE Capabilities / 기능 목록</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-400">
-            <p>Email — read, send, classify by priority</p>
-            <p>Calendar — events, conflicts, scheduling</p>
-            <p>Tasks — CRUD, priorities, due dates</p>
-            <p>Notes — memos, search, auto-save</p>
-            <p>Reminders — timed alerts, dismiss</p>
-            <p>Contacts — CRM, tags, search</p>
-            <p>Web Search — research, news</p>
-            <p>Document Writer — reports, proposals</p>
-            <p>Slack — messages, channels</p>
-            <p>Daily Briefing — auto summary</p>
-            <p>Background Agent — auto monitoring</p>
-            <p>Notifications — real-time alerts</p>
-            <p>Notion — pages, databases, search</p>
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
+          <div>
+            <p className="text-xs text-blue-400 font-medium mb-2">Productivity / 생산성</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
+              <p>Tasks — priorities, due dates, status tracking</p>
+              <p>Notes — markdown, categories, search</p>
+              <p>Reminders — timed alerts, snooze, presets</p>
+              <p>Contacts — CRM, tags, avatar, search</p>
+              <p>Document Writer — reports, proposals, drafts</p>
+              <p>Daily Briefing — auto-generated summary</p>
+            </div>
           </div>
-          <p className="text-xs text-gray-600 mt-3">36+ tools across 13 categories</p>
+          <div>
+            <p className="text-xs text-green-400 font-medium mb-2">Communication / 소통</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
+              <p>Email — read, send, classify by priority</p>
+              <p>Calendar — events, conflicts, scheduling</p>
+              <p>Slack — messages, channels, threads</p>
+              <p>Notion — pages, databases, search</p>
+              <p>iMessage — send/read texts via macOS</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-purple-400 font-medium mb-2">Meeting & Scheduling / 미팅</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
+              <p>Auto-join — Google Meet, Zoom links</p>
+              <p>Meeting Summary — key points, action items</p>
+              <p>Calendar Conflicts — auto-detection</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-yellow-400 font-medium mb-2">macOS Native / 시스템 연동</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
+              <p>Clipboard — read/write copy-paste</p>
+              <p>File Search — Spotlight search</p>
+              <p>File Organizer — auto-sort Downloads</p>
+              <p>Screenshot — capture screen</p>
+              <p>System Info — battery, Wi-Fi, apps</p>
+              <p>Web Search — research, news</p>
+            </div>
+          </div>
+          <p className="text-xs text-gray-600 mt-1">50+ tools across 18 categories</p>
         </div>
       </section>
 

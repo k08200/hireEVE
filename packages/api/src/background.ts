@@ -12,11 +12,12 @@
  */
 
 import { prisma } from "./db.js";
+import { getUpcomingMeetings } from "./meeting.js";
 import { checkDueReminders } from "./reminders.js";
 
 interface Notification {
   id: string;
-  type: "reminder" | "calendar" | "email" | "task";
+  type: "reminder" | "calendar" | "email" | "task" | "meeting";
   title: string;
   message: string;
   createdAt: string;
@@ -98,6 +99,36 @@ async function checkOverdueTasks() {
   }
 }
 
+async function checkUpcomingMeetings() {
+  try {
+    const meetings = await getUpcomingMeetings("demo-user");
+    const now = Date.now();
+
+    for (const meeting of meetings) {
+      const startTime = new Date(meeting.start).getTime();
+      const minutesUntil = (startTime - now) / 60_000;
+
+      // Notify 5 minutes before meeting
+      if (minutesUntil > 0 && minutesUntil <= 5) {
+        const key = `meeting:${meeting.id}`;
+        if (notifiedIds.has(key)) continue;
+        notifiedIds.add(key);
+
+        addNotification("demo-user", {
+          type: "meeting",
+          title: `Meeting in ${Math.ceil(minutesUntil)}min: ${meeting.summary}`,
+          message: meeting.meetingLink
+            ? `Join: ${meeting.meetingLink}`
+            : `${meeting.summary} starts soon`,
+        });
+        console.log(`[BG] Upcoming meeting: "${meeting.summary}" in ${Math.ceil(minutesUntil)}min`);
+      }
+    }
+  } catch {
+    // Meeting check is optional — Google might not be connected
+  }
+}
+
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 export function startBackgroundAgent() {
@@ -108,11 +139,13 @@ export function startBackgroundAgent() {
   // Run immediately once
   checkReminders();
   checkOverdueTasks();
+  checkUpcomingMeetings();
 
   // Then every 60 seconds
   intervalId = setInterval(async () => {
     await checkReminders();
     await checkOverdueTasks();
+    await checkUpcomingMeetings();
   }, 60_000);
 }
 

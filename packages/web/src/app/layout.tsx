@@ -58,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <NavLink href="/notes">Notes</NavLink>
                   <NavLink href="/contacts">Contacts</NavLink>
                   <NavLink href="/reminders">Reminders</NavLink>
+                  <NavLink href="/automations">Auto</NavLink>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
                   <NotificationBell />
