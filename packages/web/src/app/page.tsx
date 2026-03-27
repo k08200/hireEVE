@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HeroTyping from "../components/hero-typing";
 
 const FEATURES = [
   {
@@ -51,9 +52,13 @@ export default function LandingPage() {
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
           Your First <span className="text-blue-400">AI Employee</span>
         </h1>
-        <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed">
-          EVE handles email, calendar, tasks, notes, contacts, Slack, web search, and more —
-          autonomously. 30+ tools. One AI employee. Built for solo founders who wear too many hats.
+        <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-2 leading-relaxed">
+          EVE handles <HeroTyping />
+        </p>
+        <p className="text-sm text-gray-500 max-w-xl mx-auto mb-8">
+          36+ tools. One AI employee. Built for solo founders who wear too many hats.
+          <br />
+          1인 창업자를 위한 AI 직원. 혼자 다 하지 마세요.
         </p>
         <div className="flex gap-3 justify-center">
           <Link
@@ -68,6 +73,20 @@ export default function LandingPage() {
           >
             View Plans
           </Link>
+        </div>
+
+        {/* Stats */}
+        <div className="flex justify-center gap-8 mt-12">
+          {[
+            { value: "36+", label: "Tools" },
+            { value: "13", label: "Categories" },
+            { value: "5", label: "Integrations" },
+          ].map((s) => (
+            <div key={s.label}>
+              <p className="text-2xl font-bold text-blue-400">{s.value}</p>
+              <p className="text-xs text-gray-500">{s.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -109,6 +128,51 @@ export default function LandingPage() {
             <h4 className="font-medium mb-1">EVE handles it / 알아서 처리</h4>
             <p className="text-sm text-gray-400">Emails, calendar, tasks, research — all done</p>
           </div>
+        </div>
+      </section>
+
+      {/* Use cases */}
+      <section className="max-w-4xl mx-auto px-6 pb-20">
+        <h2 className="text-2xl font-bold text-center mb-8">
+          What founders ask EVE / 창업자들이 EVE에게 시키는 것
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[
+            {
+              q: "오늘 브리핑 해줘",
+              a: "Checked 12 emails, 3 events today, 2 overdue tasks. Here is your morning summary...",
+            },
+            {
+              q: "Send a follow-up to investor@vc.com",
+              a: "Done. Sent a professional follow-up email referencing your last meeting on March 15.",
+            },
+            {
+              q: "내일 오후 3시에 미팅 잡아줘",
+              a: "No conflicts found. Created event: Meeting tomorrow at 3:00 PM KST.",
+            },
+            {
+              q: "Write a product launch proposal",
+              a: "Generated a 2-page proposal with executive summary, timeline, and budget breakdown.",
+            },
+          ].map((item) => (
+            <div
+              key={item.q}
+              className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3"
+            >
+              <div className="flex items-start gap-2">
+                <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded shrink-0 mt-0.5">
+                  You
+                </span>
+                <p className="text-sm">{item.q}</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[10px] bg-gray-700 text-blue-400 px-1.5 py-0.5 rounded shrink-0 mt-0.5">
+                  EVE
+                </span>
+                <p className="text-sm text-gray-400">{item.a}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
