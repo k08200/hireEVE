@@ -14,7 +14,25 @@ interface Note {
   title: string;
   content: string;
   updatedAt: string;
+  category?: string;
 }
+
+const CATEGORIES = [
+  { key: "all", label: "All", color: "" },
+  { key: "general", label: "General", color: "bg-gray-600" },
+  { key: "work", label: "Work", color: "bg-blue-600" },
+  { key: "idea", label: "Idea", color: "bg-purple-600" },
+  { key: "meeting", label: "Meeting", color: "bg-green-600" },
+  { key: "personal", label: "Personal", color: "bg-yellow-600" },
+];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  general: "bg-gray-600",
+  work: "bg-blue-600",
+  idea: "bg-purple-600",
+  meeting: "bg-green-600",
+  personal: "bg-yellow-600",
+};
 
 export default function NotesPage() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -23,9 +41,22 @@ export default function NotesPage() {
   const [editing, setEditing] = useState<Note | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [editCategory, setEditCategory] = useState("general");
   const [previewing, setPreviewing] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [noteCategories, setNoteCategories] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const { confirm } = useConfirm();
+
+  // Load note categories from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("eve-note-categories");
+      if (stored) setNoteCategories(JSON.parse(stored));
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const loadNotes = () => {
     const params = new URLSearchParams({ userId: "demo-user" });
@@ -46,6 +77,7 @@ export default function NotesPage() {
     setEditing(note);
     setEditTitle(note.title);
     setEditContent(note.content);
+    setEditCategory(noteCategories[note.id] || "general");
     setPreviewing(false);
   };
 
@@ -56,6 +88,10 @@ export default function NotesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: editTitle, content: editContent }),
     });
+    // Save category to localStorage
+    const updated = { ...noteCategories, [editing.id]: editCategory };
+    setNoteCategories(updated);
+    localStorage.setItem("eve-note-categories", JSON.stringify(updated));
     setEditing(null);
     loadNotes();
     toast("Note saved", "success");
@@ -102,6 +138,7 @@ export default function NotesPage() {
           <p className="text-gray-400 text-sm mt-1">Quick memos — ask EVE to take notes in chat</p>
         </div>
         <button
+          type="button"
           onClick={createNote}
           className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
         >
@@ -109,7 +146,7 @@ export default function NotesPage() {
         </button>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <input
           type="text"
           value={search}
@@ -117,6 +154,25 @@ export default function NotesPage() {
           placeholder="Search notes... / 메모 검색..."
           className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
         />
+      </div>
+
+      {/* Category filter */}
+      <div className="flex gap-1 mb-6">
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat.key}
+            type="button"
+            onClick={() => setCategoryFilter(cat.key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              categoryFilter === cat.key
+                ? "bg-blue-600 text-white"
+                : "bg-gray-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            {cat.color && <span className={`w-2 h-2 rounded-full ${cat.color}`} />}
+            {cat.label}
+          </button>
+        ))}
       </div>
 
       {/* Edit modal */}
@@ -130,6 +186,24 @@ export default function NotesPage() {
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm font-medium mb-3 focus:outline-none focus:border-blue-500"
               placeholder="Title"
             />
+            {/* Category selector */}
+            <div className="flex gap-1 mb-3">
+              {CATEGORIES.filter((c) => c.key !== "all").map((cat) => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setEditCategory(cat.key)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition ${
+                    editCategory === cat.key
+                      ? "bg-gray-700 text-white"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${cat.color}`} />
+                  {cat.label}
+                </button>
+              ))}
+            </div>
             {/* Edit / Preview toggle */}
             <div className="flex gap-1 mb-2">
               <button
@@ -172,12 +246,14 @@ export default function NotesPage() {
             )}
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => setEditing(null)}
                 className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={saveNote}
                 className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
               >
@@ -201,34 +277,54 @@ export default function NotesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {notes.map((note) => (
-            <div
-              key={note.id}
-              className="bg-gray-900 border border-gray-800 rounded-lg p-4 cursor-pointer hover:border-gray-600 transition group"
-              onClick={() => startEdit(note)}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-medium text-sm truncate flex-1">{note.title}</h3>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteNote(note.id);
+          {notes
+            .filter((note) => {
+              if (categoryFilter === "all") return true;
+              return (noteCategories[note.id] || "general") === categoryFilter;
+            })
+            .map((note) => {
+              const cat = noteCategories[note.id] || "general";
+              return (
+                <div
+                  key={note.id}
+                  className="bg-gray-900 border border-gray-800 rounded-lg p-4 cursor-pointer hover:border-gray-600 transition group"
+                  onClick={() => startEdit(note)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") startEdit(note);
                   }}
-                  className="text-gray-600 hover:text-red-400 text-sm transition shrink-0 ml-2 opacity-0 group-hover:opacity-100"
                 >
-                  ✕
-                </button>
-              </div>
-              <div className="text-xs text-gray-400 line-clamp-3">
-                {note.content ? (
-                  <Markdown content={note.content.slice(0, 200)} />
-                ) : (
-                  <span className="italic text-gray-500">Empty note</span>
-                )}
-              </div>
-              <RelativeTime date={note.updatedAt} className="text-xs text-gray-600 mt-2 block" />
-            </div>
-          ))}
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {CATEGORY_COLORS[cat] && (
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[cat]}`} />
+                      )}
+                      <h3 className="font-medium text-sm truncate">{note.title}</h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNote(note.id);
+                      }}
+                      className="text-gray-600 hover:text-red-400 text-sm transition shrink-0 ml-2 opacity-0 group-hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-400 line-clamp-3">
+                    {note.content ? (
+                      <Markdown content={note.content.slice(0, 200)} />
+                    ) : (
+                      <span className="italic text-gray-500">Empty note</span>
+                    )}
+                  </div>
+                  <RelativeTime
+                    date={note.updatedAt}
+                    className="text-xs text-gray-600 mt-2 block"
+                  />
+                </div>
+              );
+            })}
         </div>
       )}
     </main>

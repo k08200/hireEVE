@@ -32,6 +32,7 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [title, setTitle] = useState("");
   const [reactions, setReactions] = useState<Record<string, "up" | "down">>({});
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -121,9 +122,36 @@ export default function ChatPage() {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
   };
 
+  const generateSuggestions = (userMsg: string, assistantMsg: string) => {
+    // Simple context-based suggestion generation
+    const suggestions: string[] = [];
+    const lower = `${userMsg} ${assistantMsg}`.toLowerCase();
+
+    if (lower.includes("email") || lower.includes("메일")) {
+      suggestions.push("중요한 메일만 보여줘", "답장 써줘");
+    } else if (lower.includes("task") || lower.includes("할 일")) {
+      suggestions.push("오늘 마감인 것만 보여줘", "우선순위 정리해줘");
+    } else if (lower.includes("calendar") || lower.includes("일정")) {
+      suggestions.push("이번 주 일정 보여줘", "빈 시간대 찾아줘");
+    } else if (lower.includes("note") || lower.includes("메모")) {
+      suggestions.push("최근 메모 보여줘", "보고서 작성해줘");
+    } else if (lower.includes("contact") || lower.includes("연락처")) {
+      suggestions.push("최근 추가된 연락처", "태그별로 정리해줘");
+    }
+
+    // Always add generic follow-ups
+    if (suggestions.length === 0) {
+      suggestions.push("더 자세히 설명해줘", "다른 방법은?");
+    }
+    suggestions.push("요약해줘");
+
+    setSuggestions(suggestions.slice(0, 3));
+  };
+
   const streamResponse = async (messageContent: string) => {
     setStreaming(true);
     setStreamingContent("");
+    setSuggestions([]);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -177,6 +205,7 @@ export default function ChatPage() {
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
+      generateSuggestions(messageContent, fullContent);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         // User stopped generation — save partial content
@@ -691,6 +720,31 @@ export default function ChatPage() {
       {/* Input area */}
       <div className="border-t border-gray-800 bg-gray-950 px-4 py-4">
         <div className="max-w-3xl mx-auto">
+          {/* Suggestion chips */}
+          {suggestions.length > 0 && !streaming && (
+            <div className="flex gap-2 mb-2 overflow-x-auto">
+              {suggestions.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    const userMsg: Message = {
+                      id: crypto.randomUUID(),
+                      role: "USER",
+                      content: s,
+                      createdAt: new Date().toISOString(),
+                    };
+                    setMessages((prev) => [...prev, userMsg]);
+                    setSuggestions([]);
+                    streamResponse(s);
+                  }}
+                  className="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 px-3 py-1.5 rounded-lg text-xs transition whitespace-nowrap shrink-0"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
           {attachment && (
             <div className="flex items-center gap-2 mb-2 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs">
               <svg
