@@ -31,9 +31,33 @@ export default function ChatPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [title, setTitle] = useState("");
+  const [reactions, setReactions] = useState<Record<string, "up" | "down">>({});
   const abortRef = useRef<AbortController | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Load reactions from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`eve-reactions-${id}`);
+      if (stored) setReactions(JSON.parse(stored));
+    } catch {
+      // ignore
+    }
+  }, [id]);
+
+  const toggleReaction = (msgId: string, type: "up" | "down") => {
+    setReactions((prev) => {
+      const next = { ...prev };
+      if (next[msgId] === type) {
+        delete next[msgId];
+      } else {
+        next[msgId] = type;
+      }
+      localStorage.setItem(`eve-reactions-${id}`, JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Load conversation history + title
   useEffect(() => {
@@ -347,6 +371,8 @@ export default function ChatPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              role="img"
+              aria-label="Search"
             >
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -405,6 +431,7 @@ export default function ChatPage() {
                   "연락처 검색",
                 ].map((q) => (
                   <button
+                    type="button"
                     key={q}
                     onClick={() => {
                       const userMsg: Message = {
@@ -462,6 +489,7 @@ export default function ChatPage() {
                     className={`absolute top-1 ${msg.role === "USER" ? "left-0 -translate-x-full pr-1" : "right-0 translate-x-full pl-1"} opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5`}
                   >
                     <button
+                      type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(msg.content);
                         toast("Copied to clipboard", "success");
@@ -478,33 +506,83 @@ export default function ChatPage() {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
+                        role="img"
+                        aria-label="Copy"
                       >
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                       </svg>
                     </button>
                     {msg.role === "ASSISTANT" && (
-                      <button
-                        onClick={() => retryMessage(idx)}
-                        className="text-gray-600 hover:text-yellow-400 p-1 rounded transition"
-                        title="Retry / 다시 생성"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => toggleReaction(msg.id, "up")}
+                          className={`p-1 rounded transition ${reactions[msg.id] === "up" ? "text-green-400" : "text-gray-600 hover:text-green-400"}`}
+                          title="Good response / 좋은 답변"
                         >
-                          <polyline points="23 4 23 10 17 10" />
-                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                        </svg>
-                      </button>
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill={reactions[msg.id] === "up" ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            role="img"
+                            aria-label="Thumbs up"
+                          >
+                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleReaction(msg.id, "down")}
+                          className={`p-1 rounded transition ${reactions[msg.id] === "down" ? "text-red-400" : "text-gray-600 hover:text-red-400"}`}
+                          title="Bad response / 나쁜 답변"
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill={reactions[msg.id] === "down" ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            role="img"
+                            aria-label="Thumbs down"
+                          >
+                            <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => retryMessage(idx)}
+                          className="text-gray-600 hover:text-yellow-400 p-1 rounded transition"
+                          title="Retry / 다시 생성"
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            role="img"
+                            aria-label="Retry"
+                          >
+                            <polyline points="23 4 23 10 17 10" />
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                          </svg>
+                        </button>
+                      </>
                     )}
                     <button
+                      type="button"
                       onClick={() => {
                         setMessages((prev) => prev.filter((m) => m.id !== msg.id));
                         fetch(`${API_BASE}/api/chat/messages/${msg.id}`, {
@@ -524,6 +602,8 @@ export default function ChatPage() {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
+                        role="img"
+                        aria-label="Delete"
                       >
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -599,6 +679,8 @@ export default function ChatPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              role="img"
+              aria-label="Scroll down"
             >
               <polyline points="6 9 12 15 18 9" />
             </svg>
@@ -621,6 +703,8 @@ export default function ChatPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 className="text-blue-400 shrink-0"
+                role="img"
+                aria-label="File"
               >
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -658,6 +742,8 @@ export default function ChatPage() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                role="img"
+                aria-label="Attach file"
               >
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>
