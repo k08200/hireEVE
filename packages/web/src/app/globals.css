@@ -13,13 +13,21 @@
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .animate-slide-up {
@@ -50,8 +58,11 @@
 }
 
 /* ── Focus ring utility ─────────────────────────── */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-1 focus:ring-offset-gray-950;
+.focus-ring:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 2px #030712,
+    0 0 0 4px rgba(59, 130, 246, 0.4);
 }
 
 /* ── Page transition ────────────────────────────── */

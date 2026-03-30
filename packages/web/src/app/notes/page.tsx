@@ -7,7 +7,7 @@ import { Markdown } from "../../components/markdown";
 import { RelativeTime } from "../../components/relative-time";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
-import { apiFetch, authHeaders, API_BASE } from "../../lib/api";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
 interface Note {
   id: string;
@@ -70,7 +70,7 @@ export default function NotesPage() {
 
   useEffect(() => {
     loadNotes();
-  }, [search]);
+  }, [loadNotes]);
 
   const startEdit = (note: Note) => {
     setEditing(note);

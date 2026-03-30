@@ -163,13 +163,11 @@ export default function ContactsPage() {
   ).sort();
 
   const filteredContacts = tagFilter
-    ? contacts.filter(
-        (c) =>
-          c.tags &&
-          c.tags
-            .split(",")
-            .map((t) => t.trim())
-            .includes(tagFilter),
+    ? contacts.filter((c) =>
+        c.tags
+          ?.split(",")
+          .map((t) => t.trim())
+          .includes(tagFilter),
       )
     : contacts;
 

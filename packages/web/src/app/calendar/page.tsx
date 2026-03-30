@@ -162,7 +162,7 @@ export default function CalendarPage() {
   const getEventsForDay = (day: Date) =>
     events.filter((e) => isSameDay(new Date(e.startTime), day));
 
-  const getEventPosition = (event: CalendarEvent) => {
+  const _getEventPosition = (event: CalendarEvent) => {
     const start = new Date(event.startTime);
     const end = new Date(event.endTime);
     const top = (start.getHours() + start.getMinutes() / 60) * 60; // 60px per hour

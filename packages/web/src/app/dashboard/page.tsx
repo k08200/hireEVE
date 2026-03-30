@@ -6,9 +6,8 @@ import AuthGuard from "../../components/auth-guard";
 import { RelativeTime } from "../../components/relative-time";
 import { DashboardSkeleton, ListSkeleton } from "../../components/skeleton";
 import { useWebSocket } from "../../components/use-websocket";
-import { useAuth } from "../../lib/auth";
-
 import { apiFetch } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 
 interface Stats {
   tasks: { total: number; done: number; overdue: number };

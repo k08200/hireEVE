@@ -5,7 +5,7 @@ import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
-import { apiFetch, authHeaders, API_BASE } from "../../lib/api";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
 interface Task {
   id: string;
@@ -77,7 +77,7 @@ export default function TasksPage() {
 
   useEffect(() => {
     loadTasks();
-  }, [filter]);
+  }, [loadTasks]);
 
   const updateStatus = async (taskId: string, status: string) => {
     await fetch(`${API_BASE}/api/tasks/${taskId}`, {

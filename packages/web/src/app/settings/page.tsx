@@ -5,9 +5,8 @@ import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
-import { useAuth } from "../../lib/auth";
-
 import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 
 interface Integration {
   name: string;
