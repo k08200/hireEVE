@@ -62,6 +62,13 @@ export default function UserMenu() {
           </div>
           <div className="py-1">
             <Link
+              href="/workspace"
+              onClick={() => setOpen(false)}
+              className="block px-3.5 py-2 text-sm text-gray-300 hover:bg-gray-800/80 hover:text-white transition-colors rounded-md mx-1"
+            >
+              Workspace
+            </Link>
+            <Link
               href="/settings"
               onClick={() => setOpen(false)}
               className="block px-3.5 py-2 text-sm text-gray-300 hover:bg-gray-800/80 hover:text-white transition-colors rounded-md mx-1"

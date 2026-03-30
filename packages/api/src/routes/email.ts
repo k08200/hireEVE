@@ -167,9 +167,68 @@ export async function emailRoutes(app: FastifyInstance) {
     };
   });
 
-  // Get single email
+  // Get single email with full body
   app.get("/:id", async (request) => {
     const { id } = request.params as { id: string };
+    const uid = getUserId(request);
+
+    // Try Gmail first
+    const token = await prisma.userToken.findFirst({
+      where: { userId: uid, provider: "google" },
+    });
+
+    if (token && !id.startsWith("demo-")) {
+      try {
+        const { google } = await import("googleapis");
+        const auth = new google.auth.OAuth2();
+        auth.setCredentials({
+          access_token: token.accessToken,
+          refresh_token: token.refreshToken,
+        });
+
+        const gmail = google.gmail({ version: "v1", auth });
+        const detail = await gmail.users.messages.get({
+          userId: "me",
+          id,
+          format: "full",
+        });
+
+        const headers = detail.data.payload?.headers || [];
+        const getHeader = (name: string) => headers.find((h) => h.name === name)?.value || "";
+
+        // Extract body from parts
+        let body = "";
+        const payload = detail.data.payload;
+        if (payload?.body?.data) {
+          body = Buffer.from(payload.body.data, "base64").toString("utf-8");
+        } else if (payload?.parts) {
+          // Find text/plain or text/html part
+          const textPart = payload.parts.find((p) => p.mimeType === "text/plain");
+          const htmlPart = payload.parts.find((p) => p.mimeType === "text/html");
+          const part = textPart || htmlPart;
+          if (part?.body?.data) {
+            body = Buffer.from(part.body.data, "base64").toString("utf-8");
+          }
+        }
+
+        return {
+          id,
+          from: getHeader("From"),
+          to: getHeader("To"),
+          subject: getHeader("Subject"),
+          snippet: detail.data.snippet || "",
+          body,
+          date: getHeader("Date") || new Date().toISOString(),
+          labels: detail.data.labelIds || [],
+          isRead: !(detail.data.labelIds || []).includes("UNREAD"),
+          priority: (detail.data.labelIds || []).includes("IMPORTANT") ? "urgent" : "normal",
+        };
+      } catch {
+        // Fall through to demo
+      }
+    }
+
+    // Fallback to demo emails
     const email = DEMO_EMAILS.find((e) => e.id === id);
     if (email) {
       return {

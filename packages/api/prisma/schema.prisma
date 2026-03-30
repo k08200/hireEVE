@@ -23,9 +23,10 @@ model User {
   reminders     Reminder[]
   contacts       Contact[]
   calendarEvents CalendarEvent[]
-  workspaceMembers WorkspaceMember[]
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  workspaceMembers   WorkspaceMember[]
+  automationConfig   AutomationConfig?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 }
 
 model Workspace {
@@ -243,4 +244,19 @@ model CalendarEvent {
   googleId    String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model AutomationConfig {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id])
+  meetingAutoJoin       Boolean  @default(true)
+  meetingAutoSummarize  Boolean  @default(true)
+  emailAutoClassify     Boolean  @default(false)
+  reminderAutoCheck     Boolean  @default(true)
+  dailyBriefing        Boolean  @default(true)
+  briefingTime          String   @default("09:00")
+  downloadAutoOrganize  Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }

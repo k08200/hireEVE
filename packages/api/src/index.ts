@@ -5,6 +5,7 @@ import { startBackgroundAgent } from "./background.js";
 import { briefingRoutes } from "./briefing.js";
 import { prisma } from "./db.js";
 import { authRoutes } from "./routes/auth.js";
+import { automationRoutes } from "./routes/automations.js";
 import { billingRoutes } from "./routes/billing.js";
 import { calendarRoutes } from "./routes/calendar.js";
 import { chatRoutes } from "./routes/chat.js";
@@ -50,6 +51,7 @@ await app.register(notificationRoutes, { prefix: "/api/notifications" });
 await app.register(calendarRoutes, { prefix: "/api/calendar" });
 await app.register(emailRoutes, { prefix: "/api/email" });
 await app.register(workspaceRoutes, { prefix: "/api/workspaces" });
+await app.register(automationRoutes, { prefix: "/api/automations" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 

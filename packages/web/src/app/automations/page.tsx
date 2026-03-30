@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
-
-import { API_BASE, authHeaders } from "../../lib/api";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
 interface AutomationConfig {
   meetingAutoJoin: boolean;
@@ -37,34 +36,50 @@ export default function AutomationsPage() {
 function AutomationsContent() {
   const [config, setConfig] = useState<AutomationConfig>(DEFAULT_CONFIG);
   const [isMac, setIsMac] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load saved config
-    try {
-      const stored = localStorage.getItem("eve-automations");
-      if (stored) setConfig(JSON.parse(stored));
-    } catch {
-      // ignore
-    }
-    // Detect macOS
     setIsMac(navigator.platform.toLowerCase().includes("mac"));
+    apiFetch<AutomationConfig>("/api/automations")
+      .then((data) => setConfig(data))
+      .catch(() => {
+        // Fallback to localStorage for offline/demo
+        try {
+          const stored = localStorage.getItem("eve-automations");
+          if (stored) setConfig(JSON.parse(stored));
+        } catch {
+          // ignore
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const toggle = (key: keyof AutomationConfig) => {
-    setConfig((prev) => {
-      const updated = { ...prev, [key]: !prev[key] };
+  const toggle = async (key: keyof AutomationConfig) => {
+    const updated = { ...config, [key]: !config[key] };
+    setConfig(updated);
+    try {
+      await apiFetch<AutomationConfig>("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ [key]: !config[key] }),
+      });
+    } catch {
+      // Fallback to localStorage
       localStorage.setItem("eve-automations", JSON.stringify(updated));
-      return updated;
-    });
+    }
   };
 
-  const updateTime = (time: string) => {
-    setConfig((prev) => {
-      const updated = { ...prev, briefingTime: time };
+  const updateTime = async (time: string) => {
+    const updated = { ...config, briefingTime: time };
+    setConfig(updated);
+    try {
+      await apiFetch<AutomationConfig>("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ briefingTime: time }),
+      });
+    } catch {
       localStorage.setItem("eve-automations", JSON.stringify(updated));
-      return updated;
-    });
+    }
   };
 
   const triggerBriefing = async () => {
@@ -89,7 +104,6 @@ function AutomationsContent() {
         body: JSON.stringify({}),
       });
       const convo = await res.json();
-      // Send organize command through chat
       await fetch(`${API_BASE}/api/chat/conversations/${convo.id}/messages`, {
         method: "POST",
         headers: authHeaders(),
@@ -207,6 +221,19 @@ function AutomationsContent() {
     },
   ];
 
+  if (loading) {
+    return (
+      <main className="max-w-3xl mx-auto px-6 py-10">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-800 rounded w-48" />
+          <div className="h-4 bg-gray-800 rounded w-72" />
+          <div className="h-20 bg-gray-800/60 rounded-xl" />
+          <div className="h-20 bg-gray-800/60 rounded-xl" />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="max-w-3xl mx-auto px-6 py-10">
       <div className="mb-8">
@@ -294,11 +321,23 @@ function AutomationsContent() {
         <div className="space-y-2">
           {[
             { title: "Smart Email Replies", desc: "Auto-draft replies for routine emails" },
-            { title: "Meeting Transcription", desc: "Real-time audio transcription during calls" },
-            { title: "Slack Auto-Response", desc: "Reply to common Slack questions automatically" },
-            { title: "Desktop Widget", desc: "Always-on floating EVE widget on your desktop" },
+            {
+              title: "Meeting Transcription",
+              desc: "Real-time audio transcription during calls",
+            },
+            {
+              title: "Slack Auto-Response",
+              desc: "Reply to common Slack questions automatically",
+            },
+            {
+              title: "Desktop Widget",
+              desc: "Always-on floating EVE widget on your desktop",
+            },
             { title: "Voice Commands", desc: "Talk to EVE hands-free via microphone" },
-            { title: "Phone Call Summary", desc: "Summarize iPhone calls received on Mac" },
+            {
+              title: "Phone Call Summary",
+              desc: "Summarize iPhone calls received on Mac",
+            },
           ].map((item) => (
             <div
               key={item.title}

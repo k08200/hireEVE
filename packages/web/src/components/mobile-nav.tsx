@@ -18,6 +18,7 @@ const WORKSPACE_ITEMS = [
 ];
 
 const ACCOUNT_ITEMS = [
+  { href: "/workspace", label: "Workspace" },
   { href: "/settings", label: "Settings" },
   { href: "/billing", label: "Billing" },
 ];
