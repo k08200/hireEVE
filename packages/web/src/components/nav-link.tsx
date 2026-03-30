@@ -18,8 +18,10 @@ export default function NavLink({
   return (
     <Link
       href={href}
-      className={`text-sm transition ${
-        isActive ? "text-white font-medium" : "text-gray-400 hover:text-white"
+      className={`text-[13px] px-2.5 py-1.5 rounded-md transition-colors ${
+        isActive
+          ? "text-white bg-gray-800/80 font-medium"
+          : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/40"
       } ${className}`}
     >
       {children}

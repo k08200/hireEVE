@@ -245,7 +245,7 @@ export default function ContactsPage() {
       )}
 
       {showForm && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 space-y-3">
+        <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 mb-6 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <input
               placeholder="Name *"
@@ -313,7 +313,7 @@ export default function ContactsPage() {
 
       {/* Edit modal */}
       {editing && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up px-4">
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg">
             <h3 className="font-semibold mb-4">Edit Contact / 연락처 수정</h3>
             <div className="grid grid-cols-2 gap-3 mb-3">
@@ -394,7 +394,7 @@ export default function ContactsPage() {
           {filteredContacts.map((c) => (
             <div
               key={c.id}
-              className="bg-gray-900 border border-gray-800 rounded-lg p-4 group cursor-pointer hover:border-gray-600 transition"
+              className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 group cursor-pointer hover:border-gray-600 transition"
               onClick={() => startEdit(c)}
             >
               <div className="flex items-start gap-3">

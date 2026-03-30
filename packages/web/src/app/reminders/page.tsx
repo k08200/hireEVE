@@ -176,7 +176,7 @@ export default function RemindersPage() {
       </div>
 
       {showForm && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 space-y-3">
+        <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 mb-6 space-y-3">
           <input
             placeholder="Title *"
             value={form.title}
@@ -229,7 +229,7 @@ export default function RemindersPage() {
             <div className="space-y-2 mb-8">
               <h2 className="text-sm font-medium text-gray-400 mb-2">Active ({active.length})</h2>
               {active.map((r) => (
-                <div key={r.id} className="bg-gray-900 border border-gray-800 rounded-lg p-4 group">
+                <div key={r.id} className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 group">
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="font-medium">{r.title}</span>

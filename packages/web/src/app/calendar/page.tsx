@@ -448,7 +448,7 @@ export default function CalendarPage() {
             upcoming.map((event) => (
               <div
                 key={event.id}
-                className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center gap-4 group hover:border-gray-600 transition"
+                className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center gap-4 group hover:border-gray-600 transition"
               >
                 <div
                   className="w-1 h-12 rounded-full shrink-0"

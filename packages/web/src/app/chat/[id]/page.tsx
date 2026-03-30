@@ -569,7 +569,7 @@ function ChatPageContent() {
                 <div className="relative">
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      msg.role === "USER" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-100"
+                      msg.role === "USER" ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20" : "bg-gray-800/80 border border-gray-700/40 text-gray-100"
                     }`}
                   >
                     {msg.role !== "USER" && (
@@ -723,11 +723,11 @@ function ChatPageContent() {
           {/* Streaming message */}
           {streaming && streamingContent && (
             <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gray-800 text-gray-100">
+              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gray-800/80 border border-gray-700/40 text-gray-100">
                 <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>
                 <div>
                   <Markdown content={streamingContent} />
-                  <span className="inline-block w-2 h-4 bg-blue-400 animate-pulse ml-1" />
+                  <span className="inline-block w-1.5 h-4 bg-blue-400 rounded-sm animate-pulse ml-0.5" />
                 </div>
               </div>
             </div>
@@ -794,7 +794,7 @@ function ChatPageContent() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-gray-800 bg-gray-950 px-4 py-4">
+      <div className="border-t border-gray-800/60 bg-gray-950/90 backdrop-blur-md px-4 py-3">
         <div className="max-w-3xl mx-auto">
           {/* Suggestion chips */}
           {suggestions.length > 0 && !streaming && (
@@ -892,13 +892,13 @@ function ChatPageContent() {
               onKeyDown={handleKeyDown}
               placeholder="Type a message... / 메시지를 입력하세요 (Shift+Enter for new line)"
               rows={1}
-              className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+              className="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors placeholder-gray-500"
             />
             {streaming ? (
               <button
                 type="button"
                 onClick={stopGeneration}
-                className="bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
+                className="bg-red-600/90 hover:bg-red-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition-colors shrink-0"
               >
                 Stop
               </button>
@@ -907,7 +907,7 @@ function ChatPageContent() {
                 type="button"
                 onClick={sendMessage}
                 disabled={!input.trim() && !attachment}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl text-sm font-medium transition-colors shrink-0 shadow-sm shadow-blue-600/20"
               >
                 Send
               </button>

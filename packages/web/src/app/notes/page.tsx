@@ -177,7 +177,7 @@ export default function NotesPage() {
 
       {/* Edit modal */}
       {editing && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up px-4">
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg">
             <input
               type="text"
@@ -287,7 +287,7 @@ export default function NotesPage() {
               return (
                 <div
                   key={note.id}
-                  className="bg-gray-900 border border-gray-800 rounded-lg p-4 cursor-pointer hover:border-gray-600 transition group"
+                  className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 cursor-pointer hover:border-gray-600 transition group"
                   onClick={() => startEdit(note)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") startEdit(note);

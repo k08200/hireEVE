@@ -179,23 +179,23 @@ function DashboardContent() {
   const tabCount = connectedClients.filter((c) => c.type === "web").length;
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
-      <div className="flex items-start justify-between mb-8">
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-xl font-bold">
             {greeting.text}
             {user?.name ? `, ${user.name}` : ""}
           </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            {greeting.textKr} — Overview of your workspace / 워크스페이스 현황
+          <p className="text-gray-500 text-sm mt-0.5">
+            {greeting.textKr}
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span
-            className={`w-2 h-2 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-gray-600"}`}
+            className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-gray-600"}`}
           />
-          <span>{connected ? "EVE Online" : "Connecting..."}</span>
-          {tabCount > 1 && <span className="text-gray-600">({tabCount} tabs)</span>}
+          <span>{connected ? "Online" : "Connecting..."}</span>
+          {tabCount > 1 && <span className="text-gray-600">({tabCount})</span>}
         </div>
       </div>
 
@@ -284,7 +284,7 @@ function DashboardContent() {
               <Link
                 key={c.label}
                 href={c.href}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition group"
+                className="bg-gray-900/80 border border-gray-800/80 rounded-xl p-4 hover:border-gray-700 transition-colors"
               >
                 <p className="text-xs text-gray-500 mb-1">{c.label}</p>
                 <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
@@ -328,12 +328,12 @@ function DashboardContent() {
           {/* Activity Feed */}
           {activity.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold mb-4">Recent Activity / 최근 활동</h2>
-              <div className="space-y-2">
+              <h2 className="text-sm font-semibold text-gray-400 mb-3">Recent Activity</h2>
+              <div className="space-y-1.5">
                 {activity.map((a, i) => (
                   <div
                     key={i}
-                    className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 flex items-center gap-3"
+                    className="bg-gray-900/60 border border-gray-800/60 rounded-lg px-4 py-2.5 flex items-center gap-3"
                   >
                     <span
                       className={`text-[10px] uppercase px-2 py-0.5 rounded font-medium ${typeColors[a.type]}`}

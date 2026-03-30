@@ -17,9 +17,9 @@ interface Task {
 }
 
 const statusColors: Record<string, string> = {
-  TODO: "bg-gray-700 text-gray-300",
-  IN_PROGRESS: "bg-blue-900 text-blue-300",
-  DONE: "bg-green-900 text-green-300",
+  TODO: "bg-gray-800 text-gray-300 border border-gray-700",
+  IN_PROGRESS: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+  DONE: "bg-green-500/10 text-green-400 border border-green-500/20",
 };
 
 const priorityColors: Record<string, string> = {
@@ -200,7 +200,7 @@ export default function TasksPage() {
 
       {/* Stats bar */}
       {!loading && tasks.length > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6">
+        <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-400">
               {doneCount}/{tasks.length} completed
@@ -220,7 +220,7 @@ export default function TasksPage() {
       )}
 
       {showForm && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6 space-y-3">
+        <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 mb-6 space-y-3">
           <input
             placeholder="Task title * / 할 일 제목"
             value={form.title}
@@ -299,7 +299,7 @@ export default function TasksPage() {
       {/* Edit modal */}
       {editing && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up px-4"
           onClick={() => setEditing(null)}
         >
           <div
@@ -380,7 +380,7 @@ export default function TasksPage() {
           {filtered.map((task) => (
             <div
               key={task.id}
-              className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-start gap-3 cursor-pointer hover:border-gray-600 transition"
+              className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-gray-600 transition"
               onClick={() => startEdit(task)}
             >
               <button

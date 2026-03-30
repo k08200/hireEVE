@@ -214,16 +214,16 @@ export default function SettingsPage() {
 
   return (
     <AuthGuard>
-    <main className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold mb-2">Settings</h1>
-      <p className="text-gray-400 text-sm mb-8">
+    <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <h1 className="text-xl font-bold mb-1">Settings</h1>
+      <p className="text-gray-500 text-sm mb-6">
         Manage your profile, integrations, and preferences
       </p>
 
       {/* Profile */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Profile / 프로필</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-5 space-y-4">
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">Profile / 프로필</h2>
+        <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
           <div>
             <label htmlFor="profile-name" className="block text-sm text-gray-400 mb-1">
               Display Name / 표시 이름
@@ -290,9 +290,9 @@ export default function SettingsPage() {
       </section>
 
       {/* Security */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Security / 보안</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-5 space-y-4">
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">Security / 보안</h2>
+        <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
           <div>
             <label htmlFor="current-pw" className="block text-sm text-gray-400 mb-1">
               Current Password / 현재 비밀번호
@@ -334,8 +334,8 @@ export default function SettingsPage() {
       </section>
 
       {/* Integrations */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Integrations</h2>
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">Integrations</h2>
         <div className="space-y-3">
           {loading ? (
             <ListSkeleton count={3} />
@@ -343,7 +343,7 @@ export default function SettingsPage() {
             integrations.map((int) => (
               <div
                 key={int.name}
-                className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between"
+                className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between"
               >
                 <div>
                   <h3 className="font-medium">{int.name}</h3>
@@ -382,10 +382,10 @@ export default function SettingsPage() {
       </section>
 
       {/* Quick Actions */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">Quick Actions</h2>
         <div className="space-y-3">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between">
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
             <div>
               <h3 className="font-medium">Daily Briefing</h3>
               <p className="text-sm text-gray-400">
@@ -404,9 +404,9 @@ export default function SettingsPage() {
       </section>
 
       {/* Capabilities */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">EVE Capabilities / 기능 목록</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">EVE Capabilities / 기능 목록</h2>
+        <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 space-y-4">
           <div>
             <p className="text-xs text-blue-400 font-medium mb-2">Productivity / 생산성</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
@@ -452,10 +452,10 @@ export default function SettingsPage() {
       </section>
 
       {/* Data Management */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Data / 데이터</h2>
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">Data / 데이터</h2>
         <div className="space-y-3">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between">
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
             <div>
               <h3 className="font-medium">Export Data / 데이터 내보내기</h3>
               <p className="text-sm text-gray-400">Download all your data as JSON</p>
@@ -472,8 +472,8 @@ export default function SettingsPage() {
       </section>
 
       {/* Danger Zone */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4 text-red-400">Danger Zone / 위험 구역</h2>
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3 text-red-400">Danger Zone / 위험 구역</h2>
         <div className="bg-gray-900 border border-red-900/50 rounded-lg p-4 flex items-center justify-between">
           <div>
             <h3 className="font-medium">Delete All Data / 전체 삭제</h3>
@@ -493,8 +493,8 @@ export default function SettingsPage() {
 
       {/* About */}
       <section>
-        <h2 className="text-lg font-semibold mb-4">About</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">About</h2>
+        <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4">
           <p className="text-sm text-gray-400">
             <span className="text-blue-400 font-medium">EVE</span> — Your First AI Employee / 당신의
             첫 번째 AI 직원

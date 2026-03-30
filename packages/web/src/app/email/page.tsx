@@ -139,7 +139,7 @@ export default function EmailPage() {
           ].map((s) => (
             <div
               key={s.label}
-              className="bg-gray-900 border border-gray-800 rounded-lg p-3 text-center"
+              className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-3 text-center"
             >
               <p className="text-[10px] text-gray-500 uppercase">{s.label}</p>
               <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
@@ -174,7 +174,7 @@ export default function EmailPage() {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="bg-gray-900 border border-gray-800 rounded-lg p-4 animate-pulse"
+              className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 animate-pulse"
             >
               <div className="h-4 bg-gray-800 rounded w-1/3 mb-2" />
               <div className="h-3 bg-gray-800 rounded w-2/3" />

@@ -217,7 +217,7 @@ function AutomationsContent() {
       </div>
 
       {/* Status bar */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-8 flex items-center justify-between">
+      <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           <span className="text-sm">
@@ -243,7 +243,7 @@ function AutomationsContent() {
               {section.items.map((item) => (
                 <div
                   key={item.key}
-                  className={`bg-gray-900 border border-gray-800 rounded-lg p-4 ${
+                  className={`bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 ${
                     item.macOnly && !isMac ? "opacity-50" : ""
                   }`}
                 >

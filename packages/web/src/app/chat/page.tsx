@@ -231,7 +231,7 @@ function ChatListContent() {
             ].map((f) => (
               <div
                 key={f.label}
-                className="bg-gray-900 border border-gray-800 rounded-lg p-3 flex items-center gap-3"
+                className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-3 flex items-center gap-3"
               >
                 <span className="text-xl">{f.icon}</span>
                 <div>
