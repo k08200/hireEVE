@@ -15,6 +15,7 @@ import { notificationRoutes } from "./routes/notifications.js";
 import { reminderRoutes } from "./routes/reminders.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { webhookRoutes } from "./routes/webhook.js";
+import { workspaceRoutes } from "./routes/workspace.js";
 import { slackEventRoutes } from "./slack.js";
 import { getClientCount, initWebSocket } from "./websocket.js";
 
@@ -48,6 +49,7 @@ await app.register(briefingRoutes, { prefix: "/api/briefing" });
 await app.register(notificationRoutes, { prefix: "/api/notifications" });
 await app.register(calendarRoutes, { prefix: "/api/calendar" });
 await app.register(emailRoutes, { prefix: "/api/email" });
+await app.register(workspaceRoutes, { prefix: "/api/workspaces" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
