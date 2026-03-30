@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { Markdown } from "../../components/markdown";
 import { RelativeTime } from "../../components/relative-time";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { apiFetch, authHeaders, API_BASE } from "../../lib/api";
 
 interface Note {
   id: string;
@@ -59,11 +59,10 @@ export default function NotesPage() {
   }, []);
 
   const loadNotes = () => {
-    const params = new URLSearchParams({ userId: "demo-user" });
+    const params = new URLSearchParams();
     if (search) params.set("search", search);
 
-    fetch(`${API_BASE}/api/notes?${params}`)
-      .then((r) => r.json())
+    apiFetch<{ notes: Note[] }>(`/api/notes?${params}`)
       .then((data) => setNotes(data.notes || []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -85,7 +84,7 @@ export default function NotesPage() {
     if (!editing) return;
     await fetch(`${API_BASE}/api/notes/${editing.id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ title: editTitle, content: editContent }),
     });
     // Save category to localStorage
@@ -114,7 +113,7 @@ export default function NotesPage() {
       danger: true,
     });
     if (!ok) return;
-    await fetch(`${API_BASE}/api/notes/${noteId}`, { method: "DELETE" });
+    await fetch(`${API_BASE}/api/notes/${noteId}`, { method: "DELETE", headers: authHeaders() });
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
     toast("Note deleted", "info");
   };
@@ -122,8 +121,8 @@ export default function NotesPage() {
   const createNote = async () => {
     const res = await fetch(`${API_BASE}/api/notes`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "demo-user", title: "New Note", content: "" }),
+      headers: authHeaders(),
+      body: JSON.stringify({ title: "New Note", content: "" }),
     });
     const note = await res.json();
     startEdit(note);
@@ -131,6 +130,7 @@ export default function NotesPage() {
   };
 
   return (
+    <AuthGuard>
     <main className="max-w-3xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -328,5 +328,6 @@ export default function NotesPage() {
         </div>
       )}
     </main>
+    </AuthGuard>
   );
 }

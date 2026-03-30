@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useWebSocket } from "./use-websocket";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface Notification {
   id: string;
-  type: "reminder" | "calendar" | "email" | "task";
+  type: "reminder" | "calendar" | "email" | "task" | "meeting";
   title: string;
   message: string;
   createdAt: string;
@@ -25,7 +26,9 @@ function formatRelative(date: string): string {
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
+  const [flash, setFlash] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { connected, on, connectedClients } = useWebSocket("demo-user");
 
   // Click outside to close
   useEffect(() => {
@@ -46,6 +49,24 @@ export default function NotificationBell() {
     };
   }, [open]);
 
+  // Listen for real-time push notifications via WebSocket
+  useEffect(() => {
+    const unsub = on("notification", (payload) => {
+      const notif = payload as unknown as Notification;
+      if (notif.id) {
+        setNotifications((prev) => {
+          // Deduplicate
+          if (prev.some((n) => n.id === notif.id)) return prev;
+          return [notif, ...prev];
+        });
+        // Flash the bell
+        setFlash(true);
+        setTimeout(() => setFlash(false), 2000);
+      }
+    });
+    return unsub;
+  }, [on]);
+
   const fetchNotifications = () => {
     fetch(`${API_BASE}/api/notifications?userId=demo-user`)
       .then((r) => r.json())
@@ -53,11 +74,12 @@ export default function NotificationBell() {
       .catch(() => {});
   };
 
+  // Initial fetch + slower polling fallback (WebSocket handles real-time)
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15_000);
+    const interval = setInterval(fetchNotifications, connected ? 60_000 : 15_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [connected]);
 
   const clearAll = () => {
     fetch(`${API_BASE}/api/notifications?userId=demo-user`, { method: "DELETE" })
@@ -69,19 +91,28 @@ export default function NotificationBell() {
   };
 
   const count = notifications.length;
+  const tabCount = connectedClients.filter((c) => c.type === "web").length;
 
   const typeIcon: Record<string, string> = {
     reminder: "bell",
     calendar: "cal",
     email: "mail",
     task: "task",
+    meeting: "meet",
   };
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative flex items-center gap-2" ref={containerRef}>
+      {/* Connection indicator */}
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-green-400" : "bg-gray-600"}`}
+        title={connected ? `Connected${tabCount > 1 ? ` (${tabCount} tabs)` : ""}` : "Disconnected"}
+      />
+
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className="relative text-gray-400 hover:text-white transition p-1"
+        className={`relative text-gray-400 hover:text-white transition p-1 ${flash ? "animate-bounce" : ""}`}
         aria-label="Notifications"
       >
         <svg
@@ -107,9 +138,17 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
-            <span className="text-sm font-medium">Notifications</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Notifications</span>
+              {connected && (
+                <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
+                  live
+                </span>
+              )}
+            </div>
             {count > 0 && (
               <button
+                type="button"
                 onClick={clearAll}
                 className="text-xs text-gray-500 hover:text-red-400 transition"
               >
@@ -138,6 +177,12 @@ export default function NotificationBell() {
               ))
             )}
           </div>
+          {/* Multi-tab info */}
+          {tabCount > 1 && (
+            <div className="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">
+              {tabCount} tabs connected — notifications sync in real-time
+            </div>
+          )}
         </div>
       )}
     </div>

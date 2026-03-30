@@ -10,6 +10,7 @@ datasource db {
 model User {
   id            String         @id @default(uuid())
   email         String         @unique
+  passwordHash  String?
   name          String?
   plan          Plan           @default(FREE)
   stripeId      String?        @unique
@@ -20,9 +21,10 @@ model User {
   tasks         Task[]
   notes         Note[]
   reminders     Reminder[]
-  contacts      Contact[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  contacts       Contact[]
+  calendarEvents CalendarEvent[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model Agent {
@@ -194,4 +196,21 @@ model Contact {
   tags      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  meetingLink String?
+  color       String?
+  allDay      Boolean  @default(false)
+  googleId    String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

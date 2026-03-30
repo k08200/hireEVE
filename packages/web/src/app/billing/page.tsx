@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { CardSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
@@ -63,9 +64,11 @@ const PLANS = [
 
 export default function BillingPage() {
   return (
-    <Suspense>
-      <BillingContent />
-    </Suspense>
+    <AuthGuard>
+      <Suspense>
+        <BillingContent />
+      </Suspense>
+    </AuthGuard>
   );
 }
 
@@ -79,7 +82,7 @@ function BillingContent() {
   const canceled = searchParams.get("canceled");
 
   useEffect(() => {
-    apiFetch<BillingStatus>("/api/billing/status?userId=demo-user")
+    apiFetch<BillingStatus>("/api/billing/status")
       .then(setStatus)
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -89,7 +92,7 @@ function BillingContent() {
     try {
       const { url } = await apiFetch<{ url: string }>("/api/billing/checkout", {
         method: "POST",
-        body: JSON.stringify({ userId: "demo-user", plan }),
+        body: JSON.stringify({ plan }),
       });
       if (url) window.location.href = url;
     } catch {
@@ -101,7 +104,7 @@ function BillingContent() {
     try {
       const { url } = await apiFetch<{ url: string }>("/api/billing/portal", {
         method: "POST",
-        body: JSON.stringify({ userId: "demo-user" }),
+        body: JSON.stringify({}),
       });
       if (url) window.location.href = url;
     } catch {

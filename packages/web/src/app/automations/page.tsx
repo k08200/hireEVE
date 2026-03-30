@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE, authHeaders } from "../../lib/api";
 
 interface AutomationConfig {
   meetingAutoJoin: boolean;
@@ -26,6 +27,14 @@ const DEFAULT_CONFIG: AutomationConfig = {
 };
 
 export default function AutomationsPage() {
+  return (
+    <AuthGuard>
+      <AutomationsContent />
+    </AuthGuard>
+  );
+}
+
+function AutomationsContent() {
   const [config, setConfig] = useState<AutomationConfig>(DEFAULT_CONFIG);
   const [isMac, setIsMac] = useState(false);
   const { toast } = useToast();
@@ -62,8 +71,8 @@ export default function AutomationsPage() {
     try {
       const res = await fetch(`${API_BASE}/api/briefing/generate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: "demo-user" }),
+        headers: authHeaders(),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       toast(data.briefing ? "Briefing generated — check Notes" : "Briefing created", "success");
@@ -76,14 +85,14 @@ export default function AutomationsPage() {
     try {
       const res = await fetch(`${API_BASE}/api/chat/conversations`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: "demo-user" }),
+        headers: authHeaders(),
+        body: JSON.stringify({}),
       });
       const convo = await res.json();
       // Send organize command through chat
       await fetch(`${API_BASE}/api/chat/conversations/${convo.id}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ content: "다운로드 폴더 정리해줘" }),
       });
       toast("Organizing downloads... check chat for results", "success");

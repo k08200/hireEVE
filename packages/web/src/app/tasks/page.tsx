@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { apiFetch, authHeaders, API_BASE } from "../../lib/api";
 
 interface Task {
   id: string;
@@ -68,12 +68,11 @@ export default function TasksPage() {
   });
 
   const loadTasks = () => {
-    const url =
+    const path =
       filter === "all"
-        ? `${API_BASE}/api/tasks?userId=demo-user`
-        : `${API_BASE}/api/tasks?userId=demo-user&status=${filter}`;
-    fetch(url)
-      .then((r) => r.json())
+        ? `/api/tasks`
+        : `/api/tasks?status=${filter}`;
+    apiFetch<{ tasks: Task[] }>(path)
       .then((data) => setTasks(data.tasks || []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -86,28 +85,31 @@ export default function TasksPage() {
   const updateStatus = async (taskId: string, status: string) => {
     await fetch(`${API_BASE}/api/tasks/${taskId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ status }),
     });
     loadTasks();
   };
 
   const createTask = async () => {
-    await fetch(`${API_BASE}/api/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: "demo-user",
-        title: form.title,
-        description: form.description || undefined,
-        priority: form.priority,
-        dueDate: form.dueDate || undefined,
-      }),
-    });
-    setShowForm(false);
-    setForm({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
-    loadTasks();
-    toast("Task created", "success");
+    try {
+      await fetch(`${API_BASE}/api/tasks`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description || undefined,
+          priority: form.priority,
+          dueDate: form.dueDate || undefined,
+        }),
+      });
+      setShowForm(false);
+      setForm({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
+      loadTasks();
+      toast("Task created", "success");
+    } catch (err) {
+      toast(`Failed: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
+    }
   };
 
   const startEdit = (task: Task) => {
@@ -125,7 +127,7 @@ export default function TasksPage() {
     if (!editing) return;
     await fetch(`${API_BASE}/api/tasks/${editing.id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({
         title: editForm.title,
         description: editForm.description || null,
@@ -147,7 +149,7 @@ export default function TasksPage() {
       danger: true,
     });
     if (!ok) return;
-    await fetch(`${API_BASE}/api/tasks/${taskId}`, { method: "DELETE" });
+    await fetch(`${API_BASE}/api/tasks/${taskId}`, { method: "DELETE", headers: authHeaders() });
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     toast("Task deleted", "info");
   };
@@ -177,6 +179,7 @@ export default function TasksPage() {
   const progress = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
 
   return (
+    <AuthGuard>
     <main className="max-w-3xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -443,5 +446,6 @@ export default function TasksPage() {
         </div>
       )}
     </main>
+    </AuthGuard>
   );
 }

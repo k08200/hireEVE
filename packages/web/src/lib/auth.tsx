@@ -1,0 +1,99 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { apiFetch } from "./api";
+
+interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  plan: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<void>;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  // Load token from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("eve-token");
+    if (stored) {
+      setToken(stored);
+      // Verify token
+      apiFetch<{ user: User }>("/api/auth/me", {
+        headers: { Authorization: `Bearer ${stored}` },
+      })
+        .then((data) => {
+          setUser(data.user);
+        })
+        .catch(() => {
+          localStorage.removeItem("eve-token");
+          setToken(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const data = await apiFetch<{ token: string; user: User }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      localStorage.setItem("eve-token", data.token);
+      setToken(data.token);
+      setUser(data.user);
+      router.push("/chat");
+    },
+    [router],
+  );
+
+  const register = useCallback(
+    async (email: string, password: string, name?: string) => {
+      const data = await apiFetch<{ token: string; user: User }>("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ email, password, name }),
+      });
+      localStorage.setItem("eve-token", data.token);
+      setToken(data.token);
+      setUser(data.user);
+      router.push("/chat");
+    },
+    [router],
+  );
+
+  const logout = useCallback(() => {
+    localStorage.removeItem("eve-token");
+    setToken(null);
+    setUser(null);
+    router.push("/login");
+  }, [router]);
+
+  return (
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}

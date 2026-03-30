@@ -1,12 +1,12 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import AuthGuard from "../../../components/auth-guard";
 import { Markdown } from "../../../components/markdown";
 import { useToast } from "../../../components/toast";
-import { apiFetch } from "../../../lib/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import VoiceButton from "../../../components/voice-button";
+import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
 
 interface Message {
   id: string;
@@ -16,7 +16,18 @@ interface Message {
 }
 
 export default function ChatPage() {
+  return (
+    <AuthGuard>
+      <Suspense>
+        <ChatPageContent />
+      </Suspense>
+    </AuthGuard>
+  );
+}
+
+function ChatPageContent() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -35,6 +46,7 @@ export default function ChatPage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const prefillHandled = useRef(false);
   const { toast } = useToast();
 
   // Load reactions from localStorage
@@ -60,15 +72,78 @@ export default function ChatPage() {
     });
   };
 
-  // Load conversation history + title
+  // Load conversation history + title, then handle ?prefill= auto-send
   useEffect(() => {
     apiFetch<{ messages: Message[]; title?: string | null }>(`/api/chat/conversations/${id}`)
       .then((data) => {
         setMessages(data.messages);
         if (data.title) setTitle(data.title);
+
+        // Auto-send prefill message (from Email "Ask EVE to Reply" etc.)
+        const prefill = searchParams.get("prefill");
+        if (prefill && !prefillHandled.current && data.messages.length === 0) {
+          prefillHandled.current = true;
+          const userMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "USER",
+            content: prefill,
+            createdAt: new Date().toISOString(),
+          };
+          setMessages([userMsg]);
+          // Delay slightly so streamResponse is available
+          setTimeout(() => {
+            setStreaming(true);
+            setStreamingContent("");
+            setSuggestions([]);
+            fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
+              method: "POST",
+              headers: authHeaders(),
+              body: JSON.stringify({ content: prefill }),
+            })
+              .then(async (res) => {
+                const reader = res.body?.getReader();
+                const decoder = new TextDecoder();
+                let fullContent = "";
+                if (reader) {
+                  while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const text = decoder.decode(value, { stream: true });
+                    for (const line of text.split("\n")) {
+                      if (!line.startsWith("data: ")) continue;
+                      try {
+                        const d = JSON.parse(line.slice(6));
+                        if (d.type === "token") {
+                          fullContent += d.content;
+                          setStreamingContent(fullContent);
+                        }
+                      } catch { /* skip */ }
+                    }
+                  }
+                }
+                const assistantMsg: Message = {
+                  id: crypto.randomUUID(),
+                  role: "ASSISTANT",
+                  content: fullContent,
+                  createdAt: new Date().toISOString(),
+                };
+                setMessages((prev) => [...prev, assistantMsg]);
+              })
+              .catch(() => {
+                setMessages((prev) => [
+                  ...prev,
+                  { id: crypto.randomUUID(), role: "ASSISTANT", content: "Connection failed. Please try again.", createdAt: new Date().toISOString() },
+                ]);
+              })
+              .finally(() => {
+                setStreaming(false);
+                setStreamingContent("");
+              });
+          }, 100);
+        }
       })
       .catch(() => {});
-  }, [id]);
+  }, [id, searchParams]);
 
   // Auto-focus input on mount
   useEffect(() => {
@@ -159,7 +234,7 @@ export default function ChatPage() {
     try {
       const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ content: messageContent }),
         signal: controller.signal,
       });
@@ -281,7 +356,7 @@ export default function ChatPage() {
     try {
       const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/retry`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
       });
 
       const reader = res.body?.getReader();
@@ -616,6 +691,7 @@ export default function ChatPage() {
                         setMessages((prev) => prev.filter((m) => m.id !== msg.id));
                         fetch(`${API_BASE}/api/chat/messages/${msg.id}`, {
                           method: "DELETE",
+                          headers: authHeaders(),
                         }).catch(() => {});
                         toast("Message deleted", "info");
                       }}
@@ -802,6 +878,13 @@ export default function ChatPage() {
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>
             </button>
+            <VoiceButton
+              onTranscript={(text) => {
+                setInput((prev) => (prev ? `${prev} ${text}` : text));
+                inputRef.current?.focus();
+              }}
+              className="p-3 shrink-0"
+            />
             <textarea
               ref={inputRef}
               value={input}

@@ -1,12 +1,13 @@
 import type { FastifyInstance } from "fastify";
+import { getUserId } from "../auth.js";
 import { prisma } from "../db.js";
 
 export async function noteRoutes(app: FastifyInstance) {
-  // GET /api/notes?userId=xxx&search=xxx
+  // GET /api/notes?search=xxx
   app.get("/", async (request) => {
-    const { userId, search } = request.query as { userId?: string; search?: string };
-    const where: Record<string, unknown> = {};
-    if (userId) where.userId = userId;
+    const userId = getUserId(request);
+    const { search } = request.query as { search?: string };
+    const where: Record<string, unknown> = { userId };
     if (search) {
       where.OR = [
         { title: { contains: search, mode: "insensitive" } },
@@ -24,8 +25,8 @@ export async function noteRoutes(app: FastifyInstance) {
 
   // POST /api/notes
   app.post("/", async (request, reply) => {
-    const { userId, title, content } = request.body as {
-      userId: string;
+    const userId = getUserId(request);
+    const { title, content } = request.body as {
       title: string;
       content: string;
     };

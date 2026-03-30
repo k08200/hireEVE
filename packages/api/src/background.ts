@@ -14,6 +14,7 @@
 import { prisma } from "./db.js";
 import { getUpcomingMeetings } from "./meeting.js";
 import { checkDueReminders } from "./reminders.js";
+import { pushNotification } from "./websocket.js";
 
 interface Notification {
   id: string;
@@ -29,15 +30,19 @@ const notifications: Map<string, Notification[]> = new Map();
 const notifiedIds: Set<string> = new Set();
 
 function addNotification(userId: string, notif: Omit<Notification, "id" | "createdAt">) {
-  const list = notifications.get(userId) || [];
-  list.push({
+  const entry: Notification = {
     ...notif,
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
-  });
+  };
+  const list = notifications.get(userId) || [];
+  list.push(entry);
   // Keep max 50 notifications
   if (list.length > 50) list.shift();
   notifications.set(userId, list);
+
+  // Push real-time via WebSocket
+  pushNotification(userId, entry);
 }
 
 export function getNotifications(userId: string): Notification[] {

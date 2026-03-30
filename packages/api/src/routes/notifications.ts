@@ -1,18 +1,19 @@
 import type { FastifyInstance } from "fastify";
+import { getUserId } from "../auth.js";
 import { clearNotifications, getNotifications } from "../background.js";
 
 export async function notificationRoutes(app: FastifyInstance) {
-  // GET /api/notifications?userId=xxx — Get pending notifications
+  // GET /api/notifications — Get pending notifications
   app.get("/", async (request) => {
-    const { userId } = request.query as { userId?: string };
-    const notifs = getNotifications(userId || "demo-user");
+    const userId = getUserId(request);
+    const notifs = getNotifications(userId);
     return { notifications: notifs, count: notifs.length };
   });
 
-  // DELETE /api/notifications?userId=xxx — Clear all notifications
+  // DELETE /api/notifications — Clear all notifications
   app.delete("/", async (request, reply) => {
-    const { userId } = request.query as { userId?: string };
-    clearNotifications(userId || "demo-user");
+    const userId = getUserId(request);
+    clearNotifications(userId);
     return reply.code(204).send();
   });
 }

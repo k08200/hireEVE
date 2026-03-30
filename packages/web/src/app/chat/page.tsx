@@ -1,12 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { RelativeTime } from "../../components/relative-time";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
-import { apiFetch } from "../../lib/api";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
 interface Conversation {
   id: string;
@@ -18,6 +19,16 @@ interface Conversation {
 }
 
 export default function ChatListPage() {
+  return (
+    <AuthGuard>
+      <Suspense>
+        <ChatListContent />
+      </Suspense>
+    </AuthGuard>
+  );
+}
+
+function ChatListContent() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [gmailConnected, setGmailConnected] = useState(false);
@@ -27,10 +38,31 @@ export default function ChatListPage() {
   const [sortBy, setSortBy] = useState<"recent" | "messages">("recent");
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { confirm } = useConfirm();
+  const prefillHandled = useRef(false);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  // Handle ?prefill= parameter (from Email "Ask EVE to Reply" etc.)
+  useEffect(() => {
+    if (prefillHandled.current) return;
+    const prefill = searchParams.get("prefill");
+    if (!prefill) return;
+    prefillHandled.current = true;
+
+    (async () => {
+      try {
+        const conv = await apiFetch<{ id: string }>("/api/chat/conversations", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        // Navigate to the conversation — the prefill text will be sent as the first message
+        router.push(`/chat/${conv.id}?prefill=${encodeURIComponent(prefill)}`);
+      } catch {
+        toast("Failed to create conversation", "error");
+      }
+    })();
+  }, [searchParams, router, toast]);
 
   // Load pinned conversations from localStorage
   useEffect(() => {
@@ -59,7 +91,7 @@ export default function ChatListPage() {
   };
 
   useEffect(() => {
-    apiFetch<{ conversations: Conversation[] }>("/api/chat/conversations?userId=demo-user")
+    apiFetch<{ conversations: Conversation[] }>("/api/chat/conversations")
       .then((data) => setConversations(data.conversations))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -71,25 +103,33 @@ export default function ChatListPage() {
   }, [API_BASE]);
 
   const createConversation = async () => {
-    const conv = await apiFetch<Conversation>("/api/chat/conversations", {
-      method: "POST",
-      body: JSON.stringify({ userId: "demo-user" }),
-    });
-    router.push(`/chat/${conv.id}`);
+    try {
+      const conv = await apiFetch<Conversation>("/api/chat/conversations", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      router.push(`/chat/${conv.id}`);
+    } catch (err) {
+      toast(`Failed to create chat: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
+    }
   };
 
   const deleteConversation = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const ok = await confirm({
-      title: "Delete Conversation / 대화 삭제",
-      message: "All messages will be lost. / 모든 메시지가 삭제됩니다.",
-      confirmLabel: "Delete",
-      danger: true,
-    });
-    if (!ok) return;
-    await fetch(`${API_BASE}/api/chat/conversations/${id}`, { method: "DELETE" });
-    setConversations((prev) => prev.filter((c) => c.id !== id));
-    toast("Conversation deleted", "info");
+    try {
+      const ok = await confirm({
+        title: "Delete Conversation / 대화 삭제",
+        message: "All messages will be lost. / 모든 메시지가 삭제됩니다.",
+        confirmLabel: "Delete",
+        danger: true,
+      });
+      if (!ok) return;
+      await fetch(`${API_BASE}/api/chat/conversations/${id}`, { method: "DELETE", headers: authHeaders() });
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      toast("Conversation deleted", "info");
+    } catch (err) {
+      toast(`Delete failed: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
+    }
   };
 
   const startRename = (e: React.MouseEvent, conv: Conversation) => {
@@ -103,7 +143,7 @@ export default function ChatListPage() {
     e.stopPropagation();
     await fetch(`${API_BASE}/api/chat/conversations/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ title: editTitle }),
     });
     setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c)));

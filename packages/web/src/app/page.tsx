@@ -62,10 +62,10 @@ export default function LandingPage() {
         </p>
         <div className="flex gap-3 justify-center">
           <Link
-            href="/chat"
+            href="/login"
             className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-medium transition text-sm"
           >
-            Start Chatting
+            Get Started Free
           </Link>
           <Link
             href="/billing"
@@ -186,7 +186,7 @@ export default function LandingPage() {
             Free to start. No credit card required. / 무료로 시작하세요.
           </p>
           <Link
-            href="/chat"
+            href="/login"
             className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-medium transition inline-block text-sm"
           >
             Try EVE Now

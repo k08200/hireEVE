@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
 interface Reminder {
   id: string;
@@ -24,8 +25,7 @@ export default function RemindersPage() {
   const { confirm } = useConfirm();
 
   const load = () => {
-    fetch(`${API_BASE}/api/reminders?userId=demo-user`)
-      .then((r) => r.json())
+    apiFetch<{ reminders: Reminder[] }>("/api/reminders")
       .then((d) => setReminders(d.reminders || []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -38,8 +38,8 @@ export default function RemindersPage() {
   const create = async () => {
     await fetch(`${API_BASE}/api/reminders`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "demo-user", ...form }),
+      headers: authHeaders(),
+      body: JSON.stringify(form),
     });
     setShowForm(false);
     setForm({ title: "", description: "", remindAt: "" });
@@ -48,7 +48,7 @@ export default function RemindersPage() {
   };
 
   const dismiss = async (id: string) => {
-    await fetch(`${API_BASE}/api/reminders/${id}/dismiss`, { method: "PATCH" });
+    await fetch(`${API_BASE}/api/reminders/${id}/dismiss`, { method: "PATCH", headers: authHeaders() });
     setReminders((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: "DISMISSED" as const } : r)),
     );
@@ -58,7 +58,7 @@ export default function RemindersPage() {
   const snooze = async (id: string, minutes: number) => {
     const res = await fetch(`${API_BASE}/api/reminders/${id}/snooze`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({ minutes }),
     });
     const updated = await res.json();
@@ -79,7 +79,7 @@ export default function RemindersPage() {
       danger: true,
     });
     if (!ok) return;
-    await fetch(`${API_BASE}/api/reminders/${id}`, { method: "DELETE" });
+    await fetch(`${API_BASE}/api/reminders/${id}`, { method: "DELETE", headers: authHeaders() });
     setReminders((prev) => prev.filter((r) => r.id !== id));
     toast("Reminder deleted", "info");
   };
@@ -97,8 +97,8 @@ export default function RemindersPage() {
     const remindAt = new Date(Date.now() + minutesFromNow * 60_000).toISOString();
     await fetch(`${API_BASE}/api/reminders`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "demo-user", title, remindAt }),
+      headers: authHeaders(),
+      body: JSON.stringify({ title, remindAt }),
     });
     load();
     toast(`Reminder set: ${title}`, "success");
@@ -120,6 +120,7 @@ export default function RemindersPage() {
   const isPast = (iso: string) => new Date(iso) < new Date();
 
   return (
+    <AuthGuard>
     <main className="max-w-3xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -316,5 +317,6 @@ export default function RemindersPage() {
         </>
       )}
     </main>
+    </AuthGuard>
   );
 }

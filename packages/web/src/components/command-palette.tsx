@@ -48,6 +48,18 @@ export default function CommandPalette() {
       action: () => router.push("/dashboard"),
     },
     {
+      id: "email",
+      label: "Go to Email",
+      sublabel: "이메일",
+      action: () => router.push("/email"),
+    },
+    {
+      id: "calendar",
+      label: "Go to Calendar",
+      sublabel: "캘린더",
+      action: () => router.push("/calendar"),
+    },
+    {
       id: "tasks",
       label: "Go to Tasks",
       sublabel: "할 일 관리",

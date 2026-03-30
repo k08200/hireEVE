@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
 interface Integration {
   name: string;
@@ -69,16 +70,13 @@ export default function SettingsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE}/api/auth/google/status`)
-        .then((r) => r.json())
+      apiFetch<{ connected: boolean }>("/api/auth/google/status")
         .then((d) => setGoogleConnected(d.connected))
         .catch(() => {}),
-      fetch(`${API_BASE}/api/slack/status`)
-        .then((r) => r.json())
+      apiFetch<{ configured: boolean }>("/api/slack/status")
         .then((d) => setSlackConnected(d.configured))
         .catch(() => {}),
-      fetch(`${API_BASE}/api/notion/status`)
-        .then((r) => r.json())
+      apiFetch<{ configured: boolean }>("/api/notion/status")
         .then((d) => setNotionConnected(d.configured))
         .catch(() => {}),
     ]).finally(() => setLoading(false));
@@ -109,8 +107,8 @@ export default function SettingsPage() {
   const generateBriefing = async () => {
     const res = await fetch(`${API_BASE}/api/briefing/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "demo-user" }),
+      headers: authHeaders(),
+      body: JSON.stringify({}),
     });
     const data = await res.json();
     toast(data.briefing || "Briefing generated — check your Notes page.", "success");
@@ -126,7 +124,7 @@ export default function SettingsPage() {
     });
     if (!ok) return;
     try {
-      await fetch(`${API_BASE}/api/user/demo-user/data`, { method: "DELETE" });
+      await fetch(`${API_BASE}/api/user/me/data`, { method: "DELETE", headers: authHeaders() });
       localStorage.removeItem("eve-profile");
       localStorage.removeItem("eve-pinned-chats");
       toast("All data cleared / 모든 데이터 삭제됨", "info");
@@ -137,7 +135,7 @@ export default function SettingsPage() {
 
   const exportData = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/user/demo-user/export`);
+      const res = await fetch(`${API_BASE}/api/user/me/export`, { headers: authHeaders() });
       const data = await res.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -153,6 +151,7 @@ export default function SettingsPage() {
   };
 
   return (
+    <AuthGuard>
     <main className="max-w-3xl mx-auto px-6 py-10">
       <h1 className="text-2xl font-bold mb-2">Settings</h1>
       <p className="text-gray-400 text-sm mb-8">
@@ -390,5 +389,6 @@ export default function SettingsPage() {
         </div>
       </section>
     </main>
+    </AuthGuard>
   );
 }

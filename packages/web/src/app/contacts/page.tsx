@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
 const TAG_COLORS = [
   "bg-blue-500/20 text-blue-400",
@@ -91,10 +92,9 @@ export default function ContactsPage() {
   });
 
   const loadContacts = () => {
-    const params = new URLSearchParams({ userId: "demo-user" });
+    const params = new URLSearchParams();
     if (search) params.set("search", search);
-    fetch(`${API_BASE}/api/contacts?${params}`)
-      .then((r) => r.json())
+    apiFetch<{ contacts: Contact[] }>(`/api/contacts?${params}`)
       .then((d) => setContacts(d.contacts || []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -107,8 +107,8 @@ export default function ContactsPage() {
   const createContact = async () => {
     await fetch(`${API_BASE}/api/contacts`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "demo-user", ...form }),
+      headers: authHeaders(),
+      body: JSON.stringify(form),
     });
     setShowForm(false);
     setForm({ name: "", email: "", phone: "", company: "", role: "", notes: "", tags: "" });
@@ -133,7 +133,7 @@ export default function ContactsPage() {
     if (!editing) return;
     await fetch(`${API_BASE}/api/contacts/${editing.id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify(editForm),
     });
     setEditing(null);
@@ -181,12 +181,13 @@ export default function ContactsPage() {
       danger: true,
     });
     if (!ok) return;
-    await fetch(`${API_BASE}/api/contacts/${id}`, { method: "DELETE" });
+    await fetch(`${API_BASE}/api/contacts/${id}`, { method: "DELETE", headers: authHeaders() });
     setContacts((prev) => prev.filter((c) => c.id !== id));
     toast("Contact deleted", "info");
   };
 
   return (
+    <AuthGuard>
     <main className="max-w-3xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -442,5 +443,6 @@ export default function ContactsPage() {
         </div>
       )}
     </main>
+    </AuthGuard>
   );
 }

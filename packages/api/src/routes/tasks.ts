@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
+import { getUserId } from "../auth.js";
 import { createTask, deleteTask, listTasks, updateTask } from "../tasks.js";
 
 export async function taskRoutes(app: FastifyInstance) {
-  // GET /api/tasks?userId=xxx&status=TODO
+  // GET /api/tasks?status=TODO
   app.get("/", async (request) => {
-    const { userId, status } = request.query as { userId?: string; status?: string };
-    return listTasks(userId || "demo-user", status);
+    const userId = getUserId(request);
+    const { status } = request.query as { status?: string };
+    return listTasks(userId, status);
   });
 
   // PATCH /api/tasks/:id
@@ -24,14 +26,14 @@ export async function taskRoutes(app: FastifyInstance) {
 
   // POST /api/tasks
   app.post("/", async (request, reply) => {
-    const { userId, title, description, priority, due_date } = request.body as {
-      userId?: string;
+    const userId = getUserId(request);
+    const { title, description, priority, due_date } = request.body as {
       title: string;
       description?: string;
       priority?: string;
       due_date?: string;
     };
-    const result = await createTask(userId || "demo-user", title, description, priority, due_date);
+    const result = await createTask(userId, title, description, priority, due_date);
     return reply.code(201).send(result);
   });
 }

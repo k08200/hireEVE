@@ -1,0 +1,202 @@
+/**
+ * Email API — Gmail integration for reading, classifying, and drafting emails
+ *
+ * Requires Google OAuth token. Falls back to mock data for demo mode.
+ */
+import type { FastifyInstance } from "fastify";
+import { getUserId } from "../auth.js";
+import { prisma } from "../db.js";
+
+interface EmailMessage {
+  id: string;
+  from: string;
+  to: string;
+  subject: string;
+  snippet: string;
+  body?: string;
+  date: string;
+  labels: string[];
+  isRead: boolean;
+  priority: "urgent" | "normal" | "low";
+}
+
+// Demo emails for when Gmail isn't connected
+const DEMO_EMAILS: EmailMessage[] = [
+  {
+    id: "demo-1",
+    from: "investor@vc.com",
+    to: "me@startup.com",
+    subject: "Follow-up: Series A Discussion",
+    snippet: "Hi, I wanted to follow up on our conversation last week about the Series A round...",
+    date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    labels: ["INBOX", "IMPORTANT"],
+    isRead: false,
+    priority: "urgent",
+  },
+  {
+    id: "demo-2",
+    from: "team@notion.so",
+    to: "me@startup.com",
+    subject: "Your weekly Notion digest",
+    snippet:
+      "Here's what happened in your workspace this week: 12 pages updated, 3 new databases...",
+    date: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    labels: ["INBOX"],
+    isRead: true,
+    priority: "low",
+  },
+  {
+    id: "demo-3",
+    from: "partner@company.co",
+    to: "me@startup.com",
+    subject: "Partnership Proposal — Q2 Collaboration",
+    snippet:
+      "We'd love to explore a partnership opportunity with your team for the upcoming quarter...",
+    date: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+    labels: ["INBOX"],
+    isRead: false,
+    priority: "normal",
+  },
+  {
+    id: "demo-4",
+    from: "noreply@github.com",
+    to: "me@startup.com",
+    subject: "[hireEVE] New pull request #42: Add calendar integration",
+    snippet: "k08200 opened a new pull request in hireEVE/probeai: Add calendar integration...",
+    date: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+    labels: ["INBOX", "CATEGORY_UPDATES"],
+    isRead: true,
+    priority: "normal",
+  },
+  {
+    id: "demo-5",
+    from: "accounting@service.com",
+    to: "me@startup.com",
+    subject: "Invoice #INV-2026-0089 — March Services",
+    snippet: "Please find attached the invoice for March 2026 services. Total: $2,450.00...",
+    date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    labels: ["INBOX"],
+    isRead: false,
+    priority: "normal",
+  },
+  {
+    id: "demo-6",
+    from: "newsletter@techcrunch.com",
+    to: "me@startup.com",
+    subject: "TechCrunch Daily: AI Agents Are the New SaaS",
+    snippet: "Today's top stories: Why AI agents are replacing traditional SaaS tools...",
+    date: new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString(),
+    labels: ["INBOX", "CATEGORY_PROMOTIONS"],
+    isRead: true,
+    priority: "low",
+  },
+];
+
+async function getGmailEmails(userId: string): Promise<EmailMessage[] | null> {
+  const token = await prisma.userToken.findFirst({
+    where: { userId, provider: "google" },
+  });
+  if (!token) return null;
+
+  try {
+    const { google } = await import("googleapis");
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({
+      access_token: token.accessToken,
+      refresh_token: token.refreshToken,
+    });
+
+    const gmail = google.gmail({ version: "v1", auth });
+    const response = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: 20,
+      labelIds: ["INBOX"],
+    });
+
+    const messages: EmailMessage[] = [];
+    for (const msg of response.data.messages || []) {
+      const detail = await gmail.users.messages.get({
+        userId: "me",
+        id: msg.id!,
+        format: "metadata",
+        metadataHeaders: ["From", "To", "Subject", "Date"],
+      });
+
+      const headers = detail.data.payload?.headers || [];
+      const getHeader = (name: string) => headers.find((h) => h.name === name)?.value || "";
+
+      messages.push({
+        id: msg.id!,
+        from: getHeader("From"),
+        to: getHeader("To"),
+        subject: getHeader("Subject"),
+        snippet: detail.data.snippet || "",
+        date: getHeader("Date") || new Date().toISOString(),
+        labels: detail.data.labelIds || [],
+        isRead: !(detail.data.labelIds || []).includes("UNREAD"),
+        priority: (detail.data.labelIds || []).includes("IMPORTANT") ? "urgent" : "normal",
+      });
+    }
+
+    return messages;
+  } catch {
+    return null;
+  }
+}
+
+export async function emailRoutes(app: FastifyInstance) {
+  // List emails (Gmail or demo)
+  app.get("/", async (request) => {
+    const { filter } = request.query as { filter?: string };
+    const uid = getUserId(request);
+
+    const gmailEmails = await getGmailEmails(uid);
+    let emails = gmailEmails || DEMO_EMAILS;
+
+    if (filter === "unread") {
+      emails = emails.filter((e) => !e.isRead);
+    } else if (filter === "urgent") {
+      emails = emails.filter((e) => e.priority === "urgent");
+    }
+
+    return {
+      emails,
+      source: gmailEmails ? "gmail" : "demo",
+      total: emails.length,
+      unread: emails.filter((e) => !e.isRead).length,
+    };
+  });
+
+  // Get single email
+  app.get("/:id", async (request) => {
+    const { id } = request.params as { id: string };
+    const email = DEMO_EMAILS.find((e) => e.id === id);
+    if (email) {
+      return {
+        ...email,
+        body: `${email.snippet}\n\nThis is the full email body for the demo message.`,
+      };
+    }
+    return { error: "Email not found" };
+  });
+
+  // Email stats
+  app.get("/stats/summary", async (request) => {
+    const uid = getUserId(request);
+
+    const gmailEmails = await getGmailEmails(uid);
+    const emails = gmailEmails || DEMO_EMAILS;
+
+    return {
+      total: emails.length,
+      unread: emails.filter((e) => !e.isRead).length,
+      urgent: emails.filter((e) => e.priority === "urgent").length,
+      today: emails.filter((e) => {
+        const d = new Date(e.date);
+        const now = new Date();
+        return d.toDateString() === now.toDateString();
+      }).length,
+      source: gmailEmails ? "gmail" : "demo",
+    };
+  });
+}
