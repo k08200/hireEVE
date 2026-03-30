@@ -27,7 +27,12 @@ const dotColors: Record<BadgeVariant, string> = {
   purple: "bg-purple-400",
 };
 
-export default function Badge({ variant = "default", children, dot = false, className = "" }: BadgeProps) {
+export default function Badge({
+  variant = "default",
+  children,
+  dot = false,
+  className = "",
+}: BadgeProps) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-md border ${variantStyles[variant]} ${className}`}

@@ -7,7 +7,16 @@ const FEATURES = [
     title: "Email & Classification",
     desc: "Read, send, and auto-classify emails by priority.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
         <polyline points="22,6 12,13 2,6" />
       </svg>
@@ -17,7 +26,16 @@ const FEATURES = [
     title: "Calendar & Scheduling",
     desc: "Create events, check schedules, detect conflicts.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
         <line x1="16" y1="2" x2="16" y2="6" />
         <line x1="8" y1="2" x2="8" y2="6" />
@@ -29,7 +47,16 @@ const FEATURES = [
     title: "Tasks & Reminders",
     desc: "Track to-dos with priorities and due dates.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <polyline points="9 11 12 14 22 4" />
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </svg>
@@ -39,7 +66,16 @@ const FEATURES = [
     title: "Notes & Documents",
     desc: "Quick memos, reports, and auto-generated proposals.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
         <line x1="16" y1="13" x2="8" y2="13" />
@@ -51,7 +87,16 @@ const FEATURES = [
     title: "Contacts & CRM",
     desc: "Manage your network with tags and search.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
       </svg>
@@ -61,7 +106,16 @@ const FEATURES = [
     title: "Integrations",
     desc: "Gmail, Slack, Notion, Calendar — all connected.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
       </svg>
@@ -154,9 +208,21 @@ export default function LandingPage() {
         <h2 className="text-xl font-bold text-center mb-10">How it works</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           {[
-            { step: "1", title: "Connect accounts", desc: "Link Gmail, Calendar, Slack with one click" },
-            { step: "2", title: "Tell EVE what to do", desc: "Chat naturally in Korean or English" },
-            { step: "3", title: "EVE handles it", desc: "Emails, calendar, tasks, research — done" },
+            {
+              step: "1",
+              title: "Connect accounts",
+              desc: "Link Gmail, Calendar, Slack with one click",
+            },
+            {
+              step: "2",
+              title: "Tell EVE what to do",
+              desc: "Chat naturally in Korean or English",
+            },
+            {
+              step: "3",
+              title: "EVE handles it",
+              desc: "Emails, calendar, tasks, research — done",
+            },
           ].map((item) => (
             <div key={item.step} className="text-center">
               <div className="w-9 h-9 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-3 text-sm font-bold">
@@ -171,15 +237,25 @@ export default function LandingPage() {
 
       {/* ── Use cases ────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-6 pb-20">
-        <h2 className="text-xl font-bold text-center mb-8">
-          What founders ask EVE
-        </h2>
+        <h2 className="text-xl font-bold text-center mb-8">What founders ask EVE</h2>
         <div className="space-y-3">
           {[
-            { q: "오늘 브리핑 해줘", a: "12 emails, 3 events, 2 overdue tasks. Here's your morning summary..." },
-            { q: "Send a follow-up to investor@vc.com", a: "Done. Sent a professional follow-up referencing your last meeting." },
-            { q: "내일 오후 3시에 미팅 잡아줘", a: "No conflicts. Created: Meeting tomorrow at 3:00 PM KST." },
-            { q: "Write a product launch proposal", a: "Generated a 2-page proposal with summary, timeline, and budget." },
+            {
+              q: "오늘 브리핑 해줘",
+              a: "12 emails, 3 events, 2 overdue tasks. Here's your morning summary...",
+            },
+            {
+              q: "Send a follow-up to investor@vc.com",
+              a: "Done. Sent a professional follow-up referencing your last meeting.",
+            },
+            {
+              q: "내일 오후 3시에 미팅 잡아줘",
+              a: "No conflicts. Created: Meeting tomorrow at 3:00 PM KST.",
+            },
+            {
+              q: "Write a product launch proposal",
+              a: "Generated a 2-page proposal with summary, timeline, and budget.",
+            },
           ].map((item) => (
             <div
               key={item.q}
@@ -205,9 +281,7 @@ export default function LandingPage() {
       {/* ── CTA ──────────────────────────────────────── */}
       <section className="border-t border-gray-800/60 py-16">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-xl font-bold mb-2">
-            Stop juggling. Start delegating.
-          </h2>
+          <h2 className="text-xl font-bold mb-2">Stop juggling. Start delegating.</h2>
           <p className="text-sm text-gray-500 mb-6">
             Free to start. No credit card required. / 무료로 시작하세요.
           </p>

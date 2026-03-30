@@ -110,7 +110,10 @@ function ChatListContent() {
       });
       router.push(`/chat/${conv.id}`);
     } catch (err) {
-      toast(`Failed to create chat: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
+      toast(
+        `Failed to create chat: ${err instanceof Error ? err.message : "Unknown error"}`,
+        "error",
+      );
     }
   };
 
@@ -124,7 +127,10 @@ function ChatListContent() {
         danger: true,
       });
       if (!ok) return;
-      await fetch(`${API_BASE}/api/chat/conversations/${id}`, { method: "DELETE", headers: authHeaders() });
+      await fetch(`${API_BASE}/api/chat/conversations/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
       setConversations((prev) => prev.filter((c) => c.id !== id));
       toast("Conversation deleted", "info");
     } catch (err) {

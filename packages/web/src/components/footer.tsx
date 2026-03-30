@@ -19,9 +19,7 @@ export default function Footer() {
             Settings
           </Link>
           <span className="hidden sm:inline text-gray-800">|</span>
-          <span className="hidden sm:inline">
-            Cmd+K palette
-          </span>
+          <span className="hidden sm:inline">Cmd+K palette</span>
         </div>
       </div>
     </footer>

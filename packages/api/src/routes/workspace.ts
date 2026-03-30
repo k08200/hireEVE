@@ -17,6 +17,7 @@ export async function workspaceRoutes(app: FastifyInstance) {
     });
 
     return {
+      // biome-ignore lint/suspicious/noExplicitAny: Prisma include types not generated yet
       workspaces: memberships.map((m: any) => ({
         id: m.workspace.id,
         name: m.workspace.name,
@@ -83,6 +84,7 @@ export async function workspaceRoutes(app: FastifyInstance) {
     });
 
     return {
+      // biome-ignore lint/suspicious/noExplicitAny: Prisma include types not generated yet
       members: members.map((m: any) => ({
         id: m.id,
         userId: m.user.id,
@@ -109,7 +111,8 @@ export async function workspaceRoutes(app: FastifyInstance) {
     }
 
     const invitee = await prisma.user.findUnique({ where: { email } });
-    if (!invitee) return reply.code(404).send({ error: "User not found. They need to register first." });
+    if (!invitee)
+      return reply.code(404).send({ error: "User not found. They need to register first." });
 
     // Check if already a member
     const existing = await prisma.workspaceMember.findUnique({

@@ -119,7 +119,9 @@ export async function calendarRoutes(app: FastifyInstance) {
 
     const now = new Date();
     const upcoming = events.filter((e: { startTime: Date }) => e.startTime > now);
-    const current = events.find((e: { startTime: Date; endTime: Date }) => e.startTime <= now && e.endTime > now);
+    const current = events.find(
+      (e: { startTime: Date; endTime: Date }) => e.startTime <= now && e.endTime > now,
+    );
 
     return {
       total: events.length,

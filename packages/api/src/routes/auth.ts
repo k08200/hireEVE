@@ -48,7 +48,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !user.passwordHash) {
+    if (!user?.passwordHash) {
       return reply.code(401).send({ error: "Invalid email or password" });
     }
 

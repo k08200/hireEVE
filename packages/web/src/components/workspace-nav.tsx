@@ -201,9 +201,10 @@ export default function WorkspaceNav() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close dropdown on route change
   useEffect(() => {
     setOpen(false);
-  }, [pathname]); // eslint-disable-line -- close on route change
+  }, [pathname]);
 
   return (
     <div ref={ref} className="relative">
@@ -236,8 +237,7 @@ export default function WorkspaceNav() {
       {open && (
         <div className="absolute left-0 mt-2 w-64 bg-gray-900/95 backdrop-blur-xl border border-gray-800/80 rounded-xl shadow-2xl shadow-black/50 z-50 py-1.5 animate-slide-up">
           {WORKSPACE_ITEMS.map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
@@ -248,18 +248,12 @@ export default function WorkspaceNav() {
                     : "text-gray-300 hover:bg-gray-800/60 hover:text-white"
                 }`}
               >
-                <span
-                  className={`shrink-0 ${active ? "text-blue-400" : "text-gray-500"}`}
-                >
+                <span className={`shrink-0 ${active ? "text-blue-400" : "text-gray-500"}`}>
                   {item.icon}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-medium leading-tight">
-                    {item.label}
-                  </p>
-                  <p className="text-[11px] text-gray-500 leading-tight">
-                    {item.desc}
-                  </p>
+                  <p className="text-[13px] font-medium leading-tight">{item.label}</p>
+                  <p className="text-[11px] text-gray-500 leading-tight">{item.desc}</p>
                 </div>
               </Link>
             );

@@ -27,9 +27,9 @@ export async function webSearch(
   // Parse DuckDuckGo HTML results
   const resultRegex =
     /<a rel="nofollow" class="result__a" href="([^"]+)"[^>]*>(.+?)<\/a>[\s\S]*?<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
-  let match: RegExpExecArray | null;
+  let match: RegExpExecArray | null = resultRegex.exec(html);
 
-  while ((match = resultRegex.exec(html)) !== null && results.length < maxResults) {
+  while (match !== null && results.length < maxResults) {
     const rawUrl = match[1];
     const title = match[2].replace(/<[^>]+>/g, "").trim();
     const snippet = match[3].replace(/<[^>]+>/g, "").trim();
@@ -44,18 +44,21 @@ export async function webSearch(
     if (title && actualUrl) {
       results.push({ title, url: actualUrl, snippet });
     }
+    match = resultRegex.exec(html);
   }
 
   // Fallback: simpler pattern
   if (results.length === 0) {
     const simpleRegex =
       /<a[^>]*class="result__url"[^>]*href="([^"]+)"[^>]*>[\s\S]*?<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
-    while ((match = simpleRegex.exec(html)) !== null && results.length < maxResults) {
+    match = simpleRegex.exec(html);
+    while (match !== null && results.length < maxResults) {
       const u = match[1].trim();
       const s = match[2].replace(/<[^>]+>/g, "").trim();
       if (u && s) {
         results.push({ title: u, url: u.startsWith("http") ? u : `https://${u}`, snippet: s });
       }
+      match = simpleRegex.exec(html);
     }
   }
 

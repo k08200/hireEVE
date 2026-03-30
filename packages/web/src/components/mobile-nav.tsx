@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const MAIN_ITEMS = [
-  { href: "/chat", label: "Chat" },
-];
+const MAIN_ITEMS = [{ href: "/chat", label: "Chat" }];
 
 const WORKSPACE_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
@@ -98,7 +96,9 @@ export default function MobileNav() {
                 </Link>
               ))}
               <div className="px-6 pt-4 pb-1.5">
-                <p className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">Workspace</p>
+                <p className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">
+                  Workspace
+                </p>
               </div>
               {WORKSPACE_ITEMS.map((item) => (
                 <Link

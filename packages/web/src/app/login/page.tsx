@@ -38,7 +38,15 @@ export default function LoginPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
       const match = msg.match(/API \d+: (.+)/);
-      const parsed = match ? (() => { try { return JSON.parse(match[1]).error; } catch { return match[1]; } })() : msg;
+      const parsed = match
+        ? (() => {
+            try {
+              return JSON.parse(match[1]).error;
+            } catch {
+              return match[1];
+            }
+          })()
+        : msg;
       toast(parsed, "error");
     }
     setLoading(false);

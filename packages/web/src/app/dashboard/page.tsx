@@ -66,13 +66,24 @@ function DashboardContent() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch<{ tasks: { status: string; dueDate?: string }[] }>("/api/tasks").catch(() => ({ tasks: [] })),
+      apiFetch<{ tasks: { status: string; dueDate?: string }[] }>("/api/tasks").catch(() => ({
+        tasks: [],
+      })),
       apiFetch<{ notes: { id: string }[] }>("/api/notes").catch(() => ({ notes: [] })),
       apiFetch<{ contacts: { id: string }[] }>("/api/contacts").catch(() => ({ contacts: [] })),
-      apiFetch<{ reminders: { status: string }[] }>("/api/reminders").catch(() => ({ reminders: [] })),
-      apiFetch<{ notifications: unknown[]; count: number }>("/api/notifications").catch(() => ({ notifications: [], count: 0 })),
-      apiFetch<{ total: number; unread: number; urgent: number }>("/api/email/stats/summary").catch(() => ({ total: 0, unread: 0, urgent: 0 })),
-      apiFetch<{ total: number; nextEvent: { title: string } | null }>("/api/calendar/today/summary").catch(() => ({ total: 0, nextEvent: null })),
+      apiFetch<{ reminders: { status: string }[] }>("/api/reminders").catch(() => ({
+        reminders: [],
+      })),
+      apiFetch<{ notifications: unknown[]; count: number }>("/api/notifications").catch(() => ({
+        notifications: [],
+        count: 0,
+      })),
+      apiFetch<{ total: number; unread: number; urgent: number }>("/api/email/stats/summary").catch(
+        () => ({ total: 0, unread: 0, urgent: 0 }),
+      ),
+      apiFetch<{ total: number; nextEvent: { title: string } | null }>(
+        "/api/calendar/today/summary",
+      ).catch(() => ({ total: 0, nextEvent: null })),
     ])
       .then(
         ([
@@ -186,9 +197,7 @@ function DashboardContent() {
             {greeting.text}
             {user?.name ? `, ${user.name}` : ""}
           </h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            {greeting.textKr}
-          </p>
+          <p className="text-gray-500 text-sm mt-0.5">{greeting.textKr}</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span

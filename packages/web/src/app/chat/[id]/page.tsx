@@ -117,7 +117,9 @@ function ChatPageContent() {
                           fullContent += d.content;
                           setStreamingContent(fullContent);
                         }
-                      } catch { /* skip */ }
+                      } catch {
+                        /* skip */
+                      }
                     }
                   }
                 }
@@ -132,7 +134,12 @@ function ChatPageContent() {
               .catch(() => {
                 setMessages((prev) => [
                   ...prev,
-                  { id: crypto.randomUUID(), role: "ASSISTANT", content: "Connection failed. Please try again.", createdAt: new Date().toISOString() },
+                  {
+                    id: crypto.randomUUID(),
+                    role: "ASSISTANT",
+                    content: "Connection failed. Please try again.",
+                    createdAt: new Date().toISOString(),
+                  },
                 ]);
               })
               .finally(() => {
@@ -569,7 +576,9 @@ function ChatPageContent() {
                 <div className="relative">
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      msg.role === "USER" ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20" : "bg-gray-800/80 border border-gray-700/40 text-gray-100"
+                      msg.role === "USER"
+                        ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
+                        : "bg-gray-800/80 border border-gray-700/40 text-gray-100"
                     }`}
                   >
                     {msg.role !== "USER" && (

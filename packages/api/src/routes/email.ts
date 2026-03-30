@@ -117,7 +117,7 @@ async function getGmailEmails(userId: string): Promise<EmailMessage[] | null> {
     for (const msg of response.data.messages || []) {
       const detail = await gmail.users.messages.get({
         userId: "me",
-        id: msg.id!,
+        id: msg.id || "",
         format: "metadata",
         metadataHeaders: ["From", "To", "Subject", "Date"],
       });
@@ -126,7 +126,7 @@ async function getGmailEmails(userId: string): Promise<EmailMessage[] | null> {
       const getHeader = (name: string) => headers.find((h) => h.name === name)?.value || "";
 
       messages.push({
-        id: msg.id!,
+        id: msg.id || "",
         from: getHeader("From"),
         to: getHeader("To"),
         subject: getHeader("Subject"),

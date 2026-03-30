@@ -111,7 +111,7 @@ export function useWebSocket(userId: string = "demo-user") {
     if (!listenersRef.current.has(type)) {
       listenersRef.current.set(type, new Set());
     }
-    listenersRef.current.get(type)!.add(listener);
+    listenersRef.current.get(type)?.add(listener);
 
     return () => {
       listenersRef.current.get(type)?.delete(listener);

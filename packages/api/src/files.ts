@@ -12,7 +12,7 @@ import { promisify } from "node:util";
 import { MODEL, openai } from "./openai.js";
 
 const exec = promisify(execFile);
-const IS_MACOS = process.platform === "darwin";
+const _IS_MACOS = process.platform === "darwin";
 
 /** Search files using macOS Spotlight (mdfind) */
 export async function searchFiles(
