@@ -1,5 +1,5 @@
 // EVE Service Worker — offline caching + push notification support
-const CACHE_NAME = "eve-v1";
+const CACHE_NAME = "eve-v2";
 const PRECACHE_URLS = ["/", "/chat", "/dashboard", "/manifest.json"];
 
 // Install: precache shell
@@ -43,11 +43,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: cache-first
-  if (
-    url.pathname.match(/\.(js|css|svg|png|jpg|ico|woff2?)$/) ||
-    url.pathname.startsWith("/_next/")
-  ) {
+  // Static assets: network-first for _next (hashed, changes on rebuild), cache-first for others
+  if (url.pathname.startsWith("/_next/")) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return res;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  if (url.pathname.match(/\.(js|css|svg|png|jpg|ico|woff2?)$/)) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>

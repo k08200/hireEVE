@@ -9,6 +9,7 @@ import NotificationBell from "../components/notification-bell";
 import Providers from "../components/providers";
 import ServiceWorkerRegister from "../components/sw-register";
 import UserMenu from "../components/user-menu";
+import WorkspaceNav from "../components/workspace-nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -52,15 +53,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="text-base font-bold tracking-tight text-blue-400">EVE</span>
               </Link>
               <div className="hidden md:flex items-center gap-1">
-                <NavLink href="/dashboard">Dashboard</NavLink>
                 <NavLink href="/chat">Chat</NavLink>
-                <NavLink href="/email">Email</NavLink>
-                <NavLink href="/calendar">Calendar</NavLink>
-                <NavLink href="/tasks">Tasks</NavLink>
-                <NavLink href="/notes">Notes</NavLink>
-                <NavLink href="/contacts">Contacts</NavLink>
-                <NavLink href="/reminders">Reminders</NavLink>
-                <NavLink href="/automations">Auto</NavLink>
+                <WorkspaceNav />
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <NotificationBell />
