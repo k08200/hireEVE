@@ -14,16 +14,14 @@
       {
         "label": "main",
         "title": "EVE",
-        "width": 380,
-        "height": 540,
+        "width": 160,
+        "height": 180,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
-        "resizable": true,
-        "minWidth": 320,
-        "minHeight": 400,
-        "x": 60,
-        "y": 60
+        "resizable": false,
+        "skipTaskbar": true,
+        "shadow": false
       }
     ],
     "security": {

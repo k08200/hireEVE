@@ -12,7 +12,6 @@
   --text: #e5e7eb;
   --text-muted: #6b7280;
   --blue: #3b82f6;
-  --blue-dim: rgba(59, 130, 246, 0.15);
   --green: #22c55e;
   --radius: 16px;
 }
@@ -28,99 +27,49 @@ html, body, #root {
   user-select: none;
 }
 
-/* ── App Container ───────────────────────── */
-.app-container {
+/* ══════════════════════════════════════════
+   CHARACTER WINDOW (transparent, floating)
+   ══════════════════════════════════════════ */
+.character-window {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  overflow: hidden;
-  backdrop-filter: blur(20px);
-}
-
-/* ── Title Bar ───────────────────────────── */
-.title-bar {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 36px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  justify-content: center;
+  background: transparent;
   cursor: grab;
 }
 
-.title-bar:active {
+.character-window:active {
   cursor: grabbing;
 }
 
-.title-bar-label {
-  font-size: 12px;
+.character-clickable {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.character-clickable:hover {
+  transform: scale(1.08);
+}
+
+.character-clickable:active {
+  transform: scale(0.95);
+}
+
+.character-label {
+  font-size: 10px;
   font-weight: 700;
   color: var(--blue);
-  letter-spacing: 0.5px;
-}
-
-.title-bar-buttons {
-  display: flex;
-  gap: 6px;
-}
-
-.title-btn {
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  transition: all 0.15s;
-}
-
-.title-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
-}
-
-.title-btn-close:hover {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-/* ── Character View ──────────────────────── */
-.character-view {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  gap: 12px;
-}
-
-.hint-text {
-  font-size: 11px;
-  color: var(--text-muted);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.character-view:hover .hint-text {
-  opacity: 1;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 4px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* ── EVE Character ───────────────────────── */
 .eve-character {
-  transition: transform 0.3s ease;
-}
-
-.eve-character:hover {
-  transform: scale(1.05);
+  filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.3));
 }
 
 .eve-mood-idle .eve-glow {
@@ -162,6 +111,85 @@ html, body, #root {
   50% { r: 4; opacity: 0.7; }
 }
 
+/* bobbing idle animation */
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.eve-mood-idle {
+  animation: bob 3s ease-in-out infinite;
+}
+
+.eve-mood-happy {
+  animation: bob 1.5s ease-in-out infinite;
+}
+
+/* ══════════════════════════════════════════
+   CHAT WINDOW (separate window)
+   ══════════════════════════════════════════ */
+.chat-window {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+
+.chat-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  cursor: grab;
+}
+
+.chat-title-bar:active {
+  cursor: grabbing;
+}
+
+.chat-title-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.chat-dot-green {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+.chat-title-close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.chat-title-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
 /* ── Chat Panel ──────────────────────────── */
 .chat-panel {
   flex: 1;
@@ -192,7 +220,6 @@ html, body, #root {
   height: 7px;
   border-radius: 50%;
   background: var(--green);
-  animation: status-pulse 2s ease-in-out infinite;
 }
 
 .chat-close-btn {
@@ -284,13 +311,13 @@ html, body, #root {
 
 .chat-cursor {
   display: inline-block;
-  animation: blink 0.8s step-end infinite;
+  animation: cursor-blink 0.8s step-end infinite;
   opacity: 0.6;
   font-size: 11px;
   margin-left: 1px;
 }
 
-@keyframes blink {
+@keyframes cursor-blink {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 0; }
 }
