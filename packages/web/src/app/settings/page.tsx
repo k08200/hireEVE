@@ -5,6 +5,7 @@ import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
+import { useAuth } from "../../lib/auth";
 
 import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 
@@ -48,24 +49,85 @@ export default function SettingsPage() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
   const [profileSaved, setProfileSaved] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
 
-  // Load profile from localStorage
+  // Load profile from auth + localStorage
   useEffect(() => {
+    if (user?.name) {
+      setProfile((p) => ({ ...p, name: user.name || p.name }));
+    }
     try {
       const stored = localStorage.getItem("eve-profile");
-      if (stored) setProfile(JSON.parse(stored));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setProfile((p) => ({ ...p, language: parsed.language || p.language, timezone: parsed.timezone || p.timezone }));
+      }
     } catch {
       // ignore
     }
-  }, []);
+  }, [user]);
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
+    // Save name to server
+    try {
+      await apiFetch("/api/auth/me", {
+        method: "PATCH",
+        body: JSON.stringify({ name: profile.name }),
+      });
+    } catch {
+      // fallback to local only
+    }
+    // Save language/timezone to localStorage
     localStorage.setItem("eve-profile", JSON.stringify(profile));
     setProfileSaved(true);
     toast("Profile saved / 프로필 저장됨", "success");
     setTimeout(() => setProfileSaved(false), 2000);
+  };
+
+  const changePassword = async () => {
+    if (!currentPassword || !newPassword) return;
+    if (newPassword.length < 6) {
+      toast("Password must be at least 6 characters", "error");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await apiFetch("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      toast("Password changed / 비밀번호 변경됨", "success");
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      const match = msg.match(/API \d+: (.+)/);
+      const parsed = match ? (() => { try { return JSON.parse(match[1]).error; } catch { return match[1]; } })() : msg;
+      toast(parsed, "error");
+    }
+    setPasswordLoading(false);
+  };
+
+  const disconnectGoogle = async () => {
+    const ok = await confirm({
+      title: "Disconnect Google",
+      message: "This will remove Gmail and Calendar access. You can reconnect anytime.",
+      confirmLabel: "Disconnect",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await fetch(`${API_BASE}/api/auth/google`, { method: "DELETE", headers: authHeaders() });
+      setGoogleConnected(false);
+      toast("Google disconnected", "info");
+    } catch {
+      toast("Failed to disconnect", "error");
+    }
   };
 
   useEffect(() => {
@@ -227,6 +289,50 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* Security */}
+      <section className="mb-10">
+        <h2 className="text-lg font-semibold mb-4">Security / 보안</h2>
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-5 space-y-4">
+          <div>
+            <label htmlFor="current-pw" className="block text-sm text-gray-400 mb-1">
+              Current Password / 현재 비밀번호
+            </label>
+            <input
+              id="current-pw"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Current password"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
+              New Password / 새 비밀번호
+            </label>
+            <input
+              id="new-pw"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="At least 6 characters"
+              minLength={6}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={changePassword}
+              disabled={passwordLoading || !currentPassword || !newPassword}
+              className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              {passwordLoading ? "Changing..." : "Change Password / 변경"}
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Integrations */}
       <section className="mb-10">
         <h2 className="text-lg font-semibold mb-4">Integrations</h2>
@@ -244,10 +350,21 @@ export default function SettingsPage() {
                   <p className="text-sm text-gray-400">{int.description}</p>
                 </div>
                 {int.connected ? (
-                  <span className="text-sm text-green-400 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-400 rounded-full" />
-                    Connected
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-green-400 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-400 rounded-full" />
+                      Connected
+                    </span>
+                    {int.name === "Google" && (
+                      <button
+                        type="button"
+                        onClick={disconnectGoogle}
+                        className="text-xs text-gray-500 hover:text-red-400 transition"
+                      >
+                        Disconnect
+                      </button>
+                    )}
+                  </div>
                 ) : int.connectUrl ? (
                   <a
                     href={int.connectUrl}

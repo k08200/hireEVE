@@ -7,6 +7,7 @@ import MobileNav from "../components/mobile-nav";
 import NavLink from "../components/nav-link";
 import NotificationBell from "../components/notification-bell";
 import Providers from "../components/providers";
+import ServiceWorkerRegister from "../components/sw-register";
 import UserMenu from "../components/user-menu";
 import "./globals.css";
 
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CommandPalette />
           <div className="flex-1">{children}</div>
           <Footer />
+          <ServiceWorkerRegister />
         </Providers>
       </body>
     </html>

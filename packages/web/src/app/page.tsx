@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HeroTyping from "../components/hero-typing";
+import LandingRedirect from "../components/landing-redirect";
 
 const FEATURES = [
   {
@@ -47,6 +48,7 @@ const FEATURES = [
 export default function LandingPage() {
   return (
     <main className="min-h-[calc(100vh-3.5rem)]">
+      <LandingRedirect />
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">

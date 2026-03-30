@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { comparePassword, hashPassword, signToken } from "../auth.js";
+import { comparePassword, getUserId, hashPassword, signToken, verifyToken } from "../auth.js";
 import { prisma } from "../db.js";
 import { getAuthUrl, getOAuth2Client } from "../gmail.js";
 
@@ -72,28 +72,94 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     try {
-      const { verifyToken } = await import("../auth.js");
       const payload = verifyToken(auth.slice(7));
       const user = await prisma.user.findUnique({ where: { id: payload.userId } });
       if (!user) return reply.code(404).send({ error: "User not found" });
 
+      // Check Google connection
+      const googleToken = await prisma.userToken.findFirst({
+        where: { userId: user.id, provider: "google" },
+      });
+
       return reply.send({
-        user: { id: user.id, email: user.email, name: user.name, plan: user.plan },
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          plan: user.plan,
+          googleConnected: !!googleToken,
+        },
       });
     } catch {
       return reply.code(401).send({ error: "Invalid token" });
     }
   });
 
-  // GET /api/auth/google — Start OAuth flow
-  app.get("/google", async (_request, reply) => {
-    const url = getAuthUrl();
+  // PATCH /api/auth/me — Update profile
+  app.patch("/me", async (request, reply) => {
+    const userId = getUserId(request);
+    if (userId === "demo-user") {
+      return reply.code(403).send({ error: "Demo user cannot update profile" });
+    }
+
+    const { name } = request.body as { name?: string };
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { ...(name !== undefined && { name }) },
+    });
+
+    return reply.send({
+      user: { id: user.id, email: user.email, name: user.name, plan: user.plan },
+    });
+  });
+
+  // POST /api/auth/change-password — Change password
+  app.post("/change-password", async (request, reply) => {
+    const userId = getUserId(request);
+    if (userId === "demo-user") {
+      return reply.code(403).send({ error: "Demo user cannot change password" });
+    }
+
+    const { currentPassword, newPassword } = request.body as {
+      currentPassword: string;
+      newPassword: string;
+    };
+
+    if (!currentPassword || !newPassword) {
+      return reply.code(400).send({ error: "Current and new password required" });
+    }
+    if (newPassword.length < 6) {
+      return reply.code(400).send({ error: "New password must be at least 6 characters" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.passwordHash) {
+      return reply.code(400).send({ error: "No password set" });
+    }
+
+    const valid = await comparePassword(currentPassword, user.passwordHash);
+    if (!valid) {
+      return reply.code(401).send({ error: "Current password is incorrect" });
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: await hashPassword(newPassword) },
+    });
+
+    return reply.send({ success: true });
+  });
+
+  // GET /api/auth/google — Start OAuth flow (pass userId via state)
+  app.get("/google", async (request, reply) => {
+    const userId = getUserId(request);
+    const url = getAuthUrl(userId);
     return reply.redirect(url);
   });
 
   // GET /api/auth/google/callback — OAuth callback
   app.get("/google/callback", async (request, reply) => {
-    const { code } = request.query as { code?: string };
+    const { code, state } = request.query as { code?: string; state?: string };
 
     if (!code) {
       return reply.code(400).send({ error: "Missing authorization code" });
@@ -103,11 +169,11 @@ export async function authRoutes(app: FastifyInstance) {
       const oauth2 = getOAuth2Client();
       const { tokens } = await oauth2.getToken(code);
 
-      let user = await prisma.user.findFirst();
+      // Use userId from state parameter, or fall back to demo-user
+      const userId = state || "demo-user";
+      const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
-        user = await prisma.user.create({
-          data: { email: "eve-user@local", name: "EVE User" },
-        });
+        return reply.code(404).send({ error: "User not found" });
       }
 
       await prisma.userToken.upsert({
@@ -127,22 +193,28 @@ export async function authRoutes(app: FastifyInstance) {
       });
 
       const webUrl = process.env.WEB_URL || "http://localhost:8001";
-      return reply.redirect(`${webUrl}/chat?gmail=connected`);
+      return reply.redirect(`${webUrl}/settings?google=connected`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "OAuth failed";
       return reply.code(500).send({ error: message });
     }
   });
 
-  // GET /api/auth/google/status — Check if Gmail is connected
-  app.get("/google/status", async (_request, reply) => {
-    const user = await prisma.user.findFirst();
-    if (!user) return reply.send({ connected: false });
-
-    const token = await prisma.userToken.findUnique({
-      where: { userId_provider: { userId: user.id, provider: "google" } },
+  // DELETE /api/auth/google — Disconnect Google account
+  app.delete("/google", async (request, reply) => {
+    const userId = getUserId(request);
+    await prisma.userToken.deleteMany({
+      where: { userId, provider: "google" },
     });
+    return reply.code(204).send();
+  });
 
+  // GET /api/auth/google/status — Check if Gmail is connected
+  app.get("/google/status", async (request, reply) => {
+    const userId = getUserId(request);
+    const token = await prisma.userToken.findFirst({
+      where: { userId, provider: "google" },
+    });
     return reply.send({ connected: !!token });
   });
 }

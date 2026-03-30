@@ -10,11 +10,12 @@ export function getOAuth2Client(): InstanceType<typeof google.auth.OAuth2> {
   return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 }
 
-export function getAuthUrl() {
+export function getAuthUrl(userId?: string) {
   const oauth2 = getOAuth2Client();
   return oauth2.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
+    state: userId || undefined,
     scope: [
       "https://www.googleapis.com/auth/gmail.readonly",
       "https://www.googleapis.com/auth/gmail.send",
