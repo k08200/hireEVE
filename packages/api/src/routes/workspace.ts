@@ -17,7 +17,7 @@ export async function workspaceRoutes(app: FastifyInstance) {
     });
 
     return {
-      workspaces: memberships.map((m) => ({
+      workspaces: memberships.map((m: any) => ({
         id: m.workspace.id,
         name: m.workspace.name,
         slug: m.workspace.slug,
@@ -83,7 +83,7 @@ export async function workspaceRoutes(app: FastifyInstance) {
     });
 
     return {
-      members: members.map((m) => ({
+      members: members.map((m: any) => ({
         id: m.id,
         userId: m.user.id,
         name: m.user.name,

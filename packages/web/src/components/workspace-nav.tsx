@@ -10,7 +10,17 @@ const WORKSPACE_ITEMS = [
     label: "Dashboard",
     desc: "Overview & activity",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <rect x="3" y="3" width="7" height="7" rx="1" />
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -23,7 +33,17 @@ const WORKSPACE_ITEMS = [
     label: "Email",
     desc: "Inbox & priority",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
         <polyline points="22,6 12,13 2,6" />
       </svg>
@@ -34,7 +54,17 @@ const WORKSPACE_ITEMS = [
     label: "Calendar",
     desc: "Schedule & events",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <rect x="3" y="4" width="18" height="18" rx="2" />
         <line x1="16" y1="2" x2="16" y2="6" />
         <line x1="8" y1="2" x2="8" y2="6" />
@@ -47,7 +77,17 @@ const WORKSPACE_ITEMS = [
     label: "Tasks",
     desc: "To-dos & progress",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <polyline points="9 11 12 14 22 4" />
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </svg>
@@ -58,7 +98,17 @@ const WORKSPACE_ITEMS = [
     label: "Notes",
     desc: "Docs & memos",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
         <polyline points="14 2 14 8 20 8" />
         <line x1="16" y1="13" x2="8" y2="13" />
@@ -71,7 +121,17 @@ const WORKSPACE_ITEMS = [
     label: "Contacts",
     desc: "People & CRM",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
       </svg>
@@ -82,7 +142,17 @@ const WORKSPACE_ITEMS = [
     label: "Reminders",
     desc: "Alerts & timers",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <circle cx="12" cy="13" r="8" />
         <path d="M12 9v4l2 2" />
         <path d="M5 3L2 6" />
@@ -95,7 +165,17 @@ const WORKSPACE_ITEMS = [
     label: "Automations",
     desc: "Auto-pilot rules",
     icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
       </svg>
     ),
@@ -108,7 +188,7 @@ export default function WorkspaceNav() {
   const pathname = usePathname();
 
   const isWorkspaceActive = WORKSPACE_ITEMS.some(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
   );
 
   useEffect(() => {
@@ -123,7 +203,7 @@ export default function WorkspaceNav() {
 
   useEffect(() => {
     setOpen(false);
-  }, [pathname]);
+  }, [pathname]); // eslint-disable-line -- close on route change
 
   return (
     <div ref={ref} className="relative">
@@ -147,6 +227,7 @@ export default function WorkspaceNav() {
           strokeLinecap="round"
           strokeLinejoin="round"
           className={`transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -155,7 +236,8 @@ export default function WorkspaceNav() {
       {open && (
         <div className="absolute left-0 mt-2 w-64 bg-gray-900/95 backdrop-blur-xl border border-gray-800/80 rounded-xl shadow-2xl shadow-black/50 z-50 py-1.5 animate-slide-up">
           {WORKSPACE_ITEMS.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
@@ -166,12 +248,18 @@ export default function WorkspaceNav() {
                     : "text-gray-300 hover:bg-gray-800/60 hover:text-white"
                 }`}
               >
-                <span className={`shrink-0 ${active ? "text-blue-400" : "text-gray-500"}`}>
+                <span
+                  className={`shrink-0 ${active ? "text-blue-400" : "text-gray-500"}`}
+                >
                   {item.icon}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-medium leading-tight">{item.label}</p>
-                  <p className="text-[11px] text-gray-500 leading-tight">{item.desc}</p>
+                  <p className="text-[13px] font-medium leading-tight">
+                    {item.label}
+                  </p>
+                  <p className="text-[11px] text-gray-500 leading-tight">
+                    {item.desc}
+                  </p>
                 </div>
               </Link>
             );
