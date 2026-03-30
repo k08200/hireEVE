@@ -1,18 +1,23 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
+import { ensureDemoUser, getUserId } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
 import { briefingRoutes } from "./briefing.js";
 import { prisma } from "./db.js";
 import { authRoutes } from "./routes/auth.js";
 import { billingRoutes } from "./routes/billing.js";
+import { calendarRoutes } from "./routes/calendar.js";
 import { chatRoutes } from "./routes/chat.js";
 import { contactRoutes } from "./routes/contacts.js";
+import { emailRoutes } from "./routes/email.js";
 import { noteRoutes } from "./routes/notes.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { reminderRoutes } from "./routes/reminders.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { webhookRoutes } from "./routes/webhook.js";
+import { workspaceRoutes } from "./routes/workspace.js";
 import { slackEventRoutes } from "./slack.js";
+import { getClientCount, initWebSocket } from "./websocket.js";
 
 const app = Fastify({ logger: true });
 
@@ -42,10 +47,42 @@ await app.register(contactRoutes, { prefix: "/api/contacts" });
 await app.register(slackEventRoutes, { prefix: "/api/slack" });
 await app.register(briefingRoutes, { prefix: "/api/briefing" });
 await app.register(notificationRoutes, { prefix: "/api/notifications" });
+await app.register(calendarRoutes, { prefix: "/api/calendar" });
+await app.register(emailRoutes, { prefix: "/api/email" });
+await app.register(workspaceRoutes, { prefix: "/api/workspaces" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
-// User data management
+// User data management — "me" routes use auth token
+app.get("/api/user/me/export", async (request) => {
+  const userId = getUserId(request);
+  const [tasks, notes, contacts, reminders, conversations] = await Promise.all([
+    prisma.task.findMany({ where: { userId } }),
+    prisma.note.findMany({ where: { userId } }),
+    prisma.contact.findMany({ where: { userId } }),
+    prisma.reminder.findMany({ where: { userId } }),
+    prisma.conversation.findMany({
+      where: { userId },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+    }),
+  ]);
+  return { tasks, notes, contacts, reminders, conversations, exportedAt: new Date().toISOString() };
+});
+
+app.delete("/api/user/me/data", async (request, reply) => {
+  const userId = getUserId(request);
+  await prisma.$transaction([
+    prisma.message.deleteMany({ where: { conversation: { userId } } }),
+    prisma.conversation.deleteMany({ where: { userId } }),
+    prisma.task.deleteMany({ where: { userId } }),
+    prisma.note.deleteMany({ where: { userId } }),
+    prisma.contact.deleteMany({ where: { userId } }),
+    prisma.reminder.deleteMany({ where: { userId } }),
+  ]);
+  return reply.code(204).send();
+});
+
+// Legacy user data routes (kept for backwards compat)
 app.get("/api/user/:userId/export", async (request) => {
   const { userId } = request.params as { userId: string };
   const [tasks, notes, contacts, reminders, conversations] = await Promise.all([
@@ -80,8 +117,7 @@ app.get("/api/notion/status", async () => ({
 
 // Activity feed — recent items across all categories
 app.get("/api/activity", async (request) => {
-  const { userId } = request.query as { userId?: string };
-  const uid = userId || "demo-user";
+  const uid = getUserId(request);
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // last 7 days
 
   const [tasks, notes, reminders, conversations] = await Promise.all([
@@ -142,13 +178,26 @@ app.get("/api/activity", async (request) => {
   return { activity };
 });
 
+// WebSocket status endpoint (must be before listen)
+app.get("/api/ws/status", async () => ({
+  connected: getClientCount(),
+  connectedByUser: getClientCount("demo-user"),
+}));
+
 app.addHook("onClose", async () => {
   await prisma.$disconnect();
 });
 
+// Ensure demo user exists for unauthenticated access
+await ensureDemoUser();
+
 const port = Number(process.env.PORT) || 3001;
 await app.listen({ port, host: "0.0.0.0" });
 console.log(`hireEVE API running on http://localhost:${port}`);
+
+// Attach WebSocket server to the underlying HTTP server
+const httpServer = app.server;
+initWebSocket(httpServer);
 
 // Start autonomous background agent
 startBackgroundAgent();

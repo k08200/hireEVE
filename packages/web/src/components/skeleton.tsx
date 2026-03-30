@@ -16,6 +16,7 @@ export function ListSkeleton({ count = 4 }: { count?: number }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: count }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
         <CardSkeleton key={i} />
       ))}
     </div>
@@ -26,6 +27,7 @@ export function DashboardSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
       {Array.from({ length: 5 }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton list
         <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-4 space-y-2">
           <Skeleton className="h-3 w-12" />
           <Skeleton className="h-7 w-10" />

@@ -1,0 +1,98 @@
+"use client";
+
+import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { forwardRef } from "react";
+
+const baseStyles =
+  "w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors";
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, className = "", id, ...props }, ref) => {
+    const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+    return (
+      <div>
+        {label && (
+          <label htmlFor={inputId} className="block text-xs font-medium text-gray-400 mb-1.5">
+            {label}
+          </label>
+        )}
+        <input
+          ref={ref}
+          id={inputId}
+          className={`${baseStyles} ${error ? "border-red-500 focus:border-red-500 focus:ring-red-500/30" : ""} ${className}`}
+          aria-invalid={error ? "true" : undefined}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          {...props}
+        />
+        {error && (
+          <p id={`${inputId}-error`} className="text-xs text-red-400 mt-1" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  },
+);
+Input.displayName = "Input";
+
+interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
+}
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ label, error, className = "", id, ...props }, ref) => {
+    const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+    return (
+      <div>
+        {label && (
+          <label htmlFor={inputId} className="block text-xs font-medium text-gray-400 mb-1.5">
+            {label}
+          </label>
+        )}
+        <textarea
+          ref={ref}
+          id={inputId}
+          className={`${baseStyles} resize-none ${error ? "border-red-500" : ""} ${className}`}
+          {...props}
+        />
+        {error && (
+          <p className="text-xs text-red-400 mt-1" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  },
+);
+Textarea.displayName = "Textarea";
+
+interface SelectProps extends InputHTMLAttributes<HTMLSelectElement> {
+  label?: string;
+  children: React.ReactNode;
+}
+
+export function Select({ label, children, className = "", id, ...props }: SelectProps) {
+  const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+  return (
+    <div>
+      {label && (
+        <label htmlFor={inputId} className="block text-xs font-medium text-gray-400 mb-1.5">
+          {label}
+        </label>
+      )}
+      <select
+        id={inputId}
+        className={`${baseStyles} ${className}`}
+        {...(props as React.SelectHTMLAttributes<HTMLSelectElement>)}
+      >
+        {children}
+      </select>
+    </div>
+  );
+}

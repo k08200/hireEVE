@@ -1,11 +1,12 @@
 import type { FastifyInstance } from "fastify";
+import { getUserId } from "../auth.js";
 import { prisma } from "../db.js";
 
 export async function contactRoutes(app: FastifyInstance) {
   app.get("/", async (request) => {
-    const { userId, search } = request.query as { userId?: string; search?: string };
-    const where: Record<string, unknown> = {};
-    if (userId) where.userId = userId;
+    const userId = getUserId(request);
+    const { search } = request.query as { search?: string };
+    const where: Record<string, unknown> = { userId };
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -18,10 +19,11 @@ export async function contactRoutes(app: FastifyInstance) {
   });
 
   app.post("/", async (request, reply) => {
+    const userId = getUserId(request);
     const body = request.body as Record<string, string>;
     const contact = await prisma.contact.create({
       data: {
-        userId: body.userId,
+        userId,
         name: body.name,
         email: body.email || null,
         phone: body.phone || null,

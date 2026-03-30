@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* ── Animations ─────────────────────────────────── */
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -11,6 +12,66 @@
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
 .animate-slide-up {
   animation: slide-up 0.2s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.15s ease-out;
+}
+
+/* ── Scrollbar ──────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* ── Focus ring utility ─────────────────────────── */
+.focus-ring:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 2px #030712,
+    0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+/* ── Page transition ────────────────────────────── */
+main {
+  animation: fade-in 0.15s ease-out;
+}
+
+/* ── Selection ──────────────────────────────────── */
+::selection {
+  background: #3b82f680;
+  color: white;
 }

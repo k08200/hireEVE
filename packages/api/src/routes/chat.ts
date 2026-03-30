@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { getUserId } from "../auth.js";
 import { BRIEFING_TOOLS } from "../briefing.js";
 import {
   CALENDAR_TOOLS,
@@ -313,7 +314,7 @@ async function executeToolCall(
 export async function chatRoutes(app: FastifyInstance) {
   // POST /api/chat/conversations — Create new conversation
   app.post("/conversations", async (request, reply) => {
-    const { userId } = request.body as { userId: string };
+    const userId = getUserId(request);
 
     const conversation = await prisma.conversation.create({
       data: { userId },
@@ -324,9 +325,9 @@ export async function chatRoutes(app: FastifyInstance) {
 
   // GET /api/chat/conversations — List conversations
   app.get("/conversations", async (request) => {
-    const { userId } = request.query as { userId?: string };
+    const userId = getUserId(request);
 
-    const where = userId ? { userId } : {};
+    const where = { userId };
     const conversations = await prisma.conversation.findMany({
       where,
       orderBy: { updatedAt: "desc" },

@@ -1,19 +1,20 @@
 import type { FastifyInstance } from "fastify";
+import { getUserId } from "../auth.js";
 import { prisma } from "../db.js";
 
 export async function reminderRoutes(app: FastifyInstance) {
   app.get("/", async (request) => {
-    const { userId } = request.query as { userId?: string };
+    const userId = getUserId(request);
     const reminders = await prisma.reminder.findMany({
-      where: userId ? { userId } : {},
+      where: { userId },
       orderBy: { remindAt: "asc" },
     });
     return { reminders };
   });
 
   app.post("/", async (request, reply) => {
-    const { userId, title, remindAt, description } = request.body as {
-      userId: string;
+    const userId = getUserId(request);
+    const { title, remindAt, description } = request.body as {
       title: string;
       remindAt: string;
       description?: string;

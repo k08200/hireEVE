@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 
 interface Integration {
   name: string;
@@ -47,38 +48,108 @@ export default function SettingsPage() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
   const [profileSaved, setProfileSaved] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
 
-  // Load profile from localStorage
+  // Load profile from auth + localStorage
   useEffect(() => {
+    if (user?.name) {
+      setProfile((p) => ({ ...p, name: user.name || p.name }));
+    }
     try {
       const stored = localStorage.getItem("eve-profile");
-      if (stored) setProfile(JSON.parse(stored));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setProfile((p) => ({
+          ...p,
+          language: parsed.language || p.language,
+          timezone: parsed.timezone || p.timezone,
+        }));
+      }
     } catch {
       // ignore
     }
-  }, []);
+  }, [user]);
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
+    // Save name to server
+    try {
+      await apiFetch("/api/auth/me", {
+        method: "PATCH",
+        body: JSON.stringify({ name: profile.name }),
+      });
+    } catch {
+      // fallback to local only
+    }
+    // Save language/timezone to localStorage
     localStorage.setItem("eve-profile", JSON.stringify(profile));
     setProfileSaved(true);
     toast("Profile saved / 프로필 저장됨", "success");
     setTimeout(() => setProfileSaved(false), 2000);
   };
 
+  const changePassword = async () => {
+    if (!currentPassword || !newPassword) return;
+    if (newPassword.length < 6) {
+      toast("Password must be at least 6 characters", "error");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await apiFetch("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      toast("Password changed / 비밀번호 변경됨", "success");
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      const match = msg.match(/API \d+: (.+)/);
+      const parsed = match
+        ? (() => {
+            try {
+              return JSON.parse(match[1]).error;
+            } catch {
+              return match[1];
+            }
+          })()
+        : msg;
+      toast(parsed, "error");
+    }
+    setPasswordLoading(false);
+  };
+
+  const disconnectGoogle = async () => {
+    const ok = await confirm({
+      title: "Disconnect Google",
+      message: "This will remove Gmail and Calendar access. You can reconnect anytime.",
+      confirmLabel: "Disconnect",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await fetch(`${API_BASE}/api/auth/google`, { method: "DELETE", headers: authHeaders() });
+      setGoogleConnected(false);
+      toast("Google disconnected", "info");
+    } catch {
+      toast("Failed to disconnect", "error");
+    }
+  };
+
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE}/api/auth/google/status`)
-        .then((r) => r.json())
+      apiFetch<{ connected: boolean }>("/api/auth/google/status")
         .then((d) => setGoogleConnected(d.connected))
         .catch(() => {}),
-      fetch(`${API_BASE}/api/slack/status`)
-        .then((r) => r.json())
+      apiFetch<{ configured: boolean }>("/api/slack/status")
         .then((d) => setSlackConnected(d.configured))
         .catch(() => {}),
-      fetch(`${API_BASE}/api/notion/status`)
-        .then((r) => r.json())
+      apiFetch<{ configured: boolean }>("/api/notion/status")
         .then((d) => setNotionConnected(d.configured))
         .catch(() => {}),
     ]).finally(() => setLoading(false));
@@ -109,8 +180,8 @@ export default function SettingsPage() {
   const generateBriefing = async () => {
     const res = await fetch(`${API_BASE}/api/briefing/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: "demo-user" }),
+      headers: authHeaders(),
+      body: JSON.stringify({}),
     });
     const data = await res.json();
     toast(data.briefing || "Briefing generated — check your Notes page.", "success");
@@ -126,7 +197,7 @@ export default function SettingsPage() {
     });
     if (!ok) return;
     try {
-      await fetch(`${API_BASE}/api/user/demo-user/data`, { method: "DELETE" });
+      await fetch(`${API_BASE}/api/user/me/data`, { method: "DELETE", headers: authHeaders() });
       localStorage.removeItem("eve-profile");
       localStorage.removeItem("eve-pinned-chats");
       toast("All data cleared / 모든 데이터 삭제됨", "info");
@@ -137,7 +208,7 @@ export default function SettingsPage() {
 
   const exportData = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/user/demo-user/export`);
+      const res = await fetch(`${API_BASE}/api/user/me/export`, { headers: authHeaders() });
       const data = await res.json();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -153,242 +224,306 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold mb-2">Settings</h1>
-      <p className="text-gray-400 text-sm mb-8">
-        Manage your profile, integrations, and preferences
-      </p>
+    <AuthGuard>
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+        <h1 className="text-xl font-bold mb-1">Settings</h1>
+        <p className="text-gray-500 text-sm mb-6">
+          Manage your profile, integrations, and preferences
+        </p>
 
-      {/* Profile */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Profile / 프로필</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-5 space-y-4">
-          <div>
-            <label htmlFor="profile-name" className="block text-sm text-gray-400 mb-1">
-              Display Name / 표시 이름
-            </label>
-            <input
-              id="profile-name"
-              type="text"
-              value={profile.name}
-              onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
-              placeholder="Your name / 이름"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Profile */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Profile / 프로필</h2>
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
             <div>
-              <label htmlFor="profile-lang" className="block text-sm text-gray-400 mb-1">
-                Language / 언어
+              <label htmlFor="profile-name" className="block text-sm text-gray-400 mb-1">
+                Display Name / 표시 이름
               </label>
-              <select
-                id="profile-lang"
-                value={profile.language}
-                onChange={(e) =>
-                  setProfile((p) => ({ ...p, language: e.target.value as UserProfile["language"] }))
-                }
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition"
-              >
-                <option value="auto">Auto-detect</option>
-                <option value="en">English</option>
-                <option value="ko">Korean / 한국어</option>
-              </select>
+              <input
+                id="profile-name"
+                type="text"
+                value={profile.name}
+                onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
+                placeholder="Your name / 이름"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+              />
             </div>
-            <div>
-              <label htmlFor="profile-tz" className="block text-sm text-gray-400 mb-1">
-                Timezone / 시간대
-              </label>
-              <select
-                id="profile-tz"
-                value={profile.timezone}
-                onChange={(e) => setProfile((p) => ({ ...p, timezone: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition"
-              >
-                {TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz.replace(/_/g, " ")}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={saveProfile}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                profileSaved
-                  ? "bg-green-600 text-white"
-                  : "bg-blue-600 hover:bg-blue-500 text-white"
-              }`}
-            >
-              {profileSaved ? "Saved!" : "Save Profile / 저장"}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Integrations */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Integrations</h2>
-        <div className="space-y-3">
-          {loading ? (
-            <ListSkeleton count={3} />
-          ) : (
-            integrations.map((int) => (
-              <div
-                key={int.name}
-                className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between"
-              >
-                <div>
-                  <h3 className="font-medium">{int.name}</h3>
-                  <p className="text-sm text-gray-400">{int.description}</p>
-                </div>
-                {int.connected ? (
-                  <span className="text-sm text-green-400 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-400 rounded-full" />
-                    Connected
-                  </span>
-                ) : int.connectUrl ? (
-                  <a
-                    href={int.connectUrl}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-                  >
-                    Connect
-                  </a>
-                ) : (
-                  <span className="text-sm text-gray-500">Set env vars to enable</span>
-                )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="profile-lang" className="block text-sm text-gray-400 mb-1">
+                  Language / 언어
+                </label>
+                <select
+                  id="profile-lang"
+                  value={profile.language}
+                  onChange={(e) =>
+                    setProfile((p) => ({
+                      ...p,
+                      language: e.target.value as UserProfile["language"],
+                    }))
+                  }
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition"
+                >
+                  <option value="auto">Auto-detect</option>
+                  <option value="en">English</option>
+                  <option value="ko">Korean / 한국어</option>
+                </select>
               </div>
-            ))
-          )}
-        </div>
-      </section>
+              <div>
+                <label htmlFor="profile-tz" className="block text-sm text-gray-400 mb-1">
+                  Timezone / 시간대
+                </label>
+                <select
+                  id="profile-tz"
+                  value={profile.timezone}
+                  onChange={(e) => setProfile((p) => ({ ...p, timezone: e.target.value }))}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition"
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={saveProfile}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  profileSaved
+                    ? "bg-green-600 text-white"
+                    : "bg-blue-600 hover:bg-blue-500 text-white"
+                }`}
+              >
+                {profileSaved ? "Saved!" : "Save Profile / 저장"}
+              </button>
+            </div>
+          </div>
+        </section>
 
-      {/* Quick Actions */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="space-y-3">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between">
+        {/* Security */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Security / 보안</h2>
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
             <div>
-              <h3 className="font-medium">Daily Briefing</h3>
+              <label htmlFor="current-pw" className="block text-sm text-gray-400 mb-1">
+                Current Password / 현재 비밀번호
+              </label>
+              <input
+                id="current-pw"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Current password"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
+                New Password / 새 비밀번호
+              </label>
+              <input
+                id="new-pw"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 6 characters"
+                minLength={6}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={changePassword}
+                disabled={passwordLoading || !currentPassword || !newPassword}
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                {passwordLoading ? "Changing..." : "Change Password / 변경"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Integrations */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Integrations</h2>
+          <div className="space-y-3">
+            {loading ? (
+              <ListSkeleton count={3} />
+            ) : (
+              integrations.map((int) => (
+                <div
+                  key={int.name}
+                  className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between"
+                >
+                  <div>
+                    <h3 className="font-medium">{int.name}</h3>
+                    <p className="text-sm text-gray-400">{int.description}</p>
+                  </div>
+                  {int.connected ? (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-green-400 flex items-center gap-1">
+                        <span className="w-2 h-2 bg-green-400 rounded-full" />
+                        Connected
+                      </span>
+                      {int.name === "Google" && (
+                        <button
+                          type="button"
+                          onClick={disconnectGoogle}
+                          className="text-xs text-gray-500 hover:text-red-400 transition"
+                        >
+                          Disconnect
+                        </button>
+                      )}
+                    </div>
+                  ) : int.connectUrl ? (
+                    <a
+                      href={int.connectUrl}
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                    >
+                      Connect
+                    </a>
+                  ) : (
+                    <span className="text-sm text-gray-500">Set env vars to enable</span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Quick Actions</h2>
+          <div className="space-y-3">
+            <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Daily Briefing</h3>
+                <p className="text-sm text-gray-400">
+                  Generate a summary of your tasks, calendar, and emails
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={generateBriefing}
+                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-gray-700"
+              >
+                Generate Now
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Capabilities */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">EVE Capabilities / 기능 목록</h2>
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 space-y-4">
+            <div>
+              <p className="text-xs text-blue-400 font-medium mb-2">Productivity / 생산성</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
+                <p>Tasks — priorities, due dates, status tracking</p>
+                <p>Notes — markdown, categories, search</p>
+                <p>Reminders — timed alerts, snooze, presets</p>
+                <p>Contacts — CRM, tags, avatar, search</p>
+                <p>Document Writer — reports, proposals, drafts</p>
+                <p>Daily Briefing — auto-generated summary</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-green-400 font-medium mb-2">Communication / 소통</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
+                <p>Email — read, send, classify by priority</p>
+                <p>Calendar — events, conflicts, scheduling</p>
+                <p>Slack — messages, channels, threads</p>
+                <p>Notion — pages, databases, search</p>
+                <p>iMessage — send/read texts via macOS</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-purple-400 font-medium mb-2">
+                Meeting & Scheduling / 미팅
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
+                <p>Auto-join — Google Meet, Zoom links</p>
+                <p>Meeting Summary — key points, action items</p>
+                <p>Calendar Conflicts — auto-detection</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-yellow-400 font-medium mb-2">macOS Native / 시스템 연동</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
+                <p>Clipboard — read/write copy-paste</p>
+                <p>File Search — Spotlight search</p>
+                <p>File Organizer — auto-sort Downloads</p>
+                <p>Screenshot — capture screen</p>
+                <p>System Info — battery, Wi-Fi, apps</p>
+                <p>Web Search — research, news</p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 mt-1">50+ tools across 18 categories</p>
+          </div>
+        </section>
+
+        {/* Data Management */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Data / 데이터</h2>
+          <div className="space-y-3">
+            <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Export Data / 데이터 내보내기</h3>
+                <p className="text-sm text-gray-400">Download all your data as JSON</p>
+              </div>
+              <button
+                type="button"
+                onClick={exportData}
+                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-gray-700"
+              >
+                Export
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Danger Zone */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3 text-red-400">
+            Danger Zone / 위험 구역
+          </h2>
+          <div className="bg-gray-900 border border-red-900/50 rounded-lg p-4 flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Delete All Data / 전체 삭제</h3>
               <p className="text-sm text-gray-400">
-                Generate a summary of your tasks, calendar, and emails
+                Permanently delete all conversations, tasks, notes, contacts, and reminders
               </p>
             </div>
             <button
               type="button"
-              onClick={generateBriefing}
-              className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-gray-700"
+              onClick={clearAllData}
+              className="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-red-900/50"
             >
-              Generate Now
+              Delete All
             </button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Capabilities */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">EVE Capabilities / 기능 목록</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-4">
-          <div>
-            <p className="text-xs text-blue-400 font-medium mb-2">Productivity / 생산성</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
-              <p>Tasks — priorities, due dates, status tracking</p>
-              <p>Notes — markdown, categories, search</p>
-              <p>Reminders — timed alerts, snooze, presets</p>
-              <p>Contacts — CRM, tags, avatar, search</p>
-              <p>Document Writer — reports, proposals, drafts</p>
-              <p>Daily Briefing — auto-generated summary</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-green-400 font-medium mb-2">Communication / 소통</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
-              <p>Email — read, send, classify by priority</p>
-              <p>Calendar — events, conflicts, scheduling</p>
-              <p>Slack — messages, channels, threads</p>
-              <p>Notion — pages, databases, search</p>
-              <p>iMessage — send/read texts via macOS</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-purple-400 font-medium mb-2">Meeting & Scheduling / 미팅</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
-              <p>Auto-join — Google Meet, Zoom links</p>
-              <p>Meeting Summary — key points, action items</p>
-              <p>Calendar Conflicts — auto-detection</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-yellow-400 font-medium mb-2">macOS Native / 시스템 연동</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
-              <p>Clipboard — read/write copy-paste</p>
-              <p>File Search — Spotlight search</p>
-              <p>File Organizer — auto-sort Downloads</p>
-              <p>Screenshot — capture screen</p>
-              <p>System Info — battery, Wi-Fi, apps</p>
-              <p>Web Search — research, news</p>
-            </div>
-          </div>
-          <p className="text-xs text-gray-600 mt-1">50+ tools across 18 categories</p>
-        </div>
-      </section>
-
-      {/* Data Management */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Data / 데이터</h2>
-        <div className="space-y-3">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 flex items-center justify-between">
-            <div>
-              <h3 className="font-medium">Export Data / 데이터 내보내기</h3>
-              <p className="text-sm text-gray-400">Download all your data as JSON</p>
-            </div>
-            <button
-              type="button"
-              onClick={exportData}
-              className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-gray-700"
-            >
-              Export
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Danger Zone */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4 text-red-400">Danger Zone / 위험 구역</h2>
-        <div className="bg-gray-900 border border-red-900/50 rounded-lg p-4 flex items-center justify-between">
-          <div>
-            <h3 className="font-medium">Delete All Data / 전체 삭제</h3>
+        {/* About */}
+        <section>
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">About</h2>
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4">
             <p className="text-sm text-gray-400">
-              Permanently delete all conversations, tasks, notes, contacts, and reminders
+              <span className="text-blue-400 font-medium">EVE</span> — Your First AI Employee /
+              당신의 첫 번째 AI 직원
             </p>
+            <p className="text-sm text-gray-500 mt-1">
+              Built for solo founders who wear too many hats. / 1인 창업자를 위해 만들었습니다.
+            </p>
+            <p className="text-xs text-gray-600 mt-3">v0.2.0 — MVP</p>
           </div>
-          <button
-            type="button"
-            onClick={clearAllData}
-            className="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-red-900/50"
-          >
-            Delete All
-          </button>
-        </div>
-      </section>
-
-      {/* About */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4">About</h2>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <p className="text-sm text-gray-400">
-            <span className="text-blue-400 font-medium">EVE</span> — Your First AI Employee / 당신의
-            첫 번째 AI 직원
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Built for solo founders who wear too many hats. / 1인 창업자를 위해 만들었습니다.
-          </p>
-          <p className="text-xs text-gray-600 mt-3">v0.2.0 — MVP</p>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </AuthGuard>
   );
 }

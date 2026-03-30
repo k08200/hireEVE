@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { RelativeTime } from "../../components/relative-time";
 import { DashboardSkeleton, ListSkeleton } from "../../components/skeleton";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { useWebSocket } from "../../components/use-websocket";
+import { apiFetch } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 
 interface Stats {
   tasks: { total: number; done: number; overdue: number };
@@ -13,6 +15,8 @@ interface Stats {
   contacts: number;
   reminders: { active: number; dismissed: number };
   notifications: number;
+  emails: { total: number; unread: number; urgent: number };
+  calendar: { today: number; nextEvent: string | null };
 }
 
 interface Activity {
@@ -45,72 +49,90 @@ function getGreeting(): { text: string; textKr: string } {
 }
 
 export default function DashboardPage() {
+  return (
+    <AuthGuard>
+      <DashboardContent />
+    </AuthGuard>
+  );
+}
+
+function DashboardContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("");
+  const { user } = useAuth();
+  const { connected, connectedClients } = useWebSocket(user?.id || "demo-user");
 
   useEffect(() => {
-    const userId = "demo-user";
     Promise.all([
-      fetch(`${API_BASE}/api/tasks?userId=${userId}`)
-        .then((r) => r.json())
-        .catch(() => ({ tasks: [] })),
-      fetch(`${API_BASE}/api/notes?userId=${userId}`)
-        .then((r) => r.json())
-        .catch(() => ({ notes: [] })),
-      fetch(`${API_BASE}/api/contacts?userId=${userId}`)
-        .then((r) => r.json())
-        .catch(() => ({ contacts: [] })),
-      fetch(`${API_BASE}/api/reminders?userId=${userId}`)
-        .then((r) => r.json())
-        .catch(() => ({ reminders: [] })),
-      fetch(`${API_BASE}/api/notifications?userId=${userId}`)
-        .then((r) => r.json())
-        .catch(() => ({ notifications: [], count: 0 })),
+      apiFetch<{ tasks: { status: string; dueDate?: string }[] }>("/api/tasks").catch(() => ({
+        tasks: [],
+      })),
+      apiFetch<{ notes: { id: string }[] }>("/api/notes").catch(() => ({ notes: [] })),
+      apiFetch<{ contacts: { id: string }[] }>("/api/contacts").catch(() => ({ contacts: [] })),
+      apiFetch<{ reminders: { status: string }[] }>("/api/reminders").catch(() => ({
+        reminders: [],
+      })),
+      apiFetch<{ notifications: unknown[]; count: number }>("/api/notifications").catch(() => ({
+        notifications: [],
+        count: 0,
+      })),
+      apiFetch<{ total: number; unread: number; urgent: number }>("/api/email/stats/summary").catch(
+        () => ({ total: 0, unread: 0, urgent: 0 }),
+      ),
+      apiFetch<{ total: number; nextEvent: { title: string } | null }>(
+        "/api/calendar/today/summary",
+      ).catch(() => ({ total: 0, nextEvent: null })),
     ])
-      .then(([taskData, noteData, contactData, reminderData, notifData]) => {
-        const tasks = taskData.tasks || [];
-        const now = new Date();
-        setStats({
-          tasks: {
-            total: tasks.length,
-            done: tasks.filter((t: { status: string }) => t.status === "DONE").length,
-            overdue: tasks.filter(
-              (t: { status: string; dueDate?: string }) =>
-                t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < now,
-            ).length,
-          },
-          notes: (noteData.notes || []).length,
-          contacts: (contactData.contacts || []).length,
-          reminders: {
-            active: (reminderData.reminders || []).filter(
-              (r: { status: string }) => r.status !== "DISMISSED",
-            ).length,
-            dismissed: (reminderData.reminders || []).filter(
-              (r: { status: string }) => r.status === "DISMISSED",
-            ).length,
-          },
-          notifications: notifData.count || 0,
-        });
-      })
+      .then(
+        ([
+          taskData,
+          noteData,
+          contactData,
+          reminderData,
+          notifData,
+          emailStats,
+          calendarSummary,
+        ]) => {
+          const tasks = taskData.tasks || [];
+          const now = new Date();
+          setStats({
+            tasks: {
+              total: tasks.length,
+              done: tasks.filter((t: { status: string }) => t.status === "DONE").length,
+              overdue: tasks.filter(
+                (t: { status: string; dueDate?: string }) =>
+                  t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < now,
+              ).length,
+            },
+            notes: (noteData.notes || []).length,
+            contacts: (contactData.contacts || []).length,
+            reminders: {
+              active: (reminderData.reminders || []).filter(
+                (r: { status: string }) => r.status !== "DISMISSED",
+              ).length,
+              dismissed: (reminderData.reminders || []).filter(
+                (r: { status: string }) => r.status === "DISMISSED",
+              ).length,
+            },
+            notifications: notifData.count || 0,
+            emails: {
+              total: emailStats.total || 0,
+              unread: emailStats.unread || 0,
+              urgent: emailStats.urgent || 0,
+            },
+            calendar: {
+              today: calendarSummary.total || 0,
+              nextEvent: calendarSummary.nextEvent?.title || null,
+            },
+          });
+        },
+      )
       .finally(() => setLoading(false));
 
-    fetch(`${API_BASE}/api/activity?userId=demo-user`)
-      .then((r) => r.json())
+    apiFetch<{ activity: Activity[] }>("/api/activity")
       .then((d) => setActivity(d.activity || []))
       .catch(() => {});
-
-    // Load profile name from localStorage
-    try {
-      const stored = localStorage.getItem("eve-profile");
-      if (stored) {
-        const profile = JSON.parse(stored);
-        if (profile.name) setUserName(profile.name);
-      }
-    } catch {
-      // ignore
-    }
   }, []);
 
   const isEmpty =
@@ -130,18 +152,28 @@ export default function DashboardPage() {
           color: stats.tasks.overdue > 0 ? "text-red-400" : "text-green-400",
         },
         {
+          label: "Email",
+          value: stats.emails.unread.toString(),
+          sub:
+            stats.emails.urgent > 0
+              ? `${stats.emails.urgent} urgent`
+              : `${stats.emails.total} total`,
+          href: "/email",
+          color: stats.emails.unread > 0 ? "text-blue-400" : "text-gray-400",
+        },
+        {
+          label: "Calendar",
+          value: stats.calendar.today.toString(),
+          sub: stats.calendar.nextEvent ? `Next: ${stats.calendar.nextEvent}` : "No events today",
+          href: "/calendar",
+          color: stats.calendar.today > 0 ? "text-purple-400" : "text-gray-400",
+        },
+        {
           label: "Notes",
           value: stats.notes.toString(),
           sub: "Total memos",
           href: "/notes",
-          color: "text-blue-400",
-        },
-        {
-          label: "Contacts",
-          value: stats.contacts.toString(),
-          sub: "People in network",
-          href: "/contacts",
-          color: "text-purple-400",
+          color: "text-green-400",
         },
         {
           label: "Reminders",
@@ -150,28 +182,29 @@ export default function DashboardPage() {
           href: "/reminders",
           color: "text-yellow-400",
         },
-        {
-          label: "Notifications",
-          value: stats.notifications.toString(),
-          sub: "Pending alerts",
-          href: "/chat",
-          color: stats.notifications > 0 ? "text-red-400" : "text-gray-400",
-        },
       ]
     : [];
 
   const greeting = getGreeting();
+  const tabCount = connectedClients.filter((c) => c.type === "web").length;
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">
-          {greeting.text}
-          {userName ? `, ${userName}` : ""}
-        </h1>
-        <p className="text-gray-400 text-sm mt-1">
-          {greeting.textKr} — Overview of your workspace / 워크스페이스 현황
-        </p>
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-bold">
+            {greeting.text}
+            {user?.name ? `, ${user.name}` : ""}
+          </h1>
+          <p className="text-gray-500 text-sm mt-0.5">{greeting.textKr}</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-green-400 animate-pulse" : "bg-gray-600"}`}
+          />
+          <span>{connected ? "Online" : "Connecting..."}</span>
+          {tabCount > 1 && <span className="text-gray-600">({tabCount})</span>}
+        </div>
       </div>
 
       {loading ? (
@@ -200,6 +233,22 @@ export default function DashboardPage() {
                   "from-blue-600/20 to-blue-800/10 border-blue-500/30 hover:border-blue-400/50",
               },
               {
+                href: "/email",
+                title: "Check Email",
+                desc: "Read, classify, and reply to emails",
+                descKr: "이메일 확인하기",
+                color:
+                  "from-cyan-600/20 to-cyan-800/10 border-cyan-500/30 hover:border-cyan-400/50",
+              },
+              {
+                href: "/calendar",
+                title: "View Calendar",
+                desc: "Schedule and manage events",
+                descKr: "일정 확인하기",
+                color:
+                  "from-purple-600/20 to-purple-800/10 border-purple-500/30 hover:border-purple-400/50",
+              },
+              {
                 href: "/tasks",
                 title: "Create a Task",
                 desc: "Track your to-dos and priorities",
@@ -213,22 +262,7 @@ export default function DashboardPage() {
                 desc: "Capture ideas and memos",
                 descKr: "아이디어와 메모를 기록하세요",
                 color:
-                  "from-purple-600/20 to-purple-800/10 border-purple-500/30 hover:border-purple-400/50",
-              },
-              {
-                href: "/contacts",
-                title: "Add a Contact",
-                desc: "Build your network and CRM",
-                descKr: "네트워크를 구축하세요",
-                color:
                   "from-yellow-600/20 to-yellow-800/10 border-yellow-500/30 hover:border-yellow-400/50",
-              },
-              {
-                href: "/reminders",
-                title: "Set a Reminder",
-                desc: "Never forget important things",
-                descKr: "중요한 일을 잊지 마세요",
-                color: "from-red-600/20 to-red-800/10 border-red-500/30 hover:border-red-400/50",
               },
               {
                 href: "/settings",
@@ -258,45 +292,56 @@ export default function DashboardPage() {
               <Link
                 key={c.label}
                 href={c.href}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-600 transition group"
+                className="bg-gray-900/80 border border-gray-800/80 rounded-xl p-4 hover:border-gray-700 transition-colors"
               >
                 <p className="text-xs text-gray-500 mb-1">{c.label}</p>
                 <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
-                <p className="text-[11px] text-gray-500 mt-1">{c.sub}</p>
+                <p className="text-[11px] text-gray-500 mt-1 truncate">{c.sub}</p>
               </Link>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
             <Link
               href="/chat"
-              className="bg-gradient-to-br from-blue-600/20 to-blue-800/10 border border-blue-500/30 rounded-xl p-6 hover:border-blue-400/50 transition"
+              className="bg-gradient-to-br from-blue-600/20 to-blue-800/10 border border-blue-500/30 rounded-xl p-5 hover:border-blue-400/50 transition"
             >
               <h3 className="font-semibold mb-1">Chat with EVE</h3>
-              <p className="text-sm text-gray-400">
-                Ask anything — email, scheduling, research, writing
-              </p>
+              <p className="text-xs text-gray-400">Ask anything — email, scheduling, writing</p>
               <p className="text-xs text-gray-500 mt-2">EVE에게 뭐든 물어보세요</p>
             </Link>
             <Link
-              href="/settings"
-              className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:border-gray-600 transition"
+              href="/email"
+              className="bg-gradient-to-br from-cyan-600/20 to-cyan-800/10 border border-cyan-500/30 rounded-xl p-5 hover:border-cyan-400/50 transition"
             >
-              <h3 className="font-semibold mb-1">Settings & Integrations</h3>
-              <p className="text-sm text-gray-400">Connect Gmail, Calendar, Slack, Notion</p>
-              <p className="text-xs text-gray-500 mt-2">연동 설정</p>
+              <h3 className="font-semibold mb-1">Email Inbox</h3>
+              <p className="text-xs text-gray-400">
+                {stats?.emails.unread ? `${stats.emails.unread} unread` : "All caught up"}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">이메일 확인</p>
+            </Link>
+            <Link
+              href="/calendar"
+              className="bg-gradient-to-br from-purple-600/20 to-purple-800/10 border border-purple-500/30 rounded-xl p-5 hover:border-purple-400/50 transition"
+            >
+              <h3 className="font-semibold mb-1">Today&apos;s Schedule</h3>
+              <p className="text-xs text-gray-400">
+                {stats?.calendar.today ? `${stats.calendar.today} events` : "No events today"}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">오늘 일정</p>
             </Link>
           </div>
 
           {/* Activity Feed */}
           {activity.length > 0 && (
             <section>
-              <h2 className="text-lg font-semibold mb-4">Recent Activity / 최근 활동</h2>
-              <div className="space-y-2">
+              <h2 className="text-sm font-semibold text-gray-400 mb-3">Recent Activity</h2>
+              <div className="space-y-1.5">
                 {activity.map((a, i) => (
                   <div
                     key={i}
-                    className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 flex items-center gap-3"
+                    className="bg-gray-900/60 border border-gray-800/60 rounded-lg px-4 py-2.5 flex items-center gap-3"
                   >
                     <span
                       className={`text-[10px] uppercase px-2 py-0.5 rounded font-medium ${typeColors[a.type]}`}

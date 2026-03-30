@@ -4,16 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "◫" },
-  { href: "/chat", label: "Chat", icon: "💬" },
-  { href: "/tasks", label: "Tasks", icon: "✓" },
-  { href: "/notes", label: "Notes", icon: "📝" },
-  { href: "/contacts", label: "Contacts", icon: "👤" },
-  { href: "/reminders", label: "Reminders", icon: "⏰" },
-  { href: "/automations", label: "Automations", icon: "⚡" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
-  { href: "/billing", label: "Billing", icon: "💳" },
+const MAIN_ITEMS = [{ href: "/chat", label: "Chat" }];
+
+const WORKSPACE_ITEMS = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/email", label: "Email" },
+  { href: "/calendar", label: "Calendar" },
+  { href: "/tasks", label: "Tasks" },
+  { href: "/notes", label: "Notes" },
+  { href: "/contacts", label: "Contacts" },
+  { href: "/reminders", label: "Reminders" },
+  { href: "/automations", label: "Automations" },
+];
+
+const ACCOUNT_ITEMS = [
+  { href: "/settings", label: "Settings" },
+  { href: "/billing", label: "Billing" },
 ];
 
 export default function MobileNav() {
@@ -76,22 +82,54 @@ export default function MobileNav() {
           <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
           <nav className="relative bg-gray-950 border-b border-gray-800 shadow-xl">
             <div className="flex flex-col py-2">
-              {NAV_ITEMS.map((item) => (
+              {MAIN_ITEMS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-6 py-3 text-sm transition ${
+                  className={`flex items-center gap-3 px-6 py-3 text-sm font-medium transition ${
+                    pathname.startsWith(item.href)
+                      ? "text-blue-400 bg-blue-500/10"
+                      : "text-gray-200 hover:text-white hover:bg-gray-900"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <div className="px-6 pt-4 pb-1.5">
+                <p className="text-[10px] font-medium text-gray-600 uppercase tracking-wider">
+                  Workspace
+                </p>
+              </div>
+              {WORKSPACE_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-6 py-2.5 text-sm transition ${
                     pathname.startsWith(item.href)
                       ? "text-blue-400 bg-blue-500/10"
                       : "text-gray-400 hover:text-white hover:bg-gray-900"
                   }`}
                 >
-                  <span className="w-5 text-center">{item.icon}</span>
                   {item.label}
                 </Link>
               ))}
+              <div className="border-t border-gray-800 mt-2 pt-2">
+                {ACCOUNT_ITEMS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-6 py-2.5 text-sm transition ${
+                      pathname.startsWith(item.href)
+                        ? "text-blue-400 bg-blue-500/10"
+                        : "text-gray-500 hover:text-white hover:bg-gray-900"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
               <div className="px-6 py-3 text-[10px] text-gray-600 border-t border-gray-800 mt-1">
-                EVE v0.2.0 &middot; Cmd+K palette
+                EVE v0.2.0
               </div>
             </div>
           </nav>

@@ -7,6 +7,7 @@ const SHORTCUTS = [
   { keys: ["Cmd", "K"], label: "Command palette / 명령 팔레트" },
   { keys: ["Cmd", "N"], label: "New conversation / 새 대화" },
   { keys: ["Cmd", "D"], label: "Go to Dashboard / 대시보드" },
+  { keys: ["Cmd", "E"], label: "Go to Email / 이메일" },
   { keys: ["Cmd", "T"], label: "Go to Tasks / 할 일" },
   { keys: ["Cmd", "/"], label: "Show shortcuts / 단축키 보기" },
   { keys: ["Esc"], label: "Close modal / 닫기" },
@@ -44,6 +45,10 @@ export default function KeyboardShortcuts() {
         case "d":
           e.preventDefault();
           router.push("/dashboard");
+          break;
+        case "e":
+          e.preventDefault();
+          router.push("/email");
           break;
         case "t":
           e.preventDefault();

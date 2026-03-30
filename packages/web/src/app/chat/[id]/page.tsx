@@ -1,12 +1,12 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import AuthGuard from "../../../components/auth-guard";
 import { Markdown } from "../../../components/markdown";
 import { useToast } from "../../../components/toast";
-import { apiFetch } from "../../../lib/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import VoiceButton from "../../../components/voice-button";
+import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
 
 interface Message {
   id: string;
@@ -16,7 +16,18 @@ interface Message {
 }
 
 export default function ChatPage() {
+  return (
+    <AuthGuard>
+      <Suspense>
+        <ChatPageContent />
+      </Suspense>
+    </AuthGuard>
+  );
+}
+
+function ChatPageContent() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -35,6 +46,7 @@ export default function ChatPage() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const prefillHandled = useRef(false);
   const { toast } = useToast();
 
   // Load reactions from localStorage
@@ -60,15 +72,85 @@ export default function ChatPage() {
     });
   };
 
-  // Load conversation history + title
+  // Load conversation history + title, then handle ?prefill= auto-send
   useEffect(() => {
     apiFetch<{ messages: Message[]; title?: string | null }>(`/api/chat/conversations/${id}`)
       .then((data) => {
         setMessages(data.messages);
         if (data.title) setTitle(data.title);
+
+        // Auto-send prefill message (from Email "Ask EVE to Reply" etc.)
+        const prefill = searchParams.get("prefill");
+        if (prefill && !prefillHandled.current && data.messages.length === 0) {
+          prefillHandled.current = true;
+          const userMsg: Message = {
+            id: crypto.randomUUID(),
+            role: "USER",
+            content: prefill,
+            createdAt: new Date().toISOString(),
+          };
+          setMessages([userMsg]);
+          // Delay slightly so streamResponse is available
+          setTimeout(() => {
+            setStreaming(true);
+            setStreamingContent("");
+            setSuggestions([]);
+            fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
+              method: "POST",
+              headers: authHeaders(),
+              body: JSON.stringify({ content: prefill }),
+            })
+              .then(async (res) => {
+                const reader = res.body?.getReader();
+                const decoder = new TextDecoder();
+                let fullContent = "";
+                if (reader) {
+                  while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const text = decoder.decode(value, { stream: true });
+                    for (const line of text.split("\n")) {
+                      if (!line.startsWith("data: ")) continue;
+                      try {
+                        const d = JSON.parse(line.slice(6));
+                        if (d.type === "token") {
+                          fullContent += d.content;
+                          setStreamingContent(fullContent);
+                        }
+                      } catch {
+                        /* skip */
+                      }
+                    }
+                  }
+                }
+                const assistantMsg: Message = {
+                  id: crypto.randomUUID(),
+                  role: "ASSISTANT",
+                  content: fullContent,
+                  createdAt: new Date().toISOString(),
+                };
+                setMessages((prev) => [...prev, assistantMsg]);
+              })
+              .catch(() => {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: crypto.randomUUID(),
+                    role: "ASSISTANT",
+                    content: "Connection failed. Please try again.",
+                    createdAt: new Date().toISOString(),
+                  },
+                ]);
+              })
+              .finally(() => {
+                setStreaming(false);
+                setStreamingContent("");
+              });
+          }, 100);
+        }
       })
       .catch(() => {});
-  }, [id]);
+  }, [id, searchParams]);
 
   // Auto-focus input on mount
   useEffect(() => {
@@ -159,7 +241,7 @@ export default function ChatPage() {
     try {
       const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ content: messageContent }),
         signal: controller.signal,
       });
@@ -281,7 +363,7 @@ export default function ChatPage() {
     try {
       const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/retry`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
       });
 
       const reader = res.body?.getReader();
@@ -494,7 +576,9 @@ export default function ChatPage() {
                 <div className="relative">
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      msg.role === "USER" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-100"
+                      msg.role === "USER"
+                        ? "bg-blue-600 text-white shadow-sm shadow-blue-600/20"
+                        : "bg-gray-800/80 border border-gray-700/40 text-gray-100"
                     }`}
                   >
                     {msg.role !== "USER" && (
@@ -616,6 +700,7 @@ export default function ChatPage() {
                         setMessages((prev) => prev.filter((m) => m.id !== msg.id));
                         fetch(`${API_BASE}/api/chat/messages/${msg.id}`, {
                           method: "DELETE",
+                          headers: authHeaders(),
                         }).catch(() => {});
                         toast("Message deleted", "info");
                       }}
@@ -647,11 +732,11 @@ export default function ChatPage() {
           {/* Streaming message */}
           {streaming && streamingContent && (
             <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gray-800 text-gray-100">
+              <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-gray-800/80 border border-gray-700/40 text-gray-100">
                 <p className="text-xs text-blue-400 font-medium mb-1">EVE</p>
                 <div>
                   <Markdown content={streamingContent} />
-                  <span className="inline-block w-2 h-4 bg-blue-400 animate-pulse ml-1" />
+                  <span className="inline-block w-1.5 h-4 bg-blue-400 rounded-sm animate-pulse ml-0.5" />
                 </div>
               </div>
             </div>
@@ -718,7 +803,7 @@ export default function ChatPage() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-gray-800 bg-gray-950 px-4 py-4">
+      <div className="border-t border-gray-800/60 bg-gray-950/90 backdrop-blur-md px-4 py-3">
         <div className="max-w-3xl mx-auto">
           {/* Suggestion chips */}
           {suggestions.length > 0 && !streaming && (
@@ -802,6 +887,13 @@ export default function ChatPage() {
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>
             </button>
+            <VoiceButton
+              onTranscript={(text) => {
+                setInput((prev) => (prev ? `${prev} ${text}` : text));
+                inputRef.current?.focus();
+              }}
+              className="p-3 shrink-0"
+            />
             <textarea
               ref={inputRef}
               value={input}
@@ -809,13 +901,13 @@ export default function ChatPage() {
               onKeyDown={handleKeyDown}
               placeholder="Type a message... / 메시지를 입력하세요 (Shift+Enter for new line)"
               rows={1}
-              className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+              className="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors placeholder-gray-500"
             />
             {streaming ? (
               <button
                 type="button"
                 onClick={stopGeneration}
-                className="bg-red-600 hover:bg-red-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
+                className="bg-red-600/90 hover:bg-red-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition-colors shrink-0"
               >
                 Stop
               </button>
@@ -824,7 +916,7 @@ export default function ChatPage() {
                 type="button"
                 onClick={sendMessage}
                 disabled={!input.trim() && !attachment}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-3 rounded-xl text-sm font-medium transition shrink-0"
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl text-sm font-medium transition-colors shrink-0 shadow-sm shadow-blue-600/20"
               >
                 Send
               </button>

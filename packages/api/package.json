@@ -13,15 +13,21 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.0.1",
-    "@prisma/client": "^6.8.2",
     "@hireeve/core": "workspace:*",
+    "@prisma/client": "^6.8.2",
+    "@types/ws": "^8.18.1",
+    "bcryptjs": "^3.0.3",
     "fastify": "^5.3.3",
     "googleapis": "^171.4.0",
+    "jsonwebtoken": "^9.0.3",
     "openai": "^6.29.0",
-    "stripe": "^18.1.0"
+    "stripe": "^18.1.0",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.5",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.0",
     "prisma": "^6.8.2",
     "tsx": "^4.21.0",

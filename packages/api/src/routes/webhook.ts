@@ -44,6 +44,20 @@ export async function webhookRoutes(app: FastifyInstance) {
           break;
         }
 
+        case "customer.subscription.updated": {
+          const sub = event.data.object as Stripe.Subscription;
+          const custId = sub.customer as string;
+
+          // Handle plan downgrade/upgrade via subscription update
+          if (sub.status === "active") {
+            // Could map price ID to plan — for now handled by checkout metadata
+          } else if (sub.status === "past_due" || sub.status === "unpaid") {
+            // Keep plan but flag — could notify user
+            console.log(`[STRIPE] Subscription ${sub.id} is ${sub.status} for customer ${custId}`);
+          }
+          break;
+        }
+
         case "customer.subscription.deleted": {
           const subscription = event.data.object as Stripe.Subscription;
           const customerId = subscription.customer as string;
@@ -52,6 +66,13 @@ export async function webhookRoutes(app: FastifyInstance) {
             where: { stripeId: customerId },
             data: { plan: "FREE" },
           });
+          break;
+        }
+
+        case "invoice.payment_failed": {
+          const invoice = event.data.object as Stripe.Invoice;
+          const failedCustomer = invoice.customer as string;
+          console.log(`[STRIPE] Payment failed for customer ${failedCustomer}`);
           break;
         }
       }

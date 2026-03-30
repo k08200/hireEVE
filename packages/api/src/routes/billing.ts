@@ -1,12 +1,13 @@
 import type { FastifyInstance } from "fastify";
+import { getUserId } from "../auth.js";
 import { prisma } from "../db.js";
 import { PLANS, stripe } from "../stripe.js";
 
 export async function billingRoutes(app: FastifyInstance) {
   // POST /api/billing/checkout — Create Stripe checkout session
   app.post("/checkout", async (request, reply) => {
-    const { userId, plan } = request.body as {
-      userId: string;
+    const userId = getUserId(request);
+    const { plan } = request.body as {
       plan: "PRO" | "TEAM";
     };
 
@@ -33,7 +34,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
   // POST /api/billing/portal — Create Stripe customer portal session
   app.post("/portal", async (request, reply) => {
-    const { userId } = request.body as { userId: string };
+    const userId = getUserId(request);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user?.stripeId) {
@@ -50,8 +51,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
   // GET /api/billing/status — Get user's billing status
   app.get("/status", async (request, reply) => {
-    const { userId } = request.query as { userId: string };
-    if (!userId) return reply.code(400).send({ error: "userId required" });
+    const userId = getUserId(request);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return reply.code(404).send({ error: "User not found" });

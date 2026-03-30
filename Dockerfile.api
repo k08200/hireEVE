@@ -1,0 +1,21 @@
+FROM node:22-slim AS base
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+
+# Install dependencies
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/api/package.json packages/api/
+COPY packages/core/package.json packages/core/
+RUN pnpm install --frozen-lockfile --filter @hireeve/api...
+
+# Copy source
+COPY packages/core/ packages/core/
+COPY packages/api/ packages/api/
+
+# Generate Prisma client + build
+RUN cd packages/api && npx prisma generate
+RUN pnpm --filter @hireeve/api build
+
+EXPOSE 3001
+CMD ["node", "packages/api/dist/index.js"]

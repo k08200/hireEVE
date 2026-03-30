@@ -1,0 +1,39 @@
+"use client";
+
+interface Tab {
+  id: string;
+  label: string;
+  count?: number;
+}
+
+interface TabsProps {
+  tabs: Tab[];
+  active: string;
+  onChange: (id: string) => void;
+}
+
+export default function Tabs({ tabs, active, onChange }: TabsProps) {
+  return (
+    <div className="flex gap-1 p-1 bg-gray-900/60 border border-gray-800/60 rounded-lg w-fit">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onChange(tab.id)}
+          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            active === tab.id
+              ? "bg-gray-800 text-white shadow-sm"
+              : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+          }`}
+        >
+          {tab.label}
+          {tab.count !== undefined && (
+            <span className={`ml-1.5 ${active === tab.id ? "text-gray-400" : "text-gray-600"}`}>
+              {tab.count}
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
