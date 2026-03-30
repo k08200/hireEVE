@@ -1,0 +1,23 @@
+name: Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - website/**
+      - .github/workflows/website.yml
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: ./website
