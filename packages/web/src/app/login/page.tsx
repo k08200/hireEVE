@@ -198,7 +198,7 @@ function LoginForm() {
           href={`${API_BASE}/api/auth/google/login`}
           className="flex items-center justify-center gap-3 w-full bg-white hover:bg-gray-100 text-gray-800 py-2.5 rounded-lg text-sm font-medium transition-colors border border-gray-300"
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
+          <svg aria-hidden="true" className="w-4 h-4" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"

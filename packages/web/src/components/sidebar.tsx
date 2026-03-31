@@ -57,6 +57,7 @@ const NAV_ITEMS = [
 
 function NavIcon({ type, size = 16 }: { type: string; size?: number }) {
   const props = {
+    "aria-hidden": true as const,
     width: size,
     height: size,
     viewBox: "0 0 24 24",
@@ -253,6 +254,7 @@ export default function Sidebar({
           title="New chat"
         >
           <svg
+            aria-hidden="true"
             width="18"
             height="18"
             viewBox="0 0 24 24"
@@ -315,6 +317,7 @@ export default function Sidebar({
                             title="Rename"
                           >
                             <svg
+                              aria-hidden="true"
                               width="12"
                               height="12"
                               viewBox="0 0 24 24"
@@ -335,6 +338,7 @@ export default function Sidebar({
                             title="Delete"
                           >
                             <svg
+                              aria-hidden="true"
                               width="12"
                               height="12"
                               viewBox="0 0 24 24"
@@ -400,6 +404,7 @@ export default function Sidebar({
                 <p className="text-[13px] text-gray-300 truncate">{user.name || user.email}</p>
               </div>
               <svg
+                aria-hidden="true"
                 width="12"
                 height="12"
                 viewBox="0 0 24 24"

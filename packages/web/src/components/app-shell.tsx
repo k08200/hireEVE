@@ -29,6 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             aria-label="Menu"
           >
             <svg
+              aria-hidden="true"
               width="20"
               height="20"
               viewBox="0 0 24 24"
