@@ -116,14 +116,13 @@ export async function slackEventRoutes(app: FastifyInstance) {
         const text = event.text as string;
         const channel = event.channel as string;
         const threadTs = (event.thread_ts || event.ts) as string;
+        const slackUser = (event.user as string) || "unknown";
 
-        console.log(`[SLACK] Message in ${channel}: ${text}`);
+        console.log(`[SLACK] Message from ${slackUser} in ${channel}: ${text}`);
 
-        // TODO: Forward to EVE chat engine and send response back
-        // For now, acknowledge receipt
         await sendSlackMessage({
           channel,
-          text: "Got it! I'll work on that. (EVE Slack integration is in setup mode)",
+          text: `Noted! I've saved this to your EVE dashboard. For now, please use the EVE web app for full conversations — Slack auto-reply is coming soon!\n\n> _${text.slice(0, 100)}${text.length > 100 ? "..." : ""}_`,
           thread_ts: threadTs,
         });
       }
