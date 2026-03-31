@@ -284,10 +284,7 @@ export default function Sidebar({
                   className="relative"
                 >
                   {editingId === conv.id ? (
-                    <form
-                      onSubmit={(e) => saveRename(e, conv.id)}
-                      className="px-2 py-1"
-                    >
+                    <form onSubmit={(e) => saveRename(e, conv.id)} className="px-2 py-1">
                       <input
                         autoFocus
                         value={editTitle}
@@ -475,10 +472,7 @@ export default function Sidebar({
         <>
           {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-close backdrop */}
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by Escape key */}
-          <div
-            className="fixed inset-0 bg-black/60 z-40 md:hidden"
-            onClick={onMobileClose}
-          />
+          <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={onMobileClose} />
           <aside className="fixed inset-y-0 left-0 w-[280px] z-50 md:hidden animate-slide-in-left">
             {sidebarContent}
           </aside>
