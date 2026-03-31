@@ -62,7 +62,14 @@ export default function EmailPage() {
   const [stats, setStats] = useState<EmailStats | null>(null);
   const [filter, setFilter] = useState<"all" | "unread" | "urgent">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedBody, setSelectedBody] = useState<string>("");
+  const [loadingBody, setLoadingBody] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [sending, setSending] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -83,12 +90,53 @@ export default function EmailPage() {
 
   const selected = emails.find((e) => e.id === selectedId);
 
+  // Fetch full email body when selecting
+  const selectEmail = (id: string | null) => {
+    if (id === selectedId) {
+      setSelectedId(null);
+      return;
+    }
+    setSelectedId(id);
+    if (id) {
+      setLoadingBody(true);
+      setSelectedBody("");
+      apiFetch<{ body?: string }>(`/api/email/${id}`)
+        .then((d) => setSelectedBody(d.body || ""))
+        .catch(() => setSelectedBody(""))
+        .finally(() => setLoadingBody(false));
+    }
+  };
+
   const askEveAboutEmail = (email: Email) => {
-    // Navigate to chat and pre-fill with email context
     const query = encodeURIComponent(
       `이 이메일에 대해 답장을 써줘:\n\nFrom: ${email.from}\nSubject: ${email.subject}\n\n${email.snippet}`,
     );
     router.push(`/chat?prefill=${query}`);
+  };
+
+  const handleSendEmail = () => {
+    if (!composeTo || !composeSubject || !composeBody) {
+      toast("모든 필드를 입력해주세요", "error");
+      return;
+    }
+    setSending(true);
+    apiFetch<{ success?: boolean; error?: string }>("/api/email/send", {
+      method: "POST",
+      body: JSON.stringify({ to: composeTo, subject: composeSubject, body: composeBody }),
+    })
+      .then((d) => {
+        if (d.success) {
+          toast("이메일을 전송했습니다", "success");
+          setComposeOpen(false);
+          setComposeTo("");
+          setComposeSubject("");
+          setComposeBody("");
+        } else {
+          toast(d.error || "전송에 실패했습니다", "error");
+        }
+      })
+      .catch(() => toast("전송에 실패했습니다", "error"))
+      .finally(() => setSending(false));
   };
 
   return (
@@ -106,14 +154,23 @@ export default function EmailPage() {
               )}
             </p>
           </div>
-          {stats?.source === "demo" && (
-            <a
-              href={`${API_BASE}/api/auth/google`}
-              className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-gray-700"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setComposeOpen(true)}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
             >
-              Connect Gmail
-            </a>
-          )}
+              Compose / 작성
+            </button>
+            {stats?.source === "demo" && (
+              <a
+                href={`${API_BASE}/api/auth/google`}
+                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-gray-700"
+              >
+                Connect Gmail
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Stats Bar */}
@@ -194,7 +251,7 @@ export default function EmailPage() {
                   <button
                     key={email.id}
                     type="button"
-                    onClick={() => setSelectedId(email.id === selectedId ? null : email.id)}
+                    onClick={() => selectEmail(email.id === selectedId ? null : email.id)}
                     className={`w-full text-left rounded-lg p-4 transition ${
                       selectedId === email.id
                         ? "bg-blue-600/10 border border-blue-500/30"
@@ -283,12 +340,25 @@ export default function EmailPage() {
 
                 {/* Body */}
                 <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap border-t border-gray-800 pt-4">
-                  {selected.snippet}
-                  <p className="text-gray-500 mt-4 italic text-xs">
-                    {stats?.source === "demo"
-                      ? "Connect Gmail for full email content / Gmail 연결 시 전체 내용을 볼 수 있어요"
-                      : ""}
-                  </p>
+                  {loadingBody ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="h-3 bg-gray-800 rounded w-full" />
+                      <div className="h-3 bg-gray-800 rounded w-4/5" />
+                      <div className="h-3 bg-gray-800 rounded w-3/5" />
+                    </div>
+                  ) : selectedBody ? (
+                    selectedBody
+                  ) : (
+                    <>
+                      {selected.snippet}
+                      {stats?.source === "demo" && (
+                        <p className="text-gray-500 mt-4 italic text-xs">
+                          Connect Gmail for full email content / Gmail 연결 시 전체 내용을 볼 수
+                          있어요
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -315,6 +385,77 @@ export default function EmailPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+        {/* Compose Modal */}
+        {composeOpen && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-lg">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+                <h2 className="text-lg font-semibold">New Email / 새 이메일</h2>
+                <button
+                  type="button"
+                  onClick={() => setComposeOpen(false)}
+                  className="text-gray-500 hover:text-white transition"
+                >
+                  x
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <label className="block">
+                  <span className="text-xs text-gray-500 mb-1 block">To / 받는 사람</span>
+                  <input
+                    type="email"
+                    value={composeTo}
+                    onChange={(e) => setComposeTo(e.target.value)}
+                    placeholder="email@example.com"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-gray-500 mb-1 block">Subject / 제목</span>
+                  <input
+                    type="text"
+                    value={composeSubject}
+                    onChange={(e) => setComposeSubject(e.target.value)}
+                    placeholder="Email subject"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-gray-500 mb-1 block">Body / 본문</span>
+                  <textarea
+                    value={composeBody}
+                    onChange={(e) => setComposeBody(e.target.value)}
+                    placeholder="Write your email..."
+                    rows={8}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none resize-none"
+                  />
+                </label>
+              </div>
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800">
+                {stats?.source !== "gmail" && (
+                  <p className="text-xs text-yellow-500">Gmail 연결 필요</p>
+                )}
+                <div className="flex gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setComposeOpen(false)}
+                    className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSendEmail}
+                    disabled={sending}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    {sending ? "Sending..." : "Send / 보내기"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>

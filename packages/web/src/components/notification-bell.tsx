@@ -1,27 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { apiFetch } from "../lib/api";
 import { useWebSocket } from "./use-websocket";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface Notification {
   id: string;
-  type: "reminder" | "calendar" | "email" | "task" | "meeting";
+  type: string;
   title: string;
   message: string;
+  isRead: boolean;
   createdAt: string;
 }
 
 function formatRelative(date: string): string {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return "방금";
+  if (mins < 60) return `${mins}분 전`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 24) return `${hours}시간 전`;
+  return `${Math.floor(hours / 24)}일 전`;
 }
+
+const typeIcon: Record<string, string> = {
+  reminder: "🔔",
+  calendar: "📅",
+  email: "📧",
+  task: "✅",
+  meeting: "🎥",
+  briefing: "📋",
+};
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -30,7 +39,7 @@ export default function NotificationBell() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { connected, on, connectedClients } = useWebSocket("demo-user");
 
-  // Click outside to close
+  // Click outside / Escape to close
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -55,11 +64,9 @@ export default function NotificationBell() {
       const notif = payload as unknown as Notification;
       if (notif.id) {
         setNotifications((prev) => {
-          // Deduplicate
           if (prev.some((n) => n.id === notif.id)) return prev;
-          return [notif, ...prev];
+          return [{ ...notif, isRead: false }, ...prev];
         });
-        // Flash the bell
         setFlash(true);
         setTimeout(() => setFlash(false), 2000);
       }
@@ -68,38 +75,36 @@ export default function NotificationBell() {
   }, [on]);
 
   const fetchNotifications = () => {
-    fetch(`${API_BASE}/api/notifications?userId=demo-user`)
-      .then((r) => r.json())
+    apiFetch<{ notifications: Notification[] }>("/api/notifications?limit=30")
       .then((d) => setNotifications(d.notifications || []))
       .catch(() => {});
   };
 
-  // Initial fetch + slower polling fallback (WebSocket handles real-time)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fetch on mount and reconnect
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, connected ? 60_000 : 15_000);
     return () => clearInterval(interval);
   }, [connected]);
 
+  const markAsRead = (id: string) => {
+    apiFetch(`/api/notifications/${id}/read`, { method: "PATCH" }).catch(() => {});
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+  };
+
+  const markAllRead = () => {
+    apiFetch("/api/notifications/read-all", { method: "PATCH" }).catch(() => {});
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
   const clearAll = () => {
-    fetch(`${API_BASE}/api/notifications?userId=demo-user`, { method: "DELETE" })
-      .then(() => {
-        setNotifications([]);
-        setOpen(false);
-      })
-      .catch(() => {});
+    apiFetch("/api/notifications", { method: "DELETE" }).catch(() => {});
+    setNotifications([]);
+    setOpen(false);
   };
 
-  const count = notifications.length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
   const tabCount = connectedClients.filter((c) => c.type === "web").length;
-
-  const typeIcon: Record<string, string> = {
-    reminder: "bell",
-    calendar: "cal",
-    email: "mail",
-    task: "task",
-    meeting: "meet",
-  };
 
   return (
     <div className="relative flex items-center gap-2" ref={containerRef}>
@@ -124,13 +129,14 @@ export default function NotificationBell() {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          aria-hidden="true"
         >
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
-        {count > 0 && (
+        {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-            {count > 9 ? "9+" : count}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -139,48 +145,74 @@ export default function NotificationBell() {
         <div className="absolute right-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Notifications</span>
+              <span className="text-sm font-medium">알림</span>
               {connected && (
                 <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
                   live
                 </span>
               )}
+              {unreadCount > 0 && (
+                <span className="text-[10px] text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
+                  {unreadCount}
+                </span>
+              )}
             </div>
-            {count > 0 && (
-              <button
-                type="button"
-                onClick={clearAll}
-                className="text-xs text-gray-500 hover:text-red-400 transition"
-              >
-                Clear all
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={markAllRead}
+                  className="text-xs text-gray-500 hover:text-blue-400 transition"
+                >
+                  모두 읽음
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="text-xs text-gray-500 hover:text-red-400 transition"
+                >
+                  전체 삭제
+                </button>
+              )}
+            </div>
           </div>
-          <div className="max-h-72 overflow-y-auto">
-            {count === 0 ? (
-              <p className="text-center text-gray-500 text-sm py-6">No notifications</p>
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <p className="text-center text-gray-500 text-sm py-6">알림이 없습니다</p>
             ) : (
               notifications.map((n) => (
-                <div
+                <button
                   key={n.id}
-                  className="px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition"
+                  type="button"
+                  onClick={() => !n.isRead && markAsRead(n.id)}
+                  className={`w-full text-left px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition ${
+                    !n.isRead ? "bg-blue-600/5" : ""
+                  }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase text-gray-500 bg-gray-800 px-1.5 py-0.5 rounded">
-                      {typeIcon[n.type] || n.type}
+                    <span className="text-sm">{typeIcon[n.type] || "📌"}</span>
+                    <span
+                      className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-gray-300"}`}
+                    >
+                      {n.title}
                     </span>
-                    <span className="text-sm font-medium truncate">{n.title}</span>
+                    {!n.isRead && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />
+                    )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{n.message}</p>
-                  <p className="text-[10px] text-gray-600 mt-1">{formatRelative(n.createdAt)}</p>
-                </div>
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
+                  <p className="text-[10px] text-gray-600 mt-1 ml-6">
+                    {formatRelative(n.createdAt)}
+                  </p>
+                </button>
               ))
             )}
           </div>
-          {/* Multi-tab info */}
           {tabCount > 1 && (
             <div className="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">
-              {tabCount} tabs connected — notifications sync in real-time
+              {tabCount}개 탭 연결 — 실시간 동기화
             </div>
           )}
         </div>

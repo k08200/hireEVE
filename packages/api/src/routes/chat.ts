@@ -42,6 +42,7 @@ import {
   takeScreenshot,
 } from "../macos.js";
 import { getUpcomingMeetings, joinMeeting, MEETING_TOOLS, summarizeMeeting } from "../meeting.js";
+import { getNews, NEWS_TOOLS } from "../news.js";
 import { createNote, deleteNote, listNotes, NOTE_TOOLS, updateNote } from "../notes.js";
 import {
   createNotionPage,
@@ -60,7 +61,17 @@ import {
 } from "../reminders.js";
 import { SEARCH_TOOLS, webSearch } from "../search.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "../slack.js";
+import { PLANS } from "../stripe.js";
 import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "../tasks.js";
+import {
+  calculate,
+  convertCurrency,
+  generatePassword,
+  shortenUrl,
+  translate,
+  UTILITY_TOOLS,
+} from "../utilities.js";
+import { getWeather, WEATHER_TOOLS } from "../weather.js";
 import { WRITER_TOOLS, writeDocument } from "../writer.js";
 
 const GOOGLE_TOOLS = [...GMAIL_TOOLS, ...CALENDAR_TOOLS];
@@ -85,6 +96,9 @@ const ALWAYS_TOOLS = [
   ...BRIEFING_TOOLS,
   ...MEETING_TOOLS,
   ...FILE_TOOLS,
+  ...WEATHER_TOOLS,
+  ...NEWS_TOOLS,
+  ...UTILITY_TOOLS,
   TIME_TOOL,
   ...(SLACK_CONFIGURED ? SLACK_TOOLS : []),
   ...(NOTION_CONFIGURED ? NOTION_TOOLS : []),
@@ -302,6 +316,29 @@ async function executeToolCall(
         return JSON.stringify(await organizeDownloads());
       case "list_recent_downloads":
         return JSON.stringify(await listRecentDownloads((args.count as number) || 10));
+      // Weather
+      case "get_weather":
+        return JSON.stringify(await getWeather(args.location as string));
+      // News
+      case "get_news":
+        return JSON.stringify(
+          await getNews(args.topic as string | undefined, args.sources as string[] | undefined),
+        );
+      // Utilities
+      case "translate_text":
+        return JSON.stringify(
+          await translate(args.text as string, args.from as string, args.to as string),
+        );
+      case "shorten_url":
+        return JSON.stringify(await shortenUrl(args.url as string));
+      case "calculate":
+        return JSON.stringify(calculate(args.expression as string));
+      case "convert_currency":
+        return JSON.stringify(
+          await convertCurrency(args.amount as number, args.from as string, args.to as string),
+        );
+      case "generate_password":
+        return JSON.stringify(generatePassword(Math.min((args.length as number) || 16, 64)));
       default:
         return JSON.stringify({ error: `Unknown function: ${functionName}` });
     }
@@ -546,6 +583,31 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+
+    // Check billing plan message limit
+    const user = await prisma.user.findUnique({ where: { id: conversation.userId } });
+    if (user) {
+      const planConfig = PLANS[user.plan as keyof typeof PLANS];
+      if (planConfig.messageLimit !== Infinity) {
+        const now = new Date();
+        const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthlyCount = await prisma.message.count({
+          where: {
+            conversation: { userId: user.id },
+            role: "USER",
+            createdAt: { gte: periodStart },
+          },
+        });
+        if (monthlyCount >= planConfig.messageLimit) {
+          return reply.code(402).send({
+            error: "Message limit reached",
+            plan: user.plan,
+            messageLimit: planConfig.messageLimit,
+            messageCount: monthlyCount,
+          });
+        }
+      }
+    }
 
     // Save user message
     await prisma.message.create({

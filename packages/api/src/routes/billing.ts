@@ -56,14 +56,24 @@ export async function billingRoutes(app: FastifyInstance) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return reply.code(404).send({ error: "User not found" });
 
-    const testCount = await prisma.testRun.count({ where: { userId } });
     const planConfig = PLANS[user.plan as keyof typeof PLANS];
+
+    // Count user messages this billing period (current calendar month)
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const messageCount = await prisma.message.count({
+      where: {
+        conversation: { userId },
+        role: "USER",
+        createdAt: { gte: periodStart },
+      },
+    });
 
     return {
       plan: user.plan,
       planName: planConfig.name,
-      testLimit: planConfig.testLimit,
-      testCount,
+      messageLimit: planConfig.messageLimit,
+      messageCount,
       stripeId: user.stripeId,
     };
   });

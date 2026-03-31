@@ -25,6 +25,7 @@ model User {
   calendarEvents CalendarEvent[]
   workspaceMembers   WorkspaceMember[]
   automationConfig   AutomationConfig?
+  notifications      Notification[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 }
@@ -259,4 +260,15 @@ model AutomationConfig {
   downloadAutoOrganize  Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // "reminder" | "calendar" | "email" | "task" | "meeting" | "briefing"
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

@@ -9,8 +9,18 @@ export const stripe = process.env.STRIPE_SECRET_KEY
   : (null as unknown as Stripe);
 
 export const PLANS = {
-  FREE: { name: "Free", priceId: null, testLimit: 10 },
-  PRO: { name: "Pro", priceId: process.env.STRIPE_PRO_PRICE_ID || "", testLimit: 500 },
-  TEAM: { name: "Team", priceId: process.env.STRIPE_TEAM_PRICE_ID || "", testLimit: 5000 },
-  ENTERPRISE: { name: "Enterprise", priceId: null, testLimit: Infinity },
+  FREE: { name: "Free", priceId: null, testLimit: 10, messageLimit: 50 },
+  PRO: {
+    name: "Pro",
+    priceId: process.env.STRIPE_PRO_PRICE_ID || "",
+    testLimit: 500,
+    messageLimit: 2000,
+  },
+  TEAM: {
+    name: "Team",
+    priceId: process.env.STRIPE_TEAM_PRICE_ID || "",
+    testLimit: 5000,
+    messageLimit: 10000,
+  },
+  ENTERPRISE: { name: "Enterprise", priceId: null, testLimit: Infinity, messageLimit: Infinity },
 } as const;

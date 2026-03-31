@@ -246,6 +246,20 @@ function ChatPageContent() {
         signal: controller.signal,
       });
 
+      // Handle billing limit
+      if (res.status === 402) {
+        const err = await res.json();
+        const limitMsg: Message = {
+          id: crypto.randomUUID(),
+          role: "ASSISTANT",
+          content: `⚠️ 이번 달 메시지 한도(${err.messageLimit}회)에 도달했습니다.\n\n현재 플랜: **${err.plan}**\n\n더 많은 메시지를 사용하려면 [플랜 업그레이드](/billing)를 해주세요.`,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, limitMsg]);
+        setStreaming(false);
+        return;
+      }
+
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let fullContent = "";

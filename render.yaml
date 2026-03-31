@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: hireeve-api
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: |
+      corepack enable &&
+      pnpm install --frozen-lockfile &&
+      cd packages/api && npx prisma generate && pnpm build
+    startCommand: cd packages/api && npx prisma migrate deploy && node dist/index.js
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: PORT
+        value: "3001"

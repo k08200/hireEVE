@@ -167,12 +167,14 @@ export default function SettingsPage() {
       name: "Slack",
       description: "Send messages, read channels, receive mentions",
       connected: slackConnected,
+      connectUrl: slackConnected ? undefined : "slack-coming-soon",
       statusUrl: `${API_BASE}/api/slack/status`,
     },
     {
       name: "Notion",
       description: "Search pages, create documents, access databases",
       connected: notionConnected,
+      connectUrl: notionConnected ? undefined : "notion-coming-soon",
       statusUrl: `${API_BASE}/api/notion/status`,
     },
   ];
@@ -379,6 +381,10 @@ export default function SettingsPage() {
                         </button>
                       )}
                     </div>
+                  ) : int.connectUrl?.endsWith("-coming-soon") ? (
+                    <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                      Coming Soon
+                    </span>
                   ) : int.connectUrl ? (
                     <a
                       href={int.connectUrl}
@@ -387,7 +393,9 @@ export default function SettingsPage() {
                       Connect
                     </a>
                   ) : (
-                    <span className="text-sm text-gray-500">Set env vars to enable</span>
+                    <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                      Coming Soon
+                    </span>
                   )}
                 </div>
               ))

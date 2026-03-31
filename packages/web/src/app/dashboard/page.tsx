@@ -19,6 +19,25 @@ interface Stats {
   calendar: { today: number; nextEvent: string | null };
 }
 
+interface WeatherData {
+  location: string;
+  current: {
+    temperature: number;
+    feelsLike: number;
+    humidity: number;
+    windSpeed: number;
+    condition: string;
+    icon: string;
+  };
+  forecast: Array<{
+    date: string;
+    maxTemp: number;
+    minTemp: number;
+    condition: string;
+    precipitation: number;
+  }>;
+}
+
 interface Activity {
   type: "task" | "note" | "reminder" | "conversation";
   title: string;
@@ -59,6 +78,7 @@ export default function DashboardPage() {
 function DashboardContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { connected, connectedClients } = useWebSocket(user?.id || "demo-user");
@@ -132,6 +152,91 @@ function DashboardContent() {
 
     apiFetch<{ activity: Activity[] }>("/api/activity")
       .then((d) => setActivity(d.activity || []))
+      .catch(() => {});
+
+    // Fetch weather for Seoul (default)
+    const savedCity = localStorage.getItem("eve-weather-city") || "서울";
+    fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(savedCity)}&count=1&language=ko`,
+    )
+      .then((r) => r.json())
+      .then(
+        (geo: {
+          results?: Array<{ latitude: number; longitude: number; name: string; country: string }>;
+        }) => {
+          if (!geo.results?.length) return;
+          const { latitude, longitude, name, country } = geo.results[0];
+          return fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia/Seoul&forecast_days=3`,
+          )
+            .then((r) => r.json())
+            .then(
+              (data: {
+                current: {
+                  temperature_2m: number;
+                  relative_humidity_2m: number;
+                  apparent_temperature: number;
+                  weather_code: number;
+                  wind_speed_10m: number;
+                };
+                daily: {
+                  time: string[];
+                  weather_code: number[];
+                  temperature_2m_max: number[];
+                  temperature_2m_min: number[];
+                  precipitation_sum: number[];
+                };
+              }) => {
+                const wmo: Record<number, string> = {
+                  0: "맑음",
+                  1: "대체로 맑음",
+                  2: "부분 흐림",
+                  3: "흐림",
+                  45: "안개",
+                  51: "이슬비",
+                  61: "비",
+                  63: "비",
+                  71: "눈",
+                  80: "소나기",
+                  95: "뇌우",
+                };
+                const wmoIcon: Record<number, string> = {
+                  0: "☀️",
+                  1: "🌤️",
+                  2: "⛅",
+                  3: "☁️",
+                  45: "🌫️",
+                  51: "🌧️",
+                  61: "🌧️",
+                  63: "🌧️",
+                  71: "❄️",
+                  80: "🌦️",
+                  95: "⛈️",
+                };
+                const c = data.current;
+                const code = c.weather_code;
+                setWeather({
+                  location: `${name}, ${country}`,
+                  current: {
+                    temperature: c.temperature_2m,
+                    feelsLike: c.apparent_temperature,
+                    humidity: c.relative_humidity_2m,
+                    windSpeed: c.wind_speed_10m,
+                    condition: wmo[code] || wmo[Math.floor(code / 10) * 10] || "알 수 없음",
+                    icon: wmoIcon[code] || wmoIcon[Math.floor(code / 10) * 10] || "🌡️",
+                  },
+                  forecast: data.daily.time.map((date, i) => ({
+                    date,
+                    maxTemp: data.daily.temperature_2m_max[i],
+                    minTemp: data.daily.temperature_2m_min[i],
+                    condition: wmo[data.daily.weather_code[i]] || "알 수 없음",
+                    precipitation: data.daily.precipitation_sum[i],
+                  })),
+                });
+              },
+            );
+        },
+      )
       .catch(() => {});
   }, []);
 
@@ -300,6 +405,42 @@ function DashboardContent() {
               </Link>
             ))}
           </div>
+
+          {/* Weather Widget */}
+          {weather && (
+            <div className="bg-gray-900/80 border border-gray-800/80 rounded-xl p-5 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{weather.current.icon}</span>
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold">
+                        {Math.round(weather.current.temperature)}°C
+                      </span>
+                      <span className="text-sm text-gray-400">{weather.current.condition}</span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {weather.location} · 체감 {Math.round(weather.current.feelsLike)}° · 습도{" "}
+                      {weather.current.humidity}% · 바람 {weather.current.windSpeed}km/h
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  {weather.forecast.slice(1, 3).map((f) => (
+                    <div key={f.date} className="text-center">
+                      <p className="text-[10px] text-gray-500">
+                        {new Date(f.date).toLocaleDateString("ko-KR", { weekday: "short" })}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {Math.round(f.maxTemp)}° / {Math.round(f.minTemp)}°
+                      </p>
+                      <p className="text-[10px] text-gray-500">{f.condition}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">

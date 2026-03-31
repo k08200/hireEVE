@@ -239,6 +239,48 @@ export async function emailRoutes(app: FastifyInstance) {
     return { error: "Email not found" };
   });
 
+  // Send email via Gmail
+  app.post("/send", async (request) => {
+    const uid = getUserId(request);
+    const { to, subject, body } = request.body as { to: string; subject: string; body: string };
+
+    if (!to || !subject || !body) {
+      return { error: "Missing required fields: to, subject, body" };
+    }
+
+    const token = await prisma.userToken.findFirst({
+      where: { userId: uid, provider: "google" },
+    });
+
+    if (!token) {
+      return { error: "Gmail not connected. Please connect your Google account first." };
+    }
+
+    try {
+      const { google } = await import("googleapis");
+      const auth = new google.auth.OAuth2();
+      auth.setCredentials({
+        access_token: token.accessToken,
+        refresh_token: token.refreshToken,
+      });
+
+      const gmail = google.gmail({ version: "v1", auth });
+      const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString("base64")}?=`;
+      const raw = Buffer.from(
+        `To: ${to}\r\nSubject: ${encodedSubject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}`,
+      ).toString("base64url");
+
+      const res = await gmail.users.messages.send({
+        userId: "me",
+        requestBody: { raw },
+      });
+
+      return { success: true, messageId: res.data.id };
+    } catch {
+      return { error: "Failed to send email. Please try again." };
+    }
+  });
+
   // Email stats
   app.get("/stats/summary", async (request) => {
     const uid = getUserId(request);
