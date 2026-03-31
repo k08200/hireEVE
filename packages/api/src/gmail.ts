@@ -25,6 +25,32 @@ export function getAuthUrl(userId?: string) {
   });
 }
 
+/** Google login OAuth URL — only requests profile + email */
+export function getLoginAuthUrl() {
+  const oauth2 = getOAuth2Client();
+  return oauth2.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    state: "__login__",
+    scope: [
+      "openid",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile",
+    ],
+  });
+}
+
+/** Get Google user profile from access token */
+export async function getGoogleUserInfo(
+  accessToken: string,
+): Promise<{ email: string; name: string; picture: string }> {
+  const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error("Failed to fetch Google user info");
+  return res.json() as Promise<{ email: string; name: string; picture: string }>;
+}
+
 export async function getAuthedClient(
   _userId: string,
 ): Promise<InstanceType<typeof google.auth.OAuth2> | null> {

@@ -17,6 +17,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
+  loginWithToken: (token: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -78,6 +79,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router],
   );
 
+  const loginWithToken = useCallback(
+    async (newToken: string) => {
+      localStorage.setItem("eve-token", newToken);
+      setToken(newToken);
+      const data = await apiFetch<{ user: User }>("/api/auth/me", {
+        headers: { Authorization: `Bearer ${newToken}` },
+      });
+      setUser(data.user);
+      router.push("/chat");
+    },
+    [router],
+  );
+
   const logout = useCallback(() => {
     localStorage.removeItem("eve-token");
     setToken(null);
@@ -86,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, loginWithToken, logout }}>
       {children}
     </AuthContext.Provider>
   );
