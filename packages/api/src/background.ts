@@ -66,7 +66,7 @@ export async function getNotifications(
     take: options?.limit || 50,
   });
 
-  return rows.map((r) => ({
+  return rows.map((r: { id: string; type: string; title: string; message: string; isRead: boolean; createdAt: Date }) => ({
     id: r.id,
     type: r.type,
     title: r.title,
