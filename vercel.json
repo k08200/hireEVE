@@ -2,6 +2,5 @@
   "framework": "nextjs",
   "installCommand": "corepack enable && pnpm install --frozen-lockfile",
   "buildCommand": "cd packages/web && pnpm build",
-  "outputDirectory": "packages/web/.next",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- packages/web/"
+  "outputDirectory": "packages/web/.next"
 }
