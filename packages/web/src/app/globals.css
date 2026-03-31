@@ -21,6 +21,15 @@
   }
 }
 
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -36,6 +45,10 @@
 
 .animate-fade-in {
   animation: fade-in 0.15s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.2s ease-out;
 }
 
 /* ── Scrollbar ──────────────────────────────────── */
@@ -63,11 +76,6 @@
   box-shadow:
     0 0 0 2px #030712,
     0 0 0 4px rgba(59, 130, 246, 0.4);
-}
-
-/* ── Page transition ────────────────────────────── */
-main {
-  animation: fade-in 0.15s ease-out;
 }
 
 /* ── Selection ──────────────────────────────────── */
