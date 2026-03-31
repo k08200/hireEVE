@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "installCommand": "corepack enable && pnpm install --frozen-lockfile",
-  "buildCommand": "cd packages/web && pnpm build",
-  "outputDirectory": "packages/web/.next"
+  "installCommand": "cd ../.. && corepack enable && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".next"
 }
