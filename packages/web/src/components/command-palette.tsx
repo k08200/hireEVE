@@ -134,6 +134,7 @@ export default function CommandPalette() {
     }
   }, [open]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset selection on query change
   useEffect(() => {
     setSelected(0);
   }, [query]);
@@ -155,10 +156,14 @@ export default function CommandPalette() {
   if (!open) return null;
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: click-to-close backdrop
+    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by global listener
     <div
       className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 pt-[20vh] px-4"
       onClick={() => setOpen(false)}
     >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation container */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by input */}
       <div
         className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -179,6 +184,7 @@ export default function CommandPalette() {
           ) : (
             filtered.map((cmd, i) => (
               <button
+                type="button"
                 key={cmd.id}
                 onClick={() => {
                   cmd.action();

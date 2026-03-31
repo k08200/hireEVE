@@ -14,6 +14,7 @@ export function Markdown({ content }: { content: string }) {
       {blocks.map((block, i) => {
         if (block.type === "code") {
           return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: blocks have no stable id
             <div key={i} className="relative group">
               {block.lang && (
                 <span className="text-[10px] text-gray-500 absolute top-2 right-2">
@@ -28,6 +29,7 @@ export function Markdown({ content }: { content: string }) {
         }
 
         return (
+          // biome-ignore lint/suspicious/noArrayIndexKey: blocks have no stable id
           <p key={i} className="whitespace-pre-wrap">
             {renderInline(block.text)}
           </p>
@@ -49,6 +51,7 @@ function parseBlocks(content: string): Block[] {
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard regex exec loop
   while ((match = codeRegex.exec(content)) !== null) {
     if (match.index > lastIndex) {
       const text = content.slice(lastIndex, match.index).trim();
@@ -78,6 +81,7 @@ function renderInline(text: string): (string | React.ReactNode)[] {
   let match: RegExpExecArray | null;
   let key = 0;
 
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard regex exec loop
   while ((match = inlineRegex.exec(text)) !== null) {
     if (match.index > lastIdx) {
       parts.push(text.slice(lastIdx, match.index));

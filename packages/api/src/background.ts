@@ -66,14 +66,23 @@ export async function getNotifications(
     take: options?.limit || 50,
   });
 
-  return rows.map((r: { id: string; type: string; title: string; message: string; isRead: boolean; createdAt: Date }) => ({
-    id: r.id,
-    type: r.type,
-    title: r.title,
-    message: r.message,
-    isRead: r.isRead,
-    createdAt: r.createdAt.toISOString(),
-  }));
+  return rows.map(
+    (r: {
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      isRead: boolean;
+      createdAt: Date;
+    }) => ({
+      id: r.id,
+      type: r.type,
+      title: r.title,
+      message: r.message,
+      isRead: r.isRead,
+      createdAt: r.createdAt.toISOString(),
+    }),
+  );
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
