@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { API_BASE, apiFetch, authHeaders } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { apiFetch, API_BASE, authHeaders } from "../lib/api";
 
 interface Conversation {
   id: string;
