@@ -31,13 +31,11 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const headers = { Authorization: `Bearer ${token}` };
-
   useEffect(() => {
     if (!token) return;
     Promise.all([
-      apiFetch<{ users: UserRow[] }>("/api/admin/users", { headers }),
-      apiFetch<Stats>("/api/admin/stats", { headers }),
+      apiFetch<{ users: UserRow[] }>("/api/admin/users"),
+      apiFetch<Stats>("/api/admin/stats"),
     ])
       .then(([usersData, statsData]) => {
         setUsers(usersData.users);
@@ -47,13 +45,12 @@ export default function AdminPage() {
         toast(err instanceof Error ? err.message : "Failed to load", "error");
       })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, toast]);
 
   const updateUser = async (id: string, data: { plan?: string; role?: string }) => {
     try {
       const updated = await apiFetch<UserRow>(`/api/admin/users/${id}`, {
         method: "PATCH",
-        headers,
         body: JSON.stringify(data),
       });
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updated } : u)));
@@ -66,7 +63,7 @@ export default function AdminPage() {
   const deleteUser = async (id: string, email: string) => {
     if (!confirm(`Delete ${email} and all their data?`)) return;
     try {
-      await apiFetch(`/api/admin/users/${id}`, { method: "DELETE", headers });
+      await apiFetch(`/api/admin/users/${id}`, { method: "DELETE" });
       setUsers((prev) => prev.filter((u) => u.id !== id));
       toast("User deleted", "success");
     } catch (err) {

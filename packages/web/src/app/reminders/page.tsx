@@ -31,6 +31,7 @@ export default function RemindersPage() {
       .finally(() => setLoading(false));
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load on mount only
   useEffect(() => {
     load();
   }, []);

@@ -479,9 +479,9 @@ function DashboardContent() {
             <section>
               <h2 className="text-sm font-semibold text-gray-400 mb-3">Recent Activity</h2>
               <div className="space-y-1.5">
-                {activity.map((a, i) => (
+                {activity.map((a) => (
                   <div
-                    key={i}
+                    key={`${a.type}-${a.title}-${a.createdAt}`}
                     className="bg-gray-900/60 border border-gray-800/60 rounded-lg px-4 py-2.5 flex items-center gap-3"
                   >
                     <span

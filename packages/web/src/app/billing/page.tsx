@@ -130,8 +130,8 @@ function BillingContent() {
 
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <CardSkeleton key={i} />
+          {["s1", "s2", "s3", "s4"].map((sk) => (
+            <CardSkeleton key={sk} />
           ))}
         </div>
       )}
@@ -165,6 +165,7 @@ function BillingContent() {
             </div>
             {status.stripeId && (
               <button
+                type="button"
                 onClick={handleManage}
                 className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition"
               >
@@ -225,6 +226,7 @@ function BillingContent() {
                 </a>
               ) : (
                 <button
+                  type="button"
                   onClick={() => handleUpgrade(plan.key as "PRO" | "TEAM")}
                   className="bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-medium transition"
                 >
