@@ -42,6 +42,7 @@ function ChatPageContent() {
   const { toast } = useToast();
 
   // Load conversation
+  // biome-ignore lint/correctness/useExhaustiveDependencies: streamResponseDirect is stable ref-based
   useEffect(() => {
     apiFetch<{ messages: Message[]; title?: string | null }>(`/api/chat/conversations/${id}`)
       .then((data) => {
@@ -67,6 +68,7 @@ function ChatPageContent() {
     inputRef.current?.focus();
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on content change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingContent]);
@@ -197,6 +199,8 @@ function ChatPageContent() {
     setStreaming(false);
     setStreamingContent("");
     setActiveTools([]);
+    // Notify sidebar to refresh conversation list (title may have been auto-generated)
+    window.dispatchEvent(new Event("conversations-updated"));
   };
 
   const streamResponse = async (messageContent: string) => {

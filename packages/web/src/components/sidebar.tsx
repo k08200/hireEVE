@@ -167,6 +167,15 @@ export default function Sidebar({
     }
   }, [pathname, loadConversations]);
 
+  // Reload when chat page signals title update
+  useEffect(() => {
+    const handler = () => {
+      setTimeout(loadConversations, 1500);
+    };
+    window.addEventListener("conversations-updated", handler);
+    return () => window.removeEventListener("conversations-updated", handler);
+  }, [loadConversations]);
+
   // Close user menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
@@ -91,18 +91,18 @@ export default function ContactsPage() {
     tags: "",
   });
 
-  const loadContacts = () => {
+  const loadContacts = useCallback(() => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     apiFetch<{ contacts: Contact[] }>(`/api/contacts?${params}`)
       .then((d) => setContacts(d.contacts || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [search]);
 
   useEffect(() => {
     loadContacts();
-  }, [search]);
+  }, [loadContacts]);
 
   const createContact = async () => {
     await fetch(`${API_BASE}/api/contacts`, {
@@ -390,9 +390,10 @@ export default function ContactsPage() {
         ) : (
           <div className="space-y-2">
             {filteredContacts.map((c) => (
-              <div
+              <button
+                type="button"
                 key={c.id}
-                className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 group cursor-pointer hover:border-gray-600 transition"
+                className="w-full text-left bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 group cursor-pointer hover:border-gray-600 transition"
                 onClick={() => startEdit(c)}
               >
                 <div className="flex items-start gap-3">
@@ -436,7 +437,7 @@ export default function ContactsPage() {
                     ✕
                   </button>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}

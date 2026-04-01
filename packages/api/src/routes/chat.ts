@@ -75,6 +75,40 @@ import { getWeather, WEATHER_TOOLS } from "../weather.js";
 import { WRITER_TOOLS, writeDocument } from "../writer.js";
 
 const GOOGLE_TOOLS = [...GMAIL_TOOLS, ...CALENDAR_TOOLS];
+
+/** Auto-generate conversation title from the first user message (fire-and-forget) */
+async function autoGenerateTitle(conversationId: string, userMessage: string) {
+  try {
+    const convo = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+    // Only generate if title is null/empty (never been set)
+    if (convo?.title) return;
+
+    const response = await openai.chat.completions.create({
+      model: MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            "Generate a short conversation title (max 30 chars) from the user message. Reply with ONLY the title, no quotes or extra text. Use the same language as the user message.",
+        },
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: 50,
+    });
+
+    const title = response.choices[0]?.message?.content?.trim();
+    if (title) {
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { title: title.slice(0, 60) },
+      });
+    }
+  } catch {
+    // Title generation is non-critical, silently fail
+  }
+}
 const SLACK_CONFIGURED = !!(process.env.SLACK_BOT_TOKEN || process.env.SLACK_WEBHOOK_URL);
 const TIME_TOOL = {
   type: "function" as const,
@@ -841,6 +875,11 @@ export async function chatRoutes(app: FastifyInstance) {
         where: { id },
         data: { updatedAt: new Date() },
       });
+
+      // Auto-generate title after first message (fire-and-forget)
+      if (conversation.messages.length === 0) {
+        autoGenerateTitle(id, content);
+      }
 
       reply.raw.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
     } catch (err) {

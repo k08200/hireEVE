@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { Markdown } from "../../components/markdown";
@@ -58,7 +58,7 @@ export default function NotesPage() {
     }
   }, []);
 
-  const loadNotes = () => {
+  const loadNotes = useCallback(() => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
 
@@ -66,7 +66,7 @@ export default function NotesPage() {
       .then((data) => setNotes(data.notes || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [search]);
 
   useEffect(() => {
     loadNotes();
@@ -287,13 +287,11 @@ export default function NotesPage() {
               .map((note) => {
                 const cat = noteCategories[note.id] || "general";
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={note.id}
-                    className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 cursor-pointer hover:border-gray-600 transition group"
+                    className="w-full text-left bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 cursor-pointer hover:border-gray-600 transition group"
                     onClick={() => startEdit(note)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") startEdit(note);
-                    }}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -326,7 +324,7 @@ export default function NotesPage() {
                       date={note.updatedAt}
                       className="text-xs text-gray-600 mt-2 block"
                     />
-                  </div>
+                  </button>
                 );
               })}
           </div>

@@ -228,9 +228,9 @@ export default function EmailPage() {
 
         {loading ? (
           <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {["s1", "s2", "s3", "s4", "s5"].map((sk) => (
               <div
-                key={i}
+                key={sk}
                 className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 animate-pulse"
               >
                 <div className="h-4 bg-gray-800 rounded w-1/3 mb-2" />
