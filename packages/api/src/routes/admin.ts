@@ -32,7 +32,7 @@ export async function adminRoutes(app: FastifyInstance) {
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const usersWithUsage = await Promise.all(
-      users.map(async (user) => {
+      users.map(async (user: (typeof users)[number]) => {
         const messageCount = await prisma.message.count({
           where: {
             conversation: { userId: user.id },
@@ -112,20 +112,22 @@ export async function adminRoutes(app: FastifyInstance) {
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [totalUsers, totalConversations, totalMessages, planDistribution] =
-      await Promise.all([
-        prisma.user.count(),
-        prisma.conversation.count(),
-        prisma.message.count({ where: { createdAt: { gte: periodStart } } }),
-        prisma.user.groupBy({ by: ["plan"], _count: { id: true } }),
-      ]);
+    const [totalUsers, totalConversations, totalMessages, planDistribution] = await Promise.all([
+      prisma.user.count(),
+      prisma.conversation.count(),
+      prisma.message.count({ where: { createdAt: { gte: periodStart } } }),
+      prisma.user.groupBy({ by: ["plan"], _count: { id: true } }),
+    ]);
 
     return {
       totalUsers,
       totalConversations,
       monthlyMessages: totalMessages,
       planDistribution: Object.fromEntries(
-        planDistribution.map((p) => [p.plan, p._count.id]),
+        planDistribution.map((p: { plan: string; _count: { id: number } }) => [
+          p.plan,
+          p._count.id,
+        ]),
       ),
     };
   });
