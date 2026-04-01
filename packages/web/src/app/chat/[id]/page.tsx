@@ -37,6 +37,8 @@ function ChatPageContent() {
   const [attachment, setAttachment] = useState<{ name: string; content: string } | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const prefillHandled = useRef(false);
   const { toast } = useToast();
@@ -288,6 +290,32 @@ function ChatPageContent() {
     setActiveTools([]);
   };
 
+  const startEditMessage = (msg: Message) => {
+    setEditingMsgId(msg.id);
+    setEditContent(msg.content);
+  };
+
+  const submitEditMessage = async (msgIndex: number) => {
+    if (streaming || !editContent.trim()) return;
+    const edited = editContent.trim();
+    setEditingMsgId(null);
+    setEditContent("");
+
+    // Remove this message and all messages after it, then resend
+    setMessages((prev) => {
+      const updated = prev.slice(0, msgIndex);
+      updated.push({
+        id: crypto.randomUUID(),
+        role: "USER",
+        content: edited,
+        createdAt: new Date().toISOString(),
+      });
+      return updated;
+    });
+
+    await streamResponse(edited);
+  };
+
   const sendMessage = async () => {
     let content = input.trim();
     if (!content && !attachment) return;
@@ -402,8 +430,61 @@ function ChatPageContent() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
           {messages.length === 0 && !streaming && (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
-              <h2 className="text-xl font-semibold text-gray-200 mb-2">EVE</h2>
-              <p className="text-sm text-gray-500">How can I help you today?</p>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-lg font-bold text-white mb-4">
+                E
+              </div>
+              <h2 className="text-xl font-semibold text-gray-200 mb-1">
+                How can I help you today?
+              </h2>
+              <p className="text-sm text-gray-500 mb-8">Ask me anything or pick a starter below</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+                {[
+                  {
+                    icon: "📧",
+                    title: "Check my emails",
+                    prompt: "읽지 않은 이메일 중 중요한 것만 요약해줘",
+                  },
+                  {
+                    icon: "📋",
+                    title: "Today's tasks",
+                    prompt: "오늘 해야 할 태스크를 우선순위별로 정리해줘",
+                  },
+                  {
+                    icon: "📅",
+                    title: "Schedule overview",
+                    prompt: "오늘과 내일 일정을 보여주고, 빈 시간대를 찾아줘",
+                  },
+                  {
+                    icon: "📝",
+                    title: "Write a document",
+                    prompt: "새 보고서를 작성해줘. 먼저 주제를 물어봐",
+                  },
+                ].map((starter) => (
+                  <button
+                    key={starter.title}
+                    type="button"
+                    onClick={() => {
+                      const userMsg: Message = {
+                        id: crypto.randomUUID(),
+                        role: "USER",
+                        content: starter.prompt,
+                        createdAt: new Date().toISOString(),
+                      };
+                      setMessages([userMsg]);
+                      streamResponse(starter.prompt);
+                    }}
+                    className="flex items-start gap-3 text-left px-4 py-3.5 rounded-xl border border-gray-800/60 bg-gray-900/40 hover:bg-gray-800/60 hover:border-gray-700 transition group"
+                  >
+                    <span className="text-lg mt-0.5">{starter.icon}</span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-300 group-hover:text-white transition">
+                        {starter.title}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">{starter.prompt}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -431,7 +512,45 @@ function ChatPageContent() {
                   <p className="text-[13px] font-semibold text-gray-300 mb-1.5">
                     {msg.role === "USER" ? "You" : "EVE"}
                   </p>
-                  {msg.role === "USER" ? (
+                  {msg.role === "USER" && editingMsgId === msg.id ? (
+                    <div>
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            submitEditMessage(idx);
+                          }
+                          if (e.key === "Escape") {
+                            setEditingMsgId(null);
+                            setEditContent("");
+                          }
+                        }}
+                        className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-[15px] text-gray-200 resize-none focus:outline-none focus:border-gray-500"
+                        rows={Math.min(editContent.split("\n").length + 1, 8)}
+                      />
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => submitEditMessage(idx)}
+                          className="px-3 py-1 text-xs bg-white text-gray-900 rounded-lg hover:bg-gray-200 transition"
+                        >
+                          Save & Resend
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingMsgId(null);
+                            setEditContent("");
+                          }}
+                          className="px-3 py-1 text-xs text-gray-400 hover:text-gray-200 transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : msg.role === "USER" ? (
                     <p className="text-[15px] text-gray-200 leading-relaxed whitespace-pre-wrap">
                       {msg.content}
                     </p>
@@ -442,34 +561,13 @@ function ChatPageContent() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      onClick={() => copyMessage(msg.content)}
-                      className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
-                      title="Copy"
-                    >
-                      <svg
-                        aria-hidden="true"
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                      </svg>
-                    </button>
-                    {msg.role === "ASSISTANT" && (
+                  {editingMsgId !== msg.id && (
+                    <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"
-                        onClick={() => retryMessage(idx)}
+                        onClick={() => copyMessage(msg.content)}
                         className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
-                        title="Retry"
+                        title="Copy"
                       >
                         <svg
                           aria-hidden="true"
@@ -482,12 +580,58 @@ function ChatPageContent() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         >
-                          <polyline points="23 4 23 10 17 10" />
-                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                         </svg>
                       </button>
-                    )}
-                  </div>
+                      {msg.role === "USER" && !streaming && (
+                        <button
+                          type="button"
+                          onClick={() => startEditMessage(msg)}
+                          className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
+                          title="Edit"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </button>
+                      )}
+                      {msg.role === "ASSISTANT" && (
+                        <button
+                          type="button"
+                          onClick={() => retryMessage(idx)}
+                          className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
+                          title="Retry"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="23 4 23 10 17 10" />
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
