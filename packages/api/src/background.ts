@@ -156,31 +156,44 @@ async function checkOverdueTasks() {
 
 async function checkUpcomingMeetings() {
   try {
-    const meetings = await getUpcomingMeetings("demo-user");
+    // Check all users who have Google connected
+    const usersWithGoogle = await prisma.userToken.findMany({
+      where: { provider: "google" },
+      select: { userId: true },
+    });
+
     const now = Date.now();
 
-    for (const meeting of meetings) {
-      const startTime = new Date(meeting.start).getTime();
-      const minutesUntil = (startTime - now) / 60_000;
+    for (const { userId } of usersWithGoogle) {
+      try {
+        const meetings = await getUpcomingMeetings(userId);
 
-      // Notify 5 minutes before meeting
-      if (minutesUntil > 0 && minutesUntil <= 5) {
-        const key = `meeting:${meeting.id}`;
-        if (notifiedIds.has(key)) continue;
-        notifiedIds.add(key);
+        for (const meeting of meetings) {
+          const startTime = new Date(meeting.start).getTime();
+          const minutesUntil = (startTime - now) / 60_000;
 
-        await addNotification("demo-user", {
-          type: "meeting",
-          title: `${Math.ceil(minutesUntil)}분 후 회의: ${meeting.summary}`,
-          message: meeting.meetingLink
-            ? `참가: ${meeting.meetingLink}`
-            : `${meeting.summary} 곧 시작합니다`,
-        });
-        console.log(`[BG] Upcoming meeting: "${meeting.summary}" in ${Math.ceil(minutesUntil)}min`);
+          // Notify 5 minutes before meeting
+          if (minutesUntil > 0 && minutesUntil <= 5) {
+            const key = `meeting:${meeting.id}`;
+            if (notifiedIds.has(key)) continue;
+            notifiedIds.add(key);
+
+            await addNotification(userId, {
+              type: "meeting",
+              title: `${Math.ceil(minutesUntil)}분 후 회의: ${meeting.summary}`,
+              message: meeting.meetingLink
+                ? `참가: ${meeting.meetingLink}`
+                : `${meeting.summary} 곧 시작합니다`,
+            });
+            console.log(`[BG] Upcoming meeting: "${meeting.summary}" in ${Math.ceil(minutesUntil)}min for user ${userId}`);
+          }
+        }
+      } catch {
+        // Individual user's Google might be expired — skip
       }
     }
   } catch {
-    // Meeting check is optional — Google might not be connected
+    // Meeting check is optional
   }
 }
 

@@ -478,11 +478,35 @@ export async function chatRoutes(app: FastifyInstance) {
         !(lastMsg && lastMsg.role === "ASSISTANT" && m.id === lastMsg.id),
     );
 
-    const token = await prisma.userToken.findFirst({ where: { provider: "google" } });
+    const token = await prisma.userToken.findFirst({ where: { userId: conversation.userId, provider: "google" } });
     const tools = token ? ALL_TOOLS : [...ALWAYS_TOOLS];
 
+    // Build dynamic context for retry
+    const retryContextParts: string[] = [];
+    try {
+      const now = new Date();
+      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      retryContextParts.push(`현재 시각: ${kst.toISOString().replace("T", " ").slice(0, 16)} KST`);
+      const pendingTasks = await prisma.task.findMany({
+        where: { userId: conversation.userId, status: { not: "DONE" } },
+        orderBy: { dueDate: "asc" },
+        take: 5,
+      });
+      if (pendingTasks.length > 0) {
+        const taskList = pendingTasks
+          .map((t) => `- ${t.title}${t.dueDate ? ` (마감: ${t.dueDate.toLocaleDateString("ko-KR")})` : ""}${t.priority === "URGENT" || t.priority === "HIGH" ? ` [${t.priority}]` : ""}`)
+          .join("\n");
+        retryContextParts.push(`진행 중인 태스크:\n${taskList}`);
+      }
+    } catch {
+      // optional
+    }
+    const retryDynamicContext = retryContextParts.length > 0
+      ? `\n\n[현재 상황]\n${retryContextParts.join("\n\n")}`
+      : "";
+
     const history = [
-      { role: "system" as const, content: EVE_SYSTEM_PROMPT },
+      { role: "system" as const, content: EVE_SYSTEM_PROMPT + retryDynamicContext },
       ...historyMessages.map((m: { role: string; content: string }) => ({
         role: m.role.toLowerCase() as "user" | "assistant",
         content: m.content,
@@ -650,15 +674,57 @@ export async function chatRoutes(app: FastifyInstance) {
         });
     }
 
-    // Check if Gmail is connected (MVP: any google token)
+    // Check if Gmail is connected for this user
     const token = await prisma.userToken.findFirst({
-      where: { provider: "google" },
+      where: { userId: conversation.userId, provider: "google" },
     });
     const tools = token ? ALL_TOOLS : [...ALWAYS_TOOLS];
 
+    // Build dynamic context so EVE knows the current situation
+    const contextParts: string[] = [];
+    try {
+      const now = new Date();
+      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+      contextParts.push(`현재 시각: ${kst.toISOString().replace("T", " ").slice(0, 16)} KST`);
+
+      // Pending tasks
+      const pendingTasks = await prisma.task.findMany({
+        where: { userId: conversation.userId, status: { not: "DONE" } },
+        orderBy: { dueDate: "asc" },
+        take: 5,
+      });
+      if (pendingTasks.length > 0) {
+        const taskList = pendingTasks
+          .map((t) => `- ${t.title}${t.dueDate ? ` (마감: ${t.dueDate.toLocaleDateString("ko-KR")})` : ""}${t.priority === "URGENT" || t.priority === "HIGH" ? ` [${t.priority}]` : ""}`)
+          .join("\n");
+        contextParts.push(`진행 중인 태스크:\n${taskList}`);
+      }
+
+      // Today's upcoming reminders
+      const todayEnd = new Date(kst.getFullYear(), kst.getMonth(), kst.getDate() + 1);
+      const upcomingReminders = await prisma.reminder.findMany({
+        where: {
+          userId: conversation.userId,
+          status: "PENDING",
+          remindAt: { lte: todayEnd },
+        },
+        take: 3,
+      });
+      if (upcomingReminders.length > 0) {
+        const reminderList = upcomingReminders.map((r) => `- ${r.title}`).join("\n");
+        contextParts.push(`오늘 리마인더:\n${reminderList}`);
+      }
+    } catch {
+      // Context loading is optional — don't break chat if it fails
+    }
+
+    const dynamicContext = contextParts.length > 0
+      ? `\n\n[현재 상황]\n${contextParts.join("\n\n")}`
+      : "";
+
     // Build message history
     const history = [
-      { role: "system" as const, content: EVE_SYSTEM_PROMPT },
+      { role: "system" as const, content: EVE_SYSTEM_PROMPT + dynamicContext },
       ...conversation.messages.map((m: { role: string; content: string }) => ({
         role: m.role.toLowerCase() as "user" | "assistant",
         content: m.content,
