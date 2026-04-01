@@ -21,6 +21,7 @@
     "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.3",
     "openai": "^6.29.0",
+    "resend": "^6.10.0",
     "stripe": "^18.1.0",
     "ws": "^8.20.0"
   },

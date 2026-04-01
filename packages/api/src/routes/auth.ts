@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { comparePassword, getUserId, hashPassword, signToken, verifyToken } from "../auth.js";
 import { prisma } from "../db.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../email.js";
 import { getAuthUrl, getGoogleUserInfo, getLoginAuthUrl, getOAuth2Client } from "../gmail.js";
 
 export async function authRoutes(app: FastifyInstance) {
@@ -25,13 +26,21 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(409).send({ error: "Email already registered" });
     }
 
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    const verifyTokenExp = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash: await hashPassword(password),
         name: name || email.split("@")[0],
+        verifyToken,
+        verifyTokenExp,
       },
     });
+
+    // Send verification email (non-blocking)
+    sendVerificationEmail(email, verifyToken).catch(() => {});
 
     const token = signToken({ userId: user.id, email: user.email });
     return reply.code(201).send({
@@ -194,7 +203,13 @@ export async function authRoutes(app: FastifyInstance) {
               email: profile.email,
               name: profile.name || profile.email.split("@")[0],
               passwordHash: null, // Google-only user, no password
+              emailVerified: true, // Google accounts are pre-verified
             },
+          });
+        } else if (!user.emailVerified) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { emailVerified: true },
           });
         }
 
@@ -270,10 +285,7 @@ export async function authRoutes(app: FastifyInstance) {
       data: { resetToken, resetTokenExp },
     });
 
-    // Log reset link (in production, send via email service)
-    const webUrl = process.env.WEB_URL || "http://localhost:8001";
-    const resetUrl = `${webUrl}/reset-password?token=${resetToken}`;
-    console.log(`[AUTH] Password reset link for ${email}: ${resetUrl}`);
+    await sendPasswordResetEmail(email, resetToken);
 
     return reply.send({ success: true });
   });
@@ -312,6 +324,61 @@ export async function authRoutes(app: FastifyInstance) {
       },
     });
 
+    return reply.send({ success: true });
+  });
+
+  // GET /api/auth/verify-email — Verify email with token
+  app.get("/verify-email", async (request, reply) => {
+    const { token } = request.query as { token?: string };
+
+    if (!token) {
+      return reply.code(400).send({ error: "Missing verification token" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        verifyToken: token,
+        verifyTokenExp: { gte: new Date() },
+      },
+    });
+
+    if (!user) {
+      return reply.code(400).send({ error: "Invalid or expired verification token" });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        verifyToken: null,
+        verifyTokenExp: null,
+      },
+    });
+
+    const webUrl = process.env.WEB_URL || "http://localhost:8001";
+    return reply.redirect(`${webUrl}/login?verified=true`);
+  });
+
+  // POST /api/auth/resend-verification — Resend verification email
+  app.post("/resend-verification", async (request, reply) => {
+    const userId = getUserId(request);
+    if (userId === "demo-user") {
+      return reply.code(403).send({ error: "Demo user" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return reply.code(404).send({ error: "User not found" });
+    if (user.emailVerified) return reply.send({ success: true, alreadyVerified: true });
+
+    const verifyToken = crypto.randomBytes(32).toString("hex");
+    const verifyTokenExp = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verifyToken, verifyTokenExp },
+    });
+
+    await sendVerificationEmail(user.email, verifyToken);
     return reply.send({ success: true });
   });
 }

@@ -15,9 +15,12 @@ model User {
   role          UserRole       @default(USER)
   plan          Plan           @default(FREE)
   stripeId      String?        @unique
-  resetToken    String?
-  resetTokenExp DateTime?
-  agents        Agent[]
+  emailVerified   Boolean    @default(false)
+  verifyToken     String?
+  verifyTokenExp  DateTime?
+  resetToken      String?
+  resetTokenExp   DateTime?
+  agents          Agent[]
   testRuns      TestRun[]
   conversations Conversation[]
   tokens        UserToken[]
