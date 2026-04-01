@@ -173,8 +173,8 @@ function LoginForm() {
           </button>
         </form>
 
-        {/* Toggle mode */}
-        <div className="text-center mt-4">
+        {/* Toggle mode + forgot password */}
+        <div className="text-center mt-4 space-y-2">
           <button
             type="button"
             onClick={() => setMode(mode === "login" ? "register" : "login")}
@@ -184,6 +184,16 @@ function LoginForm() {
               ? "Don't have an account? Sign up"
               : "Already have an account? Sign in"}
           </button>
+          {mode === "login" && (
+            <div>
+              <Link
+                href="/reset-password"
+                className="text-xs text-gray-600 hover:text-blue-400 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Divider */}

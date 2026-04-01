@@ -12,8 +12,11 @@ model User {
   email         String         @unique
   passwordHash  String?
   name          String?
+  role          UserRole       @default(USER)
   plan          Plan           @default(FREE)
   stripeId      String?        @unique
+  resetToken    String?
+  resetTokenExp DateTime?
   agents        Agent[]
   testRuns      TestRun[]
   conversations Conversation[]
@@ -28,6 +31,11 @@ model User {
   notifications      Notification[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }
 
 model Workspace {

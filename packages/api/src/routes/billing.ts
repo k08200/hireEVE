@@ -24,8 +24,8 @@ export async function billingRoutes(app: FastifyInstance) {
       customer_email: user.stripeId ? undefined : user.email,
       customer: user.stripeId || undefined,
       line_items: [{ price: planConfig.priceId, quantity: 1 }],
-      success_url: `${process.env.FRONTEND_URL || "http://localhost:3000"}/billing?success=true`,
-      cancel_url: `${process.env.FRONTEND_URL || "http://localhost:3000"}/billing?canceled=true`,
+      success_url: `${process.env.WEB_URL || "http://localhost:8001"}/billing?success=true`,
+      cancel_url: `${process.env.WEB_URL || "http://localhost:8001"}/billing?canceled=true`,
       metadata: { userId, plan },
     });
 
@@ -43,7 +43,7 @@ export async function billingRoutes(app: FastifyInstance) {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: user.stripeId,
-      return_url: `${process.env.FRONTEND_URL || "http://localhost:3000"}/billing`,
+      return_url: `${process.env.WEB_URL || "http://localhost:8001"}/billing`,
     });
 
     return { url: session.url };

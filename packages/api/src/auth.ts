@@ -56,6 +56,24 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
   }
 }
 
+/** Fastify preHandler that requires ADMIN role */
+export async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
+  const auth = request.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) {
+    return reply.code(401).send({ error: "Authentication required" });
+  }
+  try {
+    const payload = verifyToken(auth.slice(7));
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user || user.role !== "ADMIN") {
+      return reply.code(403).send({ error: "Admin access required" });
+    }
+    (request as unknown as { userId: string }).userId = payload.userId;
+  } catch {
+    return reply.code(401).send({ error: "Invalid or expired token" });
+  }
+}
+
 /** Ensure demo user exists (for unauthenticated use) */
 export async function ensureDemoUser() {
   const hash = await hashPassword("demo");
