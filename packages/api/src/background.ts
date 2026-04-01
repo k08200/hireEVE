@@ -11,6 +11,7 @@
  */
 
 import { prisma } from "./db.js";
+import { classifyEmails } from "./gmail.js";
 import { getUpcomingMeetings } from "./meeting.js";
 import { checkDueReminders } from "./reminders.js";
 import { pushNotification } from "./websocket.js";
@@ -253,6 +254,51 @@ async function checkDailyBriefing() {
   }
 }
 
+// Track last email check time per user (check every 5 minutes, not every 60s)
+const lastEmailCheck: Map<string, number> = new Map();
+
+async function checkUrgentEmails() {
+  try {
+    const configs = await prisma.automationConfig.findMany({
+      where: { emailAutoClassify: true },
+      select: { userId: true },
+    });
+
+    const now = Date.now();
+
+    for (const { userId } of configs) {
+      // Only check every 5 minutes per user to avoid API rate limits
+      const lastCheck = lastEmailCheck.get(userId) || 0;
+      if (now - lastCheck < 5 * 60_000) continue;
+      lastEmailCheck.set(userId, now);
+
+      try {
+        const result = await classifyEmails(userId, 5);
+        if ("error" in result || !("summary" in result)) continue;
+
+        const urgent = result.emails.filter((e) => e.priority === "high");
+
+        for (const email of urgent) {
+          const key = `email:${email.id}`;
+          if (notifiedIds.has(key)) continue;
+          notifiedIds.add(key);
+
+          await addNotification(userId, {
+            type: "email",
+            title: `긴급 메일: ${email.subject}`,
+            message: `From: ${email.from}`,
+          });
+          console.log(`[BG] Urgent email for user ${userId}: "${email.subject}"`);
+        }
+      } catch {
+        // Gmail might not be connected or token expired
+      }
+    }
+  } catch (err) {
+    console.error("[BG] Error checking urgent emails:", err);
+  }
+}
+
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 export function startBackgroundAgent() {
@@ -271,6 +317,7 @@ export function startBackgroundAgent() {
     await checkOverdueTasks();
     await checkUpcomingMeetings();
     await checkDailyBriefing();
+    await checkUrgentEmails();
   }, 60_000);
 }
 

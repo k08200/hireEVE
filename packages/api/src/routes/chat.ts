@@ -494,16 +494,18 @@ export async function chatRoutes(app: FastifyInstance) {
       });
       if (pendingTasks.length > 0) {
         const taskList = pendingTasks
-          .map((t) => `- ${t.title}${t.dueDate ? ` (마감: ${t.dueDate.toLocaleDateString("ko-KR")})` : ""}${t.priority === "URGENT" || t.priority === "HIGH" ? ` [${t.priority}]` : ""}`)
+          .map(
+            (t: (typeof pendingTasks)[number]) =>
+              `- ${t.title}${t.dueDate ? ` (마감: ${t.dueDate.toLocaleDateString("ko-KR")})` : ""}${t.priority === "URGENT" || t.priority === "HIGH" ? ` [${t.priority}]` : ""}`,
+          )
           .join("\n");
         retryContextParts.push(`진행 중인 태스크:\n${taskList}`);
       }
     } catch {
       // optional
     }
-    const retryDynamicContext = retryContextParts.length > 0
-      ? `\n\n[현재 상황]\n${retryContextParts.join("\n\n")}`
-      : "";
+    const retryDynamicContext =
+      retryContextParts.length > 0 ? `\n\n[현재 상황]\n${retryContextParts.join("\n\n")}` : "";
 
     const history = [
       { role: "system" as const, content: EVE_SYSTEM_PROMPT + retryDynamicContext },
@@ -695,7 +697,10 @@ export async function chatRoutes(app: FastifyInstance) {
       });
       if (pendingTasks.length > 0) {
         const taskList = pendingTasks
-          .map((t) => `- ${t.title}${t.dueDate ? ` (마감: ${t.dueDate.toLocaleDateString("ko-KR")})` : ""}${t.priority === "URGENT" || t.priority === "HIGH" ? ` [${t.priority}]` : ""}`)
+          .map(
+            (t: (typeof pendingTasks)[number]) =>
+              `- ${t.title}${t.dueDate ? ` (마감: ${t.dueDate.toLocaleDateString("ko-KR")})` : ""}${t.priority === "URGENT" || t.priority === "HIGH" ? ` [${t.priority}]` : ""}`,
+          )
           .join("\n");
         contextParts.push(`진행 중인 태스크:\n${taskList}`);
       }
@@ -711,16 +716,17 @@ export async function chatRoutes(app: FastifyInstance) {
         take: 3,
       });
       if (upcomingReminders.length > 0) {
-        const reminderList = upcomingReminders.map((r) => `- ${r.title}`).join("\n");
+        const reminderList = upcomingReminders
+          .map((r: (typeof upcomingReminders)[number]) => `- ${r.title}`)
+          .join("\n");
         contextParts.push(`오늘 리마인더:\n${reminderList}`);
       }
     } catch {
       // Context loading is optional — don't break chat if it fails
     }
 
-    const dynamicContext = contextParts.length > 0
-      ? `\n\n[현재 상황]\n${contextParts.join("\n\n")}`
-      : "";
+    const dynamicContext =
+      contextParts.length > 0 ? `\n\n[현재 상황]\n${contextParts.join("\n\n")}` : "";
 
     // Build message history
     const history = [
