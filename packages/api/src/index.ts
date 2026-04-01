@@ -5,6 +5,7 @@ import { startBackgroundAgent } from "./background.js";
 import { briefingRoutes } from "./briefing.js";
 import { prisma } from "./db.js";
 import { adminRoutes } from "./routes/admin.js";
+import { agentRoutes } from "./routes/agents.js";
 import { authRoutes } from "./routes/auth.js";
 import { automationRoutes } from "./routes/automations.js";
 import { billingRoutes } from "./routes/billing.js";
@@ -54,6 +55,7 @@ await app.register(emailRoutes, { prefix: "/api/email" });
 await app.register(workspaceRoutes, { prefix: "/api/workspaces" });
 await app.register(automationRoutes, { prefix: "/api/automations" });
 await app.register(adminRoutes, { prefix: "/api/admin" });
+await app.register(agentRoutes, { prefix: "/api/agents" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
@@ -86,9 +88,9 @@ app.delete("/api/user/me/data", async (request, reply) => {
   return reply.code(204).send();
 });
 
-// Legacy user data routes (kept for backwards compat)
-app.get("/api/user/:userId/export", async (request) => {
-  const { userId } = request.params as { userId: string };
+// User data export/delete — authenticated
+app.get("/api/user/export", async (request) => {
+  const userId = getUserId(request);
   const [tasks, notes, contacts, reminders, conversations] = await Promise.all([
     prisma.task.findMany({ where: { userId } }),
     prisma.note.findMany({ where: { userId } }),
@@ -99,11 +101,18 @@ app.get("/api/user/:userId/export", async (request) => {
       include: { messages: { orderBy: { createdAt: "asc" } } },
     }),
   ]);
-  return { tasks, notes, contacts, reminders, conversations, exportedAt: new Date().toISOString() };
+  return {
+    tasks,
+    notes,
+    contacts,
+    reminders,
+    conversations,
+    exportedAt: new Date().toISOString(),
+  };
 });
 
-app.delete("/api/user/:userId/data", async (request, reply) => {
-  const { userId } = request.params as { userId: string };
+app.delete("/api/user/data", async (request, reply) => {
+  const userId = getUserId(request);
   await prisma.$transaction([
     prisma.message.deleteMany({ where: { conversation: { userId } } }),
     prisma.conversation.deleteMany({ where: { userId } }),

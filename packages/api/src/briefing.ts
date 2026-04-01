@@ -6,6 +6,7 @@
  */
 
 import type { FastifyInstance } from "fastify";
+import { getUserId } from "./auth.js";
 import { listEvents } from "./calendar.js";
 import { prisma } from "./db.js";
 import { listEmails } from "./gmail.js";
@@ -75,7 +76,7 @@ Today is ${new Date().toLocaleDateString("ko-KR", { weekday: "long", year: "nume
 export async function briefingRoutes(app: FastifyInstance) {
   // POST /api/briefing/generate — Generate daily briefing
   app.post("/generate", async (request) => {
-    const { userId } = request.body as { userId: string };
+    const userId = getUserId(request);
     const briefing = await generateBriefing(userId);
 
     // Save briefing as a note
@@ -90,10 +91,10 @@ export async function briefingRoutes(app: FastifyInstance) {
     return { briefing };
   });
 
-  // GET /api/briefing/data — Get raw briefing data (for debugging)
+  // GET /api/briefing/data — Get raw briefing data
   app.get("/data", async (request) => {
-    const { userId } = request.query as { userId: string };
-    const data = await gatherBriefingData(userId || "demo-user");
+    const userId = getUserId(request);
+    const data = await gatherBriefingData(userId);
     return data;
   });
 }
