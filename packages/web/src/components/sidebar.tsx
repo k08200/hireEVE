@@ -144,6 +144,7 @@ export default function Sidebar({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [search, setSearch] = useState("");
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -236,10 +237,11 @@ export default function Sidebar({
   };
 
   const activeConvId = pathname.startsWith("/chat/") ? pathname.split("/chat/")[1] : null;
+  const filtered = search
+    ? conversations.filter((c) => (c.title || "").toLowerCase().includes(search.toLowerCase()))
+    : conversations;
   const groups = groupByDate(
-    [...conversations].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    ),
+    [...filtered].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
   );
 
   const initials = user
@@ -285,6 +287,41 @@ export default function Sidebar({
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
           </button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="px-3 pb-2">
+        <div className="relative">
+          <svg
+            aria-hidden="true"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 w-3.5 h-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search chats..."
+            className="w-full bg-gray-900/50 border border-gray-800/60 rounded-lg pl-8 pr-3 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-gray-600 transition"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs"
+            >
+              ✕
+            </button>
+          )}
         </div>
       </div>
 
@@ -373,8 +410,10 @@ export default function Sidebar({
           </div>
         ))}
 
-        {conversations.length === 0 && (
-          <p className="text-xs text-gray-600 px-3 py-4">No conversations yet</p>
+        {filtered.length === 0 && (
+          <p className="text-xs text-gray-600 px-3 py-4">
+            {search ? "No matching conversations" : "No conversations yet"}
+          </p>
         )}
       </div>
 
