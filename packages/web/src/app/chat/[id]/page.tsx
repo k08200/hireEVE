@@ -349,8 +349,54 @@ function ChatPageContent() {
     toast("Copied", "success");
   };
 
+  const exportConversation = () => {
+    if (messages.length === 0) return;
+    const lines = messages.map((m) => {
+      const label = m.role === "USER" ? "**You**" : "**EVE**";
+      const time = new Date(m.createdAt).toLocaleString("ko-KR");
+      return `### ${label} — ${time}\n\n${m.content}`;
+    });
+    const md = `# EVE Conversation\n\nExported: ${new Date().toLocaleString("ko-KR")}\n\n---\n\n${lines.join("\n\n---\n\n")}`;
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `eve-chat-${id.slice(0, 8)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast("Exported as Markdown", "success");
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* Top bar */}
+      {messages.length > 0 && (
+        <div className="flex justify-end px-4 py-1.5 border-b border-gray-800/30">
+          <button
+            type="button"
+            onClick={exportConversation}
+            className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition px-2 py-1 rounded hover:bg-gray-800/50"
+            title="Export as Markdown"
+          >
+            <svg
+              aria-hidden="true"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        </div>
+      )}
       {/* Messages */}
       <div ref={scrollAreaRef} className="flex-1 overflow-y-auto relative">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
