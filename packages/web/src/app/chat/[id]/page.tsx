@@ -199,6 +199,8 @@ function ChatPageContent() {
     setStreaming(false);
     setStreamingContent("");
     setActiveTools([]);
+    // Notify sidebar to refresh conversation list (title may have been auto-generated)
+    window.dispatchEvent(new Event("conversations-updated"));
   };
 
   const streamResponse = async (messageContent: string) => {
