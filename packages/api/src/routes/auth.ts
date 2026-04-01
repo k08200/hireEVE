@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { comparePassword, getUserId, hashPassword, signToken, verifyToken } from "../auth.js";
 import { prisma } from "../db.js";
-import { getAuthUrl, getOAuth2Client } from "../gmail.js";
+import { getAuthUrl, getGoogleUserInfo, getLoginAuthUrl, getOAuth2Client } from "../gmail.js";
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/register — Create account
@@ -150,14 +150,20 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.send({ success: true });
   });
 
-  // GET /api/auth/google — Start OAuth flow (pass userId via state)
+  // GET /api/auth/google/login — Start Google social login flow
+  app.get("/google/login", async (_request, reply) => {
+    const url = getLoginAuthUrl();
+    return reply.redirect(url);
+  });
+
+  // GET /api/auth/google — Start OAuth flow for Gmail/Calendar integration (pass userId via state)
   app.get("/google", async (request, reply) => {
     const userId = getUserId(request);
     const url = getAuthUrl(userId);
     return reply.redirect(url);
   });
 
-  // GET /api/auth/google/callback — OAuth callback
+  // GET /api/auth/google/callback — OAuth callback (handles both login and integration)
   app.get("/google/callback", async (request, reply) => {
     const { code, state } = request.query as { code?: string; state?: string };
 
@@ -165,11 +171,37 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Missing authorization code" });
     }
 
+    const webUrl = process.env.WEB_URL || "http://localhost:8001";
+
     try {
       const oauth2 = getOAuth2Client();
       const { tokens } = await oauth2.getToken(code);
 
-      // Use userId from state parameter, or fall back to demo-user
+      // --- Google Social Login flow ---
+      if (state === "__login__") {
+        if (!tokens.access_token) {
+          return reply.redirect(`${webUrl}/login?error=google_failed`);
+        }
+
+        const profile = await getGoogleUserInfo(tokens.access_token);
+
+        // Find or create user by email
+        let user = await prisma.user.findUnique({ where: { email: profile.email } });
+        if (!user) {
+          user = await prisma.user.create({
+            data: {
+              email: profile.email,
+              name: profile.name || profile.email.split("@")[0],
+              passwordHash: null, // Google-only user, no password
+            },
+          });
+        }
+
+        const token = signToken({ userId: user.id, email: user.email });
+        return reply.redirect(`${webUrl}/auth/callback?token=${token}`);
+      }
+
+      // --- Gmail/Calendar integration flow ---
       const userId = state || "demo-user";
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
@@ -192,10 +224,12 @@ export async function authRoutes(app: FastifyInstance) {
         },
       });
 
-      const webUrl = process.env.WEB_URL || "http://localhost:8001";
       return reply.redirect(`${webUrl}/settings?google=connected`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "OAuth failed";
+      if (state === "__login__") {
+        return reply.redirect(`${webUrl}/login?error=${encodeURIComponent(message)}`);
+      }
       return reply.code(500).send({ error: message });
     }
   });

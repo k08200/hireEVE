@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import AppShell from "../components/app-shell";
 import CommandPalette from "../components/command-palette";
 import KeyboardShortcuts from "../components/keyboard-shortcuts";
 import Providers from "../components/providers";
 import ServiceWorkerRegister from "../components/sw-register";
-import AppShell from "../components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {

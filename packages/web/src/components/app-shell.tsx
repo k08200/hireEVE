@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Sidebar from "./sidebar";
 
-const NO_SIDEBAR_ROUTES = ["/", "/login"];
+const NO_SIDEBAR_ROUTES = ["/", "/login", "/auth/callback"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,6 +29,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             aria-label="Menu"
           >
             <svg
+              aria-hidden="true"
               width="20"
               height="20"
               viewBox="0 0 24 24"

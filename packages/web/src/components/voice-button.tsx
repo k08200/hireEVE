@@ -87,6 +87,7 @@ export default function VoiceButton({ onTranscript, className }: VoiceButtonProp
       title={listening ? "Stop listening" : "Voice command / 음성 명령"}
     >
       <svg
+        aria-hidden="true"
         width="18"
         height="18"
         viewBox="0 0 24 24"
