@@ -609,7 +609,8 @@ function ChatPageContent() {
                   className="p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition"
                   title="Attach file"
                 >
-                  <svg aria-hidden="true"
+                  <svg
+                    aria-hidden="true"
                     width="18"
                     height="18"
                     viewBox="0 0 24 24"
@@ -650,7 +651,8 @@ function ChatPageContent() {
                   className="p-2 rounded-lg bg-white text-gray-900 hover:bg-gray-200 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition"
                   title="Send"
                 >
-                  <svg aria-hidden="true"
+                  <svg
+                    aria-hidden="true"
                     width="16"
                     height="16"
                     viewBox="0 0 24 24"

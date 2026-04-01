@@ -280,7 +280,7 @@ export default function Sidebar({
               return (
                 <div
                   key={conv.id}
-                  role="group"
+                  role="presentation"
                   onMouseEnter={() => setHoveredId(conv.id)}
                   onMouseLeave={() => setHoveredId(null)}
                   className="relative"
