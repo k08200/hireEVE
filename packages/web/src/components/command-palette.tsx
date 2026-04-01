@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { apiFetch } from "../lib/api";
 
 interface Command {
   id: string;
@@ -31,12 +30,9 @@ export default function CommandPalette() {
       label: "New conversation",
       sublabel: "새 대화 시작",
       action: () => {
-        fetch(`${API_BASE}/api/chat/conversations`, {
+        apiFetch<{ id: string }>("/api/chat/conversations", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: "demo-user" }),
         })
-          .then((r) => r.json())
           .then((conv) => router.push(`/chat/${conv.id}`))
           .catch(() => router.push("/chat"));
       },

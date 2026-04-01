@@ -81,7 +81,7 @@ function DashboardContent() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { connected, connectedClients } = useWebSocket(user?.id || "demo-user");
+  const { connected, connectedClients } = useWebSocket(user?.id || "");
 
   useEffect(() => {
     Promise.all([

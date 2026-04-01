@@ -12,7 +12,7 @@ interface WsMessage {
   from?: string;
 }
 
-export function useWebSocket(userId: string = "demo-user") {
+export function useWebSocket(userId: string) {
   const [connected, setConnected] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
   const [connectedClients, setConnectedClients] = useState<
@@ -31,6 +31,7 @@ export function useWebSocket(userId: string = "demo-user") {
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const connect = useCallback(() => {
+    if (!userId) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     const ws = new WebSocket(`${WS_URL}/ws?userId=${userId}&type=web`);

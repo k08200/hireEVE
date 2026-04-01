@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiFetch } from "../lib/api";
 
 const SHORTCUTS = [
   { keys: ["Cmd", "K"], label: "Command palette / 명령 팔레트" },
@@ -30,15 +31,9 @@ export default function KeyboardShortcuts() {
       switch (e.key) {
         case "n":
           e.preventDefault();
-          fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/chat/conversations`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId: "demo-user" }),
-            },
-          )
-            .then((r) => r.json())
+          apiFetch<{ id: string }>("/api/chat/conversations", {
+            method: "POST",
+          })
             .then((conv) => router.push(`/chat/${conv.id}`))
             .catch(() => router.push("/chat"));
           break;
