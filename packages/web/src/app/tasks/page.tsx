@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
@@ -67,13 +67,13 @@ export default function TasksPage() {
     dueDate: "",
   });
 
-  const loadTasks = () => {
+  const loadTasks = useCallback(() => {
     const path = filter === "all" ? `/api/tasks` : `/api/tasks?status=${filter}`;
     apiFetch<{ tasks: Task[] }>(path)
       .then((data) => setTasks(data.tasks || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [filter]);
 
   useEffect(() => {
     loadTasks();
@@ -187,6 +187,7 @@ export default function TasksPage() {
           </div>
           <div className="flex gap-2 items-center">
             <button
+              type="button"
               onClick={() => setShowForm(!showForm)}
               className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
             >
@@ -251,12 +252,14 @@ export default function TasksPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => setShowForm(false)}
                 className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={createTask}
                 disabled={!form.title}
                 className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
@@ -301,8 +304,12 @@ export default function TasksPage() {
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up px-4"
             role="presentation"
-            onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}
-            onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setEditing(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setEditing(null);
+            }}
           >
             <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg">
               <h3 className="font-semibold mb-4">Edit Task / 할 일 수정</h3>
@@ -350,12 +357,14 @@ export default function TasksPage() {
               </div>
               <div className="flex gap-2 justify-end mt-4">
                 <button
+                  type="button"
                   onClick={() => setEditing(null)}
                   className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={saveEdit}
                   disabled={!editForm.title}
                   className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
@@ -378,14 +387,15 @@ export default function TasksPage() {
           <div className="space-y-2">
             {filtered.map((task) => (
               // biome-ignore lint/a11y/useSemanticElements: div with nested interactive buttons
-              // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled via onKeyDown
               <div
                 key={task.id}
                 role="button"
                 tabIndex={0}
                 className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-gray-600 transition"
                 onClick={() => startEdit(task)}
-                onKeyDown={(e) => { if (e.key === "Enter") startEdit(task); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") startEdit(task);
+                }}
               >
                 <button
                   type="button"
