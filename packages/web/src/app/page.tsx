@@ -102,10 +102,7 @@ export default function LandingPage() {
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <span className="text-lg font-bold text-blue-400">EVE</span>
         <div className="flex items-center gap-4">
-          <Link
-            href="/login"
-            className="text-sm text-gray-400 hover:text-white transition"
-          >
+          <Link href="/login" className="text-sm text-gray-400 hover:text-white transition">
             Sign in
           </Link>
           <Link
@@ -126,10 +123,9 @@ export default function LandingPage() {
           혼자서도 팀처럼 일하세요
         </h1>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
-          EVE는 시키지 않아도 알아서 움직이는 AI 직원입니다. 메일이 오면 먼저
-          확인하고, 미팅 전에 준비사항을 챙기고, 까먹기 쉬운 후속 연락도
-          리마인드해줍니다. 당신이 다른 일에 집중하고 있어도 — EVE는 쉬지 않고
-          일합니다.
+          EVE는 시키지 않아도 알아서 움직이는 AI 직원입니다. 메일이 오면 먼저 확인하고, 미팅 전에
+          준비사항을 챙기고, 까먹기 쉬운 후속 연락도 리마인드해줍니다. 당신이 다른 일에 집중하고
+          있어도 — EVE는 쉬지 않고 일합니다.
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link
@@ -170,24 +166,19 @@ export default function LandingPage() {
       {/* Key message */}
       <section className="max-w-4xl mx-auto px-6 py-16">
         <div className="bg-gradient-to-br from-gray-900 to-gray-900/50 border border-gray-800 rounded-2xl p-8 md:p-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            말하기 전에 먼저 움직입니다
-          </h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">말하기 전에 먼저 움직입니다</h2>
           <p className="text-gray-400 leading-relaxed max-w-2xl">
-            &ldquo;메일 보여줘&rdquo;라고 하면 바로 찾아줍니다. &ldquo;내일 미팅
-            잡아줘&rdquo;라고 하면 캘린더에 넣어줍니다. 하지만 EVE의 진짜 가치는
-            여기서 끝이 아닙니다. 긴급 메일이 오면 알아서 알려주고, 마감이 지난
-            태스크를 챙겨주고, 매일 아침 오늘의 브리핑을 준비합니다. 시키지
-            않아도요.
+            &ldquo;메일 보여줘&rdquo;라고 하면 바로 찾아줍니다. &ldquo;내일 미팅 잡아줘&rdquo;라고
+            하면 캘린더에 넣어줍니다. 하지만 EVE의 진짜 가치는 여기서 끝이 아닙니다. 긴급 메일이
+            오면 알아서 알려주고, 마감이 지난 태스크를 챙겨주고, 매일 아침 오늘의 브리핑을
+            준비합니다. 시키지 않아도요.
           </p>
         </div>
       </section>
 
       {/* Features */}
       <section className="max-w-4xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-bold text-center mb-3">
-          하나의 대화창에서 모든 업무를
-        </h2>
+        <h2 className="text-2xl font-bold text-center mb-3">하나의 대화창에서 모든 업무를</h2>
         <p className="text-gray-500 text-center mb-12">
           흩어져 있던 도구들을 EVE가 하나로 연결합니다
         </p>
@@ -209,9 +200,7 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section className="max-w-4xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-bold text-center mb-12">
-          3단계로 시작하세요
-        </h2>
+        <h2 className="text-2xl font-bold text-center mb-12">3단계로 시작하세요</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             {
@@ -278,9 +267,7 @@ export default function LandingPage() {
           <br />
           EVE 하나면 됩니다
         </h2>
-        <p className="text-gray-500 mb-8">
-          1인 창업자, 프리랜서, 소규모 팀의 첫 번째 팀원
-        </p>
+        <p className="text-gray-500 mb-8">1인 창업자, 프리랜서, 소규모 팀의 첫 번째 팀원</p>
         <Link
           href="/login"
           className="inline-block bg-blue-600 hover:bg-blue-500 text-white px-10 py-3.5 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-600/25"

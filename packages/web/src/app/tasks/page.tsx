@@ -386,21 +386,13 @@ export default function TasksPage() {
         ) : (
           <div className="space-y-2">
             {filtered.map((task) => (
-              // biome-ignore lint/a11y/useSemanticElements: div with nested interactive buttons
               <div
                 key={task.id}
-                role="button"
-                tabIndex={0}
-                className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-gray-600 transition"
-                onClick={() => startEdit(task)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") startEdit(task);
-                }}
+                className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-start gap-3 hover:border-gray-600 transition"
               >
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() =>
                     updateStatus(
                       task.id,
                       task.status === "DONE"
@@ -408,8 +400,8 @@ export default function TasksPage() {
                         : task.status === "TODO"
                           ? "IN_PROGRESS"
                           : "DONE",
-                    );
-                  }}
+                    )
+                  }
                   className={`mt-0.5 w-5 h-5 rounded border-2 shrink-0 transition ${
                     task.status === "DONE"
                       ? "bg-green-600 border-green-600"
@@ -420,7 +412,11 @@ export default function TasksPage() {
                     <span className="text-white text-xs flex items-center justify-center">✓</span>
                   )}
                 </button>
-                <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => startEdit(task)}
+                  className="flex-1 min-w-0 text-left cursor-pointer"
+                >
                   <div className="flex items-center gap-2">
                     <span
                       className={`font-medium ${task.status === "DONE" ? "line-through text-gray-500" : ""}`}
@@ -446,13 +442,10 @@ export default function TasksPage() {
                       {formatDueDate(task.dueDate, task.status === "DONE")}
                     </p>
                   )}
-                </div>
+                </button>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteTask(task.id);
-                  }}
+                  onClick={() => deleteTask(task.id)}
                   className="text-gray-600 hover:text-red-400 text-sm transition shrink-0"
                 >
                   ✕
