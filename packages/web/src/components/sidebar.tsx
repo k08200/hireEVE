@@ -57,7 +57,6 @@ const NAV_ITEMS = [
 
 function NavIcon({ type, size = 16 }: { type: string; size?: number }) {
   const props = {
-    "aria-hidden": true as const,
     width: size,
     height: size,
     viewBox: "0 0 24 24",
@@ -71,7 +70,7 @@ function NavIcon({ type, size = 16 }: { type: string; size?: number }) {
   switch (type) {
     case "grid":
       return (
-        <svg {...props}>
+        <svg aria-hidden="true" {...props}>
           <rect x="3" y="3" width="7" height="7" />
           <rect x="14" y="3" width="7" height="7" />
           <rect x="3" y="14" width="7" height="7" />
@@ -80,21 +79,21 @@ function NavIcon({ type, size = 16 }: { type: string; size?: number }) {
       );
     case "mail":
       return (
-        <svg {...props}>
+        <svg aria-hidden="true" {...props}>
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
           <polyline points="22,6 12,13 2,6" />
         </svg>
       );
     case "check":
       return (
-        <svg {...props}>
+        <svg aria-hidden="true" {...props}>
           <polyline points="9 11 12 14 22 4" />
           <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
       );
     case "calendar":
       return (
-        <svg {...props}>
+        <svg aria-hidden="true" {...props}>
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
@@ -103,21 +102,21 @@ function NavIcon({ type, size = 16 }: { type: string; size?: number }) {
       );
     case "file":
       return (
-        <svg {...props}>
+        <svg aria-hidden="true" {...props}>
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>
       );
     case "user":
       return (
-        <svg {...props}>
+        <svg aria-hidden="true" {...props}>
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
           <circle cx="12" cy="7" r="4" />
         </svg>
       );
     case "bell":
       return (
-        <svg {...props}>
+        <svg aria-hidden="true" {...props}>
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
@@ -281,6 +280,7 @@ export default function Sidebar({
               return (
                 <div
                   key={conv.id}
+                  role="group"
                   onMouseEnter={() => setHoveredId(conv.id)}
                   onMouseLeave={() => setHoveredId(null)}
                   className="relative"
@@ -288,7 +288,6 @@ export default function Sidebar({
                   {editingId === conv.id ? (
                     <form onSubmit={(e) => saveRename(e, conv.id)} className="px-2 py-1">
                       <input
-                        autoFocus
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
                         onBlur={() => setEditingId(null)}
