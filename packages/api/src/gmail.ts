@@ -52,11 +52,10 @@ export async function getGoogleUserInfo(
 }
 
 export async function getAuthedClient(
-  _userId: string,
+  userId: string,
 ): Promise<InstanceType<typeof google.auth.OAuth2> | null> {
-  // MVP: find any google token
   const token = await prisma.userToken.findFirst({
-    where: { provider: "google" },
+    where: { userId, provider: "google" },
   });
 
   if (!token) return null;

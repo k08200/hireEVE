@@ -51,6 +51,7 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [hasPassword, setHasPassword] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
@@ -73,6 +74,10 @@ export default function SettingsPage() {
     } catch {
       // ignore
     }
+    // Check if user has a password set
+    apiFetch<{ hasPassword: boolean }>("/api/auth/has-password")
+      .then((d) => setHasPassword(d.hasPassword))
+      .catch(() => {});
   }, [user]);
 
   const saveProfile = async () => {
@@ -107,6 +112,38 @@ export default function SettingsPage() {
       toast("Password changed / 비밀번호 변경됨", "success");
       setCurrentPassword("");
       setNewPassword("");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      const match = msg.match(/API \d+: (.+)/);
+      const parsed = match
+        ? (() => {
+            try {
+              return JSON.parse(match[1]).error;
+            } catch {
+              return match[1];
+            }
+          })()
+        : msg;
+      toast(parsed, "error");
+    }
+    setPasswordLoading(false);
+  };
+
+  const setPasswordForOAuth = async () => {
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      toast("Password must be at least 6 characters", "error");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await apiFetch("/api/auth/set-password", {
+        method: "POST",
+        body: JSON.stringify({ newPassword }),
+      });
+      toast("Password set! / 비밀번호 설정됨", "success");
+      setNewPassword("");
+      setHasPassword(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed";
       const match = msg.match(/API \d+: (.+)/);
@@ -309,43 +346,77 @@ export default function SettingsPage() {
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-gray-300 mb-3">Security / 보안</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
-            <div>
-              <label htmlFor="current-pw" className="block text-sm text-gray-400 mb-1">
-                Current Password / 현재 비밀번호
-              </label>
-              <input
-                id="current-pw"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Current password"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
-                New Password / 새 비밀번호
-              </label>
-              <input
-                id="new-pw"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                minLength={6}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
-              />
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={changePassword}
-                disabled={passwordLoading || !currentPassword || !newPassword}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-              >
-                {passwordLoading ? "Changing..." : "Change Password / 변경"}
-              </button>
-            </div>
+            {hasPassword ? (
+              <>
+                <div>
+                  <label htmlFor="current-pw" className="block text-sm text-gray-400 mb-1">
+                    Current Password / 현재 비밀번호
+                  </label>
+                  <input
+                    id="current-pw"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Current password"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
+                    New Password / 새 비밀번호
+                  </label>
+                  <input
+                    id="new-pw"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    minLength={6}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={changePassword}
+                    disabled={passwordLoading || !currentPassword || !newPassword}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    {passwordLoading ? "Changing..." : "Change Password / 변경"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500">
+                  You signed up with Google. Set a password to also log in with email.
+                </p>
+                <div>
+                  <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
+                    Password / 비밀번호
+                  </label>
+                  <input
+                    id="new-pw"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    minLength={6}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={setPasswordForOAuth}
+                    disabled={passwordLoading || !newPassword}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    {passwordLoading ? "Setting..." : "Set Password / 설정"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </section>
 
