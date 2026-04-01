@@ -5,6 +5,7 @@
  */
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
+import { createEvent as googleCreateEvent, deleteEvent as googleDeleteEvent } from "../calendar.js";
 import { prisma } from "../db.js";
 
 export async function calendarRoutes(app: FastifyInstance) {
@@ -36,7 +37,7 @@ export async function calendarRoutes(app: FastifyInstance) {
     return event;
   });
 
-  // Create event
+  // Create event (local + Google Calendar sync)
   app.post("/", async (request) => {
     const userId = getUserId(request);
     const { title, description, startTime, endTime, location, meetingLink, color, allDay } =
@@ -51,6 +52,24 @@ export async function calendarRoutes(app: FastifyInstance) {
         allDay?: boolean;
       };
 
+    // Try to sync to Google Calendar
+    let googleId: string | null = null;
+    try {
+      const result = await googleCreateEvent(
+        userId,
+        title,
+        startTime,
+        endTime,
+        description,
+        location,
+      );
+      if ("eventId" in result && result.eventId) {
+        googleId = result.eventId;
+      }
+    } catch {
+      // Google sync failed — continue with local-only
+    }
+
     const event = await prisma.calendarEvent.create({
       data: {
         userId,
@@ -62,6 +81,7 @@ export async function calendarRoutes(app: FastifyInstance) {
         meetingLink: meetingLink || null,
         color: color || null,
         allDay: allDay || false,
+        googleId,
       },
     });
 
@@ -89,10 +109,23 @@ export async function calendarRoutes(app: FastifyInstance) {
     }
   });
 
-  // Delete event
+  // Delete event (local + Google Calendar sync)
   app.delete("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
     try {
+      const event = await prisma.calendarEvent.findUnique({ where: { id } });
+      if (!event) return reply.code(404).send({ error: "Event not found" });
+
+      // Delete from Google Calendar if synced
+      if (event.googleId) {
+        try {
+          await googleDeleteEvent(userId, event.googleId);
+        } catch {
+          // Google delete failed — still delete locally
+        }
+      }
+
       await prisma.calendarEvent.delete({ where: { id } });
       return reply.code(204).send();
     } catch {
