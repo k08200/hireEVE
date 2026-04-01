@@ -3,6 +3,7 @@ import AppShell from "../components/app-shell";
 import CommandPalette from "../components/command-palette";
 import KeyboardShortcuts from "../components/keyboard-shortcuts";
 import Providers from "../components/providers";
+import PwaPrompts from "../components/pwa-prompts";
 import ServiceWorkerRegister from "../components/sw-register";
 import "./globals.css";
 
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CommandPalette />
           <AppShell>{children}</AppShell>
           <ServiceWorkerRegister />
+          <PwaPrompts />
         </Providers>
       </body>
     </html>
