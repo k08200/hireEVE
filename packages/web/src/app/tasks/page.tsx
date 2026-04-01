@@ -299,11 +299,15 @@ export default function TasksPage() {
         {editing && (
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up px-4"
+            role="presentation"
             onClick={() => setEditing(null)}
+            onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); }}
           >
             <div
               className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg"
+              role="presentation"
               onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
             >
               <h3 className="font-semibold mb-4">Edit Task / 할 일 수정</h3>
               <div className="space-y-3">
@@ -379,8 +383,11 @@ export default function TasksPage() {
             {filtered.map((task) => (
               <div
                 key={task.id}
+                role="button"
+                tabIndex={0}
                 className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-gray-600 transition"
                 onClick={() => startEdit(task)}
+                onKeyDown={(e) => { if (e.key === "Enter") startEdit(task); }}
               >
                 <button
                   type="button"
