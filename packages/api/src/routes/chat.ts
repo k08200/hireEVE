@@ -429,14 +429,18 @@ export async function chatRoutes(app: FastifyInstance) {
     return conversation;
   });
 
-  // PATCH /api/chat/conversations/:id — Update conversation title
+  // PATCH /api/chat/conversations/:id — Update conversation (title, pinned)
   app.patch("/conversations/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { title } = request.body as { title: string };
+    const body = request.body as { title?: string; pinned?: boolean };
+
+    const data: { title?: string; pinned?: boolean } = {};
+    if (body.title !== undefined) data.title = body.title;
+    if (body.pinned !== undefined) data.pinned = body.pinned;
 
     const conversation = await prisma.conversation.update({
       where: { id },
-      data: { title },
+      data,
     });
 
     return reply.send(conversation);

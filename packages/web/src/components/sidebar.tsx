@@ -10,6 +10,7 @@ import NotificationBell from "./notification-bell";
 interface Conversation {
   id: string;
   title: string | null;
+  pinned: boolean;
   updatedAt: string;
   _count: { messages: number };
 }
@@ -201,21 +202,28 @@ export default function Sidebar({
     }
   };
 
-  const deleteConversation = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const deleteConversation = async (id: string) => {
     try {
       await fetch(`${API_BASE}/api/chat/conversations/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
       setConversations((prev) => prev.filter((c) => c.id !== id));
+      setDeleteConfirm(null);
       if (pathname === `/chat/${id}`) {
         router.push("/chat");
       }
     } catch {
       // ignore
     }
+  };
+
+  const confirmDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDeleteConfirm(id);
   };
 
   const startRename = (e: React.MouseEvent, conv: Conversation) => {
@@ -236,12 +244,28 @@ export default function Sidebar({
     setEditingId(null);
   };
 
+  const togglePin = async (e: React.MouseEvent, conv: Conversation) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const newPinned = !conv.pinned;
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conv.id ? { ...c, pinned: newPinned } : c)),
+    );
+    await fetch(`${API_BASE}/api/chat/conversations/${conv.id}`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ pinned: newPinned }),
+    });
+  };
+
   const activeConvId = pathname.startsWith("/chat/") ? pathname.split("/chat/")[1] : null;
   const filtered = search
     ? conversations.filter((c) => (c.title || "").toLowerCase().includes(search.toLowerCase()))
     : conversations;
+  const pinned = filtered.filter((c) => c.pinned);
+  const unpinned = filtered.filter((c) => !c.pinned);
   const groups = groupByDate(
-    [...filtered].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [...unpinned].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
   );
 
   const initials = user
@@ -254,7 +278,7 @@ export default function Sidebar({
     : "";
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-[#0a0a0f] border-r border-gray-800/40">
+    <div className="relative flex flex-col h-full bg-[#0a0a0f] border-r border-gray-800/40">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3">
         <Link
@@ -327,6 +351,118 @@ export default function Sidebar({
 
       {/* Conversation list */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
+        {pinned.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5 flex items-center gap-1">
+              <svg
+                aria-hidden="true"
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                stroke="none"
+              >
+                <path d="M16 2l5 5-3.2 3.2 1.2 7.8-4-4-4 4 1.2-7.8L9 7l5-5z" />
+              </svg>
+              Pinned
+            </p>
+            {pinned.map((conv) => {
+              const isActive = activeConvId === conv.id;
+              return (
+                <div key={conv.id} className="relative group/conv">
+                  {editingId === conv.id ? (
+                    <form onSubmit={(e) => saveRename(e, conv.id)} className="px-2 py-1">
+                      <input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onBlur={() => setEditingId(null)}
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-gray-500"
+                      />
+                    </form>
+                  ) : (
+                    <Link
+                      href={`/chat/${conv.id}`}
+                      onClick={onMobileClose}
+                      className={`group flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition ${
+                        isActive
+                          ? "bg-gray-800/80 text-white"
+                          : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
+                      }`}
+                    >
+                      <span className="truncate flex-1 text-[13px]">
+                        {conv.title || "New conversation"}
+                      </span>
+                      <span
+                        className={`flex items-center gap-0.5 shrink-0 ${isActive ? "visible" : "invisible group-hover/conv:visible"}`}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => togglePin(e, conv)}
+                          className="p-0.5 text-yellow-500 hover:text-yellow-400 transition"
+                          title="Unpin"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            stroke="none"
+                          >
+                            <path d="M16 2l5 5-3.2 3.2 1.2 7.8-4-4-4 4 1.2-7.8L9 7l5-5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => startRename(e, conv)}
+                          className="p-0.5 text-gray-500 hover:text-gray-300 transition"
+                          title="Rename"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => confirmDelete(e, conv.id)}
+                          className="p-0.5 text-gray-500 hover:text-red-400 transition"
+                          title="Delete"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </span>
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {groups.map((group) => (
           <div key={group.label} className="mb-3">
             <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">{group.label}</p>
@@ -361,6 +497,26 @@ export default function Sidebar({
                       >
                         <button
                           type="button"
+                          onClick={(e) => togglePin(e, conv)}
+                          className="p-0.5 text-gray-500 hover:text-yellow-500 transition"
+                          title="Pin"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M16 2l5 5-3.2 3.2 1.2 7.8-4-4-4 4 1.2-7.8L9 7l5-5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
                           onClick={(e) => startRename(e, conv)}
                           className="p-0.5 text-gray-500 hover:text-gray-300 transition"
                           title="Rename"
@@ -382,7 +538,7 @@ export default function Sidebar({
                         </button>
                         <button
                           type="button"
-                          onClick={(e) => deleteConversation(e, conv.id)}
+                          onClick={(e) => confirmDelete(e, conv.id)}
                           className="p-0.5 text-gray-500 hover:text-red-400 transition"
                           title="Delete"
                         >
@@ -451,6 +607,31 @@ export default function Sidebar({
           )}
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      {deleteConfirm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 mx-4 shadow-2xl max-w-[220px]">
+            <p className="text-sm text-gray-200 mb-3">Delete this conversation?</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-3 py-1.5 text-xs text-gray-400 bg-gray-800 hover:bg-gray-700 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteConversation(deleteConfirm)}
+                className="flex-1 px-3 py-1.5 text-xs text-white bg-red-600 hover:bg-red-500 rounded-lg transition"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User */}
       <div className="border-t border-gray-800/40 p-2" ref={userMenuRef}>
