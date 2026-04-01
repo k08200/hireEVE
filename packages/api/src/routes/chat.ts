@@ -478,7 +478,9 @@ export async function chatRoutes(app: FastifyInstance) {
         !(lastMsg && lastMsg.role === "ASSISTANT" && m.id === lastMsg.id),
     );
 
-    const token = await prisma.userToken.findFirst({ where: { userId: conversation.userId, provider: "google" } });
+    const token = await prisma.userToken.findFirst({
+      where: { userId: conversation.userId, provider: "google" },
+    });
     const tools = token ? ALL_TOOLS : [...ALWAYS_TOOLS];
 
     // Build dynamic context for retry

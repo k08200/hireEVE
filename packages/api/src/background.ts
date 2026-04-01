@@ -186,7 +186,9 @@ async function checkUpcomingMeetings() {
                 ? `참가: ${meeting.meetingLink}`
                 : `${meeting.summary} 곧 시작합니다`,
             });
-            console.log(`[BG] Upcoming meeting: "${meeting.summary}" in ${Math.ceil(minutesUntil)}min for user ${userId}`);
+            console.log(
+              `[BG] Upcoming meeting: "${meeting.summary}" in ${Math.ceil(minutesUntil)}min for user ${userId}`,
+            );
           }
         }
       } catch {
