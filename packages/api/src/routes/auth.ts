@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { comparePassword, getUserId, hashPassword, signToken, verifyToken } from "../auth.js";
 import { prisma } from "../db.js";
@@ -250,5 +251,67 @@ export async function authRoutes(app: FastifyInstance) {
       where: { userId, provider: "google" },
     });
     return reply.send({ connected: !!token });
+  });
+
+  // POST /api/auth/forgot-password — Request password reset
+  app.post("/forgot-password", async (request, reply) => {
+    const { email } = request.body as { email: string };
+    if (!email) return reply.code(400).send({ error: "Email required" });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    // Always return success to prevent email enumeration
+    if (!user) return reply.send({ success: true });
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExp = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { resetToken, resetTokenExp },
+    });
+
+    // Log reset link (in production, send via email service)
+    const webUrl = process.env.WEB_URL || "http://localhost:8001";
+    const resetUrl = `${webUrl}/reset-password?token=${resetToken}`;
+    console.log(`[AUTH] Password reset link for ${email}: ${resetUrl}`);
+
+    return reply.send({ success: true });
+  });
+
+  // POST /api/auth/reset-password — Reset password with token
+  app.post("/reset-password", async (request, reply) => {
+    const { token, newPassword } = request.body as {
+      token: string;
+      newPassword: string;
+    };
+
+    if (!token || !newPassword) {
+      return reply.code(400).send({ error: "Token and new password required" });
+    }
+    if (newPassword.length < 6) {
+      return reply.code(400).send({ error: "Password must be at least 6 characters" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetToken: token,
+        resetTokenExp: { gte: new Date() },
+      },
+    });
+
+    if (!user) {
+      return reply.code(400).send({ error: "Invalid or expired reset token" });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: await hashPassword(newPassword),
+        resetToken: null,
+        resetTokenExp: null,
+      },
+    });
+
+    return reply.send({ success: true });
   });
 }
