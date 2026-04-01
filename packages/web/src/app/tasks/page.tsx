@@ -297,18 +297,14 @@ export default function TasksPage() {
 
         {/* Edit modal */}
         {editing && (
+          // biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop dismiss
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up px-4"
             role="presentation"
-            onClick={() => setEditing(null)}
+            onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}
             onKeyDown={(e) => { if (e.key === "Escape") setEditing(null); }}
           >
-            <div
-              className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg"
-              role="presentation"
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-            >
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg">
               <h3 className="font-semibold mb-4">Edit Task / 할 일 수정</h3>
               <div className="space-y-3">
                 <input
@@ -381,6 +377,8 @@ export default function TasksPage() {
         ) : (
           <div className="space-y-2">
             {filtered.map((task) => (
+              // biome-ignore lint/a11y/useSemanticElements: div with nested interactive buttons
+              // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled via onKeyDown
               <div
                 key={task.id}
                 role="button"
