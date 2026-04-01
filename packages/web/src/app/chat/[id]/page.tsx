@@ -402,7 +402,7 @@ function ChatPageContent() {
                       className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
                       title="Copy"
                     >
-                      <svg aria-hidden="true" aria-hidden="true"
+                      <svg aria-hidden="true"
                         width="14"
                         height="14"
                         viewBox="0 0 24 24"
@@ -423,7 +423,7 @@ function ChatPageContent() {
                         className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
                         title="Retry"
                       >
-                        <svg aria-hidden="true" aria-hidden="true"
+                        <svg aria-hidden="true"
                           width="14"
                           height="14"
                           viewBox="0 0 24 24"
@@ -512,7 +512,7 @@ function ChatPageContent() {
             onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
             className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 rounded-full w-9 h-9 flex items-center justify-center shadow-lg transition"
           >
-            <svg aria-hidden="true" aria-hidden="true"
+            <svg aria-hidden="true"
               width="16"
               height="16"
               viewBox="0 0 24 24"
@@ -560,7 +560,7 @@ function ChatPageContent() {
           {/* Attachment preview */}
           {attachment && (
             <div className="flex items-center gap-2 mb-2 bg-gray-900 border border-gray-700/50 rounded-xl px-3 py-2 text-xs">
-              <svg aria-hidden="true" aria-hidden="true"
+              <svg aria-hidden="true"
                 width="14"
                 height="14"
                 viewBox="0 0 24 24"
@@ -609,7 +609,7 @@ function ChatPageContent() {
                   className="p-2 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800/50 transition"
                   title="Attach file"
                 >
-                  <svg aria-hidden="true" aria-hidden="true"
+                  <svg aria-hidden="true"
                     width="18"
                     height="18"
                     viewBox="0 0 24 24"
@@ -650,7 +650,7 @@ function ChatPageContent() {
                   className="p-2 rounded-lg bg-white text-gray-900 hover:bg-gray-200 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition"
                   title="Send"
                 >
-                  <svg aria-hidden="true" aria-hidden="true"
+                  <svg aria-hidden="true"
                     width="16"
                     height="16"
                     viewBox="0 0 24 24"
