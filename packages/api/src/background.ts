@@ -11,6 +11,7 @@
  */
 
 import { prisma } from "./db.js";
+import { classifyEmails } from "./gmail.js";
 import { getUpcomingMeetings } from "./meeting.js";
 import { checkDueReminders } from "./reminders.js";
 import { pushNotification } from "./websocket.js";
@@ -156,31 +157,46 @@ async function checkOverdueTasks() {
 
 async function checkUpcomingMeetings() {
   try {
-    const meetings = await getUpcomingMeetings("demo-user");
+    // Check all users who have Google connected
+    const usersWithGoogle = await prisma.userToken.findMany({
+      where: { provider: "google" },
+      select: { userId: true },
+    });
+
     const now = Date.now();
 
-    for (const meeting of meetings) {
-      const startTime = new Date(meeting.start).getTime();
-      const minutesUntil = (startTime - now) / 60_000;
+    for (const { userId } of usersWithGoogle) {
+      try {
+        const meetings = await getUpcomingMeetings(userId);
 
-      // Notify 5 minutes before meeting
-      if (minutesUntil > 0 && minutesUntil <= 5) {
-        const key = `meeting:${meeting.id}`;
-        if (notifiedIds.has(key)) continue;
-        notifiedIds.add(key);
+        for (const meeting of meetings) {
+          const startTime = new Date(meeting.start).getTime();
+          const minutesUntil = (startTime - now) / 60_000;
 
-        await addNotification("demo-user", {
-          type: "meeting",
-          title: `${Math.ceil(minutesUntil)}분 후 회의: ${meeting.summary}`,
-          message: meeting.meetingLink
-            ? `참가: ${meeting.meetingLink}`
-            : `${meeting.summary} 곧 시작합니다`,
-        });
-        console.log(`[BG] Upcoming meeting: "${meeting.summary}" in ${Math.ceil(minutesUntil)}min`);
+          // Notify 5 minutes before meeting
+          if (minutesUntil > 0 && minutesUntil <= 5) {
+            const key = `meeting:${meeting.id}`;
+            if (notifiedIds.has(key)) continue;
+            notifiedIds.add(key);
+
+            await addNotification(userId, {
+              type: "meeting",
+              title: `${Math.ceil(minutesUntil)}분 후 회의: ${meeting.summary}`,
+              message: meeting.meetingLink
+                ? `참가: ${meeting.meetingLink}`
+                : `${meeting.summary} 곧 시작합니다`,
+            });
+            console.log(
+              `[BG] Upcoming meeting: "${meeting.summary}" in ${Math.ceil(minutesUntil)}min for user ${userId}`,
+            );
+          }
+        }
+      } catch {
+        // Individual user's Google might be expired — skip
       }
     }
   } catch {
-    // Meeting check is optional — Google might not be connected
+    // Meeting check is optional
   }
 }
 
@@ -240,6 +256,51 @@ async function checkDailyBriefing() {
   }
 }
 
+// Track last email check time per user (check every 5 minutes, not every 60s)
+const lastEmailCheck: Map<string, number> = new Map();
+
+async function checkUrgentEmails() {
+  try {
+    const configs = await prisma.automationConfig.findMany({
+      where: { emailAutoClassify: true },
+      select: { userId: true },
+    });
+
+    const now = Date.now();
+
+    for (const { userId } of configs) {
+      // Only check every 5 minutes per user to avoid API rate limits
+      const lastCheck = lastEmailCheck.get(userId) || 0;
+      if (now - lastCheck < 5 * 60_000) continue;
+      lastEmailCheck.set(userId, now);
+
+      try {
+        const result = await classifyEmails(userId, 5);
+        if ("error" in result || !("summary" in result)) continue;
+
+        const urgent = result.emails.filter((e) => e.priority === "high");
+
+        for (const email of urgent) {
+          const key = `email:${email.id}`;
+          if (notifiedIds.has(key)) continue;
+          notifiedIds.add(key);
+
+          await addNotification(userId, {
+            type: "email",
+            title: `긴급 메일: ${email.subject}`,
+            message: `From: ${email.from}`,
+          });
+          console.log(`[BG] Urgent email for user ${userId}: "${email.subject}"`);
+        }
+      } catch {
+        // Gmail might not be connected or token expired
+      }
+    }
+  } catch (err) {
+    console.error("[BG] Error checking urgent emails:", err);
+  }
+}
+
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 export function startBackgroundAgent() {
@@ -258,6 +319,7 @@ export function startBackgroundAgent() {
     await checkOverdueTasks();
     await checkUpcomingMeetings();
     await checkDailyBriefing();
+    await checkUrgentEmails();
   }, 60_000);
 }
 
