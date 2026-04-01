@@ -144,7 +144,6 @@ export default function Sidebar({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -287,15 +286,8 @@ export default function Sidebar({
             <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">{group.label}</p>
             {group.items.map((conv) => {
               const isActive = activeConvId === conv.id;
-              const isHovered = hoveredId === conv.id;
               return (
-                <div
-                  key={conv.id}
-                  role="presentation"
-                  onMouseEnter={() => setHoveredId(conv.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className="relative"
-                >
+                <div key={conv.id} className="relative group/conv">
                   {editingId === conv.id ? (
                     <form onSubmit={(e) => saveRename(e, conv.id)} className="px-2 py-1">
                       <input
@@ -318,52 +310,52 @@ export default function Sidebar({
                       <span className="truncate flex-1 text-[13px]">
                         {conv.title || "New conversation"}
                       </span>
-                      {(isHovered || isActive) && (
-                        <span className="flex items-center gap-0.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => startRename(e, conv)}
-                            className="p-0.5 text-gray-500 hover:text-gray-300 transition"
-                            title="Rename"
+                      <span
+                        className={`flex items-center gap-0.5 shrink-0 ${isActive ? "visible" : "invisible group-hover/conv:visible"}`}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => startRename(e, conv)}
+                          className="p-0.5 text-gray-500 hover:text-gray-300 transition"
+                          title="Rename"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           >
-                            <svg
-                              aria-hidden="true"
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M12 20h9" />
-                              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                            </svg>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => deleteConversation(e, conv.id)}
-                            className="p-0.5 text-gray-500 hover:text-red-400 transition"
-                            title="Delete"
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => deleteConversation(e, conv.id)}
+                          className="p-0.5 text-gray-500 hover:text-red-400 transition"
+                          title="Delete"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           >
-                            <svg
-                              aria-hidden="true"
-                              width="12"
-                              height="12"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            </svg>
-                          </button>
-                        </span>
-                      )}
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </span>
                     </Link>
                   )}
                 </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { ListSkeleton } from "../../components/skeleton";
@@ -67,13 +67,13 @@ export default function TasksPage() {
     dueDate: "",
   });
 
-  const loadTasks = () => {
+  const loadTasks = useCallback(() => {
     const path = filter === "all" ? `/api/tasks` : `/api/tasks?status=${filter}`;
     apiFetch<{ tasks: Task[] }>(path)
       .then((data) => setTasks(data.tasks || []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, [filter]);
 
   useEffect(() => {
     loadTasks();
@@ -187,6 +187,7 @@ export default function TasksPage() {
           </div>
           <div className="flex gap-2 items-center">
             <button
+              type="button"
               onClick={() => setShowForm(!showForm)}
               className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
             >
@@ -251,12 +252,14 @@ export default function TasksPage() {
             </div>
             <div className="flex gap-2 justify-end">
               <button
+                type="button"
                 onClick={() => setShowForm(false)}
                 className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={createTask}
                 disabled={!form.title}
                 className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
@@ -297,14 +300,18 @@ export default function TasksPage() {
 
         {/* Edit modal */}
         {editing && (
+          // biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop dismiss
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up px-4"
-            onClick={() => setEditing(null)}
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setEditing(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setEditing(null);
+            }}
           >
-            <div
-              className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg">
               <h3 className="font-semibold mb-4">Edit Task / 할 일 수정</h3>
               <div className="space-y-3">
                 <input
@@ -350,12 +357,14 @@ export default function TasksPage() {
               </div>
               <div className="flex gap-2 justify-end mt-4">
                 <button
+                  type="button"
                   onClick={() => setEditing(null)}
                   className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={saveEdit}
                   disabled={!editForm.title}
                   className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
@@ -379,13 +388,11 @@ export default function TasksPage() {
             {filtered.map((task) => (
               <div
                 key={task.id}
-                className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-gray-600 transition"
-                onClick={() => startEdit(task)}
+                className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-start gap-3 hover:border-gray-600 transition"
               >
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={() =>
                     updateStatus(
                       task.id,
                       task.status === "DONE"
@@ -393,8 +400,8 @@ export default function TasksPage() {
                         : task.status === "TODO"
                           ? "IN_PROGRESS"
                           : "DONE",
-                    );
-                  }}
+                    )
+                  }
                   className={`mt-0.5 w-5 h-5 rounded border-2 shrink-0 transition ${
                     task.status === "DONE"
                       ? "bg-green-600 border-green-600"
@@ -405,7 +412,11 @@ export default function TasksPage() {
                     <span className="text-white text-xs flex items-center justify-center">✓</span>
                   )}
                 </button>
-                <div className="flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => startEdit(task)}
+                  className="flex-1 min-w-0 text-left cursor-pointer"
+                >
                   <div className="flex items-center gap-2">
                     <span
                       className={`font-medium ${task.status === "DONE" ? "line-through text-gray-500" : ""}`}
@@ -431,13 +442,10 @@ export default function TasksPage() {
                       {formatDueDate(task.dueDate, task.status === "DONE")}
                     </p>
                   )}
-                </div>
+                </button>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteTask(task.id);
-                  }}
+                  onClick={() => deleteTask(task.id)}
                   className="text-gray-600 hover:text-red-400 text-sm transition shrink-0"
                 >
                   ✕
