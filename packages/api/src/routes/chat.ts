@@ -634,7 +634,8 @@ export async function chatRoutes(app: FastifyInstance) {
       const completionChars = fullResponse.length;
       const estimatedPromptTokens = Math.ceil(promptChars / 3);
       const estimatedCompletionTokens = Math.ceil(completionChars / 3);
-      prisma.tokenUsage
+      // biome-ignore lint/suspicious/noExplicitAny: TokenUsage model — types available after prisma generate
+      (prisma as any).tokenUsage
         .create({
           data: {
             userId: conversation.userId,

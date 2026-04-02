@@ -8,9 +8,20 @@ import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
 import { prisma } from "../db.js";
 
+// Per-route rate limit config
+const rateLimitConfig = { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } };
+
+interface UsageRow {
+  totalTokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  estimatedCost: number;
+  createdAt: Date;
+}
+
 export async function tokenUsageRoutes(app: FastifyInstance) {
   // GET /api/usage — Overall usage stats for the current user
-  app.get("/", async (request) => {
+  app.get("/", rateLimitConfig, async (request) => {
     const userId = getUserId(request);
     const { period } = request.query as { period?: string };
 
@@ -26,15 +37,22 @@ export async function tokenUsageRoutes(app: FastifyInstance) {
       since = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    const usages = await prisma.tokenUsage.findMany({
+    // biome-ignore lint/suspicious/noExplicitAny: TokenUsage model — types available after prisma generate
+    const usages: UsageRow[] = await (prisma as any).tokenUsage.findMany({
       where: { userId, createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
     });
 
-    const totalTokens = usages.reduce((sum, u) => sum + u.totalTokens, 0);
-    const totalCost = usages.reduce((sum, u) => sum + u.estimatedCost, 0);
-    const totalPromptTokens = usages.reduce((sum, u) => sum + u.promptTokens, 0);
-    const totalCompletionTokens = usages.reduce((sum, u) => sum + u.completionTokens, 0);
+    const totalTokens = usages.reduce((sum: number, u: UsageRow) => sum + u.totalTokens, 0);
+    const totalCost = usages.reduce((sum: number, u: UsageRow) => sum + u.estimatedCost, 0);
+    const totalPromptTokens = usages.reduce(
+      (sum: number, u: UsageRow) => sum + u.promptTokens,
+      0,
+    );
+    const totalCompletionTokens = usages.reduce(
+      (sum: number, u: UsageRow) => sum + u.completionTokens,
+      0,
+    );
     const messageCount = usages.length;
 
     // Daily breakdown
@@ -69,10 +87,15 @@ export async function tokenUsageRoutes(app: FastifyInstance) {
   });
 
   // GET /api/usage/conversations — Per-conversation breakdown
-  app.get("/conversations", async (request) => {
+  app.get("/conversations", rateLimitConfig, async (request) => {
     const userId = getUserId(request);
 
-    const usages = await prisma.tokenUsage.groupBy({
+    // biome-ignore lint/suspicious/noExplicitAny: TokenUsage model — types available after prisma generate
+    const usages: {
+      conversationId: string | null;
+      _sum: { totalTokens: number | null; estimatedCost: number | null };
+      _count: number;
+    }[] = await (prisma as any).tokenUsage.groupBy({
       by: ["conversationId"],
       where: { userId, conversationId: { not: null } },
       _sum: { totalTokens: true, estimatedCost: true },

@@ -1,4 +1,5 @@
 import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import type { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
 import { ensureDemoUser, getUserId } from "./auth.js";
@@ -35,6 +36,12 @@ const app = Fastify({ logger: true });
 await app.register(cors, {
   origin: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+});
+
+// Global rate limiting — 100 requests per minute per IP
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: "1 minute",
 });
 
 // Raw body support for Stripe webhook signature verification

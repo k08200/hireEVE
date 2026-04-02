@@ -65,7 +65,8 @@ export async function compactHistory(
   const recentMessages = messages.slice(-KEEP_RECENT_MESSAGES);
 
   // Check if we already have a summary for these older messages
-  const existingSummary = await prisma.conversationSummary.findFirst({
+  // biome-ignore lint/suspicious/noExplicitAny: ConversationSummary model — types available after prisma generate
+  const existingSummary = await (prisma as any).conversationSummary.findFirst({
     where: {
       conversationId,
       upToMessageId: olderMessages[olderMessages.length - 1]?.id,
@@ -82,7 +83,8 @@ export async function compactHistory(
 
     // Save summary for reuse
     try {
-      await prisma.conversationSummary.create({
+      // biome-ignore lint/suspicious/noExplicitAny: ConversationSummary model — types available after prisma generate
+      await (prisma as any).conversationSummary.create({
         data: {
           conversationId,
           summary: summaryText,
