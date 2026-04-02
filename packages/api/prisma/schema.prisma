@@ -34,6 +34,8 @@ model User {
   agentLogs          AgentLog[]
   notifications      Notification[]
   pushSubscriptions  PushSubscription[]
+  memories           Memory[]
+  tokenUsages        TokenUsage[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 }
@@ -143,6 +145,8 @@ model Conversation {
   userId    String
   user      User      @relation(fields: [userId], references: [id])
   messages  Message[]
+  tokenUsages TokenUsage[]
+  summaries   ConversationSummary[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
@@ -312,4 +316,64 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+}
+
+// Memory System — EVE remembers facts about each user across conversations
+// Inspired by Claude Code's memdir/ persistent memory architecture
+model Memory {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  type        MemoryType
+  key         String     // short label, e.g. "preferred_language"
+  content     String     // the remembered fact
+  source      String?    // which conversation/context it came from
+  confidence  Float      @default(1.0) // 0-1, lower for inferred facts
+  lastUsedAt  DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([userId, type, key])
+  @@index([userId, type])
+}
+
+enum MemoryType {
+  PREFERENCE   // user preferences (language, tone, schedule)
+  FACT         // facts about the user (name, company, role)
+  DECISION     // past decisions the user made
+  CONTEXT      // ongoing project/work context
+  FEEDBACK     // corrections or instructions from user
+}
+
+// Token Usage Tracking — per-conversation and per-user cost tracking
+// Inspired by Claude Code's cost-tracker.ts
+model TokenUsage {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  model          String   // e.g. "openai/gpt-5.4-nano"
+  promptTokens   Int
+  completionTokens Int
+  totalTokens    Int
+  estimatedCost  Float    @default(0) // USD
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([conversationId])
+}
+
+// Conversation Summary — compressed history for long conversations
+// Inspired by Claude Code's services/compact/ auto-compaction
+model ConversationSummary {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  summary        String       // compressed summary of messages
+  messageCount   Int          // how many messages were summarized
+  upToMessageId  String       // last message ID included in summary
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
 }

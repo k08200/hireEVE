@@ -1,9 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
+import { compactHistory } from "../context-compressor.js";
 import { prisma } from "../db.js";
+import { loadMemoriesForPrompt } from "../memory.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
 import { PLANS } from "../stripe.js";
 import { ALL_TOOLS, ALWAYS_TOOLS, executeToolCall } from "../tool-executor.js";
+import { withRetry } from "../with-retry.js";
 
 /** Auto-generate conversation title from the first user message (fire-and-forget) */
 async function autoGenerateTitle(conversationId: string, userMessage: string) {
@@ -222,8 +225,19 @@ export async function chatRoutes(app: FastifyInstance) {
     const retryDynamicContext =
       retryContextParts.length > 0 ? `\n\n[현재 상황]\n${retryContextParts.join("\n\n")}` : "";
 
+    // Load user memories for retry too
+    let retryMemoryContext = "";
+    try {
+      retryMemoryContext = await loadMemoriesForPrompt(conversation.userId);
+    } catch {
+      // optional
+    }
+
     const history = [
-      { role: "system" as const, content: EVE_SYSTEM_PROMPT + retryDynamicContext },
+      {
+        role: "system" as const,
+        content: EVE_SYSTEM_PROMPT + retryDynamicContext + retryMemoryContext,
+      },
       ...historyMessages.map((m: { role: string; content: string }) => ({
         role: m.role.toLowerCase() as "user" | "assistant",
         content: m.content,
@@ -310,6 +324,38 @@ export async function chatRoutes(app: FastifyInstance) {
     }
 
     reply.raw.end();
+  });
+
+  // GET /api/chat/search?q=keyword — Search across all conversations
+  app.get("/search", async (request) => {
+    const userId = getUserId(request);
+    const { q } = request.query as { q?: string };
+    if (!q || q.trim().length < 2) {
+      return { results: [] };
+    }
+
+    const messages = await prisma.message.findMany({
+      where: {
+        conversation: { userId },
+        content: { contains: q, mode: "insensitive" },
+      },
+      include: {
+        conversation: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    return {
+      results: messages.map((m: (typeof messages)[number]) => ({
+        messageId: m.id,
+        conversationId: m.conversation.id,
+        conversationTitle: m.conversation.title || "Untitled",
+        role: m.role,
+        content: m.content.length > 200 ? `${m.content.slice(0, 200)}...` : m.content,
+        createdAt: m.createdAt,
+      })),
+    };
   });
 
   // POST /api/chat/conversations/:id/messages — Send message + SSE streaming response
@@ -443,13 +489,22 @@ export async function chatRoutes(app: FastifyInstance) {
     const dynamicContext =
       contextParts.length > 0 ? `\n\n[현재 상황]\n${contextParts.join("\n\n")}` : "";
 
-    // Build message history
+    // Load user memories for personalization (Claude Code memdir/ pattern)
+    let memoryContext = "";
+    try {
+      memoryContext = await loadMemoriesForPrompt(conversation.userId);
+    } catch {
+      // Memory loading is optional
+    }
+
+    // Build message history with auto-compaction (Claude Code compact/ pattern)
+    const compactedMessages = await compactHistory(
+      id,
+      conversation.messages as { id: string; role: string; content: string; createdAt: Date }[],
+    );
     const history = [
-      { role: "system" as const, content: EVE_SYSTEM_PROMPT + dynamicContext },
-      ...conversation.messages.map((m: { role: string; content: string }) => ({
-        role: m.role.toLowerCase() as "user" | "assistant",
-        content: m.content,
-      })),
+      { role: "system" as const, content: EVE_SYSTEM_PROMPT + dynamicContext + memoryContext },
+      ...compactedMessages,
       { role: "user" as const, content },
     ];
 
@@ -465,18 +520,28 @@ export async function chatRoutes(app: FastifyInstance) {
 
     try {
       if (tools.length > 0) {
-        // Function calling loop (non-streaming to handle tool calls)
+        // Function calling loop with auto-retry (Claude Code withRetry pattern)
         const messages: unknown[] = [...history];
         let maxIterations = 5;
 
         console.log("[CHAT] Tools enabled, starting function calling loop");
 
         while (maxIterations-- > 0) {
-          const response = await openai.chat.completions.create({
-            model: MODEL,
-            messages: messages as Parameters<typeof openai.chat.completions.create>[0]["messages"],
-            tools,
-          });
+          const response = await withRetry(
+            () =>
+              openai.chat.completions.create({
+                model: MODEL,
+                messages: messages as Parameters<
+                  typeof openai.chat.completions.create
+                >[0]["messages"],
+                tools,
+              }),
+            {
+              maxRetries: 2,
+              onRetry: (attempt, _err, delay) =>
+                console.log(`[CHAT] LLM retry #${attempt}, waiting ${delay}ms`),
+            },
+          );
 
           const choice = response.choices[0];
           const toolCalls = choice.message.tool_calls;
@@ -517,21 +582,34 @@ export async function chatRoutes(app: FastifyInstance) {
               );
             }
           } else {
+            // Final response after tools — stream via SSE for better UX
             fullResponse = choice.message.content || "";
             console.log("[CHAT] Final response length:", fullResponse.length);
-            reply.raw.write(
-              `data: ${JSON.stringify({ type: "token", content: fullResponse })}\n\n`,
-            );
+
+            // Stream final response in chunks for smoother rendering
+            const chunkSize = 20;
+            for (let i = 0; i < fullResponse.length; i += chunkSize) {
+              const chunk = fullResponse.slice(i, i + chunkSize);
+              reply.raw.write(`data: ${JSON.stringify({ type: "token", content: chunk })}\n\n`);
+            }
             break;
           }
         }
       } else {
-        // Regular streaming (no tools available)
-        const stream = await openai.chat.completions.create({
-          model: MODEL,
-          messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
-          stream: true,
-        });
+        // Regular streaming with auto-retry (no tools available)
+        const stream = await withRetry(
+          () =>
+            openai.chat.completions.create({
+              model: MODEL,
+              messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
+              stream: true,
+            }),
+          {
+            maxRetries: 2,
+            onRetry: (attempt, _err, delay) =>
+              console.log(`[CHAT] Stream retry #${attempt}, waiting ${delay}ms`),
+          },
+        );
 
         for await (const chunk of stream) {
           const delta = chunk.choices[0]?.delta?.content;
@@ -548,6 +626,30 @@ export async function chatRoutes(app: FastifyInstance) {
           data: { conversationId: id, role: "ASSISTANT", content: fullResponse },
         });
       }
+
+      // Track token usage (Claude Code cost-tracker pattern)
+      // Estimate tokens: ~4 chars per token for English, ~2 for Korean
+      const promptChars = history.reduce((sum, m) => sum + m.content.length, 0) + content.length;
+      const completionChars = fullResponse.length;
+      const estimatedPromptTokens = Math.ceil(promptChars / 3);
+      const estimatedCompletionTokens = Math.ceil(completionChars / 3);
+      // biome-ignore lint/suspicious/noExplicitAny: TokenUsage model — types available after prisma generate
+      (prisma as any).tokenUsage
+        .create({
+          data: {
+            userId: conversation.userId,
+            conversationId: id,
+            model: MODEL,
+            promptTokens: estimatedPromptTokens,
+            completionTokens: estimatedCompletionTokens,
+            totalTokens: estimatedPromptTokens + estimatedCompletionTokens,
+            estimatedCost:
+              (estimatedPromptTokens * 0.00015 + estimatedCompletionTokens * 0.0006) / 1000,
+          },
+        })
+        .catch(() => {
+          // Token tracking is non-critical
+        });
 
       // Update conversation timestamp
       await prisma.conversation.update({

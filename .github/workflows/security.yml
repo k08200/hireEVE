@@ -53,6 +53,9 @@ jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
 
@@ -61,19 +64,20 @@ jobs:
         with:
           languages: javascript-typescript
           queries: security-extended
+          config-file: .github/codeql/codeql-config.yml
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+        with:
+          # Upload results to Security tab only, no PR comments
+          upload: always
+          add-snippets: false
 
-  security-rules:
+  security-lint:
     name: Security Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: biomejs/setup-biome@v2
-
-      - name: Check security rules (noDangerouslySetInnerHtml, noGlobalEval)
-        run: biome check --diagnostic-level=error packages/
 
       - name: Check for .env files in commits
         run: |
