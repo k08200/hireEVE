@@ -174,45 +174,6 @@ Keep it concise and actionable. Respond in the same language as the notes.`,
   };
 }
 
-/** Monitor calendar and auto-join meetings (background loop) */
-export function startMeetingMonitor(userId: string): NodeJS.Timeout {
-  console.log("[MEETING] Meeting monitor started for", userId);
-
-  const joinedMeetings = new Set<string>();
-
-  return setInterval(async () => {
-    try {
-      const meetings = await getUpcomingMeetings(userId);
-      const now = Date.now();
-
-      for (const meeting of meetings) {
-        if (joinedMeetings.has(meeting.id)) continue;
-
-        const startTime = new Date(meeting.start).getTime();
-        const minutesUntil = (startTime - now) / 60_000;
-
-        // Auto-join 1 minute before start
-        if (minutesUntil <= 1 && minutesUntil >= -5 && meeting.meetingLink) {
-          console.log(`[MEETING] Auto-joining: ${meeting.summary}`);
-          joinedMeetings.add(meeting.id);
-          await joinMeeting(meeting.meetingLink);
-
-          // Create a note for this meeting
-          await prisma.note.create({
-            data: {
-              userId,
-              title: `Meeting: ${meeting.summary}`,
-              content: `**${meeting.summary}**\n\nTime: ${meeting.start}\nAttendees: ${meeting.attendees.join(", ")}\nLink: ${meeting.meetingLink}\n\n---\n\n_Meeting notes will be added here..._`,
-            },
-          });
-        }
-      }
-    } catch (err) {
-      console.error("[MEETING] Monitor error:", err);
-    }
-  }, 30_000); // Check every 30 seconds
-}
-
 // Tool definitions for function calling
 export const MEETING_TOOLS = [
   {

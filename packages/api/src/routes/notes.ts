@@ -3,16 +3,19 @@ import { getUserId } from "../auth.js";
 import { prisma } from "../db.js";
 
 export async function noteRoutes(app: FastifyInstance) {
-  // GET /api/notes?search=xxx
+  // GET /api/notes?search=xxx&category=xxx
   app.get("/", async (request) => {
     const userId = getUserId(request);
-    const { search } = request.query as { search?: string };
+    const { search, category } = request.query as { search?: string; category?: string };
     const where: Record<string, unknown> = { userId };
     if (search) {
       where.OR = [
         { title: { contains: search, mode: "insensitive" } },
         { content: { contains: search, mode: "insensitive" } },
       ];
+    }
+    if (category && category !== "all") {
+      where.category = category;
     }
 
     const notes = await prisma.note.findMany({
@@ -26,13 +29,14 @@ export async function noteRoutes(app: FastifyInstance) {
   // POST /api/notes
   app.post("/", async (request, reply) => {
     const userId = getUserId(request);
-    const { title, content } = request.body as {
+    const { title, content, category } = request.body as {
       title: string;
       content: string;
+      category?: string;
     };
 
     const note = await prisma.note.create({
-      data: { userId, title, content },
+      data: { userId, title, content, category: category || "general" },
     });
 
     return reply.code(201).send(note);
@@ -41,7 +45,7 @@ export async function noteRoutes(app: FastifyInstance) {
   // PATCH /api/notes/:id
   app.patch("/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const updates = request.body as { title?: string; content?: string };
+    const updates = request.body as { title?: string; content?: string; category?: string };
 
     const note = await prisma.note.update({
       where: { id },

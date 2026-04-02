@@ -6,6 +6,8 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "../background.js";
+import { prisma } from "../db.js";
+import { getVapidPublicKey } from "../push.js";
 
 export async function notificationRoutes(app: FastifyInstance) {
   // GET /api/notifications — Get notifications (supports ?unread=true&limit=50)
@@ -41,6 +43,43 @@ export async function notificationRoutes(app: FastifyInstance) {
   app.delete("/", async (request, reply) => {
     const userId = getUserId(request);
     await clearNotifications(userId);
+    return reply.code(204).send();
+  });
+
+  // GET /api/notifications/vapid-key — Get public VAPID key for push subscription
+  app.get("/vapid-key", async () => {
+    return { publicKey: getVapidPublicKey() };
+  });
+
+  // POST /api/notifications/push/subscribe — Register push subscription
+  app.post("/push/subscribe", async (request, reply) => {
+    const userId = getUserId(request);
+    const { endpoint, keys } = request.body as {
+      endpoint: string;
+      keys: { p256dh: string; auth: string };
+    };
+
+    if (!endpoint || !keys?.p256dh || !keys?.auth) {
+      return reply.code(400).send({ error: "Invalid push subscription" });
+    }
+
+    await prisma.pushSubscription.upsert({
+      where: { endpoint },
+      create: { userId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
+      update: { userId, p256dh: keys.p256dh, auth: keys.auth },
+    });
+
+    return reply.code(201).send({ success: true });
+  });
+
+  // DELETE /api/notifications/push/unsubscribe — Remove push subscription
+  app.delete("/push/unsubscribe", async (request, reply) => {
+    const { endpoint } = request.body as { endpoint: string };
+    if (!endpoint) {
+      return reply.code(400).send({ error: "Endpoint required" });
+    }
+
+    await prisma.pushSubscription.deleteMany({ where: { endpoint } });
     return reply.code(204).send();
   });
 }

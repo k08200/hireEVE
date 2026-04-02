@@ -75,6 +75,12 @@ export default function CommandPalette() {
       action: () => router.push("/reminders"),
     },
     {
+      id: "notifications",
+      label: "Go to Notifications",
+      sublabel: "알림",
+      action: () => router.push("/notifications"),
+    },
+    {
       id: "automations",
       label: "Go to Automations",
       sublabel: "자동화 설정",
@@ -91,6 +97,31 @@ export default function CommandPalette() {
       label: "Go to Billing",
       sublabel: "요금제",
       action: () => router.push("/billing"),
+    },
+    // Quick-create actions
+    {
+      id: "new-task",
+      label: "New task",
+      sublabel: "새 할 일 만들기",
+      action: () => router.push("/tasks?new=1"),
+    },
+    {
+      id: "new-note",
+      label: "New note",
+      sublabel: "새 메모 만들기",
+      action: () => router.push("/notes?new=1"),
+    },
+    {
+      id: "new-reminder",
+      label: "New reminder",
+      sublabel: "새 리마인더 만들기",
+      action: () => router.push("/reminders?new=1"),
+    },
+    {
+      id: "new-contact",
+      label: "New contact",
+      sublabel: "새 연락처 추가",
+      action: () => router.push("/contacts?new=1"),
     },
     {
       id: "shortcuts",

@@ -15,6 +15,7 @@
     "@fastify/cors": "^11.0.1",
     "@hireeve/core": "workspace:*",
     "@prisma/client": "^6.8.2",
+    "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
     "bcryptjs": "^3.0.3",
     "fastify": "^5.3.3",
@@ -23,6 +24,7 @@
     "openai": "^6.29.0",
     "resend": "^6.10.0",
     "stripe": "^18.1.0",
+    "web-push": "^3.6.7",
     "ws": "^8.20.0"
   },
   "devDependencies": {

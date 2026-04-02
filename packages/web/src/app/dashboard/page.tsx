@@ -81,7 +81,15 @@ function DashboardContent() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { connected, connectedClients } = useWebSocket(user?.id || "");
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const { connected, connectedClients, lastNotification } = useWebSocket(user?.id || "");
+
+  // Update notification count when WebSocket notification arrives
+  useEffect(() => {
+    if (lastNotification) {
+      setUnreadNotifs((prev) => prev + 1);
+    }
+  }, [lastNotification]);
 
   useEffect(() => {
     Promise.all([
@@ -93,9 +101,12 @@ function DashboardContent() {
       apiFetch<{ reminders: { status: string }[] }>("/api/reminders").catch(() => ({
         reminders: [],
       })),
-      apiFetch<{ notifications: unknown[]; count: number }>("/api/notifications").catch(() => ({
+      apiFetch<{ notifications: unknown[]; count: number; unread: number }>(
+        "/api/notifications",
+      ).catch(() => ({
         notifications: [],
         count: 0,
+        unread: 0,
       })),
       apiFetch<{ total: number; unread: number; urgent: number }>("/api/email/stats/summary").catch(
         () => ({ total: 0, unread: 0, urgent: 0 }),
@@ -135,7 +146,7 @@ function DashboardContent() {
                 (r: { status: string }) => r.status === "DISMISSED",
               ).length,
             },
-            notifications: notifData.count || 0,
+            notifications: notifData.unread || 0,
             emails: {
               total: emailStats.total || 0,
               unread: emailStats.unread || 0,
@@ -146,6 +157,7 @@ function DashboardContent() {
               nextEvent: calendarSummary.nextEvent?.title || null,
             },
           });
+          setUnreadNotifs(notifData.unread || 0);
         },
       )
       .finally(() => setLoading(false));
@@ -287,6 +299,13 @@ function DashboardContent() {
           href: "/reminders",
           color: "text-yellow-400",
         },
+        {
+          label: "Notifications",
+          value: unreadNotifs.toString(),
+          sub: unreadNotifs > 0 ? "unread" : "All caught up",
+          href: "/notifications",
+          color: unreadNotifs > 0 ? "text-red-400" : "text-gray-400",
+        },
       ]
     : [];
 
@@ -392,7 +411,7 @@ function DashboardContent() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
             {cards.map((c) => (
               <Link
                 key={c.label}

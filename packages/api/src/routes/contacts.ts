@@ -12,6 +12,7 @@ export async function contactRoutes(app: FastifyInstance) {
         { name: { contains: search, mode: "insensitive" } },
         { email: { contains: search, mode: "insensitive" } },
         { company: { contains: search, mode: "insensitive" } },
+        { tags: { contains: search, mode: "insensitive" } },
       ];
     }
     const contacts = await prisma.contact.findMany({ where, orderBy: { name: "asc" } });

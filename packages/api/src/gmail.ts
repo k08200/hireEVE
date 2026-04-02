@@ -25,7 +25,7 @@ export function getAuthUrl(userId?: string) {
   });
 }
 
-/** Google login OAuth URL — only requests profile + email */
+/** Google login OAuth URL — requests profile + email + Gmail + Calendar for one-click setup */
 export function getLoginAuthUrl() {
   const oauth2 = getOAuth2Client();
   return oauth2.generateAuthUrl({
@@ -36,6 +36,10 @@ export function getLoginAuthUrl() {
       "openid",
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.send",
+      "https://www.googleapis.com/auth/gmail.modify",
+      "https://www.googleapis.com/auth/calendar",
     ],
   });
 }
@@ -52,11 +56,10 @@ export async function getGoogleUserInfo(
 }
 
 export async function getAuthedClient(
-  _userId: string,
+  userId: string,
 ): Promise<InstanceType<typeof google.auth.OAuth2> | null> {
-  // MVP: find any google token
   const token = await prisma.userToken.findFirst({
-    where: { provider: "google" },
+    where: { userId, provider: "google" },
   });
 
   if (!token) return null;

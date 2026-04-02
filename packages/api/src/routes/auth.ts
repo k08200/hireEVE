@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { comparePassword, getUserId, hashPassword, signToken, verifyToken } from "../auth.js";
 import { prisma } from "../db.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../email.js";
-import { getAuthUrl, getGoogleUserInfo, getLoginAuthUrl, getOAuth2Client } from "../gmail.js";
+import { getAuthUrl, getAuthedClient, getGoogleUserInfo, getLoginAuthUrl, getOAuth2Client } from "../gmail.js";
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/register — Create account
@@ -41,6 +41,9 @@ export async function authRoutes(app: FastifyInstance) {
 
     // Send verification email (non-blocking)
     sendVerificationEmail(email, verifyToken).catch(() => {});
+
+    // Auto-create AutomationConfig with defaults
+    prisma.automationConfig.create({ data: { userId: user.id } }).catch(() => {});
 
     const token = signToken({ userId: user.id, email: user.email });
     return reply.code(201).send({
@@ -213,6 +216,30 @@ export async function authRoutes(app: FastifyInstance) {
           });
         }
 
+        // Auto-save Google tokens for Gmail/Calendar integration (one-click setup)
+        await prisma.userToken.upsert({
+          where: { userId_provider: { userId: user.id, provider: "google" } },
+          create: {
+            userId: user.id,
+            provider: "google",
+            accessToken: tokens.access_token ?? "",
+            refreshToken: tokens.refresh_token || null,
+            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          },
+          update: {
+            accessToken: tokens.access_token ?? "",
+            refreshToken: tokens.refresh_token || undefined,
+            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          },
+        });
+
+        // Auto-create AutomationConfig with defaults
+        await prisma.automationConfig.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id },
+          update: {},
+        });
+
         const token = signToken({ userId: user.id, email: user.email });
         return reply.redirect(`${webUrl}/auth/callback?token=${token}`);
       }
@@ -380,5 +407,133 @@ export async function authRoutes(app: FastifyInstance) {
 
     await sendVerificationEmail(user.email, verifyToken);
     return reply.send({ success: true });
+  });
+
+  // POST /api/auth/init-sync — Trigger initial sync after login (calendar + email contacts)
+  app.post("/init-sync", async (request) => {
+    const userId = getUserId(request);
+    if (userId === "demo-user") {
+      return { synced: false, reason: "demo-user" };
+    }
+
+    const results: { calendar: number; contacts: number } = { calendar: 0, contacts: 0 };
+
+    // Check if Google is connected
+    const auth = await getAuthedClient(userId);
+    if (!auth) {
+      return { synced: false, reason: "google_not_connected" };
+    }
+
+    // 1. Sync Google Calendar events (next 30 days)
+    try {
+      const { google } = await import("googleapis");
+      const calendar = google.calendar({ version: "v3", auth });
+      const now = new Date();
+      const later = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      const response = await calendar.events.list({
+        calendarId: "primary",
+        timeMin: now.toISOString(),
+        timeMax: later.toISOString(),
+        singleEvents: true,
+        orderBy: "startTime",
+        maxResults: 100,
+      });
+
+      for (const item of response.data.items || []) {
+        const googleId = item.id || "";
+        if (!googleId) continue;
+
+        const startTime = item.start?.dateTime || item.start?.date || "";
+        const endTime = item.end?.dateTime || item.end?.date || "";
+        if (!startTime || !endTime) continue;
+
+        let meetingLink: string | null = null;
+        if (item.conferenceData?.entryPoints) {
+          const video = item.conferenceData.entryPoints.find((e) => e.entryPointType === "video");
+          if (video) meetingLink = video.uri || null;
+        }
+        if (!meetingLink && item.hangoutLink) meetingLink = item.hangoutLink;
+
+        await prisma.calendarEvent.upsert({
+          where: { googleId },
+          create: {
+            userId,
+            title: item.summary || "Untitled",
+            description: item.description || null,
+            startTime: new Date(startTime),
+            endTime: new Date(endTime),
+            location: item.location || null,
+            meetingLink,
+            allDay: !item.start?.dateTime,
+            googleId,
+          },
+          update: {
+            title: item.summary || "Untitled",
+            description: item.description || null,
+            startTime: new Date(startTime),
+            endTime: new Date(endTime),
+            location: item.location || null,
+            meetingLink,
+            allDay: !item.start?.dateTime,
+          },
+        });
+        results.calendar++;
+      }
+    } catch {
+      // Calendar sync failed — continue with other syncs
+    }
+
+    // 2. Auto-add contacts from recent Gmail senders
+    try {
+      const { google } = await import("googleapis");
+      const gmail = google.gmail({ version: "v1", auth });
+      const res = await gmail.users.messages.list({
+        userId: "me",
+        maxResults: 30,
+        labelIds: ["INBOX"],
+      });
+
+      const seenEmails = new Set<string>();
+      for (const msg of res.data.messages || []) {
+        const detail = await gmail.users.messages.get({
+          userId: "me",
+          id: msg.id ?? "",
+          format: "metadata",
+          metadataHeaders: ["From"],
+        });
+        const fromHeader = detail.data.payload?.headers?.find((h) => h.name === "From")?.value || "";
+        const match = fromHeader.match(/<([^>]+)>/) || [null, fromHeader.trim()];
+        const email = (match[1] || "").toLowerCase().trim();
+        if (!email || seenEmails.has(email)) continue;
+        seenEmails.add(email);
+
+        // Skip automated senders
+        if (/noreply|no-reply|newsletter|mailer-daemon|notifications?@/i.test(email)) continue;
+
+        // Extract name
+        const namePart = fromHeader.replace(/<[^>]+>/, "").replace(/"/g, "").trim();
+        const name = namePart || email.split("@")[0];
+
+        // Only add if not already exists
+        const exists = await prisma.contact.findFirst({
+          where: { userId, email },
+        });
+        if (!exists) {
+          try {
+            await prisma.contact.create({
+              data: { userId, name, email, tags: "auto-added" },
+            });
+            results.contacts++;
+          } catch {
+            // Race condition or duplicate — skip
+          }
+        }
+      }
+    } catch {
+      // Gmail contact sync failed — skip
+    }
+
+    return { synced: true, ...results };
   });
 }

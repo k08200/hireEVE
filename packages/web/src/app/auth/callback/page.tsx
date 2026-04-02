@@ -1,11 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
+import { useAuth } from "../../../lib/auth";
 
 function CallbackHandler() {
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const { loginWithToken } = useAuth();
   const handled = useRef(false);
 
   useEffect(() => {
@@ -14,12 +15,14 @@ function CallbackHandler() {
 
     const token = searchParams.get("token");
     if (token) {
-      localStorage.setItem("eve-token", token);
-      router.replace("/chat");
+      // loginWithToken stores token, verifies user, triggers init-sync, then navigates to /chat
+      loginWithToken(token).catch(() => {
+        window.location.href = "/login?error=google_failed";
+      });
     } else {
-      router.replace("/login?error=google_failed");
+      window.location.href = "/login?error=google_failed";
     }
-  }, [searchParams, router]);
+  }, [searchParams, loginWithToken]);
 
   return (
     <div className="flex items-center justify-center h-screen">

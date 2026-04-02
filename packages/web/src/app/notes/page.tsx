@@ -44,19 +44,8 @@ export default function NotesPage() {
   const [editCategory, setEditCategory] = useState("general");
   const [previewing, setPreviewing] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [noteCategories, setNoteCategories] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const { confirm } = useConfirm();
-
-  // Load note categories from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("eve-note-categories");
-      if (stored) setNoteCategories(JSON.parse(stored));
-    } catch {
-      // ignore
-    }
-  }, []);
 
   const loadNotes = useCallback(() => {
     const params = new URLSearchParams();
@@ -76,7 +65,7 @@ export default function NotesPage() {
     setEditing(note);
     setEditTitle(note.title);
     setEditContent(note.content);
-    setEditCategory(noteCategories[note.id] || "general");
+    setEditCategory(note.category || "general");
     setPreviewing(false);
   };
 
@@ -85,12 +74,8 @@ export default function NotesPage() {
     await fetch(`${API_BASE}/api/notes/${editing.id}`, {
       method: "PATCH",
       headers: authHeaders(),
-      body: JSON.stringify({ title: editTitle, content: editContent }),
+      body: JSON.stringify({ title: editTitle, content: editContent, category: editCategory }),
     });
-    // Save category to localStorage
-    const updated = { ...noteCategories, [editing.id]: editCategory };
-    setNoteCategories(updated);
-    localStorage.setItem("eve-note-categories", JSON.stringify(updated));
     setEditing(null);
     loadNotes();
     toast("Note saved", "success");
@@ -282,10 +267,10 @@ export default function NotesPage() {
             {notes
               .filter((note) => {
                 if (categoryFilter === "all") return true;
-                return (noteCategories[note.id] || "general") === categoryFilter;
+                return (note.category || "general") === categoryFilter;
               })
               .map((note) => {
-                const cat = noteCategories[note.id] || "general";
+                const cat = note.category || "general";
                 return (
                   <button
                     type="button"

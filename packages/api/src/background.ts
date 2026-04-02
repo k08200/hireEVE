@@ -2,24 +2,39 @@
  * Background Agent — EVE's autonomous brain
  *
  * Runs periodic checks:
- * 1. Due reminders → notify user
- * 2. Upcoming calendar events → pre-meeting briefing
- * 3. Overdue tasks → escalation
- * 4. Daily briefing → auto-generate at configured time
+ * 1. Overdue tasks → escalation
+ * 2. Due-soon tasks → advance warning (24h)
+ * 3. Upcoming calendar events → pre-meeting notification
+ *
+ * NOTE: Reminders are handled by reminder-scheduler.ts
+ *       Daily briefing & email classify are handled by automation-scheduler.ts
  *
  * Notifications are persisted to PostgreSQL (Notification model).
  */
 
 import { prisma } from "./db.js";
-import { classifyEmails } from "./gmail.js";
 import { getUpcomingMeetings } from "./meeting.js";
-import { checkDueReminders } from "./reminders.js";
 import { pushNotification } from "./websocket.js";
 
 // Track already-notified items to prevent duplicates within a single server lifecycle
+// Uses date-scoped keys to auto-expire: "task:uuid:2026-04-02"
 const notifiedIds: Set<string> = new Set();
-// Track last briefing date per user to avoid duplicates
-const lastBriefingDate: Map<string, string> = new Map();
+
+/** Get today's date string for scoping notification keys */
+function todayKey(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+/** Clean up old notification keys (keep only today's) */
+function pruneNotifiedIds() {
+  const today = todayKey();
+  for (const key of notifiedIds) {
+    const datePart = key.split(":").pop();
+    if (datePart && datePart !== today && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+      notifiedIds.delete(key);
+    }
+  }
+}
 
 async function addNotification(
   userId: string,
@@ -104,39 +119,19 @@ export async function clearNotifications(userId: string): Promise<void> {
   await prisma.notification.deleteMany({ where: { userId } });
 }
 
-async function checkReminders() {
-  try {
-    const due = await checkDueReminders();
-    for (const r of due) {
-      const key = `reminder:${r.id}`;
-      if (notifiedIds.has(key)) continue;
-      notifiedIds.add(key);
-
-      await addNotification(r.userId, {
-        type: "reminder",
-        title: r.title,
-        message: r.description || `리마인더: ${r.title}`,
-      });
-      console.log(`[BG] Reminder due: "${r.title}" for user ${r.userId}`);
-    }
-  } catch (err) {
-    console.error("[BG] Error checking reminders:", err);
-  }
-}
-
 async function checkOverdueTasks() {
   try {
     const now = new Date();
+    const today = todayKey();
     const overdue = await prisma.task.findMany({
       where: {
         status: { not: "DONE" },
         dueDate: { lt: now },
       },
-      include: { user: true },
     });
 
     for (const task of overdue) {
-      const key = `task:${task.id}`;
+      const key = `task:${task.id}:${today}`;
       if (notifiedIds.has(key)) continue;
       notifiedIds.add(key);
 
@@ -155,9 +150,45 @@ async function checkOverdueTasks() {
   }
 }
 
+async function checkDueSoonTasks() {
+  try {
+    const now = new Date();
+    const today = todayKey();
+    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const dueSoon = await prisma.task.findMany({
+      where: {
+        status: { not: "DONE" },
+        dueDate: { gt: now, lte: in24h },
+      },
+    });
+
+    for (const task of dueSoon) {
+      const key = `task-soon:${task.id}:${today}`;
+      if (notifiedIds.has(key)) continue;
+      notifiedIds.add(key);
+
+      const hoursLeft = Math.round(
+        (task.dueDate!.getTime() - now.getTime()) / (60 * 60 * 1000),
+      );
+
+      await addNotification(task.userId, {
+        type: "task",
+        title: `마감 임박: ${task.title}`,
+        message: `"${task.title}" 태스크가 ${hoursLeft}시간 후 마감입니다.`,
+      });
+    }
+
+    if (dueSoon.length > 0) {
+      console.log(`[BG] Found ${dueSoon.length} tasks due within 24h`);
+    }
+  } catch (err) {
+    console.error("[BG] Error checking due-soon tasks:", err);
+  }
+}
+
 async function checkUpcomingMeetings() {
   try {
-    // Check all users who have Google connected
+    // Check all users who have Google connected AND meeting automation enabled
     const usersWithGoogle = await prisma.userToken.findMany({
       where: { provider: "google" },
       select: { userId: true },
@@ -166,6 +197,12 @@ async function checkUpcomingMeetings() {
     const now = Date.now();
 
     for (const { userId } of usersWithGoogle) {
+      // Check if user has meetingAutoJoin enabled
+      const config = await prisma.automationConfig.findUnique({
+        where: { userId },
+      });
+      if (config && !config.meetingAutoJoin) continue;
+
       try {
         const meetings = await getUpcomingMeetings(userId);
 
@@ -179,13 +216,28 @@ async function checkUpcomingMeetings() {
             if (notifiedIds.has(key)) continue;
             notifiedIds.add(key);
 
+            const msg = meeting.meetingLink
+              ? `참가 링크: ${meeting.meetingLink}`
+              : `${meeting.summary} 곧 시작합니다`;
+
             await addNotification(userId, {
               type: "meeting",
               title: `${Math.ceil(minutesUntil)}분 후 회의: ${meeting.summary}`,
-              message: meeting.meetingLink
-                ? `참가: ${meeting.meetingLink}`
-                : `${meeting.summary} 곧 시작합니다`,
+              message: msg,
             });
+
+            // Also send browser push with meeting link
+            try {
+              const { sendPushNotification } = await import("./push.js");
+              sendPushNotification(userId, {
+                title: `${Math.ceil(minutesUntil)}분 후 회의`,
+                body: meeting.summary,
+                url: meeting.meetingLink || "/calendar",
+              });
+            } catch {
+              // Push not available
+            }
+
             console.log(
               `[BG] Upcoming meeting: "${meeting.summary}" in ${Math.ceil(minutesUntil)}min for user ${userId}`,
             );
@@ -200,107 +252,6 @@ async function checkUpcomingMeetings() {
   }
 }
 
-async function checkDailyBriefing() {
-  try {
-    // Get all users with dailyBriefing enabled
-    const configs = await prisma.automationConfig.findMany({
-      where: { dailyBriefing: true },
-      include: { user: true },
-    });
-
-    const now = new Date();
-    const kstHour = new Date(now.getTime() + 9 * 60 * 60 * 1000).getUTCHours();
-    const kstMinute = new Date(now.getTime() + 9 * 60 * 60 * 1000).getUTCMinutes();
-    const today = now.toISOString().split("T")[0];
-
-    for (const config of configs) {
-      const [targetHour, targetMinute] = config.briefingTime.split(":").map(Number);
-
-      // Check if it's within the target time window (±2 minutes)
-      if (kstHour === targetHour && Math.abs(kstMinute - targetMinute) <= 2) {
-        // Check if we already sent today
-        const lastDate = lastBriefingDate.get(config.userId);
-        if (lastDate === today) continue;
-
-        lastBriefingDate.set(config.userId, today);
-
-        console.log(`[BG] Generating daily briefing for user ${config.userId}`);
-
-        // Generate briefing asynchronously
-        try {
-          const { default: generateBriefing } = await import("./briefing.js");
-          const briefing = await generateBriefing(config.userId);
-
-          // Save as note
-          await prisma.note.create({
-            data: {
-              userId: config.userId,
-              title: `Daily Briefing — ${now.toLocaleDateString("ko-KR")}`,
-              content: briefing,
-            },
-          });
-
-          // Notify user
-          await addNotification(config.userId, {
-            type: "briefing",
-            title: "오늘의 브리핑이 준비되었습니다",
-            message: briefing.slice(0, 200) + (briefing.length > 200 ? "..." : ""),
-          });
-        } catch (err) {
-          console.error(`[BG] Failed to generate briefing for ${config.userId}:`, err);
-        }
-      }
-    }
-  } catch (err) {
-    console.error("[BG] Error checking daily briefing:", err);
-  }
-}
-
-// Track last email check time per user (check every 5 minutes, not every 60s)
-const lastEmailCheck: Map<string, number> = new Map();
-
-async function checkUrgentEmails() {
-  try {
-    const configs = await prisma.automationConfig.findMany({
-      where: { emailAutoClassify: true },
-      select: { userId: true },
-    });
-
-    const now = Date.now();
-
-    for (const { userId } of configs) {
-      // Only check every 5 minutes per user to avoid API rate limits
-      const lastCheck = lastEmailCheck.get(userId) || 0;
-      if (now - lastCheck < 5 * 60_000) continue;
-      lastEmailCheck.set(userId, now);
-
-      try {
-        const result = await classifyEmails(userId, 5);
-        if ("error" in result || !("summary" in result)) continue;
-
-        const urgent = result.emails.filter((e) => e.priority === "high");
-
-        for (const email of urgent) {
-          const key = `email:${email.id}`;
-          if (notifiedIds.has(key)) continue;
-          notifiedIds.add(key);
-
-          await addNotification(userId, {
-            type: "email",
-            title: `긴급 메일: ${email.subject}`,
-            message: `From: ${email.from}`,
-          });
-          console.log(`[BG] Urgent email for user ${userId}: "${email.subject}"`);
-        }
-      } catch {
-        // Gmail might not be connected or token expired
-      }
-    }
-  } catch (err) {
-    console.error("[BG] Error checking urgent emails:", err);
-  }
-}
-
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 export function startBackgroundAgent() {
@@ -309,17 +260,16 @@ export function startBackgroundAgent() {
   console.log("[BG] Background agent started (60s interval)");
 
   // Run immediately once
-  checkReminders();
   checkOverdueTasks();
+  checkDueSoonTasks();
   checkUpcomingMeetings();
 
   // Then every 60 seconds
   intervalId = setInterval(async () => {
-    await checkReminders();
+    pruneNotifiedIds();
     await checkOverdueTasks();
+    await checkDueSoonTasks();
     await checkUpcomingMeetings();
-    await checkDailyBriefing();
-    await checkUrgentEmails();
   }, 60_000);
 }
 

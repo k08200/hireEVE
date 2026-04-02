@@ -100,6 +100,90 @@ export async function calendarRoutes(app: FastifyInstance) {
     }
   });
 
+  // Sync from Google Calendar
+  app.post("/sync", async (request) => {
+    const uid = getUserId(request);
+
+    const token = await prisma.userToken.findFirst({
+      where: { userId: uid, provider: "google" },
+    });
+    if (!token) {
+      return { error: "Google not connected", synced: 0 };
+    }
+
+    try {
+      const { google } = await import("googleapis");
+      const auth = new google.auth.OAuth2();
+      auth.setCredentials({
+        access_token: token.accessToken,
+        refresh_token: token.refreshToken,
+      });
+
+      const calendar = google.calendar({ version: "v3", auth });
+      const now = new Date();
+      const later = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // next 30 days
+
+      const response = await calendar.events.list({
+        calendarId: "primary",
+        timeMin: now.toISOString(),
+        timeMax: later.toISOString(),
+        singleEvents: true,
+        orderBy: "startTime",
+        maxResults: 100,
+      });
+
+      let synced = 0;
+      for (const item of response.data.items || []) {
+        const googleId = item.id || "";
+        if (!googleId) continue;
+
+        const startTime = item.start?.dateTime || item.start?.date || "";
+        const endTime = item.end?.dateTime || item.end?.date || "";
+        if (!startTime || !endTime) continue;
+
+        // Extract meeting link
+        let meetingLink: string | null = null;
+        if (item.conferenceData?.entryPoints) {
+          const video = item.conferenceData.entryPoints.find((e) => e.entryPointType === "video");
+          if (video) meetingLink = video.uri || null;
+        }
+        if (!meetingLink && item.hangoutLink) meetingLink = item.hangoutLink;
+
+        const data = {
+          userId: uid,
+          title: item.summary || "Untitled",
+          description: item.description || null,
+          startTime: new Date(startTime),
+          endTime: new Date(endTime),
+          location: item.location || null,
+          meetingLink,
+          allDay: !item.start?.dateTime,
+          googleId,
+        };
+
+        // Upsert by googleId
+        await prisma.calendarEvent.upsert({
+          where: { googleId },
+          create: data,
+          update: {
+            title: data.title,
+            description: data.description,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            location: data.location,
+            meetingLink: data.meetingLink,
+            allDay: data.allDay,
+          },
+        });
+        synced++;
+      }
+
+      return { success: true, synced };
+    } catch {
+      return { error: "Failed to sync. Please reconnect Google.", synced: 0 };
+    }
+  });
+
   // Today's schedule summary
   app.get("/today/summary", async (request) => {
     const uid = getUserId(request);

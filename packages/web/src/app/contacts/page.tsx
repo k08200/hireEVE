@@ -405,6 +405,11 @@ export default function ContactsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{c.name}</span>
+                      {c.tags?.includes("auto-added") && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-700/60 text-gray-400">
+                          auto
+                        </span>
+                      )}
                       {c.company && <span className="text-xs text-gray-500">@ {c.company}</span>}
                       {c.role && <span className="text-xs text-gray-600">{c.role}</span>}
                     </div>

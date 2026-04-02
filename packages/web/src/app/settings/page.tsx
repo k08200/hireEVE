@@ -51,9 +51,29 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [pushStatus, setPushStatus] = useState<"unsupported" | "default" | "granted" | "denied">(
+    "default",
+  );
+  const [hasPassword, setHasPassword] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
+
+  // Check push notification support and permission
+  useEffect(() => {
+    if (!("Notification" in window) || !("PushManager" in window)) {
+      setPushStatus("unsupported");
+    } else {
+      setPushStatus(Notification.permission as "default" | "granted" | "denied");
+    }
+  }, []);
+
+  // Check if user has a password set (OAuth users may not)
+  useEffect(() => {
+    apiFetch<{ hasPassword: boolean }>("/api/auth/has-password")
+      .then((d) => setHasPassword(d.hasPassword))
+      .catch(() => {});
+  }, []);
 
   // Load profile from auth + localStorage
   useEffect(() => {
@@ -90,6 +110,74 @@ export default function SettingsPage() {
     setProfileSaved(true);
     toast("Profile saved / 프로필 저장됨", "success");
     setTimeout(() => setProfileSaved(false), 2000);
+  };
+
+  const enablePush = async () => {
+    if (!("Notification" in window)) return;
+    const permission = await Notification.requestPermission();
+    setPushStatus(permission as "granted" | "denied" | "default");
+    if (permission === "granted") {
+      toast("Push notifications enabled", "success");
+      // Re-trigger subscription registration
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
+        const { publicKey } = await res.json();
+        if (publicKey) {
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
+          });
+          const subJson = sub.toJSON();
+          await fetch(`${API_BASE}/api/notifications/push/subscribe`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
+          });
+        }
+      }
+    } else if (permission === "denied") {
+      toast("Push notifications blocked by browser", "error");
+    }
+  };
+
+  const disablePush = async () => {
+    if (!("serviceWorker" in navigator)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      await fetch(`${API_BASE}/api/notifications/push/unsubscribe`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        body: JSON.stringify({ endpoint }),
+      });
+    }
+    setPushStatus("default");
+    toast("Push notifications disabled", "info");
+  };
+
+  const setPasswordForOAuth = async () => {
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      toast("Password must be at least 6 characters", "error");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await apiFetch("/api/auth/set-password", {
+        method: "POST",
+        body: JSON.stringify({ newPassword }),
+      });
+      toast("Password set successfully / 비밀번호 설정 완료", "success");
+      setNewPassword("");
+      setHasPassword(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      toast(msg, "error");
+    }
+    setPasswordLoading(false);
   };
 
   const changePassword = async () => {
@@ -309,43 +397,121 @@ export default function SettingsPage() {
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-gray-300 mb-3">Security / 보안</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
+            {hasPassword ? (
+              <>
+                <div>
+                  <label htmlFor="current-pw" className="block text-sm text-gray-400 mb-1">
+                    Current Password / 현재 비밀번호
+                  </label>
+                  <input
+                    id="current-pw"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Current password"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
+                    New Password / 새 비밀번호
+                  </label>
+                  <input
+                    id="new-pw"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    minLength={6}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={changePassword}
+                    disabled={passwordLoading || !currentPassword || !newPassword}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    {passwordLoading ? "Changing..." : "Change Password / 변경"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-400">
+                  You signed in with Google. Set a password to also log in with email.
+                  <br />
+                  <span className="text-gray-500">
+                    Google로 가입하셨습니다. 이메일 로그인을 위해 비밀번호를 설정하세요.
+                  </span>
+                </p>
+                <div>
+                  <label htmlFor="set-pw" className="block text-sm text-gray-400 mb-1">
+                    New Password / 비밀번호
+                  </label>
+                  <input
+                    id="set-pw"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    minLength={6}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={setPasswordForOAuth}
+                    disabled={passwordLoading || !newPassword}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    {passwordLoading ? "Setting..." : "Set Password / 설정"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* Notifications */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Notifications / 알림</h2>
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
             <div>
-              <label htmlFor="current-pw" className="block text-sm text-gray-400 mb-1">
-                Current Password / 현재 비밀번호
-              </label>
-              <input
-                id="current-pw"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Current password"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
-              />
+              <h3 className="font-medium">Push Notifications</h3>
+              <p className="text-sm text-gray-400">
+                {pushStatus === "unsupported"
+                  ? "Not supported in this browser"
+                  : pushStatus === "granted"
+                    ? "Enabled — you'll receive alerts for reminders, briefings, and emails"
+                    : pushStatus === "denied"
+                      ? "Blocked by browser — update in browser settings"
+                      : "Get notified about reminders, briefings, and important emails"}
+              </p>
             </div>
-            <div>
-              <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
-                New Password / 새 비밀번호
-              </label>
-              <input
-                id="new-pw"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                minLength={6}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
-              />
-            </div>
-            <div className="flex justify-end">
+            {pushStatus === "unsupported" || pushStatus === "denied" ? (
+              <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                {pushStatus === "denied" ? "Blocked" : "Unavailable"}
+              </span>
+            ) : pushStatus === "granted" ? (
               <button
                 type="button"
-                onClick={changePassword}
-                disabled={passwordLoading || !currentPassword || !newPassword}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                onClick={disablePush}
+                className="text-sm text-gray-400 hover:text-red-400 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg font-medium transition border border-gray-700"
               >
-                {passwordLoading ? "Changing..." : "Change Password / 변경"}
+                Disable
               </button>
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={enablePush}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                Enable
+              </button>
+            )}
           </div>
         </section>
 
@@ -534,4 +700,15 @@ export default function SettingsPage() {
       </main>
     </AuthGuard>
   );
+}
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) {
+    arr[i] = raw.charCodeAt(i);
+  }
+  return arr;
 }
