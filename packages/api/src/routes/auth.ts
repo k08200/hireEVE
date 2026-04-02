@@ -163,6 +163,44 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.send({ success: true });
   });
 
+  // POST /api/auth/set-password — Set password for OAuth users who don't have one
+  app.post("/set-password", async (request, reply) => {
+    const userId = getUserId(request);
+    if (userId === "demo-user") {
+      return reply.code(403).send({ error: "Demo user cannot set password" });
+    }
+
+    const { newPassword } = request.body as { newPassword: string };
+    if (!newPassword || newPassword.length < 6) {
+      return reply.code(400).send({ error: "Password must be at least 6 characters" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return reply.code(404).send({ error: "User not found" });
+    }
+    if (user.passwordHash) {
+      return reply.code(400).send({ error: "Password already set. Use change-password instead." });
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: await hashPassword(newPassword) },
+    });
+
+    return reply.send({ success: true });
+  });
+
+  // GET /api/auth/has-password — Check if user has a password set
+  app.get("/has-password", async (request, reply) => {
+    const userId = getUserId(request);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    return reply.send({ hasPassword: !!user?.passwordHash });
+  });
+
   // GET /api/auth/google/login — Start Google social login flow
   app.get("/google/login", async (_request, reply) => {
     const url = getLoginAuthUrl();

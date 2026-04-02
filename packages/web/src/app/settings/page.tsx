@@ -75,13 +75,6 @@ export default function SettingsPage() {
     }
   }, []);
 
-  // Check if user has a password set (OAuth users may not)
-  useEffect(() => {
-    apiFetch<{ hasPassword: boolean }>("/api/auth/has-password")
-      .then((d) => setHasPassword(d.hasPassword))
-      .catch(() => {});
-  }, []);
-
   // Load profile from auth + localStorage
   useEffect(() => {
     if (user?.name) {
@@ -100,6 +93,10 @@ export default function SettingsPage() {
     } catch {
       // ignore
     }
+    // Check if user has a password set
+    apiFetch<{ hasPassword: boolean }>("/api/auth/has-password")
+      .then((d) => setHasPassword(d.hasPassword))
+      .catch(() => {});
   }, [user]);
 
   const saveProfile = async () => {
@@ -165,28 +162,6 @@ export default function SettingsPage() {
     toast("Push notifications disabled", "info");
   };
 
-  const setPasswordForOAuth = async () => {
-    if (!newPassword) return;
-    if (newPassword.length < 6) {
-      toast("Password must be at least 6 characters", "error");
-      return;
-    }
-    setPasswordLoading(true);
-    try {
-      await apiFetch("/api/auth/set-password", {
-        method: "POST",
-        body: JSON.stringify({ newPassword }),
-      });
-      toast("Password set successfully / 비밀번호 설정 완료", "success");
-      setNewPassword("");
-      setHasPassword(true);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed";
-      toast(msg, "error");
-    }
-    setPasswordLoading(false);
-  };
-
   const changePassword = async () => {
     if (!currentPassword || !newPassword) return;
     if (newPassword.length < 6) {
@@ -202,6 +177,38 @@ export default function SettingsPage() {
       toast("Password changed / 비밀번호 변경됨", "success");
       setCurrentPassword("");
       setNewPassword("");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed";
+      const match = msg.match(/API \d+: (.+)/);
+      const parsed = match
+        ? (() => {
+            try {
+              return JSON.parse(match[1]).error;
+            } catch {
+              return match[1];
+            }
+          })()
+        : msg;
+      toast(parsed, "error");
+    }
+    setPasswordLoading(false);
+  };
+
+  const setPasswordForOAuth = async () => {
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      toast("Password must be at least 6 characters", "error");
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await apiFetch("/api/auth/set-password", {
+        method: "POST",
+        body: JSON.stringify({ newPassword }),
+      });
+      toast("Password set! / 비밀번호 설정됨", "success");
+      setNewPassword("");
+      setHasPassword(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed";
       const match = msg.match(/API \d+: (.+)/);
@@ -554,6 +561,7 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
+<<<<<<< HEAD
           </div>
         </section>
 
