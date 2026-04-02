@@ -1,0 +1,95 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly on Monday at 09:00 UTC
+    - cron: "0 9 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for known vulnerabilities
+        run: pnpm audit --prod || true
+
+      - name: Check for outdated critical packages
+        run: |
+          echo "## Checking critical packages for updates..."
+          pnpm outdated --filter "@hireeve/*" || true
+
+  secrets-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for hardcoded secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  security-rules:
+    name: Security Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: biomejs/setup-biome@v2
+
+      - name: Check security rules (noDangerouslySetInnerHtml, noGlobalEval)
+        run: biome check --diagnostic-level=error packages/
+
+      - name: Check for .env files in commits
+        run: |
+          if find packages/ -name ".env" -o -name ".env.local" -o -name ".env.production" | grep -q .; then
+            echo "::error::Found .env files in repository! These should be in .gitignore"
+            exit 1
+          fi
+
+      - name: Check for hardcoded credentials patterns
+        run: |
+          PATTERNS="password\s*=\s*['\"][^'\"]+['\"]|api[_-]?key\s*=\s*['\"][^'\"]+['\"]|secret\s*=\s*['\"][^'\"]+['\"]"
+          if grep -rEn "$PATTERNS" packages/ --include="*.ts" --include="*.tsx" \
+            | grep -v "node_modules" \
+            | grep -v "\.d\.ts" \
+            | grep -v "placeholder\|example\|test\|mock\|TODO\|process\.env\|env\.\|getenv\|import" \
+            | grep -v "password.*=.*\"\"" \
+            | head -20; then
+            echo "::warning::Potential hardcoded credentials found — review above matches"
+          fi

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -12,14 +12,37 @@
     "rules": {
       "recommended": true,
       "style": {
-        "noNonNullAssertion": "warn"
+        "noNonNullAssertion": "warn",
+        "useConst": "error",
+        "useTemplate": "warn",
+        "useExponentiationOperator": "warn"
       },
       "suspicious": {
         "noAssignInExpressions": "warn",
-        "noArrayIndexKey": "warn"
+        "noArrayIndexKey": "warn",
+        "noExplicitAny": "warn",
+        "noDoubleEquals": "error",
+        "noDuplicateObjectKeys": "error",
+        "noFallthroughSwitchClause": "error",
+        "noRedeclare": "error",
+        "noShadowRestrictedNames": "error",
+        "useAwait": "warn",
+        "noConsole": "warn",
+        "noVar": "error"
       },
       "correctness": {
-        "useExhaustiveDependencies": "warn"
+        "useExhaustiveDependencies": "warn",
+        "noUnusedVariables": "warn",
+        "noUnusedImports": "warn"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "error",
+        "noGlobalEval": "error"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "warn",
+        "noForEach": "warn",
+        "useFlatMap": "warn"
       },
       "a11y": {
         "noLabelWithoutControl": "warn",
@@ -27,7 +50,8 @@
         "useKeyWithClickEvents": "warn",
         "noStaticElementInteractions": "warn",
         "noAutofocus": "warn",
-        "noSvgWithoutTitle": "warn"
+        "noSvgWithoutTitle": "warn",
+        "useSemanticElements": "warn"
       }
     }
   },
@@ -45,11 +69,6 @@
   },
   "files": {
     "includes": ["packages/**"],
-    "experimentalScannerIgnores": [
-      "node_modules/**",
-      "dist/**",
-      ".next/**",
-      "prisma/migrations/**"
-    ]
+    "experimentalScannerIgnores": ["node_modules/**", "dist/**", ".next/**", "prisma/migrations/**"]
   }
 }
