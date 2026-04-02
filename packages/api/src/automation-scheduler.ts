@@ -126,7 +126,9 @@ async function runAutomations() {
 
               let meetingLink: string | null = null;
               if (item.conferenceData?.entryPoints) {
-                const video = item.conferenceData.entryPoints.find((e) => e.entryPointType === "video");
+                const video = item.conferenceData.entryPoints.find(
+                  (e) => e.entryPointType === "video",
+                );
                 if (video) meetingLink = video.uri || null;
               }
               if (!meetingLink && item.hangoutLink) meetingLink = item.hangoutLink;

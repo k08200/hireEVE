@@ -62,7 +62,17 @@ app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOS
 // User data management — "me" routes use auth token
 app.get("/api/user/me/export", async (request) => {
   const userId = getUserId(request);
-  const [tasks, notes, contacts, reminders, conversations, calendarEvents, notifications, automationConfig, agentLogs] = await Promise.all([
+  const [
+    tasks,
+    notes,
+    contacts,
+    reminders,
+    conversations,
+    calendarEvents,
+    notifications,
+    automationConfig,
+    agentLogs,
+  ] = await Promise.all([
     prisma.task.findMany({ where: { userId } }),
     prisma.note.findMany({ where: { userId } }),
     prisma.contact.findMany({ where: { userId } }),
@@ -74,9 +84,25 @@ app.get("/api/user/me/export", async (request) => {
     prisma.calendarEvent.findMany({ where: { userId } }),
     prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.automationConfig.findUnique({ where: { userId } }),
-    (prisma as any).agentLog.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
+    (prisma as any).agentLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    }),
   ]);
-  return { tasks, notes, contacts, reminders, conversations, calendarEvents, notifications, automationConfig, agentLogs, exportedAt: new Date().toISOString() };
+  return {
+    tasks,
+    notes,
+    contacts,
+    reminders,
+    conversations,
+    calendarEvents,
+    notifications,
+    automationConfig,
+    agentLogs,
+    exportedAt: new Date().toISOString(),
+  };
 });
 
 app.delete("/api/user/me/data", async (request, reply) => {
@@ -84,6 +110,7 @@ app.delete("/api/user/me/data", async (request, reply) => {
   await prisma.$transaction(async (tx) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
     await (tx as any).agentLog.deleteMany({ where: { userId } });
     await tx.automationConfig.deleteMany({ where: { userId } });
     await tx.calendarEvent.deleteMany({ where: { userId } });
@@ -101,7 +128,17 @@ app.delete("/api/user/me/data", async (request, reply) => {
 // User data export/delete — authenticated
 app.get("/api/user/export", async (request) => {
   const userId = getUserId(request);
-  const [tasks, notes, contacts, reminders, conversations, calendarEvents, notifications, automationConfig, agentLogs] = await Promise.all([
+  const [
+    tasks,
+    notes,
+    contacts,
+    reminders,
+    conversations,
+    calendarEvents,
+    notifications,
+    automationConfig,
+    agentLogs,
+  ] = await Promise.all([
     prisma.task.findMany({ where: { userId } }),
     prisma.note.findMany({ where: { userId } }),
     prisma.contact.findMany({ where: { userId } }),
@@ -113,7 +150,12 @@ app.get("/api/user/export", async (request) => {
     prisma.calendarEvent.findMany({ where: { userId } }),
     prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.automationConfig.findUnique({ where: { userId } }),
-    (prisma as any).agentLog.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
+    (prisma as any).agentLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    }),
   ]);
   return {
     tasks,
@@ -134,6 +176,7 @@ app.delete("/api/user/data", async (request, reply) => {
   await prisma.$transaction(async (tx) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
     await (tx as any).agentLog.deleteMany({ where: { userId } });
     await tx.automationConfig.deleteMany({ where: { userId } });
     await tx.calendarEvent.deleteMany({ where: { userId } });

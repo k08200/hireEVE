@@ -245,7 +245,9 @@ export default function SettingsPage() {
 
   // Load agent config
   useEffect(() => {
-    apiFetch<{ autonomousAgent?: boolean; agentMode?: string; agentIntervalMin?: number }>("/api/automations")
+    apiFetch<{ autonomousAgent?: boolean; agentMode?: string; agentIntervalMin?: number }>(
+      "/api/automations",
+    )
       .then((d) => {
         setAgentEnabled(d.autonomousAgent ?? true);
         setAgentMode((d.agentMode as "SUGGEST" | "AUTO") ?? "SUGGEST");
@@ -561,7 +563,6 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
-<<<<<<< HEAD
           </div>
         </section>
 

@@ -167,9 +167,8 @@ async function checkDueSoonTasks() {
       if (notifiedIds.has(key)) continue;
       notifiedIds.add(key);
 
-      const hoursLeft = Math.round(
-        (task.dueDate!.getTime() - now.getTime()) / (60 * 60 * 1000),
-      );
+      // biome-ignore lint/style/noNonNullAssertion: filtered by dueDate != null above
+      const hoursLeft = Math.round((task.dueDate!.getTime() - now.getTime()) / (60 * 60 * 1000));
 
       await addNotification(task.userId, {
         type: "task",

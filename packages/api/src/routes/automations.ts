@@ -83,7 +83,7 @@ export async function automationRoutes(app: FastifyInstance) {
     const userId = getUserId(request);
     const { limit, offset } = (request.query || {}) as { limit?: string; offset?: string };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
     const logs = await (prisma as any).agentLog.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },

@@ -151,7 +151,10 @@ function parseFromHeader(from: string): { name: string; email: string } | null {
   // "Display Name <email@domain.com>"
   const match = from.match(/^(.+?)\s*<([^>]+)>$/);
   if (match) {
-    return { name: match[1].replace(/^["']|["']$/g, "").trim(), email: match[2].trim().toLowerCase() };
+    return {
+      name: match[1].replace(/^["']|["']$/g, "").trim(),
+      email: match[2].trim().toLowerCase(),
+    };
   }
 
   // Plain "email@domain.com"

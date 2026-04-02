@@ -58,7 +58,7 @@ async function logAgentAction(
   reasoning?: string,
 ) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types yet
     await (prisma as any).agentLog.create({
       data: { userId, action, summary, tool, reasoning },
     });
@@ -88,9 +88,7 @@ async function getAgentFeedback(userId: string): Promise<string> {
     const readRate = Math.round((read / total) * 100);
 
     // Collect categories of ignored notifications
-    const ignoredCategories = recentAgentNotifs
-      .filter((n) => !n.isRead)
-      .map((n) => n.type);
+    const ignoredCategories = recentAgentNotifs.filter((n) => !n.isRead).map((n) => n.type);
     const categoryCount = new Map<string, number>();
     for (const cat of ignoredCategories) {
       categoryCount.set(cat, (categoryCount.get(cat) || 0) + 1);
@@ -316,9 +314,7 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
         `\n\n## AUTO Mode Active\nYou may execute SAFE write operations automatically:\n- create_reminder: Create reminders for upcoming deadlines\n- dismiss_reminder: Dismiss past-due reminders\n- update_task: Update task status (e.g., mark overdue tasks)\n- classify_emails: Auto-classify emails\n\nFor these operations, act directly without asking. Still notify the user about what you did.\nFor risky operations (send_email, delete_*, send_slack_message, send_imessage), NEVER auto-execute — only NOTIFY.`
       : AGENT_SYSTEM_PROMPT;
 
-    const contextWithFeedback = feedback
-      ? `${context}\n\n${feedback}`
-      : context;
+    const contextWithFeedback = feedback ? `${context}\n\n${feedback}` : context;
 
     const messages: unknown[] = [
       { role: "system", content: systemPrompt },
@@ -389,6 +385,7 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
           if (!recentNotifications.has(userId)) {
             recentNotifications.set(userId, new Set());
           }
+          // biome-ignore lint/style/noNonNullAssertion: set() called right above
           const userNotifs = recentNotifications.get(userId)!;
 
           if (userNotifs.has(key)) {
@@ -503,7 +500,7 @@ async function runAutonomousAgent() {
 
     for (const config of configs) {
       // Skip if autonomous agent is disabled for this user
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // biome-ignore lint/suspicious/noExplicitAny: AgentLog fields not in generated types
       const cfg = config as any;
       if (cfg.autonomousAgent === false) continue;
 

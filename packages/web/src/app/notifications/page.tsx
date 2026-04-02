@@ -161,11 +161,15 @@ export default function NotificationsPage() {
         {/* Filter Tabs */}
         {!loading && notifications.length > 0 && (
           <div className="flex gap-1 mb-6 bg-gray-900/60 p-1 rounded-lg w-fit">
-            {([
+            {[
               { key: "all" as FilterTab, label: "전체", count: notifications.length },
               { key: "agent" as FilterTab, label: "🤖 EVE", count: agentCount },
-              { key: "system" as FilterTab, label: "시스템", count: notifications.length - agentCount },
-            ]).map((tab) => (
+              {
+                key: "system" as FilterTab,
+                label: "시스템",
+                count: notifications.length - agentCount,
+              },
+            ].map((tab) => (
               <button
                 key={tab.key}
                 type="button"
@@ -237,16 +241,15 @@ export default function NotificationsPage() {
                           {n.type}
                         </span>
                       )}
-                      <span className={`font-medium text-sm ${isAgentNotification(n.title) ? "text-cyan-300" : ""}`}>
+                      <span
+                        className={`font-medium text-sm ${isAgentNotification(n.title) ? "text-cyan-300" : ""}`}
+                      >
                         {n.title}
                       </span>
                     </div>
                     <p className="text-xs text-gray-400 line-clamp-2">{n.message}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <RelativeTime
-                        date={n.createdAt}
-                        className="text-[10px] text-gray-600"
-                      />
+                      <RelativeTime date={n.createdAt} className="text-[10px] text-gray-600" />
                       {isAgentNotification(n.title) && (
                         <button
                           type="button"

@@ -81,8 +81,7 @@ const TIME_TOOL = {
   type: "function" as const,
   function: {
     name: "get_current_time",
-    description:
-      "Get current date and time in KST (Korean Standard Time) and UTC.",
+    description: "Get current date and time in KST (Korean Standard Time) and UTC.",
     parameters: { type: "object", properties: {}, required: [] },
   },
 };

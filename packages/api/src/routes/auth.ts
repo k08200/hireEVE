@@ -3,7 +3,13 @@ import type { FastifyInstance } from "fastify";
 import { comparePassword, getUserId, hashPassword, signToken, verifyToken } from "../auth.js";
 import { prisma } from "../db.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../email.js";
-import { getAuthUrl, getAuthedClient, getGoogleUserInfo, getLoginAuthUrl, getOAuth2Client } from "../gmail.js";
+import {
+  getAuthedClient,
+  getAuthUrl,
+  getGoogleUserInfo,
+  getLoginAuthUrl,
+  getOAuth2Client,
+} from "../gmail.js";
 
 export async function authRoutes(app: FastifyInstance) {
   // POST /api/auth/register — Create account
@@ -540,7 +546,8 @@ export async function authRoutes(app: FastifyInstance) {
           format: "metadata",
           metadataHeaders: ["From"],
         });
-        const fromHeader = detail.data.payload?.headers?.find((h) => h.name === "From")?.value || "";
+        const fromHeader =
+          detail.data.payload?.headers?.find((h) => h.name === "From")?.value || "";
         const match = fromHeader.match(/<([^>]+)>/) || [null, fromHeader.trim()];
         const email = (match[1] || "").toLowerCase().trim();
         if (!email || seenEmails.has(email)) continue;
@@ -550,7 +557,10 @@ export async function authRoutes(app: FastifyInstance) {
         if (/noreply|no-reply|newsletter|mailer-daemon|notifications?@/i.test(email)) continue;
 
         // Extract name
-        const namePart = fromHeader.replace(/<[^>]+>/, "").replace(/"/g, "").trim();
+        const namePart = fromHeader
+          .replace(/<[^>]+>/, "")
+          .replace(/"/g, "")
+          .trim();
         const name = namePart || email.split("@")[0];
 
         // Only add if not already exists
