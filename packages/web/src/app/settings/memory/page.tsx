@@ -79,7 +79,9 @@ export default function MemoryPage() {
               type="button"
               onClick={() => setFilter(type)}
               className={`px-3 py-1.5 text-xs rounded-lg transition border ${
-                filter === type ? `${color} border-current` : "text-gray-400 bg-gray-800/50 border-gray-800 hover:bg-gray-800"
+                filter === type
+                  ? `${color} border-current`
+                  : "text-gray-400 bg-gray-800/50 border-gray-800 hover:bg-gray-800"
               }`}
             >
               {label} ({count})

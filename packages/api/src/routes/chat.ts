@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
-import { prisma } from "../db.js";
 import { compactHistory } from "../context-compressor.js";
+import { prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
 import { PLANS } from "../stripe.js";
@@ -234,7 +234,10 @@ export async function chatRoutes(app: FastifyInstance) {
     }
 
     const history = [
-      { role: "system" as const, content: EVE_SYSTEM_PROMPT + retryDynamicContext + retryMemoryContext },
+      {
+        role: "system" as const,
+        content: EVE_SYSTEM_PROMPT + retryDynamicContext + retryMemoryContext,
+      },
       ...historyMessages.map((m: { role: string; content: string }) => ({
         role: m.role.toLowerCase() as "user" | "assistant",
         content: m.content,
@@ -344,7 +347,7 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     return {
-      results: messages.map((m: typeof messages[number]) => ({
+      results: messages.map((m: (typeof messages)[number]) => ({
         messageId: m.id,
         conversationId: m.conversation.id,
         conversationTitle: m.conversation.title || "Untitled",
@@ -587,9 +590,7 @@ export async function chatRoutes(app: FastifyInstance) {
             const chunkSize = 20;
             for (let i = 0; i < fullResponse.length; i += chunkSize) {
               const chunk = fullResponse.slice(i, i + chunkSize);
-              reply.raw.write(
-                `data: ${JSON.stringify({ type: "token", content: chunk })}\n\n`,
-              );
+              reply.raw.write(`data: ${JSON.stringify({ type: "token", content: chunk })}\n\n`);
             }
             break;
           }
@@ -600,9 +601,7 @@ export async function chatRoutes(app: FastifyInstance) {
           () =>
             openai.chat.completions.create({
               model: MODEL,
-              messages: history as Parameters<
-                typeof openai.chat.completions.create
-              >[0]["messages"],
+              messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
               stream: true,
             }),
           {

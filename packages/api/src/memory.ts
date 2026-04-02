@@ -116,11 +116,7 @@ export async function remember(
 }
 
 /** Search memories */
-export async function recall(
-  userId: string,
-  query?: string,
-  type?: string,
-): Promise<string> {
+export async function recall(userId: string, query?: string, type?: string): Promise<string> {
   const where: Record<string, unknown> = { userId };
   if (type) where.type = type;
   if (query) {

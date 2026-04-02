@@ -58,10 +58,7 @@ function defaultIsRetryable(error: unknown): boolean {
  *   { maxRetries: 3, onRetry: (attempt, err) => console.log(`Retry ${attempt}`) }
  * );
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {},
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const {
     maxRetries = 3,
     initialDelayMs = 1000,

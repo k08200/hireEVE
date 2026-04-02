@@ -45,10 +45,7 @@ export async function tokenUsageRoutes(app: FastifyInstance) {
 
     const totalTokens = usages.reduce((sum: number, u: UsageRow) => sum + u.totalTokens, 0);
     const totalCost = usages.reduce((sum: number, u: UsageRow) => sum + u.estimatedCost, 0);
-    const totalPromptTokens = usages.reduce(
-      (sum: number, u: UsageRow) => sum + u.promptTokens,
-      0,
-    );
+    const totalPromptTokens = usages.reduce((sum: number, u: UsageRow) => sum + u.promptTokens, 0);
     const totalCompletionTokens = usages.reduce(
       (sum: number, u: UsageRow) => sum + u.completionTokens,
       0,
@@ -105,9 +102,7 @@ export async function tokenUsageRoutes(app: FastifyInstance) {
     });
 
     // Get conversation titles
-    const convIds = usages
-      .map((u) => u.conversationId)
-      .filter((id): id is string => id !== null);
+    const convIds = usages.map((u) => u.conversationId).filter((id): id is string => id !== null);
     const conversations = await prisma.conversation.findMany({
       where: { id: { in: convIds } },
       select: { id: true, title: true },

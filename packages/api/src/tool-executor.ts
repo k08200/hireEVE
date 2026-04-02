@@ -5,7 +5,6 @@
  */
 
 import { BRIEFING_TOOLS } from "./briefing.js";
-import { forget, MEMORY_TOOLS, recall, remember } from "./memory.js";
 import {
   CALENDAR_TOOLS,
   checkConflicts,
@@ -46,6 +45,7 @@ import {
   takeScreenshot,
 } from "./macos.js";
 import { getUpcomingMeetings, joinMeeting, MEETING_TOOLS, summarizeMeeting } from "./meeting.js";
+import { forget, MEMORY_TOOLS, recall, remember } from "./memory.js";
 import { getNews, NEWS_TOOLS } from "./news.js";
 import { createNote, deleteNote, listNotes, NOTE_TOOLS, updateNote } from "./notes.js";
 import {
@@ -338,7 +338,11 @@ export async function executeToolCall(
           args.content as string,
         );
       case "recall":
-        return await recall(userId, args.query as string | undefined, args.type as string | undefined);
+        return await recall(
+          userId,
+          args.query as string | undefined,
+          args.type as string | undefined,
+        );
       case "forget":
         return await forget(userId, args.key as string, args.type as string);
       default:

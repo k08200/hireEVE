@@ -382,9 +382,7 @@ export default function Sidebar({
         {/* Deep search results (message content search) */}
         {searchResults.length > 0 && (
           <div className="mb-3">
-            <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">
-              Found in messages
-            </p>
+            <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">Found in messages</p>
             {searchResults.slice(0, 5).map((r) => (
               <Link
                 key={r.messageId}

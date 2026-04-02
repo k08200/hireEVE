@@ -68,7 +68,13 @@
     }
   },
   "files": {
-    "includes": ["packages/**"],
-    "experimentalScannerIgnores": ["node_modules/**", "dist/**", ".next/**", "prisma/migrations/**"]
+    "includes": [
+      "packages/**",
+      "!!**/node_modules/**",
+      "!!**/dist/**",
+      "!!**/.next/**",
+      "!!**/prisma/migrations/**",
+      "!!**/.turbo/**"
+    ]
   }
 }
