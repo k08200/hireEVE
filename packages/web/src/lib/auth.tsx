@@ -35,11 +35,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (stored) {
       setToken(stored);
       // Verify token
-      apiFetch<{ user: User }>("/api/auth/me", {
+      apiFetch<{ user: User & { googleConnected?: boolean } }>("/api/auth/me", {
         headers: { Authorization: `Bearer ${stored}` },
       })
         .then((data) => {
           setUser(data.user);
+          // Auto-sync on app reload if Google is connected
+          if (data.user.googleConnected) {
+            apiFetch("/api/auth/init-sync", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${stored}` },
+            }).catch(() => {});
+          }
         })
         .catch(() => {
           localStorage.removeItem("eve-token");
@@ -61,6 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(data.token);
       setUser(data.user);
       router.push("/chat");
+
+      // Fire-and-forget: trigger initial sync if Google is connected
+      apiFetch("/api/auth/init-sync", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${data.token}` },
+      }).catch(() => {});
     },
     [router],
   );
@@ -88,6 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       setUser(data.user);
       router.push("/chat");
+
+      // Fire-and-forget: trigger initial sync (calendar, contacts) after Google login
+      apiFetch("/api/auth/init-sync", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${newToken}` },
+      }).catch(() => {});
     },
     [router],
   );

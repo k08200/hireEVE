@@ -79,6 +79,7 @@ export default function CalendarPage() {
   const [view, setView] = useState<"week" | "list">("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showCreate, setShowCreate] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [newEvent, setNewEvent] = useState<NewEvent>({
     title: "",
     date: new Date().toISOString().split("T")[0],
@@ -94,6 +95,26 @@ export default function CalendarPage() {
     apiFetch<{ events: CalendarEvent[] }>("/api/calendar?days=30")
       .then((d) => setEvents(d.events || []))
       .catch(() => {});
+  };
+
+  const syncGoogle = async () => {
+    setSyncing(true);
+    try {
+      const res = await apiFetch<{ success?: boolean; error?: string; synced: number }>(
+        "/api/calendar/sync",
+        { method: "POST" },
+      );
+      if (res.error) {
+        toast(res.error, "error");
+      } else {
+        toast(`${res.synced} events synced from Google`, "success");
+        fetchEvents();
+      }
+    } catch {
+      toast("Sync failed", "error");
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetch on mount only
@@ -202,6 +223,14 @@ export default function CalendarPage() {
                 List
               </button>
             </div>
+            <button
+              type="button"
+              onClick={syncGoogle}
+              disabled={syncing}
+              className="text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition border border-gray-700 disabled:opacity-50"
+            >
+              {syncing ? "Syncing..." : "Sync Google"}
+            </button>
             <button
               type="button"
               onClick={() => setShowCreate(true)}

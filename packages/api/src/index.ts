@@ -1,4 +1,5 @@
 import cors from "@fastify/cors";
+import type { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
 import { ensureDemoUser, getUserId } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
@@ -21,6 +22,11 @@ import { webhookRoutes } from "./routes/webhook.js";
 import { workspaceRoutes } from "./routes/workspace.js";
 import { slackEventRoutes } from "./slack.js";
 import { getClientCount, initWebSocket } from "./websocket.js";
+
+type TxClient = Omit<
+  PrismaClient,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
+>;
 
 const app = Fastify({ logger: true });
 
@@ -62,7 +68,17 @@ app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOS
 // User data management — "me" routes use auth token
 app.get("/api/user/me/export", async (request) => {
   const userId = getUserId(request);
-  const [tasks, notes, contacts, reminders, conversations] = await Promise.all([
+  const [
+    tasks,
+    notes,
+    contacts,
+    reminders,
+    conversations,
+    calendarEvents,
+    notifications,
+    automationConfig,
+    agentLogs,
+  ] = await Promise.all([
     prisma.task.findMany({ where: { userId } }),
     prisma.note.findMany({ where: { userId } }),
     prisma.contact.findMany({ where: { userId } }),
@@ -71,34 +87,14 @@ app.get("/api/user/me/export", async (request) => {
       where: { userId },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     }),
-  ]);
-  return { tasks, notes, contacts, reminders, conversations, exportedAt: new Date().toISOString() };
-});
-
-app.delete("/api/user/me/data", async (request, reply) => {
-  const userId = getUserId(request);
-  await prisma.$transaction([
-    prisma.message.deleteMany({ where: { conversation: { userId } } }),
-    prisma.conversation.deleteMany({ where: { userId } }),
-    prisma.task.deleteMany({ where: { userId } }),
-    prisma.note.deleteMany({ where: { userId } }),
-    prisma.contact.deleteMany({ where: { userId } }),
-    prisma.reminder.deleteMany({ where: { userId } }),
-  ]);
-  return reply.code(204).send();
-});
-
-// User data export/delete — authenticated
-app.get("/api/user/export", async (request) => {
-  const userId = getUserId(request);
-  const [tasks, notes, contacts, reminders, conversations] = await Promise.all([
-    prisma.task.findMany({ where: { userId } }),
-    prisma.note.findMany({ where: { userId } }),
-    prisma.contact.findMany({ where: { userId } }),
-    prisma.reminder.findMany({ where: { userId } }),
-    prisma.conversation.findMany({
+    prisma.calendarEvent.findMany({ where: { userId } }),
+    prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
+    prisma.automationConfig.findUnique({ where: { userId } }),
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
+    (prisma as any).agentLog.findMany({
       where: { userId },
-      include: { messages: { orderBy: { createdAt: "asc" } } },
+      orderBy: { createdAt: "desc" },
+      take: 200,
     }),
   ]);
   return {
@@ -107,20 +103,97 @@ app.get("/api/user/export", async (request) => {
     contacts,
     reminders,
     conversations,
+    calendarEvents,
+    notifications,
+    automationConfig,
+    agentLogs,
+    exportedAt: new Date().toISOString(),
+  };
+});
+
+app.delete("/api/user/me/data", async (request, reply) => {
+  const userId = getUserId(request);
+  await prisma.$transaction(async (tx: TxClient) => {
+    await tx.pushSubscription.deleteMany({ where: { userId } });
+    await tx.notification.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
+    await (tx as any).agentLog.deleteMany({ where: { userId } });
+    await tx.automationConfig.deleteMany({ where: { userId } });
+    await tx.calendarEvent.deleteMany({ where: { userId } });
+    await tx.userToken.deleteMany({ where: { userId } });
+    await tx.message.deleteMany({ where: { conversation: { userId } } });
+    await tx.conversation.deleteMany({ where: { userId } });
+    await tx.task.deleteMany({ where: { userId } });
+    await tx.note.deleteMany({ where: { userId } });
+    await tx.contact.deleteMany({ where: { userId } });
+    await tx.reminder.deleteMany({ where: { userId } });
+  });
+  return reply.code(204).send();
+});
+
+// User data export/delete — authenticated
+app.get("/api/user/export", async (request) => {
+  const userId = getUserId(request);
+  const [
+    tasks,
+    notes,
+    contacts,
+    reminders,
+    conversations,
+    calendarEvents,
+    notifications,
+    automationConfig,
+    agentLogs,
+  ] = await Promise.all([
+    prisma.task.findMany({ where: { userId } }),
+    prisma.note.findMany({ where: { userId } }),
+    prisma.contact.findMany({ where: { userId } }),
+    prisma.reminder.findMany({ where: { userId } }),
+    prisma.conversation.findMany({
+      where: { userId },
+      include: { messages: { orderBy: { createdAt: "asc" } } },
+    }),
+    prisma.calendarEvent.findMany({ where: { userId } }),
+    prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
+    prisma.automationConfig.findUnique({ where: { userId } }),
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
+    (prisma as any).agentLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    }),
+  ]);
+  return {
+    tasks,
+    notes,
+    contacts,
+    reminders,
+    conversations,
+    calendarEvents,
+    notifications,
+    automationConfig,
+    agentLogs,
     exportedAt: new Date().toISOString(),
   };
 });
 
 app.delete("/api/user/data", async (request, reply) => {
   const userId = getUserId(request);
-  await prisma.$transaction([
-    prisma.message.deleteMany({ where: { conversation: { userId } } }),
-    prisma.conversation.deleteMany({ where: { userId } }),
-    prisma.task.deleteMany({ where: { userId } }),
-    prisma.note.deleteMany({ where: { userId } }),
-    prisma.contact.deleteMany({ where: { userId } }),
-    prisma.reminder.deleteMany({ where: { userId } }),
-  ]);
+  await prisma.$transaction(async (tx: TxClient) => {
+    await tx.pushSubscription.deleteMany({ where: { userId } });
+    await tx.notification.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
+    await (tx as any).agentLog.deleteMany({ where: { userId } });
+    await tx.automationConfig.deleteMany({ where: { userId } });
+    await tx.calendarEvent.deleteMany({ where: { userId } });
+    await tx.userToken.deleteMany({ where: { userId } });
+    await tx.message.deleteMany({ where: { conversation: { userId } } });
+    await tx.conversation.deleteMany({ where: { userId } });
+    await tx.task.deleteMany({ where: { userId } });
+    await tx.note.deleteMany({ where: { userId } });
+    await tx.contact.deleteMany({ where: { userId } });
+    await tx.reminder.deleteMany({ where: { userId } });
+  });
   return reply.code(204).send();
 });
 
@@ -215,11 +288,31 @@ initWebSocket(httpServer);
 // Start autonomous background agent
 startBackgroundAgent();
 
-// Start meeting monitor (auto-joins meetings 1 min before start)
-import("./meeting.js")
-  .then(({ startMeetingMonitor }) => {
-    startMeetingMonitor("demo-user");
+// Start reminder notification scheduler
+import("./reminder-scheduler.js")
+  .then(({ startReminderScheduler }) => {
+    startReminderScheduler();
   })
-  .catch(() => {
-    console.log("[MEETING] Meeting monitor disabled (missing dependencies)");
+  .catch((err) => {
+    console.error("[REMINDER] Scheduler failed to start:", err);
   });
+
+// Start automation scheduler (daily briefing, email classify)
+import("./automation-scheduler.js")
+  .then(({ startAutomationScheduler }) => {
+    startAutomationScheduler();
+  })
+  .catch((err) => {
+    console.error("[AUTOMATION] Scheduler failed to start:", err);
+  });
+
+// Start autonomous LLM reasoning agent
+import("./autonomous-agent.js")
+  .then(({ startAutonomousAgent }) => {
+    startAutonomousAgent();
+  })
+  .catch((err) => {
+    console.error("[AGENT] Autonomous agent failed to start:", err);
+  });
+
+// Meeting monitor is handled by background.ts checkUpcomingMeetings() for all users

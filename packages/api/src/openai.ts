@@ -11,7 +11,7 @@ export const openai = process.env.OPENROUTER_API_KEY
     })
   : (null as unknown as OpenAI);
 
-export const MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
+export const MODEL = "openai/gpt-5.4-nano";
 
 export const EVE_SYSTEM_PROMPT = `You are EVE, an autonomous AI assistant — the "first employee" for solo founders and indie hackers.
 

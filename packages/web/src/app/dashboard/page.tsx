@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { RelativeTime } from "../../components/relative-time";
@@ -45,6 +46,15 @@ interface Activity {
   createdAt: string;
 }
 
+interface AgentLog {
+  id: string;
+  action: string;
+  summary: string;
+  tool: string | null;
+  reasoning: string | null;
+  createdAt: string;
+}
+
 const typeLabels: Record<string, string> = {
   task: "Task",
   note: "Note",
@@ -78,10 +88,20 @@ export default function DashboardPage() {
 function DashboardContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
+  const [agentLogs, setAgentLogs] = useState<AgentLog[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { connected, connectedClients } = useWebSocket(user?.id || "");
+  const router = useRouter();
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const { connected, connectedClients, lastNotification } = useWebSocket(user?.id || "");
+
+  // Update notification count when WebSocket notification arrives
+  useEffect(() => {
+    if (lastNotification) {
+      setUnreadNotifs((prev) => prev + 1);
+    }
+  }, [lastNotification]);
 
   useEffect(() => {
     Promise.all([
@@ -93,9 +113,12 @@ function DashboardContent() {
       apiFetch<{ reminders: { status: string }[] }>("/api/reminders").catch(() => ({
         reminders: [],
       })),
-      apiFetch<{ notifications: unknown[]; count: number }>("/api/notifications").catch(() => ({
+      apiFetch<{ notifications: unknown[]; count: number; unread: number }>(
+        "/api/notifications",
+      ).catch(() => ({
         notifications: [],
         count: 0,
+        unread: 0,
       })),
       apiFetch<{ total: number; unread: number; urgent: number }>("/api/email/stats/summary").catch(
         () => ({ total: 0, unread: 0, urgent: 0 }),
@@ -135,7 +158,7 @@ function DashboardContent() {
                 (r: { status: string }) => r.status === "DISMISSED",
               ).length,
             },
-            notifications: notifData.count || 0,
+            notifications: notifData.unread || 0,
             emails: {
               total: emailStats.total || 0,
               unread: emailStats.unread || 0,
@@ -146,12 +169,17 @@ function DashboardContent() {
               nextEvent: calendarSummary.nextEvent?.title || null,
             },
           });
+          setUnreadNotifs(notifData.unread || 0);
         },
       )
       .finally(() => setLoading(false));
 
     apiFetch<{ activity: Activity[] }>("/api/activity")
       .then((d) => setActivity(d.activity || []))
+      .catch(() => {});
+
+    apiFetch<{ logs: AgentLog[] }>("/api/automations/agent-logs?limit=5")
+      .then((d) => setAgentLogs(d.logs || []))
       .catch(() => {});
 
     // Fetch weather for Seoul (default)
@@ -287,6 +315,13 @@ function DashboardContent() {
           href: "/reminders",
           color: "text-yellow-400",
         },
+        {
+          label: "Notifications",
+          value: unreadNotifs.toString(),
+          sub: unreadNotifs > 0 ? "unread" : "All caught up",
+          href: "/notifications",
+          color: unreadNotifs > 0 ? "text-red-400" : "text-gray-400",
+        },
       ]
     : [];
 
@@ -392,7 +427,7 @@ function DashboardContent() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
             {cards.map((c) => (
               <Link
                 key={c.label}
@@ -473,6 +508,84 @@ function DashboardContent() {
               <p className="text-xs text-gray-500 mt-2">오늘 일정</p>
             </Link>
           </div>
+
+          {/* EVE Agent Insights */}
+          {agentLogs.length > 0 && (
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">🤖</span>
+                  <h2 className="text-sm font-semibold text-gray-400">EVE Agent</h2>
+                </div>
+                <Link
+                  href="/settings"
+                  className="text-[10px] text-gray-500 hover:text-cyan-400 transition"
+                >
+                  설정 →
+                </Link>
+              </div>
+              <div className="space-y-1.5">
+                {agentLogs.map((log) => {
+                  const actionStyle: Record<string, string> = {
+                    notify: "bg-cyan-500/20 text-cyan-400",
+                    tool_call: "bg-green-500/20 text-green-400",
+                    auto_action: "bg-amber-500/20 text-amber-400",
+                    error: "bg-red-500/20 text-red-400",
+                    skip: "bg-gray-500/20 text-gray-500",
+                  };
+                  const actionLabel: Record<string, string> = {
+                    notify: "알림",
+                    tool_call: "실행",
+                    auto_action: "자동",
+                    error: "오류",
+                    skip: "스킵",
+                  };
+                  const discussLog = async () => {
+                    try {
+                      const convo = await apiFetch<{ id: string }>("/api/chat/conversations", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          initialMessage: `[EVE 에이전트 활동에 대해 이야기하고 싶어요]\n\n활동: ${actionLabel[log.action] || log.action}\n내용: ${log.summary}\n\n이 활동에 대해 더 자세히 알려주세요.`,
+                        }),
+                      });
+                      router.push(`/chat/${convo.id}`);
+                    } catch {
+                      // silently fail
+                    }
+                  };
+                  return (
+                    <div
+                      key={log.id}
+                      className="bg-gray-900/60 border border-gray-800/60 rounded-lg px-4 py-2.5 flex items-center gap-3"
+                    >
+                      <span
+                        className={`text-[10px] uppercase px-2 py-0.5 rounded font-medium ${actionStyle[log.action] || "bg-gray-500/20 text-gray-500"}`}
+                      >
+                        {actionLabel[log.action] || log.action}
+                      </span>
+                      <span className="text-sm flex-1 truncate">{log.summary}</span>
+                      {log.tool && (
+                        <span className="text-[10px] text-gray-500 shrink-0">{log.tool}</span>
+                      )}
+                      {log.action === "notify" && (
+                        <button
+                          type="button"
+                          onClick={discussLog}
+                          className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline shrink-0"
+                        >
+                          대화 →
+                        </button>
+                      )}
+                      <RelativeTime
+                        date={log.createdAt}
+                        className="text-[10px] text-gray-600 shrink-0"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Activity Feed */}
           {activity.length > 0 && (

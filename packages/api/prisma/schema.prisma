@@ -31,7 +31,9 @@ model User {
   calendarEvents CalendarEvent[]
   workspaceMembers   WorkspaceMember[]
   automationConfig   AutomationConfig?
+  agentLogs          AgentLog[]
   notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 }
@@ -206,6 +208,7 @@ model Note {
   user      User     @relation(fields: [userId], references: [id])
   title     String
   content   String
+  category  String   @default("general")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -270,8 +273,24 @@ model AutomationConfig {
   dailyBriefing        Boolean  @default(true)
   briefingTime          String   @default("09:00")
   downloadAutoOrganize  Boolean  @default(false)
+  autonomousAgent       Boolean  @default(true)
+  agentMode             String   @default("SUGGEST") // "SUGGEST" | "AUTO"
+  agentIntervalMin      Int      @default(5)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model AgentLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String   // "notify" | "tool_call" | "skip" | "error"
+  tool      String?  // tool name if action is tool_call
+  summary   String   // what the agent decided/did
+  reasoning String?  // LLM's reasoning
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Notification {
@@ -282,5 +301,15 @@ model Notification {
   title     String
   message   String
   isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
   createdAt DateTime @default(now())
 }

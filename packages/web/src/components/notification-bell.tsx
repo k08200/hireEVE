@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useWebSocket } from "./use-websocket";
@@ -30,13 +31,19 @@ const typeIcon: Record<string, string> = {
   task: "✅",
   meeting: "🎥",
   briefing: "📋",
+  insight: "🤖",
 };
+
+function isAgentNotification(title: string): boolean {
+  return title.startsWith("[EVE]");
+}
 
 export default function NotificationBell({ userId }: { userId: string }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [flash, setFlash] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const { connected, on, connectedClients } = useWebSocket(userId);
 
   // Click outside / Escape to close
@@ -101,6 +108,21 @@ export default function NotificationBell({ userId }: { userId: string }) {
     apiFetch("/api/notifications", { method: "DELETE" }).catch(() => {});
     setNotifications([]);
     setOpen(false);
+  };
+
+  const discussWithEve = async (n: Notification) => {
+    try {
+      const convo = await apiFetch<{ id: string }>("/api/chat/conversations", {
+        method: "POST",
+        body: JSON.stringify({
+          initialMessage: `[EVE 알림에 대해 이야기하고 싶어요]\n\n제목: ${n.title}\n내용: ${n.message}\n\n이 알림에 대해 더 자세히 알려주세요.`,
+        }),
+      });
+      setOpen(false);
+      router.push(`/chat/${convo.id}`);
+    } catch {
+      // silently fail
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
@@ -189,23 +211,42 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   onClick={() => !n.isRead && markAsRead(n.id)}
                   className={`w-full text-left px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition ${
                     !n.isRead ? "bg-blue-600/5" : ""
-                  }`}
+                  } ${isAgentNotification(n.title) ? "border-l-2 border-l-cyan-500/60" : ""}`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{typeIcon[n.type] || "📌"}</span>
+                    <span className="text-sm">
+                      {isAgentNotification(n.title) ? "🤖" : typeIcon[n.type] || "📌"}
+                    </span>
                     <span
-                      className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-gray-300"}`}
+                      className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-gray-300"} ${isAgentNotification(n.title) ? "text-cyan-300" : ""}`}
                     >
                       {n.title}
                     </span>
+                    {isAgentNotification(n.title) && (
+                      <span className="text-[9px] text-cyan-400 bg-cyan-400/10 px-1 py-0.5 rounded shrink-0">
+                        AI
+                      </span>
+                    )}
                     {!n.isRead && (
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
-                  <p className="text-[10px] text-gray-600 mt-1 ml-6">
-                    {formatRelative(n.createdAt)}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1 ml-6">
+                    <p className="text-[10px] text-gray-600">{formatRelative(n.createdAt)}</p>
+                    {isAgentNotification(n.title) && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          discussWithEve(n);
+                        }}
+                        className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer hover:underline"
+                      >
+                        EVE와 대화 →
+                      </button>
+                    )}
+                  </div>
                 </button>
               ))
             )}

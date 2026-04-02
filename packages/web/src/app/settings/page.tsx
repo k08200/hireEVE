@@ -51,10 +51,29 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [pushStatus, setPushStatus] = useState<"unsupported" | "default" | "granted" | "denied">(
+    "default",
+  );
   const [hasPassword, setHasPassword] = useState(true);
+  const [agentEnabled, setAgentEnabled] = useState(true);
+  const [agentMode, setAgentMode] = useState<"SUGGEST" | "AUTO">("SUGGEST");
+  const [agentInterval, setAgentInterval] = useState(5);
+  const [agentLogs, setAgentLogs] = useState<
+    Array<{ id: string; action: string; summary: string; tool?: string; createdAt: string }>
+  >([]);
+  const [agentLogsLoading, setAgentLogsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
+
+  // Check push notification support and permission
+  useEffect(() => {
+    if (!("Notification" in window) || !("PushManager" in window)) {
+      setPushStatus("unsupported");
+    } else {
+      setPushStatus(Notification.permission as "default" | "granted" | "denied");
+    }
+  }, []);
 
   // Load profile from auth + localStorage
   useEffect(() => {
@@ -95,6 +114,52 @@ export default function SettingsPage() {
     setProfileSaved(true);
     toast("Profile saved / 프로필 저장됨", "success");
     setTimeout(() => setProfileSaved(false), 2000);
+  };
+
+  const enablePush = async () => {
+    if (!("Notification" in window)) return;
+    const permission = await Notification.requestPermission();
+    setPushStatus(permission as "granted" | "denied" | "default");
+    if (permission === "granted") {
+      toast("Push notifications enabled", "success");
+      // Re-trigger subscription registration
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
+        const { publicKey } = await res.json();
+        if (publicKey) {
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
+          });
+          const subJson = sub.toJSON();
+          await fetch(`${API_BASE}/api/notifications/push/subscribe`, {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
+          });
+        }
+      }
+    } else if (permission === "denied") {
+      toast("Push notifications blocked by browser", "error");
+    }
+  };
+
+  const disablePush = async () => {
+    if (!("serviceWorker" in navigator)) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      await fetch(`${API_BASE}/api/notifications/push/unsubscribe`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        body: JSON.stringify({ endpoint }),
+      });
+    }
+    setPushStatus("default");
+    toast("Push notifications disabled", "info");
   };
 
   const changePassword = async () => {
@@ -175,6 +240,83 @@ export default function SettingsPage() {
       toast("Google disconnected", "info");
     } catch {
       toast("Failed to disconnect", "error");
+    }
+  };
+
+  // Load agent config
+  useEffect(() => {
+    apiFetch<{ autonomousAgent?: boolean; agentMode?: string; agentIntervalMin?: number }>(
+      "/api/automations",
+    )
+      .then((d) => {
+        setAgentEnabled(d.autonomousAgent ?? true);
+        setAgentMode((d.agentMode as "SUGGEST" | "AUTO") ?? "SUGGEST");
+        setAgentInterval(d.agentIntervalMin ?? 5);
+      })
+      .catch(() => {});
+  }, []);
+
+  const loadAgentLogs = async () => {
+    setAgentLogsLoading(true);
+    try {
+      const data = await apiFetch<{
+        logs: Array<{
+          id: string;
+          action: string;
+          summary: string;
+          tool?: string;
+          createdAt: string;
+        }>;
+      }>("/api/automations/agent-logs?limit=20");
+      setAgentLogs(data.logs);
+    } catch {
+      setAgentLogs([]);
+    }
+    setAgentLogsLoading(false);
+  };
+
+  const toggleAgent = async (enabled: boolean) => {
+    setAgentEnabled(enabled);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ autonomousAgent: enabled }),
+      });
+      toast(enabled ? "Autonomous agent enabled" : "Autonomous agent disabled", "success");
+    } catch {
+      setAgentEnabled(!enabled);
+      toast("Failed to update", "error");
+    }
+  };
+
+  const updateAgentInterval = async (min: number) => {
+    setAgentInterval(min);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ agentIntervalMin: min }),
+      });
+    } catch {
+      toast("Failed to update interval", "error");
+    }
+  };
+
+  const toggleAgentMode = async (mode: "SUGGEST" | "AUTO") => {
+    setAgentMode(mode);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ agentMode: mode }),
+      });
+      toast(
+        mode === "AUTO"
+          ? "AUTO mode — EVE will auto-execute safe actions"
+          : "SUGGEST mode — EVE will only send notifications",
+        "success",
+      );
+    } catch {
+      setAgentMode(mode === "AUTO" ? "SUGGEST" : "AUTO");
+      toast("Failed to update mode", "error");
     }
   };
 
@@ -388,15 +530,19 @@ export default function SettingsPage() {
               </>
             ) : (
               <>
-                <p className="text-sm text-gray-500">
-                  You signed up with Google. Set a password to also log in with email.
+                <p className="text-sm text-gray-400">
+                  You signed in with Google. Set a password to also log in with email.
+                  <br />
+                  <span className="text-gray-500">
+                    Google로 가입하셨습니다. 이메일 로그인을 위해 비밀번호를 설정하세요.
+                  </span>
                 </p>
                 <div>
-                  <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
-                    Password / 비밀번호
+                  <label htmlFor="set-pw" className="block text-sm text-gray-400 mb-1">
+                    New Password / 비밀번호
                   </label>
                   <input
-                    id="new-pw"
+                    id="set-pw"
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -417,6 +563,188 @@ export default function SettingsPage() {
                 </div>
               </>
             )}
+          </div>
+        </section>
+
+        {/* Notifications */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Notifications / 알림</h2>
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Push Notifications</h3>
+              <p className="text-sm text-gray-400">
+                {pushStatus === "unsupported"
+                  ? "Not supported in this browser"
+                  : pushStatus === "granted"
+                    ? "Enabled — you'll receive alerts for reminders, briefings, and emails"
+                    : pushStatus === "denied"
+                      ? "Blocked by browser — update in browser settings"
+                      : "Get notified about reminders, briefings, and important emails"}
+              </p>
+            </div>
+            {pushStatus === "unsupported" || pushStatus === "denied" ? (
+              <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                {pushStatus === "denied" ? "Blocked" : "Unavailable"}
+              </span>
+            ) : pushStatus === "granted" ? (
+              <button
+                type="button"
+                onClick={disablePush}
+                className="text-sm text-gray-400 hover:text-red-400 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg font-medium transition border border-gray-700"
+              >
+                Disable
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={enablePush}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                Enable
+              </button>
+            )}
+          </div>
+        </section>
+
+        {/* Autonomous Agent */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">
+            Autonomous Agent / 자율 에이전트
+          </h2>
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Proactive AI Brain</h3>
+                <p className="text-sm text-gray-400">
+                  EVE analyzes your tasks, calendar, and emails in the background and sends smart
+                  notifications
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toggleAgent(!agentEnabled)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  agentEnabled ? "bg-blue-600" : "bg-gray-700"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    agentEnabled ? "translate-x-6" : ""
+                  }`}
+                />
+              </button>
+            </div>
+
+            {agentEnabled && (
+              <div className="space-y-4">
+                {/* Agent Mode */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">
+                    Agent mode / 에이전트 모드
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleAgentMode("SUGGEST")}
+                      className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition ${
+                        agentMode === "SUGGEST"
+                          ? "bg-blue-600/20 border-blue-500/50 text-blue-300"
+                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                      }`}
+                    >
+                      <div className="font-medium">SUGGEST</div>
+                      <div className="text-[10px] mt-0.5 opacity-70">알림만 전송</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleAgentMode("AUTO")}
+                      className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition ${
+                        agentMode === "AUTO"
+                          ? "bg-cyan-600/20 border-cyan-500/50 text-cyan-300"
+                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                      }`}
+                    >
+                      <div className="font-medium">AUTO</div>
+                      <div className="text-[10px] mt-0.5 opacity-70">안전한 작업 자동 실행</div>
+                    </button>
+                  </div>
+                  {agentMode === "AUTO" && (
+                    <p className="text-[10px] text-cyan-400/70 mt-2">
+                      리마인더 생성, 태스크 상태 변경, 이메일 분류 등 안전한 작업만 자동 실행합니다.
+                      이메일 전송, 삭제 등 위험한 작업은 절대 자동 실행하지 않습니다.
+                    </p>
+                  )}
+                </div>
+
+                {/* Check Interval */}
+                <div>
+                  <label htmlFor="agent-interval" className="block text-sm text-gray-400 mb-1">
+                    Check interval / 분석 주기
+                  </label>
+                  <select
+                    id="agent-interval"
+                    value={agentInterval}
+                    onChange={(e) => updateAgentInterval(Number(e.target.value))}
+                    className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition"
+                  >
+                    <option value={3}>Every 3 min</option>
+                    <option value={5}>Every 5 min (default)</option>
+                    <option value={10}>Every 10 min</option>
+                    <option value={15}>Every 15 min</option>
+                    <option value={30}>Every 30 min</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Agent Activity Log */}
+            <div>
+              <button
+                type="button"
+                onClick={loadAgentLogs}
+                className="text-sm text-blue-400 hover:text-blue-300 transition"
+              >
+                {agentLogsLoading ? "Loading..." : "View recent activity / 최근 활동 보기"}
+              </button>
+              {agentLogs.length > 0 && (
+                <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
+                  {agentLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="bg-gray-800/60 border border-gray-700/40 rounded-lg px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            log.action === "notify"
+                              ? "bg-blue-400"
+                              : log.action === "tool_call"
+                                ? "bg-green-400"
+                                : log.action === "auto_action"
+                                  ? "bg-amber-400"
+                                  : log.action === "error"
+                                    ? "bg-red-400"
+                                    : "bg-gray-500"
+                          }`}
+                        />
+                        <span className="text-gray-300 flex-1 truncate">{log.summary}</span>
+                        <span className="text-gray-600 text-xs shrink-0">
+                          {new Date(log.createdAt).toLocaleString("ko-KR", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      {log.tool && (
+                        <span className="text-xs text-gray-500 ml-3.5">tool: {log.tool}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
@@ -605,4 +933,15 @@ export default function SettingsPage() {
       </main>
     </AuthGuard>
   );
+}
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) {
+    arr[i] = raw.charCodeAt(i);
+  }
+  return arr;
 }

@@ -144,6 +144,80 @@ async function getGmailEmails(userId: string): Promise<EmailMessage[] | null> {
   }
 }
 
+/** Parse email From header: "Name <email@domain>" or "email@domain" */
+function parseFromHeader(from: string): { name: string; email: string } | null {
+  if (!from) return null;
+
+  // "Display Name <email@domain.com>"
+  const match = from.match(/^(.+?)\s*<([^>]+)>$/);
+  if (match) {
+    return {
+      name: match[1].replace(/^["']|["']$/g, "").trim(),
+      email: match[2].trim().toLowerCase(),
+    };
+  }
+
+  // Plain "email@domain.com"
+  const emailOnly = from.trim().toLowerCase();
+  if (emailOnly.includes("@")) {
+    return { name: emailOnly.split("@")[0], email: emailOnly };
+  }
+
+  return null;
+}
+
+/** Skip automated/noreply senders */
+const SKIP_PATTERNS = [
+  /noreply@/i,
+  /no-reply@/i,
+  /donotreply@/i,
+  /notifications?@/i,
+  /mailer-daemon@/i,
+  /postmaster@/i,
+  /^system@/i,
+  /newsletter@/i,
+  /updates?@/i,
+  /digest@/i,
+  /alert@/i,
+];
+
+function isAutomatedSender(email: string): boolean {
+  return SKIP_PATTERNS.some((p) => p.test(email));
+}
+
+/** Auto-add unique senders as contacts (fire-and-forget) */
+async function autoAddContacts(userId: string, emails: EmailMessage[]): Promise<void> {
+  const seen = new Set<string>();
+
+  for (const email of emails) {
+    const parsed = parseFromHeader(email.from);
+    if (!parsed || !parsed.email) continue;
+    if (isAutomatedSender(parsed.email)) continue;
+    if (seen.has(parsed.email)) continue;
+    seen.add(parsed.email);
+
+    // Check if contact already exists for this user+email
+    const existing = await prisma.contact.findFirst({
+      where: { userId, email: parsed.email },
+    });
+    if (existing) continue;
+
+    // Wrap in try/catch to handle race condition (concurrent requests)
+    try {
+      await prisma.contact.create({
+        data: {
+          userId,
+          name: parsed.name,
+          email: parsed.email,
+          tags: "auto-added",
+        },
+      });
+    } catch {
+      // Duplicate created by concurrent request — ignore
+    }
+  }
+}
+
 export async function emailRoutes(app: FastifyInstance) {
   // List emails (Gmail or demo)
   app.get("/", async (request) => {
@@ -152,6 +226,11 @@ export async function emailRoutes(app: FastifyInstance) {
 
     const gmailEmails = await getGmailEmails(uid);
     let emails = gmailEmails || DEMO_EMAILS;
+
+    // Auto-add senders as contacts (non-blocking)
+    if (gmailEmails) {
+      autoAddContacts(uid, gmailEmails).catch(() => {});
+    }
 
     if (filter === "unread") {
       emails = emails.filter((e) => !e.isRead);

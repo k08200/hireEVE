@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import type Stripe from "stripe";
 import { prisma } from "../db.js";
+import { sendPushNotification } from "../push.js";
 import { stripe } from "../stripe.js";
+import { pushNotification } from "../websocket.js";
 
 export async function webhookRoutes(app: FastifyInstance) {
   // POST /api/webhook/stripe — Stripe webhook handler
@@ -48,12 +50,12 @@ export async function webhookRoutes(app: FastifyInstance) {
           const sub = event.data.object as Stripe.Subscription;
           const custId = sub.customer as string;
 
-          // Handle plan downgrade/upgrade via subscription update
-          if (sub.status === "active") {
-            // Could map price ID to plan — for now handled by checkout metadata
-          } else if (sub.status === "past_due" || sub.status === "unpaid") {
-            // Keep plan but flag — could notify user
-            console.log(`[STRIPE] Subscription ${sub.id} is ${sub.status} for customer ${custId}`);
+          if (sub.status === "past_due" || sub.status === "unpaid") {
+            const user = await prisma.user.findFirst({ where: { stripeId: custId } });
+            if (user) {
+              const msg = `Your subscription is ${sub.status}. Please update your payment method to avoid service interruption.`;
+              await notifyUser(user.id, "billing", "Payment Issue", msg, "/settings");
+            }
           }
           break;
         }
@@ -62,10 +64,21 @@ export async function webhookRoutes(app: FastifyInstance) {
           const subscription = event.data.object as Stripe.Subscription;
           const customerId = subscription.customer as string;
 
+          const users = await prisma.user.findMany({ where: { stripeId: customerId } });
           await prisma.user.updateMany({
             where: { stripeId: customerId },
             data: { plan: "FREE" },
           });
+
+          for (const user of users) {
+            await notifyUser(
+              user.id,
+              "billing",
+              "Subscription Cancelled",
+              "Your subscription has been cancelled. You've been moved to the Free plan.",
+              "/settings",
+            );
+          }
           break;
         }
 
@@ -73,6 +86,19 @@ export async function webhookRoutes(app: FastifyInstance) {
           const invoice = event.data.object as Stripe.Invoice;
           const failedCustomer = invoice.customer as string;
           console.log(`[STRIPE] Payment failed for customer ${failedCustomer}`);
+
+          const user = await prisma.user.findFirst({
+            where: { stripeId: failedCustomer },
+          });
+          if (user) {
+            await notifyUser(
+              user.id,
+              "billing",
+              "Payment Failed",
+              "Your latest payment failed. Please update your payment method to keep your plan active.",
+              "/settings",
+            );
+          }
           break;
         }
       }
@@ -80,4 +106,27 @@ export async function webhookRoutes(app: FastifyInstance) {
       return { received: true };
     },
   });
+}
+
+/** Create DB notification + WebSocket push + browser push */
+async function notifyUser(
+  userId: string,
+  type: string,
+  title: string,
+  message: string,
+  url: string,
+) {
+  const notification = await prisma.notification.create({
+    data: { userId, type, title, message },
+  });
+
+  pushNotification(userId, {
+    id: notification.id,
+    type,
+    title,
+    message,
+    createdAt: notification.createdAt.toISOString(),
+  });
+
+  sendPushNotification(userId, { title, body: message, url });
 }
