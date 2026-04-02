@@ -248,20 +248,16 @@ export default function NotificationsPage() {
                         className="text-[10px] text-gray-600"
                       />
                       {isAgentNotification(n.title) && (
-                        <span
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             discussWithEve(n);
                           }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.stopPropagation(); discussWithEve(n); }
-                          }}
                           className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer hover:underline"
                         >
                           EVE와 대화 →
-                        </span>
+                        </button>
                       )}
                     </div>
                   </div>

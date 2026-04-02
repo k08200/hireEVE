@@ -233,24 +233,18 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   </div>
                   <p className="text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
                   <div className="flex items-center gap-2 mt-1 ml-6">
-                    <p className="text-[10px] text-gray-600">
-                      {formatRelative(n.createdAt)}
-                    </p>
+                    <p className="text-[10px] text-gray-600">{formatRelative(n.createdAt)}</p>
                     {isAgentNotification(n.title) && (
-                      <span
-                        role="button"
-                        tabIndex={0}
+                      <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           discussWithEve(n);
                         }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") { e.stopPropagation(); discussWithEve(n); }
-                        }}
                         className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer hover:underline"
                       >
                         EVE와 대화 →
-                      </span>
+                      </button>
                     )}
                   </div>
                 </button>
