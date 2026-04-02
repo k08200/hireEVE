@@ -1,4 +1,5 @@
 import cors from "@fastify/cors";
+import type { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
 import { ensureDemoUser, getUserId } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
@@ -21,6 +22,11 @@ import { webhookRoutes } from "./routes/webhook.js";
 import { workspaceRoutes } from "./routes/workspace.js";
 import { slackEventRoutes } from "./slack.js";
 import { getClientCount, initWebSocket } from "./websocket.js";
+
+type TxClient = Omit<
+  PrismaClient,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
+>;
 
 const app = Fastify({ logger: true });
 
@@ -107,7 +113,7 @@ app.get("/api/user/me/export", async (request) => {
 
 app.delete("/api/user/me/data", async (request, reply) => {
   const userId = getUserId(request);
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: TxClient) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
     // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
@@ -173,7 +179,7 @@ app.get("/api/user/export", async (request) => {
 
 app.delete("/api/user/data", async (request, reply) => {
   const userId = getUserId(request);
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: TxClient) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
     // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types

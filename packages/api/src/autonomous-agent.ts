@@ -83,12 +83,14 @@ async function getAgentFeedback(userId: string): Promise<string> {
     if (recentAgentNotifs.length === 0) return "";
 
     const total = recentAgentNotifs.length;
-    const read = recentAgentNotifs.filter((n) => n.isRead).length;
+    const read = recentAgentNotifs.filter((n: { isRead: boolean }) => n.isRead).length;
     const ignored = total - read;
     const readRate = Math.round((read / total) * 100);
 
     // Collect categories of ignored notifications
-    const ignoredCategories = recentAgentNotifs.filter((n) => !n.isRead).map((n) => n.type);
+    const ignoredCategories = recentAgentNotifs
+      .filter((n: { isRead: boolean }) => !n.isRead)
+      .map((n: { type: string }) => n.type);
     const categoryCount = new Map<string, number>();
     for (const cat of ignoredCategories) {
       categoryCount.set(cat, (categoryCount.get(cat) || 0) + 1);
@@ -168,32 +170,36 @@ async function gatherUserContext(userId: string): Promise<string> {
   );
 
   if (tasks.length > 0) {
-    const taskLines = tasks.map((t) => {
-      const due = t.dueDate ? t.dueDate.toISOString().split("T")[0] : "no due date";
-      const overdue = t.dueDate && t.dueDate < now ? " ⚠️ OVERDUE" : "";
-      const dueSoon = t.dueDate && t.dueDate < in24h && !overdue ? " ⏰ DUE SOON" : "";
-      return `- [${t.priority || "MEDIUM"}] ${t.title} (due: ${due}${overdue}${dueSoon}) — status: ${t.status}`;
-    });
+    const taskLines = tasks.map(
+      (t: { dueDate: Date | null; priority: string | null; title: string; status: string }) => {
+        const due = t.dueDate ? t.dueDate.toISOString().split("T")[0] : "no due date";
+        const overdue = t.dueDate && t.dueDate < now ? " ⚠️ OVERDUE" : "";
+        const dueSoon = t.dueDate && t.dueDate < in24h && !overdue ? " ⏰ DUE SOON" : "";
+        return `- [${t.priority || "MEDIUM"}] ${t.title} (due: ${due}${overdue}${dueSoon}) — status: ${t.status}`;
+      },
+    );
     sections.push(`## Open Tasks (${tasks.length})\n${taskLines.join("\n")}`);
   } else {
     sections.push("## Open Tasks\nNone");
   }
 
   if (calendar.length > 0) {
-    const calLines = calendar.map((e) => {
-      const start = e.startTime.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
-      const minutesUntil = Math.round((e.startTime.getTime() - now.getTime()) / 60_000);
-      const soon = minutesUntil <= 30 && minutesUntil > 0 ? " 🔴 STARTING SOON" : "";
-      const meeting = e.meetingLink ? ` [meeting: ${e.meetingLink}]` : "";
-      return `- ${e.title} @ ${start}${soon}${meeting}`;
-    });
+    const calLines = calendar.map(
+      (e: { title: string; startTime: Date; meetingLink: string | null }) => {
+        const start = e.startTime.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+        const minutesUntil = Math.round((e.startTime.getTime() - now.getTime()) / 60_000);
+        const soon = minutesUntil <= 30 && minutesUntil > 0 ? " 🔴 STARTING SOON" : "";
+        const meeting = e.meetingLink ? ` [meeting: ${e.meetingLink}]` : "";
+        return `- ${e.title} @ ${start}${soon}${meeting}`;
+      },
+    );
     sections.push(`## Upcoming Calendar (next 7 days)\n${calLines.join("\n")}`);
   } else {
     sections.push("## Upcoming Calendar\nNone");
   }
 
   if (reminders.length > 0) {
-    const remLines = reminders.map((r) => {
+    const remLines = reminders.map((r: { title: string; remindAt: Date }) => {
       const at = r.remindAt.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
       const overdue = r.remindAt < now ? " ⚠️ PAST DUE" : "";
       return `- ${r.title} @ ${at}${overdue}`;
@@ -203,14 +209,16 @@ async function gatherUserContext(userId: string): Promise<string> {
 
   if (notes.length > 0) {
     const noteLines = notes.map(
-      (n) => `- ${n.title} (updated: ${n.updatedAt.toISOString().split("T")[0]})`,
+      (n: { title: string; updatedAt: Date }) =>
+        `- ${n.title} (updated: ${n.updatedAt.toISOString().split("T")[0]})`,
     );
     sections.push(`## Recent Notes\n${noteLines.join("\n")}`);
   }
 
   if (emails && emails.length > 0) {
     const emailLines = emails.map(
-      (e) => `- From: ${e.from} — "${e.subject}" (${e.snippet?.slice(0, 80) || ""})`,
+      (e: { from: string; subject: string; snippet?: string }) =>
+        `- From: ${e.from} — "${e.subject}" (${e.snippet?.slice(0, 80) || ""})`,
     );
     sections.push(`## Recent Emails (${emails.length})\n${emailLines.join("\n")}`);
   }

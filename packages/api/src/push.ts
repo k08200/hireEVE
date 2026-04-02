@@ -40,7 +40,7 @@ export async function sendPushNotification(
   const data = JSON.stringify(payload);
 
   const results = await Promise.allSettled(
-    subscriptions.map((sub) =>
+    subscriptions.map((sub: { endpoint: string; p256dh: string; auth: string }) =>
       webPush.sendNotification(
         {
           endpoint: sub.endpoint,
