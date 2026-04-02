@@ -55,6 +55,13 @@ export default function SettingsPage() {
     "default",
   );
   const [hasPassword, setHasPassword] = useState(true);
+  const [agentEnabled, setAgentEnabled] = useState(true);
+  const [agentMode, setAgentMode] = useState<"SUGGEST" | "AUTO">("SUGGEST");
+  const [agentInterval, setAgentInterval] = useState(5);
+  const [agentLogs, setAgentLogs] = useState<
+    Array<{ id: string; action: string; summary: string; tool?: string; createdAt: string }>
+  >([]);
+  const [agentLogsLoading, setAgentLogsLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
@@ -226,6 +233,81 @@ export default function SettingsPage() {
       toast("Google disconnected", "info");
     } catch {
       toast("Failed to disconnect", "error");
+    }
+  };
+
+  // Load agent config
+  useEffect(() => {
+    apiFetch<{ autonomousAgent?: boolean; agentMode?: string; agentIntervalMin?: number }>("/api/automations")
+      .then((d) => {
+        setAgentEnabled(d.autonomousAgent ?? true);
+        setAgentMode((d.agentMode as "SUGGEST" | "AUTO") ?? "SUGGEST");
+        setAgentInterval(d.agentIntervalMin ?? 5);
+      })
+      .catch(() => {});
+  }, []);
+
+  const loadAgentLogs = async () => {
+    setAgentLogsLoading(true);
+    try {
+      const data = await apiFetch<{
+        logs: Array<{
+          id: string;
+          action: string;
+          summary: string;
+          tool?: string;
+          createdAt: string;
+        }>;
+      }>("/api/automations/agent-logs?limit=20");
+      setAgentLogs(data.logs);
+    } catch {
+      setAgentLogs([]);
+    }
+    setAgentLogsLoading(false);
+  };
+
+  const toggleAgent = async (enabled: boolean) => {
+    setAgentEnabled(enabled);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ autonomousAgent: enabled }),
+      });
+      toast(enabled ? "Autonomous agent enabled" : "Autonomous agent disabled", "success");
+    } catch {
+      setAgentEnabled(!enabled);
+      toast("Failed to update", "error");
+    }
+  };
+
+  const updateAgentInterval = async (min: number) => {
+    setAgentInterval(min);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ agentIntervalMin: min }),
+      });
+    } catch {
+      toast("Failed to update interval", "error");
+    }
+  };
+
+  const toggleAgentMode = async (mode: "SUGGEST" | "AUTO") => {
+    setAgentMode(mode);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ agentMode: mode }),
+      });
+      toast(
+        mode === "AUTO"
+          ? "AUTO mode — EVE will auto-execute safe actions"
+          : "SUGGEST mode — EVE will only send notifications",
+        "success",
+      );
+    } catch {
+      setAgentMode(mode === "AUTO" ? "SUGGEST" : "AUTO");
+      toast("Failed to update mode", "error");
     }
   };
 
@@ -512,6 +594,148 @@ export default function SettingsPage() {
                 Enable
               </button>
             )}
+          </div>
+        </section>
+
+        {/* Autonomous Agent */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">
+            Autonomous Agent / 자율 에이전트
+          </h2>
+          <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Proactive AI Brain</h3>
+                <p className="text-sm text-gray-400">
+                  EVE analyzes your tasks, calendar, and emails in the background and sends smart
+                  notifications
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toggleAgent(!agentEnabled)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  agentEnabled ? "bg-blue-600" : "bg-gray-700"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    agentEnabled ? "translate-x-6" : ""
+                  }`}
+                />
+              </button>
+            </div>
+
+            {agentEnabled && (
+              <div className="space-y-4">
+                {/* Agent Mode */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">
+                    Agent mode / 에이전트 모드
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleAgentMode("SUGGEST")}
+                      className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition ${
+                        agentMode === "SUGGEST"
+                          ? "bg-blue-600/20 border-blue-500/50 text-blue-300"
+                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                      }`}
+                    >
+                      <div className="font-medium">SUGGEST</div>
+                      <div className="text-[10px] mt-0.5 opacity-70">알림만 전송</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleAgentMode("AUTO")}
+                      className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition ${
+                        agentMode === "AUTO"
+                          ? "bg-cyan-600/20 border-cyan-500/50 text-cyan-300"
+                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                      }`}
+                    >
+                      <div className="font-medium">AUTO</div>
+                      <div className="text-[10px] mt-0.5 opacity-70">안전한 작업 자동 실행</div>
+                    </button>
+                  </div>
+                  {agentMode === "AUTO" && (
+                    <p className="text-[10px] text-cyan-400/70 mt-2">
+                      리마인더 생성, 태스크 상태 변경, 이메일 분류 등 안전한 작업만 자동 실행합니다.
+                      이메일 전송, 삭제 등 위험한 작업은 절대 자동 실행하지 않습니다.
+                    </p>
+                  )}
+                </div>
+
+                {/* Check Interval */}
+                <div>
+                  <label htmlFor="agent-interval" className="block text-sm text-gray-400 mb-1">
+                    Check interval / 분석 주기
+                  </label>
+                  <select
+                    id="agent-interval"
+                    value={agentInterval}
+                    onChange={(e) => updateAgentInterval(Number(e.target.value))}
+                    className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition"
+                  >
+                    <option value={3}>Every 3 min</option>
+                    <option value={5}>Every 5 min (default)</option>
+                    <option value={10}>Every 10 min</option>
+                    <option value={15}>Every 15 min</option>
+                    <option value={30}>Every 30 min</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Agent Activity Log */}
+            <div>
+              <button
+                type="button"
+                onClick={loadAgentLogs}
+                className="text-sm text-blue-400 hover:text-blue-300 transition"
+              >
+                {agentLogsLoading ? "Loading..." : "View recent activity / 최근 활동 보기"}
+              </button>
+              {agentLogs.length > 0 && (
+                <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
+                  {agentLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="bg-gray-800/60 border border-gray-700/40 rounded-lg px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            log.action === "notify"
+                              ? "bg-blue-400"
+                              : log.action === "tool_call"
+                                ? "bg-green-400"
+                                : log.action === "auto_action"
+                                  ? "bg-amber-400"
+                                  : log.action === "error"
+                                    ? "bg-red-400"
+                                    : "bg-gray-500"
+                          }`}
+                        />
+                        <span className="text-gray-300 flex-1 truncate">{log.summary}</span>
+                        <span className="text-gray-600 text-xs shrink-0">
+                          {new Date(log.createdAt).toLocaleString("ko-KR", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      {log.tool && (
+                        <span className="text-xs text-gray-500 ml-3.5">tool: {log.tool}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
 

@@ -14,6 +14,7 @@ export async function automationRoutes(app: FastifyInstance) {
       config = await prisma.automationConfig.create({ data: { userId } });
     }
 
+    const configAny = config as Record<string, unknown>;
     return {
       meetingAutoJoin: config.meetingAutoJoin,
       meetingAutoSummarize: config.meetingAutoSummarize,
@@ -22,6 +23,9 @@ export async function automationRoutes(app: FastifyInstance) {
       dailyBriefing: config.dailyBriefing,
       briefingTime: config.briefingTime,
       downloadAutoOrganize: config.downloadAutoOrganize,
+      autonomousAgent: configAny.autonomousAgent ?? true,
+      agentMode: configAny.agentMode ?? "SUGGEST",
+      agentIntervalMin: configAny.agentIntervalMin ?? 5,
     };
   });
 
@@ -39,10 +43,18 @@ export async function automationRoutes(app: FastifyInstance) {
       "dailyBriefing",
       "briefingTime",
       "downloadAutoOrganize",
+      "autonomousAgent",
+      "agentMode",
+      "agentIntervalMin",
     ];
     const data: Record<string, unknown> = {};
     for (const key of allowed) {
       if (key in body) data[key] = body[key];
+    }
+
+    // Validate agentMode
+    if (data.agentMode && !["SUGGEST", "AUTO"].includes(data.agentMode as string)) {
+      data.agentMode = "SUGGEST";
     }
 
     const config = await prisma.automationConfig.upsert({
@@ -51,6 +63,7 @@ export async function automationRoutes(app: FastifyInstance) {
       update: data,
     });
 
+    const configAny = config as Record<string, unknown>;
     return {
       meetingAutoJoin: config.meetingAutoJoin,
       meetingAutoSummarize: config.meetingAutoSummarize,
@@ -59,6 +72,25 @@ export async function automationRoutes(app: FastifyInstance) {
       dailyBriefing: config.dailyBriefing,
       briefingTime: config.briefingTime,
       downloadAutoOrganize: config.downloadAutoOrganize,
+      autonomousAgent: configAny.autonomousAgent ?? true,
+      agentMode: configAny.agentMode ?? "SUGGEST",
+      agentIntervalMin: configAny.agentIntervalMin ?? 5,
     };
+  });
+
+  // GET /api/automations/agent-logs — Get autonomous agent activity logs
+  app.get("/agent-logs", async (request) => {
+    const userId = getUserId(request);
+    const { limit, offset } = (request.query || {}) as { limit?: string; offset?: string };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const logs = await (prisma as any).agentLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: Math.min(Number(limit) || 50, 100),
+      skip: Number(offset) || 0,
+    });
+
+    return { logs };
   });
 }
