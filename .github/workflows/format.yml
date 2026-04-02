@@ -1,4 +1,4 @@
-name: format
+name: prettier
 on:
   pull_request:
     paths:
