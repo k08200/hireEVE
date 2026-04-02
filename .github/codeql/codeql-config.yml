@@ -1,0 +1,7 @@
+name: "hireEVE CodeQL Config"
+
+# Global @fastify/rate-limit is registered in src/index.ts (100 req/min per IP)
+# CodeQL cannot detect plugin-level rate limiting, so we exclude this rule
+query-filters:
+  - exclude:
+      id: js/missing-rate-limiting

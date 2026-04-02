@@ -146,12 +146,14 @@ export async function recall(userId: string, query?: string, type?: string): Pro
   });
 
   return JSON.stringify({
-    memories: memories.map((m) => ({
-      type: m.type,
-      key: m.key,
-      content: m.content,
-      updatedAt: m.updatedAt,
-    })),
+    memories: memories.map(
+      (m: { type: string; key: string; content: string; updatedAt: Date }) => ({
+        type: m.type,
+        key: m.key,
+        content: m.content,
+        updatedAt: m.updatedAt,
+      }),
+    ),
   });
 }
 

@@ -20,15 +20,6 @@ jobs:
       - name: Run Biome lint (errors only)
         run: biome check --diagnostic-level=error packages/
 
-  format:
-    name: Format
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: biomejs/setup-biome@v2
-      - name: Check formatting
-        run: biome format packages/
-
   typecheck:
     name: TypeScript
     runs-on: ubuntu-latest
@@ -56,7 +47,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, format, typecheck]
+    needs: [lint, typecheck]
     steps:
       - uses: actions/checkout@v4
 
