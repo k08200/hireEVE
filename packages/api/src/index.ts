@@ -8,6 +8,7 @@ import { prisma } from "./db.js";
 import { adminRoutes } from "./routes/admin.js";
 import { agentRoutes } from "./routes/agents.js";
 import { authRoutes } from "./routes/auth.js";
+import { memoryRoutes } from "./routes/memory.js";
 import { automationRoutes } from "./routes/automations.js";
 import { billingRoutes } from "./routes/billing.js";
 import { calendarRoutes } from "./routes/calendar.js";
@@ -15,6 +16,7 @@ import { chatRoutes } from "./routes/chat.js";
 import { contactRoutes } from "./routes/contacts.js";
 import { emailRoutes } from "./routes/email.js";
 import { noteRoutes } from "./routes/notes.js";
+import { tokenUsageRoutes } from "./routes/token-usage.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { reminderRoutes } from "./routes/reminders.js";
 import { taskRoutes } from "./routes/tasks.js";
@@ -62,6 +64,8 @@ await app.register(workspaceRoutes, { prefix: "/api/workspaces" });
 await app.register(automationRoutes, { prefix: "/api/automations" });
 await app.register(adminRoutes, { prefix: "/api/admin" });
 await app.register(agentRoutes, { prefix: "/api/agents" });
+await app.register(memoryRoutes, { prefix: "/api/memories" });
+await app.register(tokenUsageRoutes, { prefix: "/api/usage" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
@@ -121,6 +125,12 @@ app.delete("/api/user/me/data", async (request, reply) => {
     await tx.automationConfig.deleteMany({ where: { userId } });
     await tx.calendarEvent.deleteMany({ where: { userId } });
     await tx.userToken.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
+    await (tx as any).tokenUsage.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
+    await (tx as any).memory.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
+    await (tx as any).conversationSummary.deleteMany({ where: { conversation: { userId } } });
     await tx.message.deleteMany({ where: { conversation: { userId } } });
     await tx.conversation.deleteMany({ where: { userId } });
     await tx.task.deleteMany({ where: { userId } });
@@ -187,6 +197,12 @@ app.delete("/api/user/data", async (request, reply) => {
     await tx.automationConfig.deleteMany({ where: { userId } });
     await tx.calendarEvent.deleteMany({ where: { userId } });
     await tx.userToken.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
+    await (tx as any).tokenUsage.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
+    await (tx as any).memory.deleteMany({ where: { userId } });
+    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
+    await (tx as any).conversationSummary.deleteMany({ where: { conversation: { userId } } });
     await tx.message.deleteMany({ where: { conversation: { userId } } });
     await tx.conversation.deleteMany({ where: { userId } });
     await tx.task.deleteMany({ where: { userId } });

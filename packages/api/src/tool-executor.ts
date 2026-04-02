@@ -5,6 +5,7 @@
  */
 
 import { BRIEFING_TOOLS } from "./briefing.js";
+import { forget, MEMORY_TOOLS, recall, remember } from "./memory.js";
 import {
   CALENDAR_TOOLS,
   checkConflicts,
@@ -101,6 +102,7 @@ export const ALWAYS_TOOLS = [
   ...WEATHER_TOOLS,
   ...NEWS_TOOLS,
   ...UTILITY_TOOLS,
+  ...MEMORY_TOOLS,
   TIME_TOOL,
   ...(SLACK_CONFIGURED ? SLACK_TOOLS : []),
   ...(NOTION_CONFIGURED ? NOTION_TOOLS : []),
@@ -328,6 +330,17 @@ export async function executeToolCall(
         );
       case "generate_password":
         return JSON.stringify(generatePassword(Math.min((args.length as number) || 16, 64)));
+      case "remember":
+        return await remember(
+          userId,
+          args.type as string,
+          args.key as string,
+          args.content as string,
+        );
+      case "recall":
+        return await recall(userId, args.query as string | undefined, args.type as string | undefined);
+      case "forget":
+        return await forget(userId, args.key as string, args.type as string);
       default:
         return JSON.stringify({ error: `Unknown function: ${functionName}` });
     }

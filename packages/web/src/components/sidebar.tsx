@@ -203,6 +203,34 @@ export default function Sidebar({
   };
 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<
+    { messageId: string; conversationId: string; conversationTitle: string; content: string }[]
+  >([]);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Full-text search across message content (Claude Code-inspired deep search)
+  useEffect(() => {
+    if (search.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      apiFetch<{
+        results: {
+          messageId: string;
+          conversationId: string;
+          conversationTitle: string;
+          content: string;
+        }[];
+      }>(`/api/chat/search?q=${encodeURIComponent(search)}`)
+        .then((data) => setSearchResults(data.results))
+        .catch(() => setSearchResults([]));
+    }, 300);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [search]);
 
   const deleteConversation = async (id: string) => {
     try {
@@ -351,6 +379,28 @@ export default function Sidebar({
 
       {/* Conversation list */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
+        {/* Deep search results (message content search) */}
+        {searchResults.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">
+              Found in messages
+            </p>
+            {searchResults.slice(0, 5).map((r) => (
+              <Link
+                key={r.messageId}
+                href={`/chat/${r.conversationId}`}
+                onClick={onMobileClose}
+                className="block rounded-lg px-2 py-2 text-sm text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 transition"
+              >
+                <p className="text-[12px] text-gray-300 truncate font-medium">
+                  {r.conversationTitle}
+                </p>
+                <p className="text-[11px] text-gray-500 truncate mt-0.5">{r.content}</p>
+              </Link>
+            ))}
+          </div>
+        )}
+
         {pinned.length > 0 && (
           <div className="mb-3">
             <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5 flex items-center gap-1">
@@ -683,6 +733,26 @@ export default function Sidebar({
                   className="block px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 rounded-md mx-1 transition"
                 >
                   Billing
+                </Link>
+                <Link
+                  href="/settings/memory"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    onMobileClose();
+                  }}
+                  className="block px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 rounded-md mx-1 transition"
+                >
+                  Memory
+                </Link>
+                <Link
+                  href="/settings/usage"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    onMobileClose();
+                  }}
+                  className="block px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 rounded-md mx-1 transition"
+                >
+                  Token Usage
                 </Link>
                 <div className="border-t border-gray-800 my-1" />
                 <button
