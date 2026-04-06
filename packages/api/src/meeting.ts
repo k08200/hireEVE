@@ -95,13 +95,50 @@ export async function getUpcomingMeetings(userId: string): Promise<MeetingEvent[
   }
 }
 
+/** Allowed meeting platform hostnames */
+const ALLOWED_MEETING_HOSTS = [
+  "meet.google.com",
+  "zoom.us",
+  "us02web.zoom.us",
+  "us04web.zoom.us",
+  "us05web.zoom.us",
+  "us06web.zoom.us",
+  "teams.microsoft.com",
+  "teams.live.com",
+  "whereby.com",
+  "around.co",
+  "gather.town",
+  "app.gather.town",
+];
+
 /** Auto-open a meeting link in the default browser */
 export async function joinMeeting(
   meetingLink: string,
-): Promise<{ success: boolean; link: string }> {
+): Promise<{ success: boolean; link: string; error?: string }> {
   if (!IS_MACOS) throw new Error("Auto-join requires macOS");
-  await exec("open", [meetingLink], { timeout: 5_000 });
-  return { success: true, link: meetingLink };
+
+  // Validate URL to prevent SSRF / command injection
+  let parsed: URL;
+  try {
+    parsed = new URL(meetingLink);
+  } catch {
+    return { success: false, link: meetingLink, error: "Invalid URL" };
+  }
+
+  if (parsed.protocol !== "https:") {
+    return { success: false, link: meetingLink, error: "Only HTTPS meeting links are allowed" };
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  const isAllowed = ALLOWED_MEETING_HOSTS.some(
+    (allowed) => host === allowed || host.endsWith(`.${allowed}`),
+  );
+  if (!isAllowed) {
+    return { success: false, link: meetingLink, error: `Unrecognized meeting platform: ${host}` };
+  }
+
+  await exec("open", [parsed.href], { timeout: 5_000 });
+  return { success: true, link: parsed.href };
 }
 
 /** Start audio recording via macOS (requires permission) */

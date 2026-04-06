@@ -64,23 +64,43 @@ export async function getRunningApps(): Promise<{ apps: string[] }> {
 }
 
 /** Open a URL or file — restricted to safe paths and URLs */
-export async function openItem(path: string): Promise<{ success: boolean; error?: string }> {
-  // Allow http(s) URLs
-  if (/^https?:\/\//i.test(path)) {
-    await exec("open", [path], { timeout: 5_000 });
+export async function openItem(itemPath: string): Promise<{ success: boolean; error?: string }> {
+  // Allow http(s) URLs only
+  if (/^https?:\/\//i.test(itemPath)) {
+    // Validate URL is well-formed
+    let parsed: URL;
+    try {
+      parsed = new URL(itemPath);
+    } catch {
+      return { success: false, error: "Invalid URL" };
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { success: false, error: "Only HTTP(S) URLs are allowed" };
+    }
+    await exec("open", [parsed.href], { timeout: 5_000 });
     return { success: true };
   }
-  // Block path traversal and sensitive locations
-  const normalized = path.replace(/\/+/g, "/");
+
+  // For file paths: resolve to absolute and validate strictly
+  const { resolve } = await import("node:path");
+  const resolved = resolve(itemPath);
+
+  // Block system/sensitive directories
   const blocked = ["/etc", "/var", "/private", "/System", "/usr", "/bin", "/sbin", "/Library"];
-  if (blocked.some((prefix) => normalized.startsWith(prefix))) {
+  if (blocked.some((prefix) => resolved.startsWith(prefix))) {
     return { success: false, error: "Access to system directories is not allowed" };
   }
   // Block dotfiles and hidden directories
-  if (/\/\./.test(normalized)) {
+  if (/\/\./.test(resolved)) {
     return { success: false, error: "Access to hidden files/directories is not allowed" };
   }
-  await exec("open", [path], { timeout: 5_000 });
+  // Must be under user home directory
+  const homeDir = process.env.HOME || "/Users";
+  if (!resolved.startsWith(homeDir)) {
+    return { success: false, error: "Can only open files under home directory" };
+  }
+
+  await exec("open", [resolved], { timeout: 5_000 });
   return { success: true };
 }
 
