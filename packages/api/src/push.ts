@@ -39,8 +39,44 @@ export async function sendPushNotification(
 
   const data = JSON.stringify(payload);
 
+  // Filter subscriptions with valid endpoints (re-validate after DB read to prevent stored SSRF)
+  const validSubs = subscriptions.filter(
+    (sub: { endpoint: string; p256dh: string; auth: string }) => {
+      try {
+        const parsed = new URL(sub.endpoint);
+        if (parsed.protocol !== "https:") return false;
+        const host = parsed.hostname.toLowerCase();
+        if (
+          host === "localhost" ||
+          host === "127.0.0.1" ||
+          host === "::1" ||
+          host.endsWith(".internal") ||
+          host.endsWith(".local")
+        ) {
+          return false;
+        }
+        const ipMatch = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+        if (ipMatch) {
+          const [, a, b] = ipMatch.map(Number);
+          if (
+            a === 10 ||
+            (a === 172 && b >= 16 && b <= 31) ||
+            (a === 192 && b === 168) ||
+            (a === 169 && b === 254) ||
+            a === 0
+          ) {
+            return false;
+          }
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  );
+
   const results = await Promise.allSettled(
-    subscriptions.map((sub: { endpoint: string; p256dh: string; auth: string }) =>
+    validSubs.map((sub: { endpoint: string; p256dh: string; auth: string }) =>
       webPush.sendNotification(
         {
           endpoint: sub.endpoint,
@@ -58,9 +94,9 @@ export async function sendPushNotification(
       const statusCode = (result.reason as { statusCode?: number })?.statusCode;
       if (statusCode === 410 || statusCode === 404) {
         await prisma.pushSubscription.delete({
-          where: { id: subscriptions[i].id },
+          where: { id: validSubs[i].id },
         });
-        console.log(`[PUSH] Removed expired subscription ${subscriptions[i].id}`);
+        console.log(`[PUSH] Removed expired subscription ${validSubs[i].id}`);
       }
     }
   }

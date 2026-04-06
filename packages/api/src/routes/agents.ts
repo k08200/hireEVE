@@ -12,8 +12,42 @@ export async function agentRoutes(app: FastifyInstance) {
       apiKey?: string;
     };
 
+    // Validate endpoint URL to prevent stored SSRF
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(endpoint);
+    } catch {
+      return reply.code(400).send({ error: "Invalid endpoint URL" });
+    }
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return reply.code(400).send({ error: "Only HTTP(S) endpoints are allowed" });
+    }
+    const host = parsedUrl.hostname.toLowerCase();
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host.endsWith(".internal") ||
+      host.endsWith(".local")
+    ) {
+      return reply.code(400).send({ error: "Private/internal endpoints are not allowed" });
+    }
+    const ipMatch = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipMatch) {
+      const [, a, b] = ipMatch.map(Number);
+      if (
+        a === 10 ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168) ||
+        (a === 169 && b === 254) ||
+        a === 0
+      ) {
+        return reply.code(400).send({ error: "Private/internal endpoints are not allowed" });
+      }
+    }
+
     const agent = await prisma.agent.create({
-      data: { name, endpoint, apiKey, userId },
+      data: { name, endpoint: parsedUrl.href, apiKey, userId },
     });
 
     return reply.code(201).send({ id: agent.id, name: agent.name, endpoint: agent.endpoint });
