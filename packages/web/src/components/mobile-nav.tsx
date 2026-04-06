@@ -27,7 +27,6 @@ export default function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: close nav on route change
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -83,8 +82,6 @@ export default function MobileNav() {
 
       {open && (
         <div className="fixed inset-0 top-14 z-40 md:hidden">
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-close backdrop */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by global listener */}
           <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
           <nav className="relative bg-gray-950 border-b border-gray-800 shadow-xl">
             <div className="flex flex-col py-2">

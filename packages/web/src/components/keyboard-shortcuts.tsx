@@ -63,14 +63,10 @@ export default function KeyboardShortcuts() {
   if (!showHelp) return null;
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: click-to-close backdrop
-    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by global listener
     <div
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
       onClick={() => setShowHelp(false)}
     >
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: stop propagation container */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by parent */}
       <div
         className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm"
         onClick={(e) => e.stopPropagation()}

@@ -867,8 +867,6 @@ export default function Sidebar({
       {/* Mobile overlay */}
       {mobileOpen && (
         <>
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-close backdrop */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by Escape key */}
           <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={onMobileClose} />
           <aside className="fixed inset-y-0 left-0 w-[280px] z-50 md:hidden animate-slide-in-left">
             {sidebarContent}

@@ -66,7 +66,6 @@ export default function NotificationsPage() {
       .finally(() => setLoading(false));
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load on mount
   useEffect(() => {
     load();
   }, []);

@@ -92,14 +92,12 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     // Attach pending action counts for agent-initiated conversations
-    // biome-ignore lint/suspicious/noExplicitAny: source field exists but Prisma types don't include it in findMany result when using include
     const agentConvIds = (conversations as any[])
       .filter((c) => c.source === "agent")
       .map((c) => c.id as string);
 
     let pendingCounts: Record<string, number> = {};
     if (agentConvIds.length > 0) {
-      // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
       const counts = await (prisma as any).pendingAction.groupBy({
         by: ["conversationId"],
         where: { conversationId: { in: agentConvIds }, status: "PENDING" },
@@ -113,7 +111,6 @@ export async function chatRoutes(app: FastifyInstance) {
       );
     }
 
-    // biome-ignore lint/suspicious/noExplicitAny: enriching with pendingActionCount
     const enriched = (conversations as any[]).map((c) => ({
       ...c,
       pendingActionCount: pendingCounts[c.id] || 0,
@@ -685,7 +682,6 @@ export async function chatRoutes(app: FastifyInstance) {
       const completionChars = fullResponse.length;
       const estimatedPromptTokens = Math.ceil(promptChars / 3);
       const estimatedCompletionTokens = Math.ceil(completionChars / 3);
-      // biome-ignore lint/suspicious/noExplicitAny: TokenUsage model — types available after prisma generate
       (prisma as any).tokenUsage
         .create({
           data: {
@@ -732,7 +728,6 @@ export async function chatRoutes(app: FastifyInstance) {
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
     if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
-    // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
     const actions = await (prisma as any).pendingAction.findMany({
       where: { conversationId: id },
       orderBy: { createdAt: "desc" },
@@ -745,7 +740,6 @@ export async function chatRoutes(app: FastifyInstance) {
     const userId = getUserId(request);
     const { actionId } = request.params as { actionId: string };
 
-    // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
     const action = await (prisma as any).pendingAction.findUnique({
       where: { id: actionId },
     });
@@ -758,7 +752,6 @@ export async function chatRoutes(app: FastifyInstance) {
 
     // Atomic status claim — prevents race condition with concurrent approve/reject
     // Uses updateMany with status condition so only one request can claim
-    // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
     const claimed = await (prisma as any).pendingAction.updateMany({
       where: { id: actionId, status: "PENDING" },
       data: { status: "EXECUTED", updatedAt: new Date() },
@@ -772,14 +765,12 @@ export async function chatRoutes(app: FastifyInstance) {
       const toolArgs = JSON.parse(action.toolArgs);
       const toolResult = await executeToolCall(userId, action.toolName, toolArgs);
 
-      // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
       await (prisma as any).pendingAction.update({
         where: { id: actionId },
         data: { result: toolResult },
       });
 
       // Add a follow-up message in the conversation
-      // biome-ignore lint/suspicious/noExplicitAny: metadata field not in generated Prisma types yet
       await (prisma as any).message.create({
         data: {
           conversationId: action.conversationId,
@@ -802,13 +793,11 @@ export async function chatRoutes(app: FastifyInstance) {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Execution failed";
 
-      // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
       await (prisma as any).pendingAction.update({
         where: { id: actionId },
         data: { status: "FAILED", result: message },
       });
 
-      // biome-ignore lint/suspicious/noExplicitAny: metadata field not in generated Prisma types yet
       await (prisma as any).message.create({
         data: {
           conversationId: action.conversationId,
@@ -828,7 +817,6 @@ export async function chatRoutes(app: FastifyInstance) {
     const { actionId } = request.params as { actionId: string };
     const { reason } = (request.body as { reason?: string }) || {};
 
-    // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
     const action = await (prisma as any).pendingAction.findUnique({
       where: { id: actionId },
     });
@@ -840,7 +828,6 @@ export async function chatRoutes(app: FastifyInstance) {
     }
 
     // Atomic status claim — prevents race condition with concurrent approve/reject
-    // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
     const claimed = await (prisma as any).pendingAction.updateMany({
       where: { id: actionId, status: "PENDING" },
       data: {
@@ -857,7 +844,6 @@ export async function chatRoutes(app: FastifyInstance) {
       ? `알겠어요, "${reason}" — 이 제안은 취소할게요. 다음엔 참고할게요.`
       : "알겠어요, 이 제안은 취소할게요.";
 
-    // biome-ignore lint/suspicious/noExplicitAny: metadata field not in generated Prisma types yet
     await (prisma as any).message.create({
       data: {
         conversationId: action.conversationId,

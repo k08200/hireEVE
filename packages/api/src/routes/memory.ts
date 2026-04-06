@@ -19,7 +19,6 @@ export async function memoryRoutes(app: FastifyInstance) {
       ];
     }
 
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
     const memories = await (prisma as any).memory.findMany({
       where,
       orderBy: { updatedAt: "desc" },
@@ -39,7 +38,6 @@ export async function memoryRoutes(app: FastifyInstance) {
       confidence?: number;
     };
 
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
     const memory = await (prisma as any).memory.upsert({
       where: { userId_type_key: { userId, type, key } },
       update: { content, source, confidence: confidence ?? 1.0, updatedAt: new Date() },
@@ -60,11 +58,9 @@ export async function memoryRoutes(app: FastifyInstance) {
   app.delete("/:id", rateLimitConfig, async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
     const memory = await (prisma as any).memory.findUnique({ where: { id } });
     if (!memory) return reply.code(404).send({ error: "Memory not found" });
     if (memory.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
     await (prisma as any).memory.delete({ where: { id } });
     return reply.code(204).send();
   });
@@ -72,7 +68,6 @@ export async function memoryRoutes(app: FastifyInstance) {
   // GET /api/memories/stats — Memory usage stats
   app.get("/stats", rateLimitConfig, async (request) => {
     const userId = getUserId(request);
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
     const counts: { type: string; _count: number }[] = await (prisma as any).memory.groupBy({
       by: ["type"],
       where: { userId },

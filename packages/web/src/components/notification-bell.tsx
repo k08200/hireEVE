@@ -95,7 +95,6 @@ export default function NotificationBell({ userId }: { userId: string }) {
       .catch(() => {});
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fetch on mount and reconnect
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, connected ? 60_000 : 15_000);

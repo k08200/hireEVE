@@ -74,7 +74,6 @@ async function trackTokenUsage(
   // Rough cost estimate for nano model: ~$0.10/M input, ~$0.40/M output
   const estimatedCost = prompt * 0.0000001 + completion * 0.0000004;
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: TokenUsage may not be in generated Prisma types
     await (prisma as any).tokenUsage.create({
       data: {
         userId,
@@ -99,7 +98,6 @@ async function logAgentAction(
   reasoning?: string,
 ) {
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types yet
     await (prisma as any).agentLog.create({
       data: { userId, action, summary, tool, reasoning },
     });
@@ -163,7 +161,6 @@ async function getAgentFeedback(userId: string): Promise<string> {
 /** Load recent proposal history so agent can learn from approved/rejected actions */
 async function getProposalHistory(userId: string): Promise<string> {
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
     const recentActions = await (prisma as any).pendingAction.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -272,7 +269,6 @@ async function gatherUserContext(userId: string): Promise<string> {
       select: { name: true, email: true, company: true, role: true, tags: true },
     }),
     // Recent agent decisions — continuity across cycles (prevents amnesia)
-    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types yet
     (prisma as any).agentLog
       .findMany({
         where: { userId, createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
@@ -793,7 +789,6 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
         const fn = (toolCall as unknown as { function: { name: string; arguments: string } })
           .function;
         const fnName = fn.name;
-        // biome-ignore lint/suspicious/noExplicitAny: LLM output is untyped
         let args: any;
         try {
           args = JSON.parse(fn.arguments || "{}");
@@ -814,7 +809,6 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
           if (!recentNotifications.has(userId)) {
             recentNotifications.set(userId, new Map());
           }
-          // biome-ignore lint/style/noNonNullAssertion: set() called right above
           const userNotifs = recentNotifications.get(userId)!;
 
           if (userNotifs.has(key) && Date.now() < (userNotifs.get(key) || 0)) {
@@ -828,7 +822,6 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            // biome-ignore lint/suspicious/noExplicitAny: source field not in generated Prisma types yet
             let agentConvo = await (prisma as any).conversation.findFirst({
               where: {
                 userId,
@@ -843,7 +836,6 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
                 month: "long",
                 day: "numeric",
               });
-              // biome-ignore lint/suspicious/noExplicitAny: source field not in generated Prisma types yet
               agentConvo = await (prisma as any).conversation.create({
                 data: {
                   userId,
@@ -854,7 +846,6 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
             }
 
             // Create the assistant message with the proposal
-            // biome-ignore lint/suspicious/noExplicitAny: metadata field not in generated Prisma types yet
             const assistantMsg = await (prisma as any).message.create({
               data: {
                 conversationId: agentConvo.id,
@@ -865,7 +856,6 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
             });
 
             // Create the pending action
-            // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
             await (prisma as any).pendingAction.create({
               data: {
                 conversationId: agentConvo.id,
@@ -944,7 +934,6 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
           if (!recentNotifications.has(userId)) {
             recentNotifications.set(userId, new Map());
           }
-          // biome-ignore lint/style/noNonNullAssertion: set() called right above
           const userNotifs = recentNotifications.get(userId)!;
 
           if (userNotifs.has(key) && Date.now() < (userNotifs.get(key) || 0)) {
@@ -1052,7 +1041,6 @@ const PENDING_ACTION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 async function expireStalePendingActions() {
   try {
     const cutoff = new Date(Date.now() - PENDING_ACTION_TTL_MS);
-    // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
     const expired = await (prisma as any).pendingAction.updateMany({
       where: { status: "PENDING", createdAt: { lt: cutoff } },
       data: { status: "REJECTED", result: "자동 만료 (24시간 초과)" },
@@ -1088,7 +1076,6 @@ async function runAutonomousAgent() {
     // Filter users that are due for a run
     const usersToRun: Array<{ userId: string; mode: string }> = [];
     for (const config of configs) {
-      // biome-ignore lint/suspicious/noExplicitAny: AgentLog fields not in generated types
       const cfg = config as any;
       if (cfg.autonomousAgent === false) continue;
 

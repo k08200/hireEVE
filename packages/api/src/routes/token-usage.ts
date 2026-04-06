@@ -37,7 +37,6 @@ export async function tokenUsageRoutes(app: FastifyInstance) {
       since = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // biome-ignore lint/suspicious/noExplicitAny: TokenUsage model — types available after prisma generate
     const usages: UsageRow[] = await (prisma as any).tokenUsage.findMany({
       where: { userId, createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
@@ -87,7 +86,6 @@ export async function tokenUsageRoutes(app: FastifyInstance) {
   app.get("/conversations", rateLimitConfig, async (request) => {
     const userId = getUserId(request);
 
-    // biome-ignore lint/suspicious/noExplicitAny: TokenUsage model — types available after prisma generate
     const usages: {
       conversationId: string | null;
       _sum: { totalTokens: number | null; estimatedCost: number | null };

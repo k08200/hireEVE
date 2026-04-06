@@ -94,7 +94,6 @@ export async function remember(
   content: string,
   source?: string,
 ): Promise<string> {
-  // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
   const memory = await (prisma as any).memory.upsert({
     where: {
       userId_type_key: {
@@ -126,7 +125,6 @@ export async function recall(userId: string, query?: string, type?: string): Pro
     ];
   }
 
-  // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
   const memories = await (prisma as any).memory.findMany({
     where,
     orderBy: { updatedAt: "desc" },
@@ -139,7 +137,6 @@ export async function recall(userId: string, query?: string, type?: string): Pro
 
   // Update lastUsedAt for accessed memories
   const ids = memories.map((m: { id: string }) => m.id);
-  // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
   await (prisma as any).memory.updateMany({
     where: { id: { in: ids } },
     data: { lastUsedAt: new Date() },
@@ -160,7 +157,6 @@ export async function recall(userId: string, query?: string, type?: string): Pro
 /** Forget a specific memory */
 export async function forget(userId: string, key: string, type: string): Promise<string> {
   try {
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
     await (prisma as any).memory.delete({
       where: {
         userId_type_key: {
@@ -181,7 +177,6 @@ export async function forget(userId: string, key: string, type: string): Promise
  * Called before each chat message to give EVE context about the user.
  */
 export async function loadMemoriesForPrompt(userId: string): Promise<string> {
-  // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
   const memories = await (prisma as any).memory.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
