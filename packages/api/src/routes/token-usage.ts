@@ -6,7 +6,7 @@
 
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
-import { prisma } from "../db.js";
+import { db, prisma } from "../db.js";
 
 // Per-route rate limit config
 const rateLimitConfig = { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } };
@@ -37,7 +37,7 @@ export async function tokenUsageRoutes(app: FastifyInstance) {
       since = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    const usages: UsageRow[] = await (prisma as any).tokenUsage.findMany({
+    const usages: UsageRow[] = await db.tokenUsage.findMany({
       where: { userId, createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
     });
@@ -90,7 +90,7 @@ export async function tokenUsageRoutes(app: FastifyInstance) {
       conversationId: string | null;
       _sum: { totalTokens: number | null; estimatedCost: number | null };
       _count: number;
-    }[] = await (prisma as any).tokenUsage.groupBy({
+    }[] = await db.tokenUsage.groupBy({
       by: ["conversationId"],
       where: { userId, conversationId: { not: null } },
       _sum: { totalTokens: true, estimatedCost: true },

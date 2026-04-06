@@ -16,7 +16,15 @@
  * - AUTO: Executes low-risk actions automatically (future)
  */
 
-import { prisma } from "./db.js";
+/**
+ * Typed accessor for Prisma models that exist in the schema but may not
+ * yet appear in the generated client typings (AgentLog, PendingAction,
+ * TokenUsage, Conversation, Message, etc.).
+ *
+ * Uses `never[]` for args so callers don't need explicit casts, and
+ * `Promise<{ [k: string]: unknown }>` so returned objects support property access.
+ */
+import { db, prisma } from "./db.js";
 import { listEmails } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
 import { AGENT_MODEL, openai } from "./openai.js";
@@ -74,7 +82,7 @@ async function trackTokenUsage(
   // Rough cost estimate for nano model: ~$0.10/M input, ~$0.40/M output
   const estimatedCost = prompt * 0.0000001 + completion * 0.0000004;
   try {
-    await (prisma as any).tokenUsage.create({
+    await db.tokenUsage.create({
       data: {
         userId,
         model: AGENT_MODEL,
@@ -98,7 +106,7 @@ async function logAgentAction(
   reasoning?: string,
 ) {
   try {
-    await (prisma as any).agentLog.create({
+    await db.agentLog.create({
       data: { userId, action, summary, tool, reasoning },
     });
   } catch {
@@ -161,7 +169,7 @@ async function getAgentFeedback(userId: string): Promise<string> {
 /** Load recent proposal history so agent can learn from approved/rejected actions */
 async function getProposalHistory(userId: string): Promise<string> {
   try {
-    const recentActions = await (prisma as any).pendingAction.findMany({
+    const recentActions = await db.pendingAction.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: 10,
@@ -269,7 +277,7 @@ async function gatherUserContext(userId: string): Promise<string> {
       select: { name: true, email: true, company: true, role: true, tags: true },
     }),
     // Recent agent decisions — continuity across cycles (prevents amnesia)
-    (prisma as any).agentLog
+    db.agentLog
       .findMany({
         where: { userId, createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
         orderBy: { createdAt: "desc" },
@@ -789,7 +797,16 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
         const fn = (toolCall as unknown as { function: { name: string; arguments: string } })
           .function;
         const fnName = fn.name;
-        let args: any;
+        interface AgentToolArgs {
+          message: string;
+          title: string;
+          toolName: string;
+          toolArgs: unknown;
+          priority: string;
+          category: string;
+          [key: string]: unknown;
+        }
+        let args: AgentToolArgs;
         try {
           args = JSON.parse(fn.arguments || "{}");
         } catch {
@@ -822,7 +839,7 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            let agentConvo = await (prisma as any).conversation.findFirst({
+            let agentConvo = await db.conversation.findFirst({
               where: {
                 userId,
                 source: "agent",
@@ -836,7 +853,7 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
                 month: "long",
                 day: "numeric",
               });
-              agentConvo = await (prisma as any).conversation.create({
+              agentConvo = await db.conversation.create({
                 data: {
                   userId,
                   title: `EVE 제안 — ${todayStr}`,
@@ -846,7 +863,7 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
             }
 
             // Create the assistant message with the proposal
-            const assistantMsg = await (prisma as any).message.create({
+            const assistantMsg = await db.message.create({
               data: {
                 conversationId: agentConvo.id,
                 role: "ASSISTANT",
@@ -856,7 +873,7 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
             });
 
             // Create the pending action
-            await (prisma as any).pendingAction.create({
+            await db.pendingAction.create({
               data: {
                 conversationId: agentConvo.id,
                 messageId: assistantMsg.id,
@@ -1041,7 +1058,7 @@ const PENDING_ACTION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 async function expireStalePendingActions() {
   try {
     const cutoff = new Date(Date.now() - PENDING_ACTION_TTL_MS);
-    const expired = await (prisma as any).pendingAction.updateMany({
+    const expired = await db.pendingAction.updateMany({
       where: { status: "PENDING", createdAt: { lt: cutoff } },
       data: { status: "REJECTED", result: "자동 만료 (24시간 초과)" },
     });
@@ -1076,7 +1093,7 @@ async function runAutonomousAgent() {
     // Filter users that are due for a run
     const usersToRun: Array<{ userId: string; mode: string }> = [];
     for (const config of configs) {
-      const cfg = config as any;
+      const cfg = config as unknown as Record<string, unknown>;
       if (cfg.autonomousAgent === false) continue;
 
       const intervalMs = ((cfg.agentIntervalMin as number) || 5) * 60 * 1000;

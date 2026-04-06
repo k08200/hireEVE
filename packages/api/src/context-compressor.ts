@@ -6,7 +6,7 @@
  * while preserving important information.
  */
 
-import { prisma } from "./db.js";
+import { db } from "./db.js";
 import { MODEL, openai } from "./openai.js";
 
 /** Approximate token count (rough: ~3 chars per token for mixed Korean/English) */
@@ -65,7 +65,7 @@ export async function compactHistory(
   const recentMessages = messages.slice(-KEEP_RECENT_MESSAGES);
 
   // Check if we already have a summary for these older messages
-  const existingSummary = await (prisma as any).conversationSummary.findFirst({
+  const existingSummary = await db.conversationSummary.findFirst({
     where: {
       conversationId,
       upToMessageId: olderMessages[olderMessages.length - 1]?.id,
@@ -82,7 +82,7 @@ export async function compactHistory(
 
     // Save summary for reuse
     try {
-      await (prisma as any).conversationSummary.create({
+      await db.conversationSummary.create({
         data: {
           conversationId,
           summary: summaryText,

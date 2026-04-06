@@ -5,7 +5,7 @@ import Fastify from "fastify";
 import { ensureDemoUser, getUserId, requireAuth } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
 import { briefingRoutes } from "./briefing.js";
-import { prisma } from "./db.js";
+import { db, prisma } from "./db.js";
 import { adminRoutes } from "./routes/admin.js";
 import { agentRoutes } from "./routes/agents.js";
 import { authRoutes } from "./routes/auth.js";
@@ -113,7 +113,7 @@ app.get("/api/user/me/export", { preHandler: requireAuth }, async (request) => {
     prisma.calendarEvent.findMany({ where: { userId } }),
     prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.automationConfig.findUnique({ where: { userId } }),
-    (prisma as any).agentLog.findMany({
+    db.agentLog.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -138,13 +138,15 @@ app.delete("/api/user/me/data", { preHandler: requireAuth }, async (request, rep
   await prisma.$transaction(async (tx: TxClient) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
-    await (tx as any).agentLog.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).agentLog.deleteMany({ where: { userId } });
     await tx.automationConfig.deleteMany({ where: { userId } });
     await tx.calendarEvent.deleteMany({ where: { userId } });
     await tx.userToken.deleteMany({ where: { userId } });
-    await (tx as any).tokenUsage.deleteMany({ where: { userId } });
-    await (tx as any).memory.deleteMany({ where: { userId } });
-    await (tx as any).conversationSummary.deleteMany({ where: { conversation: { userId } } });
+    await (tx as unknown as typeof db).tokenUsage.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).memory.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).conversationSummary.deleteMany({
+      where: { conversation: { userId } },
+    });
     await tx.message.deleteMany({ where: { conversation: { userId } } });
     await tx.conversation.deleteMany({ where: { userId } });
     await tx.task.deleteMany({ where: { userId } });
@@ -180,7 +182,7 @@ app.get("/api/user/export", { preHandler: requireAuth }, async (request) => {
     prisma.calendarEvent.findMany({ where: { userId } }),
     prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.automationConfig.findUnique({ where: { userId } }),
-    (prisma as any).agentLog.findMany({
+    db.agentLog.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -205,13 +207,15 @@ app.delete("/api/user/data", { preHandler: requireAuth }, async (request, reply)
   await prisma.$transaction(async (tx: TxClient) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
-    await (tx as any).agentLog.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).agentLog.deleteMany({ where: { userId } });
     await tx.automationConfig.deleteMany({ where: { userId } });
     await tx.calendarEvent.deleteMany({ where: { userId } });
     await tx.userToken.deleteMany({ where: { userId } });
-    await (tx as any).tokenUsage.deleteMany({ where: { userId } });
-    await (tx as any).memory.deleteMany({ where: { userId } });
-    await (tx as any).conversationSummary.deleteMany({ where: { conversation: { userId } } });
+    await (tx as unknown as typeof db).tokenUsage.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).memory.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).conversationSummary.deleteMany({
+      where: { conversation: { userId } },
+    });
     await tx.message.deleteMany({ where: { conversation: { userId } } });
     await tx.conversation.deleteMany({ where: { userId } });
     await tx.task.deleteMany({ where: { userId } });

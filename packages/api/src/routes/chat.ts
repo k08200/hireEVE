@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
 import { compactHistory } from "../context-compressor.js";
-import { prisma } from "../db.js";
+import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
 import { sendPushNotification } from "../push.js";
@@ -92,13 +92,13 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     // Attach pending action counts for agent-initiated conversations
-    const agentConvIds = (conversations as any[])
+    const agentConvIds = (conversations as Array<Record<string, unknown>>)
       .filter((c) => c.source === "agent")
       .map((c) => c.id as string);
 
     let pendingCounts: Record<string, number> = {};
     if (agentConvIds.length > 0) {
-      const counts = await (prisma as any).pendingAction.groupBy({
+      const counts = await db.pendingAction.groupBy({
         by: ["conversationId"],
         where: { conversationId: { in: agentConvIds }, status: "PENDING" },
         _count: { id: true },
@@ -111,9 +111,9 @@ export async function chatRoutes(app: FastifyInstance) {
       );
     }
 
-    const enriched = (conversations as any[]).map((c) => ({
+    const enriched = (conversations as Array<Record<string, unknown>>).map((c) => ({
       ...c,
-      pendingActionCount: pendingCounts[c.id] || 0,
+      pendingActionCount: pendingCounts[c.id as string] || 0,
     }));
 
     return { conversations: enriched };
@@ -682,7 +682,7 @@ export async function chatRoutes(app: FastifyInstance) {
       const completionChars = fullResponse.length;
       const estimatedPromptTokens = Math.ceil(promptChars / 3);
       const estimatedCompletionTokens = Math.ceil(completionChars / 3);
-      (prisma as any).tokenUsage
+      db.tokenUsage
         .create({
           data: {
             userId: conversation.userId,
@@ -728,7 +728,7 @@ export async function chatRoutes(app: FastifyInstance) {
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
     if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
-    const actions = await (prisma as any).pendingAction.findMany({
+    const actions = await db.pendingAction.findMany({
       where: { conversationId: id },
       orderBy: { createdAt: "desc" },
     });
@@ -740,7 +740,7 @@ export async function chatRoutes(app: FastifyInstance) {
     const userId = getUserId(request);
     const { actionId } = request.params as { actionId: string };
 
-    const action = await (prisma as any).pendingAction.findUnique({
+    const action = await db.pendingAction.findUnique({
       where: { id: actionId },
     });
 
@@ -752,7 +752,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
     // Atomic status claim — prevents race condition with concurrent approve/reject
     // Uses updateMany with status condition so only one request can claim
-    const claimed = await (prisma as any).pendingAction.updateMany({
+    const claimed = await db.pendingAction.updateMany({
       where: { id: actionId, status: "PENDING" },
       data: { status: "EXECUTED", updatedAt: new Date() },
     });
@@ -765,13 +765,13 @@ export async function chatRoutes(app: FastifyInstance) {
       const toolArgs = JSON.parse(action.toolArgs);
       const toolResult = await executeToolCall(userId, action.toolName, toolArgs);
 
-      await (prisma as any).pendingAction.update({
+      await db.pendingAction.update({
         where: { id: actionId },
         data: { result: toolResult },
       });
 
       // Add a follow-up message in the conversation
-      await (prisma as any).message.create({
+      await db.message.create({
         data: {
           conversationId: action.conversationId,
           role: "ASSISTANT",
@@ -793,12 +793,12 @@ export async function chatRoutes(app: FastifyInstance) {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Execution failed";
 
-      await (prisma as any).pendingAction.update({
+      await db.pendingAction.update({
         where: { id: actionId },
         data: { status: "FAILED", result: message },
       });
 
-      await (prisma as any).message.create({
+      await db.message.create({
         data: {
           conversationId: action.conversationId,
           role: "ASSISTANT",
@@ -817,7 +817,7 @@ export async function chatRoutes(app: FastifyInstance) {
     const { actionId } = request.params as { actionId: string };
     const { reason } = (request.body as { reason?: string }) || {};
 
-    const action = await (prisma as any).pendingAction.findUnique({
+    const action = await db.pendingAction.findUnique({
       where: { id: actionId },
     });
 
@@ -828,7 +828,7 @@ export async function chatRoutes(app: FastifyInstance) {
     }
 
     // Atomic status claim — prevents race condition with concurrent approve/reject
-    const claimed = await (prisma as any).pendingAction.updateMany({
+    const claimed = await db.pendingAction.updateMany({
       where: { id: actionId, status: "PENDING" },
       data: {
         status: "REJECTED",
@@ -844,7 +844,7 @@ export async function chatRoutes(app: FastifyInstance) {
       ? `알겠어요, "${reason}" — 이 제안은 취소할게요. 다음엔 참고할게요.`
       : "알겠어요, 이 제안은 취소할게요.";
 
-    await (prisma as any).message.create({
+    await db.message.create({
       data: {
         conversationId: action.conversationId,
         role: "ASSISTANT",
