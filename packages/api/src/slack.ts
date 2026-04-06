@@ -78,10 +78,13 @@ export async function readSlackMessages(
     return { messages: [] };
   }
 
-  const res = await fetch(
-    `https://slack.com/api/conversations.history?channel=${channel}&limit=${limit}`,
-    { headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` } },
-  );
+  const url = new URL("https://slack.com/api/conversations.history");
+  url.searchParams.set("channel", channel);
+  url.searchParams.set("limit", String(limit));
+
+  const res = await fetch(url.href, {
+    headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` },
+  });
   const data = (await res.json()) as {
     ok: boolean;
     messages: { user: string; text: string; ts: string }[];
