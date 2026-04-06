@@ -34,7 +34,10 @@ export function useWebSocket(userId: string) {
     if (!userId) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(`${WS_URL}/ws?userId=${userId}&type=web`);
+    // Pass JWT token for authenticated WebSocket connection
+    const token = typeof window !== "undefined" ? localStorage.getItem("eve-token") : null;
+    const authParam = token ? `token=${encodeURIComponent(token)}` : `userId=${userId}`;
+    const ws = new WebSocket(`${WS_URL}/ws?${authParam}&type=web`);
 
     ws.onopen = () => {
       setConnected(true);

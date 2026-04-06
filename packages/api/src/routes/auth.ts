@@ -23,8 +23,8 @@ export async function authRoutes(app: FastifyInstance) {
     if (!email || !password) {
       return reply.code(400).send({ error: "Email and password required" });
     }
-    if (password.length < 6) {
-      return reply.code(400).send({ error: "Password must be at least 6 characters" });
+    if (password.length < 8) {
+      return reply.code(400).send({ error: "Password must be at least 8 characters" });
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -209,14 +209,21 @@ export async function authRoutes(app: FastifyInstance) {
 
   // GET /api/auth/google/login — Start Google social login flow
   app.get("/google/login", async (_request, reply) => {
-    const url = getLoginAuthUrl();
+    // Sign state to prevent CSRF — only server can create valid login states
+    const loginState = signToken({ userId: "__login__", email: "__google_login__" });
+    const url = getLoginAuthUrl(loginState);
     return reply.redirect(url);
   });
 
-  // GET /api/auth/google — Start OAuth flow for Gmail/Calendar integration (pass userId via state)
+  // GET /api/auth/google — Start OAuth flow for Gmail/Calendar integration (signed state)
   app.get("/google", async (request, reply) => {
     const userId = getUserId(request);
-    const url = getAuthUrl(userId);
+    if (userId === "demo-user") {
+      return reply.code(403).send({ error: "Authentication required to connect Google" });
+    }
+    // Sign the state to prevent CSRF — attacker can't forge a valid state for another user
+    const signedState = signToken({ userId, email: "__oauth_state__" });
+    const url = getAuthUrl(signedState);
     return reply.redirect(url);
   });
 
@@ -230,12 +237,23 @@ export async function authRoutes(app: FastifyInstance) {
 
     const webUrl = process.env.WEB_URL || "http://localhost:8001";
 
+    // Validate state parameter — must be a valid server-signed JWT
+    if (!state) {
+      return reply.code(400).send({ error: "Missing state parameter" });
+    }
+    let statePayload: { userId: string; email: string };
+    try {
+      statePayload = verifyToken(state);
+    } catch {
+      return reply.code(400).send({ error: "Invalid or expired OAuth state" });
+    }
+
     try {
       const oauth2 = getOAuth2Client();
       const { tokens } = await oauth2.getToken(code);
 
-      // --- Google Social Login flow ---
-      if (state === "__login__") {
+      // --- Google Social Login flow (state signed with __google_login__ marker) ---
+      if (statePayload.email === "__google_login__") {
         if (!tokens.access_token) {
           return reply.redirect(`${webUrl}/login?error=google_failed`);
         }
@@ -288,8 +306,11 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.redirect(`${webUrl}/auth/callback?token=${token}`);
       }
 
-      // --- Gmail/Calendar integration flow ---
-      const userId = state || "demo-user";
+      // --- Gmail/Calendar integration flow (state signed with __oauth_state__ marker) ---
+      if (statePayload.email !== "__oauth_state__") {
+        return reply.code(400).send({ error: "Invalid OAuth state" });
+      }
+      const userId = statePayload.userId;
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
         return reply.code(404).send({ error: "User not found" });
@@ -314,7 +335,7 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.redirect(`${webUrl}/settings?google=connected`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "OAuth failed";
-      if (state === "__login__") {
+      if (statePayload.email === "__google_login__") {
         return reply.redirect(`${webUrl}/login?error=${encodeURIComponent(message)}`);
       }
       return reply.code(500).send({ error: message });

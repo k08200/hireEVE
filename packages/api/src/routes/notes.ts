@@ -44,20 +44,30 @@ export async function noteRoutes(app: FastifyInstance) {
 
   // PATCH /api/notes/:id
   app.patch("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    const updates = request.body as { title?: string; content?: string; category?: string };
+    const existing = await prisma.note.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Note not found" });
+    if (existing.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
-    const note = await prisma.note.update({
-      where: { id },
-      data: updates,
-    });
-
+    const body = request.body as { title?: string; content?: string; category?: string };
+    // Only allow safe fields — prevent userId/id overwrite
+    const updates: Record<string, string> = {};
+    if (body.title !== undefined) updates.title = body.title;
+    if (body.content !== undefined) updates.content = body.content;
+    if (body.category !== undefined) updates.category = body.category;
+    const note = await prisma.note.update({ where: { id }, data: updates });
     return reply.send(note);
   });
 
   // DELETE /api/notes/:id
   app.delete("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const existing = await prisma.note.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Note not found" });
+    if (existing.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
     await prisma.note.delete({ where: { id } });
     return reply.code(204).send();
   });

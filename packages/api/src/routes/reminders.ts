@@ -26,7 +26,12 @@ export async function reminderRoutes(app: FastifyInstance) {
   });
 
   app.patch("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const existing = await prisma.reminder.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Reminder not found" });
+    if (existing.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
     const { status } = request.body as { status: string };
     const reminder = await prisma.reminder.update({
       where: { id },
@@ -36,13 +41,23 @@ export async function reminderRoutes(app: FastifyInstance) {
   });
 
   app.patch("/:id/dismiss", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const existing = await prisma.reminder.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Reminder not found" });
+    if (existing.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
     const reminder = await prisma.reminder.update({ where: { id }, data: { status: "DISMISSED" } });
     return reply.send(reminder);
   });
 
   app.patch("/:id/snooze", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const existing = await prisma.reminder.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Reminder not found" });
+    if (existing.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
     const { minutes } = request.body as { minutes: number };
     const newTime = new Date(Date.now() + minutes * 60 * 1000);
     const reminder = await prisma.reminder.update({
@@ -53,7 +68,12 @@ export async function reminderRoutes(app: FastifyInstance) {
   });
 
   app.delete("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const existing = await prisma.reminder.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Reminder not found" });
+    if (existing.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
     await prisma.reminder.delete({ where: { id } });
     return reply.code(204).send();
   });

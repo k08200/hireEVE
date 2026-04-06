@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
-import { prisma } from "../db.js";
+import { db } from "../db.js";
 
 // Per-route rate limit config
 const rateLimitConfig = { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } };
@@ -19,8 +19,7 @@ export async function memoryRoutes(app: FastifyInstance) {
       ];
     }
 
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
-    const memories = await (prisma as any).memory.findMany({
+    const memories = await db.memory.findMany({
       where,
       orderBy: { updatedAt: "desc" },
     });
@@ -39,8 +38,7 @@ export async function memoryRoutes(app: FastifyInstance) {
       confidence?: number;
     };
 
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
-    const memory = await (prisma as any).memory.upsert({
+    const memory = await db.memory.upsert({
       where: { userId_type_key: { userId, type, key } },
       update: { content, source, confidence: confidence ?? 1.0, updatedAt: new Date() },
       create: {
@@ -58,17 +56,19 @@ export async function memoryRoutes(app: FastifyInstance) {
 
   // DELETE /api/memories/:id
   app.delete("/:id", rateLimitConfig, async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
-    await (prisma as any).memory.delete({ where: { id } });
+    const memory = await db.memory.findUnique({ where: { id } });
+    if (!memory) return reply.code(404).send({ error: "Memory not found" });
+    if (memory.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+    await db.memory.delete({ where: { id } });
     return reply.code(204).send();
   });
 
   // GET /api/memories/stats — Memory usage stats
   app.get("/stats", rateLimitConfig, async (request) => {
     const userId = getUserId(request);
-    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
-    const counts: { type: string; _count: number }[] = await (prisma as any).memory.groupBy({
+    const counts: { type: string; _count: number }[] = await db.memory.groupBy({
       by: ["type"],
       where: { userId },
       _count: true,

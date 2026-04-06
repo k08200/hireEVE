@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
+import { prisma } from "../db.js";
 import { createTask, deleteTask, listTasks, updateTask } from "../tasks.js";
 
 export async function taskRoutes(app: FastifyInstance) {
@@ -11,15 +12,25 @@ export async function taskRoutes(app: FastifyInstance) {
   });
 
   // PATCH /api/tasks/:id
-  app.patch("/:id", async (request) => {
+  app.patch("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) return reply.code(404).send({ error: "Task not found" });
+    if (task.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
     const body = request.body as Record<string, unknown>;
     return updateTask(id, body);
   });
 
   // DELETE /api/tasks/:id
   app.delete("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const task = await prisma.task.findUnique({ where: { id } });
+    if (!task) return reply.code(404).send({ error: "Task not found" });
+    if (task.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
     await deleteTask(id);
     return reply.code(204).send();
   });

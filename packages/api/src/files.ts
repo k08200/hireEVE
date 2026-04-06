@@ -14,13 +14,31 @@ import { MODEL, openai } from "./openai.js";
 const exec = promisify(execFile);
 const _IS_MACOS = process.platform === "darwin";
 
+/** Sanitize mdfind query — strip shell/SQL meta-characters, keep only safe search terms */
+function sanitizeMdfindQuery(q: string): string {
+  // Only allow alphanumeric, spaces, dots, hyphens, underscores, Korean/CJK characters
+  return q.replace(/[^a-zA-Z0-9\s.\-_\uAC00-\uD7AF\u3040-\u30FF\u4E00-\u9FFF]/g, "").trim();
+}
+
 /** Search files using macOS Spotlight (mdfind) */
 export async function searchFiles(
   query: string,
   folder?: string,
 ): Promise<{ files: Array<{ path: string; name: string; size: number }> }> {
-  const args = [query];
-  if (folder) args.push("-onlyin", folder);
+  if (folder && !isPathAllowed(folder)) {
+    return { files: [] };
+  }
+
+  const safeQuery = sanitizeMdfindQuery(query);
+  if (!safeQuery) return { files: [] };
+
+  const args = [safeQuery];
+  if (folder) {
+    // Resolve to absolute path and re-validate to prevent traversal
+    const resolved = join("/", folder);
+    if (!isPathAllowed(resolved)) return { files: [] };
+    args.push("-onlyin", resolved);
+  }
 
   try {
     const { stdout } = await exec("mdfind", args, { timeout: 10_000 });
@@ -43,10 +61,32 @@ export async function searchFiles(
   }
 }
 
+/** Blocked system paths — prevent reading sensitive OS/config files */
+const BLOCKED_PATH_PREFIXES = [
+  "/etc",
+  "/var",
+  "/private",
+  "/System",
+  "/usr",
+  "/bin",
+  "/sbin",
+  "/Library",
+];
+const BLOCKED_PATH_PATTERN = /\/\./; // dotfiles/hidden dirs
+
+function isPathAllowed(p: string): boolean {
+  const resolved = join("/", p); // normalize
+  if (BLOCKED_PATH_PATTERN.test(resolved)) return false;
+  return !BLOCKED_PATH_PREFIXES.some((prefix) => resolved.startsWith(prefix));
+}
+
 /** Read and summarize a text file */
 export async function readAndSummarize(
   filePath: string,
 ): Promise<{ content: string; summary: string }> {
+  if (!isPathAllowed(filePath)) {
+    return { content: "", summary: "Access denied: this file path is restricted." };
+  }
   const ext = extname(filePath).toLowerCase();
   let content = "";
 

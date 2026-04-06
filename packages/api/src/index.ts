@@ -2,10 +2,10 @@ import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import type { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
-import { ensureDemoUser, getUserId } from "./auth.js";
+import { ensureDemoUser, getUserId, requireAuth } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
 import { briefingRoutes } from "./briefing.js";
-import { prisma } from "./db.js";
+import { db, prisma } from "./db.js";
 import { adminRoutes } from "./routes/admin.js";
 import { agentRoutes } from "./routes/agents.js";
 import { authRoutes } from "./routes/auth.js";
@@ -33,9 +33,21 @@ type TxClient = Omit<
 
 const app = Fastify({ logger: true });
 
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || "http://localhost:8001,http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim());
+
 await app.register(cors, {
-  origin: true,
+  origin: (origin, cb) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Not allowed by CORS"), false);
+    }
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  credentials: true,
 });
 
 // Global rate limiting — 100 requests per minute per IP
@@ -76,8 +88,8 @@ await app.register(tokenUsageRoutes, { prefix: "/api/usage" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
-// User data management — "me" routes use auth token
-app.get("/api/user/me/export", async (request) => {
+// User data management — "me" routes require authentication
+app.get("/api/user/me/export", { preHandler: requireAuth }, async (request) => {
   const userId = getUserId(request);
   const [
     tasks,
@@ -101,8 +113,7 @@ app.get("/api/user/me/export", async (request) => {
     prisma.calendarEvent.findMany({ where: { userId } }),
     prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.automationConfig.findUnique({ where: { userId } }),
-    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
-    (prisma as any).agentLog.findMany({
+    db.agentLog.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -122,22 +133,20 @@ app.get("/api/user/me/export", async (request) => {
   };
 });
 
-app.delete("/api/user/me/data", async (request, reply) => {
+app.delete("/api/user/me/data", { preHandler: requireAuth }, async (request, reply) => {
   const userId = getUserId(request);
   await prisma.$transaction(async (tx: TxClient) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
-    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
-    await (tx as any).agentLog.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).agentLog.deleteMany({ where: { userId } });
     await tx.automationConfig.deleteMany({ where: { userId } });
     await tx.calendarEvent.deleteMany({ where: { userId } });
     await tx.userToken.deleteMany({ where: { userId } });
-    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
-    await (tx as any).tokenUsage.deleteMany({ where: { userId } });
-    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
-    await (tx as any).memory.deleteMany({ where: { userId } });
-    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
-    await (tx as any).conversationSummary.deleteMany({ where: { conversation: { userId } } });
+    await (tx as unknown as typeof db).tokenUsage.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).memory.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).conversationSummary.deleteMany({
+      where: { conversation: { userId } },
+    });
     await tx.message.deleteMany({ where: { conversation: { userId } } });
     await tx.conversation.deleteMany({ where: { userId } });
     await tx.task.deleteMany({ where: { userId } });
@@ -149,7 +158,7 @@ app.delete("/api/user/me/data", async (request, reply) => {
 });
 
 // User data export/delete — authenticated
-app.get("/api/user/export", async (request) => {
+app.get("/api/user/export", { preHandler: requireAuth }, async (request) => {
   const userId = getUserId(request);
   const [
     tasks,
@@ -173,8 +182,7 @@ app.get("/api/user/export", async (request) => {
     prisma.calendarEvent.findMany({ where: { userId } }),
     prisma.notification.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.automationConfig.findUnique({ where: { userId } }),
-    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
-    (prisma as any).agentLog.findMany({
+    db.agentLog.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -194,22 +202,20 @@ app.get("/api/user/export", async (request) => {
   };
 });
 
-app.delete("/api/user/data", async (request, reply) => {
+app.delete("/api/user/data", { preHandler: requireAuth }, async (request, reply) => {
   const userId = getUserId(request);
   await prisma.$transaction(async (tx: TxClient) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
     await tx.notification.deleteMany({ where: { userId } });
-    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
-    await (tx as any).agentLog.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).agentLog.deleteMany({ where: { userId } });
     await tx.automationConfig.deleteMany({ where: { userId } });
     await tx.calendarEvent.deleteMany({ where: { userId } });
     await tx.userToken.deleteMany({ where: { userId } });
-    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
-    await (tx as any).tokenUsage.deleteMany({ where: { userId } });
-    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
-    await (tx as any).memory.deleteMany({ where: { userId } });
-    // biome-ignore lint/suspicious/noExplicitAny: new models — types available after prisma generate
-    await (tx as any).conversationSummary.deleteMany({ where: { conversation: { userId } } });
+    await (tx as unknown as typeof db).tokenUsage.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).memory.deleteMany({ where: { userId } });
+    await (tx as unknown as typeof db).conversationSummary.deleteMany({
+      where: { conversation: { userId } },
+    });
     await tx.message.deleteMany({ where: { conversation: { userId } } });
     await tx.conversation.deleteMany({ where: { userId } });
     await tx.task.deleteMany({ where: { userId } });

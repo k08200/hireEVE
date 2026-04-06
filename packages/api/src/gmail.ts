@@ -26,12 +26,12 @@ export function getAuthUrl(userId?: string) {
 }
 
 /** Google login OAuth URL — requests profile + email + Gmail + Calendar for one-click setup */
-export function getLoginAuthUrl() {
+export function getLoginAuthUrl(signedState: string) {
   const oauth2 = getOAuth2Client();
   return oauth2.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
-    state: "__login__",
+    state: signedState,
     scope: [
       "openid",
       "https://www.googleapis.com/auth/userinfo.email",

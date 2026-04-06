@@ -20,7 +20,7 @@
       "suspicious": {
         "noAssignInExpressions": "warn",
         "noArrayIndexKey": "warn",
-        "noExplicitAny": "warn",
+        "noExplicitAny": "error",
         "noDoubleEquals": "error",
         "noDuplicateObjectKeys": "error",
         "noFallthroughSwitchClause": "error",
@@ -67,6 +67,18 @@
       "semicolons": "always"
     }
   },
+  "overrides": [
+    {
+      "includes": ["packages/api/src/db.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ],
   "files": {
     "includes": [
       "packages/**",

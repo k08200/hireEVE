@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
 import { compactHistory } from "../context-compressor.js";
-import { prisma } from "../db.js";
+import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
+import { sendPushNotification } from "../push.js";
 import { PLANS } from "../stripe.js";
 import { ALL_TOOLS, ALWAYS_TOOLS, executeToolCall } from "../tool-executor.js";
+import { pushNotification } from "../websocket.js";
 import { withRetry } from "../with-retry.js";
 
 /** Auto-generate conversation title from the first user message (fire-and-forget) */
@@ -89,11 +91,37 @@ export async function chatRoutes(app: FastifyInstance) {
       },
     });
 
-    return { conversations };
+    // Attach pending action counts for agent-initiated conversations
+    const agentConvIds = (conversations as Array<Record<string, unknown>>)
+      .filter((c) => c.source === "agent")
+      .map((c) => c.id as string);
+
+    let pendingCounts: Record<string, number> = {};
+    if (agentConvIds.length > 0) {
+      const counts = await db.pendingAction.groupBy({
+        by: ["conversationId"],
+        where: { conversationId: { in: agentConvIds }, status: "PENDING" },
+        _count: { id: true },
+      });
+      pendingCounts = Object.fromEntries(
+        counts.map((c: { conversationId: string; _count: { id: number } }) => [
+          c.conversationId,
+          c._count.id,
+        ]),
+      );
+    }
+
+    const enriched = (conversations as Array<Record<string, unknown>>).map((c) => ({
+      ...c,
+      pendingActionCount: pendingCounts[c.id as string] || 0,
+    }));
+
+    return { conversations: enriched };
   });
 
   // GET /api/chat/conversations/:id — Get conversation with messages
   app.get("/conversations/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
 
     const conversation = await prisma.conversation.findUnique({
@@ -104,29 +132,36 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+    if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
     return conversation;
   });
 
   // PATCH /api/chat/conversations/:id — Update conversation (title, pinned)
   app.patch("/conversations/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
     const body = request.body as { title?: string; pinned?: boolean };
+
+    const conversation = await prisma.conversation.findUnique({ where: { id } });
+    if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+    if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
     const data: { title?: string; pinned?: boolean } = {};
     if (body.title !== undefined) data.title = body.title;
     if (body.pinned !== undefined) data.pinned = body.pinned;
 
-    const conversation = await prisma.conversation.update({
-      where: { id },
-      data,
-    });
-
-    return reply.send(conversation);
+    const updated = await prisma.conversation.update({ where: { id }, data });
+    return reply.send(updated);
   });
 
   // DELETE /api/chat/conversations/:id
   app.delete("/conversations/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+
+    const conversation = await prisma.conversation.findUnique({ where: { id } });
+    if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+    if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
     await prisma.conversation.delete({ where: { id } });
     return reply.code(204).send();
@@ -134,12 +169,14 @@ export async function chatRoutes(app: FastifyInstance) {
 
   // GET /api/chat/conversations/:id/export — Export conversation as markdown
   app.get("/conversations/:id/export", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
     const convo = await prisma.conversation.findUnique({
       where: { id },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     });
     if (!convo) return reply.code(404).send({ error: "Conversation not found" });
+    if (convo.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
     const title = convo.title || "Untitled Conversation";
     const date = convo.createdAt.toISOString().split("T")[0];
@@ -158,8 +195,16 @@ export async function chatRoutes(app: FastifyInstance) {
 
   // DELETE /api/chat/messages/:msgId — Delete a single message
   app.delete("/messages/:msgId", async (request, reply) => {
+    const userId = getUserId(request);
     const { msgId } = request.params as { msgId: string };
     try {
+      const msg = await prisma.message.findUnique({
+        where: { id: msgId },
+        include: { conversation: { select: { userId: true } } },
+      });
+      if (!msg) return reply.code(404).send({ error: "Message not found" });
+      if (msg.conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
       await prisma.message.delete({ where: { id: msgId } });
       return reply.code(204).send();
     } catch {
@@ -169,6 +214,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
   // POST /api/chat/conversations/:id/retry — Regenerate last assistant response
   app.post("/conversations/:id/retry", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
 
     const conversation = await prisma.conversation.findUnique({
@@ -177,6 +223,7 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+    if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
     // Find last user message
     const lastUserMsg = [...conversation.messages].reverse().find((m) => m.role === "USER");
@@ -360,16 +407,18 @@ export async function chatRoutes(app: FastifyInstance) {
 
   // POST /api/chat/conversations/:id/messages — Send message + SSE streaming response
   app.post("/conversations/:id/messages", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
     const { content } = request.body as { content: string };
 
-    // Verify conversation exists
+    // Verify conversation exists and belongs to user
     const conversation = await prisma.conversation.findUnique({
       where: { id },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     });
 
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+    if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
     // Check billing plan message limit
     const user = await prisma.user.findUnique({ where: { id: conversation.userId } });
@@ -633,8 +682,7 @@ export async function chatRoutes(app: FastifyInstance) {
       const completionChars = fullResponse.length;
       const estimatedPromptTokens = Math.ceil(promptChars / 3);
       const estimatedCompletionTokens = Math.ceil(completionChars / 3);
-      // biome-ignore lint/suspicious/noExplicitAny: TokenUsage model — types available after prisma generate
-      (prisma as any).tokenUsage
+      db.tokenUsage
         .create({
           data: {
             userId: conversation.userId,
@@ -669,5 +717,142 @@ export async function chatRoutes(app: FastifyInstance) {
     }
 
     reply.raw.end();
+  });
+
+  // GET /api/chat/conversations/:id/pending-actions — Get pending actions for a conversation
+  app.get("/conversations/:id/pending-actions", async (request, reply) => {
+    const userId = getUserId(request);
+    const { id } = request.params as { id: string };
+
+    const conversation = await prisma.conversation.findUnique({ where: { id } });
+    if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+    if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
+    const actions = await db.pendingAction.findMany({
+      where: { conversationId: id },
+      orderBy: { createdAt: "desc" },
+    });
+    return { actions };
+  });
+
+  // POST /api/chat/pending-actions/:id/approve — Approve and execute a pending action
+  app.post("/pending-actions/:actionId/approve", async (request, reply) => {
+    const userId = getUserId(request);
+    const { actionId } = request.params as { actionId: string };
+
+    const action = await db.pendingAction.findUnique({
+      where: { id: actionId },
+    });
+
+    if (!action) return reply.code(404).send({ error: "Action not found" });
+    if (action.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+    if (action.status !== "PENDING") {
+      return reply.code(400).send({ error: `Action already ${action.status.toLowerCase()}` });
+    }
+
+    // Atomic status claim — prevents race condition with concurrent approve/reject
+    // Uses updateMany with status condition so only one request can claim
+    const claimed = await db.pendingAction.updateMany({
+      where: { id: actionId, status: "PENDING" },
+      data: { status: "EXECUTED", updatedAt: new Date() },
+    });
+    if (claimed.count === 0) {
+      return reply.code(409).send({ error: "Action already processed by another request" });
+    }
+
+    // Execute the tool — if it fails, rollback to FAILED
+    try {
+      const toolArgs = JSON.parse(action.toolArgs);
+      const toolResult = await executeToolCall(userId, action.toolName, toolArgs);
+
+      await db.pendingAction.update({
+        where: { id: actionId },
+        data: { result: toolResult },
+      });
+
+      // Add a follow-up message in the conversation
+      await db.message.create({
+        data: {
+          conversationId: action.conversationId,
+          role: "ASSISTANT",
+          content: `${action.toolName.replace(/_/g, " ")} 실행 완료했어요.`,
+          metadata: JSON.stringify({ source: "agent", actionResult: true }),
+        },
+      });
+
+      // Push notification about execution
+      pushNotification(userId, {
+        id: "action-executed",
+        type: "system",
+        title: "conversations-updated",
+        message: "",
+        createdAt: new Date().toISOString(),
+      });
+
+      return { success: true, result: toolResult };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Execution failed";
+
+      await db.pendingAction.update({
+        where: { id: actionId },
+        data: { status: "FAILED", result: message },
+      });
+
+      await db.message.create({
+        data: {
+          conversationId: action.conversationId,
+          role: "ASSISTANT",
+          content: `실행 실패: ${message}`,
+          metadata: JSON.stringify({ source: "agent", actionFailed: true }),
+        },
+      });
+
+      return reply.code(500).send({ error: message });
+    }
+  });
+
+  // POST /api/chat/pending-actions/:id/reject — Reject a pending action
+  app.post("/pending-actions/:actionId/reject", async (request, reply) => {
+    const userId = getUserId(request);
+    const { actionId } = request.params as { actionId: string };
+    const { reason } = (request.body as { reason?: string }) || {};
+
+    const action = await db.pendingAction.findUnique({
+      where: { id: actionId },
+    });
+
+    if (!action) return reply.code(404).send({ error: "Action not found" });
+    if (action.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+    if (action.status !== "PENDING") {
+      return reply.code(400).send({ error: `Action already ${action.status.toLowerCase()}` });
+    }
+
+    // Atomic status claim — prevents race condition with concurrent approve/reject
+    const claimed = await db.pendingAction.updateMany({
+      where: { id: actionId, status: "PENDING" },
+      data: {
+        status: "REJECTED",
+        result: reason ? `거절 사유: ${reason}` : "User rejected without reason",
+      },
+    });
+    if (claimed.count === 0) {
+      return reply.code(409).send({ error: "Action already processed by another request" });
+    }
+
+    // Add a follow-up message (include reason if provided)
+    const rejectMsg = reason
+      ? `알겠어요, "${reason}" — 이 제안은 취소할게요. 다음엔 참고할게요.`
+      : "알겠어요, 이 제안은 취소할게요.";
+
+    await db.message.create({
+      data: {
+        conversationId: action.conversationId,
+        role: "ASSISTANT",
+        content: rejectMsg,
+        metadata: JSON.stringify({ source: "agent", actionRejected: true }),
+      },
+    });
+
+    return { success: true };
   });
 }

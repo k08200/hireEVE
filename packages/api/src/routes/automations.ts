@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
-import { prisma } from "../db.js";
+import { db, prisma } from "../db.js";
 
 export async function automationRoutes(app: FastifyInstance) {
   // GET /api/automations — Get user's automation config
@@ -83,8 +83,7 @@ export async function automationRoutes(app: FastifyInstance) {
     const userId = getUserId(request);
     const { limit, offset } = (request.query || {}) as { limit?: string; offset?: string };
 
-    // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types
-    const logs = await (prisma as any).agentLog.findMany({
+    const logs = await db.agentLog.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: Math.min(Number(limit) || 50, 100),

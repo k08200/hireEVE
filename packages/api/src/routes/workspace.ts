@@ -17,8 +17,7 @@ export async function workspaceRoutes(app: FastifyInstance) {
     });
 
     return {
-      // biome-ignore lint/suspicious/noExplicitAny: Prisma include types not generated yet
-      workspaces: memberships.map((m: any) => ({
+      workspaces: memberships.map((m) => ({
         id: m.workspace.id,
         name: m.workspace.name,
         slug: m.workspace.slug,
@@ -84,8 +83,7 @@ export async function workspaceRoutes(app: FastifyInstance) {
     });
 
     return {
-      // biome-ignore lint/suspicious/noExplicitAny: Prisma include types not generated yet
-      members: members.map((m: any) => ({
+      members: members.map((m) => ({
         id: m.id,
         userId: m.user.id,
         name: m.user.name,

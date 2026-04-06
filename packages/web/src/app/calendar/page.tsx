@@ -117,7 +117,6 @@ export default function CalendarPage() {
     }
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fetch on mount only
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -248,7 +247,6 @@ export default function CalendarPage() {
               <h2 className="text-lg font-semibold mb-4">New Event / 새 일정</h2>
               <div className="space-y-3">
                 <input
-                  // biome-ignore lint/a11y/noAutofocus: modal input needs focus
                   autoFocus
                   value={newEvent.title}
                   onChange={(e) => setNewEvent((p) => ({ ...p, title: e.target.value }))}

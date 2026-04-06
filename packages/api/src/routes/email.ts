@@ -4,7 +4,7 @@
  * Requires Google OAuth token. Falls back to mock data for demo mode.
  */
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
 
 interface EmailMessage {
@@ -318,8 +318,8 @@ export async function emailRoutes(app: FastifyInstance) {
     return { error: "Email not found" };
   });
 
-  // Send email via Gmail
-  app.post("/send", async (request) => {
+  // Send email via Gmail (requires authentication)
+  app.post("/send", { preHandler: requireAuth }, async (request) => {
     const uid = getUserId(request);
     const { to, subject, body } = request.body as { to: string; subject: string; body: string };
 

@@ -17,21 +17,38 @@ async function runAppleScript(script: string): Promise<string> {
   return stdout.trim();
 }
 
+/** Escape string for safe embedding in AppleScript double-quoted strings */
+function escapeAppleScript(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    .replace(/\t/g, "\\t");
+}
+
 /** Send an iMessage to a phone number or email */
 export async function sendIMessage(
   to: string,
   text: string,
 ): Promise<{ success: boolean; to: string }> {
-  const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const escapedText = escapeAppleScript(text);
+  const escapedTo = escapeAppleScript(to);
   const script = `
     tell application "Messages"
       set targetService to 1st account whose service type = iMessage
-      set targetBuddy to participant "${to}" of targetService
-      send "${escaped}" to targetBuddy
+      set targetBuddy to participant "${escapedTo}" of targetService
+      send "${escapedText}" to targetBuddy
     end tell
   `;
   await runAppleScript(script);
   return { success: true, to };
+}
+
+/** Sanitize input for safe use in SQLite queries (via CLI) — allow only phone/email chars */
+function sanitizeSqliteParam(input: string): string {
+  // Strip everything except alphanumeric, +, @, ., -, _
+  return input.replace(/[^a-zA-Z0-9+@._-]/g, "");
 }
 
 /** Read recent iMessages from a specific contact */
@@ -46,7 +63,17 @@ export async function readIMessages(
   const { execFile: execFileCallback } = await import("node:child_process");
   const execSql = promisify(execFileCallback);
 
+  const safeFrom = sanitizeSqliteParam(from);
+  if (!safeFrom) return { messages: [] };
+  const safeCount = Math.max(1, Math.min(Math.round(count), 100));
+
   try {
+    // Build parameterized-style query: sqlite3 CLI doesn't support bind params,
+    // so we use a static query template with char() to avoid string interpolation.
+    // Convert sanitized input to SQLite char() sequence to prevent any injection.
+    const charCodes = Array.from(`%${safeFrom}%`).map((c) => c.charCodeAt(0));
+    const charExpr = charCodes.map((c) => `char(${c})`).join("||");
+
     const query = `
       SELECT
         m.text,
@@ -55,9 +82,9 @@ export async function readIMessages(
       FROM message m
       JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
       JOIN chat c ON cmj.chat_id = c.ROWID
-      WHERE c.chat_identifier LIKE '%${from.replace(/'/g, "''")}%'
+      WHERE c.chat_identifier LIKE (${charExpr})
       ORDER BY m.date DESC
-      LIMIT ${count}
+      LIMIT ${safeCount}
     `;
 
     const { stdout } = await execSql("sqlite3", ["-json", dbPath, query], { timeout: 5_000 });
@@ -100,7 +127,7 @@ export async function listRecentChats(
         WHERE cmj2.chat_id = c.ROWID
       )
       ORDER BY m.date DESC
-      LIMIT ${count}
+      LIMIT ${Math.max(1, Math.min(Math.round(count), 100))}
     `;
 
     const { stdout } = await execSql("sqlite3", ["-json", dbPath, query], { timeout: 5_000 });
@@ -120,8 +147,8 @@ export async function listRecentChats(
 /** Send a macOS system notification */
 export async function sendNotification(title: string, message: string): Promise<void> {
   if (!IS_MACOS) return;
-  const escapedTitle = title.replace(/"/g, '\\"');
-  const escapedMsg = message.replace(/"/g, '\\"');
+  const escapedTitle = escapeAppleScript(title);
+  const escapedMsg = escapeAppleScript(message);
   await runAppleScript(`display notification "${escapedMsg}" with title "${escapedTitle}"`);
 }
 

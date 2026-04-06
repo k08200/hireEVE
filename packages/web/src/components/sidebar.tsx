@@ -6,13 +6,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE, apiFetch, authHeaders } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import NotificationBell from "./notification-bell";
+import { useToast } from "./toast";
 
 interface Conversation {
   id: string;
   title: string | null;
   pinned: boolean;
+  source?: string; // "user" | "agent"
   updatedAt: string;
   _count: { messages: number };
+  pendingActionCount?: number;
 }
 
 interface DateGroup {
@@ -149,6 +152,7 @@ export default function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { toast } = useToast();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -234,17 +238,19 @@ export default function Sidebar({
 
   const deleteConversation = async (id: string) => {
     try {
-      await fetch(`${API_BASE}/api/chat/conversations/${id}`, {
+      const res = await fetch(`${API_BASE}/api/chat/conversations/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
+      if (!res.ok) throw new Error();
       setConversations((prev) => prev.filter((c) => c.id !== id));
       setDeleteConfirm(null);
       if (pathname === `/chat/${id}`) {
         router.push("/chat");
       }
     } catch {
-      // ignore
+      toast("삭제 실패", "error");
+      setDeleteConfirm(null);
     }
   };
 
@@ -263,12 +269,17 @@ export default function Sidebar({
 
   const saveRename = async (e: React.FormEvent, id: string) => {
     e.preventDefault();
-    await fetch(`${API_BASE}/api/chat/conversations/${id}`, {
-      method: "PATCH",
-      headers: authHeaders(),
-      body: JSON.stringify({ title: editTitle }),
-    });
-    setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c)));
+    try {
+      const res = await fetch(`${API_BASE}/api/chat/conversations/${id}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ title: editTitle }),
+      });
+      if (!res.ok) throw new Error();
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c)));
+    } catch {
+      toast("이름 변경 실패", "error");
+    }
     setEditingId(null);
   };
 
@@ -279,19 +290,36 @@ export default function Sidebar({
     setConversations((prev) =>
       prev.map((c) => (c.id === conv.id ? { ...c, pinned: newPinned } : c)),
     );
-    await fetch(`${API_BASE}/api/chat/conversations/${conv.id}`, {
-      method: "PATCH",
-      headers: authHeaders(),
-      body: JSON.stringify({ pinned: newPinned }),
-    });
+    try {
+      const res = await fetch(`${API_BASE}/api/chat/conversations/${conv.id}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ pinned: newPinned }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      // Rollback on failure
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conv.id ? { ...c, pinned: !newPinned } : c)),
+      );
+      toast("고정 변경 실패", "error");
+    }
   };
 
   const activeConvId = pathname.startsWith("/chat/") ? pathname.split("/chat/")[1] : null;
   const filtered = search
     ? conversations.filter((c) => (c.title || "").toLowerCase().includes(search.toLowerCase()))
     : conversations;
-  const pinned = filtered.filter((c) => c.pinned);
-  const unpinned = filtered.filter((c) => !c.pinned);
+  // Separate agent suggestions (with pending actions) from regular conversations
+  const agentSuggestions = filtered.filter(
+    (c) => c.source === "agent" && (c.pendingActionCount || 0) > 0,
+  );
+  const regularConvs = filtered.filter(
+    (c) => !(c.source === "agent" && (c.pendingActionCount || 0) > 0),
+  );
+  const totalPending = agentSuggestions.reduce((sum, c) => sum + (c.pendingActionCount || 0), 0);
+  const pinned = regularConvs.filter((c) => c.pinned);
+  const unpinned = regularConvs.filter((c) => !c.pinned);
   const groups = groupByDate(
     [...unpinned].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
   );
@@ -379,6 +407,45 @@ export default function Sidebar({
 
       {/* Conversation list */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
+        {/* EVE Suggestions — agent conversations with pending actions */}
+        {agentSuggestions.length > 0 && (
+          <div className="mb-3">
+            <p className="text-[11px] font-medium text-cyan-400/80 px-2 py-1.5 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              EVE Suggestions
+              {totalPending > 0 && (
+                <span className="ml-auto bg-cyan-500/20 text-cyan-300 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+                  {totalPending}
+                </span>
+              )}
+            </p>
+            {agentSuggestions.map((conv) => {
+              const isActive = activeConvId === conv.id;
+              return (
+                <Link
+                  key={conv.id}
+                  href={`/chat/${conv.id}`}
+                  onClick={onMobileClose}
+                  className={`group flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition border-l-2 ${
+                    isActive
+                      ? "bg-cyan-500/10 border-cyan-400 text-white"
+                      : "border-cyan-500/30 text-gray-300 hover:bg-cyan-500/5 hover:text-white hover:border-cyan-400"
+                  }`}
+                >
+                  <span className="truncate flex-1 text-[13px]">
+                    {conv.title || "EVE suggestion"}
+                  </span>
+                  {(conv.pendingActionCount || 0) > 0 && (
+                    <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full shrink-0">
+                      {conv.pendingActionCount} pending
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
         {/* Deep search results (message content search) */}
         {searchResults.length > 0 && (
           <div className="mb-3">
@@ -437,7 +504,13 @@ export default function Sidebar({
                           : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
                       }`}
                     >
-                      <span className="truncate flex-1 text-[13px]">
+                      <span className="truncate flex-1 text-[13px] flex items-center gap-1.5">
+                        {conv.source === "agent" && (
+                          <span
+                            className="w-2 h-2 rounded-full bg-cyan-400/70 shrink-0"
+                            title="EVE suggestion"
+                          />
+                        )}
                         {conv.title || "New conversation"}
                       </span>
                       <span
@@ -537,7 +610,13 @@ export default function Sidebar({
                           : "text-gray-400 hover:bg-gray-800/50 hover:text-gray-200"
                       }`}
                     >
-                      <span className="truncate flex-1 text-[13px]">
+                      <span className="truncate flex-1 text-[13px] flex items-center gap-1.5">
+                        {conv.source === "agent" && (
+                          <span
+                            className="w-2 h-2 rounded-full bg-cyan-400/70 shrink-0"
+                            title="EVE suggestion"
+                          />
+                        )}
                         {conv.title || "New conversation"}
                       </span>
                       <span
@@ -788,8 +867,6 @@ export default function Sidebar({
       {/* Mobile overlay */}
       {mobileOpen && (
         <>
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: click-to-close backdrop */}
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by Escape key */}
           <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={onMobileClose} />
           <aside className="fixed inset-y-0 left-0 w-[280px] z-50 md:hidden animate-slide-in-left">
             {sidebarContent}

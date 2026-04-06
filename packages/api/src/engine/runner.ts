@@ -15,6 +15,43 @@ export interface ConversationTurn {
   content: string;
 }
 
+/** Block requests to private/internal network addresses (SSRF prevention) */
+function validateEndpointUrl(url: string): void {
+  const parsed = new URL(url);
+
+  // Only allow http(s) protocols
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`Blocked protocol: ${parsed.protocol}`);
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Block localhost and loopback
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
+    throw new Error("Blocked: localhost/loopback address");
+  }
+
+  // Block private IP ranges
+  const ipMatch = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipMatch) {
+    const [, a, b] = ipMatch.map(Number);
+    if (
+      a === 10 || // 10.0.0.0/8
+      (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
+      (a === 192 && b === 168) || // 192.168.0.0/16
+      (a === 169 && b === 254) || // 169.254.0.0/16 (link-local / AWS metadata)
+      a === 0 // 0.0.0.0/8
+    ) {
+      throw new Error("Blocked: private/internal IP address");
+    }
+  }
+
+  // Block metadata endpoints by hostname
+  if (hostname === "metadata.google.internal" || hostname.endsWith(".internal")) {
+    throw new Error("Blocked: internal hostname");
+  }
+}
+
 /**
  * Call an agent's HTTP endpoint with a message.
  * Supports common chat API formats (OpenAI-compatible, simple JSON).
@@ -26,6 +63,9 @@ export async function callAgent(
   apiKey?: string,
   timeoutMs = 30_000,
 ): Promise<AgentResponse> {
+  // SSRF prevention: validate endpoint before making request
+  validateEndpointUrl(endpoint);
+
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 

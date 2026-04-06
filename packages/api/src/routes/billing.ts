@@ -1,9 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
 import { PLANS, stripe } from "../stripe.js";
 
 export async function billingRoutes(app: FastifyInstance) {
+  // All billing routes require authentication
+  app.addHook("preHandler", requireAuth);
   // POST /api/billing/checkout — Create Stripe checkout session
   app.post("/checkout", async (request, reply) => {
     const userId = getUserId(request);

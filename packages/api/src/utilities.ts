@@ -48,7 +48,81 @@ export async function shortenUrl(url: string): Promise<{ shortUrl: string } | { 
   return { error: data.errormessage || "URL shortening failed" };
 }
 
-// ── Calculator (safe math expression evaluator) ─────────────────────
+// ── Calculator (safe math expression evaluator — no eval/Function) ───
+
+/**
+ * Recursive descent parser for safe math evaluation.
+ * Supports: +, -, *, /, %, ^ (power), parentheses, unary minus.
+ * No eval(), no Function(), no code execution.
+ */
+function parseMathExpr(input: string): number {
+  let pos = 0;
+  const str = input.replace(/\s/g, "");
+
+  function parseExpr(): number {
+    let left = parseTerm();
+    while (pos < str.length && (str[pos] === "+" || str[pos] === "-")) {
+      const op = str[pos++];
+      const right = parseTerm();
+      left = op === "+" ? left + right : left - right;
+    }
+    return left;
+  }
+
+  function parseTerm(): number {
+    let left = parsePower();
+    while (pos < str.length && (str[pos] === "*" || str[pos] === "/" || str[pos] === "%")) {
+      const op = str[pos++];
+      const right = parsePower();
+      if (op === "*") left *= right;
+      else if (op === "/") {
+        if (right === 0) throw new Error("Division by zero");
+        left /= right;
+      } else left %= right;
+    }
+    return left;
+  }
+
+  function parsePower(): number {
+    let base = parseUnary();
+    if (pos < str.length && str[pos] === "^") {
+      pos++;
+      const exp = parsePower(); // right-associative
+      base = base ** exp;
+    }
+    return base;
+  }
+
+  function parseUnary(): number {
+    if (str[pos] === "-") {
+      pos++;
+      return -parseAtom();
+    }
+    if (str[pos] === "+") pos++;
+    return parseAtom();
+  }
+
+  function parseAtom(): number {
+    if (str[pos] === "(") {
+      pos++; // skip '('
+      const val = parseExpr();
+      if (str[pos] !== ")") throw new Error("Missing closing parenthesis");
+      pos++; // skip ')'
+      return val;
+    }
+    // Parse number (integer or decimal)
+    const start = pos;
+    while (pos < str.length && ((str[pos] >= "0" && str[pos] <= "9") || str[pos] === ".")) pos++;
+    if (pos === start) throw new Error(`Unexpected character: ${str[pos] || "end of expression"}`);
+    const num = Number(str.slice(start, pos));
+    if (!Number.isFinite(num)) throw new Error("Invalid number");
+    return num;
+  }
+
+  const result = parseExpr();
+  if (pos < str.length) throw new Error(`Unexpected character: ${str[pos]}`);
+  return result;
+}
 
 export function calculate(
   expression: string,
@@ -60,17 +134,16 @@ export function calculate(
   }
 
   try {
-    // Replace ^ with ** for exponentiation
-    const jsExpr = sanitized.replace(/\^/g, "**");
-    const result = Function(`"use strict"; return (${jsExpr})`)() as number;
+    const result = parseMathExpr(sanitized);
 
     if (typeof result !== "number" || !Number.isFinite(result)) {
       return { error: "Calculation resulted in invalid number" };
     }
 
     return { result, expression };
-  } catch {
-    return { error: `Failed to evaluate: ${expression}` };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return { error: `Failed to evaluate: ${msg}` };
   }
 }
 

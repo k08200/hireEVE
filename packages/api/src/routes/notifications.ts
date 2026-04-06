@@ -27,7 +27,11 @@ export async function notificationRoutes(app: FastifyInstance) {
 
   // PATCH /api/notifications/:id/read — Mark single notification as read
   app.patch("/:id/read", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const notif = await prisma.notification.findUnique({ where: { id } });
+    if (!notif) return reply.code(404).send({ error: "Notification not found" });
+    if (notif.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
     await markNotificationRead(id);
     return reply.code(204).send();
   });
@@ -63,6 +67,36 @@ export async function notificationRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Invalid push subscription" });
     }
 
+    // Validate push endpoint URL to prevent SSRF
+    let parsedEndpoint: URL;
+    try {
+      parsedEndpoint = new URL(endpoint);
+    } catch {
+      return reply.code(400).send({ error: "Invalid endpoint URL" });
+    }
+    if (parsedEndpoint.protocol !== "https:") {
+      return reply.code(400).send({ error: "Push endpoints must use HTTPS" });
+    }
+    const host = parsedEndpoint.hostname.toLowerCase();
+    // Block private/internal addresses
+    const blockedHosts = ["localhost", "127.0.0.1", "::1", "metadata.google.internal"];
+    if (blockedHosts.includes(host) || host.endsWith(".internal") || host.endsWith(".local")) {
+      return reply.code(400).send({ error: "Invalid push endpoint host" });
+    }
+    const ipMatch = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipMatch) {
+      const [, a, b] = ipMatch.map(Number);
+      if (
+        a === 10 ||
+        (a === 172 && b >= 16 && b <= 31) ||
+        (a === 192 && b === 168) ||
+        (a === 169 && b === 254) ||
+        a === 0
+      ) {
+        return reply.code(400).send({ error: "Invalid push endpoint host" });
+      }
+    }
+
     await prisma.pushSubscription.upsert({
       where: { endpoint },
       create: { userId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
@@ -74,12 +108,13 @@ export async function notificationRoutes(app: FastifyInstance) {
 
   // DELETE /api/notifications/push/unsubscribe — Remove push subscription
   app.delete("/push/unsubscribe", async (request, reply) => {
+    const userId = getUserId(request);
     const { endpoint } = request.body as { endpoint: string };
     if (!endpoint) {
       return reply.code(400).send({ error: "Endpoint required" });
     }
 
-    await prisma.pushSubscription.deleteMany({ where: { endpoint } });
+    await prisma.pushSubscription.deleteMany({ where: { endpoint, userId } });
     return reply.code(204).send();
   });
 }

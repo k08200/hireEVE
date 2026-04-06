@@ -1,12 +1,12 @@
 /**
- * Background Agent — EVE's autonomous brain
+ * Background Agent — Lightweight real-time notifications
  *
- * Runs periodic checks:
- * 1. Overdue tasks → escalation
- * 2. Due-soon tasks → advance warning (24h)
- * 3. Upcoming calendar events → pre-meeting notification
+ * Only handles time-critical checks that need sub-minute accuracy:
+ * - Upcoming calendar events → pre-meeting notification (5 min before)
  *
- * NOTE: Reminders are handled by reminder-scheduler.ts
+ * NOTE: Task overdue/due-soon checks are handled by autonomous-agent.ts
+ *       (which uses LLM reasoning for smarter, context-aware notifications)
+ *       Reminders are handled by reminder-scheduler.ts
  *       Daily briefing & email classify are handled by automation-scheduler.ts
  *
  * Notifications are persisted to PostgreSQL (Notification model).
@@ -119,72 +119,6 @@ export async function clearNotifications(userId: string): Promise<void> {
   await prisma.notification.deleteMany({ where: { userId } });
 }
 
-async function checkOverdueTasks() {
-  try {
-    const now = new Date();
-    const today = todayKey();
-    const overdue = await prisma.task.findMany({
-      where: {
-        status: { not: "DONE" },
-        dueDate: { lt: now },
-      },
-    });
-
-    for (const task of overdue) {
-      const key = `task:${task.id}:${today}`;
-      if (notifiedIds.has(key)) continue;
-      notifiedIds.add(key);
-
-      await addNotification(task.userId, {
-        type: "task",
-        title: `마감 초과: ${task.title}`,
-        message: `"${task.title}" 태스크가 ${task.dueDate?.toLocaleDateString("ko-KR")} 마감이었습니다.`,
-      });
-    }
-
-    if (overdue.length > 0) {
-      console.log(`[BG] Found ${overdue.length} overdue tasks`);
-    }
-  } catch (err) {
-    console.error("[BG] Error checking overdue tasks:", err);
-  }
-}
-
-async function checkDueSoonTasks() {
-  try {
-    const now = new Date();
-    const today = todayKey();
-    const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const dueSoon = await prisma.task.findMany({
-      where: {
-        status: { not: "DONE" },
-        dueDate: { gt: now, lte: in24h },
-      },
-    });
-
-    for (const task of dueSoon) {
-      const key = `task-soon:${task.id}:${today}`;
-      if (notifiedIds.has(key)) continue;
-      notifiedIds.add(key);
-
-      // biome-ignore lint/style/noNonNullAssertion: filtered by dueDate != null above
-      const hoursLeft = Math.round((task.dueDate!.getTime() - now.getTime()) / (60 * 60 * 1000));
-
-      await addNotification(task.userId, {
-        type: "task",
-        title: `마감 임박: ${task.title}`,
-        message: `"${task.title}" 태스크가 ${hoursLeft}시간 후 마감입니다.`,
-      });
-    }
-
-    if (dueSoon.length > 0) {
-      console.log(`[BG] Found ${dueSoon.length} tasks due within 24h`);
-    }
-  } catch (err) {
-    console.error("[BG] Error checking due-soon tasks:", err);
-  }
-}
-
 async function checkUpcomingMeetings() {
   try {
     // Check all users who have Google connected AND meeting automation enabled
@@ -259,15 +193,11 @@ export function startBackgroundAgent() {
   console.log("[BG] Background agent started (60s interval)");
 
   // Run immediately once
-  checkOverdueTasks();
-  checkDueSoonTasks();
   checkUpcomingMeetings();
 
-  // Then every 60 seconds
+  // Then every 60 seconds — only meeting checks (task checks moved to autonomous-agent.ts)
   intervalId = setInterval(async () => {
     pruneNotifiedIds();
-    await checkOverdueTasks();
-    await checkDueSoonTasks();
     await checkUpcomingMeetings();
   }, 60_000);
 }

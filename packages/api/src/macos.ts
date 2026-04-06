@@ -15,6 +15,16 @@ async function runAppleScript(script: string): Promise<string> {
   return stdout.trim();
 }
 
+/** Escape string for safe embedding in AppleScript double-quoted strings */
+function escapeAppleScript(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    .replace(/\t/g, "\\t");
+}
+
 /** Get clipboard contents */
 export async function getClipboard(): Promise<{ text: string }> {
   const { stdout } = await exec("pbpaste", [], { timeout: 3_000 });
@@ -53,9 +63,44 @@ export async function getRunningApps(): Promise<{ apps: string[] }> {
   return { apps: result.split(", ") };
 }
 
-/** Open a URL or file */
-export async function openItem(path: string): Promise<{ success: boolean }> {
-  await exec("open", [path], { timeout: 5_000 });
+/** Open a URL or file — restricted to safe paths and URLs */
+export async function openItem(itemPath: string): Promise<{ success: boolean; error?: string }> {
+  // Allow http(s) URLs only
+  if (/^https?:\/\//i.test(itemPath)) {
+    // Validate URL is well-formed
+    let parsed: URL;
+    try {
+      parsed = new URL(itemPath);
+    } catch {
+      return { success: false, error: "Invalid URL" };
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { success: false, error: "Only HTTP(S) URLs are allowed" };
+    }
+    await exec("open", [parsed.href], { timeout: 5_000 });
+    return { success: true };
+  }
+
+  // For file paths: resolve to absolute and validate strictly
+  const { resolve } = await import("node:path");
+  const resolved = resolve(itemPath);
+
+  // Block system/sensitive directories
+  const blocked = ["/etc", "/var", "/private", "/System", "/usr", "/bin", "/sbin", "/Library"];
+  if (blocked.some((prefix) => resolved.startsWith(prefix))) {
+    return { success: false, error: "Access to system directories is not allowed" };
+  }
+  // Block dotfiles and hidden directories
+  if (/\/\./.test(resolved)) {
+    return { success: false, error: "Access to hidden files/directories is not allowed" };
+  }
+  // Must be under user home directory
+  const homeDir = process.env.HOME || "/Users";
+  if (!resolved.startsWith(homeDir)) {
+    return { success: false, error: "Can only open files under home directory" };
+  }
+
+  await exec("open", [resolved], { timeout: 5_000 });
   return { success: true };
 }
 
@@ -96,7 +141,7 @@ export async function getSystemInfo(): Promise<{
 
 /** Type text using keyboard simulation */
 export async function typeText(text: string): Promise<{ success: boolean }> {
-  const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const escaped = escapeAppleScript(text);
   await runAppleScript(`tell application "System Events" to keystroke "${escaped}"`);
   return { success: true };
 }

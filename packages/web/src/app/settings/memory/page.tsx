@@ -41,7 +41,6 @@ export default function MemoryPage() {
       .catch(() => {});
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load on filter/search change
   useEffect(() => {
     load();
   }, [filter, search]);

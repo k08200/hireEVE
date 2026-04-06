@@ -64,12 +64,10 @@ function WorkspaceContent() {
     }
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load once on mount
   useEffect(() => {
     loadWorkspaces();
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reload members when selection changes
   useEffect(() => {
     if (selectedId) loadMembers(selectedId);
   }, [selectedId]);

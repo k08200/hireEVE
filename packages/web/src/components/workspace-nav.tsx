@@ -201,7 +201,6 @@ export default function WorkspaceNav() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: close dropdown on route change
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
