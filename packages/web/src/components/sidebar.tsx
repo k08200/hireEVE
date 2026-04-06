@@ -152,7 +152,7 @@ export default function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const toast = useToast();
+  const { toast } = useToast();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
