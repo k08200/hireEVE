@@ -112,6 +112,21 @@ export const ALWAYS_TOOLS = [
 
 export const ALL_TOOLS = [...ALWAYS_TOOLS, ...GOOGLE_TOOLS];
 
+/** Basic string guard — returns trimmed string or throws */
+function requireString(val: unknown, name: string): string {
+  if (typeof val !== "string" || val.trim().length === 0) {
+    throw new Error(`Missing or invalid parameter: ${name}`);
+  }
+  return val.trim();
+}
+
+/** Clamp numeric arg to a safe range */
+function safeInt(val: unknown, fallback: number, max: number): number {
+  const n = typeof val === "number" ? val : Number(val);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(Math.round(n), max);
+}
+
 export async function executeToolCall(
   userId: string,
   functionName: string,
@@ -120,33 +135,42 @@ export async function executeToolCall(
   try {
     switch (functionName) {
       case "list_emails":
-        return JSON.stringify(await listEmails(userId, (args.max_results as number) || 10));
+        return JSON.stringify(await listEmails(userId, safeInt(args.max_results, 10, 100)));
       case "read_email":
-        return JSON.stringify(await readEmail(userId, args.email_id as string));
+        return JSON.stringify(await readEmail(userId, requireString(args.email_id, "email_id")));
       case "send_email":
         return JSON.stringify(
-          await sendEmail(userId, args.to as string, args.subject as string, args.body as string),
+          await sendEmail(
+            userId,
+            requireString(args.to, "to"),
+            requireString(args.subject, "subject"),
+            requireString(args.body, "body"),
+          ),
         );
       case "classify_emails":
-        return JSON.stringify(await classifyEmails(userId, (args.max_results as number) || 10));
+        return JSON.stringify(await classifyEmails(userId, safeInt(args.max_results, 10, 100)));
       case "list_events":
-        return JSON.stringify(await listEvents(userId, (args.max_results as number) || 10));
+        return JSON.stringify(await listEvents(userId, safeInt(args.max_results, 10, 200)));
       case "create_event":
         return JSON.stringify(
           await createEvent(
             userId,
-            args.summary as string,
-            args.start_time as string,
-            args.end_time as string,
+            requireString(args.summary, "summary"),
+            requireString(args.start_time, "start_time"),
+            requireString(args.end_time, "end_time"),
             args.description as string | undefined,
             args.location as string | undefined,
           ),
         );
       case "delete_event":
-        return JSON.stringify(await deleteEvent(userId, args.event_id as string));
+        return JSON.stringify(await deleteEvent(userId, requireString(args.event_id, "event_id")));
       case "check_calendar_conflicts":
         return JSON.stringify(
-          await checkConflicts(userId, args.start_time as string, args.end_time as string),
+          await checkConflicts(
+            userId,
+            requireString(args.start_time, "start_time"),
+            requireString(args.end_time, "end_time"),
+          ),
         );
       case "list_tasks":
         return JSON.stringify(await listTasks(userId, args.status as string | undefined));
@@ -154,35 +178,41 @@ export async function executeToolCall(
         return JSON.stringify(
           await createTask(
             userId,
-            args.title as string,
+            requireString(args.title, "title"),
             args.description as string | undefined,
             args.priority as string | undefined,
             args.due_date as string | undefined,
           ),
         );
       case "update_task": {
-        const { task_id, ...rest } = args;
-        return JSON.stringify(await updateTask(task_id as string, rest));
+        const taskId = requireString(args.task_id, "task_id");
+        const { task_id: _, ...rest } = args;
+        return JSON.stringify(await updateTask(taskId, rest));
       }
       case "delete_task":
-        return JSON.stringify(await deleteTask(args.task_id as string));
+        return JSON.stringify(await deleteTask(requireString(args.task_id, "task_id")));
       case "list_notes":
         return JSON.stringify(await listNotes(userId, args.search as string | undefined));
       case "create_note":
         return JSON.stringify(
-          await createNote(userId, args.title as string, args.content as string),
+          await createNote(
+            userId,
+            requireString(args.title, "title"),
+            requireString(args.content, "content"),
+          ),
         );
       case "update_note": {
-        const { note_id, ...noteRest } = args;
-        return JSON.stringify(await updateNote(note_id as string, noteRest));
+        const noteId = requireString(args.note_id, "note_id");
+        const { note_id: _n, ...noteRest } = args;
+        return JSON.stringify(await updateNote(noteId, noteRest));
       }
       case "delete_note":
-        return JSON.stringify(await deleteNote(args.note_id as string));
+        return JSON.stringify(await deleteNote(requireString(args.note_id, "note_id")));
       case "send_slack_message":
         return JSON.stringify(
           await sendSlackMessage({
-            channel: args.channel as string,
-            text: args.text as string,
+            channel: requireString(args.channel, "channel"),
+            text: requireString(args.text, "text"),
             thread_ts: args.thread_ts as string | undefined,
           }),
         );
@@ -190,7 +220,10 @@ export async function executeToolCall(
         return JSON.stringify(await listSlackChannels());
       case "read_slack_messages":
         return JSON.stringify(
-          await readSlackMessages(args.channel as string, (args.limit as number) || 10),
+          await readSlackMessages(
+            requireString(args.channel, "channel"),
+            safeInt(args.limit, 10, 100),
+          ),
         );
       case "generate_briefing": {
         const { default: generateBriefingForChat } = await import("./briefing.js");
@@ -204,21 +237,23 @@ export async function executeToolCall(
         return JSON.stringify(
           await createReminder(
             userId,
-            args.title as string,
-            args.remind_at as string,
+            requireString(args.title, "title"),
+            requireString(args.remind_at, "remind_at"),
             args.description as string | undefined,
           ),
         );
       case "dismiss_reminder":
-        return JSON.stringify(await dismissReminder(args.reminder_id as string));
+        return JSON.stringify(
+          await dismissReminder(requireString(args.reminder_id, "reminder_id")),
+        );
       case "delete_reminder":
-        return JSON.stringify(await deleteReminder(args.reminder_id as string));
+        return JSON.stringify(await deleteReminder(requireString(args.reminder_id, "reminder_id")));
       case "list_contacts":
         return JSON.stringify(await listContacts(userId, args.search as string | undefined));
       case "create_contact":
         return JSON.stringify(
           await createContact(userId, {
-            name: args.name as string,
+            name: requireString(args.name, "name"),
             email: args.email as string | undefined,
             phone: args.phone as string | undefined,
             company: args.company as string | undefined,
@@ -228,21 +263,22 @@ export async function executeToolCall(
           }),
         );
       case "update_contact": {
-        const { contact_id, ...contactRest } = args;
-        return JSON.stringify(await updateContact(contact_id as string, contactRest));
+        const contactId = requireString(args.contact_id, "contact_id");
+        const { contact_id: _c, ...contactRest } = args;
+        return JSON.stringify(await updateContact(contactId, contactRest));
       }
       case "delete_contact":
-        return JSON.stringify(await deleteContact(args.contact_id as string));
+        return JSON.stringify(await deleteContact(requireString(args.contact_id, "contact_id")));
       case "web_search":
         return JSON.stringify(
-          await webSearch(args.query as string, (args.max_results as number) || 5),
+          await webSearch(requireString(args.query, "query"), safeInt(args.max_results, 5, 20)),
         );
       case "write_document":
         return JSON.stringify(
           await writeDocument(
             userId,
-            args.type as string,
-            args.topic as string,
+            requireString(args.type, "type"),
+            requireString(args.topic, "topic"),
             args.details as string | undefined,
           ),
         );
@@ -257,33 +293,35 @@ export async function executeToolCall(
         });
       }
       case "search_notion":
-        return JSON.stringify(await searchNotion(args.query as string));
+        return JSON.stringify(await searchNotion(requireString(args.query, "query")));
       case "create_notion_page":
         return JSON.stringify(
           await createNotionPage(
-            args.parent_id as string,
-            args.title as string,
-            args.content as string,
+            requireString(args.parent_id, "parent_id"),
+            requireString(args.title, "title"),
+            requireString(args.content, "content"),
           ),
         );
       case "list_notion_databases":
         return JSON.stringify(await listNotionDatabases());
       case "send_imessage":
-        return JSON.stringify(await sendIMessage(args.to as string, args.text as string));
+        return JSON.stringify(
+          await sendIMessage(requireString(args.to, "to"), requireString(args.text, "text")),
+        );
       case "read_imessages":
         return JSON.stringify(
-          await readIMessages(args.from as string, (args.count as number) || 10),
+          await readIMessages(requireString(args.from, "from"), safeInt(args.count, 10, 100)),
         );
       case "list_imessage_chats":
-        return JSON.stringify(await listIMessageChats((args.count as number) || 20));
+        return JSON.stringify(await listIMessageChats(safeInt(args.count, 20, 100)));
       case "get_clipboard":
         return JSON.stringify(await getClipboard());
       case "set_clipboard":
-        return JSON.stringify(await setClipboard(args.text as string));
+        return JSON.stringify(await setClipboard(requireString(args.text, "text")));
       case "get_running_apps":
         return JSON.stringify(await getRunningApps());
       case "open_item":
-        return JSON.stringify(await openItem(args.path as string));
+        return JSON.stringify(await openItem(requireString(args.path, "path")));
       case "get_system_info":
         return JSON.stringify(await getSystemInfo());
       case "take_screenshot":
@@ -291,51 +329,59 @@ export async function executeToolCall(
       case "get_upcoming_meetings":
         return JSON.stringify(await getUpcomingMeetings(userId));
       case "join_meeting":
-        return JSON.stringify(await joinMeeting(args.meeting_link as string));
+        return JSON.stringify(await joinMeeting(requireString(args.meeting_link, "meeting_link")));
       case "summarize_meeting":
         return JSON.stringify(
           await summarizeMeeting(
-            args.title as string,
-            args.notes as string,
+            requireString(args.title, "title"),
+            requireString(args.notes, "notes"),
             (args.attendees as string[]) || [],
           ),
         );
       case "search_files":
         return JSON.stringify(
-          await searchFiles(args.query as string, args.folder as string | undefined),
+          await searchFiles(requireString(args.query, "query"), args.folder as string | undefined),
         );
       case "read_and_summarize_file":
-        return JSON.stringify(await readAndSummarize(args.file_path as string));
+        return JSON.stringify(await readAndSummarize(requireString(args.file_path, "file_path")));
       case "organize_downloads":
         return JSON.stringify(await organizeDownloads());
       case "list_recent_downloads":
-        return JSON.stringify(await listRecentDownloads((args.count as number) || 10));
+        return JSON.stringify(await listRecentDownloads(safeInt(args.count, 10, 50)));
       case "get_weather":
-        return JSON.stringify(await getWeather(args.location as string));
+        return JSON.stringify(await getWeather(requireString(args.location, "location")));
       case "get_news":
         return JSON.stringify(
           await getNews(args.topic as string | undefined, args.sources as string[] | undefined),
         );
       case "translate_text":
         return JSON.stringify(
-          await translate(args.text as string, args.from as string, args.to as string),
+          await translate(
+            requireString(args.text, "text"),
+            requireString(args.from, "from"),
+            requireString(args.to, "to"),
+          ),
         );
       case "shorten_url":
-        return JSON.stringify(await shortenUrl(args.url as string));
+        return JSON.stringify(await shortenUrl(requireString(args.url, "url")));
       case "calculate":
-        return JSON.stringify(calculate(args.expression as string));
+        return JSON.stringify(calculate(requireString(args.expression, "expression")));
       case "convert_currency":
         return JSON.stringify(
-          await convertCurrency(args.amount as number, args.from as string, args.to as string),
+          await convertCurrency(
+            typeof args.amount === "number" ? args.amount : Number(args.amount) || 0,
+            requireString(args.from, "from"),
+            requireString(args.to, "to"),
+          ),
         );
       case "generate_password":
-        return JSON.stringify(generatePassword(Math.min((args.length as number) || 16, 64)));
+        return JSON.stringify(generatePassword(safeInt(args.length, 16, 64)));
       case "remember":
         return await remember(
           userId,
-          args.type as string,
-          args.key as string,
-          args.content as string,
+          requireString(args.type, "type"),
+          requireString(args.key, "key"),
+          requireString(args.content, "content"),
         );
       case "recall":
         return await recall(
@@ -344,7 +390,11 @@ export async function executeToolCall(
           args.type as string | undefined,
         );
       case "forget":
-        return await forget(userId, args.key as string, args.type as string);
+        return await forget(
+          userId,
+          requireString(args.key, "key"),
+          requireString(args.type, "type"),
+        );
       default:
         return JSON.stringify({ error: `Unknown function: ${functionName}` });
     }

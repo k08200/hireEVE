@@ -3,7 +3,13 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 import jwt from "jsonwebtoken";
 import { prisma } from "./db.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "eve-dev-secret-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.warn(
+    "[AUTH] WARNING: JWT_SECRET not set — using insecure default. Set JWT_SECRET in production!",
+  );
+}
+const EFFECTIVE_SECRET = JWT_SECRET || "eve-dev-secret-do-not-use-in-production";
 const TOKEN_EXPIRY = "7d";
 
 export interface JwtPayload {
@@ -12,11 +18,11 @@ export interface JwtPayload {
 }
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+  return jwt.sign(payload, EFFECTIVE_SECRET, { expiresIn: TOKEN_EXPIRY });
 }
 
 export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  return jwt.verify(token, EFFECTIVE_SECRET) as JwtPayload;
 }
 
 export async function hashPassword(password: string): Promise<string> {

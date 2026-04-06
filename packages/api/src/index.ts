@@ -2,7 +2,7 @@ import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import type { PrismaClient } from "@prisma/client";
 import Fastify from "fastify";
-import { ensureDemoUser, getUserId } from "./auth.js";
+import { ensureDemoUser, getUserId, requireAuth } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
 import { briefingRoutes } from "./briefing.js";
 import { prisma } from "./db.js";
@@ -33,9 +33,21 @@ type TxClient = Omit<
 
 const app = Fastify({ logger: true });
 
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || "http://localhost:8001,http://localhost:3000")
+  .split(",")
+  .map((o) => o.trim());
+
 await app.register(cors, {
-  origin: true,
+  origin: (origin, cb) => {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Not allowed by CORS"), false);
+    }
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  credentials: true,
 });
 
 // Global rate limiting — 100 requests per minute per IP
@@ -76,8 +88,8 @@ await app.register(tokenUsageRoutes, { prefix: "/api/usage" });
 
 app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
 
-// User data management — "me" routes use auth token
-app.get("/api/user/me/export", async (request) => {
+// User data management — "me" routes require authentication
+app.get("/api/user/me/export", { preHandler: requireAuth }, async (request) => {
   const userId = getUserId(request);
   const [
     tasks,
@@ -122,7 +134,7 @@ app.get("/api/user/me/export", async (request) => {
   };
 });
 
-app.delete("/api/user/me/data", async (request, reply) => {
+app.delete("/api/user/me/data", { preHandler: requireAuth }, async (request, reply) => {
   const userId = getUserId(request);
   await prisma.$transaction(async (tx: TxClient) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });
@@ -149,7 +161,7 @@ app.delete("/api/user/me/data", async (request, reply) => {
 });
 
 // User data export/delete — authenticated
-app.get("/api/user/export", async (request) => {
+app.get("/api/user/export", { preHandler: requireAuth }, async (request) => {
   const userId = getUserId(request);
   const [
     tasks,
@@ -194,7 +206,7 @@ app.get("/api/user/export", async (request) => {
   };
 });
 
-app.delete("/api/user/data", async (request, reply) => {
+app.delete("/api/user/data", { preHandler: requireAuth }, async (request, reply) => {
   const userId = getUserId(request);
   await prisma.$transaction(async (tx: TxClient) => {
     await tx.pushSubscription.deleteMany({ where: { userId } });

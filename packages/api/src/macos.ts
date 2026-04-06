@@ -15,6 +15,16 @@ async function runAppleScript(script: string): Promise<string> {
   return stdout.trim();
 }
 
+/** Escape string for safe embedding in AppleScript double-quoted strings */
+function escapeAppleScript(str: string): string {
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    .replace(/\t/g, "\\t");
+}
+
 /** Get clipboard contents */
 export async function getClipboard(): Promise<{ text: string }> {
   const { stdout } = await exec("pbpaste", [], { timeout: 3_000 });
@@ -53,8 +63,23 @@ export async function getRunningApps(): Promise<{ apps: string[] }> {
   return { apps: result.split(", ") };
 }
 
-/** Open a URL or file */
-export async function openItem(path: string): Promise<{ success: boolean }> {
+/** Open a URL or file — restricted to safe paths and URLs */
+export async function openItem(path: string): Promise<{ success: boolean; error?: string }> {
+  // Allow http(s) URLs
+  if (/^https?:\/\//i.test(path)) {
+    await exec("open", [path], { timeout: 5_000 });
+    return { success: true };
+  }
+  // Block path traversal and sensitive locations
+  const normalized = path.replace(/\/+/g, "/");
+  const blocked = ["/etc", "/var", "/private", "/System", "/usr", "/bin", "/sbin", "/Library"];
+  if (blocked.some((prefix) => normalized.startsWith(prefix))) {
+    return { success: false, error: "Access to system directories is not allowed" };
+  }
+  // Block dotfiles and hidden directories
+  if (/\/\./.test(normalized)) {
+    return { success: false, error: "Access to hidden files/directories is not allowed" };
+  }
   await exec("open", [path], { timeout: 5_000 });
   return { success: true };
 }
@@ -96,7 +121,7 @@ export async function getSystemInfo(): Promise<{
 
 /** Type text using keyboard simulation */
 export async function typeText(text: string): Promise<{ success: boolean }> {
-  const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const escaped = escapeAppleScript(text);
   await runAppleScript(`tell application "System Events" to keystroke "${escaped}"`);
   return { success: true };
 }

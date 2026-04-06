@@ -92,9 +92,10 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     // Attach pending action counts for agent-initiated conversations
-    const agentConvIds = conversations
-      .filter((c: { source?: string }) => c.source === "agent")
-      .map((c: { id: string }) => c.id);
+    // biome-ignore lint/suspicious/noExplicitAny: source field exists but Prisma types don't include it in findMany result when using include
+    const agentConvIds = (conversations as any[])
+      .filter((c) => c.source === "agent")
+      .map((c) => c.id as string);
 
     let pendingCounts: Record<string, number> = {};
     if (agentConvIds.length > 0) {
@@ -112,7 +113,8 @@ export async function chatRoutes(app: FastifyInstance) {
       );
     }
 
-    const enriched = conversations.map((c: { id: string; source?: string }) => ({
+    // biome-ignore lint/suspicious/noExplicitAny: enriching with pendingActionCount
+    const enriched = (conversations as any[]).map((c) => ({
       ...c,
       pendingActionCount: pendingCounts[c.id] || 0,
     }));
@@ -841,7 +843,10 @@ export async function chatRoutes(app: FastifyInstance) {
     // biome-ignore lint/suspicious/noExplicitAny: PendingAction not in generated Prisma types yet
     const claimed = await (prisma as any).pendingAction.updateMany({
       where: { id: actionId, status: "PENDING" },
-      data: { status: "REJECTED", result: reason ? `거절 사유: ${reason}` : "User rejected without reason" },
+      data: {
+        status: "REJECTED",
+        result: reason ? `거절 사유: ${reason}` : "User rejected without reason",
+      },
     });
     if (claimed.count === 0) {
       return reply.code(409).send({ error: "Action already processed by another request" });

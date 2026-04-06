@@ -58,7 +58,12 @@ export async function memoryRoutes(app: FastifyInstance) {
 
   // DELETE /api/memories/:id
   app.delete("/:id", rateLimitConfig, async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
+    const memory = await (prisma as any).memory.findUnique({ where: { id } });
+    if (!memory) return reply.code(404).send({ error: "Memory not found" });
+    if (memory.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
     // biome-ignore lint/suspicious/noExplicitAny: Memory model — types available after prisma generate
     await (prisma as any).memory.delete({ where: { id } });
     return reply.code(204).send();

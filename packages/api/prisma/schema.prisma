@@ -139,25 +139,29 @@ enum Verdict {
 }
 
 model Conversation {
-  id        String    @id @default(uuid())
-  title     String?
-  pinned    Boolean   @default(false)
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  messages  Message[]
-  tokenUsages TokenUsage[]
-  summaries   ConversationSummary[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String              @id @default(uuid())
+  title          String?
+  pinned         Boolean             @default(false)
+  source         String              @default("user") // "user" | "agent"
+  userId         String
+  user           User                @relation(fields: [userId], references: [id])
+  messages       Message[]
+  pendingActions PendingAction[]
+  tokenUsages    TokenUsage[]
+  summaries      ConversationSummary[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 }
 
 model Message {
-  id             String       @id @default(uuid())
+  id             String         @id @default(uuid())
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           Role
   content        String
-  createdAt      DateTime     @default(now())
+  metadata       String?        // JSON: { source: "agent" | "user", pendingActionId?: string }
+  pendingAction  PendingAction?
+  createdAt      DateTime       @default(now())
 }
 
 enum Role {
@@ -376,4 +380,32 @@ model ConversationSummary {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
+}
+
+// Pending Action — EVE's proposals awaiting user approval
+// Agent creates these when it wants to take action on behalf of the user
+model PendingAction {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId      String       @unique
+  message        Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId         String
+  status         ActionStatus @default(PENDING)
+  toolName       String       // e.g. "create_reminder", "update_task"
+  toolArgs       String       // JSON string of tool arguments
+  reasoning      String?      // Why EVE suggests this action
+  result         String?      // Result after execution (JSON)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId, status])
+  @@index([conversationId])
+}
+
+enum ActionStatus {
+  PENDING
+  REJECTED
+  EXECUTED
+  FAILED
 }

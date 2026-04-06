@@ -47,7 +47,16 @@ export async function searchFiles(
 }
 
 /** Blocked system paths — prevent reading sensitive OS/config files */
-const BLOCKED_PATH_PREFIXES = ["/etc", "/var", "/private", "/System", "/usr", "/bin", "/sbin", "/Library"];
+const BLOCKED_PATH_PREFIXES = [
+  "/etc",
+  "/var",
+  "/private",
+  "/System",
+  "/usr",
+  "/bin",
+  "/sbin",
+  "/Library",
+];
 const BLOCKED_PATH_PATTERN = /\/\./; // dotfiles/hidden dirs
 
 function isPathAllowed(p: string): boolean {

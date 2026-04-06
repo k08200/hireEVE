@@ -27,7 +27,11 @@ export async function notificationRoutes(app: FastifyInstance) {
 
   // PATCH /api/notifications/:id/read — Mark single notification as read
   app.patch("/:id/read", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const notif = await prisma.notification.findUnique({ where: { id } });
+    if (!notif) return reply.code(404).send({ error: "Notification not found" });
+    if (notif.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
     await markNotificationRead(id);
     return reply.code(204).send();
   });
@@ -74,12 +78,13 @@ export async function notificationRoutes(app: FastifyInstance) {
 
   // DELETE /api/notifications/push/unsubscribe — Remove push subscription
   app.delete("/push/unsubscribe", async (request, reply) => {
+    const userId = getUserId(request);
     const { endpoint } = request.body as { endpoint: string };
     if (!endpoint) {
       return reply.code(400).send({ error: "Endpoint required" });
     }
 
-    await prisma.pushSubscription.deleteMany({ where: { endpoint } });
+    await prisma.pushSubscription.deleteMany({ where: { endpoint, userId } });
     return reply.code(204).send();
   });
 }

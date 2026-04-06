@@ -23,8 +23,8 @@ export async function authRoutes(app: FastifyInstance) {
     if (!email || !password) {
       return reply.code(400).send({ error: "Email and password required" });
     }
-    if (password.length < 6) {
-      return reply.code(400).send({ error: "Password must be at least 6 characters" });
+    if (password.length < 8) {
+      return reply.code(400).send({ error: "Password must be at least 8 characters" });
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -213,10 +213,15 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.redirect(url);
   });
 
-  // GET /api/auth/google — Start OAuth flow for Gmail/Calendar integration (pass userId via state)
+  // GET /api/auth/google — Start OAuth flow for Gmail/Calendar integration (signed state)
   app.get("/google", async (request, reply) => {
     const userId = getUserId(request);
-    const url = getAuthUrl(userId);
+    if (userId === "demo-user") {
+      return reply.code(403).send({ error: "Authentication required to connect Google" });
+    }
+    // Sign the state to prevent CSRF — attacker can't forge a valid state for another user
+    const signedState = signToken({ userId, email: "__oauth_state__" });
+    const url = getAuthUrl(signedState);
     return reply.redirect(url);
   });
 
@@ -288,8 +293,20 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.redirect(`${webUrl}/auth/callback?token=${token}`);
       }
 
-      // --- Gmail/Calendar integration flow ---
-      const userId = state || "demo-user";
+      // --- Gmail/Calendar integration flow (state is a signed JWT) ---
+      if (!state) {
+        return reply.code(400).send({ error: "Missing state parameter" });
+      }
+      let userId: string;
+      try {
+        const statePayload = verifyToken(state);
+        if (statePayload.email !== "__oauth_state__") {
+          return reply.code(400).send({ error: "Invalid OAuth state" });
+        }
+        userId = statePayload.userId;
+      } catch {
+        return reply.code(400).send({ error: "Invalid or expired OAuth state" });
+      }
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
         return reply.code(404).send({ error: "User not found" });

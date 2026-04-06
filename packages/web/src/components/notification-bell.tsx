@@ -12,6 +12,7 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
+  conversationId?: string;
 }
 
 function formatRelative(date: string): string {
@@ -69,6 +70,13 @@ export default function NotificationBell({ userId }: { userId: string }) {
   useEffect(() => {
     const unsub = on("notification", (payload) => {
       const notif = payload as unknown as Notification;
+
+      // System event: trigger sidebar refresh
+      if (notif.type === "system" && notif.title === "conversations-updated") {
+        window.dispatchEvent(new Event("conversations-updated"));
+        return;
+      }
+
       if (notif.id) {
         setNotifications((prev) => {
           if (prev.some((n) => n.id === notif.id)) return prev;
@@ -112,6 +120,14 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
   const discussWithEve = async (n: Notification) => {
     try {
+      // If the notification has a linked conversation (from propose_action), go directly there
+      if (n.conversationId) {
+        setOpen(false);
+        router.push(`/chat/${n.conversationId}`);
+        return;
+      }
+
+      // Otherwise create a new conversation about this notification
       const convo = await apiFetch<{ id: string }>("/api/chat/conversations", {
         method: "POST",
         body: JSON.stringify({
@@ -164,7 +180,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+        <div className="absolute left-0 top-full mt-2 w-[min(20rem,calc(100vw-2rem))] bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">알림</span>
@@ -243,7 +259,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                         }}
                         className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer hover:underline"
                       >
-                        EVE와 대화 →
+                        {n.conversationId ? "확인하기 →" : "EVE와 대화 →"}
                       </button>
                     )}
                   </div>

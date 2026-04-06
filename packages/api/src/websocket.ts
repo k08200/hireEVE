@@ -10,6 +10,7 @@
 
 import type { Server } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
+import { verifyToken } from "./auth.js";
 
 interface WsClient {
   ws: WebSocket;
@@ -35,8 +36,28 @@ export function initWebSocket(server: Server): WebSocketServer {
 
   wss.on("connection", (ws, req) => {
     const url = new URL(req.url || "/", `http://${req.headers.host}`);
-    const userId = url.searchParams.get("userId") || "demo-user";
     const clientType = (url.searchParams.get("type") || "web") as WsClient["type"];
+
+    // Authenticate: prefer token param, fall back to userId for backward compat (demo only)
+    let userId: string;
+    const token = url.searchParams.get("token");
+    if (token) {
+      try {
+        const payload = verifyToken(token);
+        userId = payload.userId;
+      } catch {
+        ws.close(4001, "Invalid or expired token");
+        return;
+      }
+    } else {
+      // Allow unauthenticated demo-user only for development
+      const rawUserId = url.searchParams.get("userId");
+      if (rawUserId && rawUserId !== "demo-user") {
+        ws.close(4001, "Authentication required — use token parameter");
+        return;
+      }
+      userId = "demo-user";
+    }
     const clientId = `${userId}-${clientType}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const client: WsClient = {
@@ -181,6 +202,7 @@ export function pushNotification(
     title: string;
     message: string;
     createdAt?: string;
+    conversationId?: string;
   },
 ) {
   broadcastToUser(userId, {

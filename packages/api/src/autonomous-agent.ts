@@ -72,7 +72,7 @@ async function trackTokenUsage(
   const completion = usage.completion_tokens || 0;
   const total = usage.total_tokens || prompt + completion;
   // Rough cost estimate for nano model: ~$0.10/M input, ~$0.40/M output
-  const estimatedCost = (prompt * 0.0000001) + (completion * 0.0000004);
+  const estimatedCost = prompt * 0.0000001 + completion * 0.0000004;
   try {
     // biome-ignore lint/suspicious/noExplicitAny: TokenUsage may not be in generated Prisma types
     await (prisma as any).tokenUsage.create({
@@ -173,15 +173,25 @@ async function getProposalHistory(userId: string): Promise<string> {
     if (recentActions.length === 0) return "";
 
     const lines = recentActions.map(
-      (a: { toolName: string; status: string; reasoning: string | null; result: string | null; createdAt: Date }) => {
+      (a: {
+        toolName: string;
+        status: string;
+        reasoning: string | null;
+        result: string | null;
+        createdAt: Date;
+      }) => {
         const date = a.createdAt.toLocaleDateString("ko-KR");
         const reason = a.status === "REJECTED" && a.result ? ` — ${a.result}` : "";
         return `- [${a.status}] ${a.toolName}: ${(a.reasoning || "").slice(0, 80)}${reason} (${date})`;
       },
     );
 
-    const approved = recentActions.filter((a: { status: string }) => a.status === "EXECUTED").length;
-    const rejected = recentActions.filter((a: { status: string }) => a.status === "REJECTED").length;
+    const approved = recentActions.filter(
+      (a: { status: string }) => a.status === "EXECUTED",
+    ).length;
+    const rejected = recentActions.filter(
+      (a: { status: string }) => a.status === "REJECTED",
+    ).length;
     const pending = recentActions.filter((a: { status: string }) => a.status === "PENDING").length;
 
     let summary = `\n## Recent Proposals (last ${recentActions.length})\n`;
@@ -215,7 +225,17 @@ async function gatherUserContext(userId: string): Promise<string> {
     select: { id: true },
   });
 
-  const [tasks, calendar, reminders, notes, unreadNotifs, emails, contacts, recentAgentLogs, recentChatMessages] = await Promise.all([
+  const [
+    tasks,
+    calendar,
+    reminders,
+    notes,
+    unreadNotifs,
+    emails,
+    contacts,
+    recentAgentLogs,
+    recentChatMessages,
+  ] = await Promise.all([
     prisma.task.findMany({
       where: { userId, status: { not: "DONE" } },
       orderBy: { dueDate: "asc" },
@@ -253,23 +273,27 @@ async function gatherUserContext(userId: string): Promise<string> {
     }),
     // Recent agent decisions — continuity across cycles (prevents amnesia)
     // biome-ignore lint/suspicious/noExplicitAny: AgentLog not in generated Prisma types yet
-    (prisma as any).agentLog.findMany({
-      where: { userId, createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { action: true, summary: true, createdAt: true },
-    }).catch(() => []),
+    (prisma as any).agentLog
+      .findMany({
+        where: { userId, createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { action: true, summary: true, createdAt: true },
+      })
+      .catch(() => []),
     // Recent user chat messages — understand what user is working on / asked about
-    prisma.message.findMany({
-      where: {
-        conversation: { userId },
-        role: "USER",
-        createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: { content: true, createdAt: true },
-    }).catch(() => []),
+    prisma.message
+      .findMany({
+        where: {
+          conversation: { userId },
+          role: "USER",
+          createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { content: true, createdAt: true },
+      })
+      .catch(() => []),
   ]);
 
   const sections: string[] = [];
@@ -337,7 +361,13 @@ async function gatherUserContext(userId: string): Promise<string> {
   // Contacts — enables cross-domain reasoning ("email from X who is investor at Y")
   if (contacts.length > 0) {
     const contactLines = contacts.map(
-      (c: { name: string; email: string | null; company: string | null; role: string | null; tags: string | null }) => {
+      (c: {
+        name: string;
+        email: string | null;
+        company: string | null;
+        role: string | null;
+        tags: string | null;
+      }) => {
         const parts = [c.name];
         if (c.role && c.company) parts.push(`${c.role} @ ${c.company}`);
         else if (c.company) parts.push(c.company);
@@ -363,21 +393,28 @@ async function gatherUserContext(userId: string): Promise<string> {
 
   // Previous agent decisions — continuity across cycles (prevent repeating, evolve reasoning)
   if (recentAgentLogs && recentAgentLogs.length > 0) {
-    const logLines = (recentAgentLogs as Array<{ action: string; summary: string; createdAt: Date }>).map(
-      (l) => {
-        const ago = Math.round((now.getTime() - l.createdAt.getTime()) / 60_000);
-        const timeLabel = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
-        return `- [${l.action}] (${timeLabel}) ${l.summary.slice(0, 100)}`;
-      },
+    const logLines = (
+      recentAgentLogs as Array<{ action: string; summary: string; createdAt: Date }>
+    ).map((l) => {
+      const ago = Math.round((now.getTime() - l.createdAt.getTime()) / 60_000);
+      const timeLabel = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
+      return `- [${l.action}] (${timeLabel}) ${l.summary.slice(0, 100)}`;
+    });
+    sections.push(
+      `## Your Previous Decisions (last 24h)\nDo NOT repeat the same suggestions. Evolve your reasoning based on time passing.\n${logLines.join("\n")}`,
     );
-    sections.push(`## Your Previous Decisions (last 24h)\nDo NOT repeat the same suggestions. Evolve your reasoning based on time passing.\n${logLines.join("\n")}`);
   }
 
   // Cross-domain insights — pre-compute connections the LLM should notice
   const crossDomainHints: string[] = [];
 
   // Deadline clustering — flag when multiple deadlines converge
-  const typedTasks = tasks as Array<{ title: string; status: string; priority: string | null; dueDate: Date | null }>;
+  const typedTasks = tasks as Array<{
+    title: string;
+    status: string;
+    priority: string | null;
+    dueDate: Date | null;
+  }>;
   const urgentTasks = typedTasks.filter((t) => t.dueDate && t.dueDate < in24h && t.dueDate > now);
   const overdueTasks = typedTasks.filter((t) => t.dueDate && t.dueDate < now);
   if (urgentTasks.length + overdueTasks.length >= 2) {
@@ -387,7 +424,12 @@ async function gatherUserContext(userId: string): Promise<string> {
   }
 
   // Free time block detection — find available slots today for task work
-  const typedCalendar = calendar as Array<{ title: string; startTime: Date; endTime?: Date; meetingLink: string | null }>;
+  const typedCalendar = calendar as Array<{
+    title: string;
+    startTime: Date;
+    endTime?: Date;
+    meetingLink: string | null;
+  }>;
   const todayEnd = new Date(kst);
   todayEnd.setHours(23, 59, 59, 999);
   const todayEvents = typedCalendar.filter((e) => e.startTime < todayEnd);
@@ -403,20 +445,21 @@ async function gatherUserContext(userId: string): Promise<string> {
       const minutesUntil = Math.round((event.startTime.getTime() - now.getTime()) / 60_000);
       if (minutesUntil > 0 && minutesUntil <= 24 * 60) {
         // Find related contacts
-        const relatedContacts = (contacts as Array<{ name: string; company: string | null }>).filter(
+        const relatedContacts = (
+          contacts as Array<{ name: string; company: string | null }>
+        ).filter(
           (c) => event.title.includes(c.name) || (c.company && event.title.includes(c.company)),
         );
         // Find related tasks
-        const relatedTasks = typedTasks.filter(
-          (t) => {
-            const words = event.title.split(/\s+/).filter((w: string) => w.length > 2);
-            return words.some((w: string) => t.title.includes(w));
-          },
-        );
+        const relatedTasks = typedTasks.filter((t) => {
+          const words = event.title.split(/\s+/).filter((w: string) => w.length > 2);
+          return words.some((w: string) => t.title.includes(w));
+        });
 
         // Build hint with reasoning
         if (relatedContacts.length > 0 || relatedTasks.length > 0) {
-          const timeLabel = minutesUntil < 60 ? `${minutesUntil}min` : `${Math.round(minutesUntil / 60)}h`;
+          const timeLabel =
+            minutesUntil < 60 ? `${minutesUntil}min` : `${Math.round(minutesUntil / 60)}h`;
           let hint = `⚡ Meeting "${event.title}" in ${timeLabel}`;
           if (relatedContacts.length > 0) {
             hint += ` — attendee(s): ${relatedContacts.map((c) => `${c.name}${c.company ? ` (${c.company})` : ""}`).join(", ")}`;
@@ -432,7 +475,11 @@ async function gatherUserContext(userId: string): Promise<string> {
 
         // Check for unanswered emails from meeting-related contacts
         if (emails && emails.length > 0 && relatedContacts.length > 0) {
-          for (const contact of relatedContacts as Array<{ name: string; email: string | null; company: string | null }>) {
+          for (const contact of relatedContacts as Array<{
+            name: string;
+            email: string | null;
+            company: string | null;
+          }>) {
             if (!contact.email) continue;
             const emailFromContact = (emails as Array<{ from: string; subject: string }>).find(
               (e) => e.from.toLowerCase().includes(contact.email!.toLowerCase()),
@@ -451,13 +498,20 @@ async function gatherUserContext(userId: string): Promise<string> {
   // Link emails to contacts (general, not meeting-specific)
   if (emails && emails.length > 0 && contacts.length > 0) {
     for (const email of emails as Array<{ from: string; subject: string }>) {
-      const matchedContact = (contacts as Array<{ name: string; email: string | null; company: string | null; tags: string | null }>).find(
-        (c) => c.email && email.from.toLowerCase().includes(c.email.toLowerCase()),
-      );
+      const matchedContact = (
+        contacts as Array<{
+          name: string;
+          email: string | null;
+          company: string | null;
+          tags: string | null;
+        }>
+      ).find((c) => c.email && email.from.toLowerCase().includes(c.email.toLowerCase()));
       if (matchedContact) {
-        const importance = matchedContact.tags?.toLowerCase().includes("investor") || matchedContact.tags?.toLowerCase().includes("client")
-          ? " ⭐ HIGH PRIORITY"
-          : "";
+        const importance =
+          matchedContact.tags?.toLowerCase().includes("investor") ||
+          matchedContact.tags?.toLowerCase().includes("client")
+            ? " ⭐ HIGH PRIORITY"
+            : "";
         crossDomainHints.push(
           `📧 Email from ${matchedContact.name}${matchedContact.company ? ` (${matchedContact.company})` : ""}${importance}: "${email.subject}"`,
         );
@@ -466,7 +520,9 @@ async function gatherUserContext(userId: string): Promise<string> {
   }
 
   if (crossDomainHints.length > 0) {
-    sections.push(`## 🔗 Cross-Domain Insights (use OBSERVE → CONNECT → PROPOSE on these)\n${crossDomainHints.join("\n")}`);
+    sections.push(
+      `## 🔗 Cross-Domain Insights (use OBSERVE → CONNECT → PROPOSE on these)\n${crossDomainHints.join("\n")}`,
+    );
   }
 
   return sections.join("\n\n");
@@ -577,7 +633,8 @@ const NOTIFY_TOOL = {
         title: { type: "string", description: "Short notification title (Korean)" },
         message: {
           type: "string",
-          description: "Notification body (Korean 존댓말). For time-sensitive alerts only — include the specific time/link. Not for proposals (use propose_action instead).",
+          description:
+            "Notification body (Korean 존댓말). For time-sensitive alerts only — include the specific time/link. Not for proposals (use propose_action instead).",
         },
         priority: {
           type: "string",
@@ -668,9 +725,7 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
     const contextWithFeedback = contextParts.join("\n\n");
 
     // Inject user memories into system prompt for personalization
-    const systemPromptWithMemory = memoryContext
-      ? `${systemPrompt}${memoryContext}`
-      : systemPrompt;
+    const systemPromptWithMemory = memoryContext ? `${systemPrompt}${memoryContext}` : systemPrompt;
 
     const messages: unknown[] = [
       { role: "system", content: systemPromptWithMemory },
@@ -711,7 +766,12 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
       });
 
       // Track token usage for cost monitoring
-      await trackTokenUsage(userId, response.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined);
+      await trackTokenUsage(
+        userId,
+        response.usage as
+          | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+          | undefined,
+      );
 
       const choice = response.choices[0];
       if (!choice) break;
@@ -738,7 +798,11 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
         try {
           args = JSON.parse(fn.arguments || "{}");
         } catch {
-          await logAgentAction(userId, "error", `Malformed JSON from LLM for ${fnName}: ${fn.arguments?.slice(0, 100)}`);
+          await logAgentAction(
+            userId,
+            "error",
+            `Malformed JSON from LLM for ${fnName}: ${fn.arguments?.slice(0, 100)}`,
+          );
           continue;
         }
 

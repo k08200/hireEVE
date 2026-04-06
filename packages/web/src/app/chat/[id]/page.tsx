@@ -631,60 +631,74 @@ function ChatPageContent() {
                   )}
 
                   {/* Pending Action Buttons */}
-                  {msg.role === "ASSISTANT" && pendingActions.has(msg.id) && (() => {
-                    const action = pendingActions.get(msg.id);
-                    if (!action) return null;
-                    const isLoading = actionLoading === action.id;
+                  {msg.role === "ASSISTANT" &&
+                    pendingActions.has(msg.id) &&
+                    (() => {
+                      const action = pendingActions.get(msg.id);
+                      if (!action) return null;
+                      const isLoading = actionLoading === action.id;
 
-                    if (action.status === "PENDING") {
+                      if (action.status === "PENDING") {
+                        return (
+                          <div className="flex items-center gap-2 mt-3">
+                            <button
+                              type="button"
+                              onClick={() => handleActionApprove(action.id)}
+                              disabled={isLoading}
+                              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                              {isLoading ? (
+                                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              ) : (
+                                <svg
+                                  aria-hidden="true"
+                                  width="14"
+                                  height="14"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                              승인
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleActionReject(action.id)}
+                              disabled={isLoading}
+                              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            >
+                              거절
+                            </button>
+                            <span className="text-xs text-gray-500 ml-2">
+                              {action.toolName.replace(/_/g, " ")}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      const statusLabel: Record<string, { text: string; color: string }> = {
+                        EXECUTED: { text: "실행됨", color: "text-emerald-400" },
+                        REJECTED: { text: "거절됨", color: "text-gray-500" },
+                        FAILED: { text: "실패", color: "text-red-400" },
+                      };
+                      const status = statusLabel[action.status];
+                      if (!status) return null;
+
                       return (
-                        <div className="flex items-center gap-2 mt-3">
-                          <button
-                            type="button"
-                            onClick={() => handleActionApprove(action.id)}
-                            disabled={isLoading}
-                            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-                          >
-                            {isLoading ? (
-                              <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                            )}
-                            승인
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleActionReject(action.id)}
-                            disabled={isLoading}
-                            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-                          >
-                            거절
-                          </button>
-                          <span className="text-xs text-gray-500 ml-2">
+                        <div className={`flex items-center gap-2 mt-2 text-xs ${status.color}`}>
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-current" />
+                          {status.text}
+                          <span className="text-gray-600">
                             {action.toolName.replace(/_/g, " ")}
                           </span>
                         </div>
                       );
-                    }
-
-                    const statusLabel: Record<string, { text: string; color: string }> = {
-                      EXECUTED: { text: "실행됨", color: "text-emerald-400" },
-                      REJECTED: { text: "거절됨", color: "text-gray-500" },
-                      FAILED: { text: "실패", color: "text-red-400" },
-                    };
-                    const status = statusLabel[action.status];
-                    if (!status) return null;
-
-                    return (
-                      <div className={`flex items-center gap-2 mt-2 text-xs ${status.color}`}>
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-current" />
-                        {status.text}
-                        <span className="text-gray-600">
-                          {action.toolName.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                    );
-                  })()}
+                    })()}
 
                   {/* Actions */}
                   {editingMsgId !== msg.id && (

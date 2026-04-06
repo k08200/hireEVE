@@ -506,7 +506,10 @@ export default function Sidebar({
                     >
                       <span className="truncate flex-1 text-[13px] flex items-center gap-1.5">
                         {conv.source === "agent" && (
-                          <span className="w-2 h-2 rounded-full bg-cyan-400/70 shrink-0" title="EVE suggestion" />
+                          <span
+                            className="w-2 h-2 rounded-full bg-cyan-400/70 shrink-0"
+                            title="EVE suggestion"
+                          />
                         )}
                         {conv.title || "New conversation"}
                       </span>
@@ -609,7 +612,10 @@ export default function Sidebar({
                     >
                       <span className="truncate flex-1 text-[13px] flex items-center gap-1.5">
                         {conv.source === "agent" && (
-                          <span className="w-2 h-2 rounded-full bg-cyan-400/70 shrink-0" title="EVE suggestion" />
+                          <span
+                            className="w-2 h-2 rounded-full bg-cyan-400/70 shrink-0"
+                            title="EVE suggestion"
+                          />
                         )}
                         {conv.title || "New conversation"}
                       </span>
