@@ -209,7 +209,9 @@ export async function authRoutes(app: FastifyInstance) {
 
   // GET /api/auth/google/login — Start Google social login flow
   app.get("/google/login", async (_request, reply) => {
-    const url = getLoginAuthUrl();
+    // Sign state to prevent CSRF — only server can create valid login states
+    const loginState = signToken({ userId: "__login__", email: "__google_login__" });
+    const url = getLoginAuthUrl(loginState);
     return reply.redirect(url);
   });
 
@@ -235,12 +237,23 @@ export async function authRoutes(app: FastifyInstance) {
 
     const webUrl = process.env.WEB_URL || "http://localhost:8001";
 
+    // Validate state parameter — must be a valid server-signed JWT
+    if (!state) {
+      return reply.code(400).send({ error: "Missing state parameter" });
+    }
+    let statePayload: { userId: string; email: string };
+    try {
+      statePayload = verifyToken(state);
+    } catch {
+      return reply.code(400).send({ error: "Invalid or expired OAuth state" });
+    }
+
     try {
       const oauth2 = getOAuth2Client();
       const { tokens } = await oauth2.getToken(code);
 
-      // --- Google Social Login flow ---
-      if (state === "__login__") {
+      // --- Google Social Login flow (state signed with __google_login__ marker) ---
+      if (statePayload.email === "__google_login__") {
         if (!tokens.access_token) {
           return reply.redirect(`${webUrl}/login?error=google_failed`);
         }
@@ -293,20 +306,11 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.redirect(`${webUrl}/auth/callback?token=${token}`);
       }
 
-      // --- Gmail/Calendar integration flow (state is a signed JWT) ---
-      if (!state) {
-        return reply.code(400).send({ error: "Missing state parameter" });
+      // --- Gmail/Calendar integration flow (state signed with __oauth_state__ marker) ---
+      if (statePayload.email !== "__oauth_state__") {
+        return reply.code(400).send({ error: "Invalid OAuth state" });
       }
-      let userId: string;
-      try {
-        const statePayload = verifyToken(state);
-        if (statePayload.email !== "__oauth_state__") {
-          return reply.code(400).send({ error: "Invalid OAuth state" });
-        }
-        userId = statePayload.userId;
-      } catch {
-        return reply.code(400).send({ error: "Invalid or expired OAuth state" });
-      }
+      const userId = statePayload.userId;
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
         return reply.code(404).send({ error: "User not found" });
@@ -331,7 +335,7 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.redirect(`${webUrl}/settings?google=connected`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "OAuth failed";
-      if (state === "__login__") {
+      if (statePayload.email === "__google_login__") {
         return reply.redirect(`${webUrl}/login?error=${encodeURIComponent(message)}`);
       }
       return reply.code(500).send({ error: message });
