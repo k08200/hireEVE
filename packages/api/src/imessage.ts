@@ -68,6 +68,12 @@ export async function readIMessages(
   const safeCount = Math.max(1, Math.min(Math.round(count), 100));
 
   try {
+    // Build parameterized-style query: sqlite3 CLI doesn't support bind params,
+    // so we use a static query template with char() to avoid string interpolation.
+    // Convert sanitized input to SQLite char() sequence to prevent any injection.
+    const charCodes = Array.from(`%${safeFrom}%`).map((c) => c.charCodeAt(0));
+    const charExpr = charCodes.map((c) => `char(${c})`).join("||");
+
     const query = `
       SELECT
         m.text,
@@ -76,7 +82,7 @@ export async function readIMessages(
       FROM message m
       JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
       JOIN chat c ON cmj.chat_id = c.ROWID
-      WHERE c.chat_identifier LIKE '%${safeFrom}%'
+      WHERE c.chat_identifier LIKE (${charExpr})
       ORDER BY m.date DESC
       LIMIT ${safeCount}
     `;
