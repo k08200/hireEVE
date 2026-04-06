@@ -37,11 +37,15 @@ export default function RemindersPage() {
   }, []);
 
   const create = async () => {
-    await fetch(`${API_BASE}/api/reminders`, {
+    const res = await fetch(`${API_BASE}/api/reminders`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(form),
     });
+    if (!res.ok) {
+      toast("Failed to create reminder", "error");
+      return;
+    }
     setShowForm(false);
     setForm({ title: "", description: "", remindAt: "" });
     load();
@@ -49,10 +53,11 @@ export default function RemindersPage() {
   };
 
   const dismiss = async (id: string) => {
-    await fetch(`${API_BASE}/api/reminders/${id}/dismiss`, {
+    const res = await fetch(`${API_BASE}/api/reminders/${id}/dismiss`, {
       method: "PATCH",
       headers: authHeaders(),
     });
+    if (!res.ok) return;
     setReminders((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: "DISMISSED" as const } : r)),
     );
@@ -65,6 +70,10 @@ export default function RemindersPage() {
       headers: authHeaders(),
       body: JSON.stringify({ minutes }),
     });
+    if (!res.ok) {
+      toast("Snooze failed", "error");
+      return;
+    }
     const updated = await res.json();
     setReminders((prev) =>
       prev.map((r) =>

@@ -11,7 +11,8 @@ export const openai = process.env.OPENROUTER_API_KEY
     })
   : (null as unknown as OpenAI);
 
-export const MODEL = "openai/gpt-5.4-nano";
+export const MODEL = process.env.CHAT_MODEL || "openai/gpt-5.4-nano";
+export const AGENT_MODEL = process.env.AGENT_MODEL || MODEL;
 
 export const EVE_SYSTEM_PROMPT = `You are EVE, an autonomous AI assistant — the "first employee" for solo founders and indie hackers.
 

@@ -88,13 +88,27 @@ function BillingContent() {
       .finally(() => setLoading(false));
   }, []);
 
+  /** Only allow Stripe-hosted URLs to prevent open redirect */
+  function safeRedirect(url: string) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname.endsWith(".stripe.com")) {
+        window.location.href = url;
+      } else {
+        toast("Invalid redirect URL", "error");
+      }
+    } catch {
+      toast("Invalid redirect URL", "error");
+    }
+  }
+
   async function handleUpgrade(plan: "PRO" | "TEAM") {
     try {
       const { url } = await apiFetch<{ url: string }>("/api/billing/checkout", {
         method: "POST",
         body: JSON.stringify({ plan }),
       });
-      if (url) window.location.href = url;
+      if (url) safeRedirect(url);
     } catch {
       toast("Failed to create checkout session", "error");
     }
@@ -106,7 +120,7 @@ function BillingContent() {
         method: "POST",
         body: JSON.stringify({}),
       });
-      if (url) window.location.href = url;
+      if (url) safeRedirect(url);
     } catch {
       toast("Failed to open billing portal", "error");
     }

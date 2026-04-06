@@ -71,11 +71,15 @@ export default function NotesPage() {
 
   const saveNote = async () => {
     if (!editing) return;
-    await fetch(`${API_BASE}/api/notes/${editing.id}`, {
+    const res = await fetch(`${API_BASE}/api/notes/${editing.id}`, {
       method: "PATCH",
       headers: authHeaders(),
       body: JSON.stringify({ title: editTitle, content: editContent, category: editCategory }),
     });
+    if (!res.ok) {
+      toast("Failed to save note", "error");
+      return;
+    }
     setEditing(null);
     loadNotes();
     toast("Note saved", "success");

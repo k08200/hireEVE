@@ -31,9 +31,11 @@ export async function calendarRoutes(app: FastifyInstance) {
 
   // Get single event
   app.get("/:id", async (request, reply) => {
+    const uid = getUserId(request);
     const { id } = request.params as { id: string };
     const event = await prisma.calendarEvent.findUnique({ where: { id } });
     if (!event) return reply.code(404).send({ error: "Event not found" });
+    if (event.userId !== uid) return reply.code(403).send({ error: "Forbidden" });
     return event;
   });
 
@@ -90,47 +92,49 @@ export async function calendarRoutes(app: FastifyInstance) {
 
   // Update event
   app.patch("/:id", async (request, reply) => {
+    const uid = getUserId(request);
     const { id } = request.params as { id: string };
-    const updates = request.body as Record<string, unknown>;
+    const existing = await prisma.calendarEvent.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Event not found" });
+    if (existing.userId !== uid) return reply.code(403).send({ error: "Forbidden" });
 
-    // Convert date strings to Date objects
-    if (typeof updates.startTime === "string")
-      updates.startTime = new Date(updates.startTime as string);
-    if (typeof updates.endTime === "string") updates.endTime = new Date(updates.endTime as string);
+    const body = request.body as Record<string, unknown>;
 
-    try {
-      const event = await prisma.calendarEvent.update({
-        where: { id },
-        data: updates,
-      });
-      return event;
-    } catch {
-      return reply.code(404).send({ error: "Event not found" });
-    }
+    // Only allow safe fields — prevent userId/id overwrite
+    const data: Record<string, unknown> = {};
+    if (body.summary !== undefined) data.summary = body.summary;
+    if (body.description !== undefined) data.description = body.description;
+    if (body.location !== undefined) data.location = body.location;
+    if (body.allDay !== undefined) data.allDay = body.allDay;
+    if (typeof body.startTime === "string") data.startTime = new Date(body.startTime);
+    if (typeof body.endTime === "string") data.endTime = new Date(body.endTime);
+
+    const event = await prisma.calendarEvent.update({
+      where: { id },
+      data,
+    });
+    return event;
   });
 
   // Delete event (local + Google Calendar sync)
   app.delete("/:id", async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    try {
-      const event = await prisma.calendarEvent.findUnique({ where: { id } });
-      if (!event) return reply.code(404).send({ error: "Event not found" });
+    const event = await prisma.calendarEvent.findUnique({ where: { id } });
+    if (!event) return reply.code(404).send({ error: "Event not found" });
+    if (event.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
-      // Delete from Google Calendar if synced
-      if (event.googleId) {
-        try {
-          await googleDeleteEvent(userId, event.googleId);
-        } catch {
-          // Google delete failed — still delete locally
-        }
+    // Delete from Google Calendar if synced
+    if (event.googleId) {
+      try {
+        await googleDeleteEvent(userId, event.googleId);
+      } catch {
+        // Google delete failed — still delete locally
       }
-
-      await prisma.calendarEvent.delete({ where: { id } });
-      return reply.code(204).send();
-    } catch {
-      return reply.code(404).send({ error: "Event not found" });
     }
+
+    await prisma.calendarEvent.delete({ where: { id } });
+    return reply.code(204).send();
   });
 
   // Sync from Google Calendar

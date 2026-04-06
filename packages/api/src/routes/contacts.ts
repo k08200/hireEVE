@@ -38,14 +38,34 @@ export async function contactRoutes(app: FastifyInstance) {
   });
 
   app.patch("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    const updates = request.body as Record<string, string>;
+    const existing = await prisma.contact.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Contact not found" });
+    if (existing.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
+    const body = request.body as Record<string, string>;
+    // Only allow safe fields — prevent userId/id overwrite
+    const { name, email, phone, company, role, notes, tags } = body;
+    const updates: Record<string, string | null> = {};
+    if (name !== undefined) updates.name = name;
+    if (email !== undefined) updates.email = email || null;
+    if (phone !== undefined) updates.phone = phone || null;
+    if (company !== undefined) updates.company = company || null;
+    if (role !== undefined) updates.role = role || null;
+    if (notes !== undefined) updates.notes = notes || null;
+    if (tags !== undefined) updates.tags = tags || null;
     const contact = await prisma.contact.update({ where: { id }, data: updates });
     return reply.send(contact);
   });
 
   app.delete("/:id", async (request, reply) => {
+    const userId = getUserId(request);
     const { id } = request.params as { id: string };
+    const existing = await prisma.contact.findUnique({ where: { id } });
+    if (!existing) return reply.code(404).send({ error: "Contact not found" });
+    if (existing.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+
     await prisma.contact.delete({ where: { id } });
     return reply.code(204).send();
   });

@@ -19,6 +19,9 @@ export async function searchFiles(
   query: string,
   folder?: string,
 ): Promise<{ files: Array<{ path: string; name: string; size: number }> }> {
+  if (folder && !isPathAllowed(folder)) {
+    return { files: [] };
+  }
   const args = [query];
   if (folder) args.push("-onlyin", folder);
 
@@ -43,10 +46,23 @@ export async function searchFiles(
   }
 }
 
+/** Blocked system paths — prevent reading sensitive OS/config files */
+const BLOCKED_PATH_PREFIXES = ["/etc", "/var", "/private", "/System", "/usr", "/bin", "/sbin", "/Library"];
+const BLOCKED_PATH_PATTERN = /\/\./; // dotfiles/hidden dirs
+
+function isPathAllowed(p: string): boolean {
+  const resolved = join("/", p); // normalize
+  if (BLOCKED_PATH_PATTERN.test(resolved)) return false;
+  return !BLOCKED_PATH_PREFIXES.some((prefix) => resolved.startsWith(prefix));
+}
+
 /** Read and summarize a text file */
 export async function readAndSummarize(
   filePath: string,
 ): Promise<{ content: string; summary: string }> {
+  if (!isPathAllowed(filePath)) {
+    return { content: "", summary: "Access denied: this file path is restricted." };
+  }
   const ext = extname(filePath).toLowerCase();
   let content = "";
 

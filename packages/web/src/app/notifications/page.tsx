@@ -72,27 +72,30 @@ export default function NotificationsPage() {
   }, []);
 
   const markRead = async (id: string) => {
-    await fetch(`${API_BASE}/api/notifications/${id}/read`, {
+    const res = await fetch(`${API_BASE}/api/notifications/${id}/read`, {
       method: "PATCH",
       headers: authHeaders(),
     });
+    if (!res.ok) return;
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
   };
 
   const markAllRead = async () => {
-    await fetch(`${API_BASE}/api/notifications/read-all`, {
+    const res = await fetch(`${API_BASE}/api/notifications/read-all`, {
       method: "PATCH",
       headers: authHeaders(),
     });
+    if (!res.ok) return;
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     toast("All marked as read", "success");
   };
 
   const clearAll = async () => {
-    await fetch(`${API_BASE}/api/notifications`, {
+    const res = await fetch(`${API_BASE}/api/notifications`, {
       method: "DELETE",
       headers: authHeaders(),
     });
+    if (!res.ok) return;
     setNotifications([]);
     toast("Notifications cleared", "info");
   };

@@ -23,6 +23,7 @@ async function registerPush() {
   try {
     // Get VAPID public key from server
     const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
+    if (!res.ok) return;
     const { publicKey } = await res.json();
     if (!publicKey) return;
 

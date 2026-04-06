@@ -16,7 +16,7 @@ export async function agentRoutes(app: FastifyInstance) {
       data: { name, endpoint, apiKey, userId },
     });
 
-    return reply.code(201).send(agent);
+    return reply.code(201).send({ id: agent.id, name: agent.name, endpoint: agent.endpoint });
   });
 
   // GET /api/agents — List agents for authenticated user
@@ -27,6 +27,7 @@ export async function agentRoutes(app: FastifyInstance) {
       prisma.agent.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },
+        select: { id: true, name: true, endpoint: true, createdAt: true },
       }),
       prisma.agent.count({ where: { userId } }),
     ]);
@@ -41,13 +42,22 @@ export async function agentRoutes(app: FastifyInstance) {
 
     const agent = await prisma.agent.findUnique({
       where: { id },
-      include: { _count: { select: { testRuns: true } } },
+      select: {
+        id: true,
+        name: true,
+        endpoint: true,
+        createdAt: true,
+        userId: true,
+        _count: { select: { testRuns: true } },
+      },
     });
 
     if (!agent || agent.userId !== userId) {
       return reply.code(404).send({ error: "Agent not found" });
     }
-    return agent;
+    // Strip userId from response
+    const { userId: _uid, ...safeAgent } = agent;
+    return safeAgent;
   });
 
   // DELETE /api/agents/:id

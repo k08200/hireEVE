@@ -89,6 +89,7 @@ function AutomationsContent() {
         headers: authHeaders(),
         body: JSON.stringify({}),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       toast(data.briefing ? "Briefing generated — check Notes" : "Briefing created", "success");
     } catch {
