@@ -81,52 +81,53 @@ let intervalId: ReturnType<typeof setInterval> | null = null;
 // Track last run per user to respect per-user interval
 const lastRunTime = new Map<string, number>();
 
-// Dedup: track recent notification titles with TTL to avoid repeating the same insight
-// Map<userId, Map<titleHash, expiresAt>> — entries auto-expire, NOT cleared each cycle
-const recentNotifications = new Map<string, Map<string, number>>();
+// DB-based dedup: check if a similar notification was sent recently
+// Survives server restarts (unlike previous in-memory Map approach)
+const NOTIFY_DEDUP_HOURS = 6; // Don't repeat same notification within 6 hours
 
-// Dedup: track emails we already replied to (prevent sending same reply every 5 min)
-// Map<userId, Map<emailSubjectHash, expiresAt>> — TTL 2 hours
-const repliedEmails = new Map<string, Map<string, number>>();
-const REPLIED_EMAIL_TTL = 2 * 60 * 60 * 1000; // 2 hours
-
-/** Check if we already replied to this email */
-function hasRepliedToEmail(userId: string, emailKey: string): boolean {
-  const userReplied = repliedEmails.get(userId);
-  if (!userReplied) return false;
-  const expiresAt = userReplied.get(emailKey);
-  if (!expiresAt) return false;
-  if (Date.now() > expiresAt) {
-    userReplied.delete(emailKey);
-    return false;
-  }
-  return true;
+async function hasRecentNotification(userId: string, titleKey: string): Promise<boolean> {
+  const since = new Date(Date.now() - NOTIFY_DEDUP_HOURS * 60 * 60 * 1000);
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      title: { startsWith: "[EVE]" },
+      createdAt: { gte: since },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  // Check recent EVE notifications for similar title
+  if (!existing) return false;
+  const recentNotifs = await prisma.notification.findMany({
+    where: {
+      userId,
+      title: { startsWith: "[EVE]" },
+      createdAt: { gte: since },
+    },
+    select: { title: true },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+  return recentNotifs.some((n) => getNotifKey(n.title) === titleKey);
 }
 
-/** Mark email as replied */
-function markEmailReplied(userId: string, emailKey: string) {
-  if (!repliedEmails.has(userId)) {
-    repliedEmails.set(userId, new Map());
-  }
-  repliedEmails.get(userId)!.set(emailKey, Date.now() + REPLIED_EMAIL_TTL);
-}
+// DB-based email reply dedup: check AgentLog for recent send_email actions
+const REPLIED_EMAIL_DEDUP_HOURS = 24;
 
-/** Prune expired dedup entries (called each cycle) */
-function pruneDedup() {
-  const now = Date.now();
-  for (const [userId, entries] of recentNotifications) {
-    for (const [key, expiresAt] of entries) {
-      if (now > expiresAt) entries.delete(key);
-    }
-    if (entries.size === 0) recentNotifications.delete(userId);
-  }
-  // Also prune replied emails
-  for (const [userId, entries] of repliedEmails) {
-    for (const [key, expiresAt] of entries) {
-      if (now > expiresAt) entries.delete(key);
-    }
-    if (entries.size === 0) repliedEmails.delete(userId);
-  }
+async function hasRepliedToEmail(userId: string, emailSubject: string): Promise<boolean> {
+  const since = new Date(Date.now() - REPLIED_EMAIL_DEDUP_HOURS * 60 * 60 * 1000);
+  const normalizedSubject = emailSubject.replace(/^Re:\s*/i, "").slice(0, 30);
+  if (!normalizedSubject) return false;
+  const recentSend = await db.agentLog.findFirst({
+    where: {
+      userId,
+      action: "auto_action",
+      tool: "send_email",
+      summary: { contains: normalizedSubject },
+      createdAt: { gte: since },
+    },
+  });
+  return !!recentSend;
 }
 
 function getNotifKey(title: string): string {
@@ -1068,12 +1069,8 @@ How to reply:
         if (fnName === "propose_action") {
           // Propose action via chat — create conversation + message + pending action
           const key = getNotifKey(args.message);
-          if (!recentNotifications.has(userId)) {
-            recentNotifications.set(userId, new Map());
-          }
-          const userNotifs = recentNotifications.get(userId)!;
 
-          // DB-backed dedup: check if there's already a PENDING action with same toolName
+          // DB-backed dedup: check PENDING actions + recent notifications
           const existingPending = await db.pendingAction.findFirst({
             where: {
               userId,
@@ -1082,14 +1079,12 @@ How to reply:
             },
             orderBy: { createdAt: "desc" },
           });
+          const alreadyNotified = await hasRecentNotification(userId, key);
 
-          if (existingPending || (userNotifs.has(key) && Date.now() < (userNotifs.get(key) || 0))) {
+          if (existingPending || alreadyNotified) {
             result = JSON.stringify({ skipped: true, reason: "duplicate proposal" });
             await logAgentAction(userId, "skip", `Dedup proposal: "${args.message.slice(0, 50)}"`);
           } else {
-            // TTL = 2 hours (prevent repeating same proposal)
-            userNotifs.set(key, Date.now() + 2 * 60 * 60 * 1000);
-
             // Find or create an agent conversation for today
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
@@ -1205,18 +1200,12 @@ How to reply:
         } else if (fnName === "notify_user") {
           // Lightweight notification — no approval needed
           const key = getNotifKey(args.title);
-          if (!recentNotifications.has(userId)) {
-            recentNotifications.set(userId, new Map());
-          }
-          const userNotifs = recentNotifications.get(userId)!;
+          const alreadyNotified = await hasRecentNotification(userId, key);
 
-          if (userNotifs.has(key) && Date.now() < (userNotifs.get(key) || 0)) {
+          if (alreadyNotified) {
             result = JSON.stringify({ skipped: true, reason: "duplicate notification" });
             await logAgentAction(userId, "skip", `Dedup: "${args.title}" already sent`);
           } else {
-            // TTL = 2 hours (prevent repeating same notification)
-            userNotifs.set(key, Date.now() + 2 * 60 * 60 * 1000);
-
             // Mark as agent-generated notification
             const agentTitle = `[EVE] ${args.title}`;
 
@@ -1383,30 +1372,10 @@ How to reply:
             continue;
           }
 
-          // Dedup: prevent sending same email reply repeatedly across cycles (memory + DB)
+          // Dedup: prevent sending same email reply repeatedly across cycles (DB-based, survives restarts)
           if (fnName === "send_email") {
             const emailSubject = (args as { subject?: string }).subject || "";
-            const emailKey = `${(args as { to?: string }).to || ""}_${emailSubject}`
-              .toLowerCase()
-              .replace(/\s+/g, "")
-              .slice(0, 100);
-
-            // Check memory-based dedup first
-            let alreadyReplied = hasRepliedToEmail(userId, emailKey);
-
-            // Also check DB-based dedup (survives server restarts)
-            if (!alreadyReplied) {
-              const recentSend = await db.agentLog.findFirst({
-                where: {
-                  userId,
-                  action: "auto_action",
-                  tool: "send_email",
-                  summary: { contains: emailSubject.replace(/^Re:\s*/i, "").slice(0, 30) },
-                  createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-                },
-              });
-              if (recentSend) alreadyReplied = true;
-            }
+            const alreadyReplied = await hasRepliedToEmail(userId, emailSubject);
 
             if (alreadyReplied) {
               result = JSON.stringify({ skipped: true, reason: "already replied to this email" });
@@ -1423,14 +1392,9 @@ How to reply:
 
           result = await executeToolCall(userId, fnName, args);
 
-          // After successful send_email, mark as replied + mark original email as read in Gmail
+          // After successful send_email, mark original email as read in Gmail
           if (fnName === "send_email" && !result.includes('"error"')) {
-            const emailKey =
-              `${(args as { to?: string }).to || ""}_${(args as { subject?: string }).subject || ""}`
-                .toLowerCase()
-                .replace(/\s+/g, "")
-                .slice(0, 100);
-            markEmailReplied(userId, emailKey);
+            // No need to track in memory — DB-based dedup via AgentLog (logged below)
             console.log(
               `[AGENT] Marked email as replied: ${(args as { subject?: string }).subject}`,
             );
@@ -1578,8 +1542,7 @@ async function runAutonomousAgent() {
   // Expire stale pending actions before running new cycles
   await expireStalePendingActions();
 
-  // Prune expired dedup entries (NOT clear — entries have their own TTL)
-  pruneDedup();
+  // DB-based dedup — no in-memory pruning needed
 
   try {
     const configs = await prisma.automationConfig.findMany();
