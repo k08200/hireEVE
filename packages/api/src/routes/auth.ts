@@ -216,8 +216,20 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // GET /api/auth/google — Start OAuth flow for Gmail/Calendar integration (signed state)
+  // Accepts auth via Authorization header OR ?token= query param (needed for <a href> navigation)
   app.get("/google", async (request, reply) => {
-    const userId = getUserId(request);
+    let userId: string;
+    const queryToken = (request.query as { token?: string }).token;
+    if (queryToken) {
+      try {
+        const payload = verifyToken(queryToken);
+        userId = payload.userId;
+      } catch {
+        return reply.code(401).send({ error: "Invalid token" });
+      }
+    } else {
+      userId = getUserId(request);
+    }
     if (userId === "demo-user") {
       return reply.code(403).send({ error: "Authentication required to connect Google" });
     }

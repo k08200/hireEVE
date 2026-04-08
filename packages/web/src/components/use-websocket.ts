@@ -29,10 +29,13 @@ export function useWebSocket(userId: string) {
     new Map(),
   );
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
 
   const connect = useCallback(() => {
     if (!userId) return;
+    if (!mountedRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (wsRef.current?.readyState === WebSocket.CONNECTING) return;
 
     // Pass JWT token for authenticated WebSocket connection
     const token = typeof window !== "undefined" ? localStorage.getItem("eve-token") : null;
@@ -40,11 +43,12 @@ export function useWebSocket(userId: string) {
     const ws = new WebSocket(`${WS_URL}/ws?${authParam}&type=web`);
 
     ws.onopen = () => {
+      if (!mountedRef.current) { ws.close(); return; }
       setConnected(true);
-      console.log("[WS] Connected");
     };
 
     ws.onmessage = (event) => {
+      if (!mountedRef.current) return;
       try {
         const msg: WsMessage = JSON.parse(event.data);
 
@@ -85,8 +89,8 @@ export function useWebSocket(userId: string) {
     };
 
     ws.onclose = () => {
+      if (!mountedRef.current) return;
       setConnected(false);
-      console.log("[WS] Disconnected, reconnecting in 3s...");
       reconnectRef.current = setTimeout(connect, 3000);
     };
 
@@ -98,10 +102,13 @@ export function useWebSocket(userId: string) {
   }, [userId]);
 
   useEffect(() => {
+    mountedRef.current = true;
     connect();
     return () => {
+      mountedRef.current = false;
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
       wsRef.current?.close();
+      wsRef.current = null;
     };
   }, [connect]);
 

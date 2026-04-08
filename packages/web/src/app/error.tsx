@@ -10,7 +10,7 @@ function ErrorPage({
   return (
     <main className="flex flex-col items-center justify-center min-h-[60vh] px-6">
       <p className="text-5xl font-bold text-red-500/50 mb-4">Oops</p>
-      <h1 className="text-xl font-semibold mb-2">Something went wrong / 문제가 발생했습니다</h1>
+      <h1 className="text-xl font-semibold mb-2">Something went wrong</h1>
       <p className="text-gray-400 text-sm mb-2 text-center max-w-md">
         An unexpected error occurred. Please try again.
       </p>
@@ -24,7 +24,7 @@ function ErrorPage({
         onClick={reset}
         className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition"
       >
-        Try again / 다시 시도
+        Try again
       </button>
     </main>
   );

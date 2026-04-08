@@ -66,12 +66,53 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { confirm } = useConfirm();
 
-  // Check push notification support and permission
+  // Check push notification support and permission, auto-repair if granted but no subscription
   useEffect(() => {
     if (!("Notification" in window) || !("PushManager" in window)) {
       setPushStatus("unsupported");
-    } else {
-      setPushStatus(Notification.permission as "default" | "granted" | "denied");
+      return;
+    }
+    const perm = Notification.permission as "default" | "granted" | "denied";
+    setPushStatus(perm);
+
+    // If permission is granted, ensure subscription exists (auto-repair)
+    if (perm === "granted" && "serviceWorker" in navigator) {
+      (async () => {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          const existingSub = await reg.pushManager.getSubscription();
+          if (!existingSub) {
+            console.log("[PUSH-REPAIR] Permission granted but no subscription — re-subscribing...");
+            const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
+            if (!res.ok) return;
+            const { publicKey } = await res.json();
+            if (!publicKey) return;
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
+            });
+            console.log("[PUSH-REPAIR] Subscription created:", sub.endpoint.slice(0, 60));
+            const subJson = sub.toJSON();
+            const subRes = await fetch(`${API_BASE}/api/notifications/push/subscribe`, {
+              method: "POST",
+              headers: authHeaders(),
+              body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
+            });
+            console.log("[PUSH-REPAIR] Sent to server:", subRes.ok ? "OK" : subRes.status);
+          } else {
+            console.log("[PUSH-REPAIR] Subscription already exists:", existingSub.endpoint.slice(0, 60));
+            // Ensure server has it too (re-send)
+            const subJson = existingSub.toJSON();
+            await fetch(`${API_BASE}/api/notifications/push/subscribe`, {
+              method: "POST",
+              headers: authHeaders(),
+              body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
+            }).catch(() => {});
+          }
+        } catch (err) {
+          console.error("[PUSH-REPAIR] Error:", err);
+        }
+      })();
     }
   }, []);
 
@@ -112,36 +153,56 @@ export default function SettingsPage() {
     // Save language/timezone to localStorage
     localStorage.setItem("eve-profile", JSON.stringify(profile));
     setProfileSaved(true);
-    toast("Profile saved / 프로필 저장됨", "success");
+    toast("Profile saved", "success");
     setTimeout(() => setProfileSaved(false), 2000);
   };
 
   const enablePush = async () => {
-    if (!("Notification" in window)) return;
+    console.log("[PUSH-SETTINGS] Enable clicked");
+    if (!("Notification" in window)) {
+      console.warn("[PUSH-SETTINGS] Notification API not available");
+      toast("이 브라우저는 알림을 지원하지 않습니다", "error");
+      return;
+    }
+    console.log("[PUSH-SETTINGS] Current permission:", Notification.permission);
     const permission = await Notification.requestPermission();
+    console.log("[PUSH-SETTINGS] Permission result:", permission);
     setPushStatus(permission as "granted" | "denied" | "default");
     if (permission === "granted") {
-      toast("Push notifications enabled", "success");
-      // Re-trigger subscription registration
-      if ("serviceWorker" in navigator) {
-        const reg = await navigator.serviceWorker.ready;
-        const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
-        const { publicKey } = await res.json();
-        if (publicKey) {
-          const sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
-          });
-          const subJson = sub.toJSON();
-          await fetch(`${API_BASE}/api/notifications/push/subscribe`, {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
-          });
+      try {
+        // Re-trigger subscription registration
+        if ("serviceWorker" in navigator) {
+          const reg = await navigator.serviceWorker.ready;
+          console.log("[PUSH-SETTINGS] Service Worker ready");
+          const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
+          const { publicKey } = await res.json();
+          console.log("[PUSH-SETTINGS] VAPID key:", publicKey ? "OK" : "MISSING");
+          if (publicKey) {
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
+            });
+            console.log("[PUSH-SETTINGS] Subscription created:", sub.endpoint.slice(0, 60));
+            const subJson = sub.toJSON();
+            const subRes = await fetch(`${API_BASE}/api/notifications/push/subscribe`, {
+              method: "POST",
+              headers: authHeaders(),
+              body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys }),
+            });
+            console.log("[PUSH-SETTINGS] Sent to server:", subRes.ok ? "OK" : subRes.status);
+            if (subRes.ok) {
+              toast("macOS 알림이 활성화되었습니다", "success");
+            } else {
+              toast("서버 등록 실패 — 다시 시도해주세요", "error");
+            }
+          }
         }
+      } catch (err) {
+        console.error("[PUSH-SETTINGS] Error:", err);
+        toast("Push 등록 중 오류 발생", "error");
       }
     } else if (permission === "denied") {
-      toast("Push notifications blocked by browser", "error");
+      toast("브라우저에서 알림이 차단되었습니다. 브라우저 설정에서 허용해주세요.", "error");
     }
   };
 
@@ -174,7 +235,7 @@ export default function SettingsPage() {
         method: "POST",
         body: JSON.stringify({ currentPassword, newPassword }),
       });
-      toast("Password changed / 비밀번호 변경됨", "success");
+      toast("Password changed", "success");
       setCurrentPassword("");
       setNewPassword("");
     } catch (err) {
@@ -206,7 +267,7 @@ export default function SettingsPage() {
         method: "POST",
         body: JSON.stringify({ newPassword }),
       });
-      toast("Password set! / 비밀번호 설정됨", "success");
+      toast("Password set!", "success");
       setNewPassword("");
       setHasPassword(true);
     } catch (err) {
@@ -339,7 +400,7 @@ export default function SettingsPage() {
       name: "Google",
       description: "Gmail, Calendar — read emails, manage events",
       connected: googleConnected,
-      connectUrl: `${API_BASE}/api/auth/google`,
+      connectUrl: `${API_BASE}/api/auth/google?token=${typeof window !== "undefined" ? localStorage.getItem("eve-token") || "" : ""}`,
       statusUrl: `${API_BASE}/api/auth/google/status`,
     },
     {
@@ -370,9 +431,9 @@ export default function SettingsPage() {
 
   const clearAllData = async () => {
     const ok = await confirm({
-      title: "Clear All Data / 전체 데이터 삭제",
+      title: "Clear All Data",
       message:
-        "This will delete all conversations, tasks, notes, contacts, and reminders. This cannot be undone. / 모든 대화, 할 일, 메모, 연락처, 리마인더가 삭제됩니다. 되돌릴 수 없습니다.",
+        "This will delete all conversations, tasks, notes, contacts, and reminders. This cannot be undone.",
       confirmLabel: "Delete Everything",
       danger: true,
     });
@@ -381,7 +442,7 @@ export default function SettingsPage() {
       await fetch(`${API_BASE}/api/user/me/data`, { method: "DELETE", headers: authHeaders() });
       localStorage.removeItem("eve-profile");
       localStorage.removeItem("eve-pinned-chats");
-      toast("All data cleared / 모든 데이터 삭제됨", "info");
+      toast("All data cleared", "info");
     } catch {
       toast("Failed to clear data", "error");
     }
@@ -398,7 +459,7 @@ export default function SettingsPage() {
       a.download = `eve-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast("Data exported / 데이터 내보내기 완료", "success");
+      toast("Data exported", "success");
     } catch {
       toast("Export failed", "error");
     }
@@ -414,25 +475,25 @@ export default function SettingsPage() {
 
         {/* Profile */}
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-3">Profile / 프로필</h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Profile</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
             <div>
               <label htmlFor="profile-name" className="block text-sm text-gray-400 mb-1">
-                Display Name / 표시 이름
+                Display Name
               </label>
               <input
                 id="profile-name"
                 type="text"
                 value={profile.name}
                 onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Your name / 이름"
+                placeholder="Your name"
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="profile-lang" className="block text-sm text-gray-400 mb-1">
-                  Language / 언어
+                  Language
                 </label>
                 <select
                   id="profile-lang"
@@ -447,12 +508,12 @@ export default function SettingsPage() {
                 >
                   <option value="auto">Auto-detect</option>
                   <option value="en">English</option>
-                  <option value="ko">Korean / 한국어</option>
+                  <option value="ko">Korean</option>
                 </select>
               </div>
               <div>
                 <label htmlFor="profile-tz" className="block text-sm text-gray-400 mb-1">
-                  Timezone / 시간대
+                  Timezone
                 </label>
                 <select
                   id="profile-tz"
@@ -478,7 +539,7 @@ export default function SettingsPage() {
                     : "bg-blue-600 hover:bg-blue-500 text-white"
                 }`}
               >
-                {profileSaved ? "Saved!" : "Save Profile / 저장"}
+                {profileSaved ? "Saved!" : "Save Profile"}
               </button>
             </div>
           </div>
@@ -486,13 +547,13 @@ export default function SettingsPage() {
 
         {/* Security */}
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-3">Security / 보안</h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Security</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
             {hasPassword ? (
               <>
                 <div>
                   <label htmlFor="current-pw" className="block text-sm text-gray-400 mb-1">
-                    Current Password / 현재 비밀번호
+                    Current Password
                   </label>
                   <input
                     id="current-pw"
@@ -505,7 +566,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label htmlFor="new-pw" className="block text-sm text-gray-400 mb-1">
-                    New Password / 새 비밀번호
+                    New Password
                   </label>
                   <input
                     id="new-pw"
@@ -524,7 +585,7 @@ export default function SettingsPage() {
                     disabled={passwordLoading || !currentPassword || !newPassword}
                     className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
                   >
-                    {passwordLoading ? "Changing..." : "Change Password / 변경"}
+                    {passwordLoading ? "Changing..." : "Change Password"}
                   </button>
                 </div>
               </>
@@ -534,12 +595,12 @@ export default function SettingsPage() {
                   You signed in with Google. Set a password to also log in with email.
                   <br />
                   <span className="text-gray-500">
-                    Google로 가입하셨습니다. 이메일 로그인을 위해 비밀번호를 설정하세요.
+                    Set a password below to enable email login.
                   </span>
                 </p>
                 <div>
                   <label htmlFor="set-pw" className="block text-sm text-gray-400 mb-1">
-                    New Password / 비밀번호
+                    New Password
                   </label>
                   <input
                     id="set-pw"
@@ -558,7 +619,7 @@ export default function SettingsPage() {
                     disabled={passwordLoading || !newPassword}
                     className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
                   >
-                    {passwordLoading ? "Setting..." : "Set Password / 설정"}
+                    {passwordLoading ? "Setting..." : "Set Password"}
                   </button>
                 </div>
               </>
@@ -568,7 +629,7 @@ export default function SettingsPage() {
 
         {/* Notifications */}
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-3">Notifications / 알림</h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Notifications</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
             <div>
               <h3 className="font-medium">Push Notifications</h3>
@@ -609,7 +670,7 @@ export default function SettingsPage() {
         {/* Autonomous Agent */}
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-gray-300 mb-3">
-            Autonomous Agent / 자율 에이전트
+            Autonomous Agent
           </h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
@@ -640,7 +701,7 @@ export default function SettingsPage() {
                 {/* Agent Mode */}
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Agent mode / 에이전트 모드
+                    Agent mode
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -653,7 +714,7 @@ export default function SettingsPage() {
                       }`}
                     >
                       <div className="font-medium">SUGGEST</div>
-                      <div className="text-[10px] mt-0.5 opacity-70">알림만 전송</div>
+                      <div className="text-[10px] mt-0.5 opacity-70">Notifications only</div>
                     </button>
                     <button
                       type="button"
@@ -665,13 +726,13 @@ export default function SettingsPage() {
                       }`}
                     >
                       <div className="font-medium">AUTO</div>
-                      <div className="text-[10px] mt-0.5 opacity-70">안전한 작업 자동 실행</div>
+                      <div className="text-[10px] mt-0.5 opacity-70">Auto-execute safe actions</div>
                     </button>
                   </div>
                   {agentMode === "AUTO" && (
                     <p className="text-[10px] text-cyan-400/70 mt-2">
-                      리마인더 생성, 태스크 상태 변경, 이메일 분류 등 안전한 작업만 자동 실행합니다.
-                      이메일 전송, 삭제 등 위험한 작업은 절대 자동 실행하지 않습니다.
+                      Only safe actions like creating reminders, updating task status, and classifying emails are auto-executed.
+                      Dangerous actions like sending or deleting emails are never auto-executed.
                     </p>
                   )}
                 </div>
@@ -679,7 +740,7 @@ export default function SettingsPage() {
                 {/* Check Interval */}
                 <div>
                   <label htmlFor="agent-interval" className="block text-sm text-gray-400 mb-1">
-                    Check interval / 분석 주기
+                    Check interval
                   </label>
                   <select
                     id="agent-interval"
@@ -704,7 +765,7 @@ export default function SettingsPage() {
                 onClick={loadAgentLogs}
                 className="text-sm text-blue-400 hover:text-blue-300 transition"
               >
-                {agentLogsLoading ? "Loading..." : "View recent activity / 최근 활동 보기"}
+                {agentLogsLoading ? "Loading..." : "View recent activity"}
               </button>
               {agentLogs.length > 0 && (
                 <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
@@ -729,7 +790,7 @@ export default function SettingsPage() {
                         />
                         <span className="text-gray-300 flex-1 truncate">{log.summary}</span>
                         <span className="text-gray-600 text-xs shrink-0">
-                          {new Date(log.createdAt).toLocaleString("ko-KR", {
+                          {new Date(log.createdAt).toLocaleString("en-US", {
                             month: "short",
                             day: "numeric",
                             hour: "2-digit",
@@ -826,10 +887,10 @@ export default function SettingsPage() {
 
         {/* Capabilities */}
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-3">EVE Capabilities / 기능 목록</h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">EVE Capabilities</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 space-y-4">
             <div>
-              <p className="text-xs text-blue-400 font-medium mb-2">Productivity / 생산성</p>
+              <p className="text-xs text-blue-400 font-medium mb-2">Productivity</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
                 <p>Tasks — priorities, due dates, status tracking</p>
                 <p>Notes — markdown, categories, search</p>
@@ -840,7 +901,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-green-400 font-medium mb-2">Communication / 소통</p>
+              <p className="text-xs text-green-400 font-medium mb-2">Communication</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
                 <p>Email — read, send, classify by priority</p>
                 <p>Calendar — events, conflicts, scheduling</p>
@@ -851,7 +912,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <p className="text-xs text-purple-400 font-medium mb-2">
-                Meeting & Scheduling / 미팅
+                Meeting & Scheduling
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
                 <p>Auto-join — Google Meet, Zoom links</p>
@@ -860,7 +921,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-yellow-400 font-medium mb-2">macOS Native / 시스템 연동</p>
+              <p className="text-xs text-yellow-400 font-medium mb-2">macOS Native</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
                 <p>Clipboard — read/write copy-paste</p>
                 <p>File Search — Spotlight search</p>
@@ -876,11 +937,11 @@ export default function SettingsPage() {
 
         {/* Data Management */}
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-3">Data / 데이터</h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Data</h2>
           <div className="space-y-3">
             <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Export Data / 데이터 내보내기</h3>
+                <h3 className="font-medium">Export Data</h3>
                 <p className="text-sm text-gray-400">Download all your data as JSON</p>
               </div>
               <button
@@ -897,11 +958,11 @@ export default function SettingsPage() {
         {/* Danger Zone */}
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-gray-300 mb-3 text-red-400">
-            Danger Zone / 위험 구역
+            Danger Zone
           </h2>
           <div className="bg-gray-900 border border-red-900/50 rounded-lg p-4 flex items-center justify-between">
             <div>
-              <h3 className="font-medium">Delete All Data / 전체 삭제</h3>
+              <h3 className="font-medium">Delete All Data</h3>
               <p className="text-sm text-gray-400">
                 Permanently delete all conversations, tasks, notes, contacts, and reminders
               </p>
@@ -921,11 +982,10 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold text-gray-300 mb-3">About</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4">
             <p className="text-sm text-gray-400">
-              <span className="text-blue-400 font-medium">EVE</span> — Your First AI Employee /
-              당신의 첫 번째 AI 직원
+              <span className="text-blue-400 font-medium">EVE</span> — Your First AI Employee
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              Built for solo founders who wear too many hats. / 1인 창업자를 위해 만들었습니다.
+              Built for solo founders who wear too many hats.
             </p>
             <p className="text-xs text-gray-600 mt-3">v0.2.0 — MVP</p>
           </div>

@@ -308,6 +308,11 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     let fullResponse = "";
+    let retryClientDisconnected = false;
+
+    request.raw.on("close", () => {
+      retryClientDisconnected = true;
+    });
 
     try {
       if (tools.length > 0) {
@@ -315,6 +320,7 @@ export async function chatRoutes(app: FastifyInstance) {
         let maxIterations = 5;
 
         while (maxIterations-- > 0) {
+          if (retryClientDisconnected) break;
           const response = await openai.chat.completions.create({
             model: MODEL,
             messages: messages as Parameters<typeof openai.chat.completions.create>[0]["messages"],
@@ -354,10 +360,16 @@ export async function chatRoutes(app: FastifyInstance) {
           stream: true,
         });
         for await (const chunk of stream) {
+          if (retryClientDisconnected) break;
           const delta = chunk.choices[0]?.delta?.content;
           if (delta) {
             fullResponse += delta;
-            reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
+            try {
+              reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
+            } catch {
+              retryClientDisconnected = true;
+              break;
+            }
           }
         }
       }
@@ -596,6 +608,12 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     let fullResponse = "";
+    let clientDisconnected = false;
+
+    // Detect client disconnect — stop LLM generation early
+    request.raw.on("close", () => {
+      clientDisconnected = true;
+    });
 
     try {
       if (tools.length > 0) {
@@ -606,6 +624,7 @@ export async function chatRoutes(app: FastifyInstance) {
         console.log("[CHAT] Tools enabled, starting function calling loop");
 
         while (maxIterations-- > 0) {
+          if (clientDisconnected) break;
           const response = await withRetry(
             () =>
               openai.chat.completions.create({
@@ -691,10 +710,19 @@ export async function chatRoutes(app: FastifyInstance) {
         );
 
         for await (const chunk of stream) {
+          if (clientDisconnected) {
+            console.log(`[CHAT] Client disconnected mid-stream, saving partial response (${fullResponse.length} chars)`);
+            break;
+          }
           const delta = chunk.choices[0]?.delta?.content;
           if (delta) {
             fullResponse += delta;
-            reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
+            try {
+              reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
+            } catch {
+              clientDisconnected = true;
+              break;
+            }
           }
         }
       }

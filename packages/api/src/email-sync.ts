@@ -195,6 +195,94 @@ export async function syncEmails(
   return { synced: rawEmails.length, newCount, source: "gmail" };
 }
 
+// ─── Gmail ↔ DB Reconciliation ────────────────────────────────────────────
+
+/**
+ * Reconcile local DB with Gmail.
+ * Removes DB emails that no longer exist in Gmail INBOX (deleted/archived/trashed).
+ * Updates read/star status for remaining emails.
+ */
+export async function reconcileEmails(
+  userId: string,
+): Promise<{ removed: number; updated: number }> {
+  const auth = await getAuthedClient(userId);
+  if (!auth) throw new Error("Gmail not connected");
+
+  const gmail = google.gmail({ version: "v1", auth });
+
+  // Get ALL current INBOX message IDs from Gmail (lightweight list call)
+  const inboxIds = new Set<string>();
+  let pageToken: string | undefined;
+  do {
+    const res = await gmail.users.messages.list({
+      userId: "me",
+      labelIds: ["INBOX"],
+      maxResults: 500,
+      pageToken,
+    });
+    for (const msg of res.data.messages || []) {
+      if (msg.id) inboxIds.add(msg.id);
+    }
+    pageToken = res.data.nextPageToken || undefined;
+  } while (pageToken);
+
+  // Get all DB emails for this user
+  const dbEmails = await prisma.emailMessage.findMany({
+    where: { userId },
+    select: { id: true, gmailId: true, isRead: true },
+  });
+
+  // Remove DB emails no longer in Gmail INBOX
+  let removed = 0;
+  const toRemove: string[] = [];
+  for (const dbEmail of dbEmails) {
+    if (!inboxIds.has(dbEmail.gmailId)) {
+      toRemove.push(dbEmail.id);
+      removed++;
+    }
+  }
+
+  if (toRemove.length > 0) {
+    await prisma.emailMessage.deleteMany({
+      where: { id: { in: toRemove } },
+    });
+    console.log(`[EMAIL-SYNC] Reconciled: removed ${removed} stale emails for user ${userId}`);
+  }
+
+  // For remaining emails still in INBOX, batch-update read status
+  let updated = 0;
+  const remainingGmailIds = dbEmails
+    .filter((e) => inboxIds.has(e.gmailId))
+    .map((e) => e.gmailId);
+
+  // Check read status for remaining emails (batch of 50)
+  for (let i = 0; i < remainingGmailIds.length; i += 50) {
+    const batch = remainingGmailIds.slice(i, i + 50);
+    for (const gmailId of batch) {
+      try {
+        const detail = await gmail.users.messages.get({
+          userId: "me",
+          id: gmailId,
+          format: "minimal",
+        });
+        const labelIds = detail.data.labelIds || [];
+        const isRead = !labelIds.includes("UNREAD");
+        const isStarred = labelIds.includes("STARRED");
+
+        const result = await prisma.emailMessage.updateMany({
+          where: { userId, gmailId },
+          data: { isRead, isStarred, labels: labelIds },
+        });
+        if (result.count > 0) updated++;
+      } catch {
+        // Message might have been deleted between list and get — skip
+      }
+    }
+  }
+
+  return { removed, updated };
+}
+
 // ─── Priority Classification (keyword-based, fast) ────────────────────────
 
 function classifyPriority(from: string, subject: string): "URGENT" | "NORMAL" | "LOW" {

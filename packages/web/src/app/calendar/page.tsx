@@ -40,7 +40,7 @@ const COLORS = [
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("ko-KR", {
+  return new Date(dateStr).toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -48,7 +48,7 @@ function formatTime(dateStr: string): string {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("ko-KR", {
+  return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     weekday: "short",
@@ -102,12 +102,12 @@ export default function CalendarPage() {
     try {
       const res = await apiFetch<{ success?: boolean; error?: string; synced: number }>(
         "/api/calendar/sync",
-        { method: "POST" },
+        { method: "POST", body: JSON.stringify({}) },
       );
       if (res.error) {
         toast(res.error, "error");
       } else {
-        toast(`${res.synced} events synced from Google`, "success");
+        toast(res.synced > 0 ? `Google Calendar 연동 완료 — ${res.synced}개 이벤트 동기화됨` : "Google Calendar 연동됨 — 새 이벤트 없음", "success");
         fetchEvents();
       }
     } catch {
@@ -203,7 +203,7 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">Calendar</h1>
-            <p className="text-gray-400 text-sm mt-1">Manage your schedule / 일정 관리</p>
+            <p className="text-gray-400 text-sm mt-1">Manage your schedule</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
@@ -244,13 +244,13 @@ export default function CalendarPage() {
         {showCreate && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
             <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md p-6">
-              <h2 className="text-lg font-semibold mb-4">New Event / 새 일정</h2>
+              <h2 className="text-lg font-semibold mb-4">New Event</h2>
               <div className="space-y-3">
                 <input
                   autoFocus
                   value={newEvent.title}
                   onChange={(e) => setNewEvent((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="Event title / 일정 제목"
+                  placeholder="Event title"
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
                 <div className="grid grid-cols-3 gap-2">
@@ -276,13 +276,13 @@ export default function CalendarPage() {
                 <input
                   value={newEvent.location}
                   onChange={(e) => setNewEvent((p) => ({ ...p, location: e.target.value }))}
-                  placeholder="Location (optional) / 장소"
+                  placeholder="Location (optional)"
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
                 <input
                   value={newEvent.meetingLink}
                   onChange={(e) => setNewEvent((p) => ({ ...p, meetingLink: e.target.value }))}
-                  placeholder="Meeting link (optional) / 회의 링크"
+                  placeholder="Meeting link (optional)"
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
                 <div className="flex gap-2">
@@ -347,7 +347,7 @@ export default function CalendarPage() {
 
         {view === "week" ? (
           /* Week View */
-          <div className="border border-gray-800 rounded-xl overflow-hidden">
+          <div className="border border-gray-800 rounded-xl overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 200px)" }}>
             {/* Day headers */}
             <div className="grid grid-cols-8 border-b border-gray-800">
               <div className="p-2 text-xs text-gray-600 text-center">Time</div>
@@ -369,7 +369,7 @@ export default function CalendarPage() {
             </div>
 
             {/* Time grid */}
-            <div className="grid grid-cols-8 relative" style={{ height: "720px" }}>
+            <div className="grid grid-cols-8 relative overflow-y-auto flex-1" style={{ height: "720px" }}>
               {/* Hour labels */}
               <div className="relative">
                 {HOURS.filter((h) => h >= 6 && h <= 23).map((h) => (
@@ -464,7 +464,7 @@ export default function CalendarPage() {
           <div className="space-y-2">
             {upcoming.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-gray-500">No upcoming events / 예정된 일정이 없습니다</p>
+                <p className="text-gray-500">No upcoming events</p>
                 <button
                   type="button"
                   onClick={() => setShowCreate(true)}
@@ -524,10 +524,10 @@ export default function CalendarPage() {
         {/* Today's Summary */}
         <div className="mt-8 bg-gray-900 border border-gray-800 rounded-xl p-5">
           <h2 className="text-sm font-semibold text-gray-400 mb-3">
-            Today&apos;s Schedule / 오늘 일정
+            Today&apos;s Schedule
           </h2>
           {events.filter((e) => isSameDay(new Date(e.startTime), today)).length === 0 ? (
-            <p className="text-sm text-gray-500">No events today / 오늘은 일정이 없어요</p>
+            <p className="text-sm text-gray-500">No events today</p>
           ) : (
             <div className="space-y-2">
               {events

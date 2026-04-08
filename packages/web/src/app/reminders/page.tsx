@@ -85,8 +85,8 @@ export default function RemindersPage() {
 
   const remove = async (id: string) => {
     const ok = await confirm({
-      title: "Delete Reminder / 알림 삭제",
-      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      title: "Delete Reminder",
+      message: "Are you sure? This cannot be undone.",
       confirmLabel: "Delete",
       danger: true,
     });
@@ -121,7 +121,7 @@ export default function RemindersPage() {
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
-    return d.toLocaleString("ko-KR", {
+    return d.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -151,11 +151,11 @@ export default function RemindersPage() {
         {/* Quick-create presets */}
         <div className="flex gap-2 mb-6 flex-wrap">
           {[
-            { label: "30min later", labelKr: "30분 후", minutes: 30 },
-            { label: "1 hour", labelKr: "1시간 후", minutes: 60 },
-            { label: "Tomorrow 9AM", labelKr: "내일 오전 9시", minutes: -1 },
-            { label: "Lunch break", labelKr: "점심시간", minutes: -2 },
-            { label: "End of day", labelKr: "퇴근 전", minutes: -3 },
+            { label: "30min later", labelKr: "30min later", minutes: 30 },
+            { label: "1 hour", labelKr: "1 hour", minutes: 60 },
+            { label: "Tomorrow 9AM", labelKr: "Tomorrow 9AM", minutes: -1 },
+            { label: "Lunch break", labelKr: "Lunch break", minutes: -2 },
+            { label: "End of day", labelKr: "End of day", minutes: -3 },
           ].map((preset) => {
             let minutes = preset.minutes;
             if (minutes === -1) {
@@ -233,7 +233,7 @@ export default function RemindersPage() {
         ) : active.length === 0 && dismissed.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-500 mb-2">No reminders yet</p>
-            <p className="text-gray-600 text-sm">Tell EVE: &quot;내일 3시에 미팅 알려줘&quot;</p>
+            <p className="text-gray-600 text-sm">Tell EVE: &quot;Remind me about the meeting at 3pm tomorrow&quot;</p>
           </div>
         ) : (
           <>

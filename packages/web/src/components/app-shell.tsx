@@ -46,7 +46,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <span className="text-sm font-semibold text-gray-300">EVE</span>
         </div>
-        <main className="flex-1 overflow-hidden">{children}</main>
+        <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

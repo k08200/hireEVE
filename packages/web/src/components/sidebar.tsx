@@ -249,7 +249,7 @@ export default function Sidebar({
         router.push("/chat");
       }
     } catch {
-      toast("삭제 실패", "error");
+      toast("Delete failed", "error");
       setDeleteConfirm(null);
     }
   };
@@ -278,7 +278,7 @@ export default function Sidebar({
       if (!res.ok) throw new Error();
       setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c)));
     } catch {
-      toast("이름 변경 실패", "error");
+      toast("Rename failed", "error");
     }
     setEditingId(null);
   };
@@ -302,7 +302,7 @@ export default function Sidebar({
       setConversations((prev) =>
         prev.map((c) => (c.id === conv.id ? { ...c, pinned: !newPinned } : c)),
       );
-      toast("고정 변경 실패", "error");
+      toast("Pin failed", "error");
     }
   };
 

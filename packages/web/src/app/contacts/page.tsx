@@ -173,8 +173,8 @@ export default function ContactsPage() {
 
   const deleteContact = async (id: string) => {
     const ok = await confirm({
-      title: "Delete Contact / 연락처 삭제",
-      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      title: "Delete Contact",
+      message: "Are you sure? This cannot be undone.",
       confirmLabel: "Delete",
       danger: true,
     });
@@ -206,7 +206,7 @@ export default function ContactsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search contacts... / 연락처 검색..."
+            placeholder="Search contacts..."
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
           />
         </div>
@@ -313,7 +313,7 @@ export default function ContactsPage() {
         {editing && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-slide-up px-4">
             <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg">
-              <h3 className="font-semibold mb-4">Edit Contact / 연락처 수정</h3>
+              <h3 className="font-semibold mb-4">Edit Contact</h3>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <input
                   placeholder="Name *"
@@ -385,7 +385,7 @@ export default function ContactsPage() {
         ) : contacts.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-500 mb-2">No contacts yet</p>
-            <p className="text-gray-600 text-sm">Tell EVE: &quot;연락처 저장해줘&quot;</p>
+            <p className="text-gray-600 text-sm">Tell EVE: &quot;Save a contact for me&quot;</p>
           </div>
         ) : (
           <div className="space-y-2">

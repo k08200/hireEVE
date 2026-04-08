@@ -1,35 +1,36 @@
 import Link from "next/link";
+import LandingRedirect from "../components/landing-redirect";
 
 const FEATURES = [
   {
     icon: "mail",
     title: "Email",
-    desc: "메일이 오면 먼저 읽고, 긴급한 건 바로 알려줍니다",
+    desc: "Reads incoming emails first and alerts you about urgent ones",
   },
   {
     icon: "calendar",
     title: "Calendar",
-    desc: "미팅 전에 미리 준비사항을 챙기고, 일정 충돌도 잡아냅니다",
+    desc: "Prepares meeting briefs in advance and catches scheduling conflicts",
   },
   {
     icon: "check",
     title: "Tasks",
-    desc: "마감이 지난 태스크를 알려주고, 우선순위를 정리합니다",
+    desc: "Flags overdue tasks and helps you prioritize what matters",
   },
   {
     icon: "bell",
     title: "Reminders",
-    desc: "까먹기 쉬운 후속 연락도 알아서 리마인드해줍니다",
+    desc: "Automatically reminds you about follow-ups you might forget",
   },
   {
     icon: "user",
     title: "Contacts",
-    desc: "고객, 파트너, 투자자 연락처를 한 곳에서 관리합니다",
+    desc: "Manage clients, partners, and investor contacts in one place",
   },
   {
     icon: "file",
     title: "Notes & Briefing",
-    desc: "매일 아침 오늘의 브리핑을 자동으로 준비합니다",
+    desc: "Prepares your daily briefing every morning automatically",
   },
 ];
 
@@ -98,6 +99,7 @@ function FeatureIcon({ type }: { type: string }) {
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-[#0a0a0f] text-white">
+      <LandingRedirect />
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <span className="text-lg font-bold text-blue-400">EVE</span>
@@ -120,25 +122,25 @@ export default function LandingPage() {
           Your First AI Employee
         </div>
         <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
-          혼자서도 팀처럼 일하세요
+          Work like a team, even alone
         </h1>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
-          EVE는 시키지 않아도 알아서 움직이는 AI 직원입니다. 메일이 오면 먼저 확인하고, 미팅 전에
-          준비사항을 챙기고, 까먹기 쉬운 후속 연락도 리마인드해줍니다. 당신이 다른 일에 집중하고
-          있어도 — EVE는 쉬지 않고 일합니다.
+          EVE is an AI employee that acts without being asked. She checks your emails,
+          preps for meetings, and follows up on things you might forget. While you focus
+          on what matters — EVE never stops working.
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link
             href="/login"
             className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-600/25"
           >
-            무료로 시작하기
+            Get Started Free
           </Link>
           <Link
             href="/login"
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-8 py-3 rounded-lg text-sm font-medium transition-colors border border-gray-700"
           >
-            Demo 체험
+            Try Demo
           </Link>
         </div>
       </section>
@@ -166,21 +168,21 @@ export default function LandingPage() {
       {/* Key message */}
       <section className="max-w-4xl mx-auto px-6 py-16">
         <div className="bg-gradient-to-br from-gray-900 to-gray-900/50 border border-gray-800 rounded-2xl p-8 md:p-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">말하기 전에 먼저 움직입니다</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">Acts before you ask</h2>
           <p className="text-gray-400 leading-relaxed max-w-2xl">
-            &ldquo;메일 보여줘&rdquo;라고 하면 바로 찾아줍니다. &ldquo;내일 미팅 잡아줘&rdquo;라고
-            하면 캘린더에 넣어줍니다. 하지만 EVE의 진짜 가치는 여기서 끝이 아닙니다. 긴급 메일이
-            오면 알아서 알려주고, 마감이 지난 태스크를 챙겨주고, 매일 아침 오늘의 브리핑을
-            준비합니다. 시키지 않아도요.
+            Say &ldquo;show my emails&rdquo; and she finds them instantly. Say &ldquo;schedule
+            a meeting tomorrow&rdquo; and it&apos;s on your calendar. But EVE&apos;s real value
+            goes beyond that — she alerts you about urgent emails, catches overdue tasks,
+            and prepares your daily briefing every morning. Without being told.
           </p>
         </div>
       </section>
 
       {/* Features */}
       <section className="max-w-4xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-bold text-center mb-3">하나의 대화창에서 모든 업무를</h2>
+        <h2 className="text-2xl font-bold text-center mb-3">All your work in one conversation</h2>
         <p className="text-gray-500 text-center mb-12">
-          흩어져 있던 도구들을 EVE가 하나로 연결합니다
+          EVE connects all your scattered tools into one place
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map((f) => (
@@ -200,23 +202,23 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section className="max-w-4xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-bold text-center mb-12">3단계로 시작하세요</h2>
+        <h2 className="text-2xl font-bold text-center mb-12">Get started in 3 steps</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             {
               step: "1",
-              title: "가입",
-              desc: "Google 계정으로 3초 만에 시작",
+              title: "Sign up",
+              desc: "Start in seconds with your Google account",
             },
             {
               step: "2",
-              title: "연결",
-              desc: "Gmail, Calendar를 연결하면 EVE가 알아서 파악",
+              title: "Connect",
+              desc: "Link Gmail and Calendar — EVE handles the rest",
             },
             {
               step: "3",
-              title: "대화",
-              desc: "말만 하세요. EVE가 실행합니다",
+              title: "Chat",
+              desc: "Just tell her what you need. EVE executes",
             },
           ].map((s) => (
             <div key={s.step} className="text-center">
@@ -263,16 +265,16 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-6 py-20 text-center">
         <h2 className="text-3xl font-bold mb-4">
-          매달 수백만 원짜리 직원 대신,
+          Skip the hiring process.
           <br />
-          EVE 하나면 됩니다
+          Just add EVE.
         </h2>
-        <p className="text-gray-500 mb-8">1인 창업자, 프리랜서, 소규모 팀의 첫 번째 팀원</p>
+        <p className="text-gray-500 mb-8">The first team member for solo founders, freelancers, and small teams</p>
         <Link
           href="/login"
           className="inline-block bg-blue-600 hover:bg-blue-500 text-white px-10 py-3.5 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-600/25"
         >
-          지금 시작하기
+          Get Started
         </Link>
       </section>
 

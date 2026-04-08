@@ -153,7 +153,7 @@ function WorkspaceContent() {
         <div>
           <h1 className="text-2xl font-bold">Workspaces</h1>
           <p className="text-gray-400 text-sm mt-1">
-            Manage team workspaces / 팀 워크스페이스 관리
+            Manage team workspaces
           </p>
         </div>
         <button

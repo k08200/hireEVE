@@ -108,7 +108,7 @@ function AutomationsContent() {
       await fetch(`${API_BASE}/api/chat/conversations/${convo.id}/messages`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ content: "다운로드 폴더 정리해줘" }),
+        body: JSON.stringify({ content: "Organize my downloads folder" }),
       });
       toast("Organizing downloads... check chat for results", "success");
     } catch {
@@ -118,13 +118,13 @@ function AutomationsContent() {
 
   const automations = [
     {
-      category: "Meeting / 미팅",
+      category: "Meeting",
       color: "text-purple-400",
       items: [
         {
           key: "meetingAutoJoin" as const,
           title: "Auto-Join Meetings",
-          titleKr: "미팅 자동 참석",
+          titleKr: "",
           description: "Automatically open Google Meet/Zoom links 1 minute before meeting starts",
           enabled: config.meetingAutoJoin,
           macOnly: false,
@@ -133,7 +133,7 @@ function AutomationsContent() {
         {
           key: "meetingAutoSummarize" as const,
           title: "Auto-Summarize Meetings",
-          titleKr: "미팅 자동 요약",
+          titleKr: "",
           description: "Create meeting notes with key points and action items after each meeting",
           enabled: config.meetingAutoSummarize,
           macOnly: false,
@@ -142,13 +142,13 @@ function AutomationsContent() {
       ],
     },
     {
-      category: "Email / 이메일",
+      category: "Email",
       color: "text-blue-400",
       items: [
         {
           key: "emailAutoClassify" as const,
           title: "Auto-Classify Emails",
-          titleKr: "이메일 자동 분류",
+          titleKr: "",
           description: "Automatically classify incoming emails by priority (urgent/normal/low)",
           enabled: config.emailAutoClassify,
           macOnly: false,
@@ -157,13 +157,13 @@ function AutomationsContent() {
       ],
     },
     {
-      category: "Productivity / 생산성",
+      category: "Productivity",
       color: "text-green-400",
       items: [
         {
           key: "reminderAutoCheck" as const,
           title: "Reminder Monitoring",
-          titleKr: "리마인더 자동 체크",
+          titleKr: "",
           description: "Check for due reminders every minute and send notifications",
           enabled: config.reminderAutoCheck,
           macOnly: false,
@@ -172,7 +172,7 @@ function AutomationsContent() {
         {
           key: "dailyBriefing" as const,
           title: "Daily Briefing",
-          titleKr: "일일 브리핑",
+          titleKr: "",
           description: "Auto-generate a morning briefing with tasks, calendar, and emails",
           enabled: config.dailyBriefing,
           macOnly: false,
@@ -198,13 +198,13 @@ function AutomationsContent() {
       ],
     },
     {
-      category: "macOS Native / 시스템",
+      category: "macOS Native",
       color: "text-yellow-400",
       items: [
         {
           key: "downloadAutoOrganize" as const,
           title: "Auto-Organize Downloads",
-          titleKr: "다운로드 자동 정리",
+          titleKr: "",
           description: "Sort files in Downloads folder into categories (Images, Documents, etc.)",
           enabled: config.downloadAutoOrganize,
           macOnly: true,
@@ -240,7 +240,7 @@ function AutomationsContent() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Automations</h1>
         <p className="text-gray-400 text-sm mt-1">
-          Configure EVE&apos;s autonomous behaviors / 자율 행동 설정
+          Configure EVE&apos;s autonomous behaviors
         </p>
       </div>
 
@@ -279,7 +279,7 @@ function AutomationsContent() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium text-sm">{item.title}</h3>
-                        <span className="text-xs text-gray-600">{item.titleKr}</span>
+                        {item.titleKr && <span className="text-xs text-gray-600">{item.titleKr}</span>}
                         {item.macOnly && (
                           <span className="text-[10px] bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">
                             macOS only

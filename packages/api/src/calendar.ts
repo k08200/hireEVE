@@ -6,25 +6,33 @@ export async function listEvents(userId: string, maxResults = 10) {
   if (!auth)
     return { error: "Google Calendar not connected. Please connect your Google account first." };
 
-  const calendar = google.calendar({ version: "v3", auth });
-  const res = await calendar.events.list({
-    calendarId: "primary",
-    timeMin: new Date().toISOString(),
-    maxResults,
-    singleEvents: true,
-    orderBy: "startTime",
-  });
+  try {
+    const calendar = google.calendar({ version: "v3", auth });
+    const res = await calendar.events.list({
+      calendarId: "primary",
+      timeMin: new Date().toISOString(),
+      maxResults,
+      singleEvents: true,
+      orderBy: "startTime",
+    });
 
-  const events = (res.data.items || []).map((e) => ({
-    id: e.id,
-    summary: e.summary || "(No title)",
-    start: e.start?.dateTime || e.start?.date || "",
-    end: e.end?.dateTime || e.end?.date || "",
-    location: e.location || "",
-    description: e.description || "",
-  }));
+    const events = (res.data.items || []).map((e) => ({
+      id: e.id,
+      summary: e.summary || "(No title)",
+      start: e.start?.dateTime || e.start?.date || "",
+      end: e.end?.dateTime || e.end?.date || "",
+      location: e.location || "",
+      description: e.description || "",
+    }));
 
-  return { events };
+    return { events };
+  } catch (err: unknown) {
+    const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string; status?: string } } }; message?: string };
+    const status = gaxiosErr.response?.status;
+    const apiMsg = gaxiosErr.response?.data?.error?.message || gaxiosErr.message || "Unknown error";
+    console.error(`[CALENDAR] listEvents failed (HTTP ${status}):`, apiMsg);
+    return { error: `Calendar API error (${status}): ${apiMsg}` };
+  }
 }
 
 export async function createEvent(
@@ -38,19 +46,27 @@ export async function createEvent(
   const auth = await getAuthedClient(userId);
   if (!auth) return { error: "Google Calendar not connected." };
 
-  const calendar = google.calendar({ version: "v3", auth });
-  const res = await calendar.events.insert({
-    calendarId: "primary",
-    requestBody: {
-      summary,
-      description: description || "",
-      location: location || "",
-      start: { dateTime: startTime, timeZone: "Asia/Seoul" },
-      end: { dateTime: endTime, timeZone: "Asia/Seoul" },
-    },
-  });
+  try {
+    const calendar = google.calendar({ version: "v3", auth });
+    const res = await calendar.events.insert({
+      calendarId: "primary",
+      requestBody: {
+        summary,
+        description: description || "",
+        location: location || "",
+        start: { dateTime: startTime, timeZone: "Asia/Seoul" },
+        end: { dateTime: endTime, timeZone: "Asia/Seoul" },
+      },
+    });
 
-  return { success: true, eventId: res.data.id, htmlLink: res.data.htmlLink };
+    return { success: true, eventId: res.data.id, htmlLink: res.data.htmlLink };
+  } catch (err: unknown) {
+    const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string; status?: string } } }; message?: string };
+    const status = gaxiosErr.response?.status;
+    const apiMsg = gaxiosErr.response?.data?.error?.message || gaxiosErr.message || "Unknown error";
+    console.error(`[CALENDAR] createEvent failed (HTTP ${status}):`, apiMsg);
+    return { error: `Calendar API error (${status}): ${apiMsg}` };
+  }
 }
 
 export async function deleteEvent(userId: string, eventId: string) {

@@ -96,8 +96,8 @@ export default function NotesPage() {
 
   const deleteNote = async (noteId: string) => {
     const ok = await confirm({
-      title: "Delete Note / 메모 삭제",
-      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      title: "Delete Note",
+      message: "Are you sure? This cannot be undone.",
       confirmLabel: "Delete",
       danger: true,
     });
@@ -142,7 +142,7 @@ export default function NotesPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search notes... / 메모 검색..."
+            placeholder="Search notes..."
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
           />
         </div>
@@ -222,7 +222,7 @@ export default function NotesPage() {
                     <Markdown content={editContent} />
                   ) : (
                     <p className="text-gray-500 italic">
-                      Nothing to preview / 미리볼 내용이 없습니다
+                      Nothing to preview
                     </p>
                   )}
                 </div>
@@ -263,7 +263,7 @@ export default function NotesPage() {
           <div className="text-center py-20">
             <p className="text-gray-500 mb-2">No notes yet</p>
             <p className="text-gray-600 text-sm">
-              Tell EVE: &quot;메모 해줘&quot; or click + New Note
+              Ask EVE to take a note, or click + New Note
             </p>
           </div>
         ) : (

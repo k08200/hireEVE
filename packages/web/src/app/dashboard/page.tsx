@@ -71,10 +71,10 @@ const typeColors: Record<string, string> = {
 
 function getGreeting(): { text: string; textKr: string } {
   const hour = new Date().getHours();
-  if (hour < 6) return { text: "Working late", textKr: "늦은 밤이에요" };
-  if (hour < 12) return { text: "Good morning", textKr: "좋은 아침이에요" };
-  if (hour < 18) return { text: "Good afternoon", textKr: "좋은 오후예요" };
-  return { text: "Good evening", textKr: "좋은 저녁이에요" };
+  if (hour < 6) return { text: "Working late", textKr: "" };
+  if (hour < 12) return { text: "Good morning", textKr: "" };
+  if (hour < 18) return { text: "Good afternoon", textKr: "" };
+  return { text: "Good evening", textKr: "" };
 }
 
 export default function DashboardPage() {
@@ -183,9 +183,9 @@ function DashboardContent() {
       .catch(() => {});
 
     // Fetch weather for Seoul (default)
-    const savedCity = localStorage.getItem("eve-weather-city") || "서울";
+    const savedCity = localStorage.getItem("eve-weather-city") || "Seoul";
     fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(savedCity)}&count=1&language=ko`,
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(savedCity)}&count=1&language=en`,
     )
       .then((r) => r.json())
       .then(
@@ -216,17 +216,17 @@ function DashboardContent() {
                 };
               }) => {
                 const wmo: Record<number, string> = {
-                  0: "맑음",
-                  1: "대체로 맑음",
-                  2: "부분 흐림",
-                  3: "흐림",
-                  45: "안개",
-                  51: "이슬비",
-                  61: "비",
-                  63: "비",
-                  71: "눈",
-                  80: "소나기",
-                  95: "뇌우",
+                  0: "Clear",
+                  1: "Mostly clear",
+                  2: "Partly cloudy",
+                  3: "Cloudy",
+                  45: "Fog",
+                  51: "Drizzle",
+                  61: "Rain",
+                  63: "Rain",
+                  71: "Snow",
+                  80: "Showers",
+                  95: "Thunderstorm",
                 };
                 const wmoIcon: Record<number, string> = {
                   0: "☀️",
@@ -250,14 +250,14 @@ function DashboardContent() {
                     feelsLike: c.apparent_temperature,
                     humidity: c.relative_humidity_2m,
                     windSpeed: c.wind_speed_10m,
-                    condition: wmo[code] || wmo[Math.floor(code / 10) * 10] || "알 수 없음",
+                    condition: wmo[code] || wmo[Math.floor(code / 10) * 10] || "Unknown",
                     icon: wmoIcon[code] || wmoIcon[Math.floor(code / 10) * 10] || "🌡️",
                   },
                   forecast: data.daily.time.map((date, i) => ({
                     date,
                     maxTemp: data.daily.temperature_2m_max[i],
                     minTemp: data.daily.temperature_2m_min[i],
-                    condition: wmo[data.daily.weather_code[i]] || "알 수 없음",
+                    condition: wmo[data.daily.weather_code[i]] || "Unknown",
                     precipitation: data.daily.precipitation_sum[i],
                   })),
                 });
@@ -336,7 +336,7 @@ function DashboardContent() {
             {greeting.text}
             {user?.name ? `, ${user.name}` : ""}
           </h1>
-          <p className="text-gray-500 text-sm mt-0.5">{greeting.textKr}</p>
+          {greeting.textKr && <p className="text-gray-500 text-sm mt-0.5">{greeting.textKr}</p>}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span
@@ -357,9 +357,9 @@ function DashboardContent() {
       ) : isEmpty ? (
         <div className="py-8">
           <div className="text-center mb-10">
-            <h2 className="text-xl font-bold mb-2">Welcome to EVE / EVE에 오신 걸 환영합니다</h2>
+            <h2 className="text-xl font-bold mb-2">Welcome to EVE</h2>
             <p className="text-gray-400 text-sm max-w-md mx-auto">
-              Get started by trying one of these. / 아래에서 시작해보세요.
+              Get started by trying one of these.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-2xl mx-auto">
@@ -368,7 +368,7 @@ function DashboardContent() {
                 href: "/chat",
                 title: "Chat with EVE",
                 desc: "Ask anything — email, scheduling, research",
-                descKr: "EVE에게 뭐든 물어보세요",
+                descKr: "",
                 color:
                   "from-blue-600/20 to-blue-800/10 border-blue-500/30 hover:border-blue-400/50",
               },
@@ -376,7 +376,7 @@ function DashboardContent() {
                 href: "/email",
                 title: "Check Email",
                 desc: "Read, classify, and reply to emails",
-                descKr: "이메일 확인하기",
+                descKr: "",
                 color:
                   "from-cyan-600/20 to-cyan-800/10 border-cyan-500/30 hover:border-cyan-400/50",
               },
@@ -384,7 +384,7 @@ function DashboardContent() {
                 href: "/calendar",
                 title: "View Calendar",
                 desc: "Schedule and manage events",
-                descKr: "일정 확인하기",
+                descKr: "",
                 color:
                   "from-purple-600/20 to-purple-800/10 border-purple-500/30 hover:border-purple-400/50",
               },
@@ -392,7 +392,7 @@ function DashboardContent() {
                 href: "/tasks",
                 title: "Create a Task",
                 desc: "Track your to-dos and priorities",
-                descKr: "할 일과 우선순위를 관리하세요",
+                descKr: "",
                 color:
                   "from-green-600/20 to-green-800/10 border-green-500/30 hover:border-green-400/50",
               },
@@ -400,7 +400,7 @@ function DashboardContent() {
                 href: "/notes",
                 title: "Write a Note",
                 desc: "Capture ideas and memos",
-                descKr: "아이디어와 메모를 기록하세요",
+                descKr: "",
                 color:
                   "from-yellow-600/20 to-yellow-800/10 border-yellow-500/30 hover:border-yellow-400/50",
               },
@@ -408,7 +408,7 @@ function DashboardContent() {
                 href: "/settings",
                 title: "Connect Integrations",
                 desc: "Gmail, Calendar, Slack, Notion",
-                descKr: "연동 설정",
+                descKr: "",
                 color:
                   "from-gray-600/20 to-gray-800/10 border-gray-500/30 hover:border-gray-400/50",
               },
@@ -420,7 +420,7 @@ function DashboardContent() {
               >
                 <h3 className="font-semibold mb-1">{card.title}</h3>
                 <p className="text-sm text-gray-400">{card.desc}</p>
-                <p className="text-xs text-gray-500 mt-1">{card.descKr}</p>
+                {card.descKr && <p className="text-xs text-gray-500 mt-1">{card.descKr}</p>}
               </Link>
             ))}
           </div>
@@ -455,8 +455,8 @@ function DashboardContent() {
                       <span className="text-sm text-gray-400">{weather.current.condition}</span>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {weather.location} · 체감 {Math.round(weather.current.feelsLike)}° · 습도{" "}
-                      {weather.current.humidity}% · 바람 {weather.current.windSpeed}km/h
+                      {weather.location} · Feels like {Math.round(weather.current.feelsLike)}° · Humidity{" "}
+                      {weather.current.humidity}% · Wind {weather.current.windSpeed}km/h
                     </p>
                   </div>
                 </div>
@@ -464,7 +464,7 @@ function DashboardContent() {
                   {weather.forecast.slice(1, 3).map((f) => (
                     <div key={f.date} className="text-center">
                       <p className="text-[10px] text-gray-500">
-                        {new Date(f.date).toLocaleDateString("ko-KR", { weekday: "short" })}
+                        {new Date(f.date).toLocaleDateString("en-US", { weekday: "short" })}
                       </p>
                       <p className="text-xs text-gray-400">
                         {Math.round(f.maxTemp)}° / {Math.round(f.minTemp)}°
@@ -485,7 +485,7 @@ function DashboardContent() {
             >
               <h3 className="font-semibold mb-1">Chat with EVE</h3>
               <p className="text-xs text-gray-400">Ask anything — email, scheduling, writing</p>
-              <p className="text-xs text-gray-500 mt-2">EVE에게 뭐든 물어보세요</p>
+              <p className="text-xs text-gray-500 mt-2">Ask EVE anything</p>
             </Link>
             <Link
               href="/email"
@@ -495,7 +495,7 @@ function DashboardContent() {
               <p className="text-xs text-gray-400">
                 {stats?.emails.unread ? `${stats.emails.unread} unread` : "All caught up"}
               </p>
-              <p className="text-xs text-gray-500 mt-2">이메일 확인</p>
+              <p className="text-xs text-gray-500 mt-2">Check your emails</p>
             </Link>
             <Link
               href="/calendar"
@@ -505,7 +505,7 @@ function DashboardContent() {
               <p className="text-xs text-gray-400">
                 {stats?.calendar.today ? `${stats.calendar.today} events` : "No events today"}
               </p>
-              <p className="text-xs text-gray-500 mt-2">오늘 일정</p>
+              <p className="text-xs text-gray-500 mt-2">Today&apos;s schedule</p>
             </Link>
           </div>
 
@@ -521,7 +521,7 @@ function DashboardContent() {
                   href="/settings"
                   className="text-[10px] text-gray-500 hover:text-cyan-400 transition"
                 >
-                  설정 →
+                  Settings →
                 </Link>
               </div>
               <div className="space-y-1.5">
@@ -534,18 +534,18 @@ function DashboardContent() {
                     skip: "bg-gray-500/20 text-gray-500",
                   };
                   const actionLabel: Record<string, string> = {
-                    notify: "알림",
-                    tool_call: "실행",
-                    auto_action: "자동",
-                    error: "오류",
-                    skip: "스킵",
+                    notify: "Notify",
+                    tool_call: "Execute",
+                    auto_action: "Auto",
+                    error: "Error",
+                    skip: "Skip",
                   };
                   const discussLog = async () => {
                     try {
                       const convo = await apiFetch<{ id: string }>("/api/chat/conversations", {
                         method: "POST",
                         body: JSON.stringify({
-                          initialMessage: `[EVE 에이전트 활동에 대해 이야기하고 싶어요]\n\n활동: ${actionLabel[log.action] || log.action}\n내용: ${log.summary}\n\n이 활동에 대해 더 자세히 알려주세요.`,
+                          initialMessage: `[I'd like to discuss this EVE agent activity]\n\nAction: ${actionLabel[log.action] || log.action}\nSummary: ${log.summary}\n\nPlease tell me more about this activity.`,
                         }),
                       });
                       router.push(`/chat/${convo.id}`);
@@ -573,7 +573,7 @@ function DashboardContent() {
                           onClick={discussLog}
                           className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline shrink-0"
                         >
-                          대화 →
+                          Chat →
                         </button>
                       )}
                       <RelativeTime
