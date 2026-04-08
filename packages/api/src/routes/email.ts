@@ -539,34 +539,56 @@ export async function emailRoutes(app: FastifyInstance) {
 
   // ─── Delete (trash in Gmail + remove from DB) ─────────────────────────
   // DELETE /api/email/:id
-  app.delete("/:id", async (request) => {
+  app.delete("/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
     const uid = getUserId(request);
 
     const email = await prisma.emailMessage.findFirst({
       where: { userId: uid, OR: [{ id }, { gmailId: id }] },
     });
-    if (!email) return { error: "Email not found" };
+    if (!email) return reply.code(404).send({ error: "Email not found" });
 
-    await trashEmail(uid, email.gmailId).catch(() => {});
-    // Ensure DB removal even if Gmail call fails
-    await prisma.emailMessage.deleteMany({ where: { id: email.id } });
+    // Try Gmail first — only delete from DB if Gmail succeeds (or not connected)
+    try {
+      const result = await trashEmail(uid, email.gmailId);
+      if (result && "error" in result) {
+        // Gmail not connected — just remove from DB
+        await prisma.emailMessage.deleteMany({ where: { id: email.id } });
+        return { success: true, warning: "Gmail not connected, removed locally only" };
+      }
+    } catch (err) {
+      const gErr = err as { message?: string };
+      console.error(`[EMAIL] Gmail trash failed for ${email.gmailId}:`, gErr.message);
+      return reply.code(502).send({ error: `Gmail delete failed: ${gErr.message || "unknown"}` });
+    }
+
+    // Gmail succeeded — DB already cleaned by trashEmail()
     return { success: true };
   });
 
   // ─── Archive (remove from inbox in Gmail + remove from DB) ────────────
   // POST /api/email/:id/archive
-  app.post("/:id/archive", async (request) => {
+  app.post("/:id/archive", async (request, reply) => {
     const { id } = request.params as { id: string };
     const uid = getUserId(request);
 
     const email = await prisma.emailMessage.findFirst({
       where: { userId: uid, OR: [{ id }, { gmailId: id }] },
     });
-    if (!email) return { error: "Email not found" };
+    if (!email) return reply.code(404).send({ error: "Email not found" });
 
-    await archiveEmail(uid, email.gmailId).catch(() => {});
-    await prisma.emailMessage.deleteMany({ where: { id: email.id } });
+    try {
+      const result = await archiveEmail(uid, email.gmailId);
+      if (result && "error" in result) {
+        await prisma.emailMessage.deleteMany({ where: { id: email.id } });
+        return { success: true, warning: "Gmail not connected, removed locally only" };
+      }
+    } catch (err) {
+      const gErr = err as { message?: string };
+      console.error(`[EMAIL] Gmail archive failed for ${email.gmailId}:`, gErr.message);
+      return reply.code(502).send({ error: `Gmail archive failed: ${gErr.message || "unknown"}` });
+    }
+
     return { success: true };
   });
 

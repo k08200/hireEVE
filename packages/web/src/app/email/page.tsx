@@ -246,25 +246,29 @@ export default function EmailPage() {
   };
 
   const deleteEmail = (email: Email) => {
-    apiFetch(`/api/email/${email.id}`, { method: "DELETE" })
-      .then(() => {
-        toast("Email deleted", "success");
+    apiFetch<{ success?: boolean; warning?: string }>(`/api/email/${email.id}`, {
+      method: "DELETE",
+    })
+      .then((res) => {
+        toast(res.warning || "Email deleted", res.warning ? "info" : "success");
         setSelectedId(null);
         setSelectedEmail(null);
         fetchEmails();
       })
-      .catch(() => toast("Delete failed", "error"));
+      .catch((err: Error) => toast(err.message || "Delete failed", "error"));
   };
 
   const archiveEmailAction = (email: Email) => {
-    apiFetch(`/api/email/${email.id}/archive`, { method: "POST" })
-      .then(() => {
-        toast("Email archived", "success");
+    apiFetch<{ success?: boolean; warning?: string }>(`/api/email/${email.id}/archive`, {
+      method: "POST",
+    })
+      .then((res) => {
+        toast(res.warning || "Email archived", res.warning ? "info" : "success");
         setSelectedId(null);
         setSelectedEmail(null);
         fetchEmails();
       })
-      .catch(() => toast("Archive failed", "error"));
+      .catch((err: Error) => toast(err.message || "Archive failed", "error"));
   };
 
   const handleSendEmail = () => {
