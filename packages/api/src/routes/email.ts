@@ -5,18 +5,20 @@
  * v2: All reads go through local DB (synced from Gmail).
  * Falls back to demo data when Gmail isn't connected.
  */
+
+import type { EmailRuleAction, Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
-import { sendEmail } from "../gmail.js";
 import {
-  syncEmails,
-  reconcileEmails,
-  summarizeUnsummarizedEmails,
-  getEmailThreads,
   checkAutoReplyRules,
   generateSmartReply,
+  getEmailThreads,
+  reconcileEmails,
+  summarizeUnsummarizedEmails,
+  syncEmails,
 } from "../email-sync.js";
+import { sendEmail } from "../gmail.js";
 import { sendPushNotification } from "../push.js";
 import { pushNotification } from "../websocket.js";
 
@@ -51,7 +53,8 @@ const DEMO_EMAILS = [
     from: "team@notion.so",
     to: "me@startup.com",
     subject: "Your weekly Notion digest",
-    snippet: "Here's what happened in your workspace this week: 12 pages updated, 3 new databases...",
+    snippet:
+      "Here's what happened in your workspace this week: 12 pages updated, 3 new databases...",
     body: "Here's what happened in your workspace this week:\n- 12 pages updated\n- 3 new databases created\n- 5 new members joined",
     date: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
     labels: ["INBOX"],
@@ -72,7 +75,8 @@ const DEMO_EMAILS = [
     from: "partner@company.co",
     to: "me@startup.com",
     subject: "Partnership Proposal — Q2 Collaboration",
-    snippet: "We'd love to explore a partnership opportunity with your team for the upcoming quarter...",
+    snippet:
+      "We'd love to explore a partnership opportunity with your team for the upcoming quarter...",
     body: "We'd love to explore a partnership opportunity with your team for the upcoming quarter. Our proposal includes co-marketing, API integration, and revenue sharing.",
     date: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
     labels: ["INBOX"],
@@ -135,7 +139,10 @@ function parseFromHeader(from: string): { name: string; email: string } | null {
   if (!from) return null;
   const match = from.match(/^(.+?)\s*<([^>]+)>$/);
   if (match) {
-    return { name: match[1].replace(/^["']|["']$/g, "").trim(), email: match[2].trim().toLowerCase() };
+    return {
+      name: match[1].replace(/^["']|["']$/g, "").trim(),
+      email: match[2].trim().toLowerCase(),
+    };
   }
   const emailOnly = from.trim().toLowerCase();
   if (emailOnly.includes("@")) {
@@ -144,7 +151,14 @@ function parseFromHeader(from: string): { name: string; email: string } | null {
   return null;
 }
 
-const SKIP_PATTERNS = [/noreply@/i, /no-reply@/i, /donotreply@/i, /notifications?@/i, /mailer-daemon@/i, /newsletter@/i];
+const SKIP_PATTERNS = [
+  /noreply@/i,
+  /no-reply@/i,
+  /donotreply@/i,
+  /notifications?@/i,
+  /mailer-daemon@/i,
+  /newsletter@/i,
+];
 
 /** Auto-add senders as contacts */
 async function autoAddContacts(userId: string, emails: { from: string }[]): Promise<void> {
@@ -158,8 +172,12 @@ async function autoAddContacts(userId: string, emails: { from: string }[]): Prom
     const existing = await prisma.contact.findFirst({ where: { userId, email: parsed.email } });
     if (existing) continue;
     try {
-      await prisma.contact.create({ data: { userId, name: parsed.name, email: parsed.email, tags: "auto-added" } });
-    } catch { /* race condition */ }
+      await prisma.contact.create({
+        data: { userId, name: parsed.name, email: parsed.email, tags: "auto-added" },
+      });
+    } catch {
+      /* race condition */
+    }
   }
 }
 
@@ -188,11 +206,20 @@ export async function emailRoutes(app: FastifyInstance) {
       if (search) {
         const s = search.toLowerCase();
         emails = emails.filter(
-          (e) => e.subject.toLowerCase().includes(s) || e.from.toLowerCase().includes(s) || e.snippet.toLowerCase().includes(s),
+          (e) =>
+            e.subject.toLowerCase().includes(s) ||
+            e.from.toLowerCase().includes(s) ||
+            e.snippet.toLowerCase().includes(s),
         );
       }
       if (category) emails = emails.filter((e) => e.category === category);
-      return { emails, source: "demo", total: emails.length, unread: emails.filter((e) => !e.isRead).length, page: 1 };
+      return {
+        emails,
+        source: "demo",
+        total: emails.length,
+        unread: emails.filter((e) => !e.isRead).length,
+        page: 1,
+      };
     }
 
     // Sync from Gmail + reconcile stale data
@@ -224,7 +251,8 @@ export async function emailRoutes(app: FastifyInstance) {
     }
 
     // Build query
-    const where: Record<string, unknown> = { userId: uid };
+    // biome-ignore lint/suspicious/noExplicitAny: dynamic Prisma where clause
+    const where: Record<string, any> = { userId: uid };
     if (filter === "unread") where.isRead = false;
     if (filter === "urgent") where.priority = "URGENT";
     if (category) where.category = category;
@@ -238,12 +266,12 @@ export async function emailRoutes(app: FastifyInstance) {
 
     const [emails, total, unreadCount] = await Promise.all([
       prisma.emailMessage.findMany({
-        where: where as any,
+        where,
         orderBy: { receivedAt: "desc" },
         skip: (pageNum - 1) * pageSize,
         take: pageSize,
       }),
-      prisma.emailMessage.count({ where: where as any }),
+      prisma.emailMessage.count({ where }),
       prisma.emailMessage.count({ where: { userId: uid, isRead: false } }),
     ]);
 
@@ -291,7 +319,13 @@ export async function emailRoutes(app: FastifyInstance) {
         subject: e.subject,
         participants: [e.from],
         messageCount: 1,
-        lastMessage: { id: e.id, from: e.from, snippet: e.snippet, receivedAt: e.receivedAt, isRead: e.isRead },
+        lastMessage: {
+          id: e.id,
+          from: e.from,
+          snippet: e.snippet,
+          receivedAt: e.receivedAt,
+          isRead: e.isRead,
+        },
         hasUnread: !e.isRead,
         latestPriority: e.priority,
         summary: e.summary,
@@ -506,7 +540,9 @@ export async function emailRoutes(app: FastifyInstance) {
         total: DEMO_EMAILS.length,
         unread: DEMO_EMAILS.filter((e) => !e.isRead).length,
         urgent: DEMO_EMAILS.filter((e) => e.priority === "URGENT").length,
-        today: DEMO_EMAILS.filter((e) => new Date(e.date).toDateString() === new Date().toDateString()).length,
+        today: DEMO_EMAILS.filter(
+          (e) => new Date(e.date).toDateString() === new Date().toDateString(),
+        ).length,
         categories: { business: 2, automated: 1, engineering: 1, billing: 1 },
         source: "demo",
       };
@@ -570,7 +606,7 @@ export async function emailRoutes(app: FastifyInstance) {
         name,
         description: description || null,
         conditions: JSON.stringify(conditions),
-        actionType: (actionType as any) || "AUTO_REPLY",
+        actionType: (actionType as EmailRuleAction) || "AUTO_REPLY",
         actionValue,
       },
     });
@@ -602,7 +638,10 @@ export async function emailRoutes(app: FastifyInstance) {
     if (updates.actionValue !== undefined) data.actionValue = updates.actionValue;
     if (updates.isActive !== undefined) data.isActive = updates.isActive;
 
-    const updated = await prisma.emailRule.update({ where: { id }, data: data as any });
+    const updated = await prisma.emailRule.update({
+      where: { id },
+      data: data as Prisma.EmailRuleUpdateInput,
+    });
     return { rule: { ...updated, conditions: JSON.parse(updated.conditions) } };
   });
 
