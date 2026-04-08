@@ -26,11 +26,26 @@ let intervalId: ReturnType<typeof setInterval> | null = null;
 
 const CHECK_INTERVAL_MS = 60_000; // 1 minute
 
-// Track which users already received today's briefing (reset daily)
+// In-memory cache to skip redundant DB queries within same process lifetime.
+// Actual dedup is DB-based (survives server restarts).
 const briefingSentToday = new Map<string, string>(); // userId -> date string
 
 function getTodayStr(): string {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+}
+
+/** DB-based check: did we already send a briefing notification today? */
+async function hasBriefingBeenSentToday(userId: string): Promise<boolean> {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const existing = await prisma.notification.findFirst({
+    where: {
+      userId,
+      type: "briefing",
+      createdAt: { gte: todayStart },
+    },
+  });
+  return !!existing;
 }
 
 function getCurrentHHMM(): string {
@@ -55,6 +70,12 @@ async function runAutomations() {
       // --- Daily Briefing ---
       if (config.dailyBriefing && !briefingSentToday.has(config.userId)) {
         if (currentTime === config.briefingTime) {
+          // DB-based dedup: check if briefing was already sent today (survives restarts)
+          const alreadySent = await hasBriefingBeenSentToday(config.userId);
+          if (alreadySent) {
+            briefingSentToday.set(config.userId, today);
+            continue;
+          }
           try {
             console.log(`[AUTOMATION] Generating daily briefing for ${config.userId}`);
             const briefing = await generateBriefing(config.userId);

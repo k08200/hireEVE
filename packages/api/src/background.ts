@@ -16,25 +16,9 @@ import { prisma } from "./db.js";
 import { getUpcomingMeetings } from "./meeting.js";
 import { pushNotification } from "./websocket.js";
 
-// Track already-notified items to prevent duplicates within a single server lifecycle
-// Uses date-scoped keys to auto-expire: "task:uuid:2026-04-02"
+// In-memory cache only used to skip redundant DB queries within same process lifetime.
+// Actual dedup is DB-based (survives server restarts).
 const notifiedIds: Set<string> = new Set();
-
-/** Get today's date string for scoping notification keys */
-function todayKey(): string {
-  return new Date().toISOString().split("T")[0];
-}
-
-/** Clean up old notification keys (keep only today's) */
-function pruneNotifiedIds() {
-  const today = todayKey();
-  for (const key of notifiedIds) {
-    const datePart = key.split(":").pop();
-    if (datePart && datePart !== today && /^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
-      notifiedIds.delete(key);
-    }
-  }
-}
 
 async function addNotification(
   userId: string,
@@ -148,13 +132,13 @@ async function checkUpcomingMeetings() {
             const key = `meeting:${meeting.id}`;
             if (notifiedIds.has(key)) continue;
 
-            // DB-based dedup: check if we already notified for this meeting today
+            // DB-based dedup: check if we already notified for this meeting (last 12 hours)
             const existingNotif = await prisma.notification.findFirst({
               where: {
                 userId,
                 type: "meeting",
                 message: { contains: meeting.id },
-                createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+                createdAt: { gte: new Date(Date.now() - 12 * 60 * 60 * 1000) },
               },
             });
             if (existingNotif) {
@@ -212,7 +196,6 @@ export function startBackgroundAgent() {
 
   // Then every 60 seconds — only meeting checks (task checks moved to autonomous-agent.ts)
   intervalId = setInterval(async () => {
-    pruneNotifiedIds();
     await checkUpcomingMeetings();
   }, 60_000);
 }
