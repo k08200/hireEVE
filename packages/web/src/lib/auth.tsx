@@ -92,34 +92,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router],
   );
 
-  const loginWithToken = useCallback(
-    async (newToken: string) => {
-      console.log("[auth] loginWithToken: start");
-      localStorage.setItem("eve-token", newToken);
-      setToken(newToken);
-      console.log("[auth] loginWithToken: token stored, calling /api/auth/me");
-      try {
-        const data = await apiFetch<{ user: User }>("/api/auth/me", {
-          headers: { Authorization: `Bearer ${newToken}` },
-        });
-        console.log("[auth] loginWithToken: /api/auth/me success", data.user?.email);
-        setUser(data.user);
-      } catch (err) {
-        console.error("[auth] loginWithToken: /api/auth/me FAILED", err);
-        throw err;
-      }
-
-      // Fire-and-forget: trigger initial sync (calendar, contacts) after Google login
-      apiFetch("/api/auth/init-sync", {
-        method: "POST",
+  const loginWithToken = useCallback(async (newToken: string) => {
+    console.log("[auth] loginWithToken: start");
+    localStorage.setItem("eve-token", newToken);
+    setToken(newToken);
+    console.log("[auth] loginWithToken: token stored, calling /api/auth/me");
+    try {
+      const data = await apiFetch<{ user: User }>("/api/auth/me", {
         headers: { Authorization: `Bearer ${newToken}` },
-      }).catch(() => {});
+      });
+      console.log("[auth] loginWithToken: /api/auth/me success", data.user?.email);
+      setUser(data.user);
+    } catch (err) {
+      console.error("[auth] loginWithToken: /api/auth/me FAILED", err);
+      throw err;
+    }
 
-      console.log("[auth] loginWithToken: redirecting to /chat");
-      window.location.href = "/chat";
-    },
-    [],
-  );
+    // Fire-and-forget: trigger initial sync (calendar, contacts) after Google login
+    apiFetch("/api/auth/init-sync", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${newToken}` },
+    }).catch(() => {});
+
+    console.log("[auth] loginWithToken: redirecting to /chat");
+    window.location.href = "/chat";
+  }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem("eve-token");

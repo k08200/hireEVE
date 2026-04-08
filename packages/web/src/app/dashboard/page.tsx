@@ -455,8 +455,8 @@ function DashboardContent() {
                       <span className="text-sm text-gray-400">{weather.current.condition}</span>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {weather.location} · Feels like {Math.round(weather.current.feelsLike)}° · Humidity{" "}
-                      {weather.current.humidity}% · Wind {weather.current.windSpeed}km/h
+                      {weather.location} · Feels like {Math.round(weather.current.feelsLike)}° ·
+                      Humidity {weather.current.humidity}% · Wind {weather.current.windSpeed}km/h
                     </p>
                   </div>
                 </div>

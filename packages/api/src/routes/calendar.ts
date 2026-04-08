@@ -71,9 +71,14 @@ export async function calendarRoutes(app: FastifyInstance) {
         googleId = result.eventId;
       }
     } catch (err) {
-      const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string } } }; message?: string };
-      console.error(`[CALENDAR] Google sync on create failed (HTTP ${gaxiosErr.response?.status}):`,
-        gaxiosErr.response?.data?.error?.message || gaxiosErr.message || err);
+      const gaxiosErr = err as {
+        response?: { status?: number; data?: { error?: { message?: string } } };
+        message?: string;
+      };
+      console.error(
+        `[CALENDAR] Google sync on create failed (HTTP ${gaxiosErr.response?.status}):`,
+        gaxiosErr.response?.data?.error?.message || gaxiosErr.message || err,
+      );
     }
 
     const event = await prisma.calendarEvent.create({
@@ -215,11 +220,19 @@ export async function calendarRoutes(app: FastifyInstance) {
 
       return { success: true, synced };
     } catch (err) {
-      const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string; errors?: unknown[] } } }; message?: string };
+      const gaxiosErr = err as {
+        response?: { status?: number; data?: { error?: { message?: string; errors?: unknown[] } } };
+        message?: string;
+      };
       const status = gaxiosErr.response?.status;
-      const apiMsg = gaxiosErr.response?.data?.error?.message || gaxiosErr.message || "Unknown error";
+      const apiMsg =
+        gaxiosErr.response?.data?.error?.message || gaxiosErr.message || "Unknown error";
       const apiErrors = gaxiosErr.response?.data?.error?.errors;
-      console.error(`[CALENDAR SYNC] Failed (HTTP ${status}):`, apiMsg, apiErrors ? JSON.stringify(apiErrors) : "");
+      console.error(
+        `[CALENDAR SYNC] Failed (HTTP ${status}):`,
+        apiMsg,
+        apiErrors ? JSON.stringify(apiErrors) : "",
+      );
       return { error: `Sync failed (${status}): ${apiMsg}`, synced: 0 };
     }
   });

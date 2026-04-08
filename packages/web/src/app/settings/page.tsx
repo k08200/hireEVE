@@ -100,7 +100,10 @@ export default function SettingsPage() {
             });
             console.log("[PUSH-REPAIR] Sent to server:", subRes.ok ? "OK" : subRes.status);
           } else {
-            console.log("[PUSH-REPAIR] Subscription already exists:", existingSub.endpoint.slice(0, 60));
+            console.log(
+              "[PUSH-REPAIR] Subscription already exists:",
+              existingSub.endpoint.slice(0, 60),
+            );
             // Ensure server has it too (re-send)
             const subJson = existingSub.toJSON();
             await fetch(`${API_BASE}/api/notifications/push/subscribe`, {
@@ -594,9 +597,7 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-400">
                   You signed in with Google. Set a password to also log in with email.
                   <br />
-                  <span className="text-gray-500">
-                    Set a password below to enable email login.
-                  </span>
+                  <span className="text-gray-500">Set a password below to enable email login.</span>
                 </p>
                 <div>
                   <label htmlFor="set-pw" className="block text-sm text-gray-400 mb-1">
@@ -669,9 +670,7 @@ export default function SettingsPage() {
 
         {/* Autonomous Agent */}
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-3">
-            Autonomous Agent
-          </h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-3">Autonomous Agent</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -700,9 +699,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 {/* Agent Mode */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
-                    Agent mode
-                  </label>
+                  <label className="block text-sm text-gray-400 mb-2">Agent mode</label>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -731,8 +728,9 @@ export default function SettingsPage() {
                   </div>
                   {agentMode === "AUTO" && (
                     <p className="text-[10px] text-cyan-400/70 mt-2">
-                      Only safe actions like creating reminders, updating task status, and classifying emails are auto-executed.
-                      Dangerous actions like sending or deleting emails are never auto-executed.
+                      Only safe actions like creating reminders, updating task status, and
+                      classifying emails are auto-executed. Dangerous actions like sending or
+                      deleting emails are never auto-executed.
                     </p>
                   )}
                 </div>
@@ -911,9 +909,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-purple-400 font-medium mb-2">
-                Meeting & Scheduling
-              </p>
+              <p className="text-xs text-purple-400 font-medium mb-2">Meeting & Scheduling</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm text-gray-400">
                 <p>Auto-join — Google Meet, Zoom links</p>
                 <p>Meeting Summary — key points, action items</p>
@@ -957,9 +953,7 @@ export default function SettingsPage() {
 
         {/* Danger Zone */}
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-3 text-red-400">
-            Danger Zone
-          </h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-3 text-red-400">Danger Zone</h2>
           <div className="bg-gray-900 border border-red-900/50 rounded-lg p-4 flex items-center justify-between">
             <div>
               <h3 className="font-medium">Delete All Data</h3>

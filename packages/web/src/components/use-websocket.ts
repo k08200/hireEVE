@@ -43,7 +43,10 @@ export function useWebSocket(userId: string) {
     const ws = new WebSocket(`${WS_URL}/ws?${authParam}&type=web`);
 
     ws.onopen = () => {
-      if (!mountedRef.current) { ws.close(); return; }
+      if (!mountedRef.current) {
+        ws.close();
+        return;
+      }
       setConnected(true);
     };
 

@@ -221,9 +221,7 @@ export default function NotesPage() {
                   {editContent ? (
                     <Markdown content={editContent} />
                   ) : (
-                    <p className="text-gray-500 italic">
-                      Nothing to preview
-                    </p>
+                    <p className="text-gray-500 italic">Nothing to preview</p>
                   )}
                 </div>
               ) : (
@@ -262,9 +260,7 @@ export default function NotesPage() {
         ) : notes.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-500 mb-2">No notes yet</p>
-            <p className="text-gray-600 text-sm">
-              Ask EVE to take a note, or click + New Note
-            </p>
+            <p className="text-gray-600 text-sm">Ask EVE to take a note, or click + New Note</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

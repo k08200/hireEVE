@@ -251,9 +251,7 @@ export async function reconcileEmails(
 
   // For remaining emails still in INBOX, batch-update read status
   let updated = 0;
-  const remainingGmailIds = dbEmails
-    .filter((e) => inboxIds.has(e.gmailId))
-    .map((e) => e.gmailId);
+  const remainingGmailIds = dbEmails.filter((e) => inboxIds.has(e.gmailId)).map((e) => e.gmailId);
 
   // Check read status for remaining emails (batch of 50)
   for (let i = 0; i < remainingGmailIds.length; i += 50) {

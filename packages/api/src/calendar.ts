@@ -27,7 +27,10 @@ export async function listEvents(userId: string, maxResults = 10) {
 
     return { events };
   } catch (err: unknown) {
-    const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string; status?: string } } }; message?: string };
+    const gaxiosErr = err as {
+      response?: { status?: number; data?: { error?: { message?: string; status?: string } } };
+      message?: string;
+    };
     const status = gaxiosErr.response?.status;
     const apiMsg = gaxiosErr.response?.data?.error?.message || gaxiosErr.message || "Unknown error";
     console.error(`[CALENDAR] listEvents failed (HTTP ${status}):`, apiMsg);
@@ -61,7 +64,10 @@ export async function createEvent(
 
     return { success: true, eventId: res.data.id, htmlLink: res.data.htmlLink };
   } catch (err: unknown) {
-    const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string; status?: string } } }; message?: string };
+    const gaxiosErr = err as {
+      response?: { status?: number; data?: { error?: { message?: string; status?: string } } };
+      message?: string;
+    };
     const status = gaxiosErr.response?.status;
     const apiMsg = gaxiosErr.response?.data?.error?.message || gaxiosErr.message || "Unknown error";
     console.error(`[CALENDAR] createEvent failed (HTTP ${status}):`, apiMsg);

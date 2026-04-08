@@ -7,7 +7,7 @@ import { RelativeTime } from "../../components/relative-time";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { useWebSocket } from "../../components/use-websocket";
-import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
+import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 
 interface Notification {
@@ -71,32 +71,32 @@ export default function NotificationsPage() {
   }, []);
 
   const markRead = async (id: string) => {
-    const res = await fetch(`${API_BASE}/api/notifications/${id}/read`, {
-      method: "PATCH",
-      headers: authHeaders(),
-    });
-    if (!res.ok) return;
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    try {
+      await apiFetch(`/api/notifications/${id}/read`, { method: "PATCH" });
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    } catch {
+      // silent fail for single mark-read
+    }
   };
 
   const markAllRead = async () => {
-    const res = await fetch(`${API_BASE}/api/notifications/read-all`, {
-      method: "PATCH",
-      headers: authHeaders(),
-    });
-    if (!res.ok) return;
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    toast("All marked as read", "success");
+    try {
+      await apiFetch("/api/notifications/read-all", { method: "PATCH" });
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      toast("All marked as read", "success");
+    } catch {
+      toast("Failed to mark all as read", "error");
+    }
   };
 
   const clearAll = async () => {
-    const res = await fetch(`${API_BASE}/api/notifications`, {
-      method: "DELETE",
-      headers: authHeaders(),
-    });
-    if (!res.ok) return;
-    setNotifications([]);
-    toast("Notifications cleared", "info");
+    try {
+      await apiFetch("/api/notifications", { method: "DELETE" });
+      setNotifications([]);
+      toast("Notifications cleared", "info");
+    } catch {
+      toast("Failed to clear notifications", "error");
+    }
   };
 
   const discussWithEve = async (n: Notification) => {

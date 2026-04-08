@@ -193,6 +193,80 @@ export async function markAsRead(userId: string, gmailMessageId: string) {
   return { success: true };
 }
 
+/** Trash a Gmail message (move to Trash) */
+export async function trashEmail(userId: string, gmailMessageId: string) {
+  const auth = await getAuthedClient(userId);
+  if (!auth) return { error: "Gmail not connected." };
+
+  const gmail = google.gmail({ version: "v1", auth });
+  await gmail.users.messages.trash({ userId: "me", id: gmailMessageId });
+
+  await prisma.emailMessage.deleteMany({
+    where: { userId, gmailId: gmailMessageId },
+  });
+
+  return { success: true };
+}
+
+/** Archive a Gmail message (remove INBOX label) */
+export async function archiveEmail(userId: string, gmailMessageId: string) {
+  const auth = await getAuthedClient(userId);
+  if (!auth) return { error: "Gmail not connected." };
+
+  const gmail = google.gmail({ version: "v1", auth });
+  await gmail.users.messages.modify({
+    userId: "me",
+    id: gmailMessageId,
+    requestBody: { removeLabelIds: ["INBOX"] },
+  });
+
+  await prisma.emailMessage.deleteMany({
+    where: { userId, gmailId: gmailMessageId },
+  });
+
+  return { success: true };
+}
+
+/** Toggle star on Gmail (add/remove STARRED label) */
+export async function toggleStarGmail(userId: string, gmailMessageId: string, starred: boolean) {
+  const auth = await getAuthedClient(userId);
+  if (!auth) return { error: "Gmail not connected." };
+
+  const gmail = google.gmail({ version: "v1", auth });
+  await gmail.users.messages.modify({
+    userId: "me",
+    id: gmailMessageId,
+    requestBody: starred ? { addLabelIds: ["STARRED"] } : { removeLabelIds: ["STARRED"] },
+  });
+
+  await prisma.emailMessage.updateMany({
+    where: { userId, gmailId: gmailMessageId },
+    data: { isStarred: starred },
+  });
+
+  return { success: true };
+}
+
+/** Toggle read/unread on Gmail */
+export async function toggleReadGmail(userId: string, gmailMessageId: string, isRead: boolean) {
+  const auth = await getAuthedClient(userId);
+  if (!auth) return { error: "Gmail not connected." };
+
+  const gmail = google.gmail({ version: "v1", auth });
+  await gmail.users.messages.modify({
+    userId: "me",
+    id: gmailMessageId,
+    requestBody: isRead ? { removeLabelIds: ["UNREAD"] } : { addLabelIds: ["UNREAD"] },
+  });
+
+  await prisma.emailMessage.updateMany({
+    where: { userId, gmailId: gmailMessageId },
+    data: { isRead },
+  });
+
+  return { success: true };
+}
+
 export async function classifyEmails(userId: string, maxResults = 10) {
   const result = await listEmails(userId, maxResults);
   if ("error" in result) return result;
