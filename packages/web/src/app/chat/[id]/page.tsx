@@ -52,14 +52,19 @@ function ChatPageContent() {
   const [editContent, setEditContent] = useState("");
   const [pendingActions, setPendingActions] = useState<Map<string, PendingAction>>(new Map());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const prefillHandled = useRef(false);
   const { toast } = useToast();
 
   // Load conversation + pending actions
   useEffect(() => {
+    const loadController = new AbortController();
+
     apiFetch<{ messages: Message[]; title?: string | null }>(`/api/chat/conversations/${id}`)
       .then((data) => {
+        if (loadController.signal.aborted) return;
+        setLoadError(null);
         setMessages(data.messages);
 
         const prefill = searchParams.get("prefill");
@@ -75,17 +80,39 @@ function ChatPageContent() {
           streamResponseDirect(prefill);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (loadController.signal.aborted) return;
+        const msg = err instanceof Error ? err.message : "Failed to load conversation";
+        if (msg.includes("403") || msg.includes("Forbidden")) {
+          setLoadError("Cannot access this conversation. You may be logged into a different account.");
+        } else if (msg.includes("404") || msg.includes("not found")) {
+          setLoadError("Conversation not found.");
+        } else {
+          setLoadError(msg);
+        }
+      });
 
     // Fetch pending actions for this conversation
     apiFetch<{ actions: PendingAction[] }>(`/api/chat/conversations/${id}/pending-actions`)
       .then((data) => {
+        if (loadController.signal.aborted) return;
         const map = new Map<string, PendingAction>();
         for (const a of data.actions) map.set(a.messageId, a);
         setPendingActions(map);
       })
       .catch(() => {});
+
+    return () => {
+      loadController.abort();
+    };
   }, [id, searchParams]);
+
+  // Abort in-flight streaming when navigating away or conversation changes
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, [id]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -116,20 +143,20 @@ function ChatPageContent() {
     const s: string[] = [];
     const lower = `${userMsg} ${assistantMsg}`.toLowerCase();
 
-    if (lower.includes("email") || lower.includes("메일")) {
-      s.push("중요한 메일만 보여줘", "답장 써줘");
-    } else if (lower.includes("task") || lower.includes("할 일")) {
-      s.push("오늘 마감인 것만 보여줘", "우선순위 정리해줘");
-    } else if (lower.includes("calendar") || lower.includes("일정")) {
-      s.push("이번 주 일정 보여줘", "빈 시간대 찾아줘");
-    } else if (lower.includes("note") || lower.includes("메모")) {
-      s.push("최근 메모 보여줘", "보고서 작성해줘");
+    if (lower.includes("email") || lower.includes("mail")) {
+      s.push("Show important emails only", "Draft a reply");
+    } else if (lower.includes("task") || lower.includes("todo")) {
+      s.push("Show due today", "Sort by priority");
+    } else if (lower.includes("calendar") || lower.includes("schedule")) {
+      s.push("Show this week", "Find free slots");
+    } else if (lower.includes("note") || lower.includes("memo")) {
+      s.push("Show recent notes", "Write a report");
     }
 
     if (s.length === 0) {
-      s.push("더 자세히 설명해줘", "다른 방법은?");
+      s.push("Tell me more", "Any alternatives?");
     }
-    s.push("요약해줘");
+    s.push("Summarize");
     setSuggestions(s.slice(0, 3));
   };
 
@@ -199,26 +226,33 @@ function ChatPageContent() {
     setStreamingContent("");
     setSuggestions([]);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ content: messageContent }),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       await processStream(res, messageContent);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "ASSISTANT",
-          content: "Connection failed. Please try again.",
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+    } catch (err) {
+      if (!(err instanceof DOMException && err.name === "AbortError")) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "ASSISTANT",
+            content: "Connection failed. Please try again.",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
     }
 
+    abortRef.current = null;
     setStreaming(false);
     setStreamingContent("");
     setActiveTools([]);
@@ -427,19 +461,19 @@ function ChatPageContent() {
         if (action) next.set(action.messageId, { ...action, status: "EXECUTED" });
         return next;
       });
-      toast("실행 완료", "success");
+      toast("Done", "success");
       // Reload messages to get the follow-up message
       apiFetch<{ messages: Message[] }>(`/api/chat/conversations/${id}`)
         .then((data) => setMessages(data.messages))
         .catch(() => {});
     } catch {
-      toast("실행 실패", "error");
+      toast("Execution failed", "error");
     }
     setActionLoading(null);
   };
 
   const handleActionReject = async (actionId: string) => {
-    const reason = window.prompt("거절 사유를 알려주면 EVE가 다음에 참고해요. (선택사항)");
+    const reason = window.prompt("Reason for rejection (optional)");
     if (reason === null) return; // User cancelled the prompt
     setActionLoading(actionId);
     try {
@@ -458,7 +492,7 @@ function ChatPageContent() {
         .then((data) => setMessages(data.messages))
         .catch(() => {});
     } catch {
-      toast("처리 실패", "error");
+      toast("Action failed", "error");
     }
     setActionLoading(null);
   };
@@ -496,7 +530,22 @@ function ChatPageContent() {
       {/* Messages */}
       <div ref={scrollAreaRef} className="flex-1 overflow-y-auto relative">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
-          {messages.length === 0 && !streaming && (
+          {loadError && (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+              <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-xl mb-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <p className="text-gray-300 text-sm mb-4">{loadError}</p>
+              <a href="/chat" className="text-sm text-blue-400 hover:text-blue-300 transition">
+                Back to chats
+              </a>
+            </div>
+          )}
+          {!loadError && messages.length === 0 && !streaming && (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-lg font-bold text-white mb-4">
                 E
@@ -510,22 +559,22 @@ function ChatPageContent() {
                   {
                     icon: "📧",
                     title: "Check my emails",
-                    prompt: "읽지 않은 이메일 중 중요한 것만 요약해줘",
+                    prompt: "Summarize my important unread emails",
                   },
                   {
                     icon: "📋",
                     title: "Today's tasks",
-                    prompt: "오늘 해야 할 태스크를 우선순위별로 정리해줘",
+                    prompt: "Show today's tasks sorted by priority",
                   },
                   {
                     icon: "📅",
                     title: "Schedule overview",
-                    prompt: "오늘과 내일 일정을 보여주고, 빈 시간대를 찾아줘",
+                    prompt: "Show today and tomorrow's schedule with free slots",
                   },
                   {
                     icon: "📝",
                     title: "Write a document",
-                    prompt: "새 보고서를 작성해줘. 먼저 주제를 물어봐",
+                    prompt: "Help me write a report",
                   },
                 ].map((starter) => (
                   <button
@@ -662,7 +711,7 @@ function ChatPageContent() {
                                   <polyline points="20 6 9 17 4 12" />
                                 </svg>
                               )}
-                              승인
+                              Approve
                             </button>
                             <button
                               type="button"
@@ -670,7 +719,7 @@ function ChatPageContent() {
                               disabled={isLoading}
                               className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
                             >
-                              거절
+                              Reject
                             </button>
                             <span className="text-xs text-gray-500 ml-2">
                               {action.toolName.replace(/_/g, " ")}
@@ -680,9 +729,9 @@ function ChatPageContent() {
                       }
 
                       const statusLabel: Record<string, { text: string; color: string }> = {
-                        EXECUTED: { text: "실행됨", color: "text-emerald-400" },
-                        REJECTED: { text: "거절됨", color: "text-gray-500" },
-                        FAILED: { text: "실패", color: "text-red-400" },
+                        EXECUTED: { text: "Executed", color: "text-emerald-400" },
+                        REJECTED: { text: "Rejected", color: "text-gray-500" },
+                        FAILED: { text: "Failed", color: "text-red-400" },
                       };
                       const status = statusLabel[action.status];
                       if (!status) return null;
@@ -706,7 +755,7 @@ function ChatPageContent() {
                         onClick={() => copyMessage(msg.content)}
                         className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
                         title="Copy"
-                        aria-label="메시지 복사"
+                        aria-label="Copy message"
                       >
                         <svg
                           aria-hidden="true"
@@ -729,7 +778,7 @@ function ChatPageContent() {
                           onClick={() => startEditMessage(msg)}
                           className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
                           title="Edit"
-                          aria-label="메시지 수정"
+                          aria-label="Edit message"
                         >
                           <svg
                             aria-hidden="true"
@@ -753,7 +802,7 @@ function ChatPageContent() {
                           onClick={() => retryMessage(idx)}
                           className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition"
                           title="Retry"
-                          aria-label="응답 재생성"
+                          aria-label="Retry response"
                         >
                           <svg
                             aria-hidden="true"
@@ -845,7 +894,7 @@ function ChatPageContent() {
             type="button"
             onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
             className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 rounded-full w-9 h-9 flex items-center justify-center shadow-lg transition"
-            aria-label="맨 아래로 스크롤"
+            aria-label="Scroll to bottom"
           >
             <svg
               aria-hidden="true"

@@ -10,13 +10,15 @@ function CallbackHandler() {
   const handled = useRef(false);
 
   useEffect(() => {
+    console.log("[callback] useEffect fired, handled:", handled.current);
     if (handled.current) return;
     handled.current = true;
 
     const token = searchParams.get("token");
+    console.log("[callback] token present:", !!token);
     if (token) {
-      // loginWithToken stores token, verifies user, triggers init-sync, then navigates to /chat
-      loginWithToken(token).catch(() => {
+      loginWithToken(token).catch((err) => {
+        console.error("[callback] loginWithToken failed:", err);
         window.location.href = "/login?error=google_failed";
       });
     } else {

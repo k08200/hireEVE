@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 
 const SHORTCUTS = [
-  { keys: ["Cmd", "K"], label: "Command palette / 명령 팔레트" },
-  { keys: ["Cmd", "N"], label: "New conversation / 새 대화" },
-  { keys: ["Cmd", "D"], label: "Go to Dashboard / 대시보드" },
-  { keys: ["Cmd", "E"], label: "Go to Email / 이메일" },
-  { keys: ["Cmd", "T"], label: "Go to Tasks / 할 일" },
-  { keys: ["Cmd", "/"], label: "Show shortcuts / 단축키 보기" },
-  { keys: ["Esc"], label: "Close modal / 닫기" },
+  { keys: ["Cmd", "K"], label: "Command palette" },
+  { keys: ["Cmd", "N"], label: "New conversation" },
+  { keys: ["Cmd", "D"], label: "Go to Dashboard" },
+  { keys: ["Cmd", "E"], label: "Go to Email" },
+  { keys: ["Cmd", "T"], label: "Go to Tasks" },
+  { keys: ["Cmd", "/"], label: "Show shortcuts" },
+  { keys: ["Esc"], label: "Close modal" },
 ];
 
 export default function KeyboardShortcuts() {
@@ -71,7 +71,7 @@ export default function KeyboardShortcuts() {
         className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-semibold mb-4">Keyboard Shortcuts / 키보드 단축키</h3>
+        <h3 className="font-semibold mb-4">Keyboard Shortcuts</h3>
         <div className="space-y-3">
           {SHORTCUTS.map((s) => (
             <div key={s.label} className="flex items-center justify-between">

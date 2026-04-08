@@ -22,13 +22,13 @@ export default function CommandPalette() {
     {
       id: "chat",
       label: "Go to Chat",
-      sublabel: "채팅으로 이동",
+      sublabel: "Open chat",
       action: () => router.push("/chat"),
     },
     {
       id: "new-chat",
       label: "New conversation",
-      sublabel: "새 대화 시작",
+      sublabel: "Start new chat",
       action: () => {
         apiFetch<{ id: string }>("/api/chat/conversations", {
           method: "POST",
@@ -40,93 +40,93 @@ export default function CommandPalette() {
     {
       id: "dashboard",
       label: "Go to Dashboard",
-      sublabel: "대시보드",
+      sublabel: "Dashboard",
       action: () => router.push("/dashboard"),
     },
     {
       id: "email",
       label: "Go to Email",
-      sublabel: "이메일",
+      sublabel: "Email",
       action: () => router.push("/email"),
     },
     {
       id: "calendar",
       label: "Go to Calendar",
-      sublabel: "캘린더",
+      sublabel: "Calendar",
       action: () => router.push("/calendar"),
     },
     {
       id: "tasks",
       label: "Go to Tasks",
-      sublabel: "할 일 관리",
+      sublabel: "Task manager",
       action: () => router.push("/tasks"),
     },
-    { id: "notes", label: "Go to Notes", sublabel: "메모", action: () => router.push("/notes") },
+    { id: "notes", label: "Go to Notes", sublabel: "Notes", action: () => router.push("/notes") },
     {
       id: "contacts",
       label: "Go to Contacts",
-      sublabel: "연락처",
+      sublabel: "Contacts",
       action: () => router.push("/contacts"),
     },
     {
       id: "reminders",
       label: "Go to Reminders",
-      sublabel: "리마인더",
+      sublabel: "Reminders",
       action: () => router.push("/reminders"),
     },
     {
       id: "notifications",
       label: "Go to Notifications",
-      sublabel: "알림",
+      sublabel: "Notifications",
       action: () => router.push("/notifications"),
     },
     {
       id: "automations",
       label: "Go to Automations",
-      sublabel: "자동화 설정",
+      sublabel: "Automations",
       action: () => router.push("/automations"),
     },
     {
       id: "settings",
       label: "Go to Settings",
-      sublabel: "설정",
+      sublabel: "Settings",
       action: () => router.push("/settings"),
     },
     {
       id: "billing",
       label: "Go to Billing",
-      sublabel: "요금제",
+      sublabel: "Billing",
       action: () => router.push("/billing"),
     },
     // Quick-create actions
     {
       id: "new-task",
       label: "New task",
-      sublabel: "새 할 일 만들기",
+      sublabel: "Create new task",
       action: () => router.push("/tasks?new=1"),
     },
     {
       id: "new-note",
       label: "New note",
-      sublabel: "새 메모 만들기",
+      sublabel: "Create new note",
       action: () => router.push("/notes?new=1"),
     },
     {
       id: "new-reminder",
       label: "New reminder",
-      sublabel: "새 리마인더 만들기",
+      sublabel: "Create new reminder",
       action: () => router.push("/reminders?new=1"),
     },
     {
       id: "new-contact",
       label: "New contact",
-      sublabel: "새 연락처 추가",
+      sublabel: "Add new contact",
       action: () => router.push("/contacts?new=1"),
     },
     {
       id: "shortcuts",
       label: "Keyboard shortcuts",
-      sublabel: "단축키 보기 (Cmd+/)",
+      sublabel: "View shortcuts (Cmd+/)",
       action: () => {
         window.dispatchEvent(new KeyboardEvent("keydown", { key: "/", metaKey: true }));
       },
@@ -196,13 +196,13 @@ export default function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a command... / 명령어 입력..."
+            placeholder="Type a command..."
             className="w-full bg-transparent text-sm focus:outline-none placeholder-gray-500"
           />
         </div>
         <div className="max-h-64 overflow-y-auto py-1">
           {filtered.length === 0 ? (
-            <p className="text-sm text-gray-500 px-4 py-3">No results / 결과 없음</p>
+            <p className="text-sm text-gray-500 px-4 py-3">No results</p>
           ) : (
             filtered.map((cmd, i) => (
               <button

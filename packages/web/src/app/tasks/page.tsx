@@ -140,8 +140,8 @@ export default function TasksPage() {
 
   const deleteTask = async (taskId: string) => {
     const ok = await confirm({
-      title: "Delete Task / 할 일 삭제",
-      message: "Are you sure? This cannot be undone. / 정말 삭제하시겠습니까?",
+      title: "Delete Task",
+      message: "Are you sure? This cannot be undone.",
       confirmLabel: "Delete",
       danger: true,
     });
@@ -182,7 +182,7 @@ export default function TasksPage() {
           <div>
             <h1 className="text-2xl font-bold">Tasks</h1>
             <p className="text-gray-400 text-sm mt-1">
-              Managed by EVE or add directly / EVE에게 시키거나 직접 추가
+              Managed by EVE or add directly
             </p>
           </div>
           <div className="flex gap-2 items-center">
@@ -220,13 +220,13 @@ export default function TasksPage() {
         {showForm && (
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 mb-6 space-y-3">
             <input
-              placeholder="Task title * / 할 일 제목"
+              placeholder="Task title *"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
             <textarea
-              placeholder="Description (optional) / 설명"
+              placeholder="Description (optional)"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={2}
@@ -293,7 +293,7 @@ export default function TasksPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tasks... / 할 일 검색..."
+            placeholder="Search tasks..."
             className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition placeholder-gray-500"
           />
         </div>
@@ -311,7 +311,7 @@ export default function TasksPage() {
             }}
           >
             <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-lg">
-              <h3 className="font-semibold mb-4">Edit Task / 할 일 수정</h3>
+              <h3 className="font-semibold mb-4">Edit Task</h3>
               <div className="space-y-3">
                 <input
                   placeholder="Title *"
@@ -380,7 +380,7 @@ export default function TasksPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-500 mb-2">No tasks yet</p>
-            <p className="text-gray-600 text-sm">Tell EVE in chat: &quot;할 일 추가해줘&quot;</p>
+            <p className="text-gray-600 text-sm">Tell EVE in chat: &quot;Add a task for me&quot;</p>
           </div>
         ) : (
           <div className="space-y-2">

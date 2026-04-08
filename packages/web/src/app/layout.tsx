@@ -11,7 +11,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "EVE — Your First AI Employee",
   description:
-    "An autonomous AI teammate that handles coding, email, scheduling, and more for solo founders. 1인 창업자의 첫 번째 AI 직원.",
+    "An autonomous AI teammate that handles coding, email, scheduling, and more for solo founders.",
   manifest: "/manifest.json",
   openGraph: {
     title: "EVE — Your First AI Employee",

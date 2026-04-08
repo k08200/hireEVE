@@ -14,6 +14,7 @@ import { prisma } from "./db.js";
 import {
   checkAutoReplyRules,
   generateSmartReply,
+  reconcileEmails,
   summarizeUnsummarizedEmails,
   syncEmails,
 } from "./email-sync.js";
@@ -234,6 +235,14 @@ async function runAutomations() {
                   // Auto-reply failed — non-critical
                 }
               }
+            }
+
+            // Reconcile DB with Gmail (remove deleted/archived emails)
+            // Run less frequently — only at 0 and 30 minute marks
+            if (minute === 0 || minute === 30) {
+              reconcileEmails(config.userId).catch((err) => {
+                console.error(`[AUTOMATION] Reconcile failed for ${config.userId}:`, err);
+              });
             }
 
             // Check for urgent unread emails

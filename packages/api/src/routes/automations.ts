@@ -24,7 +24,7 @@ export async function automationRoutes(app: FastifyInstance) {
       briefingTime: config.briefingTime,
       downloadAutoOrganize: config.downloadAutoOrganize,
       autonomousAgent: configAny.autonomousAgent ?? true,
-      agentMode: configAny.agentMode ?? "SUGGEST",
+      agentMode: configAny.agentMode ?? "AUTO",
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
     };
   });
@@ -73,7 +73,7 @@ export async function automationRoutes(app: FastifyInstance) {
       briefingTime: config.briefingTime,
       downloadAutoOrganize: config.downloadAutoOrganize,
       autonomousAgent: configAny.autonomousAgent ?? true,
-      agentMode: configAny.agentMode ?? "SUGGEST",
+      agentMode: configAny.agentMode ?? "AUTO",
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
     };
   });

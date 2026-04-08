@@ -104,12 +104,12 @@ export default function NotificationsPage() {
       const convo = await apiFetch<{ id: string }>("/api/chat/conversations", {
         method: "POST",
         body: JSON.stringify({
-          initialMessage: `[EVE 알림에 대해 이야기하고 싶어요]\n\n제목: ${n.title}\n내용: ${n.message}\n\n이 알림에 대해 더 자세히 알려주세요.`,
+          initialMessage: `[I'd like to discuss this EVE notification]\n\nTitle: ${n.title}\nContent: ${n.message}\n\nPlease tell me more about this notification.`,
         }),
       });
       router.push(`/chat/${convo.id}`);
     } catch {
-      toast("대화 생성에 실패했습니다", "error");
+      toast("Failed to create conversation", "error");
     }
   };
 
@@ -164,11 +164,11 @@ export default function NotificationsPage() {
         {!loading && notifications.length > 0 && (
           <div className="flex gap-1 mb-6 bg-gray-900/60 p-1 rounded-lg w-fit">
             {[
-              { key: "all" as FilterTab, label: "전체", count: notifications.length },
+              { key: "all" as FilterTab, label: "All", count: notifications.length },
               { key: "agent" as FilterTab, label: "🤖 EVE", count: agentCount },
               {
                 key: "system" as FilterTab,
-                label: "시스템",
+                label: "System",
                 count: notifications.length - agentCount,
               },
             ].map((tab) => (
@@ -196,14 +196,14 @@ export default function NotificationsPage() {
         ) : filtered.length === 0 && filter !== "all" ? (
           <div className="text-center py-20">
             <p className="text-gray-500 mb-2">
-              {filter === "agent" ? "EVE 에이전트 알림이 없습니다" : "시스템 알림이 없습니다"}
+              {filter === "agent" ? "No EVE agent notifications" : "No system notifications"}
             </p>
             <button
               type="button"
               onClick={() => setFilter("all")}
               className="text-xs text-cyan-400 hover:underline"
             >
-              전체 보기
+              View all
             </button>
           </div>
         ) : notifications.length === 0 ? (
@@ -261,7 +261,7 @@ export default function NotificationsPage() {
                           }}
                           className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer hover:underline"
                         >
-                          EVE와 대화 →
+                          Chat with EVE →
                         </button>
                       )}
                     </div>

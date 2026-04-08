@@ -95,6 +95,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             new window.Notification(notif.title, {
               body: notif.message,
               icon: "/icon-192.svg",
+              requireInteraction: true,
             });
           } catch {
             // Notification constructor failed — ignore

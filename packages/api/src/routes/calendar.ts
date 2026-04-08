@@ -7,6 +7,7 @@ import type { FastifyInstance } from "fastify";
 import { getUserId } from "../auth.js";
 import { createEvent as googleCreateEvent, deleteEvent as googleDeleteEvent } from "../calendar.js";
 import { prisma } from "../db.js";
+import { getAuthedClient } from "../gmail.js";
 
 export async function calendarRoutes(app: FastifyInstance) {
   // List events (next N days)
@@ -15,13 +16,14 @@ export async function calendarRoutes(app: FastifyInstance) {
     const { days } = request.query as { days?: string };
     const daysAhead = Number(days) || 14;
 
-    const now = new Date();
-    const until = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const until = new Date(todayStart.getTime() + daysAhead * 24 * 60 * 60 * 1000);
 
     const events = await prisma.calendarEvent.findMany({
       where: {
         userId: uid,
-        startTime: { gte: now, lte: until },
+        startTime: { gte: todayStart, lte: until },
       },
       orderBy: { startTime: "asc" },
     });
@@ -68,8 +70,10 @@ export async function calendarRoutes(app: FastifyInstance) {
       if ("eventId" in result && result.eventId) {
         googleId = result.eventId;
       }
-    } catch {
-      // Google sync failed — continue with local-only
+    } catch (err) {
+      const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string } } }; message?: string };
+      console.error(`[CALENDAR] Google sync on create failed (HTTP ${gaxiosErr.response?.status}):`,
+        gaxiosErr.response?.data?.error?.message || gaxiosErr.message || err);
     }
 
     const event = await prisma.calendarEvent.create({
@@ -141,20 +145,14 @@ export async function calendarRoutes(app: FastifyInstance) {
   app.post("/sync", async (request) => {
     const uid = getUserId(request);
 
-    const token = await prisma.userToken.findFirst({
-      where: { userId: uid, provider: "google" },
-    });
-    if (!token) {
+    // Use getAuthedClient which includes CLIENT_ID/SECRET for automatic token refresh
+    const auth = await getAuthedClient(uid);
+    if (!auth) {
       return { error: "Google not connected", synced: 0 };
     }
 
     try {
       const { google } = await import("googleapis");
-      const auth = new google.auth.OAuth2();
-      auth.setCredentials({
-        access_token: token.accessToken,
-        refresh_token: token.refreshToken,
-      });
 
       const calendar = google.calendar({ version: "v3", auth });
       const now = new Date();
@@ -216,8 +214,13 @@ export async function calendarRoutes(app: FastifyInstance) {
       }
 
       return { success: true, synced };
-    } catch {
-      return { error: "Failed to sync. Please reconnect Google.", synced: 0 };
+    } catch (err) {
+      const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string; errors?: unknown[] } } }; message?: string };
+      const status = gaxiosErr.response?.status;
+      const apiMsg = gaxiosErr.response?.data?.error?.message || gaxiosErr.message || "Unknown error";
+      const apiErrors = gaxiosErr.response?.data?.error?.errors;
+      console.error(`[CALENDAR SYNC] Failed (HTTP ${status}):`, apiMsg, apiErrors ? JSON.stringify(apiErrors) : "");
+      return { error: `Sync failed (${status}): ${apiMsg}`, synced: 0 };
     }
   });
 

@@ -56,12 +56,12 @@ function NewChatWelcome() {
   };
 
   const suggestions = [
-    { label: "Daily briefing", message: "오늘 브리핑 해줘" },
-    { label: "Check emails", message: "메일 확인해줘" },
-    { label: "Show tasks", message: "할 일 보여줘" },
-    { label: "Write a report", message: "보고서 써줘" },
-    { label: "Schedule meeting", message: "일정 잡아줘" },
-    { label: "Search contacts", message: "연락처 검색" },
+    { label: "Daily briefing", message: "Give me today's briefing" },
+    { label: "Check emails", message: "Check my emails" },
+    { label: "Show tasks", message: "Show my tasks" },
+    { label: "Write a report", message: "Write a report" },
+    { label: "Schedule meeting", message: "Schedule a meeting" },
+    { label: "Search contacts", message: "Search contacts" },
   ];
 
   return (

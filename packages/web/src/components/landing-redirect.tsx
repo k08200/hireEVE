@@ -10,7 +10,7 @@ export default function LandingRedirect() {
   useEffect(() => {
     const token = localStorage.getItem("eve-token");
     if (token) {
-      router.replace("/dashboard");
+      router.replace("/chat");
     }
   }, [router]);
 

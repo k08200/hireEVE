@@ -41,7 +41,7 @@ export default function VoiceButton({ onTranscript, className }: VoiceButtonProp
       const recognition = new SpeechRecognitionCtor();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = "ko-KR"; // Default Korean, auto-detects English too
+      recognition.lang = "en-US";
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0]?.[0]?.transcript;
@@ -84,7 +84,7 @@ export default function VoiceButton({ onTranscript, className }: VoiceButtonProp
       className={`transition ${className || ""} ${
         listening ? "text-red-400 animate-pulse" : "text-gray-500 hover:text-white"
       }`}
-      title={listening ? "Stop listening" : "Voice command / 음성 명령"}
+      title={listening ? "Stop listening" : "Voice command"}
     >
       <svg
         aria-hidden="true"

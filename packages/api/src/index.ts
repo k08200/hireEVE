@@ -54,13 +54,18 @@ await app.register(cors, {
 await app.register(rateLimit, {
   max: 100,
   timeWindow: "1 minute",
+  allowList: (req: { url?: string }) => {
+    // Auth endpoints need higher throughput (login, callback, token verify)
+    return (req.url ?? "").startsWith("/api/auth/");
+  },
 });
 
 // Raw body support for Stripe webhook signature verification
 app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
   try {
-    (req as unknown as { rawBody: string }).rawBody = body as string;
-    done(null, JSON.parse(body as string));
+    const str = (body as string) || "{}";
+    (req as unknown as { rawBody: string }).rawBody = str;
+    done(null, JSON.parse(str));
   } catch (err) {
     done(err as Error, undefined);
   }
