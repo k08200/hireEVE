@@ -86,7 +86,11 @@ export default function NotificationBell({ userId }: { userId: string }) {
         setTimeout(() => setFlash(false), 2000);
 
         // Show macOS system notification via Notification API
-        if (typeof window !== "undefined" && "Notification" in window && window.Notification.permission === "granted") {
+        if (
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          window.Notification.permission === "granted"
+        ) {
           try {
             new window.Notification(notif.title, {
               body: notif.message,

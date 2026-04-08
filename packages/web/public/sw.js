@@ -78,7 +78,13 @@ self.addEventListener("push", (event) => {
   console.log("[SW] Push event received!", event.data ? "has data" : "no data");
   // Forward to all open tabs so user can see in browser console
   self.clients.matchAll({ type: "window" }).then((clients) => {
-    clients.forEach((c) => c.postMessage({ type: "PUSH_DEBUG", msg: "Push event fired!", data: event.data ? event.data.text() : null }));
+    for (const c of clients) {
+      c.postMessage({
+        type: "PUSH_DEBUG",
+        msg: "Push event fired!",
+        data: event.data ? event.data.text() : null,
+      });
+    }
   });
   let title = "EVE";
   let options = {
