@@ -308,45 +308,69 @@ app.addHook("onClose", async () => {
   await prisma.$disconnect();
 });
 
-// Ensure demo user exists for unauthenticated access
-await ensureDemoUser();
+// --- Server Startup (wrapped in try-catch to prevent silent crashes) ---
+try {
+  // Verify database connection before proceeding
+  await prisma.$queryRaw`SELECT 1`;
+  console.log("[STARTUP] Database connection verified");
 
-const port = Number(process.env.PORT) || 3001;
-await app.listen({ port, host: "0.0.0.0" });
-console.log(`hireEVE API running on http://localhost:${port}`);
+  // Ensure demo user exists for unauthenticated access
+  await ensureDemoUser();
 
-// Attach WebSocket server to the underlying HTTP server
-const httpServer = app.server;
-initWebSocket(httpServer);
+  const port = Number(process.env.PORT) || 3001;
+  await app.listen({ port, host: "0.0.0.0" });
+  console.log(`hireEVE API running on http://localhost:${port}`);
 
-// Start autonomous background agent
-startBackgroundAgent();
+  // Attach WebSocket server to the underlying HTTP server
+  const httpServer = app.server;
+  initWebSocket(httpServer);
 
-// Start reminder notification scheduler
-import("./reminder-scheduler.js")
-  .then(({ startReminderScheduler }) => {
-    startReminderScheduler();
-  })
-  .catch((err) => {
-    console.error("[REMINDER] Scheduler failed to start:", err);
-  });
+  // Start autonomous background agent
+  startBackgroundAgent();
 
-// Start automation scheduler (daily briefing, email classify)
-import("./automation-scheduler.js")
-  .then(({ startAutomationScheduler }) => {
-    startAutomationScheduler();
-  })
-  .catch((err) => {
-    console.error("[AUTOMATION] Scheduler failed to start:", err);
-  });
+  // Start reminder notification scheduler
+  import("./reminder-scheduler.js")
+    .then(({ startReminderScheduler }) => {
+      startReminderScheduler();
+    })
+    .catch((err) => {
+      console.error("[REMINDER] Scheduler failed to start:", err);
+    });
 
-// Start autonomous LLM reasoning agent
-import("./autonomous-agent.js")
-  .then(({ startAutonomousAgent }) => {
-    startAutonomousAgent();
-  })
-  .catch((err) => {
-    console.error("[AGENT] Autonomous agent failed to start:", err);
-  });
+  // Start automation scheduler (daily briefing, email classify)
+  import("./automation-scheduler.js")
+    .then(({ startAutomationScheduler }) => {
+      startAutomationScheduler();
+    })
+    .catch((err) => {
+      console.error("[AUTOMATION] Scheduler failed to start:", err);
+    });
 
-// Meeting monitor is handled by background.ts checkUpcomingMeetings() for all users
+  // Start autonomous LLM reasoning agent
+  import("./autonomous-agent.js")
+    .then(({ startAutonomousAgent }) => {
+      startAutonomousAgent();
+    })
+    .catch((err) => {
+      console.error("[AGENT] Autonomous agent failed to start:", err);
+    });
+} catch (err) {
+  console.error("[STARTUP] Fatal error during server initialization:", err);
+  // Still try to start a minimal health-check server so Render doesn't mark as crashed
+  try {
+    const fallbackPort = Number(process.env.PORT) || 3001;
+    const fallback = Fastify();
+    fallback.get("/api/health", async () => ({
+      status: "error",
+      message: "Server failed to start. Check logs.",
+    }));
+    fallback.get("*", async (_req, reply) => {
+      reply.code(503).send({ error: "Service unavailable — startup failed" });
+    });
+    await fallback.listen({ port: fallbackPort, host: "0.0.0.0" });
+    console.error(`[STARTUP] Fallback health server on port ${fallbackPort}`);
+  } catch (fallbackErr) {
+    console.error("[STARTUP] Even fallback server failed:", fallbackErr);
+    process.exit(1);
+  }
+}

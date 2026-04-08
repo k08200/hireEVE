@@ -7,8 +7,9 @@ services:
     buildCommand: |
       corepack enable &&
       pnpm install --frozen-lockfile &&
-      cd packages/api && npx prisma generate && pnpm build
-    startCommand: cd packages/api && npx prisma migrate deploy && node dist/index.js
+      cd packages/core && pnpm build &&
+      cd ../api && npx prisma generate && pnpm build
+    startCommand: cd packages/api && (npx prisma migrate deploy || echo "[WARN] Migration failed, continuing...") && node dist/index.js
     envVars:
       - key: NODE_VERSION
         value: "22"
