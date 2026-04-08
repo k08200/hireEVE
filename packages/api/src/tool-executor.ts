@@ -19,6 +19,7 @@ import {
   listContacts,
   updateContact,
 } from "./contacts.js";
+import { prisma } from "./db.js";
 import {
   FILE_TOOLS,
   listRecentDownloads,
@@ -151,17 +152,56 @@ export async function executeToolCall(
         return JSON.stringify(await classifyEmails(userId, safeInt(args.max_results, 10, 100)));
       case "list_events":
         return JSON.stringify(await listEvents(userId, safeInt(args.max_results, 10, 200)));
-      case "create_event":
-        return JSON.stringify(
-          await createEvent(
+      case "create_event": {
+        const evSummary = requireString(args.summary, "summary");
+        const evStart = requireString(args.start_time, "start_time");
+        const evEnd = requireString(args.end_time, "end_time");
+
+        // Dedup: check if a similar event already exists within ±30 min
+        const evStartDate = new Date(evStart);
+        const dupCheck = await prisma.calendarEvent.findFirst({
+          where: {
             userId,
-            requireString(args.summary, "summary"),
-            requireString(args.start_time, "start_time"),
-            requireString(args.end_time, "end_time"),
-            args.description as string | undefined,
-            args.location as string | undefined,
-          ),
+            startTime: {
+              gte: new Date(evStartDate.getTime() - 30 * 60_000),
+              lte: new Date(evStartDate.getTime() + 30 * 60_000),
+            },
+          },
+        });
+        if (dupCheck) {
+          return JSON.stringify({
+            skipped: true,
+            message: `이미 같은 시간대에 이벤트가 있습니다: "${dupCheck.title}" (${dupCheck.startTime.toISOString()})`,
+            existingEventId: dupCheck.id,
+          });
+        }
+
+        const evResult = await createEvent(
+          userId,
+          evSummary,
+          evStart,
+          evEnd,
+          args.description as string | undefined,
+          args.location as string | undefined,
         );
+
+        // Also save to local DB
+        const evGoogleId =
+          "eventId" in evResult && evResult.eventId ? (evResult.eventId as string) : null;
+        await prisma.calendarEvent.create({
+          data: {
+            userId,
+            title: evSummary,
+            description: (args.description as string) || null,
+            startTime: new Date(evStart),
+            endTime: new Date(evEnd),
+            location: (args.location as string) || null,
+            googleId: evGoogleId,
+          },
+        });
+
+        return JSON.stringify(evResult);
+      }
       case "delete_event":
         return JSON.stringify(await deleteEvent(userId, requireString(args.event_id, "event_id")));
       case "check_calendar_conflicts":
@@ -233,15 +273,38 @@ export async function executeToolCall(
         return JSON.stringify(
           await listReminders(userId, (args.include_completed as boolean) || false),
         );
-      case "create_reminder":
+      case "create_reminder": {
+        const reminderTitle = requireString(args.title, "title");
+        const reminderAt = requireString(args.remind_at, "remind_at");
+        // Dedup: check if a similar reminder already exists within ±30 min
+        const remindDate = new Date(reminderAt);
+        if (!isNaN(remindDate.getTime())) {
+          const dupReminder = await prisma.reminder.findFirst({
+            where: {
+              userId,
+              title: { contains: reminderTitle.slice(0, 20) },
+              remindAt: {
+                gte: new Date(remindDate.getTime() - 30 * 60_000),
+                lte: new Date(remindDate.getTime() + 30 * 60_000),
+              },
+            },
+          });
+          if (dupReminder) {
+            return JSON.stringify({
+              skipped: true,
+              message: `Similar reminder already exists: "${dupReminder.title}" at ${dupReminder.remindAt}`,
+            });
+          }
+        }
         return JSON.stringify(
           await createReminder(
             userId,
-            requireString(args.title, "title"),
-            requireString(args.remind_at, "remind_at"),
+            reminderTitle,
+            reminderAt,
             args.description as string | undefined,
           ),
         );
+      }
       case "dismiss_reminder":
         return JSON.stringify(
           await dismissReminder(requireString(args.reminder_id, "reminder_id")),
@@ -284,10 +347,19 @@ export async function executeToolCall(
         );
       case "get_current_time": {
         const now = new Date();
-        const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+        const kstFmt = new Intl.DateTimeFormat("sv-SE", {
+          timeZone: "Asia/Seoul",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        });
         return JSON.stringify({
           utc: now.toISOString(),
-          kst: kst.toISOString().replace("Z", "+09:00"),
+          kst: kstFmt.format(now).replace(" ", "T") + "+09:00",
           formatted_kst: now.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }),
           day_of_week: now.toLocaleDateString("ko-KR", { weekday: "long", timeZone: "Asia/Seoul" }),
         });

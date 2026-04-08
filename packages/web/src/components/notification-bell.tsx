@@ -18,11 +18,11 @@ interface Notification {
 function formatRelative(date: string): string {
   const diff = Date.now() - new Date(date).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "방금";
-  if (mins < 60) return `${mins}분 전`;
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.floor(hours / 24)}일 전`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 }
 
 const typeIcon: Record<string, string> = {
@@ -84,6 +84,22 @@ export default function NotificationBell({ userId }: { userId: string }) {
         });
         setFlash(true);
         setTimeout(() => setFlash(false), 2000);
+
+        // Show macOS system notification via Notification API
+        if (
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          window.Notification.permission === "granted"
+        ) {
+          try {
+            new window.Notification(notif.title, {
+              body: notif.message,
+              icon: "/icon-192.svg",
+            });
+          } catch {
+            // Notification constructor failed — ignore
+          }
+        }
       }
     });
     return unsub;
@@ -97,9 +113,9 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, connected ? 60_000 : 15_000);
+    const interval = setInterval(fetchNotifications, 60_000);
     return () => clearInterval(interval);
-  }, [connected]);
+  }, []);
 
   const markAsRead = (id: string) => {
     apiFetch(`/api/notifications/${id}/read`, { method: "PATCH" }).catch(() => {});
@@ -130,7 +146,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
       const convo = await apiFetch<{ id: string }>("/api/chat/conversations", {
         method: "POST",
         body: JSON.stringify({
-          initialMessage: `[EVE 알림에 대해 이야기하고 싶어요]\n\n제목: ${n.title}\n내용: ${n.message}\n\n이 알림에 대해 더 자세히 알려주세요.`,
+          initialMessage: `Tell me more about: ${n.title}\n\n${n.message}`,
         }),
       });
       setOpen(false);
@@ -182,7 +198,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
         <div className="absolute left-0 top-full mt-2 w-[min(20rem,calc(100vw-2rem))] bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">알림</span>
+              <span className="text-sm font-medium">Notifications</span>
               {connected && (
                 <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
                   live
@@ -201,7 +217,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   onClick={markAllRead}
                   className="text-xs text-gray-500 hover:text-blue-400 transition"
                 >
-                  모두 읽음
+                  Read all
                 </button>
               )}
               {notifications.length > 0 && (
@@ -210,21 +226,23 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   onClick={clearAll}
                   className="text-xs text-gray-500 hover:text-red-400 transition"
                 >
-                  전체 삭제
+                  Clear
                 </button>
               )}
             </div>
           </div>
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <p className="text-center text-gray-500 text-sm py-6">알림이 없습니다</p>
+              <p className="text-center text-gray-500 text-sm py-6">No notifications</p>
             ) : (
               notifications.map((n) => (
-                <button
+                <div
                   key={n.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => !n.isRead && markAsRead(n.id)}
-                  className={`w-full text-left px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition ${
+                  onKeyDown={(e) => e.key === "Enter" && !n.isRead && markAsRead(n.id)}
+                  className={`w-full text-left px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition cursor-pointer ${
                     !n.isRead ? "bg-blue-600/5" : ""
                   } ${isAgentNotification(n.title) ? "border-l-2 border-l-cyan-500/60" : ""}`}
                 >
@@ -258,17 +276,17 @@ export default function NotificationBell({ userId }: { userId: string }) {
                         }}
                         className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer hover:underline"
                       >
-                        {n.conversationId ? "확인하기 →" : "EVE와 대화 →"}
+                        {n.conversationId ? "View →" : "Discuss →"}
                       </button>
                     )}
                   </div>
-                </button>
+                </div>
               ))
             )}
           </div>
           {tabCount > 1 && (
             <div className="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">
-              {tabCount}개 탭 연결 — 실시간 동기화
+              {tabCount} tabs connected
             </div>
           )}
         </div>

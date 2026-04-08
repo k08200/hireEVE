@@ -172,6 +172,27 @@ export async function sendEmail(userId: string, to: string, subject: string, bod
   return { success: true, messageId: res.data.id };
 }
 
+/** Mark a Gmail message as read (remove UNREAD label) */
+export async function markAsRead(userId: string, gmailMessageId: string) {
+  const auth = await getAuthedClient(userId);
+  if (!auth) return { error: "Gmail not connected." };
+
+  const gmail = google.gmail({ version: "v1", auth });
+  await gmail.users.messages.modify({
+    userId: "me",
+    id: gmailMessageId,
+    requestBody: { removeLabelIds: ["UNREAD"] },
+  });
+
+  // Also update local DB
+  await prisma.emailMessage.updateMany({
+    where: { userId, gmailId: gmailMessageId },
+    data: { isRead: true },
+  });
+
+  return { success: true };
+}
+
 export async function classifyEmails(userId: string, maxResults = 10) {
   const result = await listEmails(userId, maxResults);
   if ("error" in result) return result;

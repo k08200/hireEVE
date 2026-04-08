@@ -163,6 +163,15 @@ export async function chatRoutes(app: FastifyInstance) {
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
     if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
+    // Explicit ordered deletion to avoid FK constraint violations
+    // PendingAction has dual FK (conversationId + messageId) — must delete first
+    await db.pendingAction.deleteMany({ where: { conversationId: id } });
+    await db.conversationSummary.deleteMany({ where: { conversationId: id } });
+    await db.tokenUsage.updateMany({
+      where: { conversationId: id },
+      data: { conversationId: null },
+    });
+    await prisma.message.deleteMany({ where: { conversationId: id } });
     await prisma.conversation.delete({ where: { id } });
     return reply.code(204).send();
   });
@@ -250,8 +259,8 @@ export async function chatRoutes(app: FastifyInstance) {
     const retryContextParts: string[] = [];
     try {
       const now = new Date();
-      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-      retryContextParts.push(`현재 시각: ${kst.toISOString().replace("T", " ").slice(0, 16)} KST`);
+      const kstTime = now.toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
+      retryContextParts.push(`현재 시각: ${kstTime} KST`);
       const pendingTasks = await prisma.task.findMany({
         where: { userId: conversation.userId, status: { not: "DONE" } },
         orderBy: { dueDate: "asc" },
@@ -366,11 +375,30 @@ export async function chatRoutes(app: FastifyInstance) {
 
       reply.raw.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
     } catch (err) {
+      // Save partial response even if client disconnected
+      if (fullResponse) {
+        try {
+          await prisma.message.create({
+            data: { conversationId: id, role: "ASSISTANT", content: fullResponse },
+          });
+        } catch {
+          // DB save failed
+        }
+      }
+
       const message = err instanceof Error ? err.message : "Unknown error";
-      reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
+      try {
+        reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
+      } catch {
+        // Client already disconnected
+      }
     }
 
-    reply.raw.end();
+    try {
+      reply.raw.end();
+    } catch {
+      // Client already disconnected
+    }
   });
 
   // GET /api/chat/search?q=keyword — Search across all conversations
@@ -496,8 +524,8 @@ export async function chatRoutes(app: FastifyInstance) {
     const contextParts: string[] = [];
     try {
       const now = new Date();
-      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-      contextParts.push(`현재 시각: ${kst.toISOString().replace("T", " ").slice(0, 16)} KST`);
+      const kstTime2 = now.toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
+      contextParts.push(`현재 시각: ${kstTime2} KST`);
 
       // Pending tasks
       const pendingTasks = await prisma.task.findMany({
@@ -516,7 +544,9 @@ export async function chatRoutes(app: FastifyInstance) {
       }
 
       // Today's upcoming reminders
-      const todayEnd = new Date(kst.getFullYear(), kst.getMonth(), kst.getDate() + 1);
+      // Get end of today in KST
+      const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+      const todayEnd = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate() + 1);
       const upcomingReminders = await prisma.reminder.findMany({
         where: {
           userId: conversation.userId,
@@ -712,11 +742,34 @@ export async function chatRoutes(app: FastifyInstance) {
 
       reply.raw.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
     } catch (err) {
+      // Save partial response even if client disconnected mid-stream
+      if (fullResponse) {
+        try {
+          await prisma.message.create({
+            data: { conversationId: id, role: "ASSISTANT", content: fullResponse },
+          });
+          await prisma.conversation.update({
+            where: { id },
+            data: { updatedAt: new Date() },
+          });
+        } catch {
+          // DB save failed — nothing we can do
+        }
+      }
+
       const message = err instanceof Error ? err.message : "Unknown error";
-      reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
+      try {
+        reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
+      } catch {
+        // Client already disconnected — ignore write error
+      }
     }
 
-    reply.raw.end();
+    try {
+      reply.raw.end();
+    } catch {
+      // Client already disconnected
+    }
   });
 
   // GET /api/chat/conversations/:id/pending-actions — Get pending actions for a conversation

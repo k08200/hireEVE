@@ -25,7 +25,7 @@
  * `Promise<{ [k: string]: unknown }>` so returned objects support property access.
  */
 import { db, prisma } from "./db.js";
-import { listEmails } from "./gmail.js";
+import { markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
 import { AGENT_MODEL, openai } from "./openai.js";
 import { sendPushNotification } from "./push.js";
@@ -33,16 +33,18 @@ import { ALL_TOOLS, executeToolCall } from "./tool-executor.js";
 import { pushNotification } from "./websocket.js";
 
 const CHECK_INTERVAL_MS = 60 * 1000; // Check every 1 minute (respects per-user intervals)
-const MAX_TOOL_CALLS = 5;
+const MAX_TOOL_CALLS = 10;
 const MAX_CONTEXT_ITEMS = 10;
 const CONCURRENCY_LIMIT = 5; // Max users to run concurrently
 
-// Safe write tools allowed in AUTO mode — low-risk operations only
+// Safe write tools allowed in AUTO mode — autonomous execution without user approval
 const AUTO_SAFE_WRITE_TOOLS = new Set([
   "create_reminder",
   "dismiss_reminder",
   "update_task",
   "classify_emails",
+  "send_email",
+  "create_event",
 ]);
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -54,6 +56,32 @@ const lastRunTime = new Map<string, number>();
 // Map<userId, Map<titleHash, expiresAt>> — entries auto-expire, NOT cleared each cycle
 const recentNotifications = new Map<string, Map<string, number>>();
 
+// Dedup: track emails we already replied to (prevent sending same reply every 5 min)
+// Map<userId, Map<emailSubjectHash, expiresAt>> — TTL 2 hours
+const repliedEmails = new Map<string, Map<string, number>>();
+const REPLIED_EMAIL_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+/** Check if we already replied to this email */
+function hasRepliedToEmail(userId: string, emailKey: string): boolean {
+  const userReplied = repliedEmails.get(userId);
+  if (!userReplied) return false;
+  const expiresAt = userReplied.get(emailKey);
+  if (!expiresAt) return false;
+  if (Date.now() > expiresAt) {
+    userReplied.delete(emailKey);
+    return false;
+  }
+  return true;
+}
+
+/** Mark email as replied */
+function markEmailReplied(userId: string, emailKey: string) {
+  if (!repliedEmails.has(userId)) {
+    repliedEmails.set(userId, new Map());
+  }
+  repliedEmails.get(userId)!.set(emailKey, Date.now() + REPLIED_EMAIL_TTL);
+}
+
 /** Prune expired dedup entries (called each cycle) */
 function pruneDedup() {
   const now = Date.now();
@@ -63,11 +91,22 @@ function pruneDedup() {
     }
     if (entries.size === 0) recentNotifications.delete(userId);
   }
+  // Also prune replied emails
+  for (const [userId, entries] of repliedEmails) {
+    for (const [key, expiresAt] of entries) {
+      if (now > expiresAt) entries.delete(key);
+    }
+    if (entries.size === 0) repliedEmails.delete(userId);
+  }
 }
 
 function getNotifKey(title: string): string {
-  // Simple hash: lowercase, strip whitespace, take first 50 chars
-  return title.toLowerCase().replace(/\s+/g, "").slice(0, 50);
+  // Normalize: lowercase, strip whitespace/punctuation, take first 30 chars
+  // This catches slight variations like "스크럼 장소 확인" vs "스크럼 장소 중복 알림"
+  return title
+    .toLowerCase()
+    .replace(/[\s.,!?·\-_()[\]{}'"]/g, "")
+    .slice(0, 30);
 }
 
 /** Track LLM token usage for cost monitoring */
@@ -220,15 +259,21 @@ async function getProposalHistory(userId: string): Promise<string> {
 /** Gather full user context for LLM reasoning */
 async function gatherUserContext(userId: string): Promise<string> {
   const now = new Date();
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const in7d = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  // Check if Google is connected for email context
-  const hasGoogle = await prisma.userToken.findFirst({
-    where: { userId, provider: "google" },
-    select: { id: true },
+  // Format current time in KST using Intl (avoids double-offset bug when server is already in KST)
+  const kstFormatter = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   });
+  const kstStr = kstFormatter.format(now).replace(" ", "T") + "+09:00";
 
   const [
     tasks,
@@ -264,11 +309,48 @@ async function gatherUserContext(userId: string): Promise<string> {
     prisma.notification.count({
       where: { userId, isRead: false },
     }),
-    hasGoogle
-      ? listEmails(userId, 5)
-          .then((res) => ("emails" in res ? res.emails : []))
-          .catch(() => [] as Array<{ from: string; subject: string; snippet: string }>)
-      : ([] as Array<{ from: string; subject: string; snippet: string }>),
+    // Use DB-synced emails: only UNREAD emails from last 24h to avoid re-processing old ones
+    prisma.emailMessage
+      .findMany({
+        where: {
+          userId,
+          isRead: false,
+          receivedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        },
+        orderBy: { receivedAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          gmailId: true,
+          from: true,
+          subject: true,
+          snippet: true,
+          body: true,
+          summary: true,
+          category: true,
+          priority: true,
+          actionItems: true,
+          isRead: true,
+          receivedAt: true,
+        },
+      })
+      .catch(
+        () =>
+          [] as Array<{
+            id: string;
+            gmailId: string;
+            from: string;
+            subject: string;
+            snippet: string;
+            body: string | null;
+            summary: string | null;
+            category: string | null;
+            priority: string;
+            actionItems: string | null;
+            isRead: boolean;
+            receivedAt: Date;
+          }>,
+      ),
     // Key contacts for cross-domain reasoning (e.g., link email sender to contact)
     prisma.contact.findMany({
       where: { userId },
@@ -302,9 +384,7 @@ async function gatherUserContext(userId: string): Promise<string> {
 
   const sections: string[] = [];
 
-  sections.push(
-    `## Current Time\nKST: ${kst.toISOString().replace("Z", "+09:00")}\nUTC: ${now.toISOString()}`,
-  );
+  sections.push(`## Current Time\nKST: ${kstStr}\nUTC: ${now.toISOString()}`);
 
   if (tasks.length > 0) {
     const taskLines = tasks.map(
@@ -353,11 +433,38 @@ async function gatherUserContext(userId: string): Promise<string> {
   }
 
   if (emails && emails.length > 0) {
-    const emailLines = emails.map(
-      (e: { from: string; subject: string; snippet?: string }) =>
-        `- From: ${e.from} — "${e.subject}" (${e.snippet?.slice(0, 80) || ""})`,
+    const emailLines = (
+      emails as Array<{
+        id: string;
+        gmailId: string;
+        from: string;
+        subject: string;
+        snippet: string | null;
+        body: string | null;
+        summary: string | null;
+        category: string | null;
+        priority: string;
+        actionItems: string | null;
+        isRead: boolean;
+        receivedAt: Date;
+      }>
+    ).map((e, idx) => {
+      const bodyPreview = e.body ? e.body.slice(0, 300) : e.snippet || "";
+      const cat = e.category ? ` [${e.category}]` : "";
+      const pri = e.priority !== "NORMAL" ? ` (${e.priority})` : "";
+      const summ = e.summary ? `\n  요약: ${e.summary}` : "";
+      const actions = e.actionItems ? `\n  액션: ${e.actionItems}` : "";
+      const read = e.isRead ? "" : " 📩 UNREAD";
+      const receivedKST = e.receivedAt.toLocaleString("ko-KR", {
+        timeZone: "Asia/Seoul",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return `### Email #${idx + 1} (수신: ${receivedKST})${read}\n  From: ${e.from}\n  Subject: "${e.subject}"${cat}${pri}${summ}${actions}\n  본문: ${bodyPreview}`;
+    });
+    sections.push(
+      `## Recent Emails (${emails.length})\nIMPORTANT: Each email below is a SEPARATE item. Different subjects or different body content = DIFFERENT meetings/requests. Do NOT merge them.\n${emailLines.join("\n\n")}`,
     );
-    sections.push(`## Recent Emails (${emails.length})\n${emailLines.join("\n")}`);
   }
 
   sections.push(`## Unread Notifications: ${unreadNotifs}`);
@@ -434,7 +541,8 @@ async function gatherUserContext(userId: string): Promise<string> {
     endTime?: Date;
     meetingLink: string | null;
   }>;
-  const todayEnd = new Date(kst);
+  const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const todayEnd = new Date(kstNow);
   todayEnd.setHours(23, 59, 59, 999);
   const todayEvents = typedCalendar.filter((e) => e.startTime < todayEnd);
   if (typedTasks.length > 0 && todayEvents.length <= 2) {
@@ -719,8 +827,105 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
     const isAutoMode = mode === "AUTO";
 
     const systemPrompt = isAutoMode
-      ? AGENT_SYSTEM_PROMPT +
-        `\n\n## AUTO Mode Active\nYou may execute SAFE write operations automatically:\n- create_reminder: Create reminders for upcoming deadlines\n- dismiss_reminder: Dismiss past-due reminders\n- update_task: Update task status (e.g., mark overdue tasks)\n- classify_emails: Auto-classify emails\n\nFor these operations, act directly without asking. Still notify the user about what you did.\nFor risky operations (send_email, delete_*, send_slack_message, send_imessage), NEVER auto-execute — only NOTIFY.`
+      ? AGENT_SYSTEM_PROMPT.replace(
+          /## Primary Tool: propose_action[\s\S]*?## Secondary Tool: notify_user/,
+          `## CRITICAL: AUTO Mode — Direct Execution Required
+DO NOT use propose_action. Instead, call tools DIRECTLY:
+- create_event: Create calendar events immediately
+- create_reminder: Set reminders immediately
+- send_email: Send emails immediately
+- update_task: Update tasks immediately
+- dismiss_reminder: Dismiss reminders immediately
+- classify_emails: Classify emails immediately
+
+You MUST execute actions directly by calling the tool. Do NOT propose. Do NOT ask for approval.
+After executing, use notify_user to inform the user what you did.
+
+## Secondary Tool: notify_user`,
+        ) +
+        `\n\n## CRITICAL: Each Email = Independent Item
+NEVER merge or confuse different emails. Even if they mention the same location or person:
+- Different time mentioned → DIFFERENT meeting → create SEPARATE events
+- Different subject → DIFFERENT conversation → reply SEPARATELY
+- "7시 미팅" and "10시 미팅" at same place = TWO separate meetings, not one
+
+When you see "N시" in email body, you MUST disambiguate AM/PM:
+
+## AM/PM Disambiguation Rules (MANDATORY)
+1. Check the email's received time (shown as "수신: HH:MM" in each email header)
+2. Apply these rules:
+   - "8시" in an email received after 14:00 → 20:00 (8 PM)
+   - "8시" in an email received before 10:00 → 08:00 (8 AM)
+   - "8시" in an email received 10:00~14:00 → DEFAULT to 20:00 (8 PM) for work meetings
+   - If the email explicitly says "오전" or "AM" → morning
+   - If the email explicitly says "오후" or "PM" → afternoon/evening
+   - Business meetings default to PM if ambiguous (most meetings are after work)
+3. ALWAYS use 24-hour format in create_event: "20:00" not "8:00"
+
+Examples:
+- Email received 18:30 says "8시 미팅" → create_event at 20:00 KST
+- Email received 07:00 says "8시 미팅" → create_event at 08:00 KST
+- Email received 15:00 says "3시 미팅" → create_event at 15:00 KST (same day context)
+- Email says "오전 10시" → 10:00 regardless of received time
+
+## MANDATORY: Meeting Email = 4 Steps (ALL required, do NOT skip any)
+When you see an email about a meeting, you MUST do ALL 4 steps IN ORDER:
+1. call create_event with the CORRECT time (apply AM/PM rules above) and location
+2. call create_reminder 30 minutes before
+3. call send_email to reply (e.g. "확인했습니다", "참석하겠습니다", or "일정 확인 감사합니다")
+4. call notify_user to inform the user
+
+NEVER stop after step 1 or step 2. You MUST complete ALL 4 steps.
+If you created an event but didn't send_email AND notify_user, YOUR JOB IS NOT DONE.
+Stopping early = FAILURE. You will be evaluated on completing all 4 steps.
+
+You MUST call create_event for each distinct meeting. If there are 2 meetings at different times, create 2 events + 2 replies.
+
+Example: Email says "4/15 19:00 KST 미팅" → create_event at 2026-04-15T19:00:00+09:00
+Another email says "8시미팅 강남" (received 20:09 KST) → "8시" + received after 14:00 → 20:00 PM → create_event at 2026-04-15T20:00:00+09:00
+
+## MANDATORY: Email Processing Rules
+
+For EVERY unread email, you MUST take action. Follow this decision tree:
+
+### Step 1: Classify the email
+Determine the type:
+- **ACTION_REQUIRED**: Someone asks a question, requests info, proposes a meeting, sends a greeting → needs a reply
+- **FYI_ONLY**: Newsletter, marketing, automated notification (noreply@), system alert, receipt → no reply needed
+- **ALREADY_HANDLED**: You already replied in a previous cycle (check "Your Previous Decisions") → skip
+
+### Step 2: Take action based on type
+
+**ACTION_REQUIRED → auto-reply (send_email) + notify_user**
+Always reply when:
+- Someone asks a question or requests information
+- Someone confirms/changes meeting details (reply with acknowledgment)
+- Someone sends a greeting or introduction (reply politely)
+- Someone shares meeting time/location info (confirm receipt)
+- Someone shares important updates (acknowledge)
+
+How to reply:
+1. call send_email with:
+   - to: sender's email address (extract from "From:" field — use the email address inside < >, e.g. "홍길동 <example@mail.com>" → to: "example@mail.com")
+   - subject: "Re: [THAT email's subject]" (NOT another email's subject!)
+   - body: appropriate Korean 존댓말 reply about THAT specific email's content
+2. THEN call notify_user: "[답장 완료] OO님에게 OO 관련 답장을 보냈습니다"
+
+**FYI_ONLY → notify_user only (no reply)**
+- call notify_user: "[새 메일] OO로부터 OO 내용의 메일이 왔습니다"
+
+**ALREADY_HANDLED → skip entirely**
+
+### Reply tone:
+- Korean 존댓말, professional but friendly
+- Concise: 2-4 sentences max
+- Sign off as the user (NOT as EVE)
+- Mirror the language of the incoming email (Korean → Korean, English → English)
+
+### CRITICAL rules:
+- Reply to EACH email separately. 2 unread emails = 2 separate replies
+- NEVER skip notify_user. The user depends on notifications to know what happened.
+- After EVERY action (create_event, send_email, create_reminder, update_task), ALWAYS call notify_user.`
       : AGENT_SYSTEM_PROMPT;
 
     const contextParts = [context];
@@ -741,12 +946,18 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
 
     // Build tool list based on mode
     const agentTools = [
-      PROPOSE_ACTION_TOOL,
+      // In AUTO mode, skip propose_action — agent executes directly
+      ...(isAutoMode ? [] : [PROPOSE_ACTION_TOOL]),
       NOTIFY_TOOL,
       ...ALL_TOOLS.filter((t) => {
         const name = t.function.name;
         // Always allow read-only tools
-        if (name.startsWith("list_") || name.startsWith("get_") || name === "web_search") {
+        if (
+          name.startsWith("list_") ||
+          name.startsWith("get_") ||
+          name === "web_search" ||
+          name === "check_calendar_conflicts"
+        ) {
           return true;
         }
         // In AUTO mode, also allow safe write tools
@@ -828,12 +1039,22 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
           }
           const userNotifs = recentNotifications.get(userId)!;
 
-          if (userNotifs.has(key) && Date.now() < (userNotifs.get(key) || 0)) {
+          // DB-backed dedup: check if there's already a PENDING action with same toolName
+          const existingPending = await db.pendingAction.findFirst({
+            where: {
+              userId,
+              toolName: args.toolName,
+              status: "PENDING",
+            },
+            orderBy: { createdAt: "desc" },
+          });
+
+          if (existingPending || (userNotifs.has(key) && Date.now() < (userNotifs.get(key) || 0))) {
             result = JSON.stringify({ skipped: true, reason: "duplicate proposal" });
             await logAgentAction(userId, "skip", `Dedup proposal: "${args.message.slice(0, 50)}"`);
           } else {
-            // TTL = 30 minutes (covers multiple agent cycles)
-            userNotifs.set(key, Date.now() + 30 * 60 * 1000);
+            // TTL = 2 hours (prevent repeating same proposal)
+            userNotifs.set(key, Date.now() + 2 * 60 * 60 * 1000);
 
             // Find or create an agent conversation for today
             const todayStart = new Date();
@@ -879,7 +1100,7 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
                 messageId: assistantMsg.id,
                 userId,
                 toolName: args.toolName,
-                toolArgs: JSON.stringify(args.toolArgs),
+                toolArgs: JSON.stringify(args.toolArgs ?? {}),
                 reasoning: args.message,
               },
             });
@@ -911,13 +1132,12 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
               conversationId: agentConvo.id,
             });
 
-            if (args.priority === "high") {
-              sendPushNotification(userId, {
-                title: "[EVE] 확인이 필요해요",
-                body: args.message.slice(0, 100),
-                url: `/chat/${agentConvo.id}`,
-              });
-            }
+            // Always send push notification for proposed actions (phone/browser)
+            sendPushNotification(userId, {
+              title: "[EVE] 확인이 필요해요",
+              body: args.message.slice(0, 100),
+              url: `/chat/${agentConvo.id}`,
+            });
 
             result = JSON.stringify({
               success: true,
@@ -957,8 +1177,8 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
             result = JSON.stringify({ skipped: true, reason: "duplicate notification" });
             await logAgentAction(userId, "skip", `Dedup: "${args.title}" already sent`);
           } else {
-            // TTL = 30 minutes
-            userNotifs.set(key, Date.now() + 30 * 60 * 1000);
+            // TTL = 2 hours (prevent repeating same notification)
+            userNotifs.set(key, Date.now() + 2 * 60 * 60 * 1000);
 
             // Mark as agent-generated notification
             const agentTitle = `[EVE] ${args.title}`;
@@ -980,13 +1200,12 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
               createdAt: notification.createdAt.toISOString(),
             });
 
-            if (args.priority === "high") {
-              sendPushNotification(userId, {
-                title: agentTitle,
-                body: args.message,
-                url: `/${args.category === "task" ? "tasks" : args.category === "calendar" ? "calendar" : "chat"}`,
-              });
-            }
+            // Always send push notification for agent notifications (phone/browser)
+            sendPushNotification(userId, {
+              title: agentTitle,
+              body: args.message,
+              url: `/${args.category === "task" ? "tasks" : args.category === "calendar" ? "calendar" : "chat"}`,
+            });
 
             result = JSON.stringify({ success: true, notified: true });
 
@@ -1002,7 +1221,107 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
         } else {
           // In AUTO mode with safe write tools, execute and notify
           const isSafeWrite = AUTO_SAFE_WRITE_TOOLS.has(fnName);
+
+          // Dedup: prevent sending same email reply repeatedly across cycles (memory + DB)
+          if (fnName === "send_email") {
+            const emailSubject = (args as { subject?: string }).subject || "";
+            const emailKey = `${(args as { to?: string }).to || ""}_${emailSubject}`
+              .toLowerCase()
+              .replace(/\s+/g, "")
+              .slice(0, 100);
+
+            // Check memory-based dedup first
+            let alreadyReplied = hasRepliedToEmail(userId, emailKey);
+
+            // Also check DB-based dedup (survives server restarts)
+            if (!alreadyReplied) {
+              const recentSend = await db.agentLog.findFirst({
+                where: {
+                  userId,
+                  action: "auto_action",
+                  tool: "send_email",
+                  summary: { contains: emailSubject.replace(/^Re:\s*/i, "").slice(0, 30) },
+                  createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+                },
+              });
+              if (recentSend) alreadyReplied = true;
+            }
+
+            if (alreadyReplied) {
+              result = JSON.stringify({ skipped: true, reason: "already replied to this email" });
+              await logAgentAction(userId, "skip", `Dedup: already replied to "${emailSubject}"`);
+              console.log(`[AGENT] Skipped duplicate email reply for ${userId}: ${emailSubject}`);
+              messages.push({
+                role: "tool",
+                content: result,
+                tool_call_id: toolCall.id,
+              });
+              continue;
+            }
+          }
+
           result = await executeToolCall(userId, fnName, args);
+
+          // After successful send_email, mark as replied + mark original email as read in Gmail
+          if (fnName === "send_email" && !result.includes('"error"')) {
+            const emailKey =
+              `${(args as { to?: string }).to || ""}_${(args as { subject?: string }).subject || ""}`
+                .toLowerCase()
+                .replace(/\s+/g, "")
+                .slice(0, 100);
+            markEmailReplied(userId, emailKey);
+            console.log(
+              `[AGENT] Marked email as replied: ${(args as { subject?: string }).subject}`,
+            );
+
+            // Mark original email as read in Gmail so it won't appear as unread next cycle
+            try {
+              const replySubject = ((args as { subject?: string }).subject || "")
+                .replace(/^Re:\s*/i, "")
+                .toLowerCase()
+                .trim();
+              const replyTo = ((args as { to?: string }).to || "").toLowerCase().trim();
+              // Find ALL unread emails matching the reply — mark them all as read
+              const unreadEmails = await prisma.emailMessage.findMany({
+                where: {
+                  userId,
+                  isRead: false,
+                  receivedAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) },
+                },
+                select: { id: true, gmailId: true, subject: true, from: true },
+              });
+              for (const ue of unreadEmails) {
+                const ueSubject = (ue.subject || "")
+                  .replace(/^Re:\s*/i, "")
+                  .toLowerCase()
+                  .trim();
+                const ueFrom = (ue.from || "").toLowerCase();
+                // Match by subject similarity OR sender match
+                if (
+                  (replySubject && ueSubject.includes(replySubject.slice(0, 20))) ||
+                  (replyTo && ueFrom.includes(replyTo))
+                ) {
+                  if (ue.gmailId) {
+                    await markAsRead(userId, ue.gmailId).catch((err: unknown) =>
+                      console.warn(`[AGENT] Failed to mark ${ue.gmailId} as read:`, err),
+                    );
+                    console.log(
+                      `[AGENT] Marked Gmail message as read: ${ue.gmailId} (${ue.subject})`,
+                    );
+                  } else {
+                    // No gmailId — at least mark as read in our DB
+                    await prisma.emailMessage.update({
+                      where: { id: ue.id },
+                      data: { isRead: true },
+                    });
+                    console.log(`[AGENT] Marked DB email as read (no gmailId): ${ue.subject}`);
+                  }
+                }
+              }
+            } catch (err) {
+              console.warn(`[AGENT] Failed to mark email as read in Gmail:`, err);
+            }
+          }
 
           const action = isSafeWrite ? "auto_action" : "tool_call";
           await logAgentAction(
@@ -1025,6 +1344,19 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
               title: autoTitle,
               message: autoMessage,
               createdAt: notification.createdAt.toISOString(),
+            });
+
+            // Send macOS/browser push notification
+            const urlMap: Record<string, string> = {
+              create_event: "/calendar",
+              send_email: "/email",
+              create_reminder: "/tasks",
+              update_task: "/tasks",
+            };
+            sendPushNotification(userId, {
+              title: autoTitle,
+              body: autoMessage,
+              url: urlMap[fnName] || "/chat",
             });
             console.log(`[AGENT] Auto-executed ${fnName} for ${userId}`);
           }
@@ -1101,7 +1433,7 @@ async function runAutonomousAgent() {
       if (now - lastRun < intervalMs - 30_000) continue;
 
       lastRunTime.set(config.userId, now);
-      usersToRun.push({ userId: config.userId, mode: (cfg.agentMode as string) || "SUGGEST" });
+      usersToRun.push({ userId: config.userId, mode: (cfg.agentMode as string) || "AUTO" });
     }
 
     // Run in parallel with concurrency limit (not sequential)

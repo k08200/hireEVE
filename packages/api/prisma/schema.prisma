@@ -36,6 +36,8 @@ model User {
   pushSubscriptions  PushSubscription[]
   memories           Memory[]
   tokenUsages        TokenUsage[]
+  emailMessages      EmailMessage[]
+  emailRules         EmailRule[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 }
@@ -408,4 +410,79 @@ enum ActionStatus {
   REJECTED
   EXECUTED
   FAILED
+}
+
+// ─── Email System ──────────────────────────────────────────────────────────
+// Persisted copy of Gmail messages for local search, AI summarization, and threading
+
+model EmailMessage {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  gmailId     String   // Gmail message ID
+  threadId    String?  // Gmail thread ID for conversation grouping
+  from        String
+  to          String
+  cc          String?
+  subject     String
+  snippet     String?  // Gmail snippet (preview text)
+  body        String?  // Full plain-text body
+  htmlBody    String?  // Full HTML body (for rich rendering)
+  labels      String[] // Gmail labels: ["INBOX", "UNREAD", "IMPORTANT"]
+  isRead      Boolean  @default(false)
+  isStarred   Boolean  @default(false)
+  priority    EmailPriority @default(NORMAL)
+  category    String?  // AI classification: billing, meeting, engineering, conversation, automated, other
+  summary     String?  // AI-generated one-line summary
+  keyPoints   String?  // JSON array: AI-extracted key takeaways
+  actionItems String?  // JSON array: AI-extracted TODOs from email
+  sentiment   String?  // positive | negative | neutral
+  receivedAt  DateTime // Original email date
+  syncedAt    DateTime @default(now()) // When we synced from Gmail
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, gmailId])
+  @@index([userId, receivedAt])
+  @@index([userId, threadId])
+  @@index([userId, priority])
+  @@index([userId, category])
+  @@index([userId, isRead])
+}
+
+enum EmailPriority {
+  URGENT
+  NORMAL
+  LOW
+}
+
+// Auto-reply rules — user-configurable patterns for automated responses
+model EmailRule {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String   // Rule display name
+  description String?
+  isActive    Boolean  @default(true)
+  // Conditions (JSON): { from?: string[], subjectContains?: string[], category?: string[] }
+  conditions  String
+  // Action type
+  actionType  EmailRuleAction @default(AUTO_REPLY)
+  // Reply template (for AUTO_REPLY) or label name (for LABEL)
+  actionValue String
+  // How many times this rule has been triggered
+  triggerCount Int     @default(0)
+  lastTriggeredAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isActive])
+}
+
+enum EmailRuleAction {
+  AUTO_REPLY   // Send canned reply
+  DRAFT_REPLY  // Create draft for user review
+  LABEL        // Apply label
+  ARCHIVE      // Auto-archive
+  NOTIFY       // Send push notification
 }
