@@ -170,10 +170,41 @@ async function runAutomations() {
             response?: { status?: number; data?: { error?: { message?: string } } };
             message?: string;
           };
+          const status = gaxiosErr.response?.status;
           console.error(
-            `[AUTOMATION] Calendar sync failed for ${config.userId} (HTTP ${gaxiosErr.response?.status}):`,
+            `[AUTOMATION] Calendar sync failed for ${config.userId} (HTTP ${status}):`,
             gaxiosErr.response?.data?.error?.message || gaxiosErr.message || err,
           );
+
+          // 401/403 = token invalid — notify user to reconnect
+          if (status === 401 || status === 403) {
+            const existingAlert = await prisma.notification.findFirst({
+              where: {
+                userId: config.userId,
+                type: "calendar",
+                title: { contains: "Google 연결 끊김" },
+                createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+              },
+            });
+            if (!existingAlert) {
+              await prisma.notification.create({
+                data: {
+                  userId: config.userId,
+                  type: "calendar",
+                  title: "Google 연결 끊김",
+                  message: "Google 캘린더 동기화가 중단되었습니다. 설정에서 Google 계정을 다시 연결해주세요.",
+                  link: "/settings",
+                },
+              });
+              pushNotification(config.userId, {
+                id: crypto.randomUUID(),
+                type: "calendar",
+                title: "Google 연결 끊김",
+                message: "설정에서 Google 계정을 다시 연결해주세요.",
+                link: "/settings",
+              });
+            }
+          }
         }
       }
 

@@ -37,15 +37,45 @@ const MAX_TOOL_CALLS = 10;
 const MAX_CONTEXT_ITEMS = 10;
 const CONCURRENCY_LIMIT = 5; // Max users to run concurrently
 
-// Safe write tools allowed in AUTO mode — autonomous execution without user approval
-const AUTO_SAFE_WRITE_TOOLS = new Set([
-  "create_reminder",
-  "dismiss_reminder",
-  "update_task",
-  "classify_emails",
-  "send_email",
-  "create_event",
+/**
+ * Risk-based tool classification for AUTO mode execution gating.
+ *
+ * LOW  → auto-execute immediately, notify user after
+ * MEDIUM → intercept and create approval proposal (propose_action style)
+ * HIGH → intercept and create approval proposal with explicit warning
+ */
+type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
+
+const TOOL_RISK_LEVELS = new Map<string, RiskLevel>([
+  // LOW — safe, easily reversible, no external side effects
+  ["create_reminder", "LOW"],
+  ["dismiss_reminder", "LOW"],
+  ["update_task", "LOW"],
+  ["classify_emails", "LOW"],
+  ["create_task", "LOW"],
+  ["update_note", "LOW"],
+
+  // MEDIUM — external-facing or calendar changes, reversible but visible
+  ["create_event", "MEDIUM"],
+  ["send_email", "MEDIUM"],
+  ["create_note", "MEDIUM"],
+  ["update_contact", "MEDIUM"],
+  ["create_contact", "MEDIUM"],
+
+  // HIGH — destructive or hard to reverse
+  ["delete_task", "HIGH"],
+  ["delete_reminder", "HIGH"],
+  ["delete_note", "HIGH"],
+  ["delete_event", "HIGH"],
+  ["archive_email", "HIGH"],
+  ["delete_email", "HIGH"],
 ]);
+
+/** Get risk level for a tool. Returns undefined for read-only tools. */
+function getToolRisk(toolName: string): RiskLevel | undefined {
+  return TOOL_RISK_LEVELS.get(toolName);
+}
+
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -829,17 +859,22 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
     const systemPrompt = isAutoMode
       ? AGENT_SYSTEM_PROMPT.replace(
           /## Primary Tool: propose_action[\s\S]*?## Secondary Tool: notify_user/,
-          `## CRITICAL: AUTO Mode — Direct Execution Required
-DO NOT use propose_action. Instead, call tools DIRECTLY:
-- create_event: Create calendar events immediately
-- create_reminder: Set reminders immediately
-- send_email: Send emails immediately
-- update_task: Update tasks immediately
-- dismiss_reminder: Dismiss reminders immediately
-- classify_emails: Classify emails immediately
+          `## CRITICAL: AUTO Mode — Risk-Based Execution
 
-You MUST execute actions directly by calling the tool. Do NOT propose. Do NOT ask for approval.
-After executing, use notify_user to inform the user what you did.
+Call tools DIRECTLY — the system will handle risk gating automatically.
+
+### LOW risk (auto-executed immediately):
+- create_reminder, dismiss_reminder, update_task, classify_emails, create_task, update_note
+
+### MEDIUM risk (system will ask user for approval):
+- create_event, send_email, create_note, update_contact, create_contact
+
+### HIGH risk (system will warn user before approval):
+- delete_task, delete_reminder, delete_note, delete_event, archive_email, delete_email
+
+You MUST call tools directly. Do NOT use propose_action.
+LOW-risk tools execute instantly. MEDIUM/HIGH tools are automatically converted to approval proposals.
+After LOW-risk execution, use notify_user to inform the user what you did.
 
 ## Secondary Tool: notify_user`,
         ) +
@@ -946,7 +981,7 @@ How to reply:
 
     // Build tool list based on mode
     const agentTools = [
-      // In AUTO mode, skip propose_action — agent executes directly
+      // In AUTO mode, skip propose_action — agent calls tools directly, we gate by risk level
       ...(isAutoMode ? [] : [PROPOSE_ACTION_TOOL]),
       NOTIFY_TOOL,
       ...ALL_TOOLS.filter((t) => {
@@ -960,8 +995,8 @@ How to reply:
         ) {
           return true;
         }
-        // In AUTO mode, also allow safe write tools
-        if (isAutoMode && AUTO_SAFE_WRITE_TOOLS.has(name)) {
+        // In AUTO mode, allow all risk-classified tools (we gate at execution time)
+        if (isAutoMode && TOOL_RISK_LEVELS.has(name)) {
           return true;
         }
         return false;
@@ -1113,12 +1148,14 @@ How to reply:
 
             // Also create a notification so user sees it in notification bell
             const notifTitle = `[EVE] ${args.message.slice(0, 50)}${args.message.length > 50 ? "..." : ""}`;
-            const notification = await prisma.notification.create({
+            const proposalLink = `/chat/${agentConvo.id}`;
+            const notification = await (prisma.notification.create as Function)({
               data: {
                 userId,
                 type: args.category || "insight",
                 title: notifTitle,
                 message: args.message,
+                link: proposalLink,
               },
             });
 
@@ -1130,6 +1167,7 @@ How to reply:
               message: args.message,
               createdAt: notification.createdAt.toISOString(),
               conversationId: agentConvo.id,
+              link: proposalLink,
             });
 
             // Always send push notification for proposed actions (phone/browser)
@@ -1183,12 +1221,14 @@ How to reply:
             // Mark as agent-generated notification
             const agentTitle = `[EVE] ${args.title}`;
 
-            const notification = await prisma.notification.create({
+            const notifyLink = `/${args.category === "task" ? "tasks" : args.category === "calendar" ? "calendar" : args.category === "email" ? "email" : "chat"}`;
+            const notification = await (prisma.notification.create as Function)({
               data: {
                 userId,
                 type: args.category || "insight",
                 title: agentTitle,
                 message: args.message,
+                link: notifyLink,
               },
             });
 
@@ -1198,13 +1238,14 @@ How to reply:
               title: agentTitle,
               message: args.message,
               createdAt: notification.createdAt.toISOString(),
+              link: notifyLink,
             });
 
             // Always send push notification for agent notifications (phone/browser)
             sendPushNotification(userId, {
               title: agentTitle,
               body: args.message,
-              url: `/${args.category === "task" ? "tasks" : args.category === "calendar" ? "calendar" : "chat"}`,
+              url: notifyLink,
             });
 
             result = JSON.stringify({ success: true, notified: true });
@@ -1219,8 +1260,108 @@ How to reply:
             console.log(`[AGENT] Notified ${userId}: ${agentTitle}`);
           }
         } else {
-          // In AUTO mode with safe write tools, execute and notify
-          const isSafeWrite = AUTO_SAFE_WRITE_TOOLS.has(fnName);
+          // Risk-based execution gating for AUTO mode
+          const riskLevel = getToolRisk(fnName);
+          const isSafeWrite = riskLevel === "LOW";
+          const needsApproval = isAutoMode && (riskLevel === "MEDIUM" || riskLevel === "HIGH");
+
+          // MEDIUM/HIGH risk tools → intercept and create approval proposal
+          if (needsApproval) {
+            const riskLabel = riskLevel === "HIGH" ? "⚠️ 위험" : "확인 필요";
+            const proposalMessage =
+              riskLevel === "HIGH"
+                ? `[${riskLabel}] ${fnName}을(를) 실행하려 합니다. 되돌리기 어려운 작업입니다.\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`
+                : `[${riskLabel}] ${fnName}을(를) 실행해도 될까요?\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`;
+
+            // Dedup: check if there's already a PENDING action with same toolName
+            const existingPending = await db.pendingAction.findFirst({
+              where: { userId, toolName: fnName, status: "PENDING" },
+              orderBy: { createdAt: "desc" },
+            });
+
+            if (existingPending) {
+              result = JSON.stringify({ skipped: true, reason: "duplicate proposal" });
+              await logAgentAction(userId, "skip", `Dedup risk-gated proposal: ${fnName}`);
+            } else {
+              // Find or create agent conversation for today
+              const todayStart = new Date();
+              todayStart.setHours(0, 0, 0, 0);
+              let agentConvo = await db.conversation.findFirst({
+                where: { userId, source: "agent", createdAt: { gte: todayStart } },
+                orderBy: { createdAt: "desc" },
+              });
+              if (!agentConvo) {
+                const todayStr = new Date().toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+                agentConvo = await db.conversation.create({
+                  data: { userId, title: `EVE 제안 — ${todayStr}`, source: "agent" },
+                });
+              }
+
+              // Create assistant message with the proposal
+              const assistantMsg = await db.message.create({
+                data: {
+                  conversationId: agentConvo.id,
+                  role: "ASSISTANT",
+                  content: proposalMessage,
+                  metadata: JSON.stringify({ source: "agent", hasAction: true, riskLevel }),
+                },
+              });
+
+              // Create pending action for approve/reject
+              await db.pendingAction.create({
+                data: {
+                  conversationId: agentConvo.id,
+                  messageId: assistantMsg.id,
+                  userId,
+                  toolName: fnName,
+                  toolArgs: JSON.stringify(args),
+                  reasoning: proposalMessage,
+                },
+              });
+
+              await prisma.conversation.update({
+                where: { id: agentConvo.id },
+                data: { updatedAt: new Date() },
+              });
+
+              // Notification
+              const notifTitle = `[EVE] ${riskLabel}: ${fnName}`;
+              const riskLink = `/chat/${agentConvo.id}`;
+              const notification = await (prisma.notification.create as Function)({
+                data: { userId, type: "insight", title: notifTitle, message: proposalMessage, link: riskLink },
+              });
+              pushNotification(userId, {
+                id: notification.id,
+                type: "insight",
+                title: notifTitle,
+                message: proposalMessage,
+                createdAt: notification.createdAt.toISOString(),
+                conversationId: agentConvo.id,
+                link: riskLink,
+              });
+              sendPushNotification(userId, {
+                title: notifTitle,
+                body: proposalMessage.slice(0, 100),
+                url: riskLink,
+              });
+
+              // Notify sidebar to refresh
+              pushNotification(userId, {
+                id: "sidebar-refresh",
+                type: "system",
+                title: "conversations-updated",
+                message: "",
+                createdAt: new Date().toISOString(),
+              });
+
+              result = JSON.stringify({ success: true, proposed: true, riskLevel, conversationId: agentConvo.id });
+              await logAgentAction(userId, "propose", `[${riskLevel}] Risk-gated ${fnName}: ${JSON.stringify(args).slice(0, 100)}`, fnName);
+              console.log(`[AGENT] Risk-gated (${riskLevel}) ${fnName} for ${userId} → proposal created`);
+            }
+
+            messages.push({ role: "tool", content: result, tool_call_id: toolCall.id });
+            continue;
+          }
 
           // Dedup: prevent sending same email reply repeatedly across cycles (memory + DB)
           if (fnName === "send_email") {
@@ -1335,8 +1476,17 @@ How to reply:
           if (isSafeWrite && isAutoMode) {
             const autoTitle = `[EVE] 자동 실행: ${fnName}`;
             const autoMessage = `${fnName}을(를) 자동 실행했습니다: ${JSON.stringify(args).slice(0, 100)}`;
-            const notification = await prisma.notification.create({
-              data: { userId, type: "insight", title: autoTitle, message: autoMessage },
+            const urlMap: Record<string, string> = {
+              create_event: "/calendar",
+              send_email: "/email",
+              create_reminder: "/tasks",
+              update_task: "/tasks",
+              create_task: "/tasks",
+              update_note: "/notes",
+            };
+            const autoLink = urlMap[fnName] || "/chat";
+            const notification = await (prisma.notification.create as Function)({
+              data: { userId, type: "insight", title: autoTitle, message: autoMessage, link: autoLink },
             });
             pushNotification(userId, {
               id: notification.id,
@@ -1344,19 +1494,14 @@ How to reply:
               title: autoTitle,
               message: autoMessage,
               createdAt: notification.createdAt.toISOString(),
+              link: autoLink,
             });
 
             // Send macOS/browser push notification
-            const urlMap: Record<string, string> = {
-              create_event: "/calendar",
-              send_email: "/email",
-              create_reminder: "/tasks",
-              update_task: "/tasks",
-            };
             sendPushNotification(userId, {
               title: autoTitle,
               body: autoMessage,
-              url: urlMap[fnName] || "/chat",
+              url: autoLink,
             });
             console.log(`[AGENT] Auto-executed ${fnName} for ${userId}`);
           }

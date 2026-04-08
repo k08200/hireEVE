@@ -311,6 +311,7 @@ model Notification {
   title     String
   message   String
   isRead    Boolean  @default(false)
+  link      String?  // URL path to navigate when clicked (e.g. "/chat/abc-123", "/calendar")
   createdAt DateTime @default(now())
 }
 

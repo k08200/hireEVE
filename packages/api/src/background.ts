@@ -38,25 +38,26 @@ function pruneNotifiedIds() {
 
 async function addNotification(
   userId: string,
-  notif: { type: string; title: string; message: string },
+  notif: { type: string; title: string; message: string; link?: string },
 ) {
   // Persist to DB
-  const entry = await prisma.notification.create({
-    data: {
-      userId,
-      type: notif.type,
-      title: notif.title,
-      message: notif.message,
-    },
-  });
-
-  // Push real-time via WebSocket
-  pushNotification(userId, {
-    id: entry.id,
+  const data: Record<string, unknown> = {
+    userId,
     type: notif.type,
     title: notif.title,
     message: notif.message,
-    createdAt: entry.createdAt.toISOString(),
+  };
+  if (notif.link) data.link = notif.link;
+  const entry = await (prisma.notification.create as Function)({ data });
+
+  // Push real-time via WebSocket
+  pushNotification(userId, {
+    id: (entry as { id: string }).id,
+    type: notif.type,
+    title: notif.title,
+    message: notif.message,
+    link: notif.link,
+    createdAt: ((entry as { createdAt: Date }).createdAt).toISOString(),
   });
 }
 
@@ -70,6 +71,7 @@ export async function getNotifications(
     title: string;
     message: string;
     isRead: boolean;
+    link: string | null;
     createdAt: string;
   }>
 > {
@@ -83,20 +85,14 @@ export async function getNotifications(
   });
 
   return rows.map(
-    (r: {
-      id: string;
-      type: string;
-      title: string;
-      message: string;
-      isRead: boolean;
-      createdAt: Date;
-    }) => ({
-      id: r.id,
-      type: r.type,
-      title: r.title,
-      message: r.message,
-      isRead: r.isRead,
-      createdAt: r.createdAt.toISOString(),
+    (r: Record<string, unknown>) => ({
+      id: r.id as string,
+      type: r.type as string,
+      title: r.title as string,
+      message: r.message as string,
+      isRead: r.isRead as boolean,
+      link: (r.link as string | null) ?? null,
+      createdAt: (r.createdAt as Date).toISOString(),
     }),
   );
 }
@@ -171,6 +167,7 @@ async function checkUpcomingMeetings() {
               type: "meeting",
               title: `${Math.ceil(minutesUntil)}분 후 회의: ${meeting.summary}`,
               message: msg,
+              link: meeting.meetingLink || "/calendar",
             });
 
             // Also send browser push with meeting link

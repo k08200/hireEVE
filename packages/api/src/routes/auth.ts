@@ -302,7 +302,8 @@ export async function authRoutes(app: FastifyInstance) {
           },
           update: {
             accessToken: tokens.access_token ?? "",
-            refreshToken: tokens.refresh_token || undefined,
+            // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
+            ...(tokens.refresh_token ? { refreshToken: tokens.refresh_token } : {}),
             expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
           },
         });
@@ -339,7 +340,8 @@ export async function authRoutes(app: FastifyInstance) {
         },
         update: {
           accessToken: tokens.access_token ?? "",
-          refreshToken: tokens.refresh_token || undefined,
+          // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
+          ...(tokens.refresh_token ? { refreshToken: tokens.refresh_token } : {}),
           expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         },
       });
@@ -363,13 +365,24 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.code(204).send();
   });
 
-  // GET /api/auth/google/status — Check if Gmail is connected
+  // GET /api/auth/google/status — Check if Gmail is connected and token is valid
   app.get("/google/status", async (request, reply) => {
     const userId = getUserId(request);
     const token = await prisma.userToken.findFirst({
       where: { userId, provider: "google" },
     });
-    return reply.send({ connected: !!token });
+    if (!token) return reply.send({ connected: false });
+
+    const hasRefreshToken = !!token.refreshToken;
+    const expired = token.expiresAt ? token.expiresAt.getTime() < Date.now() : false;
+
+    return reply.send({
+      connected: true,
+      hasRefreshToken,
+      expired,
+      // If no refresh_token, the connection will break when access_token expires
+      needsReconnect: !hasRefreshToken && expired,
+    });
   });
 
   // POST /api/auth/forgot-password — Request password reset

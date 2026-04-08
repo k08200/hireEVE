@@ -64,21 +64,35 @@ export async function getAuthedClient(
 
   if (!token) return null;
 
+  // Must have a refresh_token to maintain long-lived connection
+  if (!token.refreshToken) {
+    console.warn(`[GOOGLE] No refresh_token for user ${userId} — token will expire and sync will fail`);
+  }
+
   const oauth2 = getOAuth2Client();
   oauth2.setCredentials({
     access_token: token.accessToken,
     refresh_token: token.refreshToken,
+    expiry_date: token.expiresAt ? token.expiresAt.getTime() : undefined,
   });
 
-  // Auto-refresh expired tokens
+  // Auto-refresh expired tokens — persist BOTH access and refresh tokens
   oauth2.on("tokens", async (newTokens) => {
+    const data: { accessToken: string; expiresAt: Date | null; refreshToken?: string } = {
+      accessToken: newTokens.access_token ?? "",
+      expiresAt: newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
+    };
+    // Google sometimes returns a new refresh_token — always persist it
+    if (newTokens.refresh_token) {
+      data.refreshToken = newTokens.refresh_token;
+    }
     await prisma.userToken.update({
       where: { id: token.id },
-      data: {
-        accessToken: newTokens.access_token ?? "",
-        expiresAt: newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
-      },
+      data,
     });
+    console.log(
+      `[GOOGLE] Token refreshed for user ${userId}${newTokens.refresh_token ? " (new refresh_token saved)" : ""}`,
+    );
   });
 
   return oauth2;
