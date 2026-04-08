@@ -203,6 +203,7 @@ export function pushNotification(
     message: string;
     createdAt?: string;
     conversationId?: string;
+    link?: string;
   },
 ) {
   broadcastToUser(userId, {

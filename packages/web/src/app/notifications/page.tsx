@@ -17,6 +17,7 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
+  link?: string | null;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -70,15 +71,6 @@ export default function NotificationsPage() {
     load();
   }, []);
 
-  const markRead = async (id: string) => {
-    try {
-      await apiFetch(`/api/notifications/${id}/read`, { method: "PATCH" });
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-    } catch {
-      // silent fail for single mark-read
-    }
-  };
-
   const markAllRead = async () => {
     try {
       await apiFetch("/api/notifications/read-all", { method: "PATCH" });
@@ -99,17 +91,31 @@ export default function NotificationsPage() {
     }
   };
 
-  const discussWithEve = async (n: Notification) => {
-    try {
-      const convo = await apiFetch<{ id: string }>("/api/chat/conversations", {
-        method: "POST",
-        body: JSON.stringify({
-          initialMessage: `[I'd like to discuss this EVE notification]\n\nTitle: ${n.title}\nContent: ${n.message}\n\nPlease tell me more about this notification.`,
-        }),
-      });
-      router.push(`/chat/${convo.id}`);
-    } catch {
-      toast("Failed to create conversation", "error");
+  const getNotificationTarget = (n: Notification): string | null => {
+    if (n.link) return n.link;
+    const typeRoutes: Record<string, string> = {
+      meeting: "/calendar",
+      calendar: "/calendar",
+      task: "/tasks",
+      reminder: "/tasks",
+      email: "/email",
+      briefing: "/notes",
+    };
+    return typeRoutes[n.type] || null;
+  };
+
+  const handleNotificationClick = async (n: Notification) => {
+    if (!n.isRead) {
+      try {
+        await apiFetch(`/api/notifications/${n.id}/read`, { method: "PATCH" });
+        setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
+      } catch {
+        // silent
+      }
+    }
+    const target = getNotificationTarget(n);
+    if (target) {
+      router.push(target);
     }
   };
 
@@ -219,7 +225,7 @@ export default function NotificationsPage() {
               <button
                 type="button"
                 key={n.id}
-                onClick={() => !n.isRead && markRead(n.id)}
+                onClick={() => handleNotificationClick(n)}
                 className={`w-full text-left rounded-xl p-4 transition group ${
                   n.isRead
                     ? "bg-gray-900/50 border border-gray-800/40 opacity-60"
@@ -252,17 +258,10 @@ export default function NotificationsPage() {
                     <p className="text-xs text-gray-400 line-clamp-2">{n.message}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <RelativeTime date={n.createdAt} className="text-[10px] text-gray-600" />
-                      {isAgentNotification(n.title) && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            discussWithEve(n);
-                          }}
-                          className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer hover:underline"
-                        >
-                          Chat with EVE →
-                        </button>
+                      {getNotificationTarget(n) && (
+                        <span className="text-[10px] text-cyan-400">
+                          {isAgentNotification(n.title) ? "View →" : "Open →"}
+                        </span>
                       )}
                     </div>
                   </div>

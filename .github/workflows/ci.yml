@@ -17,6 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: biomejs/setup-biome@v2
+        with:
+          version: "2.4.10"
       - name: Run Biome lint (errors only)
         run: biome check --diagnostic-level=error packages/
 

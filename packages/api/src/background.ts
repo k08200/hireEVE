@@ -38,17 +38,22 @@ function pruneNotifiedIds() {
 
 async function addNotification(
   userId: string,
-  notif: { type: string; title: string; message: string },
+  notif: { type: string; title: string; message: string; link?: string },
 ) {
   // Persist to DB
-  const entry = await prisma.notification.create({
-    data: {
-      userId,
-      type: notif.type,
-      title: notif.title,
-      message: notif.message,
-    },
-  });
+  const data: Record<string, unknown> = {
+    userId,
+    type: notif.type,
+    title: notif.title,
+    message: notif.message,
+  };
+  if (notif.link) data.link = notif.link;
+  // eslint-disable-next-line -- link field added via db push, not yet in generated client
+  const entry = await (
+    prisma.notification as unknown as {
+      create: (args: { data: Record<string, unknown> }) => Promise<{ id: string; createdAt: Date }>;
+    }
+  ).create({ data });
 
   // Push real-time via WebSocket
   pushNotification(userId, {
@@ -56,6 +61,7 @@ async function addNotification(
     type: notif.type,
     title: notif.title,
     message: notif.message,
+    link: notif.link,
     createdAt: entry.createdAt.toISOString(),
   });
 }
@@ -70,6 +76,7 @@ export async function getNotifications(
     title: string;
     message: string;
     isRead: boolean;
+    link: string | null;
     createdAt: string;
   }>
 > {
@@ -82,23 +89,15 @@ export async function getNotifications(
     take: options?.limit || 50,
   });
 
-  return rows.map(
-    (r: {
-      id: string;
-      type: string;
-      title: string;
-      message: string;
-      isRead: boolean;
-      createdAt: Date;
-    }) => ({
-      id: r.id,
-      type: r.type,
-      title: r.title,
-      message: r.message,
-      isRead: r.isRead,
-      createdAt: r.createdAt.toISOString(),
-    }),
-  );
+  return rows.map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    type: r.type as string,
+    title: r.title as string,
+    message: r.message as string,
+    isRead: r.isRead as boolean,
+    link: (r.link as string | null) ?? null,
+    createdAt: (r.createdAt as Date).toISOString(),
+  }));
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
@@ -119,6 +118,7 @@ export async function clearNotifications(userId: string): Promise<void> {
   await prisma.notification.deleteMany({ where: { userId } });
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: meeting check has inherent nested logic (users → meetings → dedup → notify)
 async function checkUpcomingMeetings() {
   try {
     // Check all users who have Google connected AND meeting automation enabled
@@ -171,6 +171,7 @@ async function checkUpcomingMeetings() {
               type: "meeting",
               title: `${Math.ceil(minutesUntil)}분 후 회의: ${meeting.summary}`,
               message: msg,
+              link: meeting.meetingLink || "/calendar",
             });
 
             // Also send browser push with meeting link
