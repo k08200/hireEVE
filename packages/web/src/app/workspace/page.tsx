@@ -152,9 +152,7 @@ function WorkspaceContent() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold">Workspaces</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Manage team workspaces
-          </p>
+          <p className="text-gray-400 text-sm mt-1">Manage team workspaces</p>
         </div>
         <button
           type="button"

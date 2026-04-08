@@ -239,9 +239,7 @@ function AutomationsContent() {
     <main className="max-w-3xl mx-auto px-6 py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Automations</h1>
-        <p className="text-gray-400 text-sm mt-1">
-          Configure EVE&apos;s autonomous behaviors
-        </p>
+        <p className="text-gray-400 text-sm mt-1">Configure EVE&apos;s autonomous behaviors</p>
       </div>
 
       {/* Status bar */}
@@ -279,7 +277,9 @@ function AutomationsContent() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium text-sm">{item.title}</h3>
-                        {item.titleKr && <span className="text-xs text-gray-600">{item.titleKr}</span>}
+                        {item.titleKr && (
+                          <span className="text-xs text-gray-600">{item.titleKr}</span>
+                        )}
                         {item.macOnly && (
                           <span className="text-[10px] bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">
                             macOS only

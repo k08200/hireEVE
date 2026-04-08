@@ -44,6 +44,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [flash, setFlash] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const seenIdsRef = useRef<Set<string>>(new Set());
   const router = useRouter();
   const { connected, on, connectedClients } = useWebSocket(userId);
 
@@ -78,14 +79,18 @@ export default function NotificationBell({ userId }: { userId: string }) {
       }
 
       if (notif.id) {
+        // Track seen notification IDs to prevent duplicate desktop notifications
+        if (seenIdsRef.current.has(notif.id)) return;
+        seenIdsRef.current.add(notif.id);
+
         setNotifications((prev) => {
           if (prev.some((n) => n.id === notif.id)) return prev;
           return [{ ...notif, isRead: false }, ...prev];
         });
+
         setFlash(true);
         setTimeout(() => setFlash(false), 2000);
 
-        // Show macOS system notification via Notification API
         if (
           typeof window !== "undefined" &&
           "Notification" in window &&
@@ -108,7 +113,12 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
   const fetchNotifications = () => {
     apiFetch<{ notifications: Notification[] }>("/api/notifications?limit=30")
-      .then((d) => setNotifications(d.notifications || []))
+      .then((d) => {
+        const notifs = d.notifications || [];
+        // Seed seen IDs so fetched notifications don't trigger desktop alerts
+        for (const n of notifs) seenIdsRef.current.add(n.id);
+        setNotifications(notifs);
+      })
       .catch(() => {});
   };
 

@@ -711,7 +711,9 @@ export async function chatRoutes(app: FastifyInstance) {
 
         for await (const chunk of stream) {
           if (clientDisconnected) {
-            console.log(`[CHAT] Client disconnected mid-stream, saving partial response (${fullResponse.length} chars)`);
+            console.log(
+              `[CHAT] Client disconnected mid-stream, saving partial response (${fullResponse.length} chars)`,
+            );
             break;
           }
           const delta = chunk.choices[0]?.delta?.content;

@@ -233,7 +233,9 @@ export default function RemindersPage() {
         ) : active.length === 0 && dismissed.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-500 mb-2">No reminders yet</p>
-            <p className="text-gray-600 text-sm">Tell EVE: &quot;Remind me about the meeting at 3pm tomorrow&quot;</p>
+            <p className="text-gray-600 text-sm">
+              Tell EVE: &quot;Remind me about the meeting at 3pm tomorrow&quot;
+            </p>
           </div>
         ) : (
           <>

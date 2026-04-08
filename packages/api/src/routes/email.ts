@@ -18,7 +18,7 @@ import {
   summarizeUnsummarizedEmails,
   syncEmails,
 } from "../email-sync.js";
-import { sendEmail } from "../gmail.js";
+import { archiveEmail, sendEmail, toggleReadGmail, toggleStarGmail, trashEmail } from "../gmail.js";
 import { sendPushNotification } from "../push.js";
 import { pushNotification } from "../websocket.js";
 
@@ -492,41 +492,81 @@ export async function emailRoutes(app: FastifyInstance) {
     return result;
   });
 
-  // ─── Mark Read/Unread ─────────────────────────────────────────────────
+  // ─── Mark Read/Unread (syncs to Gmail) ──────────────────────────────
   // PATCH /api/email/:id/read
   app.patch("/:id/read", async (request) => {
     const { id } = request.params as { id: string };
     const uid = getUserId(request);
     const { isRead } = (request.body as { isRead?: boolean }) || {};
+    const readVal = isRead !== false;
 
     const email = await prisma.emailMessage.findFirst({
       where: { userId: uid, OR: [{ id }, { gmailId: id }] },
     });
     if (!email) return { error: "Email not found" };
 
+    // Sync to Gmail first, then update DB
+    await toggleReadGmail(uid, email.gmailId, readVal).catch(() => {
+      // Gmail sync failed — still update local DB
+    });
     await prisma.emailMessage.update({
       where: { id: email.id },
-      data: { isRead: isRead !== false },
+      data: { isRead: readVal },
     });
     return { success: true };
   });
 
-  // ─── Star/Unstar ──────────────────────────────────────────────────────
+  // ─── Star/Unstar (syncs to Gmail) ─────────────────────────────────────
   // PATCH /api/email/:id/star
   app.patch("/:id/star", async (request) => {
     const { id } = request.params as { id: string };
     const uid = getUserId(request);
     const { isStarred } = (request.body as { isStarred?: boolean }) || {};
+    const starVal = isStarred !== false;
 
     const email = await prisma.emailMessage.findFirst({
       where: { userId: uid, OR: [{ id }, { gmailId: id }] },
     });
     if (!email) return { error: "Email not found" };
 
+    await toggleStarGmail(uid, email.gmailId, starVal).catch(() => {});
     await prisma.emailMessage.update({
       where: { id: email.id },
-      data: { isStarred: isStarred !== false },
+      data: { isStarred: starVal },
     });
+    return { success: true };
+  });
+
+  // ─── Delete (trash in Gmail + remove from DB) ─────────────────────────
+  // DELETE /api/email/:id
+  app.delete("/:id", async (request) => {
+    const { id } = request.params as { id: string };
+    const uid = getUserId(request);
+
+    const email = await prisma.emailMessage.findFirst({
+      where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+    });
+    if (!email) return { error: "Email not found" };
+
+    await trashEmail(uid, email.gmailId).catch(() => {});
+    // Ensure DB removal even if Gmail call fails
+    await prisma.emailMessage.deleteMany({ where: { id: email.id } });
+    return { success: true };
+  });
+
+  // ─── Archive (remove from inbox in Gmail + remove from DB) ────────────
+  // POST /api/email/:id/archive
+  app.post("/:id/archive", async (request) => {
+    const { id } = request.params as { id: string };
+    const uid = getUserId(request);
+
+    const email = await prisma.emailMessage.findFirst({
+      where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+    });
+    if (!email) return { error: "Email not found" };
+
+    await archiveEmail(uid, email.gmailId).catch(() => {});
+    await prisma.emailMessage.deleteMany({ where: { id: email.id } });
     return { success: true };
   });
 

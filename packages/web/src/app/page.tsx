@@ -125,9 +125,9 @@ export default function LandingPage() {
           Work like a team, even alone
         </h1>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
-          EVE is an AI employee that acts without being asked. She checks your emails,
-          preps for meetings, and follows up on things you might forget. While you focus
-          on what matters — EVE never stops working.
+          EVE is an AI employee that acts without being asked. She checks your emails, preps for
+          meetings, and follows up on things you might forget. While you focus on what matters — EVE
+          never stops working.
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link
@@ -170,10 +170,10 @@ export default function LandingPage() {
         <div className="bg-gradient-to-br from-gray-900 to-gray-900/50 border border-gray-800 rounded-2xl p-8 md:p-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">Acts before you ask</h2>
           <p className="text-gray-400 leading-relaxed max-w-2xl">
-            Say &ldquo;show my emails&rdquo; and she finds them instantly. Say &ldquo;schedule
-            a meeting tomorrow&rdquo; and it&apos;s on your calendar. But EVE&apos;s real value
-            goes beyond that — she alerts you about urgent emails, catches overdue tasks,
-            and prepares your daily briefing every morning. Without being told.
+            Say &ldquo;show my emails&rdquo; and she finds them instantly. Say &ldquo;schedule a
+            meeting tomorrow&rdquo; and it&apos;s on your calendar. But EVE&apos;s real value goes
+            beyond that — she alerts you about urgent emails, catches overdue tasks, and prepares
+            your daily briefing every morning. Without being told.
           </p>
         </div>
       </section>
@@ -269,7 +269,9 @@ export default function LandingPage() {
           <br />
           Just add EVE.
         </h2>
-        <p className="text-gray-500 mb-8">The first team member for solo founders, freelancers, and small teams</p>
+        <p className="text-gray-500 mb-8">
+          The first team member for solo founders, freelancers, and small teams
+        </p>
         <Link
           href="/login"
           className="inline-block bg-blue-600 hover:bg-blue-500 text-white px-10 py-3.5 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-600/25"

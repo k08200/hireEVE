@@ -245,45 +245,57 @@ async function runAutomations() {
               });
             }
 
-            // Check for urgent unread emails
+            // Check for urgent unread emails — only notify once per hour
             const urgentCount = await prisma.emailMessage.count({
               where: { userId: config.userId, priority: "URGENT", isRead: false },
             });
 
             if (urgentCount > 0) {
-              // Get top urgent email for rich notification
-              const topUrgent = await prisma.emailMessage.findFirst({
-                where: { userId: config.userId, priority: "URGENT", isRead: false },
-                orderBy: { receivedAt: "desc" },
-              });
-
-              const emailMsg =
-                urgentCount === 1
-                  ? `긴급 이메일: ${topUrgent?.summary || topUrgent?.subject || "새 이메일"} (from: ${topUrgent?.from || "unknown"})`
-                  : `긴급 이메일 ${urgentCount}건이 있습니다. 최신: ${topUrgent?.summary || topUrgent?.subject || ""}`;
-
-              const notification = await prisma.notification.create({
-                data: {
+              // Dedup: skip if we already sent an urgent email notification in the last hour
+              const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+              const recentUrgentNotif = await prisma.notification.findFirst({
+                where: {
                   userId: config.userId,
                   type: "email",
                   title: "긴급 이메일",
-                  message: emailMsg,
+                  createdAt: { gte: oneHourAgo },
                 },
               });
 
-              pushNotification(config.userId, {
-                id: notification.id,
-                type: "email",
-                title: "긴급 이메일",
-                message: emailMsg,
-                createdAt: notification.createdAt.toISOString(),
-              });
+              if (!recentUrgentNotif) {
+                const topUrgent = await prisma.emailMessage.findFirst({
+                  where: { userId: config.userId, priority: "URGENT", isRead: false },
+                  orderBy: { receivedAt: "desc" },
+                });
 
-              sendPushNotification(config.userId, {
-                title: "[EVE] 긴급 이메일",
-                body: emailMsg,
-                url: "/email",
-              });
+                const emailMsg =
+                  urgentCount === 1
+                    ? `긴급 이메일: ${topUrgent?.summary || topUrgent?.subject || "새 이메일"} (from: ${topUrgent?.from || "unknown"})`
+                    : `긴급 이메일 ${urgentCount}건이 있습니다. 최신: ${topUrgent?.summary || topUrgent?.subject || ""}`;
+
+                const notification = await prisma.notification.create({
+                  data: {
+                    userId: config.userId,
+                    type: "email",
+                    title: "긴급 이메일",
+                    message: emailMsg,
+                  },
+                });
+
+                pushNotification(config.userId, {
+                  id: notification.id,
+                  type: "email",
+                  title: "긴급 이메일",
+                  message: emailMsg,
+                  createdAt: notification.createdAt.toISOString(),
+                });
+
+                sendPushNotification(config.userId, {
+                  title: "[EVE] 긴급 이메일",
+                  body: emailMsg,
+                  url: "/email",
+                });
+              }
             }
           } catch {
             // Gmail not connected or sync failed — skip silently

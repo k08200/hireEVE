@@ -84,7 +84,9 @@ function ChatPageContent() {
         if (loadController.signal.aborted) return;
         const msg = err instanceof Error ? err.message : "Failed to load conversation";
         if (msg.includes("403") || msg.includes("Forbidden")) {
-          setLoadError("Cannot access this conversation. You may be logged into a different account.");
+          setLoadError(
+            "Cannot access this conversation. You may be logged into a different account.",
+          );
         } else if (msg.includes("404") || msg.includes("not found")) {
           setLoadError("Conversation not found.");
         } else {
@@ -422,7 +424,7 @@ function ChatPageContent() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       sendMessage();
     }
@@ -533,7 +535,17 @@ function ChatPageContent() {
           {loadError && (
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
               <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-xl mb-4">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-red-400"
+                >
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />

@@ -107,7 +107,12 @@ export default function CalendarPage() {
       if (res.error) {
         toast(res.error, "error");
       } else {
-        toast(res.synced > 0 ? `Google Calendar 연동 완료 — ${res.synced}개 이벤트 동기화됨` : "Google Calendar 연동됨 — 새 이벤트 없음", "success");
+        toast(
+          res.synced > 0
+            ? `Google Calendar 연동 완료 — ${res.synced}개 이벤트 동기화됨`
+            : "Google Calendar 연동됨 — 새 이벤트 없음",
+          "success",
+        );
         fetchEvents();
       }
     } catch {
@@ -347,7 +352,10 @@ export default function CalendarPage() {
 
         {view === "week" ? (
           /* Week View */
-          <div className="border border-gray-800 rounded-xl overflow-hidden flex flex-col" style={{ maxHeight: "calc(100vh - 200px)" }}>
+          <div
+            className="border border-gray-800 rounded-xl overflow-hidden flex flex-col"
+            style={{ maxHeight: "calc(100vh - 200px)" }}
+          >
             {/* Day headers */}
             <div className="grid grid-cols-8 border-b border-gray-800">
               <div className="p-2 text-xs text-gray-600 text-center">Time</div>
@@ -369,7 +377,10 @@ export default function CalendarPage() {
             </div>
 
             {/* Time grid */}
-            <div className="grid grid-cols-8 relative overflow-y-auto flex-1" style={{ height: "720px" }}>
+            <div
+              className="grid grid-cols-8 relative overflow-y-auto flex-1"
+              style={{ height: "720px" }}
+            >
               {/* Hour labels */}
               <div className="relative">
                 {HOURS.filter((h) => h >= 6 && h <= 23).map((h) => (
@@ -523,9 +534,7 @@ export default function CalendarPage() {
 
         {/* Today's Summary */}
         <div className="mt-8 bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-gray-400 mb-3">
-            Today&apos;s Schedule
-          </h2>
+          <h2 className="text-sm font-semibold text-gray-400 mb-3">Today&apos;s Schedule</h2>
           {events.filter((e) => isSameDay(new Date(e.startTime), today)).length === 0 ? (
             <p className="text-sm text-gray-500">No events today</p>
           ) : (
