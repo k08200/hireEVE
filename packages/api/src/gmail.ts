@@ -66,7 +66,9 @@ export async function getAuthedClient(
 
   // Must have a refresh_token to maintain long-lived connection
   if (!token.refreshToken) {
-    console.warn(`[GOOGLE] No refresh_token for user ${userId} — token will expire and sync will fail`);
+    console.warn(
+      `[GOOGLE] No refresh_token for user ${userId} — token will expire and sync will fail`,
+    );
   }
 
   const oauth2 = getOAuth2Client();

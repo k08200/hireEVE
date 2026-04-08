@@ -53,7 +53,10 @@ export default function NotificationBell({ userId }: { userId: string }) {
   const { connected, on, connectedClients } = useWebSocket(userId);
 
   // Compute fixed position for dropdown based on bell button location
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({
+    top: 0,
+    left: 0,
+  });
   useEffect(() => {
     if (open && bellRef.current) {
       const rect = bellRef.current.getBoundingClientRect();
@@ -243,103 +246,109 @@ export default function NotificationBell({ userId }: { userId: string }) {
         )}
       </button>
 
-      {open && createPortal(
-        <div
-          ref={dropdownRef}
-          style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-          className="w-[min(20rem,calc(100vw-2rem))] bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden"
-        >
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Notifications</span>
-              {connected && (
-                <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
-                  live
-                </span>
-              )}
-              {unreadCount > 0 && (
-                <span className="text-[10px] text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
-                  {unreadCount}
-                </span>
+      {open &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            style={{
+              position: "fixed",
+              top: dropdownPos.top,
+              left: dropdownPos.left,
+              zIndex: 9999,
+            }}
+            className="w-[min(20rem,calc(100vw-2rem))] bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Notifications</span>
+                {connected && (
+                  <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
+                    live
+                  </span>
+                )}
+                {unreadCount > 0 && (
+                  <span className="text-[10px] text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={markAllRead}
+                    disabled={actionLoading}
+                    className="text-xs text-gray-500 hover:text-blue-400 transition disabled:opacity-40"
+                  >
+                    {actionLoading ? "..." : "Read all"}
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    disabled={actionLoading}
+                    className="text-xs text-gray-500 hover:text-red-400 transition disabled:opacity-40"
+                  >
+                    {actionLoading ? "..." : "Clear"}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <p className="text-center text-gray-500 text-sm py-6">No notifications</p>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleNotificationClick(n)}
+                    onKeyDown={(e) => e.key === "Enter" && handleNotificationClick(n)}
+                    className={`w-full text-left px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition cursor-pointer ${
+                      !n.isRead ? "bg-blue-600/5" : ""
+                    } ${isAgentNotification(n.title) ? "border-l-2 border-l-cyan-500/60" : ""}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">
+                        {isAgentNotification(n.title) ? "🤖" : typeIcon[n.type] || "📌"}
+                      </span>
+                      <span
+                        className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-gray-300"} ${isAgentNotification(n.title) ? "text-cyan-300" : ""}`}
+                      >
+                        {n.title}
+                      </span>
+                      {isAgentNotification(n.title) && (
+                        <span className="text-[9px] text-cyan-400 bg-cyan-400/10 px-1 py-0.5 rounded shrink-0">
+                          AI
+                        </span>
+                      )}
+                      {!n.isRead && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
+                    <div className="flex items-center gap-2 mt-1 ml-6">
+                      <p className="text-[10px] text-gray-600">{formatRelative(n.createdAt)}</p>
+                      {getNotificationTarget(n) && (
+                        <span className="text-[10px] text-cyan-400">
+                          {isAgentNotification(n.title) ? "View →" : "Open →"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button
-                  type="button"
-                  onClick={markAllRead}
-                  disabled={actionLoading}
-                  className="text-xs text-gray-500 hover:text-blue-400 transition disabled:opacity-40"
-                >
-                  {actionLoading ? "..." : "Read all"}
-                </button>
-              )}
-              {notifications.length > 0 && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  disabled={actionLoading}
-                  className="text-xs text-gray-500 hover:text-red-400 transition disabled:opacity-40"
-                >
-                  {actionLoading ? "..." : "Clear"}
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="max-h-80 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <p className="text-center text-gray-500 text-sm py-6">No notifications</p>
-            ) : (
-              notifications.map((n) => (
-                <div
-                  key={n.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleNotificationClick(n)}
-                  onKeyDown={(e) => e.key === "Enter" && handleNotificationClick(n)}
-                  className={`w-full text-left px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition cursor-pointer ${
-                    !n.isRead ? "bg-blue-600/5" : ""
-                  } ${isAgentNotification(n.title) ? "border-l-2 border-l-cyan-500/60" : ""}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">
-                      {isAgentNotification(n.title) ? "🤖" : typeIcon[n.type] || "📌"}
-                    </span>
-                    <span
-                      className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-gray-300"} ${isAgentNotification(n.title) ? "text-cyan-300" : ""}`}
-                    >
-                      {n.title}
-                    </span>
-                    {isAgentNotification(n.title) && (
-                      <span className="text-[9px] text-cyan-400 bg-cyan-400/10 px-1 py-0.5 rounded shrink-0">
-                        AI
-                      </span>
-                    )}
-                    {!n.isRead && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
-                  <div className="flex items-center gap-2 mt-1 ml-6">
-                    <p className="text-[10px] text-gray-600">{formatRelative(n.createdAt)}</p>
-                    {getNotificationTarget(n) && (
-                      <span className="text-[10px] text-cyan-400">
-                        {isAgentNotification(n.title) ? "View →" : "Open →"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
+            {tabCount > 1 && (
+              <div className="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">
+                {tabCount} tabs connected
+              </div>
             )}
-          </div>
-          {tabCount > 1 && (
-            <div className="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">
-              {tabCount} tabs connected
-            </div>
-          )}
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
