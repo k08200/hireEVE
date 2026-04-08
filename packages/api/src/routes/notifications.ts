@@ -97,7 +97,10 @@ export async function notificationRoutes(app: FastifyInstance) {
       }
     }
 
-    console.log(`[PUSH-SUB] Registering push subscription for user ${userId}: ${endpoint.slice(0, 60)}...`);
+    const safeEndpointForLog = endpoint.replace(/[\r\n]/g, "").slice(0, 60);
+    console.log(
+      `[PUSH-SUB] Registering push subscription for user ${userId}: ${safeEndpointForLog}...`,
+    );
     await prisma.pushSubscription.upsert({
       where: { endpoint },
       create: { userId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
