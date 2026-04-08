@@ -191,7 +191,7 @@ async function runAutomations() {
               await summarizeUnsummarizedEmails(config.userId, syncResult.newCount);
             }
 
-            // Auto-reply: check rules for newly synced emails
+            // Auto-reply: check rules for newly synced emails (dedup by gmailId)
             if (syncResult.newCount > 0) {
               const newEmails = await prisma.emailMessage.findMany({
                 where: { userId: config.userId },
@@ -200,6 +200,17 @@ async function runAutomations() {
               });
               for (const email of newEmails) {
                 try {
+                  // Skip if we already sent an auto-reply notification for this email
+                  const alreadyReplied = await prisma.notification.findFirst({
+                    where: {
+                      userId: config.userId,
+                      type: "email",
+                      title: "Auto-reply sent",
+                      message: { contains: email.gmailId },
+                    },
+                  });
+                  if (alreadyReplied) continue;
+
                   const matched = await checkAutoReplyRules(config.userId, email);
                   if (
                     matched &&
@@ -219,7 +230,7 @@ async function runAutomations() {
                           userId: config.userId,
                           type: "email",
                           title: "Auto-reply sent",
-                          message: `Auto-replied to ${toAddr} (rule: "${matched.ruleName}")`,
+                          message: `Auto-replied to ${toAddr} (rule: "${matched.ruleName}") [${email.gmailId}]`,
                         },
                       });
                       pushNotification(config.userId, {
@@ -245,33 +256,43 @@ async function runAutomations() {
               });
             }
 
-            // Check for urgent unread emails — only notify once per hour
-            const urgentCount = await prisma.emailMessage.count({
+            // Check for urgent unread emails — notify only for NEW urgent emails
+            const urgentEmails = await prisma.emailMessage.findMany({
               where: { userId: config.userId, priority: "URGENT", isRead: false },
+              orderBy: { receivedAt: "desc" },
+              select: { id: true, gmailId: true, subject: true, from: true, summary: true },
             });
 
-            if (urgentCount > 0) {
-              // Dedup: skip if we already sent an urgent email notification in the last hour
-              const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-              const recentUrgentNotif = await prisma.notification.findFirst({
+            if (urgentEmails.length > 0) {
+              // Check which urgent emails we already notified about (by gmailId in message)
+              const recentUrgentNotifs = await prisma.notification.findMany({
                 where: {
                   userId: config.userId,
                   type: "email",
                   title: "긴급 이메일",
-                  createdAt: { gte: oneHourAgo },
                 },
+                orderBy: { createdAt: "desc" },
+                take: 20,
+                select: { message: true },
               });
+              const notifiedGmailIds = new Set(
+                recentUrgentNotifs
+                  .map((n) => {
+                    const match = n.message.match(/\[([^\]]+)\]$/);
+                    return match ? match[1] : null;
+                  })
+                  .filter(Boolean),
+              );
 
-              if (!recentUrgentNotif) {
-                const topUrgent = await prisma.emailMessage.findFirst({
-                  where: { userId: config.userId, priority: "URGENT", isRead: false },
-                  orderBy: { receivedAt: "desc" },
-                });
+              // Only notify for urgent emails we haven't notified about yet
+              const newUrgent = urgentEmails.filter((e) => !notifiedGmailIds.has(e.gmailId));
 
+              if (newUrgent.length > 0) {
+                const top = newUrgent[0];
                 const emailMsg =
-                  urgentCount === 1
-                    ? `긴급 이메일: ${topUrgent?.summary || topUrgent?.subject || "새 이메일"} (from: ${topUrgent?.from || "unknown"})`
-                    : `긴급 이메일 ${urgentCount}건이 있습니다. 최신: ${topUrgent?.summary || topUrgent?.subject || ""}`;
+                  newUrgent.length === 1
+                    ? `긴급 이메일: ${top.summary || top.subject || "새 이메일"} (from: ${top.from || "unknown"}) [${top.gmailId}]`
+                    : `긴급 이메일 ${newUrgent.length}건. 최신: ${top.summary || top.subject || ""} [${top.gmailId}]`;
 
                 const notification = await prisma.notification.create({
                   data: {

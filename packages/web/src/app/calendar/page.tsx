@@ -38,6 +38,7 @@ const COLORS = [
 ];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString("en-US", {
@@ -74,10 +75,30 @@ function getDaysInWeek(baseDate: Date): Date[] {
   });
 }
 
+function getMonthGrid(year: number, month: number): Date[] {
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay(); // 0=Sun
+  const start = new Date(year, month, 1 - startOffset);
+  // Always show 6 weeks (42 cells) for consistent grid height
+  return Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+}
+
+function formatMonthYear(year: number, month: number): string {
+  return new Date(year, month).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [view, setView] = useState<"week" | "list">("week");
+  const [view, setView] = useState<"week" | "month" | "list">("month");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCreate, setShowCreate] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [newEvent, setNewEvent] = useState<NewEvent>({
@@ -91,8 +112,29 @@ export default function CalendarPage() {
   });
   const { toast } = useToast();
 
+  // Compute fetch range based on view + currentDate
+  const getFetchRange = (): { start: string; end: string } => {
+    if (view === "month") {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const startOffset = firstDay.getDay();
+      const rangeStart = new Date(year, month, 1 - startOffset);
+      const rangeEnd = new Date(rangeStart);
+      rangeEnd.setDate(rangeEnd.getDate() + 42);
+      return { start: rangeStart.toISOString(), end: rangeEnd.toISOString() };
+    }
+    // week or list: fetch surrounding 60 days
+    const weekStart = new Date(currentDate);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay() - 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 60);
+    return { start: weekStart.toISOString(), end: weekEnd.toISOString() };
+  };
+
   const fetchEvents = () => {
-    apiFetch<{ events: CalendarEvent[] }>("/api/calendar?days=30")
+    const { start, end } = getFetchRange();
+    apiFetch<{ events: CalendarEvent[] }>(`/api/calendar?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
       .then((d) => setEvents(d.events || []))
       .catch(() => {});
   };
@@ -109,8 +151,8 @@ export default function CalendarPage() {
       } else {
         toast(
           res.synced > 0
-            ? `Google Calendar 연동 완료 — ${res.synced}개 이벤트 동기화됨`
-            : "Google Calendar 연동됨 — 새 이벤트 없음",
+            ? `Google Calendar synced — ${res.synced} events`
+            : "Google Calendar synced — no new events",
           "success",
         );
         fetchEvents();
@@ -122,9 +164,10 @@ export default function CalendarPage() {
     }
   };
 
+  // Re-fetch when view or currentDate changes
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [view, currentDate]);
 
   const createEvent = async () => {
     if (!newEvent.title.trim()) {
@@ -178,6 +221,7 @@ export default function CalendarPage() {
 
   const weekDays = getDaysInWeek(currentDate);
   const today = new Date();
+  const monthGrid = getMonthGrid(currentDate.getFullYear(), currentDate.getMonth());
 
   const navigateWeek = (direction: number) => {
     const next = new Date(currentDate);
@@ -185,16 +229,18 @@ export default function CalendarPage() {
     setCurrentDate(next);
   };
 
+  const navigateMonth = (direction: number) => {
+    const next = new Date(currentDate);
+    next.setMonth(next.getMonth() + direction);
+    setCurrentDate(next);
+  };
+
   const getEventsForDay = (day: Date) =>
     events.filter((e) => isSameDay(new Date(e.startTime), day));
 
-  const _getEventPosition = (event: CalendarEvent) => {
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
-    const top = (start.getHours() + start.getMinutes() / 60) * 60; // 60px per hour
-    const height = Math.max(((end.getTime() - start.getTime()) / 3600000) * 60, 20);
-    return { top, height };
-  };
+  const selectedDayEvents = getEventsForDay(selectedDate).sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+  );
 
   // Upcoming events (next 7 days)
   const upcoming = events
@@ -212,20 +258,16 @@ export default function CalendarPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => setView("week")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${view === "week" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
-              >
-                Week
-              </button>
-              <button
-                type="button"
-                onClick={() => setView("list")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${view === "list" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
-              >
-                List
-              </button>
+              {(["month", "week", "list"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition capitalize ${view === v ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-white"}`}
+                >
+                  {v}
+                </button>
+              ))}
             </div>
             <button
               type="button"
@@ -323,26 +365,36 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* Week Navigation */}
-        {view === "week" && (
+        {/* Navigation */}
+        {view !== "list" && (
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
-              onClick={() => navigateWeek(-1)}
+              onClick={() => (view === "month" ? navigateMonth(-1) : navigateWeek(-1))}
               className="text-gray-400 hover:text-white transition px-3 py-1"
             >
               &larr; Prev
             </button>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-300">
+                {view === "month"
+                  ? formatMonthYear(currentDate.getFullYear(), currentDate.getMonth())
+                  : `${weekDays[0].toLocaleDateString("en-US", { month: "short", day: "numeric" })} — ${weekDays[6].toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentDate(new Date());
+                  setSelectedDate(new Date());
+                }}
+                className="text-xs text-blue-400 hover:text-blue-300 transition px-3 py-1"
+              >
+                Today
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => setCurrentDate(new Date())}
-              className="text-xs text-blue-400 hover:text-blue-300 transition px-3 py-1"
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={() => navigateWeek(1)}
+              onClick={() => (view === "month" ? navigateMonth(1) : navigateWeek(1))}
               className="text-gray-400 hover:text-white transition px-3 py-1"
             >
               Next &rarr;
@@ -350,7 +402,71 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {view === "week" ? (
+        {/* Month View */}
+        {view === "month" && (
+          <div className="border border-gray-800 rounded-xl overflow-hidden">
+            {/* Weekday headers */}
+            <div className="grid grid-cols-7 border-b border-gray-800">
+              {WEEKDAY_LABELS.map((d) => (
+                <div key={d} className="p-2 text-center text-[10px] text-gray-500 uppercase font-medium">
+                  {d}
+                </div>
+              ))}
+            </div>
+            {/* Day cells */}
+            <div className="grid grid-cols-7">
+              {monthGrid.map((day) => {
+                const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+                const isToday = isSameDay(day, today);
+                const isSelected = isSameDay(day, selectedDate);
+                const dayEvents = getEventsForDay(day);
+
+                return (
+                  <button
+                    key={day.toISOString()}
+                    type="button"
+                    onClick={() => setSelectedDate(day)}
+                    className={`relative border-b border-r border-gray-800/50 p-2 min-h-[80px] text-left transition hover:bg-gray-800/40 ${
+                      !isCurrentMonth ? "opacity-30" : ""
+                    } ${isSelected ? "bg-blue-600/10 ring-1 ring-blue-500/40" : ""}`}
+                  >
+                    <span
+                      className={`text-xs font-medium ${
+                        isToday
+                          ? "bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center"
+                          : isSelected
+                            ? "text-blue-400"
+                            : "text-gray-400"
+                      }`}
+                    >
+                      {day.getDate()}
+                    </span>
+                    {/* Event dots / titles */}
+                    <div className="mt-1 space-y-0.5">
+                      {dayEvents.slice(0, 3).map((ev) => (
+                        <div
+                          key={ev.id}
+                          className="flex items-center gap-1 truncate"
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: ev.color || "#3b82f6" }}
+                          />
+                          <span className="text-[10px] text-gray-300 truncate">{ev.title}</span>
+                        </div>
+                      ))}
+                      {dayEvents.length > 3 && (
+                        <span className="text-[9px] text-gray-500">+{dayEvents.length - 3} more</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {view === "week" && (
           /* Week View */
           <div
             className="border border-gray-800 rounded-xl overflow-hidden flex flex-col"
@@ -360,9 +476,11 @@ export default function CalendarPage() {
             <div className="grid grid-cols-8 border-b border-gray-800">
               <div className="p-2 text-xs text-gray-600 text-center">Time</div>
               {weekDays.map((day) => (
-                <div
+                <button
                   key={day.toISOString()}
-                  className={`p-2 text-center border-l border-gray-800 ${isSameDay(day, today) ? "bg-blue-600/10" : ""}`}
+                  type="button"
+                  onClick={() => setSelectedDate(day)}
+                  className={`p-2 text-center border-l border-gray-800 transition hover:bg-gray-800/40 ${isSameDay(day, today) ? "bg-blue-600/10" : ""} ${isSameDay(day, selectedDate) ? "ring-1 ring-blue-500/40" : ""}`}
                 >
                   <p className="text-[10px] text-gray-500 uppercase">
                     {day.toLocaleDateString("en", { weekday: "short" })}
@@ -372,7 +490,7 @@ export default function CalendarPage() {
                   >
                     {day.getDate()}
                   </p>
-                </div>
+                </button>
               ))}
             </div>
 
@@ -470,7 +588,9 @@ export default function CalendarPage() {
               })}
             </div>
           </div>
-        ) : (
+        )}
+
+        {view === "list" && (
           /* List View */
           <div className="space-y-2">
             {upcoming.length === 0 ? (
@@ -532,43 +652,77 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* Today's Summary */}
+        {/* Selected Date Schedule */}
         <div className="mt-8 bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-gray-400 mb-3">Today&apos;s Schedule</h2>
-          {events.filter((e) => isSameDay(new Date(e.startTime), today)).length === 0 ? (
-            <p className="text-sm text-gray-500">No events today</p>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-400">
+              {isSameDay(selectedDate, today)
+                ? "Today's Schedule"
+                : selectedDate.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                  })}
+            </h2>
+            {!isSameDay(selectedDate, today) && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate(new Date())}
+                className="text-[10px] text-blue-400 hover:text-blue-300 transition"
+              >
+                Back to today
+              </button>
+            )}
+          </div>
+          {selectedDayEvents.length === 0 ? (
+            <p className="text-sm text-gray-500">No events</p>
           ) : (
             <div className="space-y-2">
-              {events
-                .filter((e) => isSameDay(new Date(e.startTime), today))
-                .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-                .map((event) => {
-                  const isPast = new Date(event.endTime) < today;
-                  const isCurrent =
-                    new Date(event.startTime) <= today && new Date(event.endTime) > today;
-                  return (
+              {selectedDayEvents.map((event) => {
+                const now = new Date();
+                const isPast = new Date(event.endTime) < now;
+                const isCurrent =
+                  new Date(event.startTime) <= now && new Date(event.endTime) > now;
+                return (
+                  <div
+                    key={event.id}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg group ${isCurrent ? "bg-blue-600/10 border border-blue-500/30" : isPast ? "opacity-50" : ""}`}
+                  >
                     <div
-                      key={event.id}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isCurrent ? "bg-blue-600/10 border border-blue-500/30" : isPast ? "opacity-50" : ""}`}
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: event.color || "#3b82f6" }}
+                    />
+                    <span className="text-xs text-gray-500 w-24 shrink-0">
+                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                    </span>
+                    <span className={`text-sm flex-1 ${isCurrent ? "text-blue-300 font-medium" : ""}`}>
+                      {event.title}
+                    </span>
+                    {isCurrent && (
+                      <span className="text-[10px] bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded">
+                        NOW
+                      </span>
+                    )}
+                    {event.meetingLink && (
+                      <a
+                        href={event.meetingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-blue-400 hover:text-blue-300"
+                      >
+                        Join
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => deleteEvent(event.id)}
+                      className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition text-xs"
                     >
-                      <div
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: event.color || "#3b82f6" }}
-                      />
-                      <span className="text-xs text-gray-500 w-24 shrink-0">
-                        {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                      </span>
-                      <span className={`text-sm ${isCurrent ? "text-blue-300 font-medium" : ""}`}>
-                        {event.title}
-                      </span>
-                      {isCurrent && (
-                        <span className="text-[10px] bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded ml-auto">
-                          NOW
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                      Delete
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

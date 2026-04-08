@@ -10,20 +10,28 @@ import { prisma } from "../db.js";
 import { getAuthedClient } from "../gmail.js";
 
 export async function calendarRoutes(app: FastifyInstance) {
-  // List events (next N days)
+  // List events — supports ?start=ISO&end=ISO or ?days=N (from today)
   app.get("/", async (request) => {
     const uid = getUserId(request);
-    const { days } = request.query as { days?: string };
-    const daysAhead = Number(days) || 14;
+    const { days, start, end } = request.query as { days?: string; start?: string; end?: string };
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const until = new Date(todayStart.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+    let rangeStart: Date;
+    let rangeEnd: Date;
+
+    if (start && end) {
+      rangeStart = new Date(start);
+      rangeEnd = new Date(end);
+    } else {
+      const daysAhead = Number(days) || 14;
+      rangeStart = new Date();
+      rangeStart.setHours(0, 0, 0, 0);
+      rangeEnd = new Date(rangeStart.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+    }
 
     const events = await prisma.calendarEvent.findMany({
       where: {
         userId: uid,
-        startTime: { gte: todayStart, lte: until },
+        startTime: { gte: rangeStart, lte: rangeEnd },
       },
       orderBy: { startTime: "asc" },
     });

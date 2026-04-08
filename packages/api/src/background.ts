@@ -147,11 +147,25 @@ async function checkUpcomingMeetings() {
           if (minutesUntil > 0 && minutesUntil <= 5) {
             const key = `meeting:${meeting.id}`;
             if (notifiedIds.has(key)) continue;
+
+            // DB-based dedup: check if we already notified for this meeting today
+            const existingNotif = await prisma.notification.findFirst({
+              where: {
+                userId,
+                type: "meeting",
+                message: { contains: meeting.id },
+                createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+              },
+            });
+            if (existingNotif) {
+              notifiedIds.add(key);
+              continue;
+            }
             notifiedIds.add(key);
 
             const msg = meeting.meetingLink
-              ? `참가 링크: ${meeting.meetingLink}`
-              : `${meeting.summary} 곧 시작합니다`;
+              ? `참가 링크: ${meeting.meetingLink} [${meeting.id}]`
+              : `${meeting.summary} 곧 시작합니다 [${meeting.id}]`;
 
             await addNotification(userId, {
               type: "meeting",

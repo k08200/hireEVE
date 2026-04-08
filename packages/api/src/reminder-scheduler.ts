@@ -32,17 +32,23 @@ async function checkDueReminders() {
     console.log(`[REMINDER] Found ${dueReminders.length} due reminder(s)`);
 
     for (const reminder of dueReminders) {
-      // Create notification record
-      const notification = await prisma.notification.create({
-        data: {
-          userId: reminder.userId,
-          type: "reminder",
-          title: reminder.title,
-          message: reminder.description || `Reminder: ${reminder.title}`,
-        },
-      });
-
       const msg = reminder.description || `Reminder: ${reminder.title}`;
+
+      // Use transaction: create notification + mark SENT atomically
+      const [notification] = await prisma.$transaction([
+        prisma.notification.create({
+          data: {
+            userId: reminder.userId,
+            type: "reminder",
+            title: reminder.title,
+            message: msg,
+          },
+        }),
+        prisma.reminder.update({
+          where: { id: reminder.id },
+          data: { status: "SENT" },
+        }),
+      ]);
 
       // Push real-time notification via WebSocket
       pushNotification(reminder.userId, {
@@ -58,12 +64,6 @@ async function checkDueReminders() {
         title: reminder.title,
         body: msg,
         url: "/reminders",
-      });
-
-      // Mark reminder as SENT
-      await prisma.reminder.update({
-        where: { id: reminder.id },
-        data: { status: "SENT" },
       });
 
       console.log(`[REMINDER] Delivered: "${reminder.title}" to user ${reminder.userId}`);
