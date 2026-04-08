@@ -82,11 +82,11 @@
   "files": {
     "includes": [
       "packages/**",
-      "!!**/node_modules/**",
-      "!!**/dist/**",
-      "!!**/.next/**",
-      "!!**/prisma/migrations/**",
-      "!!**/.turbo/**"
+      "!!**/node_modules",
+      "!!**/dist",
+      "!!**/.next",
+      "!!**/prisma/migrations",
+      "!!**/.turbo"
     ]
   }
 }

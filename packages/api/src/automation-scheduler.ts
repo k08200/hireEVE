@@ -192,7 +192,8 @@ async function runAutomations() {
                   userId: config.userId,
                   type: "calendar",
                   title: "Google 연결 끊김",
-                  message: "Google 캘린더 동기화가 중단되었습니다. 설정에서 Google 계정을 다시 연결해주세요.",
+                  message:
+                    "Google 캘린더 동기화가 중단되었습니다. 설정에서 Google 계정을 다시 연결해주세요.",
                   link: "/settings",
                 },
               });

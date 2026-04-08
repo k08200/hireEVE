@@ -76,7 +76,6 @@ function getToolRisk(toolName: string): RiskLevel | undefined {
   return TOOL_RISK_LEVELS.get(toolName);
 }
 
-
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 // Track last run per user to respect per-user interval
@@ -1291,7 +1290,10 @@ How to reply:
                 orderBy: { createdAt: "desc" },
               });
               if (!agentConvo) {
-                const todayStr = new Date().toLocaleDateString("ko-KR", { month: "long", day: "numeric" });
+                const todayStr = new Date().toLocaleDateString("ko-KR", {
+                  month: "long",
+                  day: "numeric",
+                });
                 agentConvo = await db.conversation.create({
                   data: { userId, title: `EVE 제안 — ${todayStr}`, source: "agent" },
                 });
@@ -1328,7 +1330,13 @@ How to reply:
               const notifTitle = `[EVE] ${riskLabel}: ${fnName}`;
               const riskLink = `/chat/${agentConvo.id}`;
               const notification = await (prisma.notification.create as Function)({
-                data: { userId, type: "insight", title: notifTitle, message: proposalMessage, link: riskLink },
+                data: {
+                  userId,
+                  type: "insight",
+                  title: notifTitle,
+                  message: proposalMessage,
+                  link: riskLink,
+                },
               });
               pushNotification(userId, {
                 id: notification.id,
@@ -1354,9 +1362,21 @@ How to reply:
                 createdAt: new Date().toISOString(),
               });
 
-              result = JSON.stringify({ success: true, proposed: true, riskLevel, conversationId: agentConvo.id });
-              await logAgentAction(userId, "propose", `[${riskLevel}] Risk-gated ${fnName}: ${JSON.stringify(args).slice(0, 100)}`, fnName);
-              console.log(`[AGENT] Risk-gated (${riskLevel}) ${fnName} for ${userId} → proposal created`);
+              result = JSON.stringify({
+                success: true,
+                proposed: true,
+                riskLevel,
+                conversationId: agentConvo.id,
+              });
+              await logAgentAction(
+                userId,
+                "propose",
+                `[${riskLevel}] Risk-gated ${fnName}: ${JSON.stringify(args).slice(0, 100)}`,
+                fnName,
+              );
+              console.log(
+                `[AGENT] Risk-gated (${riskLevel}) ${fnName} for ${userId} → proposal created`,
+              );
             }
 
             messages.push({ role: "tool", content: result, tool_call_id: toolCall.id });
@@ -1486,7 +1506,13 @@ How to reply:
             };
             const autoLink = urlMap[fnName] || "/chat";
             const notification = await (prisma.notification.create as Function)({
-              data: { userId, type: "insight", title: autoTitle, message: autoMessage, link: autoLink },
+              data: {
+                userId,
+                type: "insight",
+                title: autoTitle,
+                message: autoMessage,
+                link: autoLink,
+              },
             });
             pushNotification(userId, {
               id: notification.id,

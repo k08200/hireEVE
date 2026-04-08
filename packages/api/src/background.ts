@@ -48,16 +48,21 @@ async function addNotification(
     message: notif.message,
   };
   if (notif.link) data.link = notif.link;
-  const entry = await (prisma.notification.create as Function)({ data });
+  // eslint-disable-next-line -- link field added via db push, not yet in generated client
+  const entry = await (
+    prisma.notification as unknown as {
+      create: (args: { data: Record<string, unknown> }) => Promise<{ id: string; createdAt: Date }>;
+    }
+  ).create({ data });
 
   // Push real-time via WebSocket
   pushNotification(userId, {
-    id: (entry as { id: string }).id,
+    id: entry.id,
     type: notif.type,
     title: notif.title,
     message: notif.message,
     link: notif.link,
-    createdAt: ((entry as { createdAt: Date }).createdAt).toISOString(),
+    createdAt: entry.createdAt.toISOString(),
   });
 }
 
@@ -84,17 +89,15 @@ export async function getNotifications(
     take: options?.limit || 50,
   });
 
-  return rows.map(
-    (r: Record<string, unknown>) => ({
-      id: r.id as string,
-      type: r.type as string,
-      title: r.title as string,
-      message: r.message as string,
-      isRead: r.isRead as boolean,
-      link: (r.link as string | null) ?? null,
-      createdAt: (r.createdAt as Date).toISOString(),
-    }),
-  );
+  return rows.map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    type: r.type as string,
+    title: r.title as string,
+    message: r.message as string,
+    isRead: r.isRead as boolean,
+    link: (r.link as string | null) ?? null,
+    createdAt: (r.createdAt as Date).toISOString(),
+  }));
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {
@@ -115,6 +118,7 @@ export async function clearNotifications(userId: string): Promise<void> {
   await prisma.notification.deleteMany({ where: { userId } });
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: meeting check has inherent nested logic (users → meetings → dedup → notify)
 async function checkUpcomingMeetings() {
   try {
     // Check all users who have Google connected AND meeting automation enabled
