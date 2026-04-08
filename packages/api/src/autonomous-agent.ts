@@ -103,7 +103,10 @@ function pruneDedup() {
 function getNotifKey(title: string): string {
   // Normalize: lowercase, strip whitespace/punctuation, take first 30 chars
   // This catches slight variations like "스크럼 장소 확인" vs "스크럼 장소 중복 알림"
-  return title.toLowerCase().replace(/[\s.,!?·\-_()[\]{}'"]/g, "").slice(0, 30);
+  return title
+    .toLowerCase()
+    .replace(/[\s.,!?·\-_()[\]{}'"]/g, "")
+    .slice(0, 30);
 }
 
 /** Track LLM token usage for cost monitoring */
@@ -262,8 +265,12 @@ async function gatherUserContext(userId: string): Promise<string> {
   // Format current time in KST using Intl (avoids double-offset bug when server is already in KST)
   const kstFormatter = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     hour12: false,
   });
   const kstStr = kstFormatter.format(now).replace(" ", "T") + "+09:00";
@@ -327,7 +334,23 @@ async function gatherUserContext(userId: string): Promise<string> {
           receivedAt: true,
         },
       })
-      .catch(() => [] as Array<{ id: string; gmailId: string; from: string; subject: string; snippet: string; body: string | null; summary: string | null; category: string | null; priority: string; actionItems: string | null; isRead: boolean; receivedAt: Date }>),
+      .catch(
+        () =>
+          [] as Array<{
+            id: string;
+            gmailId: string;
+            from: string;
+            subject: string;
+            snippet: string;
+            body: string | null;
+            summary: string | null;
+            category: string | null;
+            priority: string;
+            actionItems: string | null;
+            isRead: boolean;
+            receivedAt: Date;
+          }>,
+      ),
     // Key contacts for cross-domain reasoning (e.g., link email sender to contact)
     prisma.contact.findMany({
       where: { userId },
@@ -361,9 +384,7 @@ async function gatherUserContext(userId: string): Promise<string> {
 
   const sections: string[] = [];
 
-  sections.push(
-    `## Current Time\nKST: ${kstStr}\nUTC: ${now.toISOString()}`,
-  );
+  sections.push(`## Current Time\nKST: ${kstStr}\nUTC: ${now.toISOString()}`);
 
   if (tasks.length > 0) {
     const taskLines = tasks.map(
@@ -412,21 +433,38 @@ async function gatherUserContext(userId: string): Promise<string> {
   }
 
   if (emails && emails.length > 0) {
-    const emailLines = (emails as Array<{
-      id: string; gmailId: string; from: string; subject: string; snippet: string | null; body: string | null;
-      summary: string | null; category: string | null; priority: string;
-      actionItems: string | null; isRead: boolean; receivedAt: Date;
-    }>).map((e, idx) => {
-      const bodyPreview = e.body ? e.body.slice(0, 300) : (e.snippet || "");
+    const emailLines = (
+      emails as Array<{
+        id: string;
+        gmailId: string;
+        from: string;
+        subject: string;
+        snippet: string | null;
+        body: string | null;
+        summary: string | null;
+        category: string | null;
+        priority: string;
+        actionItems: string | null;
+        isRead: boolean;
+        receivedAt: Date;
+      }>
+    ).map((e, idx) => {
+      const bodyPreview = e.body ? e.body.slice(0, 300) : e.snippet || "";
       const cat = e.category ? ` [${e.category}]` : "";
       const pri = e.priority !== "NORMAL" ? ` (${e.priority})` : "";
       const summ = e.summary ? `\n  요약: ${e.summary}` : "";
       const actions = e.actionItems ? `\n  액션: ${e.actionItems}` : "";
       const read = e.isRead ? "" : " 📩 UNREAD";
-      const receivedKST = e.receivedAt.toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit" });
+      const receivedKST = e.receivedAt.toLocaleString("ko-KR", {
+        timeZone: "Asia/Seoul",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       return `### Email #${idx + 1} (수신: ${receivedKST})${read}\n  From: ${e.from}\n  Subject: "${e.subject}"${cat}${pri}${summ}${actions}\n  본문: ${bodyPreview}`;
     });
-    sections.push(`## Recent Emails (${emails.length})\nIMPORTANT: Each email below is a SEPARATE item. Different subjects or different body content = DIFFERENT meetings/requests. Do NOT merge them.\n${emailLines.join("\n\n")}`);
+    sections.push(
+      `## Recent Emails (${emails.length})\nIMPORTANT: Each email below is a SEPARATE item. Different subjects or different body content = DIFFERENT meetings/requests. Do NOT merge them.\n${emailLines.join("\n\n")}`,
+    );
   }
 
   sections.push(`## Unread Notifications: ${unreadNotifs}`);
@@ -914,7 +952,12 @@ How to reply:
       ...ALL_TOOLS.filter((t) => {
         const name = t.function.name;
         // Always allow read-only tools
-        if (name.startsWith("list_") || name.startsWith("get_") || name === "web_search" || name === "check_calendar_conflicts") {
+        if (
+          name.startsWith("list_") ||
+          name.startsWith("get_") ||
+          name === "web_search" ||
+          name === "check_calendar_conflicts"
+        ) {
           return true;
         }
         // In AUTO mode, also allow safe write tools
@@ -1006,10 +1049,7 @@ How to reply:
             orderBy: { createdAt: "desc" },
           });
 
-          if (
-            existingPending ||
-            (userNotifs.has(key) && Date.now() < (userNotifs.get(key) || 0))
-          ) {
+          if (existingPending || (userNotifs.has(key) && Date.now() < (userNotifs.get(key) || 0))) {
             result = JSON.stringify({ skipped: true, reason: "duplicate proposal" });
             await logAgentAction(userId, "skip", `Dedup proposal: "${args.message.slice(0, 50)}"`);
           } else {
@@ -1185,7 +1225,10 @@ How to reply:
           // Dedup: prevent sending same email reply repeatedly across cycles (memory + DB)
           if (fnName === "send_email") {
             const emailSubject = (args as { subject?: string }).subject || "";
-            const emailKey = `${(args as { to?: string }).to || ""}_${emailSubject}`.toLowerCase().replace(/\s+/g, "").slice(0, 100);
+            const emailKey = `${(args as { to?: string }).to || ""}_${emailSubject}`
+              .toLowerCase()
+              .replace(/\s+/g, "")
+              .slice(0, 100);
 
             // Check memory-based dedup first
             let alreadyReplied = hasRepliedToEmail(userId, emailKey);
@@ -1221,13 +1264,22 @@ How to reply:
 
           // After successful send_email, mark as replied + mark original email as read in Gmail
           if (fnName === "send_email" && !result.includes('"error"')) {
-            const emailKey = `${(args as { to?: string }).to || ""}_${(args as { subject?: string }).subject || ""}`.toLowerCase().replace(/\s+/g, "").slice(0, 100);
+            const emailKey =
+              `${(args as { to?: string }).to || ""}_${(args as { subject?: string }).subject || ""}`
+                .toLowerCase()
+                .replace(/\s+/g, "")
+                .slice(0, 100);
             markEmailReplied(userId, emailKey);
-            console.log(`[AGENT] Marked email as replied: ${(args as { subject?: string }).subject}`);
+            console.log(
+              `[AGENT] Marked email as replied: ${(args as { subject?: string }).subject}`,
+            );
 
             // Mark original email as read in Gmail so it won't appear as unread next cycle
             try {
-              const replySubject = ((args as { subject?: string }).subject || "").replace(/^Re:\s*/i, "").toLowerCase().trim();
+              const replySubject = ((args as { subject?: string }).subject || "")
+                .replace(/^Re:\s*/i, "")
+                .toLowerCase()
+                .trim();
               const replyTo = ((args as { to?: string }).to || "").toLowerCase().trim();
               // Find ALL unread emails matching the reply — mark them all as read
               const unreadEmails = await prisma.emailMessage.findMany({
@@ -1239,16 +1291,23 @@ How to reply:
                 select: { id: true, gmailId: true, subject: true, from: true },
               });
               for (const ue of unreadEmails) {
-                const ueSubject = (ue.subject || "").replace(/^Re:\s*/i, "").toLowerCase().trim();
+                const ueSubject = (ue.subject || "")
+                  .replace(/^Re:\s*/i, "")
+                  .toLowerCase()
+                  .trim();
                 const ueFrom = (ue.from || "").toLowerCase();
                 // Match by subject similarity OR sender match
-                if (replySubject && ueSubject.includes(replySubject.slice(0, 20)) ||
-                    replyTo && ueFrom.includes(replyTo)) {
+                if (
+                  (replySubject && ueSubject.includes(replySubject.slice(0, 20))) ||
+                  (replyTo && ueFrom.includes(replyTo))
+                ) {
                   if (ue.gmailId) {
                     await markAsRead(userId, ue.gmailId).catch((err: unknown) =>
                       console.warn(`[AGENT] Failed to mark ${ue.gmailId} as read:`, err),
                     );
-                    console.log(`[AGENT] Marked Gmail message as read: ${ue.gmailId} (${ue.subject})`);
+                    console.log(
+                      `[AGENT] Marked Gmail message as read: ${ue.gmailId} (${ue.subject})`,
+                    );
                   } else {
                     // No gmailId — at least mark as read in our DB
                     await prisma.emailMessage.update({

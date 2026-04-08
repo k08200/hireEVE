@@ -11,7 +11,7 @@
 import { google } from "googleapis";
 import { prisma } from "./db.js";
 import { getAuthedClient } from "./gmail.js";
-import { openai, MODEL } from "./openai.js";
+import { MODEL, openai } from "./openai.js";
 
 // ─── Gmail → DB Sync ──────────────────────────────────────────────────────
 
@@ -254,10 +254,7 @@ interface AISummaryResult {
  * Summarize a batch of emails using LLM.
  * Processes unsummarized emails for a user.
  */
-export async function summarizeUnsummarizedEmails(
-  userId: string,
-  limit = 10,
-): Promise<number> {
+export async function summarizeUnsummarizedEmails(userId: string, limit = 10): Promise<number> {
   if (!openai) return 0;
 
   const unsummarized = await prisma.emailMessage.findMany({
@@ -272,7 +269,11 @@ export async function summarizeUnsummarizedEmails(
 
   for (const email of unsummarized) {
     try {
-      const result = await summarizeEmail(email.from, email.subject, email.body || email.snippet || "");
+      const result = await summarizeEmail(
+        email.from,
+        email.subject,
+        email.body || email.snippet || "",
+      );
       await prisma.emailMessage.update({
         where: { id: email.id },
         data: {
@@ -393,7 +394,9 @@ export async function getEmailThreads(
 
   // Get all matching emails
   const emails = await prisma.emailMessage.findMany({
-    where: where as Parameters<typeof prisma.emailMessage.findMany>[0] extends { where?: infer W } ? W : never,
+    where: where as Parameters<typeof prisma.emailMessage.findMany>[0] extends { where?: infer W }
+      ? W
+      : never,
     orderBy: { receivedAt: "desc" },
   });
 
@@ -409,9 +412,7 @@ export async function getEmailThreads(
   // Build thread summaries
   const threads: EmailThread[] = [];
   for (const [threadId, msgs] of threadMap) {
-    const sorted = msgs.sort(
-      (a, b) => b.receivedAt.getTime() - a.receivedAt.getTime(),
-    );
+    const sorted = msgs.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
     const latest = sorted[0];
     const participants = [...new Set(sorted.map((m) => m.from))];
 
@@ -433,10 +434,7 @@ export async function getEmailThreads(
   }
 
   // Sort threads by latest message date
-  threads.sort(
-    (a, b) =>
-      b.lastMessage.receivedAt.getTime() - a.lastMessage.receivedAt.getTime(),
-  );
+  threads.sort((a, b) => b.lastMessage.receivedAt.getTime() - a.lastMessage.receivedAt.getTime());
 
   const total = threads.length;
   const skip = options.skip || 0;
@@ -488,11 +486,7 @@ export async function checkAutoReplyRules(
     // Check subject keywords
     if (conditions.subjectContains?.length) {
       const subjectLower = email.subject.toLowerCase();
-      if (
-        !conditions.subjectContains.some((kw) =>
-          subjectLower.includes(kw.toLowerCase()),
-        )
-      ) {
+      if (!conditions.subjectContains.some((kw) => subjectLower.includes(kw.toLowerCase()))) {
         matches = false;
       }
     }

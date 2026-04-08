@@ -167,7 +167,10 @@ export async function chatRoutes(app: FastifyInstance) {
     // PendingAction has dual FK (conversationId + messageId) — must delete first
     await db.pendingAction.deleteMany({ where: { conversationId: id } });
     await db.conversationSummary.deleteMany({ where: { conversationId: id } });
-    await db.tokenUsage.updateMany({ where: { conversationId: id }, data: { conversationId: null } });
+    await db.tokenUsage.updateMany({
+      where: { conversationId: id },
+      data: { conversationId: null },
+    });
     await prisma.message.deleteMany({ where: { conversationId: id } });
     await prisma.conversation.delete({ where: { id } });
     return reply.code(204).send();

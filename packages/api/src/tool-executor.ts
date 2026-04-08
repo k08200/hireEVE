@@ -19,6 +19,7 @@ import {
   listContacts,
   updateContact,
 } from "./contacts.js";
+import { prisma } from "./db.js";
 import {
   FILE_TOOLS,
   listRecentDownloads,
@@ -73,7 +74,6 @@ import {
   translate,
   UTILITY_TOOLS,
 } from "./utilities.js";
-import { prisma } from "./db.js";
 import { getWeather, WEATHER_TOOLS } from "./weather.js";
 import { WRITER_TOOLS, writeDocument } from "./writer.js";
 
@@ -177,13 +177,17 @@ export async function executeToolCall(
         }
 
         const evResult = await createEvent(
-          userId, evSummary, evStart, evEnd,
+          userId,
+          evSummary,
+          evStart,
+          evEnd,
           args.description as string | undefined,
           args.location as string | undefined,
         );
 
         // Also save to local DB
-        const evGoogleId = ("eventId" in evResult && evResult.eventId) ? evResult.eventId as string : null;
+        const evGoogleId =
+          "eventId" in evResult && evResult.eventId ? (evResult.eventId as string) : null;
         await prisma.calendarEvent.create({
           data: {
             userId,
@@ -286,7 +290,10 @@ export async function executeToolCall(
             },
           });
           if (dupReminder) {
-            return JSON.stringify({ skipped: true, message: `Similar reminder already exists: "${dupReminder.title}" at ${dupReminder.remindAt}` });
+            return JSON.stringify({
+              skipped: true,
+              message: `Similar reminder already exists: "${dupReminder.title}" at ${dupReminder.remindAt}`,
+            });
           }
         }
         return JSON.stringify(
@@ -342,8 +349,12 @@ export async function executeToolCall(
         const now = new Date();
         const kstFmt = new Intl.DateTimeFormat("sv-SE", {
           timeZone: "Asia/Seoul",
-          year: "numeric", month: "2-digit", day: "2-digit",
-          hour: "2-digit", minute: "2-digit", second: "2-digit",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
           hour12: false,
         });
         return JSON.stringify({

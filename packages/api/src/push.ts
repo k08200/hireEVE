@@ -42,7 +42,9 @@ export async function sendPushNotification(
     console.log(`[PUSH] No push subscriptions for user ${userId} — browser push skipped`);
     return;
   }
-  console.log(`[PUSH] Sending to ${subscriptions.length} subscription(s) for ${userId}: "${payload.title}"`);
+  console.log(
+    `[PUSH] Sending to ${subscriptions.length} subscription(s) for ${userId}: "${payload.title}"`,
+  );
 
   const data = JSON.stringify(payload);
 
@@ -103,7 +105,9 @@ export async function sendPushNotification(
     } else if (result.status === "rejected") {
       const statusCode = (result.reason as { statusCode?: number })?.statusCode;
       const body = (result.reason as { body?: string })?.body;
-      console.error(`[PUSH] Failed to send to subscription ${i}: status=${statusCode}, body=${body}, error=${result.reason}`);
+      console.error(
+        `[PUSH] Failed to send to subscription ${i}: status=${statusCode}, body=${body}, error=${result.reason}`,
+      );
       if (statusCode === 410 || statusCode === 404) {
         await prisma.pushSubscription.delete({
           where: { id: validSubs[i].id },

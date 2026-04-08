@@ -11,8 +11,13 @@
 
 import generateBriefing from "./briefing.js";
 import { prisma } from "./db.js";
+import {
+  checkAutoReplyRules,
+  generateSmartReply,
+  summarizeUnsummarizedEmails,
+  syncEmails,
+} from "./email-sync.js";
 import { getAuthedClient, sendEmail } from "./gmail.js";
-import { syncEmails, summarizeUnsummarizedEmails, checkAutoReplyRules, generateSmartReply } from "./email-sync.js";
 import { sendPushNotification } from "./push.js";
 import { pushNotification } from "./websocket.js";
 
@@ -160,9 +165,14 @@ async function runAutomations() {
             }
           }
         } catch (err) {
-          const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string } } }; message?: string };
-          console.error(`[AUTOMATION] Calendar sync failed for ${config.userId} (HTTP ${gaxiosErr.response?.status}):`,
-            gaxiosErr.response?.data?.error?.message || gaxiosErr.message || err);
+          const gaxiosErr = err as {
+            response?: { status?: number; data?: { error?: { message?: string } } };
+            message?: string;
+          };
+          console.error(
+            `[AUTOMATION] Calendar sync failed for ${config.userId} (HTTP ${gaxiosErr.response?.status}):`,
+            gaxiosErr.response?.data?.error?.message || gaxiosErr.message || err,
+          );
         }
       }
 
@@ -190,7 +200,10 @@ async function runAutomations() {
               for (const email of newEmails) {
                 try {
                   const matched = await checkAutoReplyRules(config.userId, email);
-                  if (matched && (matched.actionType === "AUTO_REPLY" || matched.actionType === "DRAFT_REPLY")) {
+                  if (
+                    matched &&
+                    (matched.actionType === "AUTO_REPLY" || matched.actionType === "DRAFT_REPLY")
+                  ) {
                     const replyBody = await generateSmartReply(matched.actionValue, {
                       from: email.from,
                       subject: email.subject,
@@ -235,9 +248,10 @@ async function runAutomations() {
                 orderBy: { receivedAt: "desc" },
               });
 
-              const emailMsg = urgentCount === 1
-                ? `긴급 이메일: ${topUrgent?.summary || topUrgent?.subject || "새 이메일"} (from: ${topUrgent?.from || "unknown"})`
-                : `긴급 이메일 ${urgentCount}건이 있습니다. 최신: ${topUrgent?.summary || topUrgent?.subject || ""}`;
+              const emailMsg =
+                urgentCount === 1
+                  ? `긴급 이메일: ${topUrgent?.summary || topUrgent?.subject || "새 이메일"} (from: ${topUrgent?.from || "unknown"})`
+                  : `긴급 이메일 ${urgentCount}건이 있습니다. 최신: ${topUrgent?.summary || topUrgent?.subject || ""}`;
 
               const notification = await prisma.notification.create({
                 data: {
