@@ -11,7 +11,8 @@
 
 import generateBriefing from "./briefing.js";
 import { prisma } from "./db.js";
-import { classifyEmails, getAuthedClient } from "./gmail.js";
+import { getAuthedClient, sendEmail } from "./gmail.js";
+import { syncEmails, summarizeUnsummarizedEmails, checkAutoReplyRules, generateSmartReply } from "./email-sync.js";
 import { sendPushNotification } from "./push.js";
 import { pushNotification } from "./websocket.js";
 
@@ -158,28 +159,91 @@ async function runAutomations() {
               });
             }
           }
-        } catch {
-          // Calendar sync failed — skip silently
+        } catch (err) {
+          const gaxiosErr = err as { response?: { status?: number; data?: { error?: { message?: string } } }; message?: string };
+          console.error(`[AUTOMATION] Calendar sync failed for ${config.userId} (HTTP ${gaxiosErr.response?.status}):`,
+            gaxiosErr.response?.data?.error?.message || gaxiosErr.message || err);
         }
       }
 
-      // --- Email Auto-Classify ---
+      // --- Email Sync + AI Classify ---
       if (config.emailAutoClassify) {
-        // Run classification every 30 minutes (check modulo)
+        // Run every 5 minutes (check modulo)
         const minute = new Date().getMinutes();
-        if (minute === 0 || minute === 30) {
+        if (minute % 5 === 0) {
           try {
-            const result = await classifyEmails(config.userId, 10);
-            if ("error" in result || !("summary" in result)) continue;
+            // Sync from Gmail → DB
+            const syncResult = await syncEmails(config.userId, 20);
 
-            const highPriority = result.summary.high;
-            if (highPriority > 0) {
-              const emailMsg = `You have ${highPriority} high-priority email(s) in your inbox.`;
+            // AI summarize new emails
+            if (syncResult.newCount > 0) {
+              await summarizeUnsummarizedEmails(config.userId, syncResult.newCount);
+            }
+
+            // Auto-reply: check rules for newly synced emails
+            if (syncResult.newCount > 0) {
+              const newEmails = await prisma.emailMessage.findMany({
+                where: { userId: config.userId },
+                orderBy: { syncedAt: "desc" },
+                take: syncResult.newCount,
+              });
+              for (const email of newEmails) {
+                try {
+                  const matched = await checkAutoReplyRules(config.userId, email);
+                  if (matched && (matched.actionType === "AUTO_REPLY" || matched.actionType === "DRAFT_REPLY")) {
+                    const replyBody = await generateSmartReply(matched.actionValue, {
+                      from: email.from,
+                      subject: email.subject,
+                      body: email.body || "",
+                    });
+                    if (matched.actionType === "AUTO_REPLY") {
+                      const emailMatch = email.from.match(/<([^>]+)>/) || [null, email.from];
+                      const toAddr = emailMatch[1] || email.from;
+                      await sendEmail(config.userId, toAddr, `Re: ${email.subject}`, replyBody);
+                      const notification = await prisma.notification.create({
+                        data: {
+                          userId: config.userId,
+                          type: "email",
+                          title: "Auto-reply sent",
+                          message: `Auto-replied to ${toAddr} (rule: "${matched.ruleName}")`,
+                        },
+                      });
+                      pushNotification(config.userId, {
+                        id: notification.id,
+                        type: "email",
+                        title: "Auto-reply sent",
+                        message: `Auto-replied to ${toAddr}`,
+                        createdAt: notification.createdAt.toISOString(),
+                      });
+                    }
+                  }
+                } catch {
+                  // Auto-reply failed — non-critical
+                }
+              }
+            }
+
+            // Check for urgent unread emails
+            const urgentCount = await prisma.emailMessage.count({
+              where: { userId: config.userId, priority: "URGENT", isRead: false },
+            });
+
+            if (urgentCount > 0) {
+              // Get top urgent email for rich notification
+              const topUrgent = await prisma.emailMessage.findFirst({
+                where: { userId: config.userId, priority: "URGENT", isRead: false },
+                orderBy: { receivedAt: "desc" },
+              });
+
+              const emailMsg = urgentCount === 1
+                ? `긴급 이메일: ${topUrgent?.summary || topUrgent?.subject || "새 이메일"} (from: ${topUrgent?.from || "unknown"})`
+                : `긴급 이메일 ${urgentCount}건이 있습니다. 최신: ${topUrgent?.summary || topUrgent?.subject || ""}`;
+
               const notification = await prisma.notification.create({
                 data: {
                   userId: config.userId,
                   type: "email",
-                  title: "High Priority Emails",
+                  title: "긴급 이메일",
                   message: emailMsg,
                 },
               });
@@ -187,19 +251,19 @@ async function runAutomations() {
               pushNotification(config.userId, {
                 id: notification.id,
                 type: "email",
-                title: "High Priority Emails",
+                title: "긴급 이메일",
                 message: emailMsg,
                 createdAt: notification.createdAt.toISOString(),
               });
 
               sendPushNotification(config.userId, {
-                title: "High Priority Emails",
+                title: "[EVE] 긴급 이메일",
                 body: emailMsg,
                 url: "/email",
               });
             }
           } catch {
-            // Gmail not connected — skip silently
+            // Gmail not connected or sync failed — skip silently
           }
         }
       }

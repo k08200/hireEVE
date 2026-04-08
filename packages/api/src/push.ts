@@ -29,13 +29,20 @@ export async function sendPushNotification(
   userId: string,
   payload: { title: string; body: string; url?: string },
 ): Promise<void> {
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    console.log(`[PUSH] Skipped — VAPID keys not configured`);
+    return;
+  }
 
   const subscriptions = await prisma.pushSubscription.findMany({
     where: { userId },
   });
 
-  if (subscriptions.length === 0) return;
+  if (subscriptions.length === 0) {
+    console.log(`[PUSH] No push subscriptions for user ${userId} — browser push skipped`);
+    return;
+  }
+  console.log(`[PUSH] Sending to ${subscriptions.length} subscription(s) for ${userId}: "${payload.title}"`);
 
   const data = JSON.stringify(payload);
 
@@ -87,11 +94,16 @@ export async function sendPushNotification(
     ),
   );
 
-  // Clean up expired/invalid subscriptions
+  // Log results and clean up expired/invalid subscriptions
+  let successCount = 0;
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
-    if (result.status === "rejected") {
+    if (result.status === "fulfilled") {
+      successCount++;
+    } else if (result.status === "rejected") {
       const statusCode = (result.reason as { statusCode?: number })?.statusCode;
+      const body = (result.reason as { body?: string })?.body;
+      console.error(`[PUSH] Failed to send to subscription ${i}: status=${statusCode}, body=${body}, error=${result.reason}`);
       if (statusCode === 410 || statusCode === 404) {
         await prisma.pushSubscription.delete({
           where: { id: validSubs[i].id },
@@ -100,6 +112,7 @@ export async function sendPushNotification(
       }
     }
   }
+  console.log(`[PUSH] Sent ${successCount}/${results.length} push notifications successfully`);
 }
 
 /** Get the public VAPID key for client-side subscription */

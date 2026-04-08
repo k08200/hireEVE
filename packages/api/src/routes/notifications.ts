@@ -7,7 +7,7 @@ import {
   markNotificationRead,
 } from "../background.js";
 import { prisma } from "../db.js";
-import { getVapidPublicKey } from "../push.js";
+import { getVapidPublicKey, sendPushNotification } from "../push.js";
 
 export async function notificationRoutes(app: FastifyInstance) {
   // GET /api/notifications — Get notifications (supports ?unread=true&limit=50)
@@ -97,13 +97,26 @@ export async function notificationRoutes(app: FastifyInstance) {
       }
     }
 
+    console.log(`[PUSH-SUB] Registering push subscription for user ${userId}: ${endpoint.slice(0, 60)}...`);
     await prisma.pushSubscription.upsert({
       where: { endpoint },
       create: { userId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
       update: { userId, p256dh: keys.p256dh, auth: keys.auth },
     });
+    console.log(`[PUSH-SUB] Successfully registered push subscription for user ${userId}`);
 
     return reply.code(201).send({ success: true });
+  });
+
+  // POST /api/notifications/push/test — Send a test push notification
+  app.post("/push/test", async (request, reply) => {
+    const userId = getUserId(request);
+    await sendPushNotification(userId, {
+      title: "EVE 테스트",
+      body: "Push 알림이 정상 작동합니다!",
+      url: "/chat",
+    });
+    return { sent: true };
   });
 
   // DELETE /api/notifications/push/unsubscribe — Remove push subscription

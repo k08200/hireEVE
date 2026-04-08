@@ -75,14 +75,34 @@ self.addEventListener("fetch", (event) => {
 
 // Push notifications
 self.addEventListener("push", (event) => {
-  const data = event.data ? event.data.json() : {};
-  const title = data.title || "EVE";
-  const options = {
-    body: data.body || "You have a new notification",
+  console.log("[SW] Push event received!", event.data ? "has data" : "no data");
+  // Forward to all open tabs so user can see in browser console
+  self.clients.matchAll({ type: "window" }).then((clients) => {
+    clients.forEach((c) => c.postMessage({ type: "PUSH_DEBUG", msg: "Push event fired!", data: event.data ? event.data.text() : null }));
+  });
+  let title = "EVE";
+  let options = {
+    body: "You have a new notification",
     icon: "/icon-192.svg",
     badge: "/icon-192.svg",
-    data: { url: data.url || "/chat" },
+    data: { url: "/chat" },
   };
+  try {
+    const data = event.data ? event.data.json() : {};
+    console.log("[SW] Push data parsed:", JSON.stringify(data));
+    title = data.title || "EVE";
+    options = {
+      body: data.body || "You have a new notification",
+      icon: "/icon-192.svg",
+      badge: "/icon-192.svg",
+      data: { url: data.url || "/chat" },
+    };
+  } catch (err) {
+    console.error("[SW] Push data parse error:", err);
+    // Show fallback notification even if parsing fails
+    title = "EVE — New notification";
+    options.body = event.data ? event.data.text() : "Check EVE for details";
+  }
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
