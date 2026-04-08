@@ -134,7 +134,9 @@ export default function CalendarPage() {
 
   const fetchEvents = () => {
     const { start, end } = getFetchRange();
-    apiFetch<{ events: CalendarEvent[] }>(`/api/calendar?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+    apiFetch<{ events: CalendarEvent[] }>(
+      `/api/calendar?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+    )
       .then((d) => setEvents(d.events || []))
       .catch(() => {});
   };
@@ -408,7 +410,10 @@ export default function CalendarPage() {
             {/* Weekday headers */}
             <div className="grid grid-cols-7 border-b border-gray-800">
               {WEEKDAY_LABELS.map((d) => (
-                <div key={d} className="p-2 text-center text-[10px] text-gray-500 uppercase font-medium">
+                <div
+                  key={d}
+                  className="p-2 text-center text-[10px] text-gray-500 uppercase font-medium"
+                >
                   {d}
                 </div>
               ))}
@@ -444,10 +449,7 @@ export default function CalendarPage() {
                     {/* Event dots / titles */}
                     <div className="mt-1 space-y-0.5">
                       {dayEvents.slice(0, 3).map((ev) => (
-                        <div
-                          key={ev.id}
-                          className="flex items-center gap-1 truncate"
-                        >
+                        <div key={ev.id} className="flex items-center gap-1 truncate">
                           <span
                             className="w-1.5 h-1.5 rounded-full shrink-0"
                             style={{ backgroundColor: ev.color || "#3b82f6" }}
@@ -456,7 +458,9 @@ export default function CalendarPage() {
                         </div>
                       ))}
                       {dayEvents.length > 3 && (
-                        <span className="text-[9px] text-gray-500">+{dayEvents.length - 3} more</span>
+                        <span className="text-[9px] text-gray-500">
+                          +{dayEvents.length - 3} more
+                        </span>
                       )}
                     </div>
                   </button>
@@ -681,8 +685,7 @@ export default function CalendarPage() {
               {selectedDayEvents.map((event) => {
                 const now = new Date();
                 const isPast = new Date(event.endTime) < now;
-                const isCurrent =
-                  new Date(event.startTime) <= now && new Date(event.endTime) > now;
+                const isCurrent = new Date(event.startTime) <= now && new Date(event.endTime) > now;
                 return (
                   <div
                     key={event.id}
@@ -695,7 +698,9 @@ export default function CalendarPage() {
                     <span className="text-xs text-gray-500 w-24 shrink-0">
                       {formatTime(event.startTime)} - {formatTime(event.endTime)}
                     </span>
-                    <span className={`text-sm flex-1 ${isCurrent ? "text-blue-300 font-medium" : ""}`}>
+                    <span
+                      className={`text-sm flex-1 ${isCurrent ? "text-blue-300 font-medium" : ""}`}
+                    >
                       {event.title}
                     </span>
                     {isCurrent && (

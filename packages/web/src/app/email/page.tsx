@@ -246,7 +246,9 @@ export default function EmailPage() {
   };
 
   const deleteEmail = (email: Email) => {
-    apiFetch<{ success?: boolean; warning?: string }>(`/api/email/${email.id}`, { method: "DELETE" })
+    apiFetch<{ success?: boolean; warning?: string }>(`/api/email/${email.id}`, {
+      method: "DELETE",
+    })
       .then((res) => {
         toast(res.warning || "Email deleted", res.warning ? "info" : "success");
         setSelectedId(null);
@@ -257,7 +259,9 @@ export default function EmailPage() {
   };
 
   const archiveEmailAction = (email: Email) => {
-    apiFetch<{ success?: boolean; warning?: string }>(`/api/email/${email.id}/archive`, { method: "POST" })
+    apiFetch<{ success?: boolean; warning?: string }>(`/api/email/${email.id}/archive`, {
+      method: "POST",
+    })
       .then((res) => {
         toast(res.warning || "Email archived", res.warning ? "info" : "success");
         setSelectedId(null);
