@@ -837,11 +837,13 @@ async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promis
   const startTime = Date.now();
 
   try {
-    const [context, feedback, memoryContext, proposalHistory] = await Promise.all([
+    const { analyzePatterns } = await import("./pattern-learner.js");
+    const [context, feedback, memoryContext, proposalHistory, patternContext] = await Promise.all([
       gatherUserContext(userId),
       getAgentFeedback(userId),
       loadMemoriesForPrompt(userId).catch(() => ""),
       getProposalHistory(userId).catch(() => ""),
+      analyzePatterns(userId).catch(() => ""),
     ]);
 
     // Skip if context is minimal (no tasks, no calendar, no emails)
@@ -968,8 +970,9 @@ How to reply:
     if (proposalHistory) contextParts.push(proposalHistory);
     const contextWithFeedback = contextParts.join("\n\n");
 
-    // Inject user memories into system prompt for personalization
-    const systemPromptWithMemory = memoryContext ? `${systemPrompt}${memoryContext}` : systemPrompt;
+    // Inject user memories and learned patterns into system prompt for personalization
+    let systemPromptWithMemory = memoryContext ? `${systemPrompt}${memoryContext}` : systemPrompt;
+    if (patternContext) systemPromptWithMemory += patternContext;
 
     const messages: unknown[] = [
       { role: "system", content: systemPromptWithMemory },

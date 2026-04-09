@@ -354,6 +354,15 @@ try {
     .catch((err) => {
       console.error("[AGENT] Autonomous agent failed to start:", err);
     });
+
+  // Start pattern learner (6-hour cycle for learning user behavior patterns)
+  import("./pattern-learner.js")
+    .then(({ startPatternLearner }) => {
+      startPatternLearner();
+    })
+    .catch((err) => {
+      console.error("[PATTERN] Pattern learner failed to start:", err);
+    });
 } catch (err) {
   console.error("[STARTUP] Fatal error during server initialization:", err);
   // Still try to start a minimal health-check server so Render doesn't mark as crashed

@@ -390,11 +390,13 @@ export default function ContactsPage() {
         ) : (
           <div className="space-y-2">
             {filteredContacts.map((c) => (
-              <button
-                type="button"
+              <div
                 key={c.id}
+                role="button"
+                tabIndex={0}
                 className="w-full text-left bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 group cursor-pointer hover:border-gray-600 transition"
                 onClick={() => startEdit(c)}
+                onKeyDown={(e) => e.key === "Enter" && startEdit(c)}
               >
                 <div className="flex items-start gap-3">
                   <div
@@ -442,7 +444,7 @@ export default function ContactsPage() {
                     ✕
                   </button>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

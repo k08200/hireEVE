@@ -15,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  googleConnected: boolean | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   loginWithToken: (token: string) => Promise<void>;
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
   const router = useRouter();
 
   // Load token from localStorage on mount
@@ -40,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
         .then((data) => {
           setUser(data.user);
+          setGoogleConnected(data.user.googleConnected ?? false);
           // Auto-sync on app reload if Google is connected
           if (data.user.googleConnected) {
             apiFetch("/api/auth/init-sync", {
@@ -126,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, loginWithToken, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, googleConnected, login, register, loginWithToken, logout }}>
       {children}
     </AuthContext.Provider>
   );

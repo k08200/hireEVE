@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -101,6 +102,7 @@ const sentimentIcon: Record<string, string> = {
 // ─── Main Component ───────────────────────────────────────────────────────
 
 export default function EmailPage() {
+  const { googleConnected: cachedGoogle } = useAuth();
   const [emails, setEmails] = useState<Email[]>([]);
   const [stats, setStats] = useState<EmailStats | null>(null);
   const [filter, setFilter] = useState<"all" | "unread" | "urgent">("all");
@@ -112,7 +114,7 @@ export default function EmailPage() {
   const [loadingBody, setLoadingBody] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(cachedGoogle);
   const [tab, setTab] = useState<"inbox" | "rules">("inbox");
 
   // Compose

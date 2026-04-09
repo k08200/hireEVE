@@ -872,6 +872,11 @@ export async function chatRoutes(app: FastifyInstance) {
         createdAt: new Date().toISOString(),
       });
 
+      // Learn from approval for pattern detection
+      import("../pattern-learner.js")
+        .then(({ learnFromApproval }) => learnFromApproval(userId, action.toolName, toolArgs))
+        .catch(() => {});
+
       return { success: true, result: toolResult };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Execution failed";
@@ -935,6 +940,13 @@ export async function chatRoutes(app: FastifyInstance) {
         metadata: JSON.stringify({ source: "agent", actionRejected: true }),
       },
     });
+
+    // Learn from rejection for pattern detection
+    import("../pattern-learner.js")
+      .then(({ learnFromRejection }) =>
+        learnFromRejection(userId, action.toolName, action.reasoning || "", reason || ""),
+      )
+      .catch(() => {});
 
     return { success: true };
   });
