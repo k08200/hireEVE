@@ -109,12 +109,16 @@ const sentimentIcon: Record<string, string> = {
   neutral: "~",
 };
 
+// ─── Page Cache (persists across navigations) ────────────────────────────
+let cachedEmails: Email[] = [];
+let cachedStats: EmailStats | null = null;
+
 // ─── Main Component ───────────────────────────────────────────────────────
 
 export default function EmailPage() {
   const { googleConnected: cachedGoogle } = useAuth();
-  const [emails, setEmails] = useState<Email[]>([]);
-  const [stats, setStats] = useState<EmailStats | null>(null);
+  const [emails, setEmails] = useState<Email[]>(cachedEmails);
+  const [stats, setStats] = useState<EmailStats | null>(cachedStats);
   const [filter, setFilter] = useState<"all" | "unread" | "urgent">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,7 +126,7 @@ export default function EmailPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [loadingBody, setLoadingBody] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(cachedEmails.length === 0);
   const [syncing, setSyncing] = useState(false);
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(cachedGoogle);
   const [tab, setTab] = useState<"inbox" | "rules">("inbox");
@@ -149,7 +153,8 @@ export default function EmailPage() {
 
   // ─── Fetch Emails ───────────────────────────────────────────────────
   const fetchEmails = useCallback(() => {
-    setLoading(true);
+    // Only show loading spinner if no cached data
+    if (cachedEmails.length === 0) setLoading(true);
     const params = new URLSearchParams();
     if (filter === "unread") params.set("filter", "unread");
     if (filter === "urgent") params.set("filter", "urgent");
@@ -164,8 +169,14 @@ export default function EmailPage() {
       apiFetch<EmailStats>("/api/email/stats/summary").catch(() => null),
     ])
       .then(([emailData, statsData]) => {
-        setEmails(emailData.emails || []);
+        const newEmails = emailData.emails || [];
+        setEmails(newEmails);
         if (statsData) setStats(statsData);
+        // Update cache for default view (no filters)
+        if (!filter || filter === "all") {
+          cachedEmails = newEmails;
+        }
+        if (statsData) cachedStats = statsData;
       })
       .finally(() => setLoading(false));
   }, [filter, categoryFilter, searchQuery]);
