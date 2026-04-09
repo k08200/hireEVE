@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
-import { apiFetch } from "../../lib/api";
+import { API_BASE, apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -432,7 +432,7 @@ export default function EmailPage() {
               </>
             ) : googleConnected === false ? (
               <a
-                href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/auth/google/login`}
+                href={`${API_BASE}/api/auth/google/login`}
                 className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
               >
                 Connect Google
