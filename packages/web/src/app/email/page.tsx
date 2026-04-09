@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
 import { API_BASE, apiFetch } from "../../lib/api";
@@ -151,39 +151,46 @@ export default function EmailPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  // ─── Fetch Emails ───────────────────────────────────────────────────
+  // ─── Fetch Emails (always fetch all, filter client-side) ────────────
   const fetchEmails = useCallback(() => {
-    // Only show loading spinner if no cached data
     if (cachedEmails.length === 0) setLoading(true);
-    const params = new URLSearchParams();
-    if (filter === "unread") params.set("filter", "unread");
-    if (filter === "urgent") params.set("filter", "urgent");
-    if (categoryFilter) params.set("category", categoryFilter);
-    if (searchQuery) params.set("search", searchQuery);
-
-    const qs = params.toString();
     Promise.all([
-      apiFetch<{ emails: Email[] }>(`/api/email${qs ? `?${qs}` : ""}`).catch(() => ({
-        emails: [],
-      })),
+      apiFetch<{ emails: Email[] }>("/api/email").catch(() => ({ emails: [] })),
       apiFetch<EmailStats>("/api/email/stats/summary").catch(() => null),
     ])
       .then(([emailData, statsData]) => {
         const newEmails = emailData.emails || [];
         setEmails(newEmails);
-        if (statsData) setStats(statsData);
-        // Update cache for default view (no filters)
-        if (!filter || filter === "all") {
-          cachedEmails = newEmails;
+        cachedEmails = newEmails;
+        if (statsData) {
+          setStats(statsData);
+          cachedStats = statsData;
         }
-        if (statsData) cachedStats = statsData;
       })
       .finally(() => setLoading(false));
-  }, [filter, categoryFilter, searchQuery]);
+  }, []);
 
   useEffect(() => {
     fetchEmails();
   }, [fetchEmails]);
+
+  // ─── Client-side filtering ─────────────────────────────────────────
+  const filteredEmails = useMemo(() => {
+    let result = emails;
+    if (filter === "unread") result = result.filter((e) => !e.isRead);
+    if (filter === "urgent") result = result.filter((e) => e.priority === "URGENT");
+    if (categoryFilter) result = result.filter((e) => e.category === categoryFilter);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (e) =>
+          e.subject?.toLowerCase().includes(q) ||
+          e.from?.toLowerCase().includes(q) ||
+          e.snippet?.toLowerCase().includes(q),
+      );
+    }
+    return result;
+  }, [emails, filter, categoryFilter, searchQuery]);
 
   // ─── Google Connection Status ─────────────────────────────────────
   useEffect(() => {
@@ -610,7 +617,7 @@ export default function EmailPage() {
               <div className="flex gap-4">
                 {/* Email List */}
                 <div className={`space-y-1 ${selectedId ? "w-1/2" : "w-full"} transition-all`}>
-                  {emails.length === 0 ? (
+                  {filteredEmails.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-gray-500">No emails found</p>
                       {searchQuery && (
@@ -620,7 +627,7 @@ export default function EmailPage() {
                       )}
                     </div>
                   ) : (
-                    emails.map((email) => (
+                    filteredEmails.map((email) => (
                       <button
                         key={email.id}
                         type="button"
