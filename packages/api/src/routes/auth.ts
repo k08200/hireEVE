@@ -506,7 +506,11 @@ export async function authRoutes(app: FastifyInstance) {
       return { synced: false, reason: "demo-user" };
     }
 
-    const results: { calendar: number; contacts: number } = { calendar: 0, contacts: 0 };
+    const results: { calendar: number; contacts: number; emails: number } = {
+      calendar: 0,
+      contacts: 0,
+      emails: 0,
+    };
 
     // Check if Google is connected
     const auth = await getAuthedClient(userId);
@@ -626,6 +630,15 @@ export async function authRoutes(app: FastifyInstance) {
       }
     } catch {
       // Gmail contact sync failed — skip
+    }
+
+    // 3. Sync emails from Gmail (latest 30)
+    try {
+      const { syncEmails } = await import("../email-sync.js");
+      const emailResult = await syncEmails(userId, 30);
+      results.emails = emailResult.newCount;
+    } catch {
+      // Email sync failed — skip
     }
 
     return { synced: true, ...results };

@@ -166,6 +166,23 @@ export default function EmailPage() {
       .catch(() => setGoogleConnected(false));
   }, []);
 
+  // ─── Auto-sync on first visit if Google connected but no emails ──
+  const [autoSynced, setAutoSynced] = useState(false);
+  useEffect(() => {
+    if (autoSynced || syncing || loading) return;
+    if (googleConnected && emails.length === 0 && stats?.source !== "demo") {
+      setAutoSynced(true);
+      setSyncing(true);
+      apiFetch<{ synced: number; newCount: number }>("/api/email/sync", {
+        method: "POST",
+        body: "{}",
+      })
+        .then(() => fetchEmails())
+        .catch(() => {})
+        .finally(() => setSyncing(false));
+    }
+  }, [googleConnected, emails.length, stats, loading, syncing, autoSynced, fetchEmails]);
+
   // ─── Fetch Rules ────────────────────────────────────────────────────
   useEffect(() => {
     if (tab === "rules") {
