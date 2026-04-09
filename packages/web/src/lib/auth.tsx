@@ -129,7 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, googleConnected, login, register, loginWithToken, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, loading, googleConnected, login, register, loginWithToken, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -387,8 +387,7 @@ export async function analyzePatterns(userId: string): Promise<string> {
     result += "Use these patterns to make better decisions:\n\n";
 
     for (const p of allPatterns.slice(0, 8)) {
-      const confidenceLabel =
-        p.confidence >= 0.8 ? "HIGH" : p.confidence >= 0.5 ? "MEDIUM" : "LOW";
+      const confidenceLabel = p.confidence >= 0.8 ? "HIGH" : p.confidence >= 0.5 ? "MEDIUM" : "LOW";
       result += `- [${confidenceLabel}] ${p.description}\n`;
     }
 
@@ -507,9 +506,12 @@ export function startPatternLearner() {
   console.log("[PATTERN] Pattern learner started (6h interval)");
 
   // Run first analysis after 5 minutes (let server warm up)
-  setTimeout(async () => {
-    await runPatternAnalysisForAllUsers();
-  }, 5 * 60 * 1000);
+  setTimeout(
+    async () => {
+      await runPatternAnalysisForAllUsers();
+    },
+    5 * 60 * 1000,
+  );
 
   patternIntervalId = setInterval(runPatternAnalysisForAllUsers, PATTERN_INTERVAL_MS);
 }
