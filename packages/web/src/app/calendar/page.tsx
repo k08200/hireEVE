@@ -268,7 +268,18 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">Calendar</h1>
-            <p className="text-gray-400 text-sm mt-1">Manage your schedule</p>
+            <p className="text-gray-400 text-sm mt-1">
+              {googleConnected === true && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-900/40 text-green-400">
+                  Google connected
+                </span>
+              )}
+              {googleConnected === false && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">
+                  Not connected
+                </span>
+              )}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
@@ -283,21 +294,15 @@ export default function CalendarPage() {
                 </button>
               ))}
             </div>
-            {googleConnected ? (
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-xs text-green-400">
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                  Google Connected
-                </span>
-                <button
-                  type="button"
-                  onClick={syncGoogle}
-                  disabled={syncing}
-                  className="text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition border border-gray-700 disabled:opacity-50"
-                >
-                  {syncing ? "Syncing..." : "Sync"}
-                </button>
-              </div>
+            {googleConnected === true ? (
+              <button
+                type="button"
+                onClick={syncGoogle}
+                disabled={syncing}
+                className="text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition border border-gray-700 disabled:opacity-50"
+              >
+                {syncing ? "Syncing..." : "Sync"}
+              </button>
             ) : googleConnected === false ? (
               <a
                 href={`${API_BASE}/api/auth/google?token=${typeof window !== "undefined" ? localStorage.getItem("eve-token") || "" : ""}`}
