@@ -5,6 +5,7 @@ import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
 
 import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 
 interface CalendarEvent {
   id: string;
@@ -95,13 +96,14 @@ function formatMonthYear(year: number, month: number): string {
 }
 
 export default function CalendarPage() {
+  const { googleConnected: cachedGoogle } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [view, setView] = useState<"week" | "month" | "list">("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCreate, setShowCreate] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null); // null = loading
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(cachedGoogle); // null = loading
   const [newEvent, setNewEvent] = useState<NewEvent>({
     title: "",
     date: new Date().toISOString().split("T")[0],

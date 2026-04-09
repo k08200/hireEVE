@@ -222,35 +222,7 @@ export async function emailRoutes(app: FastifyInstance) {
       };
     }
 
-    // Sync from Gmail + reconcile stale data
-    try {
-      const syncResult = await syncEmails(uid, 30);
-
-      // Reconcile: remove deleted/archived emails from DB
-      await reconcileEmails(uid);
-
-      // Auto-add contacts from synced emails
-      if (syncResult.newCount > 0) {
-        const newEmails = await prisma.emailMessage.findMany({
-          where: { userId: uid },
-          orderBy: { syncedAt: "desc" },
-          take: syncResult.newCount,
-        });
-        autoAddContacts(uid, newEmails).catch(() => {});
-
-        // Trigger AI summarization for new emails (non-blocking)
-        summarizeUnsummarizedEmails(uid, syncResult.newCount).catch(() => {});
-
-        // Check auto-reply rules for new emails
-        for (const email of newEmails) {
-          checkAndExecuteAutoReply(uid, email).catch(() => {});
-        }
-      }
-    } catch {
-      // Sync failed — serve from DB cache if available
-    }
-
-    // Build query
+    // Build query (reads from DB only — sync via POST /api/email/sync)
     // biome-ignore lint/suspicious/noExplicitAny: dynamic Prisma where clause
     const where: Record<string, any> = { userId: uid };
     if (filter === "unread") where.isRead = false;

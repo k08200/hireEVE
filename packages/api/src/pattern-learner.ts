@@ -1,0 +1,545 @@
+/**
+ * Pattern Learner — Analyzes user behavior and learns from feedback
+ *
+ * Phase 4 of Autonomous Agent roadmap:
+ * 1. Temporal patterns: "user creates tasks Monday mornings", "meetings usually at 2PM"
+ * 2. Rejection learning: auto-save rejected proposals as FEEDBACK memories
+ * 3. Action patterns: frequently used tools, common workflows
+ * 4. Confidence evolution: update memory confidence based on accuracy
+ * 5. Pattern summary: formatted insights injected into agent context
+ *
+ * Runs periodically (every 6 hours) or on-demand after proposal feedback.
+ */
+
+import { db, prisma } from "./db.js";
+import { remember } from "./memory.js";
+
+const PATTERN_ANALYSIS_HOURS = 168; // 7 days of data for pattern detection
+const MIN_OCCURRENCES = 3; // Need at least 3 instances to detect a pattern
+
+// ─── Types ──────────────────────────────────────────────────────────────
+
+interface TimeSlot {
+  dayOfWeek: number; // 0=Sun, 6=Sat
+  hour: number; // 0-23
+  count: number;
+}
+
+interface ToolPattern {
+  tool: string;
+  count: number;
+  approvalRate: number;
+  commonArgs: string[];
+}
+
+interface LearnedPattern {
+  type: "temporal" | "tool_preference" | "rejection" | "workflow";
+  description: string;
+  confidence: number;
+  evidence: number; // how many data points support this
+}
+
+// ─── Rejection Learning ─────────────────────────────────────────────────
+
+/**
+ * When a proposal is rejected, auto-save the lesson as a FEEDBACK memory.
+ * Called from the approve/reject route handler.
+ */
+export async function learnFromRejection(
+  userId: string,
+  toolName: string,
+  reasoning: string | null,
+  rejectionReason: string | null,
+): Promise<void> {
+  try {
+    // Check if we already learned this lesson
+    const existingMemory = await db.memory.findFirst({
+      where: {
+        userId,
+        type: "FEEDBACK",
+        key: { startsWith: `rejected_${toolName}` },
+        content: { contains: toolName },
+      },
+    });
+
+    // Count rejections for this tool type
+    const rejectionCount = await db.pendingAction.count({
+      where: {
+        userId,
+        toolName,
+        status: "REJECTED",
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+    });
+
+    const lesson = rejectionReason
+      ? `User rejected ${toolName}: "${rejectionReason}". Agent reasoning was: "${(reasoning || "").slice(0, 100)}"`
+      : `User rejected ${toolName} without reason. Agent reasoning: "${(reasoning || "").slice(0, 100)}"`;
+
+    const key = existingMemory
+      ? (existingMemory.key as string)
+      : `rejected_${toolName}_${Date.now()}`;
+
+    // Higher confidence with more rejections of same tool
+    const confidence = Math.min(1.0, 0.5 + rejectionCount * 0.1);
+
+    await remember(
+      userId,
+      "FEEDBACK",
+      key,
+      `${lesson} (${rejectionCount} total rejections for ${toolName})`,
+      "pattern-learner",
+    );
+
+    // Update confidence
+    await db.memory.updateMany({
+      where: { userId, type: "FEEDBACK", key },
+      data: { confidence },
+    });
+
+    console.log(
+      `[PATTERN] Learned from rejection: ${toolName} for user ${userId} (${rejectionCount} total)`,
+    );
+  } catch (err) {
+    console.error("[PATTERN] Failed to learn from rejection:", err);
+  }
+}
+
+/**
+ * When a proposal is approved, reinforce positive patterns.
+ */
+export async function learnFromApproval(
+  userId: string,
+  toolName: string,
+  toolArgs: string,
+): Promise<void> {
+  try {
+    // Count approvals for this tool
+    const approvalCount = await db.pendingAction.count({
+      where: {
+        userId,
+        toolName,
+        status: "EXECUTED",
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+    });
+
+    // Only save pattern after 3+ approvals of same tool
+    if (approvalCount < MIN_OCCURRENCES) return;
+
+    // Try to extract common patterns from args
+    const recentApproved = await db.pendingAction.findMany({
+      where: {
+        userId,
+        toolName,
+        status: "EXECUTED",
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+      select: { toolArgs: true },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+
+    const argsList = recentApproved
+      .map((a: { toolArgs: string }) => {
+        try {
+          return JSON.parse(a.toolArgs);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    // Find common patterns in args (simple key overlap analysis)
+    const commonKeys = findCommonKeys(argsList);
+
+    if (commonKeys.length > 0) {
+      await remember(
+        userId,
+        "DECISION",
+        `preferred_${toolName}_pattern`,
+        `User frequently approves ${toolName} (${approvalCount} times in 30 days). Common patterns: ${commonKeys.join(", ")}`,
+        "pattern-learner",
+      );
+    }
+  } catch (err) {
+    console.error("[PATTERN] Failed to learn from approval:", err);
+  }
+}
+
+// ─── Temporal Pattern Analysis ──────────────────────────────────────────
+
+/**
+ * Analyze when the user is most active and what they do at different times.
+ */
+async function analyzeTemporalPatterns(userId: string): Promise<LearnedPattern[]> {
+  const since = new Date(Date.now() - PATTERN_ANALYSIS_HOURS * 60 * 60 * 1000);
+  const patterns: LearnedPattern[] = [];
+
+  // Analyze agent log actions by time
+  const logs = await db.agentLog.findMany({
+    where: {
+      userId,
+      action: { in: ["auto_action", "notify", "tool_call"] },
+      createdAt: { gte: since },
+    },
+    select: { action: true, tool: true, createdAt: true, summary: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (logs.length < MIN_OCCURRENCES) return patterns;
+
+  // Group by day-of-week + hour
+  const timeSlots = new Map<string, TimeSlot>();
+  for (const log of logs) {
+    const date = new Date(log.createdAt);
+    const dow = date.getDay();
+    const hour = date.getHours();
+    const key = `${dow}-${hour}`;
+    const existing = timeSlots.get(key);
+    if (existing) {
+      existing.count++;
+    } else {
+      timeSlots.set(key, { dayOfWeek: dow, hour, count: 1 });
+    }
+  }
+
+  // Find peak activity times (top 3)
+  const sorted = [...timeSlots.values()].sort((a, b) => b.count - a.count);
+  const peakSlots = sorted.slice(0, 3).filter((s) => s.count >= MIN_OCCURRENCES);
+
+  if (peakSlots.length > 0) {
+    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+    const description = peakSlots
+      .map((s) => `${dayNames[s.dayOfWeek]}요일 ${s.hour}시 (${s.count}회)`)
+      .join(", ");
+
+    patterns.push({
+      type: "temporal",
+      description: `User is most active at: ${description}`,
+      confidence: Math.min(1.0, peakSlots[0].count / 10),
+      evidence: peakSlots.reduce((sum, s) => sum + s.count, 0),
+    });
+  }
+
+  // Analyze task creation patterns
+  const tasks = await db.task.findMany({
+    where: { userId, createdAt: { gte: since } },
+    select: { createdAt: true },
+  });
+
+  if (tasks.length >= MIN_OCCURRENCES) {
+    const taskDays = new Map<number, number>();
+    for (const t of tasks) {
+      const dow = new Date(t.createdAt).getDay();
+      taskDays.set(dow, (taskDays.get(dow) || 0) + 1);
+    }
+
+    const topDay = [...taskDays.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (topDay && topDay[1] >= MIN_OCCURRENCES) {
+      const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+      patterns.push({
+        type: "temporal",
+        description: `User creates most tasks on ${dayNames[topDay[0]]}요일 (${topDay[1]} times this week)`,
+        confidence: Math.min(1.0, topDay[1] / 7),
+        evidence: topDay[1],
+      });
+    }
+  }
+
+  return patterns;
+}
+
+// ─── Tool Usage Pattern Analysis ────────────────────────────────────────
+
+/**
+ * Analyze which tools the user prefers and their approval rates.
+ */
+async function analyzeToolPatterns(userId: string): Promise<LearnedPattern[]> {
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days
+  const patterns: LearnedPattern[] = [];
+
+  const actions = await db.pendingAction.findMany({
+    where: {
+      userId,
+      createdAt: { gte: since },
+      status: { in: ["EXECUTED", "REJECTED"] },
+    },
+    select: { toolName: true, status: true, toolArgs: true },
+  });
+
+  if (actions.length < MIN_OCCURRENCES) return patterns;
+
+  // Group by tool
+  const toolStats = new Map<string, { approved: number; rejected: number; args: string[] }>();
+  for (const a of actions) {
+    const stats = toolStats.get(a.toolName) || { approved: 0, rejected: 0, args: [] };
+    if (a.status === "EXECUTED") stats.approved++;
+    else stats.rejected++;
+    stats.args.push(a.toolArgs as string);
+    toolStats.set(a.toolName, stats);
+  }
+
+  for (const [tool, stats] of toolStats) {
+    const total = stats.approved + stats.rejected;
+    if (total < MIN_OCCURRENCES) continue;
+
+    const approvalRate = Math.round((stats.approved / total) * 100);
+
+    if (approvalRate >= 80) {
+      patterns.push({
+        type: "tool_preference",
+        description: `User usually approves ${tool} (${approvalRate}% approval, ${total} total)`,
+        confidence: Math.min(1.0, total / 10),
+        evidence: total,
+      });
+    } else if (approvalRate <= 30) {
+      patterns.push({
+        type: "rejection",
+        description: `User usually rejects ${tool} (${100 - approvalRate}% rejection, ${total} total) — avoid proposing`,
+        confidence: Math.min(1.0, total / 10),
+        evidence: total,
+      });
+    }
+  }
+
+  return patterns;
+}
+
+// ─── Notification Engagement Analysis ───────────────────────────────────
+
+/**
+ * Analyze which notification types the user engages with vs ignores.
+ */
+async function analyzeNotificationPatterns(userId: string): Promise<LearnedPattern[]> {
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days
+  const patterns: LearnedPattern[] = [];
+
+  const notifications = await prisma.notification.findMany({
+    where: {
+      userId,
+      title: { startsWith: "[EVE]" },
+      createdAt: { gte: since },
+    },
+    select: { type: true, isRead: true },
+  });
+
+  if (notifications.length < MIN_OCCURRENCES) return patterns;
+
+  // Group by type
+  const typeStats = new Map<string, { read: number; total: number }>();
+  for (const n of notifications) {
+    const stats = typeStats.get(n.type) || { read: 0, total: 0 };
+    stats.total++;
+    if (n.isRead) stats.read++;
+    typeStats.set(n.type, stats);
+  }
+
+  for (const [type, stats] of typeStats) {
+    if (stats.total < MIN_OCCURRENCES) continue;
+
+    const readRate = Math.round((stats.read / stats.total) * 100);
+
+    if (readRate <= 20) {
+      patterns.push({
+        type: "rejection",
+        description: `User ignores "${type}" notifications (${readRate}% read rate, ${stats.total} sent) — reduce or stop these`,
+        confidence: Math.min(1.0, stats.total / 15),
+        evidence: stats.total,
+      });
+    } else if (readRate >= 90) {
+      patterns.push({
+        type: "tool_preference",
+        description: `User always reads "${type}" notifications (${readRate}% read rate) — these are valuable`,
+        confidence: Math.min(1.0, stats.total / 10),
+        evidence: stats.total,
+      });
+    }
+  }
+
+  return patterns;
+}
+
+// ─── Main Pattern Analysis ──────────────────────────────────────────────
+
+/**
+ * Run full pattern analysis for a user. Returns formatted string for agent context.
+ * Called from autonomous-agent.ts during each reasoning cycle.
+ */
+export async function analyzePatterns(userId: string): Promise<string> {
+  try {
+    const [temporal, tools, notifications] = await Promise.all([
+      analyzeTemporalPatterns(userId),
+      analyzeToolPatterns(userId),
+      analyzeNotificationPatterns(userId),
+    ]);
+
+    const allPatterns = [...temporal, ...tools, ...notifications].filter(
+      (p) => p.confidence >= 0.3,
+    );
+
+    if (allPatterns.length === 0) return "";
+
+    // Sort by confidence (highest first)
+    allPatterns.sort((a, b) => b.confidence - a.confidence);
+
+    let result = "\n## Learned Patterns (from user behavior analysis)\n";
+    result += "Use these patterns to make better decisions:\n\n";
+
+    for (const p of allPatterns.slice(0, 8)) {
+      const confidenceLabel = p.confidence >= 0.8 ? "HIGH" : p.confidence >= 0.5 ? "MEDIUM" : "LOW";
+      result += `- [${confidenceLabel}] ${p.description}\n`;
+    }
+
+    return result;
+  } catch (err) {
+    console.error("[PATTERN] Analysis failed:", err);
+    return "";
+  }
+}
+
+// ─── Periodic Pattern Persistence ───────────────────────────────────────
+
+/**
+ * Run deep analysis and persist important patterns as memories.
+ * Called periodically (every 6 hours) from the scheduler.
+ */
+export async function persistLearnedPatterns(userId: string): Promise<void> {
+  try {
+    const [temporal, tools, notifications] = await Promise.all([
+      analyzeTemporalPatterns(userId),
+      analyzeToolPatterns(userId),
+      analyzeNotificationPatterns(userId),
+    ]);
+
+    const allPatterns = [...temporal, ...tools, ...notifications];
+
+    // Only persist high-confidence patterns
+    const strongPatterns = allPatterns.filter((p) => p.confidence >= 0.6 && p.evidence >= 5);
+
+    for (const p of strongPatterns) {
+      const memoryType = p.type === "rejection" ? "FEEDBACK" : "CONTEXT";
+      const key = `pattern_${p.type}_${hashPattern(p.description)}`;
+
+      await remember(userId, memoryType, key, p.description, "pattern-learner");
+
+      await db.memory.updateMany({
+        where: { userId, type: memoryType, key },
+        data: { confidence: p.confidence },
+      });
+    }
+
+    if (strongPatterns.length > 0) {
+      console.log(`[PATTERN] Persisted ${strongPatterns.length} patterns for user ${userId}`);
+    }
+  } catch (err) {
+    console.error("[PATTERN] Persistence failed:", err);
+  }
+}
+
+/**
+ * Update confidence of existing memories based on how accurate they proved.
+ * Called when agent actions succeed or fail.
+ */
+export async function updateConfidence(
+  userId: string,
+  memoryKey: string,
+  memoryType: string,
+  wasAccurate: boolean,
+): Promise<void> {
+  try {
+    const memory = await db.memory.findFirst({
+      where: { userId, type: memoryType, key: memoryKey },
+    });
+
+    if (!memory) return;
+
+    const currentConfidence = (memory.confidence as number) || 1.0;
+    const delta = wasAccurate ? 0.05 : -0.1;
+    const newConfidence = Math.max(0.1, Math.min(1.0, currentConfidence + delta));
+
+    await db.memory.update({
+      where: { id: memory.id },
+      data: { confidence: newConfidence, updatedAt: new Date() },
+    });
+  } catch {
+    // Non-critical, ignore errors
+  }
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────
+
+function findCommonKeys(argsList: Record<string, unknown>[]): string[] {
+  if (argsList.length < 2) return [];
+
+  const keyCounts = new Map<string, number>();
+  for (const args of argsList) {
+    for (const key of Object.keys(args)) {
+      keyCounts.set(key, (keyCounts.get(key) || 0) + 1);
+    }
+  }
+
+  return [...keyCounts.entries()]
+    .filter(([, count]) => count >= argsList.length * 0.7) // present in 70%+ of args
+    .map(([key]) => key);
+}
+
+function hashPattern(description: string): string {
+  // Simple hash for dedup key generation
+  let hash = 0;
+  for (let i = 0; i < description.length; i++) {
+    const char = description.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36).slice(0, 8);
+}
+
+// ─── Scheduler ──────────────────────────────────────────────────────────
+
+let patternIntervalId: ReturnType<typeof setInterval> | null = null;
+const PATTERN_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+export function startPatternLearner() {
+  if (patternIntervalId) return;
+
+  console.log("[PATTERN] Pattern learner started (6h interval)");
+
+  // Run first analysis after 5 minutes (let server warm up)
+  setTimeout(
+    async () => {
+      await runPatternAnalysisForAllUsers();
+    },
+    5 * 60 * 1000,
+  );
+
+  patternIntervalId = setInterval(runPatternAnalysisForAllUsers, PATTERN_INTERVAL_MS);
+}
+
+export function stopPatternLearner() {
+  if (patternIntervalId) {
+    clearInterval(patternIntervalId);
+    patternIntervalId = null;
+    console.log("[PATTERN] Pattern learner stopped");
+  }
+}
+
+async function runPatternAnalysisForAllUsers() {
+  try {
+    // Find users with autonomous agent enabled
+    const configs = await prisma.automationConfig.findMany({
+      where: { autonomousAgent: true },
+      select: { userId: true },
+    });
+
+    for (const { userId } of configs) {
+      try {
+        await persistLearnedPatterns(userId);
+      } catch {
+        // Skip individual user failures
+      }
+    }
+  } catch (err) {
+    console.error("[PATTERN] Batch analysis failed:", err);
+  }
+}
