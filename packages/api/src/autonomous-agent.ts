@@ -94,7 +94,6 @@ async function hasRecentNotification(userId: string, titleKey: string): Promise<
       createdAt: { gte: since },
     },
     orderBy: { createdAt: "desc" },
-    take: 50,
   });
   // Check recent EVE notifications for similar title
   if (!existing) return false;
