@@ -44,7 +44,11 @@ interface EmailRule {
   name: string;
   description?: string;
   isActive: boolean;
-  conditions: { from?: string[]; subjectContains?: string[]; category?: string[] };
+  conditions: {
+    from?: string[];
+    subjectContains?: string[];
+    category?: string[];
+  };
   actionType: string;
   actionValue: string;
   triggerCount: number;
@@ -84,8 +88,14 @@ const priorityConfig = {
 const categoryConfig: Record<string, { label: string; color: string }> = {
   billing: { label: "Billing", color: "text-yellow-400 bg-yellow-400/10" },
   meeting: { label: "Meeting", color: "text-blue-400 bg-blue-400/10" },
-  engineering: { label: "Engineering", color: "text-green-400 bg-green-400/10" },
-  conversation: { label: "Conversation", color: "text-purple-400 bg-purple-400/10" },
+  engineering: {
+    label: "Engineering",
+    color: "text-green-400 bg-green-400/10",
+  },
+  conversation: {
+    label: "Conversation",
+    color: "text-purple-400 bg-purple-400/10",
+  },
   automated: { label: "Automated", color: "text-gray-500 bg-gray-500/10" },
   newsletter: { label: "Newsletter", color: "text-gray-500 bg-gray-500/10" },
   personal: { label: "Personal", color: "text-pink-400 bg-pink-400/10" },
@@ -114,7 +124,9 @@ export default function EmailPage() {
   const [loadingBody, setLoadingBody] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [googleConnected, setGoogleConnected] = useState<boolean | null>(cachedGoogle);
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(
+    cachedGoogle,
+  );
   const [tab, setTab] = useState<"inbox" | "rules">("inbox");
 
   // Compose
@@ -127,7 +139,12 @@ export default function EmailPage() {
   // Rules
   const [rules, setRules] = useState<EmailRule[]>([]);
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
-  const [newRule, setNewRule] = useState({ name: "", from: "", subject: "", actionValue: "" });
+  const [newRule, setNewRule] = useState({
+    name: "",
+    from: "",
+    subject: "",
+    actionValue: "",
+  });
 
   const { toast } = useToast();
   const router = useRouter();
@@ -143,9 +160,11 @@ export default function EmailPage() {
 
     const qs = params.toString();
     Promise.all([
-      apiFetch<{ emails: Email[] }>(`/api/email${qs ? `?${qs}` : ""}`).catch(() => ({
-        emails: [],
-      })),
+      apiFetch<{ emails: Email[] }>(`/api/email${qs ? `?${qs}` : ""}`).catch(
+        () => ({
+          emails: [],
+        }),
+      ),
       apiFetch<EmailStats>("/api/email/stats/summary").catch(() => null),
     ])
       .then(([emailData, statsData]) => {
@@ -181,7 +200,15 @@ export default function EmailPage() {
         .catch(() => {})
         .finally(() => setSyncing(false));
     }
-  }, [googleConnected, emails.length, stats, loading, syncing, autoSynced, fetchEmails]);
+  }, [
+    googleConnected,
+    emails.length,
+    stats,
+    loading,
+    syncing,
+    autoSynced,
+    fetchEmails,
+  ]);
 
   // ─── Fetch Rules ────────────────────────────────────────────────────
   useEffect(() => {
@@ -201,10 +228,12 @@ export default function EmailPage() {
   // ─── Sync ───────────────────────────────────────────────────────────
   const handleSync = () => {
     setSyncing(true);
-    apiFetch<{ synced: number; newCount: number; removed?: number; updated?: number }>(
-      "/api/email/sync",
-      { method: "POST", body: "{}" },
-    )
+    apiFetch<{
+      synced: number;
+      newCount: number;
+      removed?: number;
+      updated?: number;
+    }>("/api/email/sync", { method: "POST", body: "{}" })
       .then((d) => {
         const parts = [`${d.newCount} new`];
         if (d.removed) parts.push(`${d.removed} removed`);
@@ -225,9 +254,14 @@ export default function EmailPage() {
   const [reconciling, setReconciling] = useState(false);
   const handleReconcile = () => {
     setReconciling(true);
-    apiFetch<{ removed: number; updated: number }>("/api/email/reconcile", { method: "POST" })
+    apiFetch<{ removed: number; updated: number }>("/api/email/reconcile", {
+      method: "POST",
+    })
       .then((d) => {
-        toast(`Cleaned up ${d.removed} stale emails, updated ${d.updated}`, "success");
+        toast(
+          `Cleaned up ${d.removed} stale emails, updated ${d.updated}`,
+          "success",
+        );
         fetchEmails();
       })
       .catch(() => toast("Reconcile failed", "error"))
@@ -278,9 +312,12 @@ export default function EmailPage() {
   };
 
   const deleteEmail = (email: Email) => {
-    apiFetch<{ success?: boolean; warning?: string }>(`/api/email/${email.id}`, {
-      method: "DELETE",
-    })
+    apiFetch<{ success?: boolean; warning?: string }>(
+      `/api/email/${email.id}`,
+      {
+        method: "DELETE",
+      },
+    )
       .then((res) => {
         toast(res.warning || "Email deleted", res.warning ? "info" : "success");
         setSelectedId(null);
@@ -291,11 +328,17 @@ export default function EmailPage() {
   };
 
   const archiveEmailAction = (email: Email) => {
-    apiFetch<{ success?: boolean; warning?: string }>(`/api/email/${email.id}/archive`, {
-      method: "POST",
-    })
+    apiFetch<{ success?: boolean; warning?: string }>(
+      `/api/email/${email.id}/archive`,
+      {
+        method: "POST",
+      },
+    )
       .then((res) => {
-        toast(res.warning || "Email archived", res.warning ? "info" : "success");
+        toast(
+          res.warning || "Email archived",
+          res.warning ? "info" : "success",
+        );
         setSelectedId(null);
         setSelectedEmail(null);
         fetchEmails();
@@ -311,7 +354,11 @@ export default function EmailPage() {
     setSending(true);
     apiFetch<{ success?: boolean; error?: string }>("/api/email/send", {
       method: "POST",
-      body: JSON.stringify({ to: composeTo, subject: composeSubject, body: composeBody }),
+      body: JSON.stringify({
+        to: composeTo,
+        subject: composeSubject,
+        body: composeBody,
+      }),
     })
       .then((d) => {
         if (d.success) {
@@ -333,9 +380,12 @@ export default function EmailPage() {
       return;
     }
     const conditions: Record<string, string[]> = {};
-    if (newRule.from) conditions.from = newRule.from.split(",").map((s) => s.trim());
+    if (newRule.from)
+      conditions.from = newRule.from.split(",").map((s) => s.trim());
     if (newRule.subject)
-      conditions.subjectContains = newRule.subject.split(",").map((s) => s.trim());
+      conditions.subjectContains = newRule.subject
+        .split(",")
+        .map((s) => s.trim());
 
     apiFetch<{ rule: EmailRule }>("/api/email/rules", {
       method: "POST",
@@ -362,7 +412,9 @@ export default function EmailPage() {
     })
       .then(() => {
         setRules((prev) =>
-          prev.map((r) => (r.id === rule.id ? { ...r, isActive: !r.isActive } : r)),
+          prev.map((r) =>
+            r.id === rule.id ? { ...r, isActive: !r.isActive } : r,
+          ),
         );
       })
       .catch(() => {});
@@ -450,7 +502,9 @@ export default function EmailPage() {
               onClick={() => setTab(t)}
               className={`px-4 py-2 rounded-t-lg text-sm font-medium transition ${tab === t ? "bg-gray-800 text-white" : "text-gray-500 hover:text-gray-300"}`}
             >
-              {t === "inbox" ? `Inbox${stats ? ` (${stats.unread})` : ""}` : "Auto-Reply Rules"}
+              {t === "inbox"
+                ? `Inbox${stats ? ` (${stats.unread})` : ""}`
+                : "Auto-Reply Rules"}
             </button>
           ))}
         </div>
@@ -461,7 +515,11 @@ export default function EmailPage() {
             {stats && (
               <div className="grid grid-cols-4 gap-3 mb-4">
                 {[
-                  { label: "Total", value: stats.total, color: "text-gray-300" },
+                  {
+                    label: "Total",
+                    value: stats.total,
+                    color: "text-gray-300",
+                  },
                   {
                     label: "Unread",
                     value: stats.unread,
@@ -546,7 +604,9 @@ export default function EmailPage() {
                   <button
                     key={cat}
                     type="button"
-                    onClick={() => setCategoryFilter(categoryFilter === cat ? "" : cat)}
+                    onClick={() =>
+                      setCategoryFilter(categoryFilter === cat ? "" : cat)
+                    }
                     className={`px-2 py-1 rounded text-[10px] font-medium transition ${categoryFilter === cat ? cfg.color + " ring-1 ring-current" : "text-gray-500 bg-gray-800 hover:text-gray-300"}`}
                   >
                     {cfg.label} ({count})
@@ -571,7 +631,9 @@ export default function EmailPage() {
             ) : (
               <div className="flex gap-4">
                 {/* Email List */}
-                <div className={`space-y-1 ${selectedId ? "w-1/2" : "w-full"} transition-all`}>
+                <div
+                  className={`space-y-1 ${selectedId ? "w-1/2" : "w-full"} transition-all`}
+                >
                   {emails.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-gray-500">No emails found</p>
@@ -586,7 +648,9 @@ export default function EmailPage() {
                       <button
                         key={email.id}
                         type="button"
-                        onClick={() => selectEmail(email.id === selectedId ? null : email.id)}
+                        onClick={() =>
+                          selectEmail(email.id === selectedId ? null : email.id)
+                        }
                         className={`w-full text-left rounded-lg p-4 transition ${selectedId === email.id ? "bg-blue-600/10 border border-blue-500/30" : `bg-gray-900 border border-gray-800 hover:border-gray-600 ${email.priority === "URGENT" ? "border-l-2 border-l-red-500" : ""}`}`}
                       >
                         <div className="flex items-center gap-2 mb-1">
@@ -604,7 +668,9 @@ export default function EmailPage() {
                                 {extractName(email.from)}
                               </span>
                               {email.isStarred && (
-                                <span className="text-yellow-400 text-xs">*</span>
+                                <span className="text-yellow-400 text-xs">
+                                  *
+                                </span>
                               )}
                               {email.priority !== "NORMAL" &&
                                 priorityConfig[email.priority]?.label && (
@@ -614,13 +680,14 @@ export default function EmailPage() {
                                     {priorityConfig[email.priority].label}
                                   </span>
                                 )}
-                              {email.category && categoryConfig[email.category] && (
-                                <span
-                                  className={`text-[10px] px-1.5 py-0.5 rounded ${categoryConfig[email.category].color}`}
-                                >
-                                  {categoryConfig[email.category].label}
-                                </span>
-                              )}
+                              {email.category &&
+                                categoryConfig[email.category] && (
+                                  <span
+                                    className={`text-[10px] px-1.5 py-0.5 rounded ${categoryConfig[email.category].color}`}
+                                  >
+                                    {categoryConfig[email.category].label}
+                                  </span>
+                                )}
                               <span className="text-[10px] text-gray-600 ml-auto shrink-0">
                                 {formatEmailDate(email.date)}
                               </span>
@@ -688,15 +755,23 @@ export default function EmailPage() {
                         {/* Sender info */}
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-10 h-10 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center text-sm font-bold">
-                            {extractName(selectedEmail.from).charAt(0).toUpperCase()}
+                            {extractName(selectedEmail.from)
+                              .charAt(0)
+                              .toUpperCase()}
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-medium">{extractName(selectedEmail.from)}</p>
-                            <p className="text-[10px] text-gray-500">to: {selectedEmail.to}</p>
+                            <p className="text-sm font-medium">
+                              {extractName(selectedEmail.from)}
+                            </p>
+                            <p className="text-[10px] text-gray-500">
+                              to: {selectedEmail.to}
+                            </p>
                           </div>
                           <div className="text-right">
                             <p className="text-[10px] text-gray-500">
-                              {new Date(selectedEmail.date).toLocaleString("en-US")}
+                              {new Date(selectedEmail.date).toLocaleString(
+                                "en-US",
+                              )}
                             </p>
                             {selectedEmail.sentiment && (
                               <span className="text-[10px] text-gray-600">
@@ -709,33 +784,46 @@ export default function EmailPage() {
 
                         {/* AI Summary Card */}
                         {(selectedEmail.summary ||
-                          (selectedEmail.keyPoints && selectedEmail.keyPoints.length > 0)) && (
+                          (selectedEmail.keyPoints &&
+                            selectedEmail.keyPoints.length > 0)) && (
                           <div className="bg-blue-950/30 border border-blue-800/30 rounded-lg p-3 mb-4">
-                            <p className="text-[10px] text-blue-400 font-medium mb-1">AI Summary</p>
+                            <p className="text-[10px] text-blue-400 font-medium mb-1">
+                              AI Summary
+                            </p>
                             {selectedEmail.summary && (
-                              <p className="text-sm text-blue-300">{selectedEmail.summary}</p>
+                              <p className="text-sm text-blue-300">
+                                {selectedEmail.summary}
+                              </p>
                             )}
-                            {selectedEmail.keyPoints && selectedEmail.keyPoints.length > 0 && (
-                              <ul className="mt-2 space-y-0.5">
-                                {selectedEmail.keyPoints.map((kp, i) => (
-                                  <li key={i} className="text-xs text-blue-300/70">
-                                    - {kp}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                            {selectedEmail.actionItems && selectedEmail.actionItems.length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-blue-800/30">
-                                <p className="text-[10px] text-orange-400 font-medium">
-                                  Action Items
-                                </p>
-                                {selectedEmail.actionItems.map((ai, i) => (
-                                  <p key={i} className="text-xs text-orange-300/70">
-                                    - {ai}
+                            {selectedEmail.keyPoints &&
+                              selectedEmail.keyPoints.length > 0 && (
+                                <ul className="mt-2 space-y-0.5">
+                                  {selectedEmail.keyPoints.map((kp, i) => (
+                                    <li
+                                      key={i}
+                                      className="text-xs text-blue-300/70"
+                                    >
+                                      - {kp}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            {selectedEmail.actionItems &&
+                              selectedEmail.actionItems.length > 0 && (
+                                <div className="mt-2 pt-2 border-t border-blue-800/30">
+                                  <p className="text-[10px] text-orange-400 font-medium">
+                                    Action Items
                                   </p>
-                                ))}
-                              </div>
-                            )}
+                                  {selectedEmail.actionItems.map((ai, i) => (
+                                    <p
+                                      key={i}
+                                      className="text-xs text-orange-300/70"
+                                    >
+                                      - {ai}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
                           </div>
                         )}
 
@@ -748,15 +836,24 @@ export default function EmailPage() {
                               {priorityConfig[selectedEmail.priority].label}
                             </span>
                           )}
-                          {selectedEmail.category && categoryConfig[selectedEmail.category] && (
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded ${categoryConfig[selectedEmail.category].color}`}
-                            >
-                              {categoryConfig[selectedEmail.category].label}
-                            </span>
-                          )}
+                          {selectedEmail.category &&
+                            categoryConfig[selectedEmail.category] && (
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded ${categoryConfig[selectedEmail.category].color}`}
+                              >
+                                {categoryConfig[selectedEmail.category].label}
+                              </span>
+                            )}
                           {(selectedEmail.labels || [])
-                            .filter((l) => !["INBOX", "UNREAD", "IMPORTANT", "STARRED"].includes(l))
+                            .filter(
+                              (l) =>
+                                ![
+                                  "INBOX",
+                                  "UNREAD",
+                                  "IMPORTANT",
+                                  "STARRED",
+                                ].includes(l),
+                            )
                             .map((label) => (
                               <span
                                 key={label}
@@ -769,7 +866,9 @@ export default function EmailPage() {
 
                         {/* Body */}
                         <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap border-t border-gray-800 pt-4 mb-4">
-                          {selectedEmail.body || selectedEmail.snippet || "No content"}
+                          {selectedEmail.body ||
+                            selectedEmail.snippet ||
+                            "No content"}
                         </div>
 
                         {/* Actions */}
@@ -790,7 +889,9 @@ export default function EmailPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => markRead(selectedEmail, !selectedEmail.isRead)}
+                            onClick={() =>
+                              markRead(selectedEmail, !selectedEmail.isRead)
+                            }
                             className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-sm transition"
                           >
                             {selectedEmail.isRead ? "Mark unread" : "Mark read"}
@@ -853,7 +954,9 @@ export default function EmailPage() {
                       <div>
                         <h3 className="text-sm font-medium">{rule.name}</h3>
                         {rule.description && (
-                          <p className="text-xs text-gray-500 mt-0.5">{rule.description}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {rule.description}
+                          </p>
                         )}
                         <div className="flex gap-2 mt-2 flex-wrap">
                           {rule.conditions.from?.map((f) => (
@@ -897,8 +1000,12 @@ export default function EmailPage() {
                       </div>
                     </div>
                     <div className="mt-2 bg-gray-800/50 rounded p-2">
-                      <p className="text-[10px] text-gray-500">Reply template:</p>
-                      <p className="text-xs text-gray-400">{rule.actionValue}</p>
+                      <p className="text-[10px] text-gray-500">
+                        Reply template:
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {rule.actionValue}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -910,7 +1017,9 @@ export default function EmailPage() {
               <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                 <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-lg">
                   <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-                    <h2 className="text-lg font-semibold">Add Auto-Reply Rule</h2>
+                    <h2 className="text-lg font-semibold">
+                      Add Auto-Reply Rule
+                    </h2>
                     <button
                       type="button"
                       onClick={() => setRuleModalOpen(false)}
@@ -921,11 +1030,15 @@ export default function EmailPage() {
                   </div>
                   <div className="p-6 space-y-4">
                     <label className="block">
-                      <span className="text-xs text-gray-500 mb-1 block">Rule name</span>
+                      <span className="text-xs text-gray-500 mb-1 block">
+                        Rule name
+                      </span>
                       <input
                         type="text"
                         value={newRule.name}
-                        onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
+                        onChange={(e) =>
+                          setNewRule({ ...newRule, name: e.target.value })
+                        }
                         placeholder="e.g., Standard inquiry auto-response"
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
                       />
@@ -937,7 +1050,9 @@ export default function EmailPage() {
                       <input
                         type="text"
                         value={newRule.from}
-                        onChange={(e) => setNewRule({ ...newRule, from: e.target.value })}
+                        onChange={(e) =>
+                          setNewRule({ ...newRule, from: e.target.value })
+                        }
                         placeholder="e.g., support@, help@company.com"
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
                       />
@@ -949,16 +1064,25 @@ export default function EmailPage() {
                       <input
                         type="text"
                         value={newRule.subject}
-                        onChange={(e) => setNewRule({ ...newRule, subject: e.target.value })}
+                        onChange={(e) =>
+                          setNewRule({ ...newRule, subject: e.target.value })
+                        }
                         placeholder="e.g., inquiry, quote, support"
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
                       />
                     </label>
                     <label className="block">
-                      <span className="text-xs text-gray-500 mb-1 block">Reply template</span>
+                      <span className="text-xs text-gray-500 mb-1 block">
+                        Reply template
+                      </span>
                       <textarea
                         value={newRule.actionValue}
-                        onChange={(e) => setNewRule({ ...newRule, actionValue: e.target.value })}
+                        onChange={(e) =>
+                          setNewRule({
+                            ...newRule,
+                            actionValue: e.target.value,
+                          })
+                        }
                         placeholder="Thank you for your inquiry. We will review and respond promptly."
                         rows={4}
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none resize-none"
@@ -1016,7 +1140,9 @@ export default function EmailPage() {
                   />
                 </label>
                 <label className="block">
-                  <span className="text-xs text-gray-500 mb-1 block">Subject</span>
+                  <span className="text-xs text-gray-500 mb-1 block">
+                    Subject
+                  </span>
                   <input
                     type="text"
                     value={composeSubject}
