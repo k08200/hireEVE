@@ -112,6 +112,7 @@ export default function EmailPage() {
   const [loadingBody, setLoadingBody] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"inbox" | "rules">("inbox");
 
   // Compose
@@ -156,6 +157,13 @@ export default function EmailPage() {
     fetchEmails();
   }, [fetchEmails]);
 
+  // ─── Google Connection Status ─────────────────────────────────────
+  useEffect(() => {
+    apiFetch<{ connected: boolean }>("/api/auth/google/status")
+      .then((d) => setGoogleConnected(d.connected))
+      .catch(() => setGoogleConnected(false));
+  }, []);
+
   // ─── Fetch Rules ────────────────────────────────────────────────────
   useEffect(() => {
     if (tab === "rules") {
@@ -185,7 +193,12 @@ export default function EmailPage() {
         toast(`Synced: ${parts.join(", ")} (${d.synced} checked)`, "success");
         fetchEmails();
       })
-      .catch(() => toast("Sync failed", "error"))
+      .catch(() => {
+        toast("Sync failed", "error");
+        apiFetch<{ connected: boolean }>("/api/auth/google/status")
+          .then((d) => setGoogleConnected(d.connected))
+          .catch(() => setGoogleConnected(false));
+      })
       .finally(() => setSyncing(false));
   };
 
@@ -358,40 +371,54 @@ export default function EmailPage() {
           <div>
             <h1 className="text-2xl font-bold">Email</h1>
             <p className="text-gray-400 text-sm mt-1">
-              {stats && (
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded ${stats.source === "gmail" ? "bg-green-900/40 text-green-400" : "bg-gray-800 text-gray-500"}`}
-                >
-                  {stats.source === "gmail" ? "Gmail connected" : "Demo mode"}
+              {googleConnected === true && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-900/40 text-green-400">
+                  Gmail connected
+                </span>
+              )}
+              {googleConnected === false && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">
+                  Not connected
                 </span>
               )}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleReconcile}
-              disabled={reconciling}
-              className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-300 px-3 py-2 rounded-lg text-sm transition border border-gray-700"
-              title="Clean up stale emails (deleted/archived in Gmail)"
-            >
-              {reconciling ? "Cleaning..." : "Clean up"}
-            </button>
-            <button
-              type="button"
-              onClick={handleSync}
-              disabled={syncing}
-              className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-300 px-3 py-2 rounded-lg text-sm transition border border-gray-700"
-            >
-              {syncing ? "Syncing..." : "Sync"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setComposeOpen(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-            >
-              Compose
-            </button>
+            {googleConnected === true ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleReconcile}
+                  disabled={reconciling}
+                  className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-300 px-3 py-2 rounded-lg text-sm transition border border-gray-700"
+                  title="Clean up stale emails (deleted/archived in Gmail)"
+                >
+                  {reconciling ? "Cleaning..." : "Clean up"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-gray-300 px-3 py-2 rounded-lg text-sm transition border border-gray-700"
+                >
+                  {syncing ? "Syncing..." : "Sync"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComposeOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                >
+                  Compose
+                </button>
+              </>
+            ) : googleConnected === false ? (
+              <a
+                href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/auth/google/login`}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                Connect Google
+              </a>
+            ) : null}
           </div>
         </div>
 
