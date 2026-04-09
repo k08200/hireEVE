@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
-import { apiFetch } from "../../lib/api";
+import { API_BASE, apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -44,7 +44,11 @@ interface EmailRule {
   name: string;
   description?: string;
   isActive: boolean;
-  conditions: { from?: string[]; subjectContains?: string[]; category?: string[] };
+  conditions: {
+    from?: string[];
+    subjectContains?: string[];
+    category?: string[];
+  };
   actionType: string;
   actionValue: string;
   triggerCount: number;
@@ -84,8 +88,14 @@ const priorityConfig = {
 const categoryConfig: Record<string, { label: string; color: string }> = {
   billing: { label: "Billing", color: "text-yellow-400 bg-yellow-400/10" },
   meeting: { label: "Meeting", color: "text-blue-400 bg-blue-400/10" },
-  engineering: { label: "Engineering", color: "text-green-400 bg-green-400/10" },
-  conversation: { label: "Conversation", color: "text-purple-400 bg-purple-400/10" },
+  engineering: {
+    label: "Engineering",
+    color: "text-green-400 bg-green-400/10",
+  },
+  conversation: {
+    label: "Conversation",
+    color: "text-purple-400 bg-purple-400/10",
+  },
   automated: { label: "Automated", color: "text-gray-500 bg-gray-500/10" },
   newsletter: { label: "Newsletter", color: "text-gray-500 bg-gray-500/10" },
   personal: { label: "Personal", color: "text-pink-400 bg-pink-400/10" },
@@ -127,7 +137,12 @@ export default function EmailPage() {
   // Rules
   const [rules, setRules] = useState<EmailRule[]>([]);
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
-  const [newRule, setNewRule] = useState({ name: "", from: "", subject: "", actionValue: "" });
+  const [newRule, setNewRule] = useState({
+    name: "",
+    from: "",
+    subject: "",
+    actionValue: "",
+  });
 
   const { toast } = useToast();
   const router = useRouter();
@@ -201,10 +216,12 @@ export default function EmailPage() {
   // ─── Sync ───────────────────────────────────────────────────────────
   const handleSync = () => {
     setSyncing(true);
-    apiFetch<{ synced: number; newCount: number; removed?: number; updated?: number }>(
-      "/api/email/sync",
-      { method: "POST", body: "{}" },
-    )
+    apiFetch<{
+      synced: number;
+      newCount: number;
+      removed?: number;
+      updated?: number;
+    }>("/api/email/sync", { method: "POST", body: "{}" })
       .then((d) => {
         const parts = [`${d.newCount} new`];
         if (d.removed) parts.push(`${d.removed} removed`);
@@ -225,7 +242,9 @@ export default function EmailPage() {
   const [reconciling, setReconciling] = useState(false);
   const handleReconcile = () => {
     setReconciling(true);
-    apiFetch<{ removed: number; updated: number }>("/api/email/reconcile", { method: "POST" })
+    apiFetch<{ removed: number; updated: number }>("/api/email/reconcile", {
+      method: "POST",
+    })
       .then((d) => {
         toast(`Cleaned up ${d.removed} stale emails, updated ${d.updated}`, "success");
         fetchEmails();
@@ -311,7 +330,11 @@ export default function EmailPage() {
     setSending(true);
     apiFetch<{ success?: boolean; error?: string }>("/api/email/send", {
       method: "POST",
-      body: JSON.stringify({ to: composeTo, subject: composeSubject, body: composeBody }),
+      body: JSON.stringify({
+        to: composeTo,
+        subject: composeSubject,
+        body: composeBody,
+      }),
     })
       .then((d) => {
         if (d.success) {
@@ -432,7 +455,7 @@ export default function EmailPage() {
               </>
             ) : googleConnected === false ? (
               <a
-                href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/auth/google/login`}
+                href={`${API_BASE}/api/auth/google/login`}
                 className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
               >
                 Connect Google
@@ -461,7 +484,11 @@ export default function EmailPage() {
             {stats && (
               <div className="grid grid-cols-4 gap-3 mb-4">
                 {[
-                  { label: "Total", value: stats.total, color: "text-gray-300" },
+                  {
+                    label: "Total",
+                    value: stats.total,
+                    color: "text-gray-300",
+                  },
                   {
                     label: "Unread",
                     value: stats.unread,
@@ -958,7 +985,12 @@ export default function EmailPage() {
                       <span className="text-xs text-gray-500 mb-1 block">Reply template</span>
                       <textarea
                         value={newRule.actionValue}
-                        onChange={(e) => setNewRule({ ...newRule, actionValue: e.target.value })}
+                        onChange={(e) =>
+                          setNewRule({
+                            ...newRule,
+                            actionValue: e.target.value,
+                          })
+                        }
                         placeholder="Thank you for your inquiry. We will review and respond promptly."
                         rows={4}
                         className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none resize-none"
