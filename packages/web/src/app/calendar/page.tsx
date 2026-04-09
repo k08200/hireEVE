@@ -101,6 +101,7 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showCreate, setShowCreate] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null); // null = loading
   const [newEvent, setNewEvent] = useState<NewEvent>({
     title: "",
     date: new Date().toISOString().split("T")[0],
@@ -160,11 +161,22 @@ export default function CalendarPage() {
         fetchEvents();
       }
     } catch {
-      toast("Sync failed", "error");
+      toast("Sync failed — check Google connection in Settings", "error");
+      // Refresh connection status in case token expired
+      apiFetch<{ connected: boolean }>("/api/auth/google/status")
+        .then((d) => setGoogleConnected(d.connected))
+        .catch(() => setGoogleConnected(false));
     } finally {
       setSyncing(false);
     }
   };
+
+  // Check Google connection status
+  useEffect(() => {
+    apiFetch<{ connected: boolean }>("/api/auth/google/status")
+      .then((d) => setGoogleConnected(d.connected))
+      .catch(() => setGoogleConnected(false));
+  }, []);
 
   // Re-fetch when view or currentDate changes
   useEffect(() => {
@@ -271,14 +283,29 @@ export default function CalendarPage() {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              onClick={syncGoogle}
-              disabled={syncing}
-              className="text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition border border-gray-700 disabled:opacity-50"
-            >
-              {syncing ? "Syncing..." : "Sync Google"}
-            </button>
+            {googleConnected ? (
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 text-xs text-green-400">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+                  Google Connected
+                </span>
+                <button
+                  type="button"
+                  onClick={syncGoogle}
+                  disabled={syncing}
+                  className="text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition border border-gray-700 disabled:opacity-50"
+                >
+                  {syncing ? "Syncing..." : "Sync"}
+                </button>
+              </div>
+            ) : googleConnected === false ? (
+              <a
+                href={`${API_BASE}/api/auth/google?token=${typeof window !== "undefined" ? localStorage.getItem("eve-token") || "" : ""}`}
+                className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition font-medium"
+              >
+                Connect Google
+              </a>
+            ) : null}
             <button
               type="button"
               onClick={() => setShowCreate(true)}
