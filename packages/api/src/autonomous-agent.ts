@@ -54,10 +54,13 @@ const TOOL_RISK_LEVELS = new Map<string, RiskLevel>([
   ["classify_emails", "LOW"],
   ["create_task", "LOW"],
   ["update_note", "LOW"],
+  ["mark_read", "LOW"],
+
+  // LOW — auto-execute (email replies should be instant)
+  ["send_email", "LOW"],
 
   // MEDIUM — external-facing or calendar changes, reversible but visible
   ["create_event", "MEDIUM"],
-  ["send_email", "MEDIUM"],
   ["create_note", "MEDIUM"],
   ["update_contact", "MEDIUM"],
   ["create_contact", "MEDIUM"],

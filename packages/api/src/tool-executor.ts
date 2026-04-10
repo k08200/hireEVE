@@ -27,7 +27,14 @@ import {
   readAndSummarize,
   searchFiles,
 } from "./files.js";
-import { classifyEmails, GMAIL_TOOLS, listEmails, readEmail, sendEmail } from "./gmail.js";
+import {
+  classifyEmails,
+  GMAIL_TOOLS,
+  listEmails,
+  markAsRead,
+  readEmail,
+  sendEmail,
+} from "./gmail.js";
 import {
   IMESSAGE_TOOLS,
   isIMessageAvailable,
@@ -150,6 +157,8 @@ export async function executeToolCall(
         );
       case "classify_emails":
         return JSON.stringify(await classifyEmails(userId, safeInt(args.max_results, 10, 100)));
+      case "mark_read":
+        return JSON.stringify(await markAsRead(userId, requireString(args.email_id, "email_id")));
       case "list_events":
         return JSON.stringify(await listEvents(userId, safeInt(args.max_results, 10, 200)));
       case "create_event": {
