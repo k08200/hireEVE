@@ -9,7 +9,7 @@ services:
       pnpm install --frozen-lockfile &&
       cd packages/core && pnpm build &&
       cd ../api && npx prisma generate && pnpm build
-    startCommand: cd packages/api && npx prisma migrate resolve --applied 20260401104719_add_conversation_pinned 2>/dev/null; npx prisma migrate deploy || echo "[WARN] Migration failed, continuing..."; node dist/index.js
+    startCommand: cd packages/api && node dist/index.js
     envVars:
       - key: NODE_VERSION
         value: "22"
@@ -23,3 +23,5 @@ services:
         sync: false
       - key: PORT
         value: "3001"
+      - key: CORS_ORIGINS
+        value: "https://hire-eve-web.vercel.app"
