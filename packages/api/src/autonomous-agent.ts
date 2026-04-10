@@ -1377,6 +1377,32 @@ How to reply:
             continue;
           }
 
+          // Dedup: prevent repeating the same tool call on the same target within 1 hour
+          const TOOL_DEDUP_HOURS = 1;
+          const toolDedupSince = new Date(Date.now() - TOOL_DEDUP_HOURS * 60 * 60 * 1000);
+          const recentSameAction = await db.agentLog.findFirst({
+            where: {
+              userId,
+              action: "auto_action",
+              tool: fnName,
+              summary: { contains: JSON.stringify(args).slice(0, 50) },
+              createdAt: { gte: toolDedupSince },
+            },
+          });
+          if (recentSameAction) {
+            result = JSON.stringify({
+              skipped: true,
+              reason: `already executed ${fnName} recently`,
+            });
+            await logAgentAction(
+              userId,
+              "skip",
+              `Dedup: ${fnName} already ran within ${TOOL_DEDUP_HOURS}h`,
+            );
+            messages.push({ role: "tool", content: result, tool_call_id: toolCall.id });
+            continue;
+          }
+
           // Dedup: prevent sending same email reply repeatedly across cycles (DB-based, survives restarts)
           if (fnName === "send_email") {
             const emailSubject = (args as { subject?: string }).subject || "";
