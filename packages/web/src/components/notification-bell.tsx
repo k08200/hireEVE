@@ -167,18 +167,19 @@ export default function NotificationBell({ userId }: { userId: string }) {
     return typeRoutes[n.type] || null;
   };
 
-  const handleNotificationClick = async (n: Notification) => {
-    // Mark as read
+  const handleNotificationClick = (n: Notification) => {
+    // Mark as read (fire-and-forget)
     if (!n.isRead) {
       setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
       apiFetch(`/api/notifications/${n.id}/read`, { method: "PATCH" }).catch(() => {});
     }
 
-    // Navigate if there's a target
+    // Navigate first, then close dropdown
     const target = getNotificationTarget(n);
     if (target) {
-      setOpen(false);
       router.push(target);
+      // Close dropdown after navigation starts (defer to avoid portal unmount racing with router)
+      setTimeout(() => setOpen(false), 0);
     }
   };
 

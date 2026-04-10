@@ -104,15 +104,14 @@ export default function NotificationsPage() {
     return typeRoutes[n.type] || null;
   };
 
-  const handleNotificationClick = async (n: Notification) => {
+  const handleNotificationClick = (n: Notification) => {
+    // Mark as read (fire-and-forget — never block navigation)
     if (!n.isRead) {
-      try {
-        await apiFetch(`/api/notifications/${n.id}/read`, { method: "PATCH" });
-        setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
-      } catch {
-        // silent
-      }
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)));
+      apiFetch(`/api/notifications/${n.id}/read`, { method: "PATCH" }).catch(() => {});
     }
+
+    // Navigate immediately
     const target = getNotificationTarget(n);
     if (target) {
       router.push(target);
