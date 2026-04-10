@@ -365,6 +365,19 @@ export default function SettingsPage() {
     }
   };
 
+  const [runningAgent, setRunningAgent] = useState(false);
+  const runAgentNow = async () => {
+    setRunningAgent(true);
+    try {
+      await apiFetch<{ triggered: boolean }>("/api/automations/run-now", { method: "POST" });
+      toast("Agent triggered — check chat for results", "success");
+    } catch {
+      toast("Failed to trigger agent", "error");
+    } finally {
+      setRunningAgent(false);
+    }
+  };
+
   const toggleAgentMode = async (mode: "SUGGEST" | "AUTO") => {
     setAgentMode(mode);
     try {
@@ -728,9 +741,9 @@ export default function SettingsPage() {
                   </div>
                   {agentMode === "AUTO" && (
                     <p className="text-[10px] text-cyan-400/70 mt-2">
-                      Only safe actions like creating reminders, updating task status, and
-                      classifying emails are auto-executed. Dangerous actions like sending or
-                      deleting emails are never auto-executed.
+                      Safe actions like creating reminders, updating tasks, classifying emails, and
+                      replying to emails are auto-executed. Dangerous actions like deleting emails
+                      are never auto-executed.
                     </p>
                   )}
                 </div>
@@ -752,6 +765,21 @@ export default function SettingsPage() {
                     <option value={15}>Every 15 min</option>
                     <option value={30}>Every 30 min</option>
                   </select>
+                </div>
+
+                {/* Run Now Button */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={runAgentNow}
+                    disabled={runningAgent}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    {runningAgent ? "Running..." : "Run Agent Now"}
+                  </button>
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Trigger the agent immediately without waiting for the next interval
+                  </p>
                 </div>
               </div>
             )}

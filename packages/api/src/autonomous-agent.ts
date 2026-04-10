@@ -835,7 +835,7 @@ const PROPOSE_ACTION_TOOL = {
 };
 
 /** Run the autonomous reasoning loop for a single user */
-async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promise<void> {
+export async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promise<void> {
   const startTime = Date.now();
 
   try {
