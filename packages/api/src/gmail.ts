@@ -361,7 +361,10 @@ export async function classifyEmails(userId: string, maxResults = 10) {
 }
 
 // Tool definitions for function calling
-export const GMAIL_TOOLS = [
+export const GMAIL_TOOLS: {
+  type: "function";
+  function: { name: string; description: string; parameters: Record<string, unknown> };
+}[] = [
   {
     type: "function" as const,
     function: {
@@ -427,6 +430,23 @@ export const GMAIL_TOOLS = [
           body: { type: "string", description: "Email body text" },
         },
         required: ["to", "subject", "body"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "mark_read",
+      description: "Mark an email as read in Gmail and local DB",
+      parameters: {
+        type: "object",
+        properties: {
+          email_id: {
+            type: "string",
+            description: "The Gmail message ID to mark as read",
+          },
+        },
+        required: ["email_id"],
       },
     },
   },
