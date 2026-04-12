@@ -8,7 +8,7 @@ services:
       corepack enable &&
       pnpm install --frozen-lockfile &&
       cd packages/core && pnpm build &&
-      cd ../api && npx prisma generate && pnpm build
+      cd ../api && npx prisma generate && npx prisma db push --skip-generate && pnpm build
     startCommand: cd packages/api && node dist/index.js
     envVars:
       - key: NODE_VERSION
