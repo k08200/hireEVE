@@ -1,7 +1,9 @@
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import jwt from "jsonwebtoken";
-import { prisma } from "./db.js";
+import { db, prisma } from "./db.js";
+import { PLANS } from "./stripe.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -53,8 +55,16 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
   if (!auth?.startsWith("Bearer ")) {
     return reply.code(401).send({ error: "Authentication required" });
   }
+  const rawToken = auth.slice(7);
   try {
-    const payload = verifyToken(auth.slice(7));
+    const payload = verifyToken(rawToken);
+    // Verify device session is still active (not kicked by another login)
+    const valid = await isDeviceSessionValid(rawToken);
+    if (!valid) {
+      return reply
+        .code(401)
+        .send({ error: "Session expired. Please log in again.", code: "DEVICE_KICKED" });
+    }
     // Attach to request for downstream handlers
     (request as unknown as { userId: string }).userId = payload.userId;
   } catch {
@@ -78,6 +88,77 @@ export async function requireAdmin(request: FastifyRequest, reply: FastifyReply)
   } catch {
     return reply.code(401).send({ error: "Invalid or expired token" });
   }
+}
+
+/** Hash a JWT token to store in the Device table */
+function hashToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * Register a device for the user after login/register.
+ * If the user exceeds their plan's device limit, the oldest device is removed.
+ * Returns the created device ID.
+ */
+export async function registerDevice(
+  userId: string,
+  token: string,
+  opts: { deviceName?: string; deviceType?: string; ipAddress?: string },
+): Promise<string> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+  const planConfig = PLANS[(user?.plan as keyof typeof PLANS) || "FREE"];
+  const limit = planConfig.deviceLimit;
+
+  const device = await db.device.create({
+    data: {
+      userId,
+      tokenHash: hashToken(token),
+      deviceName: opts.deviceName || null,
+      deviceType: opts.deviceType || "web",
+      ipAddress: opts.ipAddress || null,
+    },
+  });
+
+  // Enforce device limit — remove oldest devices beyond the limit
+  if (limit !== Infinity) {
+    const devices = await db.device.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+
+    if (devices.length > limit) {
+      // biome-ignore lint/suspicious/noExplicitAny: dynamic Prisma model
+      const toRemove = devices.slice(limit).map((d: any) => d.id);
+      await db.device.deleteMany({ where: { id: { in: toRemove } } });
+    }
+  }
+
+  return device.id;
+}
+
+/** Validate that a token's device session is still active */
+export async function isDeviceSessionValid(token: string): Promise<boolean> {
+  const tHash = hashToken(token);
+  const device = await db.device.findUnique({ where: { tokenHash: tHash } });
+  if (!device) {
+    // No device record — check if the user has ANY devices registered.
+    // If they do, this token was kicked. If they don't, it's a legacy session (pre-device tracking).
+    const payload = verifyToken(token);
+    const deviceCount = await db.device.count({ where: { userId: payload.userId } });
+    // Legacy session: no devices registered at all → allow through
+    return deviceCount === 0;
+  }
+  // Update lastActiveAt (non-blocking)
+  db.device
+    .update({ where: { id: device.id }, data: { lastActiveAt: new Date() } })
+    .catch(() => {});
+  return true;
+}
+
+/** Remove a device session (logout) */
+export async function removeDeviceSession(token: string): Promise<void> {
+  await db.device.deleteMany({ where: { tokenHash: hashToken(token) } });
 }
 
 /** Ensure demo user exists (for unauthenticated use) */
