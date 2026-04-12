@@ -128,7 +128,8 @@ export async function registerDevice(
     });
 
     if (devices.length > limit) {
-      const toRemove = devices.slice(limit).map((d) => d.id);
+      // biome-ignore lint/suspicious/noExplicitAny: dynamic Prisma model
+      const toRemove = devices.slice(limit).map((d: any) => d.id);
       await db.device.deleteMany({ where: { id: { in: toRemove } } });
     }
   }
