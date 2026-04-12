@@ -718,7 +718,7 @@ export default function Sidebar({
               {item.label}
             </Link>
           ))}
-          {user?.plan === "ENTERPRISE" && (
+          {user?.role === "ADMIN" && (
             <Link
               href="/admin"
               onClick={onMobileClose}
