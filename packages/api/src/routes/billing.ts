@@ -166,7 +166,9 @@ export async function billingRoutes(app: FastifyInstance) {
 
     // Use raw update to handle new fields before Prisma regenerate
     await prisma.$executeRawUnsafe(
-      `UPDATE "User" SET ${Object.keys(updateData).map((k, i) => `"${k}" = $${i + 2}`).join(", ")}, "updatedAt" = NOW() WHERE "id" = $1`,
+      `UPDATE "User" SET ${Object.keys(updateData)
+        .map((k, i) => `"${k}" = $${i + 2}`)
+        .join(", ")}, "updatedAt" = NOW() WHERE "id" = $1`,
       userId,
       ...Object.values(updateData),
     );

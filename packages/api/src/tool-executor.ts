@@ -127,10 +127,7 @@ export const ALL_TOOLS = [...ALWAYS_TOOLS, ...GOOGLE_TOOLS];
  * @param hasGoogle - whether user has Google OAuth connected
  * @param plan - user's billing plan (FREE, PRO, TEAM, ENTERPRISE)
  */
-export function getToolsForPlan(
-  hasGoogle: boolean,
-  plan: string,
-) {
+export function getToolsForPlan(hasGoogle: boolean, plan: string) {
   const base = hasGoogle ? ALL_TOOLS : [...ALWAYS_TOOLS];
   return base.filter((tool) => {
     const featureKey = TOOL_FEATURE_MAP[tool.function.name];

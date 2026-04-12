@@ -79,7 +79,11 @@ async function runAutomations() {
       const configUserPlan = automationPlanMap.get(config.userId) || "FREE";
 
       // --- Daily Briefing (requires PRO+) ---
-      if (config.dailyBriefing && !briefingSentToday.has(config.userId) && planHasFeature(configUserPlan, "daily_briefing")) {
+      if (
+        config.dailyBriefing &&
+        !briefingSentToday.has(config.userId) &&
+        planHasFeature(configUserPlan, "daily_briefing")
+      ) {
         if (currentTime === config.briefingTime) {
           // DB-based dedup: check if briefing was already sent today (survives restarts)
           const alreadySent = await hasBriefingBeenSentToday(config.userId);

@@ -24,7 +24,13 @@ export const PLANS = {
     messageLimit: 10000,
     tokenLimit: 50_000_000,
   },
-  ENTERPRISE: { name: "Enterprise", priceId: null, testLimit: Infinity, messageLimit: Infinity, tokenLimit: Infinity },
+  ENTERPRISE: {
+    name: "Enterprise",
+    priceId: null,
+    testLimit: Infinity,
+    messageLimit: Infinity,
+    tokenLimit: Infinity,
+  },
 } as const;
 
 /**
@@ -51,10 +57,7 @@ export type FeatureKey =
   | "meeting_tools";
 
 export const PLAN_FEATURES: Record<string, Set<FeatureKey>> = {
-  FREE: new Set<FeatureKey>([
-    "email_read",
-    "calendar_read",
-  ]),
+  FREE: new Set<FeatureKey>(["email_read", "calendar_read"]),
   PRO: new Set<FeatureKey>([
     "email_read",
     "email_write",
@@ -129,12 +132,28 @@ export const PLAN_MODELS: Record<string, { chat: string[]; agent: string[] }> = 
     agent: ["openai/gpt-5.4-nano"],
   },
   TEAM: {
-    chat: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini", "openai/gpt-5.4", "anthropic/claude-sonnet-4.6"],
+    chat: [
+      "openai/gpt-5.4-nano",
+      "openai/gpt-5.4-mini",
+      "openai/gpt-5.4",
+      "anthropic/claude-sonnet-4.6",
+    ],
     agent: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini"],
   },
   ENTERPRISE: {
-    chat: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini", "openai/gpt-5.4", "anthropic/claude-sonnet-4.6", "anthropic/claude-opus-4.6"],
-    agent: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini", "openai/gpt-5.4", "anthropic/claude-sonnet-4.6"],
+    chat: [
+      "openai/gpt-5.4-nano",
+      "openai/gpt-5.4-mini",
+      "openai/gpt-5.4",
+      "anthropic/claude-sonnet-4.6",
+      "anthropic/claude-opus-4.6",
+    ],
+    agent: [
+      "openai/gpt-5.4-nano",
+      "openai/gpt-5.4-mini",
+      "openai/gpt-5.4",
+      "anthropic/claude-sonnet-4.6",
+    ],
   },
 };
 
@@ -151,7 +170,11 @@ export function getDefaultAgentModel(plan: string): string | null {
 }
 
 /** Check if a model is allowed for a given plan */
-export function isModelAllowedForPlan(plan: string, model: string, type: "chat" | "agent"): boolean {
+export function isModelAllowedForPlan(
+  plan: string,
+  model: string,
+  type: "chat" | "agent",
+): boolean {
   const models = PLAN_MODELS[plan]?.[type];
   if (!models) return false;
   return models.includes(model);

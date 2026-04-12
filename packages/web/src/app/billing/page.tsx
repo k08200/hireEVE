@@ -31,11 +31,7 @@ const PLANS = [
     price: "$0",
     period: "",
     limit: "50 msgs · 500K tokens/mo",
-    features: [
-      "Email & Calendar read-only",
-      "Task & note management",
-      "GPT-5.4 Nano model",
-    ],
+    features: ["Email & Calendar read-only", "Task & note management", "GPT-5.4 Nano model"],
   },
   {
     key: "PRO",
@@ -202,7 +198,8 @@ function BillingContent() {
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-gray-400">Messages</span>
                 <span className="text-gray-300">
-                  {status.messageCount} / {status.messageLimit === Infinity ? "∞" : status.messageLimit.toLocaleString()}
+                  {status.messageCount} /{" "}
+                  {status.messageLimit === Infinity ? "∞" : status.messageLimit.toLocaleString()}
                 </span>
               </div>
               {status.messageLimit !== Infinity && status.messageLimit > 0 && (
@@ -228,7 +225,8 @@ function BillingContent() {
               <div className="flex justify-between text-sm mb-1">
                 <span className="text-gray-400">Tokens</span>
                 <span className="text-gray-300">
-                  {formatTokens(status.tokenUsage)} / {status.tokenLimit === Infinity ? "∞" : formatTokens(status.tokenLimit)}
+                  {formatTokens(status.tokenUsage)} /{" "}
+                  {status.tokenLimit === Infinity ? "∞" : formatTokens(status.tokenLimit)}
                 </span>
               </div>
               {status.tokenLimit !== Infinity && status.tokenLimit > 0 && (

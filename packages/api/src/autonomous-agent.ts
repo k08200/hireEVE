@@ -844,10 +844,11 @@ export async function runAgentForUser(userId: string, mode: string = "SUGGEST"):
     // Load user plan and model for tool gating
     const agentUser = await prisma.user.findUnique({ where: { id: userId } });
     const userPlan = agentUser?.plan || "FREE";
-    const agentModelForUser = resolveUserAgentModel(
-      (agentUser as unknown as { agentModel?: string })?.agentModel || null,
-      userPlan,
-    ) || AGENT_MODEL;
+    const agentModelForUser =
+      resolveUserAgentModel(
+        (agentUser as unknown as { agentModel?: string })?.agentModel || null,
+        userPlan,
+      ) || AGENT_MODEL;
 
     const { analyzePatterns } = await import("./pattern-learner.js");
     const [context, feedback, memoryContext, proposalHistory, patternContext] = await Promise.all([
