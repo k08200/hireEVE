@@ -14,6 +14,7 @@ import { billingRoutes } from "./routes/billing.js";
 import { calendarRoutes } from "./routes/calendar.js";
 import { chatRoutes } from "./routes/chat.js";
 import { contactRoutes } from "./routes/contacts.js";
+import { deviceRoutes } from "./routes/devices.js";
 import { emailRoutes } from "./routes/email.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { noteRoutes } from "./routes/notes.js";
@@ -72,6 +73,7 @@ app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, 
 });
 
 await app.register(billingRoutes, { prefix: "/api/billing" });
+await app.register(deviceRoutes, { prefix: "/api/devices" });
 await app.register(webhookRoutes, { prefix: "/api/webhook" });
 await app.register(chatRoutes, { prefix: "/api/chat" });
 await app.register(taskRoutes, { prefix: "/api/tasks" });

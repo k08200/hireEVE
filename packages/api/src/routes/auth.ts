@@ -1,6 +1,14 @@
 import crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { comparePassword, getUserId, hashPassword, signToken, verifyToken } from "../auth.js";
+import {
+  comparePassword,
+  getUserId,
+  hashPassword,
+  registerDevice,
+  removeDeviceSession,
+  signToken,
+  verifyToken,
+} from "../auth.js";
 import { prisma } from "../db.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../email.js";
 import {
@@ -52,6 +60,16 @@ export async function authRoutes(app: FastifyInstance) {
     prisma.automationConfig.create({ data: { userId: user.id } }).catch(() => {});
 
     const token = signToken({ userId: user.id, email: user.email });
+
+    // Register device session
+    const ip = (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || request.ip;
+    const ua = request.headers["user-agent"] || "";
+    await registerDevice(user.id, token, {
+      deviceName: parseDeviceName(ua),
+      deviceType: parseDeviceType(ua),
+      ipAddress: ip,
+    });
+
     return reply.code(201).send({
       token,
       user: { id: user.id, email: user.email, name: user.name, plan: user.plan },
@@ -77,6 +95,16 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const token = signToken({ userId: user.id, email: user.email });
+
+    // Register device session
+    const ip = (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || request.ip;
+    const ua = request.headers["user-agent"] || "";
+    await registerDevice(user.id, token, {
+      deviceName: parseDeviceName(ua),
+      deviceType: parseDeviceType(ua),
+      ipAddress: ip,
+    });
+
     return reply.send({
       token,
       user: { id: user.id, email: user.email, name: user.name, plan: user.plan },
@@ -316,6 +344,17 @@ export async function authRoutes(app: FastifyInstance) {
         });
 
         const token = signToken({ userId: user.id, email: user.email });
+
+        // Register device session for Google login
+        const ip =
+          (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || request.ip;
+        const ua = request.headers["user-agent"] || "";
+        await registerDevice(user.id, token, {
+          deviceName: parseDeviceName(ua),
+          deviceType: parseDeviceType(ua),
+          ipAddress: ip,
+        });
+
         return reply.redirect(`${webUrl}/auth/callback?token=${token}`);
       }
 
@@ -643,4 +682,42 @@ export async function authRoutes(app: FastifyInstance) {
 
     return { synced: true, ...results };
   });
+
+  // POST /api/auth/logout — Invalidate device session
+  app.post("/logout", async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (auth?.startsWith("Bearer ")) {
+      await removeDeviceSession(auth.slice(7));
+    }
+    return reply.send({ success: true });
+  });
+}
+
+/** Parse a human-readable device name from User-Agent */
+function parseDeviceName(ua: string): string {
+  if (!ua) return "Unknown device";
+
+  let browser = "Browser";
+  if (ua.includes("Firefox")) browser = "Firefox";
+  else if (ua.includes("Edg/")) browser = "Edge";
+  else if (ua.includes("Chrome")) browser = "Chrome";
+  else if (ua.includes("Safari")) browser = "Safari";
+
+  let os = "";
+  if (ua.includes("Windows")) os = "Windows";
+  else if (ua.includes("Macintosh") || ua.includes("Mac OS")) os = "macOS";
+  else if (ua.includes("Linux")) os = "Linux";
+  else if (ua.includes("iPhone")) os = "iPhone";
+  else if (ua.includes("iPad")) os = "iPad";
+  else if (ua.includes("Android")) os = "Android";
+
+  return os ? `${browser} on ${os}` : browser;
+}
+
+/** Parse device type from User-Agent */
+function parseDeviceType(ua: string): string {
+  if (!ua) return "web";
+  if (/iPhone|iPad|Android|Mobile/i.test(ua)) return "mobile";
+  if (/Electron/i.test(ua)) return "desktop";
+  return "web";
 }

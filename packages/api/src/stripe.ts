@@ -9,13 +9,21 @@ export const stripe = process.env.STRIPE_SECRET_KEY
   : (null as unknown as Stripe);
 
 export const PLANS = {
-  FREE: { name: "Free", priceId: null, testLimit: 10, messageLimit: 50, tokenLimit: 500_000 },
+  FREE: {
+    name: "Free",
+    priceId: null,
+    testLimit: 10,
+    messageLimit: 50,
+    tokenLimit: 500_000,
+    deviceLimit: 1,
+  },
   PRO: {
     name: "Pro",
     priceId: process.env.STRIPE_PRO_PRICE_ID || "",
     testLimit: 500,
     messageLimit: 2000,
     tokenLimit: 10_000_000,
+    deviceLimit: 2,
   },
   TEAM: {
     name: "Team",
@@ -23,6 +31,7 @@ export const PLANS = {
     testLimit: 5000,
     messageLimit: 10000,
     tokenLimit: 50_000_000,
+    deviceLimit: 3,
   },
   ENTERPRISE: {
     name: "Enterprise",
@@ -30,6 +39,7 @@ export const PLANS = {
     testLimit: Infinity,
     messageLimit: Infinity,
     tokenLimit: Infinity,
+    deviceLimit: Infinity,
   },
 } as const;
 

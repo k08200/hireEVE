@@ -38,6 +38,7 @@ model User {
   pushSubscriptions  PushSubscription[]
   memories           Memory[]
   tokenUsages        TokenUsage[]
+  devices            Device[]
   emailMessages      EmailMessage[]
   emailRules         EmailRule[]
   createdAt          DateTime       @default(now())
@@ -47,6 +48,20 @@ model User {
 enum UserRole {
   USER
   ADMIN
+}
+
+model Device {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String   @unique // SHA-256 hash of the JWT token
+  deviceName  String?  // e.g. "Chrome on macOS", "iPhone 15"
+  deviceType  String   @default("web") // "web" | "desktop" | "mobile"
+  ipAddress   String?
+  lastActiveAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Workspace {

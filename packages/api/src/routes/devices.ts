@@ -1,0 +1,65 @@
+import type { FastifyInstance } from "fastify";
+import { getUserId, removeDeviceSession, requireAuth } from "../auth.js";
+import { prisma } from "../db.js";
+import { PLANS } from "../stripe.js";
+
+export async function deviceRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
+  // GET /api/devices — List user's active devices
+  app.get("/", async (request) => {
+    const userId = getUserId(request);
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+    const planConfig = PLANS[(user?.plan as keyof typeof PLANS) || "FREE"];
+
+    const devices = await prisma.device.findMany({
+      where: { userId },
+      orderBy: { lastActiveAt: "desc" },
+      select: {
+        id: true,
+        deviceName: true,
+        deviceType: true,
+        ipAddress: true,
+        lastActiveAt: true,
+        createdAt: true,
+      },
+    });
+
+    // Mark current device
+    const auth = request.headers.authorization;
+    let currentTokenHash: string | null = null;
+    if (auth?.startsWith("Bearer ")) {
+      const crypto = await import("node:crypto");
+      currentTokenHash = crypto.createHash("sha256").update(auth.slice(7)).digest("hex");
+    }
+
+    const currentDevice = currentTokenHash
+      ? await prisma.device.findUnique({
+          where: { tokenHash: currentTokenHash },
+          select: { id: true },
+        })
+      : null;
+
+    return {
+      devices: devices.map((d) => ({
+        ...d,
+        isCurrent: d.id === currentDevice?.id,
+      })),
+      deviceLimit: planConfig.deviceLimit === Infinity ? null : planConfig.deviceLimit,
+    };
+  });
+
+  // DELETE /api/devices/:id — Remove a specific device (remote logout)
+  app.delete("/:id", async (request, reply) => {
+    const userId = getUserId(request);
+    const { id } = request.params as { id: string };
+
+    const device = await prisma.device.findUnique({ where: { id } });
+    if (!device || device.userId !== userId) {
+      return reply.code(404).send({ error: "Device not found" });
+    }
+
+    await prisma.device.delete({ where: { id } });
+    return { success: true };
+  });
+}
