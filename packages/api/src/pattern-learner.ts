@@ -13,6 +13,7 @@
 
 import { db, prisma } from "./db.js";
 import { remember } from "./memory.js";
+import { planHasFeature } from "./stripe.js";
 
 const PATTERN_ANALYSIS_HOURS = 168; // 7 days of data for pattern detection
 const MIN_OCCURRENCES = 3; // Need at least 3 instances to detect a pattern
@@ -532,7 +533,17 @@ async function runPatternAnalysisForAllUsers() {
       select: { userId: true },
     });
 
-    for (const { userId } of configs) {
+    // Filter by plan — pattern learning requires TEAM+
+    const patternUserIds = configs.map((c) => c.userId);
+    const patternUsers = await prisma.user.findMany({
+      where: { id: { in: patternUserIds } },
+      select: { id: true, plan: true },
+    });
+    const eligibleUserIds = new Set(
+      patternUsers.filter((u) => planHasFeature(u.plan, "pattern_learning")).map((u) => u.id),
+    );
+
+    for (const { userId } of configs.filter((c) => eligibleUserIds.has(c.userId))) {
       try {
         await persistLearnedPatterns(userId);
       } catch {

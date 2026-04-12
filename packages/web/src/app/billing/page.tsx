@@ -12,7 +12,16 @@ interface BillingStatus {
   planName: string;
   messageLimit: number;
   messageCount: number;
+  tokenLimit: number;
+  tokenUsage: number;
+  estimatedCost: number;
   stripeId: string | null;
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
 }
 
 const PLANS = [
@@ -21,21 +30,22 @@ const PLANS = [
     name: "Free",
     price: "$0",
     period: "",
-    limit: "50 messages/month",
-    features: ["Gmail & Calendar integration", "Task management", "Basic AI assistant"],
+    limit: "50 msgs · 500K tokens/mo",
+    features: ["Email & Calendar read-only", "Task & note management", "GPT-5.4 Nano model"],
   },
   {
     key: "PRO",
     name: "Pro",
     price: "$29",
     period: "/mo",
-    limit: "2,000 messages/month",
+    limit: "2K msgs · 10M tokens/mo",
     features: [
       "Everything in Free",
-      "Unlimited tool usage",
-      "Priority response",
-      "Web search",
-      "File attachments",
+      "Email send & Calendar create",
+      "EVE autonomous agent (Suggest)",
+      "Daily briefing & Email classify",
+      "Web search & Document writer",
+      "GPT-5.4 Nano + Mini models",
     ],
   },
   {
@@ -43,13 +53,14 @@ const PLANS = [
     name: "Team",
     price: "$99",
     period: "/mo",
-    limit: "10,000 messages/month",
+    limit: "10K msgs · 50M tokens/mo",
     features: [
       "Everything in Pro",
-      "Team workspace",
-      "Shared conversations",
-      "Admin dashboard",
-      "Dedicated support",
+      "EVE AUTO mode (auto-execute)",
+      "Email auto-reply",
+      "Pattern learning",
+      "Slack & Notion integration",
+      "GPT-5.4 + Claude Sonnet models",
     ],
   },
   {
@@ -58,7 +69,13 @@ const PLANS = [
     price: "Custom",
     period: "",
     limit: "Unlimited",
-    features: ["Everything in Team", "On-premise option", "SLA guarantee", "Custom integrations"],
+    features: [
+      "Everything in Team",
+      "Claude Opus model access",
+      "On-premise option",
+      "SLA guarantee",
+      "Custom integrations",
+    ],
   },
 ];
 
@@ -152,16 +169,41 @@ function BillingContent() {
 
       {!loading && status && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-10">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm text-gray-500">Current Plan</p>
               <p className="text-xl font-bold">{status.planName}</p>
-              <p className="text-sm text-gray-400 mt-1">
-                {status.messageCount} /{" "}
-                {status.messageLimit === Infinity ? "∞" : status.messageLimit} messages used
-              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {status.estimatedCost > 0 && (
+                <span className="text-xs text-gray-500">
+                  ~${status.estimatedCost.toFixed(4)} this month
+                </span>
+              )}
+              {status.stripeId && (
+                <button
+                  type="button"
+                  onClick={handleManage}
+                  className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition"
+                >
+                  Manage Subscription
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Messages usage */}
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-400">Messages</span>
+                <span className="text-gray-300">
+                  {status.messageCount} /{" "}
+                  {status.messageLimit === Infinity ? "∞" : status.messageLimit.toLocaleString()}
+                </span>
+              </div>
               {status.messageLimit !== Infinity && status.messageLimit > 0 && (
-                <div className="w-48 bg-gray-800 rounded-full h-2 mt-2">
+                <div className="w-full bg-gray-800 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-500 ${
                       status.messageCount / status.messageLimit > 0.9
@@ -177,15 +219,33 @@ function BillingContent() {
                 </div>
               )}
             </div>
-            {status.stripeId && (
-              <button
-                type="button"
-                onClick={handleManage}
-                className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm transition"
-              >
-                Manage Subscription
-              </button>
-            )}
+
+            {/* Tokens usage */}
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-400">Tokens</span>
+                <span className="text-gray-300">
+                  {formatTokens(status.tokenUsage)} /{" "}
+                  {status.tokenLimit === Infinity ? "∞" : formatTokens(status.tokenLimit)}
+                </span>
+              </div>
+              {status.tokenLimit !== Infinity && status.tokenLimit > 0 && (
+                <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      status.tokenUsage / status.tokenLimit > 0.9
+                        ? "bg-red-500"
+                        : status.tokenUsage / status.tokenLimit > 0.7
+                          ? "bg-yellow-500"
+                          : "bg-cyan-500"
+                    }`}
+                    style={{
+                      width: `${Math.min((status.tokenUsage / status.tokenLimit) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

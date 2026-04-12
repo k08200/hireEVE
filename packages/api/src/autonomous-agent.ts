@@ -27,9 +27,10 @@
 import { db, prisma } from "./db.js";
 import { markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
-import { AGENT_MODEL, openai } from "./openai.js";
+import { AGENT_MODEL, openai, resolveUserAgentModel } from "./openai.js";
 import { sendPushNotification } from "./push.js";
-import { ALL_TOOLS, executeToolCall } from "./tool-executor.js";
+import { planHasFeature } from "./stripe.js";
+import { ALL_TOOLS, executeToolCall, isToolAllowedForPlan } from "./tool-executor.js";
 import { pushNotification } from "./websocket.js";
 
 const CHECK_INTERVAL_MS = 60 * 1000; // Check every 1 minute (respects per-user intervals)
@@ -145,6 +146,7 @@ function getNotifKey(title: string): string {
 async function trackTokenUsage(
   userId: string,
   usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined,
+  modelName: string = AGENT_MODEL,
 ) {
   if (!usage) return;
   const prompt = usage.prompt_tokens || 0;
@@ -156,7 +158,7 @@ async function trackTokenUsage(
     await db.tokenUsage.create({
       data: {
         userId,
-        model: AGENT_MODEL,
+        model: modelName,
         promptTokens: prompt,
         completionTokens: completion,
         totalTokens: total,
@@ -839,6 +841,15 @@ export async function runAgentForUser(userId: string, mode: string = "SUGGEST"):
   const startTime = Date.now();
 
   try {
+    // Load user plan and model for tool gating
+    const agentUser = await prisma.user.findUnique({ where: { id: userId } });
+    const userPlan = agentUser?.plan || "FREE";
+    const agentModelForUser =
+      resolveUserAgentModel(
+        (agentUser as unknown as { agentModel?: string })?.agentModel || null,
+        userPlan,
+      ) || AGENT_MODEL;
+
     const { analyzePatterns } = await import("./pattern-learner.js");
     const [context, feedback, memoryContext, proposalHistory, patternContext] = await Promise.all([
       gatherUserContext(userId),
@@ -1012,7 +1023,7 @@ How to reply:
 
     for (let i = 0; i < 3; i++) {
       const response = await openai.chat.completions.create({
-        model: AGENT_MODEL,
+        model: agentModelForUser,
         messages: messages as Parameters<typeof openai.chat.completions.create>[0]["messages"],
         tools: agentTools,
         tool_choice: "auto",
@@ -1026,6 +1037,7 @@ How to reply:
         response.usage as
           | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
           | undefined,
+        agentModelForUser,
       );
 
       const choice = response.choices[0];
@@ -1423,6 +1435,16 @@ How to reply:
             }
           }
 
+          // Plan-based tool gating — reject tools not allowed for user's plan
+          if (!isToolAllowedForPlan(fnName, userPlan)) {
+            result = JSON.stringify({
+              error: `Tool "${fnName}" requires a higher plan. Current plan: ${userPlan}`,
+              upgrade_required: true,
+            });
+            messages.push({ role: "tool", content: result, tool_call_id: toolCall.id });
+            continue;
+          }
+
           result = await executeToolCall(userId, fnName, args);
 
           // After successful send_email, mark original email as read in Gmail
@@ -1589,18 +1611,38 @@ async function runAutonomousAgent() {
 
     const now = Date.now();
 
+    // Fetch user plans for feature gating
+    const userIds = configs.map((c) => c.userId);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, plan: true },
+    });
+    const userPlanMap = new Map(users.map((u) => [u.id, u.plan]));
+
     // Filter users that are due for a run
     const usersToRun: Array<{ userId: string; mode: string }> = [];
     for (const config of configs) {
       const cfg = config as unknown as Record<string, unknown>;
       if (cfg.autonomousAgent === false) continue;
 
+      // Plan-based gating: autonomous agent requires PRO+ plan
+      const userPlan = userPlanMap.get(config.userId) || "FREE";
+      if (!planHasFeature(userPlan, "autonomous_agent")) {
+        continue;
+      }
+
       const intervalMs = ((cfg.agentIntervalMin as number) || 5) * 60 * 1000;
       const lastRun = lastRunTime.get(config.userId) || 0;
       if (now - lastRun < intervalMs - 30_000) continue;
 
+      // Plan-based mode gating: AUTO mode requires TEAM+ plan
+      let mode = (cfg.agentMode as string) || "AUTO";
+      if (mode === "AUTO" && !planHasFeature(userPlan, "agent_mode_auto")) {
+        mode = "SUGGEST"; // Downgrade to SUGGEST for PRO users
+      }
+
       lastRunTime.set(config.userId, now);
-      usersToRun.push({ userId: config.userId, mode: (cfg.agentMode as string) || "AUTO" });
+      usersToRun.push({ userId: config.userId, mode });
     }
 
     // Run in parallel with concurrency limit (not sequential)

@@ -3,10 +3,10 @@ import { getUserId } from "../auth.js";
 import { compactHistory } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
-import { EVE_SYSTEM_PROMPT, MODEL, openai } from "../openai.js";
+import { EVE_SYSTEM_PROMPT, MODEL, openai, resolveUserChatModel } from "../openai.js";
 import { sendPushNotification } from "../push.js";
 import { PLANS } from "../stripe.js";
-import { ALL_TOOLS, ALWAYS_TOOLS, executeToolCall } from "../tool-executor.js";
+import { executeToolCall, getToolsForPlan, isToolAllowedForPlan } from "../tool-executor.js";
 import { pushNotification } from "../websocket.js";
 import { withRetry } from "../with-retry.js";
 
@@ -250,10 +250,16 @@ export async function chatRoutes(app: FastifyInstance) {
         !(lastMsg && lastMsg.role === "ASSISTANT" && m.id === lastMsg.id),
     );
 
-    const token = await prisma.userToken.findFirst({
-      where: { userId: conversation.userId, provider: "google" },
-    });
-    const tools = token ? ALL_TOOLS : [...ALWAYS_TOOLS];
+    const [token, retryUser] = await Promise.all([
+      prisma.userToken.findFirst({ where: { userId: conversation.userId, provider: "google" } }),
+      prisma.user.findUnique({ where: { id: conversation.userId } }),
+    ]);
+    const retryPlan = retryUser?.plan || "FREE";
+    const tools = getToolsForPlan(!!token, retryPlan);
+    const retryChatModel = resolveUserChatModel(
+      (retryUser as unknown as { chatModel?: string })?.chatModel || null,
+      retryPlan,
+    );
 
     // Build dynamic context for retry
     const retryContextParts: string[] = [];
@@ -322,7 +328,7 @@ export async function chatRoutes(app: FastifyInstance) {
         while (maxIterations-- > 0) {
           if (retryClientDisconnected) break;
           const response = await openai.chat.completions.create({
-            model: MODEL,
+            model: retryChatModel,
             messages: messages as Parameters<typeof openai.chat.completions.create>[0]["messages"],
             tools,
           });
@@ -355,7 +361,7 @@ export async function chatRoutes(app: FastifyInstance) {
         }
       } else {
         const stream = await openai.chat.completions.create({
-          model: MODEL,
+          model: retryChatModel,
           messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
           stream: true,
         });
@@ -483,7 +489,32 @@ export async function chatRoutes(app: FastifyInstance) {
           });
         }
       }
+
+      // Check token limit
+      if (planConfig.tokenLimit !== Infinity) {
+        const now = new Date();
+        const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const tokenAgg = await db.tokenUsage.aggregate({
+          where: { userId: user.id, createdAt: { gte: periodStart } },
+          _sum: { totalTokens: true },
+        });
+        const monthlyTokens = tokenAgg._sum.totalTokens || 0;
+        if (monthlyTokens >= planConfig.tokenLimit) {
+          return reply.code(402).send({
+            error: "Token limit reached",
+            plan: user.plan,
+            tokenLimit: planConfig.tokenLimit,
+            tokenUsage: monthlyTokens,
+          });
+        }
+      }
     }
+
+    // Resolve per-user chat model (chatModel field added in migration, cast for type safety)
+    const userChatModel = resolveUserChatModel(
+      (user as unknown as { chatModel?: string })?.chatModel || null,
+      user?.plan || "FREE",
+    );
 
     // Save user message
     await prisma.message.create({
@@ -502,7 +533,7 @@ export async function chatRoutes(app: FastifyInstance) {
       // Generate a smarter title in the background (non-blocking)
       openai.chat.completions
         .create({
-          model: MODEL,
+          model: userChatModel,
           messages: [
             {
               role: "system",
@@ -530,7 +561,7 @@ export async function chatRoutes(app: FastifyInstance) {
     const token = await prisma.userToken.findFirst({
       where: { userId: conversation.userId, provider: "google" },
     });
-    const tools = token ? ALL_TOOLS : [...ALWAYS_TOOLS];
+    const tools = getToolsForPlan(!!token, user?.plan || "FREE");
 
     // Build dynamic context so EVE knows the current situation
     const contextParts: string[] = [];
@@ -628,7 +659,7 @@ export async function chatRoutes(app: FastifyInstance) {
           const response = await withRetry(
             () =>
               openai.chat.completions.create({
-                model: MODEL,
+                model: userChatModel,
                 messages: messages as Parameters<
                   typeof openai.chat.completions.create
                 >[0]["messages"],
@@ -698,7 +729,7 @@ export async function chatRoutes(app: FastifyInstance) {
         const stream = await withRetry(
           () =>
             openai.chat.completions.create({
-              model: MODEL,
+              model: userChatModel,
               messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
               stream: true,
             }),
@@ -747,7 +778,7 @@ export async function chatRoutes(app: FastifyInstance) {
           data: {
             userId: conversation.userId,
             conversationId: id,
-            model: MODEL,
+            model: userChatModel,
             promptTokens: estimatedPromptTokens,
             completionTokens: estimatedCompletionTokens,
             totalTokens: estimatedPromptTokens + estimatedCompletionTokens,
