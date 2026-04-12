@@ -43,6 +43,12 @@ export const PLANS = {
   },
 } as const;
 
+/** Get the effective plan config for a user. ADMIN role always gets ENTERPRISE limits. */
+export function getEffectivePlan(plan: string, role?: string): (typeof PLANS)[keyof typeof PLANS] {
+  if (role === "ADMIN") return PLANS.ENTERPRISE;
+  return PLANS[plan as keyof typeof PLANS] || PLANS.FREE;
+}
+
 /**
  * Feature gates per plan.
  *
@@ -116,8 +122,9 @@ export const PLAN_FEATURES: Record<string, Set<FeatureKey>> = {
   ]),
 };
 
-/** Check if a plan has a specific feature */
-export function planHasFeature(plan: string, feature: FeatureKey): boolean {
+/** Check if a plan has a specific feature. ADMIN role bypasses all gates. */
+export function planHasFeature(plan: string, feature: FeatureKey, role?: string): boolean {
+  if (role === "ADMIN") return true;
   const features = PLAN_FEATURES[plan];
   if (!features) return false;
   return features.has(feature);

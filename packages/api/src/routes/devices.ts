@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { db, prisma } from "../db.js";
-import { PLANS } from "../stripe.js";
+import { getEffectivePlan } from "../stripe.js";
 
 export async function deviceRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
@@ -9,8 +9,11 @@ export async function deviceRoutes(app: FastifyInstance) {
   // GET /api/devices — List user's active devices
   app.get("/", async (request) => {
     const userId = getUserId(request);
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
-    const planConfig = PLANS[(user?.plan as keyof typeof PLANS) || "FREE"];
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, role: true },
+    });
+    const planConfig = getEffectivePlan(user?.plan || "FREE", user?.role);
 
     const devices = await db.device.findMany({
       where: { userId },
