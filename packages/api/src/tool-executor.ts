@@ -72,8 +72,8 @@ import {
 } from "./reminders.js";
 import { SEARCH_TOOLS, webSearch } from "./search.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
-import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";
 import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
+import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";
 import {
   calculate,
   convertCurrency,
