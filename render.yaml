@@ -25,3 +25,5 @@ services:
         value: "3001"
       - key: CORS_ORIGINS
         value: "https://hire-eve-web.vercel.app"
+      - key: RENDER_EXTERNAL_URL
+        value: "https://hireeve.onrender.com"

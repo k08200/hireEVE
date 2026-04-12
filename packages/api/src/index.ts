@@ -363,6 +363,16 @@ try {
     .catch((err) => {
       console.error("[PATTERN] Pattern learner failed to start:", err);
     });
+
+  // Self-ping to prevent Render free tier from sleeping after 15 min inactivity
+  const RENDER_URL = process.env.RENDER_EXTERNAL_URL;
+  if (RENDER_URL) {
+    const KEEP_ALIVE_MS = 10 * 60 * 1000; // every 10 minutes
+    setInterval(() => {
+      fetch(`${RENDER_URL}/api/health`).catch(() => {});
+    }, KEEP_ALIVE_MS);
+    console.log(`[KEEPALIVE] Self-ping enabled: ${RENDER_URL}/api/health every 10m`);
+  }
 } catch (err) {
   console.error("[STARTUP] Fatal error during server initialization:", err);
   // Still try to start a minimal health-check server so Render doesn't mark as crashed

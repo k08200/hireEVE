@@ -86,7 +86,7 @@ const lastRunTime = new Map<string, number>();
 
 // DB-based dedup: check if a similar notification was sent recently
 // Survives server restarts (unlike previous in-memory Map approach)
-const NOTIFY_DEDUP_HOURS = 6; // Don't repeat same notification within 6 hours
+const NOTIFY_DEDUP_HOURS = 2; // Don't repeat same notification within 2 hours
 
 async function hasRecentNotification(userId: string, titleKey: string): Promise<boolean> {
   const since = new Date(Date.now() - NOTIFY_DEDUP_HOURS * 60 * 60 * 1000);
@@ -1075,12 +1075,14 @@ How to reply:
           // Propose action via chat — create conversation + message + pending action
           const key = getNotifKey(args.message);
 
-          // DB-backed dedup: check PENDING actions + recent notifications
+          // DB-backed dedup: check RECENT PENDING actions (not stale ones older than 6h)
+          const pendingCutoff = new Date(Date.now() - 6 * 60 * 60 * 1000);
           const existingPending = await db.pendingAction.findFirst({
             where: {
               userId,
               toolName: args.toolName,
               status: "PENDING",
+              createdAt: { gte: pendingCutoff },
             },
             orderBy: { createdAt: "desc" },
           });
@@ -1550,7 +1552,7 @@ How to reply:
   }
 }
 
-const PENDING_ACTION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const PENDING_ACTION_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — expire faster to prevent blocking
 
 /** Expire stale pending actions — prevents deadlock when user ignores proposals */
 async function expireStalePendingActions() {
