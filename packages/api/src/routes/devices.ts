@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId, removeDeviceSession, requireAuth } from "../auth.js";
-import { prisma } from "../db.js";
+import { getUserId, requireAuth } from "../auth.js";
+import { db, prisma } from "../db.js";
 import { PLANS } from "../stripe.js";
 
 export async function deviceRoutes(app: FastifyInstance) {
@@ -12,7 +12,7 @@ export async function deviceRoutes(app: FastifyInstance) {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
     const planConfig = PLANS[(user?.plan as keyof typeof PLANS) || "FREE"];
 
-    const devices = await prisma.device.findMany({
+    const devices = await db.device.findMany({
       where: { userId },
       orderBy: { lastActiveAt: "desc" },
       select: {
@@ -34,14 +34,15 @@ export async function deviceRoutes(app: FastifyInstance) {
     }
 
     const currentDevice = currentTokenHash
-      ? await prisma.device.findUnique({
+      ? await db.device.findUnique({
           where: { tokenHash: currentTokenHash },
           select: { id: true },
         })
       : null;
 
     return {
-      devices: devices.map((d) => ({
+      // biome-ignore lint/suspicious/noExplicitAny: dynamic Prisma model
+      devices: devices.map((d: any) => ({
         ...d,
         isCurrent: d.id === currentDevice?.id,
       })),
@@ -54,12 +55,12 @@ export async function deviceRoutes(app: FastifyInstance) {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
 
-    const device = await prisma.device.findUnique({ where: { id } });
+    const device = await db.device.findUnique({ where: { id } });
     if (!device || device.userId !== userId) {
       return reply.code(404).send({ error: "Device not found" });
     }
 
-    await prisma.device.delete({ where: { id } });
+    await db.device.delete({ where: { id } });
     return { success: true };
   });
 }

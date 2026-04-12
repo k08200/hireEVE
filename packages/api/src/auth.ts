@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import jwt from "jsonwebtoken";
-import { prisma } from "./db.js";
+import { db, prisma } from "./db.js";
 import { PLANS } from "./stripe.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -109,7 +109,7 @@ export async function registerDevice(
   const planConfig = PLANS[(user?.plan as keyof typeof PLANS) || "FREE"];
   const limit = planConfig.deviceLimit;
 
-  const device = await prisma.device.create({
+  const device = await db.device.create({
     data: {
       userId,
       tokenHash: hashToken(token),
@@ -121,7 +121,7 @@ export async function registerDevice(
 
   // Enforce device limit — remove oldest devices beyond the limit
   if (limit !== Infinity) {
-    const devices = await prisma.device.findMany({
+    const devices = await db.device.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       select: { id: true },
@@ -129,7 +129,7 @@ export async function registerDevice(
 
     if (devices.length > limit) {
       const toRemove = devices.slice(limit).map((d) => d.id);
-      await prisma.device.deleteMany({ where: { id: { in: toRemove } } });
+      await db.device.deleteMany({ where: { id: { in: toRemove } } });
     }
   }
 
@@ -138,10 +138,18 @@ export async function registerDevice(
 
 /** Validate that a token's device session is still active */
 export async function isDeviceSessionValid(token: string): Promise<boolean> {
-  const device = await prisma.device.findUnique({ where: { tokenHash: hashToken(token) } });
-  if (!device) return false;
+  const tHash = hashToken(token);
+  const device = await db.device.findUnique({ where: { tokenHash: tHash } });
+  if (!device) {
+    // No device record — check if the user has ANY devices registered.
+    // If they do, this token was kicked. If they don't, it's a legacy session (pre-device tracking).
+    const payload = verifyToken(token);
+    const deviceCount = await db.device.count({ where: { userId: payload.userId } });
+    // Legacy session: no devices registered at all → allow through
+    return deviceCount === 0;
+  }
   // Update lastActiveAt (non-blocking)
-  prisma.device
+  db.device
     .update({ where: { id: device.id }, data: { lastActiveAt: new Date() } })
     .catch(() => {});
   return true;
@@ -149,7 +157,7 @@ export async function isDeviceSessionValid(token: string): Promise<boolean> {
 
 /** Remove a device session (logout) */
 export async function removeDeviceSession(token: string): Promise<void> {
-  await prisma.device.deleteMany({ where: { tokenHash: hashToken(token) } });
+  await db.device.deleteMany({ where: { tokenHash: hashToken(token) } });
 }
 
 /** Ensure demo user exists (for unauthenticated use) */
