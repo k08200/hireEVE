@@ -20,6 +20,7 @@ import {
 } from "./email-sync.js";
 import { getAuthedClient, sendEmail } from "./gmail.js";
 import { sendPushNotification } from "./push.js";
+import { planHasFeature } from "./stripe.js";
 import { pushNotification } from "./websocket.js";
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -58,6 +59,14 @@ async function runAutomations() {
     const configs = await prisma.automationConfig.findMany();
     if (configs.length === 0) return;
 
+    // Fetch user plans for feature gating
+    const configUserIds = configs.map((c) => c.userId);
+    const automationUsers = await prisma.user.findMany({
+      where: { id: { in: configUserIds } },
+      select: { id: true, plan: true },
+    });
+    const automationPlanMap = new Map(automationUsers.map((u) => [u.id, u.plan]));
+
     const today = getTodayStr();
     const currentTime = getCurrentHHMM();
 
@@ -67,8 +76,10 @@ async function runAutomations() {
     }
 
     for (const config of configs) {
-      // --- Daily Briefing ---
-      if (config.dailyBriefing && !briefingSentToday.has(config.userId)) {
+      const configUserPlan = automationPlanMap.get(config.userId) || "FREE";
+
+      // --- Daily Briefing (requires PRO+) ---
+      if (config.dailyBriefing && !briefingSentToday.has(config.userId) && planHasFeature(configUserPlan, "daily_briefing")) {
         if (currentTime === config.briefingTime) {
           // DB-based dedup: check if briefing was already sent today (survives restarts)
           const alreadySent = await hasBriefingBeenSentToday(config.userId);
@@ -230,8 +241,8 @@ async function runAutomations() {
         }
       }
 
-      // --- Email Sync + AI Classify ---
-      if (config.emailAutoClassify) {
+      // --- Email Sync + AI Classify (requires PRO+ for classify, TEAM+ for auto-reply) ---
+      if (config.emailAutoClassify && planHasFeature(configUserPlan, "email_auto_classify")) {
         // Run every 5 minutes (check modulo)
         const minute = new Date().getMinutes();
         if (minute % 5 === 0) {
@@ -245,7 +256,8 @@ async function runAutomations() {
             }
 
             // Auto-reply: check rules for newly synced emails (dedup by gmailId)
-            if (syncResult.newCount > 0) {
+            // Requires TEAM+ plan for auto-reply
+            if (syncResult.newCount > 0 && planHasFeature(configUserPlan, "email_auto_reply")) {
               const newEmails = await prisma.emailMessage.findMany({
                 where: { userId: config.userId },
                 orderBy: { syncedAt: "desc" },

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getDefaultAgentModel, getDefaultChatModel, isModelAllowedForPlan } from "./stripe.js";
 
 if (!process.env.OPENROUTER_API_KEY) {
   console.warn("OPENROUTER_API_KEY not set — chat endpoints will fail");
@@ -13,6 +14,28 @@ export const openai = process.env.OPENROUTER_API_KEY
 
 export const MODEL = process.env.CHAT_MODEL || "openai/gpt-5.4-nano";
 export const AGENT_MODEL = process.env.AGENT_MODEL || MODEL;
+
+/**
+ * Resolve the chat model for a specific user.
+ * Uses user's selected model if set and valid for their plan, otherwise falls back to plan default.
+ */
+export function resolveUserChatModel(userChatModel: string | null, plan: string): string {
+  if (userChatModel && isModelAllowedForPlan(plan, userChatModel, "chat")) {
+    return userChatModel;
+  }
+  return getDefaultChatModel(plan);
+}
+
+/**
+ * Resolve the agent model for a specific user.
+ * Returns null if the plan doesn't support agent models.
+ */
+export function resolveUserAgentModel(userAgentModel: string | null, plan: string): string | null {
+  if (userAgentModel && isModelAllowedForPlan(plan, userAgentModel, "agent")) {
+    return userAgentModel;
+  }
+  return getDefaultAgentModel(plan);
+}
 
 export const EVE_SYSTEM_PROMPT = `You are EVE, an autonomous AI assistant — the "first employee" for solo founders and indie hackers.
 

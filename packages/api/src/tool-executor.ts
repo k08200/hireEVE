@@ -73,6 +73,7 @@ import {
 import { SEARCH_TOOLS, webSearch } from "./search.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
 import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";
+import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
 import {
   calculate,
   convertCurrency,
@@ -119,6 +120,35 @@ export const ALWAYS_TOOLS = [
 ];
 
 export const ALL_TOOLS = [...ALWAYS_TOOLS, ...GOOGLE_TOOLS];
+
+/**
+ * Return tools available for a given user plan.
+ * Filters out tools that require features not included in the plan.
+ * @param hasGoogle - whether user has Google OAuth connected
+ * @param plan - user's billing plan (FREE, PRO, TEAM, ENTERPRISE)
+ */
+export function getToolsForPlan(
+  hasGoogle: boolean,
+  plan: string,
+) {
+  const base = hasGoogle ? ALL_TOOLS : [...ALWAYS_TOOLS];
+  return base.filter((tool) => {
+    const featureKey = TOOL_FEATURE_MAP[tool.function.name];
+    // Tools not in the map are always available (tasks, notes, reminders, etc.)
+    if (!featureKey) return true;
+    return planHasFeature(plan, featureKey);
+  });
+}
+
+/**
+ * Check if a specific tool call is allowed for a plan.
+ * Used by autonomous agent and tool executor to reject gated calls at runtime.
+ */
+export function isToolAllowedForPlan(toolName: string, plan: string): boolean {
+  const featureKey = TOOL_FEATURE_MAP[toolName];
+  if (!featureKey) return true;
+  return planHasFeature(plan, featureKey);
+}
 
 /** Basic string guard — returns trimmed string or throws */
 function requireString(val: unknown, name: string): string {

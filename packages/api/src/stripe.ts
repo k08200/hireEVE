@@ -9,18 +9,180 @@ export const stripe = process.env.STRIPE_SECRET_KEY
   : (null as unknown as Stripe);
 
 export const PLANS = {
-  FREE: { name: "Free", priceId: null, testLimit: 10, messageLimit: 50 },
+  FREE: { name: "Free", priceId: null, testLimit: 10, messageLimit: 50, tokenLimit: 500_000 },
   PRO: {
     name: "Pro",
     priceId: process.env.STRIPE_PRO_PRICE_ID || "",
     testLimit: 500,
     messageLimit: 2000,
+    tokenLimit: 10_000_000,
   },
   TEAM: {
     name: "Team",
     priceId: process.env.STRIPE_TEAM_PRICE_ID || "",
     testLimit: 5000,
     messageLimit: 10000,
+    tokenLimit: 50_000_000,
   },
-  ENTERPRISE: { name: "Enterprise", priceId: null, testLimit: Infinity, messageLimit: Infinity },
+  ENTERPRISE: { name: "Enterprise", priceId: null, testLimit: Infinity, messageLimit: Infinity, tokenLimit: Infinity },
 } as const;
+
+/**
+ * Feature gates per plan.
+ *
+ * Tools are grouped into categories. Each plan specifies which categories are allowed.
+ * "read" variants allow viewing data; "write" variants allow modifications.
+ */
+export type FeatureKey =
+  | "email_read"
+  | "email_write"
+  | "calendar_read"
+  | "calendar_write"
+  | "autonomous_agent"
+  | "agent_mode_auto"
+  | "daily_briefing"
+  | "email_auto_classify"
+  | "email_auto_reply"
+  | "pattern_learning"
+  | "web_search"
+  | "write_document"
+  | "slack"
+  | "notion"
+  | "meeting_tools";
+
+export const PLAN_FEATURES: Record<string, Set<FeatureKey>> = {
+  FREE: new Set<FeatureKey>([
+    "email_read",
+    "calendar_read",
+  ]),
+  PRO: new Set<FeatureKey>([
+    "email_read",
+    "email_write",
+    "calendar_read",
+    "calendar_write",
+    "autonomous_agent",
+    "daily_briefing",
+    "email_auto_classify",
+    "web_search",
+    "write_document",
+    "meeting_tools",
+  ]),
+  TEAM: new Set<FeatureKey>([
+    "email_read",
+    "email_write",
+    "calendar_read",
+    "calendar_write",
+    "autonomous_agent",
+    "agent_mode_auto",
+    "daily_briefing",
+    "email_auto_classify",
+    "email_auto_reply",
+    "pattern_learning",
+    "web_search",
+    "write_document",
+    "slack",
+    "notion",
+    "meeting_tools",
+  ]),
+  ENTERPRISE: new Set<FeatureKey>([
+    "email_read",
+    "email_write",
+    "calendar_read",
+    "calendar_write",
+    "autonomous_agent",
+    "agent_mode_auto",
+    "daily_briefing",
+    "email_auto_classify",
+    "email_auto_reply",
+    "pattern_learning",
+    "web_search",
+    "write_document",
+    "slack",
+    "notion",
+    "meeting_tools",
+  ]),
+};
+
+/** Check if a plan has a specific feature */
+export function planHasFeature(plan: string, feature: FeatureKey): boolean {
+  const features = PLAN_FEATURES[plan];
+  if (!features) return false;
+  return features.has(feature);
+}
+
+/**
+ * Map tool names to the feature gate that controls them.
+ * Tools not listed here are always available (tasks, notes, reminders, contacts, memory, utilities, time).
+ */
+/**
+ * Model tiers per plan.
+ * Each plan has a list of allowed chat models and agent models.
+ * The first model in each list is the default.
+ */
+export const PLAN_MODELS: Record<string, { chat: string[]; agent: string[] }> = {
+  FREE: {
+    chat: ["openai/gpt-5.4-nano"],
+    agent: [], // No agent for free plan
+  },
+  PRO: {
+    chat: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini"],
+    agent: ["openai/gpt-5.4-nano"],
+  },
+  TEAM: {
+    chat: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini", "openai/gpt-5.4", "anthropic/claude-sonnet-4.6"],
+    agent: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini"],
+  },
+  ENTERPRISE: {
+    chat: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini", "openai/gpt-5.4", "anthropic/claude-sonnet-4.6", "anthropic/claude-opus-4.6"],
+    agent: ["openai/gpt-5.4-nano", "openai/gpt-5.4-mini", "openai/gpt-5.4", "anthropic/claude-sonnet-4.6"],
+  },
+};
+
+/** Get the default chat model for a plan */
+export function getDefaultChatModel(plan: string): string {
+  const models = PLAN_MODELS[plan]?.chat;
+  return models?.[0] || "openai/gpt-5.4-nano";
+}
+
+/** Get the default agent model for a plan */
+export function getDefaultAgentModel(plan: string): string | null {
+  const models = PLAN_MODELS[plan]?.agent;
+  return models?.[0] || null;
+}
+
+/** Check if a model is allowed for a given plan */
+export function isModelAllowedForPlan(plan: string, model: string, type: "chat" | "agent"): boolean {
+  const models = PLAN_MODELS[plan]?.[type];
+  if (!models) return false;
+  return models.includes(model);
+}
+
+export const TOOL_FEATURE_MAP: Record<string, FeatureKey> = {
+  // Email
+  list_emails: "email_read",
+  read_email: "email_read",
+  classify_emails: "email_read",
+  mark_read: "email_read",
+  send_email: "email_write",
+  // Calendar
+  list_events: "calendar_read",
+  check_calendar_conflicts: "calendar_read",
+  create_event: "calendar_write",
+  delete_event: "calendar_write",
+  // Web search
+  web_search: "web_search",
+  // Document writing
+  write_document: "write_document",
+  // Slack
+  send_slack_message: "slack",
+  list_slack_channels: "slack",
+  read_slack_messages: "slack",
+  // Notion
+  search_notion: "notion",
+  create_notion_page: "notion",
+  list_notion_databases: "notion",
+  // Meetings
+  get_upcoming_meetings: "meeting_tools",
+  join_meeting: "meeting_tools",
+  summarize_meeting: "meeting_tools",
+};
