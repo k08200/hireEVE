@@ -1,7 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { db, prisma } from "../db.js";
-import { isModelAllowedForPlan, PLAN_FEATURES, PLAN_MODELS, PLANS, stripe } from "../stripe.js";
+import {
+  getEffectivePlan,
+  isModelAllowedForPlan,
+  PLAN_FEATURES,
+  PLAN_MODELS,
+  PLANS,
+  stripe,
+} from "../stripe.js";
 
 export async function billingRoutes(app: FastifyInstance) {
   // All billing routes require authentication
@@ -58,7 +65,7 @@ export async function billingRoutes(app: FastifyInstance) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return reply.code(404).send({ error: "User not found" });
 
-    const planConfig = PLANS[user.plan as keyof typeof PLANS];
+    const planConfig = getEffectivePlan(user.plan, user.role);
 
     // Count user messages and tokens this billing period (current calendar month)
     const now = new Date();

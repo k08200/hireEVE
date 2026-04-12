@@ -5,7 +5,7 @@ import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai, resolveUserChatModel } from "../openai.js";
 import { sendPushNotification } from "../push.js";
-import { PLANS } from "../stripe.js";
+import { getEffectivePlan } from "../stripe.js";
 import { executeToolCall, getToolsForPlan, isToolAllowedForPlan } from "../tool-executor.js";
 import { pushNotification } from "../websocket.js";
 import { withRetry } from "../with-retry.js";
@@ -469,7 +469,7 @@ export async function chatRoutes(app: FastifyInstance) {
     // Check billing plan message limit
     const user = await prisma.user.findUnique({ where: { id: conversation.userId } });
     if (user) {
-      const planConfig = PLANS[user.plan as keyof typeof PLANS];
+      const planConfig = getEffectivePlan(user.plan, user.role);
       if (planConfig.messageLimit !== Infinity) {
         const now = new Date();
         const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);

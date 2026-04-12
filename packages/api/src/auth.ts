@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import jwt from "jsonwebtoken";
 import { db, prisma } from "./db.js";
-import { PLANS } from "./stripe.js";
+import { getEffectivePlan } from "./stripe.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -105,8 +105,11 @@ export async function registerDevice(
   token: string,
   opts: { deviceName?: string; deviceType?: string; ipAddress?: string },
 ): Promise<string> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
-  const planConfig = PLANS[(user?.plan as keyof typeof PLANS) || "FREE"];
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { plan: true, role: true },
+  });
+  const planConfig = getEffectivePlan(user?.plan || "FREE", user?.role);
   const limit = planConfig.deviceLimit;
 
   const device = await db.device.create({
