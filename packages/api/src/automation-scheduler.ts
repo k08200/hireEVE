@@ -326,8 +326,14 @@ async function runAutomations() {
             }
 
             // Check for urgent unread emails — notify only for NEW urgent emails
+            // Only check truly new emails (synced in last hour) to avoid re-notifying old unread emails
             const urgentEmails = await prisma.emailMessage.findMany({
-              where: { userId: config.userId, priority: "URGENT", isRead: false },
+              where: {
+                userId: config.userId,
+                priority: "URGENT",
+                isRead: false,
+                syncedAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+              },
               orderBy: { receivedAt: "desc" },
               select: { id: true, gmailId: true, subject: true, from: true, summary: true },
             });

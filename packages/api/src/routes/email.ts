@@ -368,8 +368,9 @@ export async function emailRoutes(app: FastifyInstance) {
     });
 
     if (dbEmail) {
-      // Mark as read
+      // Mark as read in both DB and Gmail
       if (!dbEmail.isRead) {
+        toggleReadGmail(uid, dbEmail.gmailId, true).catch(() => {});
         await prisma.emailMessage.update({ where: { id: dbEmail.id }, data: { isRead: true } });
       }
       return {

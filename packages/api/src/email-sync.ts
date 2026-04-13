@@ -396,6 +396,10 @@ export async function summarizeUnsummarizedEmails(userId: string, limit = 10): P
         email.subject,
         email.body || email.snippet || "",
       );
+      // Don't let AI upgrade LOW emails (ads/promotions) to URGENT
+      const aiPriority =
+        email.priority === "LOW" && result.priority === "URGENT" ? "LOW" : result.priority;
+
       await prisma.emailMessage.update({
         where: { id: email.id },
         data: {
@@ -404,7 +408,7 @@ export async function summarizeUnsummarizedEmails(userId: string, limit = 10): P
           keyPoints: JSON.stringify(result.keyPoints),
           actionItems: JSON.stringify(result.actionItems),
           sentiment: result.sentiment,
-          priority: result.priority,
+          priority: aiPriority,
         },
       });
       count++;
