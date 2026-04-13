@@ -4,6 +4,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function ChatListPage() {
   return (
@@ -64,9 +67,26 @@ function NewChatWelcome() {
     { label: "Search contacts", message: "Search contacts" },
   ];
 
+  const { googleConnected } = useAuth();
+  const connectUrl = `${API_BASE}/api/auth/google?token=${typeof window !== "undefined" ? localStorage.getItem("eve-token") || "" : ""}`;
+
   return (
     <div className="flex flex-col items-center justify-center h-full px-4">
       <div className="max-w-2xl w-full text-center">
+        {googleConnected === false && (
+          <a
+            href={connectUrl}
+            className="flex items-center gap-3 bg-blue-600/10 border border-blue-500/30 rounded-xl px-5 py-3 mb-6 text-left hover:bg-blue-600/20 transition mx-auto max-w-md"
+          >
+            <span className="text-blue-400 text-lg">!</span>
+            <div>
+              <p className="text-sm font-medium text-blue-300">Connect Google to get started</p>
+              <p className="text-xs text-gray-500">
+                Link Gmail & Calendar for email sync, notifications, and scheduling
+              </p>
+            </div>
+          </a>
+        )}
         <h1 className="text-2xl font-semibold text-gray-100 mb-2">What can I help with?</h1>
         <p className="text-sm text-gray-500 mb-10">
           EVE is ready to assist. Ask anything or pick a suggestion below.
