@@ -96,9 +96,9 @@ export default function ContactsPage() {
     if (search) params.set("search", search);
     apiFetch<{ contacts: Contact[] }>(`/api/contacts?${params}`)
       .then((d) => setContacts(d.contacts || []))
-      .catch(() => {})
+      .catch(() => toast("Failed to load contacts", "error"))
       .finally(() => setLoading(false));
-  }, [search]);
+  }, [search, toast]);
 
   useEffect(() => {
     loadContacts();

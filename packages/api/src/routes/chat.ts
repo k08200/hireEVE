@@ -647,6 +647,10 @@ export async function chatRoutes(app: FastifyInstance) {
     });
 
     try {
+      let apiUsage:
+        | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+        | undefined;
+
       if (tools.length > 0) {
         // Function calling loop with auto-retry (Claude Code withRetry pattern)
         const messages: unknown[] = [...history];
@@ -713,6 +717,7 @@ export async function chatRoutes(app: FastifyInstance) {
           } else {
             // Final response after tools — stream via SSE for better UX
             fullResponse = choice.message.content || "";
+            if (response.usage) apiUsage = response.usage;
             console.log("[CHAT] Final response length:", fullResponse.length);
 
             // Stream final response in chunks for smoother rendering
@@ -767,23 +772,22 @@ export async function chatRoutes(app: FastifyInstance) {
         });
       }
 
-      // Track token usage (Claude Code cost-tracker pattern)
-      // Estimate tokens: ~4 chars per token for English, ~2 for Korean
-      const promptChars = history.reduce((sum, m) => sum + m.content.length, 0) + content.length;
-      const completionChars = fullResponse.length;
-      const estimatedPromptTokens = Math.ceil(promptChars / 3);
-      const estimatedCompletionTokens = Math.ceil(completionChars / 3);
+      // Track token usage — use actual API usage when available, estimate for streaming
+      const promptTokens =
+        apiUsage?.prompt_tokens ??
+        Math.ceil((history.reduce((sum, m) => sum + m.content.length, 0) + content.length) / 3);
+      const completionTokens = apiUsage?.completion_tokens ?? Math.ceil(fullResponse.length / 3);
+      const totalTokens = apiUsage?.total_tokens ?? promptTokens + completionTokens;
       db.tokenUsage
         .create({
           data: {
             userId: conversation.userId,
             conversationId: id,
             model: userChatModel,
-            promptTokens: estimatedPromptTokens,
-            completionTokens: estimatedCompletionTokens,
-            totalTokens: estimatedPromptTokens + estimatedCompletionTokens,
-            estimatedCost:
-              (estimatedPromptTokens * 0.00015 + estimatedCompletionTokens * 0.0006) / 1000,
+            promptTokens,
+            completionTokens,
+            totalTokens,
+            estimatedCost: (promptTokens * 0.00015 + completionTokens * 0.0006) / 1000,
           },
         })
         .catch(() => {

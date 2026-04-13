@@ -79,33 +79,35 @@ async function fetchGmailEmails(
     const getHeader = (name: string) =>
       headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
 
-    // Extract body
+    // Extract body (Gmail API returns base64url-encoded UTF-8 by default)
     let body = "";
     let htmlBody = "";
     const payload = detail.data.payload;
 
+    const decodePartBody = (data: string): string => Buffer.from(data, "base64").toString("utf-8");
+
     if (payload?.parts) {
       for (const part of payload.parts) {
         if (part.mimeType === "text/plain" && part.body?.data) {
-          body = Buffer.from(part.body.data, "base64").toString("utf-8");
+          body = decodePartBody(part.body.data);
         }
         if (part.mimeType === "text/html" && part.body?.data) {
-          htmlBody = Buffer.from(part.body.data, "base64").toString("utf-8");
+          htmlBody = decodePartBody(part.body.data);
         }
         // Handle nested multipart
         if (part.parts) {
           for (const sub of part.parts) {
             if (sub.mimeType === "text/plain" && sub.body?.data && !body) {
-              body = Buffer.from(sub.body.data, "base64").toString("utf-8");
+              body = decodePartBody(sub.body.data);
             }
             if (sub.mimeType === "text/html" && sub.body?.data && !htmlBody) {
-              htmlBody = Buffer.from(sub.body.data, "base64").toString("utf-8");
+              htmlBody = decodePartBody(sub.body.data);
             }
           }
         }
       }
     } else if (payload?.body?.data) {
-      const decoded = Buffer.from(payload.body.data, "base64").toString("utf-8");
+      const decoded = decodePartBody(payload.body.data);
       if (payload.mimeType === "text/html") {
         htmlBody = decoded;
       } else {
