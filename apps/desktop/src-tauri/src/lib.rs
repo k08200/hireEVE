@@ -9,6 +9,15 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! EVE is here to help.", name)
 }
 
+#[tauri::command]
+fn open_browser(url: String) -> Result<(), String> {
+    std::process::Command::new("open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| format!("Failed to open browser: {}", e))?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -49,7 +58,7 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, open_browser])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
