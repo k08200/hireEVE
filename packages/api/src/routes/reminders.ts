@@ -67,6 +67,24 @@ export async function reminderRoutes(app: FastifyInstance) {
     return reply.send(reminder);
   });
 
+  // Bulk delete
+  app.post("/bulk-delete", async (request, reply) => {
+    const userId = getUserId(request);
+    const { ids } = request.body as { ids?: string[] };
+
+    if (ids && ids.length > 0) {
+      // Delete selected reminders
+      await prisma.reminder.deleteMany({
+        where: { id: { in: ids }, userId },
+      });
+    } else {
+      // Delete all reminders for user
+      await prisma.reminder.deleteMany({ where: { userId } });
+    }
+
+    return reply.code(204).send();
+  });
+
   app.delete("/:id", async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
