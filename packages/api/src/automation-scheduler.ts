@@ -247,9 +247,9 @@ async function runAutomations() {
 
       // --- Email Sync + AI Classify (requires PRO+ for classify, TEAM+ for auto-reply) ---
       if (config.emailAutoClassify && planHasFeature(configUserPlan, "email_auto_classify")) {
-        // Run every 5 minutes (check modulo)
+        // Run every 15 minutes (check modulo)
         const minute = new Date().getMinutes();
-        if (minute % 5 === 0) {
+        if (minute % 15 === 0) {
           try {
             // Sync from Gmail → DB
             const syncResult = await syncEmails(config.userId, 20);
@@ -333,15 +333,14 @@ async function runAutomations() {
             });
 
             if (urgentEmails.length > 0) {
-              // Check which urgent emails we already notified about (by gmailId in message)
+              // Check which urgent emails we already notified about (by gmailId in message, last 7 days)
               const recentUrgentNotifs = await prisma.notification.findMany({
                 where: {
                   userId: config.userId,
                   type: "email",
                   title: "긴급 이메일",
+                  createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
                 },
-                orderBy: { createdAt: "desc" },
-                take: 20,
                 select: { message: true },
               });
               const notifiedGmailIds = new Set(
