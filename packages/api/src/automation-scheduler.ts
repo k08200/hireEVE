@@ -18,7 +18,7 @@ import {
   summarizeUnsummarizedEmails,
   syncEmails,
 } from "./email-sync.js";
-import { getAuthedClient, sendEmail } from "./gmail.js";
+import { getAuthedClient, sendEmail, trashEmail } from "./gmail.js";
 import { sendPushNotification } from "./push.js";
 import { planHasFeature } from "./stripe.js";
 import { pushNotification } from "./websocket.js";
@@ -259,6 +259,21 @@ async function runAutomations() {
               await summarizeUnsummarizedEmails(config.userId, syncResult.newCount);
             }
 
+            // Auto-delete LOW priority emails (ads/promotions) — trash in Gmail + remove from DB
+            const lowEmails = await prisma.emailMessage.findMany({
+              where: { userId: config.userId, priority: "LOW" },
+              select: { id: true, gmailId: true },
+            });
+            for (const low of lowEmails) {
+              try {
+                await trashEmail(config.userId, low.gmailId);
+                await prisma.emailMessage.delete({ where: { id: low.id } });
+              } catch {
+                // Gmail trash failed — just remove from local DB
+                await prisma.emailMessage.delete({ where: { id: low.id } }).catch(() => {});
+              }
+            }
+
             // Auto-reply: check rules for newly synced emails (dedup by gmailId)
             // Requires TEAM+ plan for auto-reply
             if (syncResult.newCount > 0 && planHasFeature(configUserPlan, "email_auto_reply")) {
@@ -326,8 +341,14 @@ async function runAutomations() {
             }
 
             // Check for urgent unread emails — notify only for NEW urgent emails
+            // Only check truly new emails (synced in last hour) to avoid re-notifying old unread emails
             const urgentEmails = await prisma.emailMessage.findMany({
-              where: { userId: config.userId, priority: "URGENT", isRead: false },
+              where: {
+                userId: config.userId,
+                priority: "URGENT",
+                isRead: false,
+                syncedAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+              },
               orderBy: { receivedAt: "desc" },
               select: { id: true, gmailId: true, subject: true, from: true, summary: true },
             });
