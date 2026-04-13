@@ -431,13 +431,19 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.redirect(`${webUrl}/login?error=${encodeURIComponent(message)}`);
       }
       if (statePayload.email === "__google_login_desktop__") {
+        const htmlMessage = message
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
         reply.type("text/html");
         return reply.send(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>EVE Login</title>
 <style>body{font-family:system-ui;background:#0a0a0a;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
 .box{text-align:center;padding:40px}.err{font-size:48px;margin-bottom:16px;color:#ef4444}.t{font-size:14px;color:#9ca3af;margin-top:12px}</style>
 </head><body><div class="box"><div class="err">✕</div><h2>Login Failed</h2>
-<p class="t">${message}<br>Please try again in EVE Desktop.</p>
+<p class="t">${htmlMessage}<br>Please try again in EVE Desktop.</p>
 </div></body></html>`);
       }
       return reply.code(500).send({ error: message });
