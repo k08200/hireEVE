@@ -466,9 +466,9 @@ export async function chatRoutes(app: FastifyInstance) {
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
     if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
-    // Check billing plan message limit
+    // Check billing plan message limit (skip for demo-user)
     const user = await prisma.user.findUnique({ where: { id: conversation.userId } });
-    if (user) {
+    if (user && user.id !== "demo-user") {
       const planConfig = getEffectivePlan(user.plan, user.role);
       if (planConfig.messageLimit !== Infinity) {
         const now = new Date();

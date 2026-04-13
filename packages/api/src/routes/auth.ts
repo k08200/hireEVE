@@ -236,12 +236,31 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.send({ hasPassword: !!user?.passwordHash });
   });
 
+  // In-memory store for desktop login tokens (nonce -> jwt)
+  const desktopLoginTokens = new Map<string, string>();
+
   // GET /api/auth/google/login — Start Google social login flow
-  app.get("/google/login", async (_request, reply) => {
-    // Sign state to prevent CSRF — only server can create valid login states
-    const loginState = signToken({ userId: "__login__", email: "__google_login__" });
+  // Accepts ?source=desktop&nonce=xxx for desktop app login
+  app.get("/google/login", async (request, reply) => {
+    const { source, nonce } = request.query as { source?: string; nonce?: string };
+    const isDesktop = source === "desktop" && nonce;
+    const loginState = signToken({
+      userId: isDesktop ? nonce : "__login__",
+      email: isDesktop ? "__google_login_desktop__" : "__google_login__",
+    });
     const url = getLoginAuthUrl(loginState);
     return reply.redirect(url);
+  });
+
+  // GET /api/auth/desktop-token/:nonce — Desktop app polls this to get the token after Google login
+  app.get("/desktop-token/:nonce", async (request, reply) => {
+    const { nonce } = request.params as { nonce: string };
+    const token = desktopLoginTokens.get(nonce);
+    if (!token) {
+      return reply.code(202).send({ status: "pending" });
+    }
+    desktopLoginTokens.delete(nonce);
+    return { status: "ok", token };
   });
 
   // GET /api/auth/google — Start OAuth flow for Gmail/Calendar integration (signed state)
@@ -293,8 +312,12 @@ export async function authRoutes(app: FastifyInstance) {
       const oauth2 = getOAuth2Client();
       const { tokens } = await oauth2.getToken(code);
 
-      // --- Google Social Login flow (state signed with __google_login__ marker) ---
-      if (statePayload.email === "__google_login__") {
+      // --- Google Social Login flow (state signed with __google_login__ or __google_login_desktop__ marker) ---
+      const isGoogleLogin =
+        statePayload.email === "__google_login__" ||
+        statePayload.email === "__google_login_desktop__";
+      const isDesktopLogin = statePayload.email === "__google_login_desktop__";
+      if (isGoogleLogin) {
         if (!tokens.access_token) {
           return reply.redirect(`${webUrl}/login?error=google_failed`);
         }
@@ -356,6 +379,23 @@ export async function authRoutes(app: FastifyInstance) {
           ipAddress: ip,
         });
 
+        // Desktop app: store token for polling, show success page
+        if (isDesktopLogin) {
+          const nonce = statePayload.userId; // nonce was stored in userId field
+          desktopLoginTokens.set(nonce, token);
+          // Auto-cleanup after 5 minutes
+          setTimeout(() => desktopLoginTokens.delete(nonce), 5 * 60 * 1000);
+
+          reply.type("text/html");
+          return reply.send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>EVE Login</title>
+<style>body{font-family:system-ui;background:#0a0a0a;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.box{text-align:center;padding:40px}.ok{font-size:48px;margin-bottom:16px}.t{font-size:14px;color:#9ca3af;margin-top:12px}</style>
+</head><body><div class="box"><div class="ok">✓</div><h2>Login Successful</h2>
+<p class="t">Return to EVE Desktop app.<br>You can close this tab.</p>
+</div></body></html>`);
+        }
+
         return reply.redirect(`${webUrl}/auth/callback?token=${token}`);
       }
 
@@ -391,6 +431,22 @@ export async function authRoutes(app: FastifyInstance) {
       const message = err instanceof Error ? err.message : "OAuth failed";
       if (statePayload.email === "__google_login__") {
         return reply.redirect(`${webUrl}/login?error=${encodeURIComponent(message)}`);
+      }
+      if (statePayload.email === "__google_login_desktop__") {
+        const htmlMessage = message
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+        reply.type("text/html");
+        return reply.send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>EVE Login</title>
+<style>body{font-family:system-ui;background:#0a0a0a;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.box{text-align:center;padding:40px}.err{font-size:48px;margin-bottom:16px;color:#ef4444}.t{font-size:14px;color:#9ca3af;margin-top:12px}</style>
+</head><body><div class="box"><div class="err">✕</div><h2>Login Failed</h2>
+<p class="t">${htmlMessage}<br>Please try again in EVE Desktop.</p>
+</div></body></html>`);
       }
       return reply.code(500).send({ error: message });
     }

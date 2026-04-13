@@ -34,7 +34,10 @@ type TxClient = Omit<
 
 const app = Fastify({ logger: true });
 
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || "http://localhost:8001,http://localhost:3000")
+const ALLOWED_ORIGINS = (
+  process.env.CORS_ORIGINS ||
+  "http://localhost:8001,http://localhost:3000,tauri://localhost,https://tauri.localhost,http://tauri.localhost"
+)
   .split(",")
   .map((o) => o.trim());
 

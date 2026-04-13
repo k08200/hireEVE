@@ -34,9 +34,15 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const sendingRef = useRef(false);
 
   useEffect(() => {
     inputRef.current?.focus();
+    loadLastConversation();
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -45,42 +51,87 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
     }
   }, [messages]);
 
+  const loadLastConversation = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/chat/conversations`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) return;
+      const convs = await res.json();
+      if (Array.isArray(convs) && convs.length > 0) {
+        const last = convs[0];
+        setConversationId(last.id);
+        const msgRes = await fetch(`${API_BASE}/api/chat/conversations/${last.id}`, {
+          headers: authHeaders(),
+        });
+        if (msgRes.ok) {
+          const data = await msgRes.json();
+          if (data.messages && Array.isArray(data.messages)) {
+            setMessages(
+              data.messages.map((m: { id: string; role: string; content: string }) => ({
+                id: m.id,
+                role: m.role === "user" ? "user" : "assistant",
+                content: m.content,
+              }))
+            );
+          }
+        }
+      }
+    } catch {
+      // Fresh conversation
+    }
+  };
+
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || streaming) return;
+    if (!text || streaming || sendingRef.current) return;
+    sendingRef.current = true;
 
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: text,
-    };
+    const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setStreaming(true);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      // Create conversation if needed
       let convId = conversationId;
       if (!convId) {
         const res = await fetch(`${API_BASE}/api/chat/conversations`, {
           method: "POST",
           headers: authHeaders(),
           body: JSON.stringify({}),
+          signal: controller.signal,
         });
+        if (!res.ok) throw new Error("Failed to create conversation");
         const data = await res.json();
         convId = data.id;
         setConversationId(convId);
       }
 
-      // Send message via SSE
       const res = await fetch(
         `${API_BASE}/api/chat/conversations/${convId}/messages`,
         {
           method: "POST",
           headers: authHeaders(),
           body: JSON.stringify({ content: text }),
+          signal: controller.signal,
         }
       );
+
+      if (!res.ok) {
+        let errorMsg = `Error ${res.status}`;
+        try {
+          const errData = await res.json();
+          errorMsg = errData.error || errorMsg;
+        } catch { /* ignore */ }
+        setMessages((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), role: "assistant", content: errorMsg },
+        ]);
+        return;
+      }
 
       const assistantId = crypto.randomUUID();
       setMessages((prev) => [
@@ -90,44 +141,50 @@ export default function ChatPanel({ onClose }: ChatPanelProps) {
 
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
+      let sseBuffer = "";
 
       if (reader) {
-        let done = false;
-        while (!done) {
-          const result = await reader.read();
-          done = result.done;
-          if (result.value) {
-            const chunk = decoder.decode(result.value, { stream: true });
-            for (const line of chunk.split("\n")) {
-              if (!line.startsWith("data: ")) continue;
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.type === "token" && data.content) {
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? { ...m, content: m.content + data.content }
-                        : m
-                    )
-                  );
+        try {
+          let done = false;
+          while (!done) {
+            const result = await reader.read();
+            done = result.done;
+            if (result.value) {
+              sseBuffer += decoder.decode(result.value, { stream: true });
+              const lines = sseBuffer.split("\n");
+              sseBuffer = lines.pop() || "";
+              for (const line of lines) {
+                if (!line.startsWith("data: ")) continue;
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.type === "token" && data.content) {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === assistantId
+                          ? { ...m, content: m.content + data.content }
+                          : m
+                      )
+                    );
+                  }
+                } catch {
+                  // ignore parse errors
                 }
-              } catch {
-                // ignore parse errors
               }
             }
           }
+        } finally {
+          reader.releaseLock();
         }
       }
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setMessages((prev) => [
         ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: "Connection error. Is the API server running?",
-        },
+        { id: crypto.randomUUID(), role: "assistant", content: "Connection error. Is the API server running?" },
       ]);
     } finally {
+      abortRef.current = null;
+      sendingRef.current = false;
       setStreaming(false);
     }
   };
