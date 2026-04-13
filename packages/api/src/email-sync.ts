@@ -167,7 +167,7 @@ export async function syncEmails(
       });
     } else {
       // Classify priority using keyword heuristics first (fast)
-      const priority = classifyPriority(email.from, email.subject);
+      const priority = classifyPriority(email.from, email.subject, email.labels);
 
       await prisma.emailMessage.create({
         data: {
@@ -283,9 +283,57 @@ export async function reconcileEmails(
 
 // ─── Priority Classification (keyword-based, fast) ────────────────────────
 
-function classifyPriority(from: string, subject: string): "URGENT" | "NORMAL" | "LOW" {
+function classifyPriority(
+  from: string,
+  subject: string,
+  labels: string[] = [],
+): "URGENT" | "NORMAL" | "LOW" {
   const f = from.toLowerCase();
   const s = subject.toLowerCase();
+
+  // Gmail category labels — promotions/social/forums are always LOW
+  if (
+    labels.includes("CATEGORY_PROMOTIONS") ||
+    labels.includes("CATEGORY_SOCIAL") ||
+    labels.includes("CATEGORY_FORUMS") ||
+    labels.includes("SPAM") ||
+    labels.includes("TRASH")
+  ) {
+    return "LOW";
+  }
+
+  // Low priority signals (automated/newsletter/ads)
+  if (
+    f.includes("noreply") ||
+    f.includes("no-reply") ||
+    f.includes("newsletter") ||
+    f.includes("marketing") ||
+    f.includes("digest") ||
+    f.includes("notification") ||
+    f.includes("promo") ||
+    f.includes("info@") ||
+    f.includes("news@") ||
+    f.includes("updates@") ||
+    f.includes("support@") ||
+    f.includes("hello@") ||
+    f.includes("team@") ||
+    f.includes("mailer-daemon") ||
+    f.includes("postmaster") ||
+    s.includes("unsubscribe") ||
+    s.includes("수신거부") ||
+    s.includes("광고") ||
+    s.includes("할인") ||
+    s.includes("coupon") ||
+    s.includes("sale") ||
+    s.includes("offer") ||
+    s.includes("deal") ||
+    s.includes("promotion") ||
+    s.includes("welcome to") ||
+    s.includes("verify your") ||
+    s.includes("confirm your")
+  ) {
+    return "LOW";
+  }
 
   // Urgent signals
   if (
@@ -296,18 +344,6 @@ function classifyPriority(from: string, subject: string): "URGENT" | "NORMAL" | 
     s.includes("중요")
   ) {
     return "URGENT";
-  }
-
-  // Low priority signals (automated/newsletter)
-  if (
-    f.includes("noreply") ||
-    f.includes("no-reply") ||
-    f.includes("newsletter") ||
-    f.includes("marketing") ||
-    f.includes("digest") ||
-    f.includes("notification")
-  ) {
-    return "LOW";
   }
 
   // Medium signals → NORMAL

@@ -104,6 +104,9 @@ export default function LandingPage() {
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <span className="text-lg font-bold text-blue-400">EVE</span>
         <div className="flex items-center gap-4">
+          <Link href="/download" className="text-sm text-gray-400 hover:text-white transition">
+            Download
+          </Link>
           <Link href="/login" className="text-sm text-gray-400 hover:text-white transition">
             Sign in
           </Link>
@@ -129,7 +132,7 @@ export default function LandingPage() {
           meetings, and follows up on things you might forget. While you focus on what matters — EVE
           never stops working.
         </p>
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link
             href="/login"
             className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-600/25"
@@ -137,10 +140,10 @@ export default function LandingPage() {
             Get Started Free
           </Link>
           <Link
-            href="/login"
+            href="/download"
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-8 py-3 rounded-lg text-sm font-medium transition-colors border border-gray-700"
           >
-            Try Demo
+            Download Desktop App
           </Link>
         </div>
       </section>
@@ -285,6 +288,9 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto flex items-center justify-between text-xs text-gray-600">
           <span>EVE - Your First AI Employee</span>
           <div className="flex items-center gap-4">
+            <Link href="/download" className="hover:text-gray-400 transition">
+              Download
+            </Link>
             <Link href="/login" className="hover:text-gray-400 transition">
               Sign in
             </Link>
