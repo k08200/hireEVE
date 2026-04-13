@@ -283,7 +283,11 @@ export async function reconcileEmails(
 
 // ─── Priority Classification (keyword-based, fast) ────────────────────────
 
-function classifyPriority(from: string, subject: string, labels: string[] = []): "URGENT" | "NORMAL" | "LOW" {
+function classifyPriority(
+  from: string,
+  subject: string,
+  labels: string[] = [],
+): "URGENT" | "NORMAL" | "LOW" {
   const f = from.toLowerCase();
   const s = subject.toLowerCase();
 
