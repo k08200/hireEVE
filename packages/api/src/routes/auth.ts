@@ -313,7 +313,9 @@ export async function authRoutes(app: FastifyInstance) {
       const { tokens } = await oauth2.getToken(code);
 
       // --- Google Social Login flow (state signed with __google_login__ or __google_login_desktop__ marker) ---
-      const isGoogleLogin = statePayload.email === "__google_login__" || statePayload.email === "__google_login_desktop__";
+      const isGoogleLogin =
+        statePayload.email === "__google_login__" ||
+        statePayload.email === "__google_login_desktop__";
       const isDesktopLogin = statePayload.email === "__google_login_desktop__";
       if (isGoogleLogin) {
         if (!tokens.access_token) {
