@@ -18,7 +18,7 @@ import {
   summarizeUnsummarizedEmails,
   syncEmails,
 } from "./email-sync.js";
-import { getAuthedClient, sendEmail } from "./gmail.js";
+import { getAuthedClient, sendEmail, trashEmail } from "./gmail.js";
 import { sendPushNotification } from "./push.js";
 import { planHasFeature } from "./stripe.js";
 import { pushNotification } from "./websocket.js";
@@ -257,6 +257,21 @@ async function runAutomations() {
             // AI summarize new emails
             if (syncResult.newCount > 0) {
               await summarizeUnsummarizedEmails(config.userId, syncResult.newCount);
+            }
+
+            // Auto-delete LOW priority emails (ads/promotions) — trash in Gmail + remove from DB
+            const lowEmails = await prisma.emailMessage.findMany({
+              where: { userId: config.userId, priority: "LOW" },
+              select: { id: true, gmailId: true },
+            });
+            for (const low of lowEmails) {
+              try {
+                await trashEmail(config.userId, low.gmailId);
+                await prisma.emailMessage.delete({ where: { id: low.id } });
+              } catch {
+                // Gmail trash failed — just remove from local DB
+                await prisma.emailMessage.delete({ where: { id: low.id } }).catch(() => {});
+              }
             }
 
             // Auto-reply: check rules for newly synced emails (dedup by gmailId)
