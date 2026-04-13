@@ -21,6 +21,8 @@ export default function RemindersPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", remindAt: "" });
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { confirm } = useConfirm();
 
@@ -96,6 +98,40 @@ export default function RemindersPage() {
     toast("Reminder deleted", "info");
   };
 
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const bulkDelete = async (ids?: string[]) => {
+    const label = ids ? `${ids.length} selected reminders` : "all reminders";
+    const ok = await confirm({
+      title: "Delete Reminders",
+      message: `Delete ${label}? This cannot be undone.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    await fetch(`${API_BASE}/api/reminders/bulk-delete`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ ids }),
+    });
+    if (ids) {
+      const idSet = new Set(ids);
+      setReminders((prev) => prev.filter((r) => !idSet.has(r.id)));
+    } else {
+      setReminders([]);
+    }
+    setSelected(new Set());
+    setSelectMode(false);
+    toast(`Deleted ${label}`, "info");
+  };
+
   // Escape key closes form
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -139,13 +175,72 @@ export default function RemindersPage() {
             <h1 className="text-2xl font-bold">Reminders</h1>
             <p className="text-gray-400 text-sm mt-1">Never forget anything</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-          >
-            + Add Reminder
-          </button>
+          <div className="flex items-center gap-2">
+            {reminders.length > 0 && (
+              <>
+                {selectMode ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selected.size === reminders.length) {
+                          setSelected(new Set());
+                        } else {
+                          setSelected(new Set(reminders.map((r) => r.id)));
+                        }
+                      }}
+                      className="text-xs text-gray-400 hover:text-white transition px-3 py-2"
+                    >
+                      {selected.size === reminders.length ? "Deselect All" : "Select All"}
+                    </button>
+                    {selected.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => bulkDelete(Array.from(selected))}
+                        className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-medium transition"
+                      >
+                        Delete ({selected.size})
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectMode(false);
+                        setSelected(new Set());
+                      }}
+                      className="text-xs text-gray-400 hover:text-white transition px-3 py-2"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectMode(true)}
+                      className="text-xs text-gray-400 hover:text-white transition px-3 py-2 border border-gray-700 rounded-lg"
+                    >
+                      Select
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => bulkDelete()}
+                      className="text-xs text-red-400 hover:text-red-300 transition px-3 py-2 border border-gray-700 rounded-lg"
+                    >
+                      Delete All
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowForm(!showForm)}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              + Add Reminder
+            </button>
+          </div>
         </div>
 
         {/* Quick-create presets */}
@@ -245,26 +340,38 @@ export default function RemindersPage() {
                 {active.map((r) => (
                   <div
                     key={r.id}
-                    className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 group"
+                    className={`bg-gray-900/80 border rounded-xl p-4 group ${selected.has(r.id) ? "border-blue-500/50" : "border-gray-800/60"}`}
+                    onClick={selectMode ? () => toggleSelect(r.id) : undefined}
                   >
                     <div className="flex items-start justify-between">
-                      <div>
-                        <span className="font-medium">{r.title}</span>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span
-                            className={`text-xs ${isPast(r.remindAt) ? "text-red-400" : "text-gray-400"}`}
-                          >
-                            {formatDate(r.remindAt)}
-                          </span>
-                          {isPast(r.remindAt) && (
-                            <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">
-                              overdue
+                      <div className="flex items-start gap-3">
+                        {selectMode && (
+                          <input
+                            type="checkbox"
+                            checked={selected.has(r.id)}
+                            onChange={() => toggleSelect(r.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 accent-blue-600"
+                          />
+                        )}
+                        <div>
+                          <span className="font-medium">{r.title}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span
+                              className={`text-xs ${isPast(r.remindAt) ? "text-red-400" : "text-gray-400"}`}
+                            >
+                              {formatDate(r.remindAt)}
                             </span>
+                            {isPast(r.remindAt) && (
+                              <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">
+                                overdue
+                              </span>
+                            )}
+                          </div>
+                          {r.description && (
+                            <p className="text-xs text-gray-500 mt-1">{r.description}</p>
                           )}
                         </div>
-                        {r.description && (
-                          <p className="text-xs text-gray-500 mt-1">{r.description}</p>
-                        )}
                       </div>
                       <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition">
                         <button
@@ -312,12 +419,24 @@ export default function RemindersPage() {
                 {dismissed.map((r) => (
                   <div
                     key={r.id}
-                    className="bg-gray-900/50 border border-gray-800/50 rounded-lg p-4 opacity-60 group"
+                    className={`bg-gray-900/50 border rounded-lg p-4 opacity-60 group ${selected.has(r.id) ? "border-blue-500/50" : "border-gray-800/50"}`}
+                    onClick={selectMode ? () => toggleSelect(r.id) : undefined}
                   >
                     <div className="flex items-start justify-between">
-                      <div>
-                        <span className="font-medium line-through">{r.title}</span>
-                        <p className="text-xs text-gray-500 mt-1">{formatDate(r.remindAt)}</p>
+                      <div className="flex items-start gap-3">
+                        {selectMode && (
+                          <input
+                            type="checkbox"
+                            checked={selected.has(r.id)}
+                            onChange={() => toggleSelect(r.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 accent-blue-600"
+                          />
+                        )}
+                        <div>
+                          <span className="font-medium line-through">{r.title}</span>
+                          <p className="text-xs text-gray-500 mt-1">{formatDate(r.remindAt)}</p>
+                        </div>
                       </div>
                       <button
                         type="button"
