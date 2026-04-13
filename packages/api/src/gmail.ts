@@ -66,6 +66,13 @@ export async function getAuthedClient(
 
   // Must have a refresh_token to maintain long-lived connection
   if (!token.refreshToken) {
+    const isExpired = token.expiresAt && token.expiresAt.getTime() < Date.now();
+    if (isExpired || !token.accessToken) {
+      console.warn(
+        `[GOOGLE] No refresh_token and token expired for user ${userId} — needs reconnect`,
+      );
+      return null;
+    }
     console.warn(
       `[GOOGLE] No refresh_token for user ${userId} — token will expire and sync will fail`,
     );

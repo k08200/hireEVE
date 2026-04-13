@@ -135,7 +135,7 @@ export async function authRoutes(app: FastifyInstance) {
           name: user.name,
           plan: user.plan,
           role: user.role,
-          googleConnected: !!googleToken,
+          googleConnected: !!googleToken?.refreshToken,
         },
       });
     } catch {
@@ -472,12 +472,14 @@ export async function authRoutes(app: FastifyInstance) {
     const hasRefreshToken = !!token.refreshToken;
     const expired = token.expiresAt ? token.expiresAt.getTime() < Date.now() : false;
 
+    // Only truly connected if we have a refresh_token (survives access_token expiry)
+    const needsReconnect = !hasRefreshToken;
+
     return reply.send({
-      connected: true,
+      connected: hasRefreshToken,
       hasRefreshToken,
       expired,
-      // If no refresh_token, the connection will break when access_token expires
-      needsReconnect: !hasRefreshToken && expired,
+      needsReconnect,
     });
   });
 
