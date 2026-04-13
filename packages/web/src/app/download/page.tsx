@@ -34,7 +34,16 @@ function AppleIcon() {
 
 function DownloadIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
@@ -68,9 +77,7 @@ export default function DownloadPage() {
         <div className="inline-block bg-blue-600/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-xs text-blue-400 mb-6">
           Desktop App
         </div>
-        <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
-          EVE on your desktop
-        </h1>
+        <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6">EVE on your desktop</h1>
         <p className="text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed mb-4">
           A tiny companion that lives on your screen. Click to chat, get real-time notifications,
           and let EVE work alongside you — always one click away.
@@ -143,21 +150,30 @@ export default function DownloadPage() {
         <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 max-w-lg mx-auto">
           <ol className="space-y-4 text-sm text-gray-300">
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">
+                1
+              </span>
               <span>Download the .dmg file for your Mac</span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">2</span>
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">
+                2
+              </span>
               <span>Open the .dmg and drag EVE to Applications</span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">3</span>
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">
+                3
+              </span>
               <span>
-                If macOS blocks the app: <strong>System Settings → Privacy & Security → Open Anyway</strong>
+                If macOS blocks the app:{" "}
+                <strong>System Settings → Privacy & Security → Open Anyway</strong>
               </span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">4</span>
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">
+                4
+              </span>
               <span>Sign in with Google and start chatting!</span>
             </li>
           </ol>
