@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { db } from "../db.js";
 
 // Per-route rate limit config
 const rateLimitConfig = { config: { rateLimit: { max: 60, timeWindow: "1 minute" } } };
 
 export async function memoryRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // GET /api/memories — List user's memories (optionally filter by type)
   app.get("/", rateLimitConfig, async (request) => {
     const userId = getUserId(request);

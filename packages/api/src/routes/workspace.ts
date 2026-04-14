@@ -1,8 +1,10 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
 
 export async function workspaceRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // GET /api/workspaces — List user's workspaces
   app.get("/", async (request) => {
     const userId = getUserId(request);

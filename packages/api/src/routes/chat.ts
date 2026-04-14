@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { compactHistory } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
@@ -44,6 +44,8 @@ async function autoGenerateTitle(conversationId: string, userMessage: string) {
   }
 }
 export async function chatRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // POST /api/chat/conversations — Create new conversation
   // Optional body: { title?: string, initialMessage?: string }
   app.post("/conversations", async (request, reply) => {

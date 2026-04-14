@@ -83,7 +83,9 @@ export default function SettingsPage() {
           const existingSub = await reg.pushManager.getSubscription();
           if (!existingSub) {
             console.log("[PUSH-REPAIR] Permission granted but no subscription — re-subscribing...");
-            const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
+            const res = await fetch(`${API_BASE}/api/notifications/vapid-key`, {
+              headers: authHeaders(),
+            });
             if (!res.ok) return;
             const { publicKey } = await res.json();
             if (!publicKey) return;
@@ -177,7 +179,9 @@ export default function SettingsPage() {
         if ("serviceWorker" in navigator) {
           const reg = await navigator.serviceWorker.ready;
           console.log("[PUSH-SETTINGS] Service Worker ready");
-          const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
+          const res = await fetch(`${API_BASE}/api/notifications/vapid-key`, {
+            headers: authHeaders(),
+          });
           const { publicKey } = await res.json();
           console.log("[PUSH-SETTINGS] VAPID key:", publicKey ? "OK" : "MISSING");
           if (publicKey) {

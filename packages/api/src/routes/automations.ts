@@ -1,9 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { runAgentForUser } from "../autonomous-agent.js";
 import { db, prisma } from "../db.js";
 
 export async function automationRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // GET /api/automations — Get user's automation config
   app.get("/", async (request) => {
     const userId = getUserId(request);
