@@ -6,10 +6,11 @@ import { db, prisma } from "./db.js";
 import { getEffectivePlan } from "./stripe.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === "production") {
+  throw new Error("JWT_SECRET must be set in production. Server cannot start without it.");
+}
 if (!JWT_SECRET) {
-  console.warn(
-    "[AUTH] WARNING: JWT_SECRET not set — using insecure default. Set JWT_SECRET in production!",
-  );
+  console.warn("[AUTH] WARNING: JWT_SECRET not set — using insecure default for development.");
 }
 const EFFECTIVE_SECRET = JWT_SECRET || "eve-dev-secret-do-not-use-in-production";
 const TOKEN_EXPIRY = "7d";
@@ -43,10 +44,14 @@ export function getUserId(request: FastifyRequest): string {
       const payload = verifyToken(auth.slice(7));
       return payload.userId;
     } catch {
-      // invalid token — fall through to demo
+      // invalid token — fall through
     }
   }
-  return "demo-user";
+  // Only allow demo-user in development
+  if (process.env.NODE_ENV !== "production") {
+    return "demo-user";
+  }
+  throw new Error("Authentication required");
 }
 
 /** Fastify preHandler that requires authentication */
