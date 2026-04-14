@@ -702,17 +702,15 @@ export async function chatRoutes(app: FastifyInstance) {
                 ).function;
                 const args = JSON.parse(fn.arguments);
 
-                // Tool name only — args may contain PII or secrets pulled from user
-                // content or external tool responses (CodeQL: clear-text-logging).
-                console.log("[CHAT] Calling tool:", fn.name);
-
+                // Intentionally no debug log here — every value derived from the
+                // tool call (name, args, result) is user-controlled and CodeQL
+                // flags it as clear-text logging. The SSE event below already
+                // gives the client visibility into which tool ran.
                 reply.raw.write(
                   `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
                 );
 
                 const result = await executeToolCall(conversation.userId, fn.name, args);
-
-                console.log("[CHAT] Tool completed:", fn.name, "resultLength:", result.length);
 
                 reply.raw.write(
                   `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
