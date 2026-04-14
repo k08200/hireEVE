@@ -83,6 +83,7 @@ import {
   translate,
   UTILITY_TOOLS,
 } from "./utilities.js";
+import { capToolResult } from "./tool-result-budget.js";
 import { getWeather, WEATHER_TOOLS } from "./weather.js";
 import { WRITER_TOOLS, writeDocument } from "./writer.js";
 
@@ -164,6 +165,15 @@ function safeInt(val: unknown, fallback: number, max: number): number {
 }
 
 export async function executeToolCall(
+  userId: string,
+  functionName: string,
+  args: Record<string, unknown>,
+): Promise<string> {
+  const raw = await executeToolCallInternal(userId, functionName, args);
+  return capToolResult(raw);
+}
+
+async function executeToolCallInternal(
   userId: string,
   functionName: string,
   args: Record<string, unknown>,
