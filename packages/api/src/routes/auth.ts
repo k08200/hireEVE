@@ -476,11 +476,22 @@ export async function authRoutes(app: FastifyInstance) {
     // Only truly connected if we have a refresh_token (survives access_token expiry)
     const needsReconnect = !hasRefreshToken;
 
+    // Gmail Pub/Sub push is enabled when a live watch expiration is stored.
+    // Configured means the server has a Pub/Sub topic — required for the
+    // enable button to do anything.
+    const watchExpiresAt = (token as unknown as { gmailWatchExpiresAt?: Date | null })
+      .gmailWatchExpiresAt;
+    const gmailPushEnabled = !!(watchExpiresAt && watchExpiresAt.getTime() > Date.now());
+    const gmailPushConfigured = !!process.env.GMAIL_PUBSUB_TOPIC;
+
     return reply.send({
       connected: hasRefreshToken,
       hasRefreshToken,
       expired,
       needsReconnect,
+      gmailPushConfigured,
+      gmailPushEnabled,
+      gmailPushExpiresAt: watchExpiresAt ?? null,
     });
   });
 
