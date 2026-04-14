@@ -29,6 +29,7 @@ export function useWebSocket(userId: string) {
     new Map(),
   );
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(true);
 
   const connect = useCallback(() => {
@@ -48,6 +49,7 @@ export function useWebSocket(userId: string) {
         return;
       }
       setConnected(true);
+      reconnectAttemptsRef.current = 0;
     };
 
     ws.onmessage = (event) => {
@@ -94,7 +96,13 @@ export function useWebSocket(userId: string) {
     ws.onclose = () => {
       if (!mountedRef.current) return;
       setConnected(false);
-      reconnectRef.current = setTimeout(connect, 3000);
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (cap). Jitter avoids a
+      // thundering herd if many clients reconnect at once after a server blip.
+      const attempt = reconnectAttemptsRef.current;
+      reconnectAttemptsRef.current = attempt + 1;
+      const base = Math.min(30_000, 1_000 * 2 ** attempt);
+      const delay = base + Math.random() * 1_000;
+      reconnectRef.current = setTimeout(connect, delay);
     };
 
     ws.onerror = () => {
