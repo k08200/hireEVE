@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { decryptOptional, decryptToken, encryptOptional, encryptToken } from "./crypto-tokens.js";
 import { prisma } from "./db.js";
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -64,10 +65,13 @@ export async function getAuthedClient(
 
   if (!token) return null;
 
+  const accessTokenPlain = token.accessToken ? decryptToken(token.accessToken) : "";
+  const refreshTokenPlain = decryptOptional(token.refreshToken);
+
   // Must have a refresh_token to maintain long-lived connection
-  if (!token.refreshToken) {
+  if (!refreshTokenPlain) {
     const isExpired = token.expiresAt && token.expiresAt.getTime() < Date.now();
-    if (isExpired || !token.accessToken) {
+    if (isExpired || !accessTokenPlain) {
       console.warn(
         `[GOOGLE] No refresh_token and token expired for user ${userId} — needs reconnect`,
       );
@@ -80,20 +84,20 @@ export async function getAuthedClient(
 
   const oauth2 = getOAuth2Client();
   oauth2.setCredentials({
-    access_token: token.accessToken,
-    refresh_token: token.refreshToken,
+    access_token: accessTokenPlain,
+    refresh_token: refreshTokenPlain,
     expiry_date: token.expiresAt ? token.expiresAt.getTime() : undefined,
   });
 
-  // Auto-refresh expired tokens — persist BOTH access and refresh tokens
+  // Auto-refresh expired tokens — persist BOTH access and refresh tokens (encrypted at rest)
   oauth2.on("tokens", async (newTokens) => {
-    const data: { accessToken: string; expiresAt: Date | null; refreshToken?: string } = {
-      accessToken: newTokens.access_token ?? "",
+    const data: { accessToken: string; expiresAt: Date | null; refreshToken?: string | null } = {
+      accessToken: encryptToken(newTokens.access_token ?? ""),
       expiresAt: newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
     };
     // Google sometimes returns a new refresh_token — always persist it
     if (newTokens.refresh_token) {
-      data.refreshToken = newTokens.refresh_token;
+      data.refreshToken = encryptOptional(newTokens.refresh_token);
     }
     await prisma.userToken.update({
       where: { id: token.id },

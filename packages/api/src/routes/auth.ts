@@ -9,6 +9,7 @@ import {
   signToken,
   verifyToken,
 } from "../auth.js";
+import { encryptOptional, encryptToken } from "../crypto-tokens.js";
 import { prisma } from "../db.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../email.js";
 import {
@@ -348,14 +349,14 @@ export async function authRoutes(app: FastifyInstance) {
           create: {
             userId: user.id,
             provider: "google",
-            accessToken: tokens.access_token ?? "",
-            refreshToken: tokens.refresh_token || null,
+            accessToken: encryptToken(tokens.access_token ?? ""),
+            refreshToken: encryptOptional(tokens.refresh_token),
             expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
           },
           update: {
-            accessToken: tokens.access_token ?? "",
+            accessToken: encryptToken(tokens.access_token ?? ""),
             // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
-            ...(tokens.refresh_token ? { refreshToken: tokens.refresh_token } : {}),
+            ...(tokens.refresh_token ? { refreshToken: encryptToken(tokens.refresh_token) } : {}),
             expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
           },
         });
@@ -414,14 +415,14 @@ export async function authRoutes(app: FastifyInstance) {
         create: {
           userId: user.id,
           provider: "google",
-          accessToken: tokens.access_token ?? "",
-          refreshToken: tokens.refresh_token || null,
+          accessToken: encryptToken(tokens.access_token ?? ""),
+          refreshToken: encryptOptional(tokens.refresh_token),
           expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         },
         update: {
-          accessToken: tokens.access_token ?? "",
+          accessToken: encryptToken(tokens.access_token ?? ""),
           // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
-          ...(tokens.refresh_token ? { refreshToken: tokens.refresh_token } : {}),
+          ...(tokens.refresh_token ? { refreshToken: encryptToken(tokens.refresh_token) } : {}),
           expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         },
       });
