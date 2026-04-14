@@ -382,6 +382,8 @@ export async function classifyEmails(userId: string, maxResults = 10) {
  * roles/pubsub.publisher on the topic — see ops docs / GCP console.
  *
  * Watches expire after 7 days and must be renewed by calling this again.
+ * The expiration is persisted on UserToken.gmailWatchExpiresAt so the
+ * renewal cron can find watches approaching expiry.
  * Returns { historyId, expiration } on success.
  */
 export async function registerGmailWatch(
@@ -403,6 +405,13 @@ export async function registerGmailWatch(
         labelFilterBehavior: "INCLUDE",
       },
     });
+    const expirationMs = res.data.expiration ? Number(res.data.expiration) : null;
+    if (expirationMs && !Number.isNaN(expirationMs)) {
+      await prisma.userToken.updateMany({
+        where: { userId, provider: "google" },
+        data: { gmailWatchExpiresAt: new Date(expirationMs) },
+      });
+    }
     return {
       historyId: String(res.data.historyId ?? ""),
       expiration: String(res.data.expiration ?? ""),
@@ -421,11 +430,46 @@ export async function stopGmailWatch(userId: string): Promise<{ ok: boolean; err
   const gmail = google.gmail({ version: "v1", auth });
   try {
     await gmail.users.stop({ userId: "me" });
+    await prisma.userToken.updateMany({
+      where: { userId, provider: "google" },
+      data: { gmailWatchExpiresAt: null },
+    });
     return { ok: true };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return { ok: false, error: msg };
   }
+}
+
+/**
+ * Renew Gmail watches that are about to expire (within 24h). Safe to call
+ * repeatedly — users.watch is idempotent and extends the expiration.
+ * Skipped when GMAIL_PUBSUB_TOPIC is not configured.
+ */
+export async function renewExpiringGmailWatches(): Promise<{ renewed: number; failed: number }> {
+  if (!process.env.GMAIL_PUBSUB_TOPIC) return { renewed: 0, failed: 0 };
+
+  const cutoff = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const tokens = await prisma.userToken.findMany({
+    where: {
+      provider: "google",
+      gmailWatchExpiresAt: { not: null, lte: cutoff },
+    },
+    select: { userId: true },
+  });
+
+  let renewed = 0;
+  let failed = 0;
+  for (const t of tokens) {
+    const result = await registerGmailWatch(t.userId);
+    if ("error" in result) {
+      console.warn(`[GMAIL-WATCH] Renew failed for ${t.userId}: ${result.error}`);
+      failed++;
+    } else {
+      renewed++;
+    }
+  }
+  return { renewed, failed };
 }
 
 // Tool definitions for function calling

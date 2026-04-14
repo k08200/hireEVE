@@ -18,7 +18,7 @@ import {
   summarizeUnsummarizedEmails,
   syncEmails,
 } from "./email-sync.js";
-import { getAuthedClient, sendEmail, trashEmail } from "./gmail.js";
+import { getAuthedClient, renewExpiringGmailWatches, sendEmail, trashEmail } from "./gmail.js";
 import { sendPushNotification } from "./push.js";
 import { planHasFeature } from "./stripe.js";
 import { pushNotification } from "./websocket.js";
@@ -26,10 +26,12 @@ import { pushNotification } from "./websocket.js";
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 const CHECK_INTERVAL_MS = 60_000; // 1 minute
+const WATCH_RENEWAL_INTERVAL_MS = 60 * 60 * 1000; // hourly check for expiring Gmail watches
 
 // In-memory cache to skip redundant DB queries within same process lifetime.
 // Actual dedup is DB-based (survives server restarts).
 const briefingSentToday = new Map<string, string>(); // userId -> date string
+let lastWatchRenewalAt = 0;
 
 function getTodayStr(): string {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
@@ -56,6 +58,21 @@ function getCurrentHHMM(): string {
 
 async function runAutomations() {
   try {
+    // Gmail watch renewal runs once per hour regardless of configs.
+    // It is a no-op when GMAIL_PUBSUB_TOPIC is unset or no watches are due.
+    if (Date.now() - lastWatchRenewalAt >= WATCH_RENEWAL_INTERVAL_MS) {
+      lastWatchRenewalAt = Date.now();
+      renewExpiringGmailWatches()
+        .then(({ renewed, failed }) => {
+          if (renewed + failed > 0) {
+            console.log(`[GMAIL-WATCH] Renewal: ${renewed} renewed, ${failed} failed`);
+          }
+        })
+        .catch((err) => {
+          console.warn("[GMAIL-WATCH] Renewal sweep errored:", err);
+        });
+    }
+
     const configs = await prisma.automationConfig.findMany();
     if (configs.length === 0) return;
 
