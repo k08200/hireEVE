@@ -101,9 +101,9 @@ function BillingContent() {
   useEffect(() => {
     apiFetch<BillingStatus>("/api/billing/status")
       .then(setStatus)
-      .catch(() => {})
+      .catch(() => toast("Failed to load billing info", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
 
   /** Only allow Stripe-hosted URLs to prevent open redirect */
   function safeRedirect(url: string) {

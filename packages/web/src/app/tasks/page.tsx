@@ -71,9 +71,9 @@ export default function TasksPage() {
     const path = filter === "all" ? `/api/tasks` : `/api/tasks?status=${filter}`;
     apiFetch<{ tasks: Task[] }>(path)
       .then((data) => setTasks(data.tasks || []))
-      .catch(() => {})
+      .catch(() => toast("Failed to load tasks", "error"))
       .finally(() => setLoading(false));
-  }, [filter]);
+  }, [filter, toast]);
 
   useEffect(() => {
     loadTasks();

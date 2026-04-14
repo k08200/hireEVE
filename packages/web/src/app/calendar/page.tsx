@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
 
@@ -135,14 +135,14 @@ export default function CalendarPage() {
     return { start: weekStart.toISOString(), end: weekEnd.toISOString() };
   };
 
-  const fetchEvents = () => {
+  const fetchEvents = useCallback(() => {
     const { start, end } = getFetchRange();
     apiFetch<{ events: CalendarEvent[] }>(
       `/api/calendar?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
     )
       .then((d) => setEvents(d.events || []))
-      .catch(() => {});
-  };
+      .catch(() => toast("Failed to load calendar events", "error"));
+  }, [view, currentDate, toast]);
 
   const syncGoogle = async () => {
     setSyncing(true);
@@ -183,7 +183,7 @@ export default function CalendarPage() {
   // Re-fetch when view or currentDate changes
   useEffect(() => {
     fetchEvents();
-  }, [view, currentDate]);
+  }, [fetchEvents]);
 
   const createEvent = async () => {
     if (!newEvent.title.trim()) {

@@ -5,6 +5,17 @@ import { sendPushNotification } from "../push.js";
 import { stripe } from "../stripe.js";
 import { pushNotification } from "../websocket.js";
 
+// In-memory dedup for processed webhook event IDs (TTL: 1 hour)
+const processedEvents = new Map<string, number>();
+const DEDUP_TTL_MS = 60 * 60 * 1000;
+
+function cleanupProcessedEvents() {
+  const now = Date.now();
+  for (const [id, ts] of processedEvents) {
+    if (now - ts > DEDUP_TTL_MS) processedEvents.delete(id);
+  }
+}
+
 export async function webhookRoutes(app: FastifyInstance) {
   // POST /api/webhook/stripe — Stripe webhook handler
   app.post("/stripe", {
@@ -27,6 +38,13 @@ export async function webhookRoutes(app: FastifyInstance) {
       } catch {
         return reply.code(400).send({ error: "Invalid signature" });
       }
+
+      // Dedup: skip already-processed events
+      if (processedEvents.has(event.id)) {
+        return { received: true };
+      }
+      processedEvents.set(event.id, Date.now());
+      cleanupProcessedEvents();
 
       switch (event.type) {
         case "checkout.session.completed": {

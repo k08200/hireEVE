@@ -335,9 +335,11 @@ async function runAutomations() {
             // Reconcile DB with Gmail (remove deleted/archived emails)
             // Run less frequently — only at 0 and 30 minute marks
             if (minute === 0 || minute === 30) {
-              reconcileEmails(config.userId).catch((err) => {
+              try {
+                await reconcileEmails(config.userId);
+              } catch (err) {
                 console.error(`[AUTOMATION] Reconcile failed for ${config.userId}:`, err);
-              });
+              }
             }
 
             // Check for urgent unread emails — notify only for NEW urgent emails
