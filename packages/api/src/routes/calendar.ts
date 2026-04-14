@@ -4,12 +4,14 @@
  * Provides local calendar events stored in DB + optional Google Calendar sync.
  */
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { createEvent as googleCreateEvent, deleteEvent as googleDeleteEvent } from "../calendar.js";
 import { prisma } from "../db.js";
 import { getAuthedClient } from "../gmail.js";
 
 export async function calendarRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // List events — supports ?start=ISO&end=ISO or ?days=N (from today)
   app.get("/", async (request) => {
     const uid = getUserId(request);

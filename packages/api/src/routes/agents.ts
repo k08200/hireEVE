@@ -1,8 +1,10 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
 
 export async function agentRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // POST /api/agents — Register an agent
   app.post("/", async (request, reply) => {
     const userId = getUserId(request);

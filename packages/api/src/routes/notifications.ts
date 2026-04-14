@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import {
   clearNotifications,
   getNotifications,
@@ -10,6 +10,8 @@ import { prisma } from "../db.js";
 import { getVapidPublicKey, sendPushNotification } from "../push.js";
 
 export async function notificationRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // GET /api/notifications — Get notifications (supports ?unread=true&limit=50)
   app.get("/", async (request) => {
     const userId = getUserId(request);

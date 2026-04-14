@@ -5,7 +5,7 @@
  */
 
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { db, prisma } from "../db.js";
 
 // Per-route rate limit config
@@ -20,6 +20,8 @@ interface UsageRow {
 }
 
 export async function tokenUsageRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // GET /api/usage — Overall usage stats for the current user
   app.get("/", rateLimitConfig, async (request) => {
     const userId = getUserId(request);

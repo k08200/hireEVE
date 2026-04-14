@@ -31,7 +31,9 @@ async function registerPush() {
     console.log("[PUSH] Starting push registration...");
 
     // Get VAPID public key from server
-    const res = await fetch(`${API_BASE}/api/notifications/vapid-key`);
+    const res = await fetch(`${API_BASE}/api/notifications/vapid-key`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) {
       console.warn("[PUSH] Failed to get VAPID key:", res.status);
       return;
