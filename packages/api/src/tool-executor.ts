@@ -74,6 +74,7 @@ import { SEARCH_TOOLS, webSearch } from "./search.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
 import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
 import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";
+import { capToolResult } from "./tool-result-budget.js";
 import { wrapUntrusted } from "./untrusted.js";
 import {
   calculate,
@@ -164,6 +165,15 @@ function safeInt(val: unknown, fallback: number, max: number): number {
 }
 
 export async function executeToolCall(
+  userId: string,
+  functionName: string,
+  args: Record<string, unknown>,
+): Promise<string> {
+  const raw = await executeToolCallInternal(userId, functionName, args);
+  return capToolResult(raw);
+}
+
+async function executeToolCallInternal(
   userId: string,
   functionName: string,
   args: Record<string, unknown>,
