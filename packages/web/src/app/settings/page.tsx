@@ -870,8 +870,8 @@ export default function SettingsPage() {
                       })}
                     </div>
                     <p className="text-[10px] text-gray-500 mt-2">
-                      Enabled tools run without asking. Destructive actions (delete, archive)
-                      always require approval and cannot be pre-approved.
+                      Enabled tools run without asking. Destructive actions (delete, archive) always
+                      require approval and cannot be pre-approved.
                     </p>
                   </div>
                 )}

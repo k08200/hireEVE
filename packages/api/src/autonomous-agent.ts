@@ -891,9 +891,7 @@ export async function runAgentForUser(userId: string, mode: string = "SUGGEST"):
       select: { alwaysAllowedTools: true },
     });
     const alwaysAllowedTools = new Set(
-      (automationCfg?.alwaysAllowedTools || []).filter(
-        (t) => TOOL_RISK_LEVELS.get(t) === "MEDIUM",
-      ),
+      (automationCfg?.alwaysAllowedTools || []).filter((t) => TOOL_RISK_LEVELS.get(t) === "MEDIUM"),
     );
 
     const systemPrompt = isAutoMode
@@ -1296,8 +1294,7 @@ How to reply:
           // HIGH is never auto-allowed. MEDIUM can be pre-approved per-tool via
           // AutomationConfig.alwaysAllowedTools.
           const riskLevel = getToolRisk(fnName);
-          const isPreApprovedMedium =
-            riskLevel === "MEDIUM" && alwaysAllowedTools.has(fnName);
+          const isPreApprovedMedium = riskLevel === "MEDIUM" && alwaysAllowedTools.has(fnName);
           const isSafeWrite = riskLevel === "LOW" || isPreApprovedMedium;
           const needsApproval =
             isAutoMode &&
