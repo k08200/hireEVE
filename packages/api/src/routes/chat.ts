@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
-import { compactHistory } from "../context-compressor.js";
+import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai, resolveUserChatModel } from "../openai.js";
@@ -627,16 +627,27 @@ export async function chatRoutes(app: FastifyInstance) {
       // Memory loading is optional
     }
 
-    // Build message history with auto-compaction (Claude Code compact/ pattern)
-    const compactedMessages = await compactHistory(
-      id,
-      conversation.messages as { id: string; role: string; content: string; createdAt: Date }[],
-    );
-    const history = [
-      { role: "system" as const, content: EVE_SYSTEM_PROMPT + dynamicContext + memoryContext },
-      ...compactedMessages,
-      { role: "user" as const, content },
-    ];
+    // Build message history with auto-compaction (Claude Code compact/ pattern).
+    // On token-limit errors we rebuild with forceCompact and retry once, so
+    // history is mutable.
+    const rawMessages = conversation.messages as {
+      id: string;
+      role: string;
+      content: string;
+      createdAt: Date;
+    }[];
+    const buildHistory = async (force: boolean) => {
+      const compacted = force
+        ? await forceCompact(id, rawMessages)
+        : await compactHistory(id, rawMessages);
+      return [
+        { role: "system" as const, content: EVE_SYSTEM_PROMPT + dynamicContext + memoryContext },
+        ...compacted,
+        { role: "user" as const, content },
+      ];
+    };
+    let history = await buildHistory(false);
+    let compactionRetryUsed = false;
 
     // SSE headers
     reply.raw.writeHead(200, {
@@ -661,28 +672,49 @@ export async function chatRoutes(app: FastifyInstance) {
 
       if (tools.length > 0) {
         // Function calling loop with auto-retry (Claude Code withRetry pattern)
-        const messages: unknown[] = [...history];
+        let messages: unknown[] = [...history];
         let maxIterations = 5;
 
         console.log("[CHAT] Tools enabled, starting function calling loop");
 
         while (maxIterations-- > 0) {
           if (clientDisconnected) break;
-          const response = await withRetry(
-            () =>
-              openai.chat.completions.create({
-                model: userChatModel,
-                messages: messages as Parameters<
-                  typeof openai.chat.completions.create
-                >[0]["messages"],
-                tools,
-              }),
-            {
-              maxRetries: 2,
-              onRetry: (attempt, _err, delay) =>
-                console.log(`[CHAT] LLM retry #${attempt}, waiting ${delay}ms`),
-            },
-          );
+          let response: Awaited<ReturnType<typeof openai.chat.completions.create>>;
+          try {
+            response = await withRetry(
+              () =>
+                openai.chat.completions.create({
+                  model: userChatModel,
+                  messages: messages as Parameters<
+                    typeof openai.chat.completions.create
+                  >[0]["messages"],
+                  tools,
+                }),
+              {
+                maxRetries: 2,
+                onRetry: (attempt, _err, delay) =>
+                  console.log(`[CHAT] LLM retry #${attempt}, waiting ${delay}ms`),
+              },
+            );
+          } catch (err) {
+            // Context overflow on the first iteration — aggressively compact
+            // the base history and restart the loop once. Later iterations
+            // accumulate tool call/result state we can't safely drop, so we
+            // only recover when messages still match the initial history.
+            if (
+              isTokenLimitError(err) &&
+              !compactionRetryUsed &&
+              messages.length === history.length
+            ) {
+              compactionRetryUsed = true;
+              console.warn("[CHAT] token-limit error — forcing compaction and retrying once");
+              history = await buildHistory(true);
+              messages = [...history];
+              maxIterations++;
+              continue;
+            }
+            throw err;
+          }
 
           const choice = response.choices[0];
           const toolCalls = choice.message.tool_calls;
@@ -746,19 +778,35 @@ export async function chatRoutes(app: FastifyInstance) {
         }
       } else {
         // Regular streaming with auto-retry (no tools available)
-        const stream = await withRetry(
-          () =>
-            openai.chat.completions.create({
-              model: userChatModel,
-              messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
-              stream: true,
-            }),
-          {
-            maxRetries: 2,
-            onRetry: (attempt, _err, delay) =>
-              console.log(`[CHAT] Stream retry #${attempt}, waiting ${delay}ms`),
-          },
-        );
+        const openStream = () =>
+          withRetry(
+            () =>
+              openai.chat.completions.create({
+                model: userChatModel,
+                messages: history as Parameters<
+                  typeof openai.chat.completions.create
+                >[0]["messages"],
+                stream: true,
+              }),
+            {
+              maxRetries: 2,
+              onRetry: (attempt, _err, delay) =>
+                console.log(`[CHAT] Stream retry #${attempt}, waiting ${delay}ms`),
+            },
+          );
+        let stream: Awaited<ReturnType<typeof openStream>>;
+        try {
+          stream = await openStream();
+        } catch (err) {
+          if (isTokenLimitError(err) && !compactionRetryUsed) {
+            compactionRetryUsed = true;
+            console.warn("[CHAT] stream token-limit error — forcing compaction and retrying once");
+            history = await buildHistory(true);
+            stream = await openStream();
+          } else {
+            throw err;
+          }
+        }
 
         for await (const chunk of stream) {
           if (clientDisconnected) {

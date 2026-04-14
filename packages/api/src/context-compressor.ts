@@ -108,6 +108,62 @@ export async function compactHistory(
   ];
 }
 
+/**
+ * Detect OpenAI / OpenRouter context-overflow errors.
+ * Different SDKs and proxies surface this in different ways, so match on
+ * both the standard error code and common message substrings.
+ */
+export function isTokenLimitError(error: unknown): boolean {
+  const obj = error as {
+    code?: string;
+    status?: number;
+    message?: string;
+    error?: { code?: string; type?: string; message?: string };
+  };
+  const codes = [obj?.code, obj?.error?.code, obj?.error?.type].filter(Boolean) as string[];
+  if (codes.some((c) => c === "context_length_exceeded" || c === "string_above_max_length")) {
+    return true;
+  }
+  const msg = (obj?.message || obj?.error?.message || "").toLowerCase();
+  return (
+    msg.includes("context length") ||
+    msg.includes("context_length_exceeded") ||
+    msg.includes("maximum context length") ||
+    msg.includes("token limit") ||
+    msg.includes("too many tokens")
+  );
+}
+
+/**
+ * Aggressive fallback compaction used only after a model call has already
+ * failed with a context-overflow error. Skips LLM summarization (which would
+ * just fail again) and returns an existing summary (if any) plus only the
+ * last few messages, so a retry can squeeze into a smaller effective window.
+ */
+export async function forceCompact(
+  conversationId: string,
+  messages: ChatMessage[],
+  keepRecent: number = 3,
+): Promise<{ role: string; content: string }[]> {
+  const recent = messages.slice(-keepRecent);
+  const existingSummary = await db.conversationSummary.findFirst({
+    where: { conversationId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const out: { role: string; content: string }[] = [];
+  if (existingSummary) {
+    out.push({
+      role: "system",
+      content: `[Previous conversation summary — compacted on retry]\n${existingSummary.summary}`,
+    });
+  }
+  for (const m of recent) {
+    out.push({ role: m.role.toLowerCase(), content: m.content });
+  }
+  return out;
+}
+
 /** Generate a summary of older messages using LLM */
 async function generateSummary(messages: ChatMessage[]): Promise<string> {
   const transcript = messages
