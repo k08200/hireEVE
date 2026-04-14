@@ -190,15 +190,18 @@ enum Role {
 }
 
 model UserToken {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  provider     String   // "google"
-  accessToken  String
-  refreshToken String?
-  expiresAt    DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                    String    @id @default(uuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id])
+  provider              String    // "google"
+  accessToken           String
+  refreshToken          String?
+  expiresAt             DateTime?
+  // Gmail push watch (users.watch) expires ~7 days after registration.
+  // Null means the user has not enabled real-time push.
+  gmailWatchExpiresAt   DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@unique([userId, provider])
 }
