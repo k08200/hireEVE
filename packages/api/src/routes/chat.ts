@@ -702,7 +702,14 @@ export async function chatRoutes(app: FastifyInstance) {
                 ).function;
                 const args = JSON.parse(fn.arguments);
 
-                console.log("[CHAT] Calling tool:", fn.name, "args:", JSON.stringify(args));
+                // Log only the tool name and arg keys — values may contain PII / secrets
+                // pulled from user content or external tool responses (CodeQL: clear-text-logging).
+                console.log(
+                  "[CHAT] Calling tool:",
+                  fn.name,
+                  "argKeys:",
+                  Object.keys(args).join(","),
+                );
 
                 reply.raw.write(
                   `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
