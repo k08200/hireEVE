@@ -3,6 +3,17 @@ import { getUserId, requireAuth } from "../auth.js";
 import { runAgentForUser } from "../autonomous-agent.js";
 import { db, prisma } from "../db.js";
 
+// MEDIUM-risk tools that users may pre-approve for AUTO mode.
+// HIGH-risk tools (delete_*, archive_email) are intentionally excluded — they
+// always require per-action approval.
+const PRE_APPROVABLE_TOOLS = new Set([
+  "send_email",
+  "create_event",
+  "create_note",
+  "update_contact",
+  "create_contact",
+]);
+
 export async function automationRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
 
@@ -29,6 +40,8 @@ export async function automationRoutes(app: FastifyInstance) {
       autonomousAgent: configAny.autonomousAgent ?? true,
       agentMode: configAny.agentMode ?? "AUTO",
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
+      alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
+      preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
     };
   });
 
@@ -49,6 +62,7 @@ export async function automationRoutes(app: FastifyInstance) {
       "autonomousAgent",
       "agentMode",
       "agentIntervalMin",
+      "alwaysAllowedTools",
     ];
     const data: Record<string, unknown> = {};
     for (const key of allowed) {
@@ -58,6 +72,16 @@ export async function automationRoutes(app: FastifyInstance) {
     // Validate agentMode
     if (data.agentMode && !["SUGGEST", "AUTO"].includes(data.agentMode as string)) {
       data.agentMode = "SUGGEST";
+    }
+
+    // Validate alwaysAllowedTools — only MEDIUM-risk tools from the whitelist
+    // are permitted. Drop unknown or HIGH-risk tool names silently.
+    if ("alwaysAllowedTools" in data) {
+      const raw = data.alwaysAllowedTools;
+      const list = Array.isArray(raw)
+        ? raw.filter((t): t is string => typeof t === "string" && PRE_APPROVABLE_TOOLS.has(t))
+        : [];
+      data.alwaysAllowedTools = Array.from(new Set(list));
     }
 
     const config = await prisma.automationConfig.upsert({
@@ -78,6 +102,8 @@ export async function automationRoutes(app: FastifyInstance) {
       autonomousAgent: configAny.autonomousAgent ?? true,
       agentMode: configAny.agentMode ?? "AUTO",
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
+      alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
+      preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
     };
   });
 
