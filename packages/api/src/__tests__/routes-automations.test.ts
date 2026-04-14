@@ -1,0 +1,202 @@
+import Fastify from "fastify";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mock the auth module so requireAuth passes through and getUserId returns a
+// deterministic id — the target of this test is the route's input validation,
+// not the auth layer (which has its own unit tests).
+vi.mock("../auth.js", () => ({
+  requireAuth: async () => {},
+  getUserId: () => "test-user-id",
+}));
+
+// Mock the autonomous-agent module so importing the route doesn't pull in
+// openai/googleapis/etc.
+vi.mock("../autonomous-agent.js", () => ({
+  runAgentForUser: vi.fn(),
+}));
+
+// In-memory prisma stub capturing upsert payloads.
+const upsertSpy = vi.fn();
+const findUniqueSpy = vi.fn();
+
+vi.mock("../db.js", () => {
+  const prisma = {
+    automationConfig: {
+      findUnique: (...args: unknown[]) => findUniqueSpy(...args),
+      upsert: (...args: unknown[]) => upsertSpy(...args),
+    },
+    notification: { create: vi.fn() },
+  };
+  return { prisma, db: prisma };
+});
+
+async function buildApp() {
+  const { automationRoutes } = await import("../routes/automations.js");
+  const app = Fastify();
+  await app.register(automationRoutes, { prefix: "/api/automations" });
+  return app;
+}
+
+describe("PATCH /api/automations alwaysAllowedTools validation", () => {
+  beforeEach(() => {
+    upsertSpy.mockReset();
+    findUniqueSpy.mockReset();
+    upsertSpy.mockImplementation(async (args: { update: Record<string, unknown> }) => ({
+      userId: "test-user-id",
+      meetingAutoJoin: true,
+      meetingAutoSummarize: true,
+      emailAutoClassify: false,
+      reminderAutoCheck: true,
+      dailyBriefing: true,
+      briefingTime: "09:00",
+      downloadAutoOrganize: false,
+      autonomousAgent: true,
+      agentMode: "AUTO",
+      agentIntervalMin: 5,
+      alwaysAllowedTools: (args.update.alwaysAllowedTools as string[]) ?? [],
+    }));
+  });
+
+  it("accepts pre-approvable MEDIUM-risk tool names", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { alwaysAllowedTools: ["send_email", "create_event"] },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.alwaysAllowedTools).toEqual(["send_email", "create_event"]);
+
+    const call = upsertSpy.mock.calls[0][0];
+    expect(call.update.alwaysAllowedTools).toEqual(["send_email", "create_event"]);
+    await app.close();
+  });
+
+  it("drops HIGH-risk tool names even when the client sends them", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: {
+        alwaysAllowedTools: ["send_email", "delete_email", "archive_email", "delete_task"],
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.alwaysAllowedTools).toEqual(["send_email"]);
+
+    const call = upsertSpy.mock.calls[0][0];
+    expect(call.update.alwaysAllowedTools).toEqual(["send_email"]);
+    await app.close();
+  });
+
+  it("drops unknown tool names", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { alwaysAllowedTools: ["send_email", "hack_the_planet", "rm_rf_slash"] },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.alwaysAllowedTools).toEqual(["send_email"]);
+    await app.close();
+  });
+
+  it("deduplicates repeated tool names", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { alwaysAllowedTools: ["send_email", "send_email", "create_event", "send_email"] },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.alwaysAllowedTools).toEqual(["send_email", "create_event"]);
+    await app.close();
+  });
+
+  it("coerces non-array input to an empty list", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { alwaysAllowedTools: "send_email" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const call = upsertSpy.mock.calls[0][0];
+    expect(call.update.alwaysAllowedTools).toEqual([]);
+    await app.close();
+  });
+
+  it("ignores unknown top-level fields", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: {
+        alwaysAllowedTools: ["send_email"],
+        forbidden_field: "should not reach upsert",
+        userId: "other-user-id",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const call = upsertSpy.mock.calls[0][0];
+    expect("forbidden_field" in call.update).toBe(false);
+    expect("userId" in call.update).toBe(false);
+    await app.close();
+  });
+});
+
+describe("GET /api/automations", () => {
+  beforeEach(() => {
+    findUniqueSpy.mockReset();
+    upsertSpy.mockReset();
+  });
+
+  it("exposes alwaysAllowedTools and the preApprovableTools whitelist", async () => {
+    findUniqueSpy.mockResolvedValue({
+      userId: "test-user-id",
+      meetingAutoJoin: true,
+      meetingAutoSummarize: true,
+      emailAutoClassify: false,
+      reminderAutoCheck: true,
+      dailyBriefing: true,
+      briefingTime: "09:00",
+      downloadAutoOrganize: false,
+      autonomousAgent: true,
+      agentMode: "AUTO",
+      agentIntervalMin: 5,
+      alwaysAllowedTools: ["send_email"],
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({ method: "GET", url: "/api/automations" });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.alwaysAllowedTools).toEqual(["send_email"]);
+    // The whitelist must only contain MEDIUM-risk tools the user may pre-approve.
+    expect(body.preApprovableTools).toEqual(
+      expect.arrayContaining([
+        "send_email",
+        "create_event",
+        "create_note",
+        "update_contact",
+        "create_contact",
+      ]),
+    );
+    // HIGH-risk tools must never appear in the whitelist.
+    expect(body.preApprovableTools).not.toContain("delete_email");
+    expect(body.preApprovableTools).not.toContain("archive_email");
+    expect(body.preApprovableTools).not.toContain("delete_task");
+    await app.close();
+  });
+});
