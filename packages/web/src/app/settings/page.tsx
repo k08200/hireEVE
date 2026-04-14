@@ -62,6 +62,10 @@ export default function SettingsPage() {
     Array<{ id: string; action: string; summary: string; tool?: string; createdAt: string }>
   >([]);
   const [agentLogsLoading, setAgentLogsLoading] = useState(false);
+  const [gmailPushConfigured, setGmailPushConfigured] = useState(false);
+  const [gmailPushEnabled, setGmailPushEnabled] = useState(false);
+  const [gmailPushExpiresAt, setGmailPushExpiresAt] = useState<string | null>(null);
+  const [gmailPushLoading, setGmailPushLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
@@ -305,9 +309,58 @@ export default function SettingsPage() {
     try {
       await fetch(`${API_BASE}/api/auth/google`, { method: "DELETE", headers: authHeaders() });
       setGoogleConnected(false);
+      setGmailPushEnabled(false);
+      setGmailPushExpiresAt(null);
       toast("Google disconnected", "info");
     } catch {
       toast("Failed to disconnect", "error");
+    }
+  };
+
+  const enableGmailPush = async () => {
+    setGmailPushLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/gmail/watch/enable`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Request failed" }));
+        toast(body.error || "Failed to enable real-time sync", "error");
+        return;
+      }
+      const data = (await res.json()) as { expiration?: string };
+      setGmailPushEnabled(true);
+      if (data.expiration) {
+        setGmailPushExpiresAt(new Date(Number(data.expiration)).toISOString());
+      }
+      toast("Real-time email sync enabled", "success");
+    } catch {
+      toast("Failed to enable real-time sync", "error");
+    } finally {
+      setGmailPushLoading(false);
+    }
+  };
+
+  const disableGmailPush = async () => {
+    setGmailPushLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/gmail/watch/disable`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Request failed" }));
+        toast(body.error || "Failed to disable real-time sync", "error");
+        return;
+      }
+      setGmailPushEnabled(false);
+      setGmailPushExpiresAt(null);
+      toast("Real-time email sync disabled. Polling fallback still active.", "info");
+    } catch {
+      toast("Failed to disable real-time sync", "error");
+    } finally {
+      setGmailPushLoading(false);
     }
   };
 
@@ -403,8 +456,18 @@ export default function SettingsPage() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch<{ connected: boolean }>("/api/auth/google/status")
-        .then((d) => setGoogleConnected(d.connected))
+      apiFetch<{
+        connected: boolean;
+        gmailPushConfigured?: boolean;
+        gmailPushEnabled?: boolean;
+        gmailPushExpiresAt?: string | null;
+      }>("/api/auth/google/status")
+        .then((d) => {
+          setGoogleConnected(d.connected);
+          setGmailPushConfigured(!!d.gmailPushConfigured);
+          setGmailPushEnabled(!!d.gmailPushEnabled);
+          setGmailPushExpiresAt(d.gmailPushExpiresAt ?? null);
+        })
         .catch(() => {}),
       apiFetch<{ configured: boolean }>("/api/slack/status")
         .then((d) => setSlackConnected(d.configured))
@@ -891,6 +954,48 @@ export default function SettingsPage() {
               ))
             )}
           </div>
+
+          {googleConnected && (
+            <div className="mt-4 bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Real-time email sync</h3>
+                <p className="text-sm text-gray-400">
+                  {gmailPushConfigured
+                    ? gmailPushEnabled
+                      ? gmailPushExpiresAt
+                        ? `Gmail push active until ${new Date(gmailPushExpiresAt).toLocaleString()}. Auto-renews before expiry.`
+                        : "Gmail push active. Auto-renews before expiry."
+                      : "Subscribe to Gmail push notifications for instant delivery. Without this, EVE polls every minute."
+                    : "Admin has not configured a Pub/Sub topic on the server. Contact the administrator to enable."}
+                </p>
+              </div>
+              {gmailPushConfigured ? (
+                gmailPushEnabled ? (
+                  <button
+                    type="button"
+                    onClick={disableGmailPush}
+                    disabled={gmailPushLoading}
+                    className="bg-gray-800 hover:bg-gray-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition border border-gray-700"
+                  >
+                    {gmailPushLoading ? "…" : "Disable"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={enableGmailPush}
+                    disabled={gmailPushLoading}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    {gmailPushLoading ? "…" : "Enable"}
+                  </button>
+                )
+              ) : (
+                <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                  Unavailable
+                </span>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Quick Actions */}
