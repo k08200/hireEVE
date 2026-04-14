@@ -306,6 +306,7 @@ model AutomationConfig {
   autonomousAgent       Boolean  @default(true)
   agentMode             String   @default("SUGGEST") // "SUGGEST" | "AUTO"
   agentIntervalMin      Int      @default(5)
+  alwaysAllowedTools    String[] @default([]) // MEDIUM-risk tools the user has pre-approved for AUTO mode
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }

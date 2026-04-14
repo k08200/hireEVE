@@ -885,6 +885,15 @@ export async function runAgentForUser(userId: string, mode: string = "SUGGEST"):
 
     const isAutoMode = mode === "AUTO";
 
+    // Load user's pre-approved MEDIUM-risk tools (HIGH is never auto-allowed).
+    const automationCfg = await prisma.automationConfig.findUnique({
+      where: { userId },
+      select: { alwaysAllowedTools: true },
+    });
+    const alwaysAllowedTools = new Set(
+      (automationCfg?.alwaysAllowedTools || []).filter((t) => TOOL_RISK_LEVELS.get(t) === "MEDIUM"),
+    );
+
     const systemPrompt = isAutoMode
       ? AGENT_SYSTEM_PROMPT.replace(
           /## Primary Tool: propose_action[\s\S]*?## Secondary Tool: notify_user/,
@@ -1281,10 +1290,15 @@ How to reply:
             console.log(`[AGENT] Notified ${userId}: ${agentTitle}`);
           }
         } else {
-          // Risk-based execution gating for AUTO mode
+          // Risk-based execution gating for AUTO mode.
+          // HIGH is never auto-allowed. MEDIUM can be pre-approved per-tool via
+          // AutomationConfig.alwaysAllowedTools.
           const riskLevel = getToolRisk(fnName);
-          const isSafeWrite = riskLevel === "LOW";
-          const needsApproval = isAutoMode && (riskLevel === "MEDIUM" || riskLevel === "HIGH");
+          const isPreApprovedMedium = riskLevel === "MEDIUM" && alwaysAllowedTools.has(fnName);
+          const isSafeWrite = riskLevel === "LOW" || isPreApprovedMedium;
+          const needsApproval =
+            isAutoMode &&
+            ((riskLevel === "MEDIUM" && !isPreApprovedMedium) || riskLevel === "HIGH");
 
           // MEDIUM/HIGH risk tools → intercept and create approval proposal
           if (needsApproval) {

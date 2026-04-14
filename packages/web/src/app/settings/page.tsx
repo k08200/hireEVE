@@ -58,6 +58,8 @@ export default function SettingsPage() {
   const [agentEnabled, setAgentEnabled] = useState(true);
   const [agentMode, setAgentMode] = useState<"SUGGEST" | "AUTO">("SUGGEST");
   const [agentInterval, setAgentInterval] = useState(5);
+  const [alwaysAllowedTools, setAlwaysAllowedTools] = useState<string[]>([]);
+  const [preApprovableTools, setPreApprovableTools] = useState<string[]>([]);
   const [agentLogs, setAgentLogs] = useState<
     Array<{ id: string; action: string; summary: string; tool?: string; createdAt: string }>
   >([]);
@@ -366,16 +368,40 @@ export default function SettingsPage() {
 
   // Load agent config
   useEffect(() => {
-    apiFetch<{ autonomousAgent?: boolean; agentMode?: string; agentIntervalMin?: number }>(
-      "/api/automations",
-    )
+    apiFetch<{
+      autonomousAgent?: boolean;
+      agentMode?: string;
+      agentIntervalMin?: number;
+      alwaysAllowedTools?: string[];
+      preApprovableTools?: string[];
+    }>("/api/automations")
       .then((d) => {
         setAgentEnabled(d.autonomousAgent ?? true);
         setAgentMode((d.agentMode as "SUGGEST" | "AUTO") ?? "SUGGEST");
         setAgentInterval(d.agentIntervalMin ?? 5);
+        setAlwaysAllowedTools(d.alwaysAllowedTools ?? []);
+        setPreApprovableTools(d.preApprovableTools ?? []);
       })
       .catch(() => {});
   }, []);
+
+  const toggleAlwaysAllowedTool = async (tool: string) => {
+    const next = alwaysAllowedTools.includes(tool)
+      ? alwaysAllowedTools.filter((t) => t !== tool)
+      : [...alwaysAllowedTools, tool];
+    const previous = alwaysAllowedTools;
+    setAlwaysAllowedTools(next);
+    try {
+      const updated = await apiFetch<{ alwaysAllowedTools?: string[] }>("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ alwaysAllowedTools: next }),
+      });
+      if (updated.alwaysAllowedTools) setAlwaysAllowedTools(updated.alwaysAllowedTools);
+    } catch (err) {
+      setAlwaysAllowedTools(previous);
+      toast(`Failed to update: ${err instanceof Error ? err.message : "error"}`, "error");
+    }
+  };
 
   const loadAgentLogs = async () => {
     setAgentLogsLoading(true);
@@ -814,6 +840,41 @@ export default function SettingsPage() {
                     </p>
                   )}
                 </div>
+
+                {/* Pre-approved tools — skip approval for specific MEDIUM-risk tools */}
+                {agentMode === "AUTO" && preApprovableTools.length > 0 && (
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">
+                      Always allow (skip approval)
+                    </label>
+                    <div className="space-y-2">
+                      {preApprovableTools.map((tool) => {
+                        const enabled = alwaysAllowedTools.includes(tool);
+                        return (
+                          <button
+                            key={tool}
+                            type="button"
+                            onClick={() => toggleAlwaysAllowedTool(tool)}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition ${
+                              enabled
+                                ? "bg-amber-600/15 border-amber-500/40 text-amber-200"
+                                : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                            }`}
+                          >
+                            <span className="font-mono text-xs">{tool}</span>
+                            <span className="text-[10px] opacity-80">
+                              {enabled ? "Auto" : "Ask first"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-gray-500 mt-2">
+                      Enabled tools run without asking. Destructive actions (delete, archive) always
+                      require approval and cannot be pre-approved.
+                    </p>
+                  </div>
+                )}
 
                 {/* Check Interval */}
                 <div>
