@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { getAuthedClient } from "./gmail.js";
+import { wrapUntrusted } from "./untrusted.js";
 
 export async function listEvents(userId: string, maxResults = 10) {
   const auth = await getAuthedClient(userId);
@@ -18,11 +19,11 @@ export async function listEvents(userId: string, maxResults = 10) {
 
     const events = (res.data.items || []).map((e) => ({
       id: e.id,
-      summary: e.summary || "(No title)",
+      summary: wrapUntrusted(e.summary || "(No title)", "calendar:summary"),
       start: e.start?.dateTime || e.start?.date || "",
       end: e.end?.dateTime || e.end?.date || "",
-      location: e.location || "",
-      description: e.description || "",
+      location: wrapUntrusted(e.location, "calendar:location"),
+      description: wrapUntrusted(e.description, "calendar:description"),
     }));
 
     return { events };
