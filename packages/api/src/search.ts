@@ -2,6 +2,8 @@
  * Web Search for EVE — uses DuckDuckGo HTML scraping (no API key needed)
  */
 
+import { wrapUntrusted } from "./untrusted.js";
+
 interface SearchResult {
   title: string;
   url: string;
@@ -42,7 +44,11 @@ export async function webSearch(
     }
 
     if (title && actualUrl) {
-      results.push({ title, url: actualUrl, snippet });
+      results.push({
+        title: wrapUntrusted(title, "web:title"),
+        url: actualUrl,
+        snippet: wrapUntrusted(snippet, "web:snippet"),
+      });
     }
     match = resultRegex.exec(html);
   }
@@ -56,7 +62,11 @@ export async function webSearch(
       const u = match[1].trim();
       const s = match[2].replace(/<[^>]+>/g, "").trim();
       if (u && s) {
-        results.push({ title: u, url: u.startsWith("http") ? u : `https://${u}`, snippet: s });
+        results.push({
+          title: wrapUntrusted(u, "web:title"),
+          url: u.startsWith("http") ? u : `https://${u}`,
+          snippet: wrapUntrusted(s, "web:snippet"),
+        });
       }
       match = simpleRegex.exec(html);
     }

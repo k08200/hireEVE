@@ -10,6 +10,7 @@
  */
 
 import type { FastifyInstance } from "fastify";
+import { wrapUntrusted } from "./untrusted.js";
 
 // Slack message sending (works without @slack/bolt via webhook)
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
@@ -92,7 +93,11 @@ export async function readSlackMessages(
 
   if (!data.ok) return { messages: [] };
   return {
-    messages: data.messages.map((m) => ({ user: m.user, text: m.text, ts: m.ts })),
+    messages: data.messages.map((m) => ({
+      user: m.user,
+      text: wrapUntrusted(m.text, "slack:message"),
+      ts: m.ts,
+    })),
   };
 }
 
