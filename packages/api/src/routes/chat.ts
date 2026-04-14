@@ -710,7 +710,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
                 const result = await executeToolCall(conversation.userId, fn.name, args);
 
-                console.log("[CHAT] Tool result:", result.substring(0, 200));
+                console.log("[CHAT] Tool completed:", fn.name, "resultLength:", result.length);
 
                 reply.raw.write(
                   `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
