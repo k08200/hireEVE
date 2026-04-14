@@ -74,6 +74,7 @@ import { SEARCH_TOOLS, webSearch } from "./search.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
 import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
 import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";
+import { capToolResult } from "./tool-result-budget.js";
 import { wrapUntrusted } from "./untrusted.js";
 import {
   calculate,
@@ -83,7 +84,6 @@ import {
   translate,
   UTILITY_TOOLS,
 } from "./utilities.js";
-import { capToolResult } from "./tool-result-budget.js";
 import { getWeather, WEATHER_TOOLS } from "./weather.js";
 import { WRITER_TOOLS, writeDocument } from "./writer.js";
 
