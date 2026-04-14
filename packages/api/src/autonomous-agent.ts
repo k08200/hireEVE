@@ -57,8 +57,8 @@ const TOOL_RISK_LEVELS = new Map<string, RiskLevel>([
   ["update_note", "LOW"],
   ["mark_read", "LOW"],
 
-  // LOW — auto-execute (email replies should be instant)
-  ["send_email", "LOW"],
+  // MEDIUM — external-facing, requires user approval before sending
+  ["send_email", "MEDIUM"],
 
   // MEDIUM — external-facing or calendar changes, reversible but visible
   ["create_event", "MEDIUM"],
