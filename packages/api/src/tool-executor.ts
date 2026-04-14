@@ -74,6 +74,7 @@ import { SEARCH_TOOLS, webSearch } from "./search.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
 import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
 import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";
+import { wrapUntrusted } from "./untrusted.js";
 import {
   calculate,
   convertCurrency,
@@ -401,7 +402,10 @@ export async function executeToolCall(
         });
       }
       case "search_notion":
-        return JSON.stringify(await searchNotion(requireString(args.query, "query")));
+        return wrapUntrusted(
+          JSON.stringify(await searchNotion(requireString(args.query, "query"))),
+          "notion:search",
+        );
       case "create_notion_page":
         return JSON.stringify(
           await createNotionPage(
@@ -411,7 +415,7 @@ export async function executeToolCall(
           ),
         );
       case "list_notion_databases":
-        return JSON.stringify(await listNotionDatabases());
+        return wrapUntrusted(JSON.stringify(await listNotionDatabases()), "notion:databases");
       case "send_imessage":
         return JSON.stringify(
           await sendIMessage(requireString(args.to, "to"), requireString(args.text, "text")),

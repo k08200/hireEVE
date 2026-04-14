@@ -4,6 +4,8 @@
  * Fetches news from multiple Korean and international RSS sources.
  */
 
+import { wrapUntrusted } from "./untrusted.js";
+
 interface NewsItem {
   title: string;
   link: string;
@@ -145,7 +147,15 @@ export async function getNews(
     );
   }
 
-  return { news: filtered.slice(0, 15), totalSources: successCount };
+  // Wrap attacker-controllable fields (title, description) after filtering/sorting so
+  // topic matching still works on the raw text. Link and source stay plain — they
+  // are URLs and feed names, used as metadata.
+  const wrapped = filtered.slice(0, 15).map((item) => ({
+    ...item,
+    title: wrapUntrusted(item.title, "news:title"),
+    description: wrapUntrusted(item.description, "news:description"),
+  }));
+  return { news: wrapped, totalSources: successCount };
 }
 
 export const NEWS_TOOLS = [
