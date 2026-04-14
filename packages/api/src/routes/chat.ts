@@ -338,18 +338,24 @@ export async function chatRoutes(app: FastifyInstance) {
 
           if (choice.finish_reason === "tool_calls" || (toolCalls && toolCalls.length > 0)) {
             messages.push(choice.message);
-            for (const toolCall of toolCalls || []) {
-              const fn = (toolCall as unknown as { function: { name: string; arguments: string } })
-                .function;
-              const args = JSON.parse(fn.arguments);
-              reply.raw.write(
-                `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
-              );
-              const result = await executeToolCall(conversation.userId, fn.name, args);
-              messages.push({ role: "tool", tool_call_id: toolCall.id, content: result });
-              reply.raw.write(
-                `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
-              );
+            const results = await Promise.all(
+              (toolCalls || []).map(async (toolCall) => {
+                const fn = (
+                  toolCall as unknown as { function: { name: string; arguments: string } }
+                ).function;
+                const args = JSON.parse(fn.arguments);
+                reply.raw.write(
+                  `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
+                );
+                const result = await executeToolCall(conversation.userId, fn.name, args);
+                reply.raw.write(
+                  `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
+                );
+                return { tool_call_id: toolCall.id, content: result };
+              }),
+            );
+            for (const r of results) {
+              messages.push({ role: "tool", tool_call_id: r.tool_call_id, content: r.content });
             }
           } else {
             fullResponse = choice.message.content || "";
@@ -689,30 +695,37 @@ export async function chatRoutes(app: FastifyInstance) {
           if (choice.finish_reason === "tool_calls" || (toolCalls && toolCalls.length > 0)) {
             messages.push(choice.message);
 
-            for (const toolCall of toolCalls || []) {
-              const fn = (toolCall as unknown as { function: { name: string; arguments: string } })
-                .function;
-              const args = JSON.parse(fn.arguments);
+            const results = await Promise.all(
+              (toolCalls || []).map(async (toolCall) => {
+                const fn = (
+                  toolCall as unknown as { function: { name: string; arguments: string } }
+                ).function;
+                const args = JSON.parse(fn.arguments);
 
-              console.log("[CHAT] Calling tool:", fn.name, "args:", JSON.stringify(args));
+                console.log("[CHAT] Calling tool:", fn.name, "args:", JSON.stringify(args));
 
-              reply.raw.write(
-                `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
-              );
+                reply.raw.write(
+                  `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
+                );
 
-              const result = await executeToolCall(conversation.userId, fn.name, args);
+                const result = await executeToolCall(conversation.userId, fn.name, args);
 
-              console.log("[CHAT] Tool result:", result.substring(0, 200));
+                console.log("[CHAT] Tool result:", result.substring(0, 200));
 
+                reply.raw.write(
+                  `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
+                );
+
+                return { tool_call_id: toolCall.id, content: result };
+              }),
+            );
+
+            for (const r of results) {
               messages.push({
                 role: "tool",
-                tool_call_id: toolCall.id,
-                content: result,
+                tool_call_id: r.tool_call_id,
+                content: r.content,
               });
-
-              reply.raw.write(
-                `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
-              );
             }
           } else {
             // Final response after tools — stream via SSE for better UX
