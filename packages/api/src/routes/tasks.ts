@@ -1,9 +1,11 @@
 import type { FastifyInstance } from "fastify";
-import { getUserId } from "../auth.js";
+import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
 import { createTask, deleteTask, listTasks, updateTask } from "../tasks.js";
 
 export async function taskRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", requireAuth);
+
   // GET /api/tasks?status=TODO
   app.get("/", async (request) => {
     const userId = getUserId(request);
