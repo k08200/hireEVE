@@ -93,8 +93,7 @@ export async function readIMessages(
     return {
       messages: rows.map((r: { text: string; date: string; is_from_me: number }) => ({
         // Only wrap inbound messages — the user's own messages are trusted.
-        text:
-          r.is_from_me === 1 ? r.text || "" : wrapUntrusted(r.text, "imessage:incoming"),
+        text: r.is_from_me === 1 ? r.text || "" : wrapUntrusted(r.text, "imessage:incoming"),
         date: r.date,
         isFromMe: r.is_from_me === 1,
       })),

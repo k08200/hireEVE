@@ -74,6 +74,7 @@ import { SEARCH_TOOLS, webSearch } from "./search.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
 import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
 import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";
+import { wrapUntrusted } from "./untrusted.js";
 import {
   calculate,
   convertCurrency,
@@ -83,7 +84,6 @@ import {
   UTILITY_TOOLS,
 } from "./utilities.js";
 import { getWeather, WEATHER_TOOLS } from "./weather.js";
-import { wrapUntrusted } from "./untrusted.js";
 import { WRITER_TOOLS, writeDocument } from "./writer.js";
 
 const SLACK_CONFIGURED = !!(process.env.SLACK_BOT_TOKEN || process.env.SLACK_WEBHOOK_URL);
@@ -415,10 +415,7 @@ export async function executeToolCall(
           ),
         );
       case "list_notion_databases":
-        return wrapUntrusted(
-          JSON.stringify(await listNotionDatabases()),
-          "notion:databases",
-        );
+        return wrapUntrusted(JSON.stringify(await listNotionDatabases()), "notion:databases");
       case "send_imessage":
         return JSON.stringify(
           await sendIMessage(requireString(args.to, "to"), requireString(args.text, "text")),
