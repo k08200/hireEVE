@@ -122,7 +122,10 @@ export async function readAndSummarize(
 
   return {
     content: wrapUntrusted(truncated, "file:content"),
-    summary: wrapUntrusted(response.choices[0]?.message?.content || "Could not summarize", "file:summary"),
+    summary: wrapUntrusted(
+      response.choices[0]?.message?.content || "Could not summarize",
+      "file:summary",
+    ),
   };
 }
 
