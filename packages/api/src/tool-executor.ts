@@ -83,6 +83,7 @@ import {
   UTILITY_TOOLS,
 } from "./utilities.js";
 import { getWeather, WEATHER_TOOLS } from "./weather.js";
+import { wrapUntrusted } from "./untrusted.js";
 import { WRITER_TOOLS, writeDocument } from "./writer.js";
 
 const SLACK_CONFIGURED = !!(process.env.SLACK_BOT_TOKEN || process.env.SLACK_WEBHOOK_URL);
@@ -401,7 +402,10 @@ export async function executeToolCall(
         });
       }
       case "search_notion":
-        return JSON.stringify(await searchNotion(requireString(args.query, "query")));
+        return wrapUntrusted(
+          JSON.stringify(await searchNotion(requireString(args.query, "query"))),
+          "notion:search",
+        );
       case "create_notion_page":
         return JSON.stringify(
           await createNotionPage(
@@ -411,7 +415,10 @@ export async function executeToolCall(
           ),
         );
       case "list_notion_databases":
-        return JSON.stringify(await listNotionDatabases());
+        return wrapUntrusted(
+          JSON.stringify(await listNotionDatabases()),
+          "notion:databases",
+        );
       case "send_imessage":
         return JSON.stringify(
           await sendIMessage(requireString(args.to, "to"), requireString(args.text, "text")),

@@ -6,6 +6,7 @@
  */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { wrapUntrusted } from "./untrusted.js";
 
 const exec = promisify(execFile);
 
@@ -91,7 +92,9 @@ export async function readIMessages(
     const rows = JSON.parse(stdout || "[]");
     return {
       messages: rows.map((r: { text: string; date: string; is_from_me: number }) => ({
-        text: r.text || "",
+        // Only wrap inbound messages — the user's own messages are trusted.
+        text:
+          r.is_from_me === 1 ? r.text || "" : wrapUntrusted(r.text, "imessage:incoming"),
         date: r.date,
         isFromMe: r.is_from_me === 1,
       })),
@@ -136,7 +139,9 @@ export async function listRecentChats(
       chats: rows.map((r: { identifier: string; displayName: string; lastMessage: string }) => ({
         identifier: r.identifier || "",
         displayName: r.displayName || r.identifier || "",
-        lastMessage: r.lastMessage || "",
+        // lastMessage may come from either side of the chat; no is_from_me column
+        // in this projection, so wrap conservatively.
+        lastMessage: wrapUntrusted(r.lastMessage, "imessage:last"),
       })),
     };
   } catch {
