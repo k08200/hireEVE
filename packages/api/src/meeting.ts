@@ -8,6 +8,7 @@
  */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { decryptOptional, decryptToken } from "./crypto-tokens.js";
 import { prisma } from "./db.js";
 import { MODEL, openai } from "./openai.js";
 
@@ -45,8 +46,8 @@ export async function getUpcomingMeetings(userId: string): Promise<MeetingEvent[
     const { google } = await import("googleapis");
     const auth = new google.auth.OAuth2();
     auth.setCredentials({
-      access_token: token.accessToken,
-      refresh_token: token.refreshToken,
+      access_token: token.accessToken ? decryptToken(token.accessToken) : "",
+      refresh_token: decryptOptional(token.refreshToken),
     });
 
     const calendar = google.calendar({ version: "v3", auth });

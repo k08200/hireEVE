@@ -27,6 +27,7 @@ services:
       DATABASE_URL: postgresql://eve:eve-local-dev@postgres:5432/hireeve
       PORT: "3001"
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?TOKEN_ENCRYPTION_KEY must be set (32-byte base64)}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
