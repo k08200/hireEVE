@@ -16,6 +16,7 @@ import { chatRoutes } from "./routes/chat.js";
 import { contactRoutes } from "./routes/contacts.js";
 import { deviceRoutes } from "./routes/devices.js";
 import { emailRoutes } from "./routes/email.js";
+import { gmailPushRoutes } from "./routes/gmail-push.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { noteRoutes } from "./routes/notes.js";
 import { notificationRoutes } from "./routes/notifications.js";
@@ -59,8 +60,13 @@ await app.register(rateLimit, {
   max: 100,
   timeWindow: "1 minute",
   allowList: (req: { url?: string }) => {
+    const url = req.url ?? "";
     // Auth endpoints need higher throughput (login, callback, token verify)
-    return (req.url ?? "").startsWith("/api/auth/");
+    if (url.startsWith("/api/auth/")) return true;
+    // Gmail Pub/Sub push traffic comes from Google's shared infra; under heavy
+    // mail load it would otherwise trip the per-IP limit and back up delivery.
+    if (url.startsWith("/api/gmail/push")) return true;
+    return false;
   },
 });
 
@@ -89,6 +95,7 @@ await app.register(briefingRoutes, { prefix: "/api/briefing" });
 await app.register(notificationRoutes, { prefix: "/api/notifications" });
 await app.register(calendarRoutes, { prefix: "/api/calendar" });
 await app.register(emailRoutes, { prefix: "/api/email" });
+await app.register(gmailPushRoutes, { prefix: "/api/gmail" });
 await app.register(workspaceRoutes, { prefix: "/api/workspaces" });
 await app.register(automationRoutes, { prefix: "/api/automations" });
 await app.register(adminRoutes, { prefix: "/api/admin" });
