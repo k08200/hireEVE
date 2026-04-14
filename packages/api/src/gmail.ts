@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { decryptOptional, decryptToken, encryptOptional, encryptToken } from "./crypto-tokens.js";
 import { prisma } from "./db.js";
+import { wrapUntrusted } from "./untrusted.js";
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
@@ -139,9 +140,9 @@ export async function listEmails(userId: string, maxResults = 10) {
     emails.push({
       id: msg.id,
       from: headers.find((h) => h.name === "From")?.value || "",
-      subject: headers.find((h) => h.name === "Subject")?.value || "",
+      subject: wrapUntrusted(headers.find((h) => h.name === "Subject")?.value, "email:subject"),
       date: headers.find((h) => h.name === "Date")?.value || "",
-      snippet: detail.data.snippet || "",
+      snippet: wrapUntrusted(detail.data.snippet, "email:snippet"),
     });
   }
 
@@ -174,9 +175,9 @@ export async function readEmail(userId: string, emailId: string) {
     id: emailId,
     from: headers.find((h) => h.name === "From")?.value || "",
     to: headers.find((h) => h.name === "To")?.value || "",
-    subject: headers.find((h) => h.name === "Subject")?.value || "",
+    subject: wrapUntrusted(headers.find((h) => h.name === "Subject")?.value, "email:subject"),
     date: headers.find((h) => h.name === "Date")?.value || "",
-    body,
+    body: wrapUntrusted(body, "email:body"),
   };
 }
 
