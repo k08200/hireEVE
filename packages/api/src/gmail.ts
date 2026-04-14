@@ -372,6 +372,62 @@ export async function classifyEmails(userId: string, maxResults = 10) {
   return { emails: classified, summary };
 }
 
+// ─── Push Notifications (Gmail watch + Pub/Sub) ──────────────────────────
+
+/**
+ * Register a Gmail push watch so Google posts INBOX changes to the configured
+ * Pub/Sub topic. Requires GMAIL_PUBSUB_TOPIC env var in the form
+ * "projects/<gcp-project>/topics/<topic>". The Gmail service account
+ * (gmail-api-push@system.gserviceaccount.com) must have
+ * roles/pubsub.publisher on the topic — see ops docs / GCP console.
+ *
+ * Watches expire after 7 days and must be renewed by calling this again.
+ * Returns { historyId, expiration } on success.
+ */
+export async function registerGmailWatch(
+  userId: string,
+): Promise<{ historyId: string; expiration: string } | { error: string }> {
+  const topic = process.env.GMAIL_PUBSUB_TOPIC;
+  if (!topic) return { error: "GMAIL_PUBSUB_TOPIC not configured" };
+
+  const auth = await getAuthedClient(userId);
+  if (!auth) return { error: "Gmail not connected" };
+
+  const gmail = google.gmail({ version: "v1", auth });
+  try {
+    const res = await gmail.users.watch({
+      userId: "me",
+      requestBody: {
+        topicName: topic,
+        labelIds: ["INBOX"],
+        labelFilterBehavior: "INCLUDE",
+      },
+    });
+    return {
+      historyId: String(res.data.historyId ?? ""),
+      expiration: String(res.data.expiration ?? ""),
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: `Gmail watch failed: ${msg}` };
+  }
+}
+
+/** Stop the Gmail push watch for a user. Idempotent. */
+export async function stopGmailWatch(userId: string): Promise<{ ok: boolean; error?: string }> {
+  const auth = await getAuthedClient(userId);
+  if (!auth) return { ok: false, error: "Gmail not connected" };
+
+  const gmail = google.gmail({ version: "v1", auth });
+  try {
+    await gmail.users.stop({ userId: "me" });
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg };
+  }
+}
+
 // Tool definitions for function calling
 export const GMAIL_TOOLS: {
   type: "function";

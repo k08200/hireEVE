@@ -36,6 +36,8 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3001/api/auth/google/callback}
+      GMAIL_PUBSUB_TOPIC: ${GMAIL_PUBSUB_TOPIC:-}
+      GMAIL_PUSH_TOKEN: ${GMAIL_PUSH_TOKEN:-}
       FRONTEND_URL: http://localhost:3000
     depends_on:
       postgres:
