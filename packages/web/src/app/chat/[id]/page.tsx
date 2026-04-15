@@ -727,13 +727,15 @@ function ChatPageContent() {
                             return `To: ${args.to || "?"} · ${args.subject || "No subject"}`;
                           if (name === "create_event")
                             return `${args.title || "Event"} · ${args.startTime ? new Date(args.startTime).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}${args.location ? ` · ${args.location}` : ""}`;
-                          if (name === "create_task")
-                            return args.title || "New task";
-                          if (name === "create_note")
-                            return args.title || "New note";
+                          if (name === "create_task") return args.title || "New task";
+                          if (name === "create_note") return args.title || "New note";
                           if (name === "create_contact")
                             return `${args.name || "?"} ${args.email ? `(${args.email})` : ""}`;
-                          if (name === "delete_task" || name === "delete_note" || name === "delete_contact")
+                          if (
+                            name === "delete_task" ||
+                            name === "delete_note" ||
+                            name === "delete_contact"
+                          )
                             return `Delete: ${args.id || "?"}`;
                           return null;
                         })();
