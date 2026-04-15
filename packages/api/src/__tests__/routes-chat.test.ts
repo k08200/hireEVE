@@ -206,6 +206,30 @@ describe("chat routes (conversation CRUD)", () => {
     await app.close();
   });
 
+  it("rejects conversation creation with empty title", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations",
+      headers: auth(),
+      payload: { title: "   " },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("rejects conversation creation with invalid title type", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations",
+      headers: auth(),
+      payload: { title: { bad: true } },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
   // GET /conversations
   it("lists conversations", async () => {
     const app = await buildApp();
@@ -290,6 +314,40 @@ describe("chat routes (conversation CRUD)", () => {
     await app.close();
   });
 
+  it("rejects updating conversation with empty title", async () => {
+    const app = await buildApp();
+    const c = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations",
+      headers: auth(),
+    });
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/api/chat/conversations/${c.json().id}`,
+      headers: auth(),
+      payload: { title: "   " },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("rejects updating conversation with invalid pinned type", async () => {
+    const app = await buildApp();
+    const c = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations",
+      headers: auth(),
+    });
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/api/chat/conversations/${c.json().id}`,
+      headers: auth(),
+      payload: { pinned: "yes" },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
   // DELETE /conversations/:id
   it("deletes own conversation", async () => {
     const app = await buildApp();
@@ -361,6 +419,40 @@ describe("chat routes (conversation CRUD)", () => {
       headers: auth(OTHER),
     });
     expect(res.statusCode).toBe(403);
+    await app.close();
+  });
+
+  it("rejects sending an empty chat message", async () => {
+    const app = await buildApp();
+    const c = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations",
+      headers: auth(),
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/chat/conversations/${c.json().id}/messages`,
+      headers: auth(),
+      payload: { content: "   " },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("rejects sending a chat message with invalid content type", async () => {
+    const app = await buildApp();
+    const c = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations",
+      headers: auth(),
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/chat/conversations/${c.json().id}/messages`,
+      headers: auth(),
+      payload: { content: { bad: true } },
+    });
+    expect(res.statusCode).toBe(400);
     await app.close();
   });
 });

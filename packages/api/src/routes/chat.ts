@@ -4,10 +4,9 @@ import { compactHistory, forceCompact, isTokenLimitError } from "../context-comp
 import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai, resolveUserChatModel } from "../openai.js";
-import { sendPushNotification } from "../push.js";
 import { Semaphore } from "../semaphore.js";
 import { getEffectivePlan } from "../stripe.js";
-import { executeToolCall, getToolsForPlan, isToolAllowedForPlan } from "../tool-executor.js";
+import { executeToolCall, getToolsForPlan } from "../tool-executor.js";
 
 /** Shared semaphore for chat tool execution — limits concurrent tool calls per request */
 const chatToolSemaphore = new Semaphore(5);
@@ -48,33 +47,122 @@ async function autoGenerateTitle(conversationId: string, userMessage: string) {
     // Title generation is non-critical, silently fail
   }
 }
-export async function chatRoutes(app: FastifyInstance) {
+
+const idParamSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["id"],
+  properties: {
+    id: { type: "string", minLength: 1 },
+  },
+} as const;
+
+const messageIdParamSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["msgId"],
+  properties: {
+    msgId: { type: "string", minLength: 1 },
+  },
+} as const;
+
+const actionIdParamSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["actionId"],
+  properties: {
+    actionId: { type: "string", minLength: 1 },
+  },
+} as const;
+
+const createConversationBodySchema = {
+  anyOf: [
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        title: { type: "string", minLength: 1, maxLength: 120 },
+        initialMessage: { type: "string", minLength: 1, maxLength: 10000 },
+      },
+    },
+    { type: "null" },
+  ],
+} as const;
+
+const updateConversationBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  minProperties: 1,
+  properties: {
+    title: { type: "string", minLength: 1, maxLength: 120 },
+    pinned: { type: "boolean" },
+  },
+} as const;
+
+const searchQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    q: { type: "string", maxLength: 200 },
+  },
+} as const;
+
+const sendMessageBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["content"],
+  properties: {
+    content: { type: "string", minLength: 1, maxLength: 20000 },
+  },
+} as const;
+
+const rejectActionBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    reason: { type: "string", minLength: 1, maxLength: 500 },
+  },
+} as const;
+
+function hasMeaningfulText(value: string | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+export function chatRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
 
   // POST /api/chat/conversations — Create new conversation
   // Optional body: { title?: string, initialMessage?: string }
-  app.post("/conversations", async (request, reply) => {
+  app.post("/conversations", { schema: { body: createConversationBodySchema } }, async (request, reply) => {
     const userId = getUserId(request);
     const body = (request.body || {}) as { title?: string; initialMessage?: string };
+
+    if (body.title !== undefined && !hasMeaningfulText(body.title)) {
+      return reply.code(400).send({ error: "Title cannot be empty" });
+    }
+    if (body.initialMessage !== undefined && !hasMeaningfulText(body.initialMessage)) {
+      return reply.code(400).send({ error: "Initial message cannot be empty" });
+    }
 
     const conversation = await prisma.conversation.create({
       data: {
         userId,
-        ...(body.title ? { title: body.title } : {}),
+        ...(body.title ? { title: body.title.trim() } : {}),
       },
     });
 
     // If initialMessage provided, create a user message and trigger auto-title
     if (body.initialMessage) {
+      const initialMessage = body.initialMessage.trim();
       await prisma.message.create({
         data: {
           conversationId: conversation.id,
           role: "USER",
-          content: body.initialMessage,
+          content: initialMessage,
         },
       });
       if (!body.title) {
-        autoGenerateTitle(conversation.id, body.initialMessage);
+        autoGenerateTitle(conversation.id, initialMessage);
       }
     }
 
@@ -127,7 +215,7 @@ export async function chatRoutes(app: FastifyInstance) {
   });
 
   // GET /api/chat/conversations/:id — Get conversation with messages
-  app.get("/conversations/:id", async (request, reply) => {
+  app.get("/conversations/:id", { schema: { params: idParamSchema } }, async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
 
@@ -144,7 +232,10 @@ export async function chatRoutes(app: FastifyInstance) {
   });
 
   // PATCH /api/chat/conversations/:id — Update conversation (title, pinned)
-  app.patch("/conversations/:id", async (request, reply) => {
+  app.patch(
+    "/conversations/:id",
+    { schema: { params: idParamSchema, body: updateConversationBodySchema } },
+    async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
     const body = request.body as { title?: string; pinned?: boolean };
@@ -152,17 +243,21 @@ export async function chatRoutes(app: FastifyInstance) {
     const conversation = await prisma.conversation.findUnique({ where: { id } });
     if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
     if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+    if (body.title !== undefined && !hasMeaningfulText(body.title)) {
+      return reply.code(400).send({ error: "Title cannot be empty" });
+    }
 
     const data: { title?: string; pinned?: boolean } = {};
-    if (body.title !== undefined) data.title = body.title;
+    if (body.title !== undefined) data.title = body.title.trim();
     if (body.pinned !== undefined) data.pinned = body.pinned;
 
     const updated = await prisma.conversation.update({ where: { id }, data });
     return reply.send(updated);
-  });
+    },
+  );
 
   // DELETE /api/chat/conversations/:id
-  app.delete("/conversations/:id", async (request, reply) => {
+  app.delete("/conversations/:id", { schema: { params: idParamSchema } }, async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
 
@@ -184,7 +279,7 @@ export async function chatRoutes(app: FastifyInstance) {
   });
 
   // GET /api/chat/conversations/:id/export — Export conversation as markdown
-  app.get("/conversations/:id/export", async (request, reply) => {
+  app.get("/conversations/:id/export", { schema: { params: idParamSchema } }, async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
     const convo = await prisma.conversation.findUnique({
@@ -210,7 +305,7 @@ export async function chatRoutes(app: FastifyInstance) {
   });
 
   // DELETE /api/chat/messages/:msgId — Delete a single message
-  app.delete("/messages/:msgId", async (request, reply) => {
+  app.delete("/messages/:msgId", { schema: { params: messageIdParamSchema } }, async (request, reply) => {
     const userId = getUserId(request);
     const { msgId } = request.params as { msgId: string };
     try {
@@ -229,7 +324,7 @@ export async function chatRoutes(app: FastifyInstance) {
   });
 
   // POST /api/chat/conversations/:id/retry — Regenerate last assistant response
-  app.post("/conversations/:id/retry", async (request, reply) => {
+  app.post("/conversations/:id/retry", { schema: { params: idParamSchema } }, async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
 
@@ -435,7 +530,7 @@ export async function chatRoutes(app: FastifyInstance) {
   });
 
   // GET /api/chat/search?q=keyword — Search across all conversations
-  app.get("/search", async (request) => {
+  app.get("/search", { schema: { querystring: searchQuerySchema } }, async (request) => {
     const userId = getUserId(request);
     const { q } = request.query as { q?: string };
     if (!q || q.trim().length < 2) {
@@ -467,10 +562,17 @@ export async function chatRoutes(app: FastifyInstance) {
   });
 
   // POST /api/chat/conversations/:id/messages — Send message + SSE streaming response
-  app.post("/conversations/:id/messages", async (request, reply) => {
+  app.post(
+    "/conversations/:id/messages",
+    { schema: { params: idParamSchema, body: sendMessageBodySchema } },
+    async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
     const { content } = request.body as { content: string };
+    if (!hasMeaningfulText(content)) {
+      return reply.code(400).send({ error: "Message content cannot be empty" });
+    }
+    const trimmedContent = content.trim();
 
     // Verify conversation exists and belongs to user
     const conversation = await prisma.conversation.findUnique({
@@ -533,13 +635,14 @@ export async function chatRoutes(app: FastifyInstance) {
 
     // Save user message
     await prisma.message.create({
-      data: { conversationId: id, role: "USER", content },
+      data: { conversationId: id, role: "USER", content: trimmedContent },
     });
 
     // Auto-generate title from first message (LLM-powered, async)
     if (!conversation.title && conversation.messages.length === 0) {
       // Set a quick fallback title immediately
-      const fallback = content.length > 50 ? `${content.slice(0, 50)}...` : content;
+      const fallback =
+        trimmedContent.length > 50 ? `${trimmedContent.slice(0, 50)}...` : trimmedContent;
       await prisma.conversation.update({
         where: { id },
         data: { title: fallback },
@@ -555,7 +658,7 @@ export async function chatRoutes(app: FastifyInstance) {
               content:
                 "Generate a short conversation title (max 40 chars) for this message. Reply with ONLY the title, no quotes or explanation. Use the same language as the user.",
             },
-            { role: "user", content },
+            { role: "user", content: trimmedContent },
           ],
         })
         .then((res) => {
@@ -874,7 +977,7 @@ export async function chatRoutes(app: FastifyInstance) {
 
       // Auto-generate title after first message (fire-and-forget)
       if (conversation.messages.length === 0) {
-        autoGenerateTitle(id, content);
+        autoGenerateTitle(id, trimmedContent);
       }
 
       reply.raw.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
@@ -907,10 +1010,14 @@ export async function chatRoutes(app: FastifyInstance) {
     } catch {
       // Client already disconnected
     }
-  });
+    },
+  );
 
   // GET /api/chat/conversations/:id/pending-actions — Get pending actions for a conversation
-  app.get("/conversations/:id/pending-actions", async (request, reply) => {
+  app.get(
+    "/conversations/:id/pending-actions",
+    { schema: { params: idParamSchema } },
+    async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
 
@@ -923,10 +1030,14 @@ export async function chatRoutes(app: FastifyInstance) {
       orderBy: { createdAt: "desc" },
     });
     return { actions };
-  });
+    },
+  );
 
   // POST /api/chat/pending-actions/:id/approve — Approve and execute a pending action
-  app.post("/pending-actions/:actionId/approve", async (request, reply) => {
+  app.post(
+    "/pending-actions/:actionId/approve",
+    { schema: { params: actionIdParamSchema } },
+    async (request, reply) => {
     const userId = getUserId(request);
     const { actionId } = request.params as { actionId: string };
 
@@ -1004,13 +1115,20 @@ export async function chatRoutes(app: FastifyInstance) {
 
       return reply.code(500).send({ error: message });
     }
-  });
+    },
+  );
 
   // POST /api/chat/pending-actions/:id/reject — Reject a pending action
-  app.post("/pending-actions/:actionId/reject", async (request, reply) => {
+  app.post(
+    "/pending-actions/:actionId/reject",
+    { schema: { params: actionIdParamSchema, body: rejectActionBodySchema } },
+    async (request, reply) => {
     const userId = getUserId(request);
     const { actionId } = request.params as { actionId: string };
     const { reason } = (request.body as { reason?: string }) || {};
+    if (reason !== undefined && !hasMeaningfulText(reason)) {
+      return reply.code(400).send({ error: "Rejection reason cannot be empty" });
+    }
 
     const action = await db.pendingAction.findUnique({
       where: { id: actionId },
@@ -1051,10 +1169,11 @@ export async function chatRoutes(app: FastifyInstance) {
     // Learn from rejection for pattern detection
     import("../pattern-learner.js")
       .then(({ learnFromRejection }) =>
-        learnFromRejection(userId, action.toolName, action.reasoning || "", reason || ""),
+        learnFromRejection(userId, action.toolName, action.reasoning || "", reason?.trim() || ""),
       )
       .catch(() => {});
 
     return { success: true };
-  });
+    },
+  );
 }
