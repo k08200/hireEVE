@@ -189,10 +189,7 @@ export default function Sidebar({
   // Close user menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(e.target as Node)
-      ) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
         setShowUserMenu(false);
       }
     };
@@ -215,12 +212,7 @@ export default function Sidebar({
 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<
-    {
-      messageId: string;
-      conversationId: string;
-      conversationTitle: string;
-      content: string;
-    }[]
+    { messageId: string; conversationId: string; conversationTitle: string; content: string }[]
   >([]);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -288,9 +280,7 @@ export default function Sidebar({
         body: JSON.stringify({ title: editTitle }),
       });
       if (!res.ok) throw new Error();
-      setConversations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c)),
-      );
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c)));
     } catch {
       toast("Rename failed", "error");
     }
@@ -320,13 +310,9 @@ export default function Sidebar({
     }
   };
 
-  const activeConvId = pathname.startsWith("/chat/")
-    ? pathname.split("/chat/")[1]
-    : null;
+  const activeConvId = pathname.startsWith("/chat/") ? pathname.split("/chat/")[1] : null;
   const filtered = search
-    ? conversations.filter((c) =>
-        (c.title || "").toLowerCase().includes(search.toLowerCase()),
-      )
+    ? conversations.filter((c) => (c.title || "").toLowerCase().includes(search.toLowerCase()))
     : conversations;
   // Separate agent suggestions (with pending actions) from regular conversations
   const agentSuggestions = filtered.filter(
@@ -335,17 +321,11 @@ export default function Sidebar({
   const regularConvs = filtered.filter(
     (c) => !(c.source === "agent" && (c.pendingActionCount || 0) > 0),
   );
-  const totalPending = agentSuggestions.reduce(
-    (sum, c) => sum + (c.pendingActionCount || 0),
-    0,
-  );
+  const totalPending = agentSuggestions.reduce((sum, c) => sum + (c.pendingActionCount || 0), 0);
   const pinned = regularConvs.filter((c) => c.pinned);
   const unpinned = regularConvs.filter((c) => !c.pinned);
   const groups = groupByDate(
-    [...unpinned].sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    ),
+    [...unpinned].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
   );
 
   const initials = user
@@ -473,9 +453,7 @@ export default function Sidebar({
         {/* Deep search results (message content search) */}
         {searchResults.length > 0 && (
           <div className="mb-3">
-            <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">
-              Found in messages
-            </p>
+            <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">Found in messages</p>
             {searchResults.slice(0, 5).map((r) => (
               <Link
                 key={r.messageId}
@@ -486,9 +464,7 @@ export default function Sidebar({
                 <p className="text-[12px] text-gray-300 truncate font-medium">
                   {r.conversationTitle}
                 </p>
-                <p className="text-[11px] text-gray-500 truncate mt-0.5">
-                  {r.content}
-                </p>
+                <p className="text-[11px] text-gray-500 truncate mt-0.5">{r.content}</p>
               </Link>
             ))}
           </div>
@@ -514,10 +490,7 @@ export default function Sidebar({
               return (
                 <div key={conv.id} className="relative group/conv">
                   {editingId === conv.id ? (
-                    <form
-                      onSubmit={(e) => saveRename(e, conv.id)}
-                      className="px-2 py-1"
-                    >
+                    <form onSubmit={(e) => saveRename(e, conv.id)} className="px-2 py-1">
                       <input
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
@@ -617,18 +590,13 @@ export default function Sidebar({
 
         {groups.map((group) => (
           <div key={group.label} className="mb-3">
-            <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">
-              {group.label}
-            </p>
+            <p className="text-[11px] font-medium text-gray-500 px-2 py-1.5">{group.label}</p>
             {group.items.map((conv) => {
               const isActive = activeConvId === conv.id;
               return (
                 <div key={conv.id} className="relative group/conv">
                   {editingId === conv.id ? (
-                    <form
-                      onSubmit={(e) => saveRename(e, conv.id)}
-                      className="px-2 py-1"
-                    >
+                    <form onSubmit={(e) => saveRename(e, conv.id)} className="px-2 py-1">
                       <input
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
@@ -775,9 +743,7 @@ export default function Sidebar({
       {deleteConfirm && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg">
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 mx-4 shadow-2xl max-w-[220px]">
-            <p className="text-sm text-gray-200 mb-3">
-              Delete this conversation?
-            </p>
+            <p className="text-sm text-gray-200 mb-3">Delete this conversation?</p>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -811,9 +777,7 @@ export default function Sidebar({
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] text-gray-300 truncate">
-                  {user.name || user.email}
-                </p>
+                <p className="text-[13px] text-gray-300 truncate">{user.name || user.email}</p>
               </div>
               <svg
                 aria-hidden="true"
@@ -907,10 +871,7 @@ export default function Sidebar({
       {/* Mobile overlay */}
       {mobileOpen && (
         <>
-          <div
-            className="fixed inset-0 bg-black/60 z-40 md:hidden"
-            onClick={onMobileClose}
-          />
+          <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={onMobileClose} />
           <aside className="fixed inset-y-0 left-0 w-[280px] z-50 md:hidden animate-slide-in-left">
             {sidebarContent}
           </aside>
