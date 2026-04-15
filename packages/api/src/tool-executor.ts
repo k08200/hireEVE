@@ -71,6 +71,7 @@ import {
   REMINDER_TOOLS,
 } from "./reminders.js";
 import { SEARCH_TOOLS, webSearch } from "./search.js";
+import { executeSkill, listUserSkills, SKILL_TOOLS } from "./skill-executor.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
 import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
 import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";
@@ -114,6 +115,7 @@ export const ALWAYS_TOOLS = [
   ...NEWS_TOOLS,
   ...UTILITY_TOOLS,
   ...MEMORY_TOOLS,
+  ...SKILL_TOOLS,
   TIME_TOOL,
   ...(SLACK_CONFIGURED ? SLACK_TOOLS : []),
   ...(NOTION_CONFIGURED ? NOTION_TOOLS : []),
@@ -517,6 +519,16 @@ async function executeToolCallInternal(
           requireString(args.key, "key"),
           requireString(args.type, "type"),
         );
+      case "execute_skill":
+        return JSON.stringify(
+          await executeSkill(
+            userId,
+            requireString(args.skill_name, "skill_name"),
+            (args.variables as Record<string, string>) || undefined,
+          ),
+        );
+      case "list_skills":
+        return JSON.stringify(await listUserSkills(userId));
       default:
         return JSON.stringify({ error: `Unknown function: ${functionName}` });
     }

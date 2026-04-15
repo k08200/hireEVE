@@ -67,6 +67,10 @@ const TOOL_RISK_LEVELS = new Map<string, RiskLevel>([
   ["update_contact", "MEDIUM"],
   ["create_contact", "MEDIUM"],
 
+  // LOW — skill execution (prompt template, no external side effect)
+  ["execute_skill", "LOW"],
+  ["list_skills", "LOW"],
+
   // HIGH — destructive or hard to reverse
   ["delete_task", "HIGH"],
   ["delete_reminder", "HIGH"],

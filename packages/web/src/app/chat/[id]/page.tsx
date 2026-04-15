@@ -54,6 +54,10 @@ function ChatPageContent() {
   const [pendingActions, setPendingActions] = useState<Map<string, PendingAction>>(new Map());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [skillsList, setSkillsList] = useState<
+    Array<{ id: string; name: string; description: string; prompt: string }>
+  >([]);
+  const [showSkillPicker, setShowSkillPicker] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const prefillHandled = useRef(false);
   const { toast } = useToast();
@@ -137,9 +141,27 @@ function ChatPageContent() {
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
+    const val = e.target.value;
+    setInput(val);
     e.target.style.height = "auto";
     e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+
+    if (val === "/") {
+      apiFetch<{ skills: typeof skillsList }>("/api/skills")
+        .then((data) => {
+          setSkillsList(data.skills || []);
+          setShowSkillPicker(true);
+        })
+        .catch(() => setShowSkillPicker(false));
+    } else if (!val.startsWith("/") || val.includes(" ")) {
+      setShowSkillPicker(false);
+    }
+  };
+
+  const selectSkill = (skill: { name: string; prompt: string }) => {
+    setInput(`Run skill "${skill.name}"`);
+    setShowSkillPicker(false);
+    inputRef.current?.focus();
   };
 
   const generateSuggestions = (userMsg: string, assistantMsg: string) => {
@@ -441,6 +463,10 @@ function ChatPageContent() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && showSkillPicker) {
+      setShowSkillPicker(false);
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       sendMessage();
@@ -1030,6 +1056,40 @@ function ChatPageContent() {
               >
                 x
               </button>
+            </div>
+          )}
+
+          {/* Skill picker dropdown */}
+          {showSkillPicker && skillsList.length > 0 && (
+            <div className="mb-2 rounded-xl bg-gray-900 border border-gray-700 overflow-hidden max-h-48 overflow-y-auto">
+              {skillsList.map((skill) => (
+                <button
+                  key={skill.id}
+                  type="button"
+                  onClick={() => selectSkill(skill)}
+                  className="w-full text-left px-4 py-2.5 hover:bg-gray-800 transition flex items-center gap-3"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-yellow-500 shrink-0"
+                  >
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  <div className="min-w-0">
+                    <span className="text-sm text-white">{skill.name}</span>
+                    {skill.description && (
+                      <span className="text-xs text-gray-500 ml-2">{skill.description}</span>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           )}
 
