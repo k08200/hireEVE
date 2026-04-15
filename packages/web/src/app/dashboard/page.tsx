@@ -399,58 +399,26 @@ function DashboardContent() {
           <div className="text-center mb-10">
             <h2 className="text-xl font-bold mb-2">Welcome to EVE</h2>
             <p className="text-gray-400 text-sm max-w-md mx-auto">
-              Get started by trying one of these.
+              Connect your Google account and EVE starts working for you automatically.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto">
             {[
               {
-                href: "/chat",
-                title: "Chat with EVE",
-                desc: "Ask anything — email, scheduling, research",
+                href: "/settings",
+                title: "Connect Google",
+                desc: "Link Gmail & Calendar — EVE handles the rest",
                 descKr: "",
                 color:
                   "from-blue-600/20 to-blue-800/10 border-blue-500/30 hover:border-blue-400/50",
               },
               {
-                href: "/email",
-                title: "Check Email",
-                desc: "Read, classify, and reply to emails",
+                href: "/chat",
+                title: "Chat with EVE",
+                desc: "Ask anything in plain language",
                 descKr: "",
                 color:
-                  "from-cyan-600/20 to-cyan-800/10 border-cyan-500/30 hover:border-cyan-400/50",
-              },
-              {
-                href: "/calendar",
-                title: "View Calendar",
-                desc: "Schedule and manage events",
-                descKr: "",
-                color:
-                  "from-purple-600/20 to-purple-800/10 border-purple-500/30 hover:border-purple-400/50",
-              },
-              {
-                href: "/tasks",
-                title: "Create a Task",
-                desc: "Track your to-dos and priorities",
-                descKr: "",
-                color:
-                  "from-green-600/20 to-green-800/10 border-green-500/30 hover:border-green-400/50",
-              },
-              {
-                href: "/notes",
-                title: "Write a Note",
-                desc: "Capture ideas and memos",
-                descKr: "",
-                color:
-                  "from-yellow-600/20 to-yellow-800/10 border-yellow-500/30 hover:border-yellow-400/50",
-              },
-              {
-                href: "/settings",
-                title: "Connect Integrations",
-                desc: "Gmail, Calendar, Slack, Notion",
-                descKr: "",
-                color:
-                  "from-gray-600/20 to-gray-800/10 border-gray-500/30 hover:border-gray-400/50",
+                  "from-emerald-600/20 to-emerald-800/10 border-emerald-500/30 hover:border-emerald-400/50",
               },
             ].map((card) => (
               <Link
