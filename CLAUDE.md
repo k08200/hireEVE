@@ -51,7 +51,9 @@
 7. ~~스킬 시스템~~ → `skill-executor.ts` (execute_skill/list_skills 도구 + `/skills` 관리 페이지 + 채팅 `/` 피커)
 8. ~~이벤트 트리거~~ → `gmail-push.ts` (Pub/Sub 웹훅 + registerGmailWatch + 자동 갱신 + 설정 UI)
 9. ~~도구 배치 처리~~ → `semaphore.ts` + `batch-tools.ts` (chat.ts Promise.all + 세마포어 동시 5개 제한)
-10. ~~대화 검색~~ → `chat.ts` GET `/api/chat/search?q=` (Prisma contains + insensitive) + 사이드바 검색 UI
+
+### 다음 기능 후보
+- 대화 검색 — full-text search
 
 ---
 
