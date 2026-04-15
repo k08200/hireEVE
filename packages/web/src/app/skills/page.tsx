@@ -120,9 +120,7 @@ export default function SkillsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-semibold text-white">Skills</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Reusable workflows EVE can run for you
-            </p>
+            <p className="text-sm text-gray-500 mt-1">Reusable workflows EVE can run for you</p>
           </div>
           {!showForm && (
             <button
@@ -153,9 +151,7 @@ export default function SkillsPage() {
                 type="text"
                 placeholder="Description (optional)"
                 value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="w-full px-3 py-2 text-sm bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gray-600"
               />
               <textarea
@@ -206,8 +202,7 @@ export default function SkillsPage() {
           <div className="text-center py-16 text-gray-500">
             <p className="text-lg mb-1">No skills yet</p>
             <p className="text-sm">
-              Create a skill to save a reusable workflow. EVE can run it
-              anytime.
+              Create a skill to save a reusable workflow. EVE can run it anytime.
             </p>
           </div>
         ) : (
@@ -223,18 +218,12 @@ export default function SkillsPage() {
                   <div className="flex items-start justify-between">
                     <button
                       type="button"
-                      onClick={() =>
-                        setExpandedId(isExpanded ? null : skill.id)
-                      }
+                      onClick={() => setExpandedId(isExpanded ? null : skill.id)}
                       className="text-left flex-1 min-w-0"
                     >
-                      <h3 className="text-sm font-medium text-white truncate">
-                        {skill.name}
-                      </h3>
+                      <h3 className="text-sm font-medium text-white truncate">{skill.name}</h3>
                       {skill.description && (
-                        <p className="text-xs text-gray-500 mt-0.5 truncate">
-                          {skill.description}
-                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">{skill.description}</p>
                       )}
                       {vars.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">

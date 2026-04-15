@@ -54,7 +54,6 @@ import {
 } from "./macos.js";
 import { getUpcomingMeetings, joinMeeting, MEETING_TOOLS, summarizeMeeting } from "./meeting.js";
 import { forget, MEMORY_TOOLS, recall, remember } from "./memory.js";
-import { executeSkill, listUserSkills, SKILL_TOOLS } from "./skill-executor.js";
 import { getNews, NEWS_TOOLS } from "./news.js";
 import { createNote, deleteNote, listNotes, NOTE_TOOLS, updateNote } from "./notes.js";
 import {
@@ -72,6 +71,7 @@ import {
   REMINDER_TOOLS,
 } from "./reminders.js";
 import { SEARCH_TOOLS, webSearch } from "./search.js";
+import { executeSkill, listUserSkills, SKILL_TOOLS } from "./skill-executor.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
 import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
 import { createTask, deleteTask, listTasks, TASK_TOOLS, updateTask } from "./tasks.js";

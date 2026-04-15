@@ -54,7 +54,9 @@ function ChatPageContent() {
   const [pendingActions, setPendingActions] = useState<Map<string, PendingAction>>(new Map());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [skillsList, setSkillsList] = useState<Array<{ id: string; name: string; description: string; prompt: string }>>([]);
+  const [skillsList, setSkillsList] = useState<
+    Array<{ id: string; name: string; description: string; prompt: string }>
+  >([]);
   const [showSkillPicker, setShowSkillPicker] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const prefillHandled = useRef(false);
@@ -1067,12 +1069,24 @@ function ChatPageContent() {
                   onClick={() => selectSkill(skill)}
                   className="w-full text-left px-4 py-2.5 hover:bg-gray-800 transition flex items-center gap-3"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500 shrink-0">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-yellow-500 shrink-0"
+                  >
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
                   <div className="min-w-0">
                     <span className="text-sm text-white">{skill.name}</span>
-                    {skill.description && <span className="text-xs text-gray-500 ml-2">{skill.description}</span>}
+                    {skill.description && (
+                      <span className="text-xs text-gray-500 ml-2">{skill.description}</span>
+                    )}
                   </div>
                 </button>
               ))}
