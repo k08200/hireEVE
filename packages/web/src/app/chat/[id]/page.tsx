@@ -46,15 +46,22 @@ function ChatPageContent() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [attachment, setAttachment] = useState<{ name: string; content: string } | null>(null);
+  const [attachment, setAttachment] = useState<{
+    name: string;
+    content: string;
+  } | null>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
-  const [pendingActions, setPendingActions] = useState<Map<string, PendingAction>>(new Map());
+  const [pendingActions, setPendingActions] = useState<
+    Map<string, PendingAction>
+  >(new Map());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [skillsList, setSkillsList] = useState<Array<{ id: string; name: string; description: string; prompt: string }>>([]);
+  const [skillsList, setSkillsList] = useState<
+    Array<{ id: string; name: string; description: string; prompt: string }>
+  >([]);
   const [showSkillPicker, setShowSkillPicker] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const prefillHandled = useRef(false);
@@ -64,7 +71,9 @@ function ChatPageContent() {
   useEffect(() => {
     const loadController = new AbortController();
 
-    apiFetch<{ messages: Message[]; title?: string | null }>(`/api/chat/conversations/${id}`)
+    apiFetch<{ messages: Message[]; title?: string | null }>(
+      `/api/chat/conversations/${id}`,
+    )
       .then((data) => {
         if (loadController.signal.aborted) return;
         setLoadError(null);
@@ -85,7 +94,8 @@ function ChatPageContent() {
       })
       .catch((err) => {
         if (loadController.signal.aborted) return;
-        const msg = err instanceof Error ? err.message : "Failed to load conversation";
+        const msg =
+          err instanceof Error ? err.message : "Failed to load conversation";
         if (msg.includes("403") || msg.includes("Forbidden")) {
           setLoadError(
             "Cannot access this conversation. You may be logged into a different account.",
@@ -98,7 +108,9 @@ function ChatPageContent() {
       });
 
     // Fetch pending actions for this conversation
-    apiFetch<{ actions: PendingAction[] }>(`/api/chat/conversations/${id}/pending-actions`)
+    apiFetch<{ actions: PendingAction[] }>(
+      `/api/chat/conversations/${id}/pending-actions`,
+    )
       .then((data) => {
         if (loadController.signal.aborted) return;
         const map = new Map<string, PendingAction>();
@@ -254,12 +266,15 @@ function ChatPageContent() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ content: messageContent }),
-        signal: controller.signal,
-      });
+      const res = await fetch(
+        `${API_BASE}/api/chat/conversations/${id}/messages`,
+        {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ content: messageContent }),
+          signal: controller.signal,
+        },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       await processStream(res, messageContent);
     } catch (err) {
@@ -267,10 +282,13 @@ function ChatPageContent() {
         // User cancelled — don't retry
       } else {
         // Auto-retry with exponential backoff (max 2 retries)
-        const retryCount = (streamResponseDirect as unknown as { _retries?: number })._retries || 0;
+        const retryCount =
+          (streamResponseDirect as unknown as { _retries?: number })._retries ||
+          0;
         if (retryCount < 2) {
           const delay = Math.min(1000 * 2 ** retryCount, 8000);
-          (streamResponseDirect as unknown as { _retries: number })._retries = retryCount + 1;
+          (streamResponseDirect as unknown as { _retries: number })._retries =
+            retryCount + 1;
           setStreamingContent("Connection lost. Reconnecting...");
           await new Promise((r) => setTimeout(r, delay));
           if (!abortRef.current?.signal.aborted) {
@@ -309,12 +327,15 @@ function ChatPageContent() {
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/messages`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ content: messageContent }),
-        signal: controller.signal,
-      });
+      const res = await fetch(
+        `${API_BASE}/api/chat/conversations/${id}/messages`,
+        {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ content: messageContent }),
+          signal: controller.signal,
+        },
+      );
 
       if (res.status === 402) {
         const err = await res.json();
@@ -363,10 +384,13 @@ function ChatPageContent() {
     setStreamingContent("");
 
     try {
-      const res = await fetch(`${API_BASE}/api/chat/conversations/${id}/retry`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
+      const res = await fetch(
+        `${API_BASE}/api/chat/conversations/${id}/retry`,
+        {
+          method: "POST",
+          headers: authHeaders(),
+        },
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       await processStream(res, "");
     } catch {
@@ -498,11 +522,14 @@ function ChatPageContent() {
   const handleActionApprove = async (actionId: string) => {
     setActionLoading(actionId);
     try {
-      await apiFetch(`/api/chat/pending-actions/${actionId}/approve`, { method: "POST" });
+      await apiFetch(`/api/chat/pending-actions/${actionId}/approve`, {
+        method: "POST",
+      });
       setPendingActions((prev) => {
         const next = new Map(prev);
         const action = [...prev.values()].find((a) => a.id === actionId);
-        if (action) next.set(action.messageId, { ...action, status: "EXECUTED" });
+        if (action)
+          next.set(action.messageId, { ...action, status: "EXECUTED" });
         return next;
       });
       toast("Done", "success");
@@ -528,7 +555,8 @@ function ChatPageContent() {
       setPendingActions((prev) => {
         const next = new Map(prev);
         const action = [...prev.values()].find((a) => a.id === actionId);
-        if (action) next.set(action.messageId, { ...action, status: "REJECTED" });
+        if (action)
+          next.set(action.messageId, { ...action, status: "REJECTED" });
         return next;
       });
       // Reload messages to get the follow-up message
@@ -594,7 +622,10 @@ function ChatPageContent() {
                 </svg>
               </div>
               <p className="text-gray-300 text-sm mb-4">{loadError}</p>
-              <a href="/chat" className="text-sm text-blue-400 hover:text-blue-300 transition">
+              <a
+                href="/chat"
+                className="text-sm text-blue-400 hover:text-blue-300 transition"
+              >
                 Back to chats
               </a>
             </div>
@@ -607,7 +638,9 @@ function ChatPageContent() {
               <h2 className="text-xl font-semibold text-gray-200 mb-1">
                 How can I help you today?
               </h2>
-              <p className="text-sm text-gray-500 mb-8">Ask me anything or pick a starter below</p>
+              <p className="text-sm text-gray-500 mb-8">
+                Ask me anything or pick a starter below
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
                 {[
                   {
@@ -623,7 +656,8 @@ function ChatPageContent() {
                   {
                     icon: "📅",
                     title: "Schedule overview",
-                    prompt: "Show today and tomorrow's schedule with free slots",
+                    prompt:
+                      "Show today and tomorrow's schedule with free slots",
                   },
                   {
                     icon: "📝",
@@ -651,7 +685,9 @@ function ChatPageContent() {
                       <p className="text-sm font-medium text-gray-300 group-hover:text-white transition">
                         {starter.title}
                       </p>
-                      <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">{starter.prompt}</p>
+                      <p className="text-xs text-gray-600 mt-0.5 line-clamp-1">
+                        {starter.prompt}
+                      </p>
                     </div>
                   </button>
                 ))}
@@ -756,8 +792,10 @@ function ChatPageContent() {
                             return `To: ${args.to || "?"} · ${args.subject || "No subject"}`;
                           if (name === "create_event")
                             return `${args.title || "Event"} · ${args.startTime ? new Date(args.startTime).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}${args.location ? ` · ${args.location}` : ""}`;
-                          if (name === "create_task") return args.title || "New task";
-                          if (name === "create_note") return args.title || "New note";
+                          if (name === "create_task")
+                            return args.title || "New task";
+                          if (name === "create_note")
+                            return args.title || "New note";
                           if (name === "create_contact")
                             return `${args.name || "?"} ${args.email ? `(${args.email})` : ""}`;
                           if (
@@ -817,8 +855,14 @@ function ChatPageContent() {
                         );
                       }
 
-                      const statusLabel: Record<string, { text: string; color: string }> = {
-                        EXECUTED: { text: "Executed", color: "text-emerald-400" },
+                      const statusLabel: Record<
+                        string,
+                        { text: string; color: string }
+                      > = {
+                        EXECUTED: {
+                          text: "Executed",
+                          color: "text-emerald-400",
+                        },
                         REJECTED: { text: "Rejected", color: "text-gray-500" },
                         FAILED: { text: "Failed", color: "text-red-400" },
                       };
@@ -826,7 +870,9 @@ function ChatPageContent() {
                       if (!status) return null;
 
                       return (
-                        <div className={`flex items-center gap-2 mt-2 text-xs ${status.color}`}>
+                        <div
+                          className={`flex items-center gap-2 mt-2 text-xs ${status.color}`}
+                        >
                           <span className="inline-block w-1.5 h-1.5 rounded-full bg-current" />
                           {status.text}
                           <span className="text-gray-600">
@@ -857,7 +903,14 @@ function ChatPageContent() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         >
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <rect
+                            x="9"
+                            y="9"
+                            width="13"
+                            height="13"
+                            rx="2"
+                            ry="2"
+                          />
                           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                         </svg>
                       </button>
@@ -926,7 +979,9 @@ function ChatPageContent() {
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-gray-300 mb-1.5">EVE</p>
+                  <p className="text-[13px] font-semibold text-gray-300 mb-1.5">
+                    EVE
+                  </p>
                   <div className="text-[15px] text-gray-200 leading-relaxed">
                     <Markdown content={streamingContent} />
                     <span className="inline-block w-0.5 h-5 bg-gray-400 rounded-full animate-pulse ml-0.5 align-text-bottom" />
@@ -981,7 +1036,9 @@ function ChatPageContent() {
         {showScrollBtn && (
           <button
             type="button"
-            onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() =>
+              bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+            }
             className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-300 rounded-full w-9 h-9 flex items-center justify-center shadow-lg transition"
             aria-label="Scroll to bottom"
           >
@@ -1047,7 +1104,9 @@ function ChatPageContent() {
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
               </svg>
-              <span className="text-gray-300 truncate flex-1">{attachment.name}</span>
+              <span className="text-gray-300 truncate flex-1">
+                {attachment.name}
+              </span>
               <button
                 type="button"
                 onClick={() => setAttachment(null)}
@@ -1068,13 +1127,25 @@ function ChatPageContent() {
                   onClick={() => selectSkill(skill)}
                   className="w-full text-left px-4 py-2.5 hover:bg-gray-800 transition flex items-center gap-3"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500 shrink-0">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-yellow-500 shrink-0"
+                  >
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                   </svg>
                   <div className="min-w-0">
                     <span className="text-sm text-white">{skill.name}</span>
                     {skill.description && (
-                      <span className="text-xs text-gray-500 ml-2">{skill.description}</span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        {skill.description}
+                      </span>
                     )}
                   </div>
                 </button>
