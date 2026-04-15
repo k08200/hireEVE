@@ -53,11 +53,8 @@ function groupByDate(convs: Conversation[]): DateGroup[] {
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "grid" },
   { href: "/email", label: "Email", icon: "mail" },
-  { href: "/tasks", label: "Tasks", icon: "check" },
   { href: "/calendar", label: "Calendar", icon: "calendar" },
-  { href: "/notes", label: "Notes", icon: "file" },
-  { href: "/contacts", label: "Contacts", icon: "user" },
-  { href: "/reminders", label: "Reminders", icon: "bell" },
+  { href: "/tasks", label: "Tasks", icon: "check" },
 ];
 
 function NavIcon({ type, size = 16 }: { type: string; size?: number }) {
