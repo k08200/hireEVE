@@ -19,6 +19,7 @@ import {
   syncEmails,
 } from "./email-sync.js";
 import { getAuthedClient, renewExpiringGmailWatches, sendEmail, trashEmail } from "./gmail.js";
+import { runProactiveActions } from "./proactive-actions.js";
 import { sendPushNotification } from "./push.js";
 import { planHasFeature } from "./stripe.js";
 import { pushNotification } from "./websocket.js";
@@ -431,6 +432,12 @@ async function runAutomations() {
           }
         }
       }
+
+      // --- Proactive Actions (rule-based, no LLM cost) ---
+      // Runs for all users regardless of plan — these are core EVE behaviors
+      runProactiveActions(config.userId).catch((err) => {
+        console.error(`[PROACTIVE] Failed for ${config.userId}:`, err);
+      });
     }
   } catch (err) {
     console.error("[AUTOMATION] Scheduler error:", err);
