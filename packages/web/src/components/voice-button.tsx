@@ -41,7 +41,8 @@ export default function VoiceButton({ onTranscript, className }: VoiceButtonProp
       const recognition = new SpeechRecognitionCtor();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = "en-US";
+      // Auto-detect language (Korean + English)
+      recognition.lang = navigator.language.startsWith("ko") ? "ko-KR" : "en-US";
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0]?.[0]?.transcript;

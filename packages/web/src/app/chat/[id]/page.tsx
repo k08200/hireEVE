@@ -3,6 +3,7 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Markdown } from "../../../components/markdown";
+import SpeakButton from "../../../components/speak-button";
 import { useToast } from "../../../components/toast";
 import VoiceButton from "../../../components/voice-button";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
@@ -702,6 +703,9 @@ function ChatPageContent() {
                   ) : (
                     <div className="text-[15px] text-gray-200 leading-relaxed">
                       <Markdown content={msg.content} />
+                      <div className="mt-2">
+                        <SpeakButton text={msg.content} />
+                      </div>
                     </div>
                   )}
 
