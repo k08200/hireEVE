@@ -56,6 +56,8 @@ function LoginForm() {
       } else {
         await register(email, password, name || undefined);
         toast("Account created!", "success");
+        router.push("/dashboard");
+        return;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
@@ -152,9 +154,9 @@ function LoginForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === "register" ? "At least 6 characters" : "Your password"}
+              placeholder={mode === "register" ? "At least 8 characters" : "Your password"}
               required
-              minLength={mode === "register" ? 6 : undefined}
+              minLength={mode === "register" ? 8 : undefined}
               className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition placeholder-gray-500"
             />
           </div>
@@ -231,7 +233,13 @@ function LoginForm() {
             />
           </svg>
           Continue with Google
+          <span className="text-[10px] text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded font-normal">
+            Beta
+          </span>
         </a>
+        <p className="text-[10px] text-gray-600 text-center mt-1.5">
+          Google login is in review. Email sign-up works for everyone.
+        </p>
 
         <div className="mt-3">
           <button

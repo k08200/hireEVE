@@ -11,12 +11,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "EVE — Your First AI Employee",
   description:
-    "An autonomous AI teammate that handles coding, email, scheduling, and more for solo founders.",
+    "An autonomous AI employee that handles email, scheduling, tasks, and more for solo founders and small teams.",
   manifest: "/manifest.json",
   openGraph: {
     title: "EVE — Your First AI Employee",
     description:
-      "An autonomous AI teammate for solo founders. Chat, email, tasks, scheduling, and more.",
+      "An autonomous AI employee for solo founders. Email, tasks, scheduling, and more — all in one conversation.",
     siteName: "hireEVE",
     type: "website",
   },
