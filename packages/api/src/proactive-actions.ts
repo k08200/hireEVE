@@ -53,7 +53,6 @@ async function checkUnansweredEmails(userId: string): Promise<void> {
   const emailList = unanswered
     .map((e) => {
       const from = e.from
-        .replace(/<[^>]*>/g, "")
         .replace(/[<>]/g, "")
         .trim()
         .slice(0, 30);
