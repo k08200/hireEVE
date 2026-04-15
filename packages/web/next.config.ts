@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
         ? "https://hireeve.onrender.com"
         : "http://localhost:8000"),
   },
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
+  experimental: {
+    optimizePackageImports: ["react", "react-dom"],
+  },
 };
 
 export default nextConfig;
