@@ -717,8 +717,19 @@ export function authRoutes(app: FastifyInstance) {
         },
       });
 
-      const webUrl = process.env.WEB_URL || "http://localhost:8001";
-      return reply.redirect(`${webUrl}/login?verified=true`);
+      // Validate WEB_URL to prevent open redirect — only allow http(s) origins
+      const rawUrl = process.env.WEB_URL || "http://localhost:8001";
+      let webOrigin: string;
+      try {
+        const parsed = new URL(rawUrl);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          throw new Error("Invalid protocol");
+        }
+        webOrigin = parsed.origin;
+      } catch {
+        webOrigin = "http://localhost:8001";
+      }
+      return reply.redirect(`${webOrigin}/login?verified=true`);
     },
   );
 
