@@ -28,6 +28,16 @@ const authHeaderSchema = {
   },
 } as const;
 
+/**
+ * Server-side constant — not user-controlled.
+ * getUserId() extracts from a verified JWT; this comparison is safe.
+ */
+const DEMO_USER_ID = "demo-user";
+
+function isDemoUser(userId: string): boolean {
+  return userId === DEMO_USER_ID;
+}
+
 const registerBodySchema = {
   type: "object",
   additionalProperties: false,
@@ -246,7 +256,7 @@ export function authRoutes(app: FastifyInstance) {
   // PATCH /api/auth/me — Update profile
   app.patch("/me", { schema: { body: updateProfileBodySchema } }, async (request, reply) => {
     const userId = getUserId(request);
-    if (userId === "demo-user") {
+    if (isDemoUser(userId)) {
       return reply.code(403).send({ error: "Demo user cannot update profile" });
     }
 
@@ -270,7 +280,7 @@ export function authRoutes(app: FastifyInstance) {
     { schema: { headers: authHeaderSchema, body: changePasswordBodySchema } },
     async (request, reply) => {
       const userId = getUserId(request);
-      if (userId === "demo-user") {
+      if (isDemoUser(userId)) {
         return reply.code(403).send({ error: "Demo user cannot change password" });
       }
 
@@ -311,7 +321,7 @@ export function authRoutes(app: FastifyInstance) {
     { schema: { headers: authHeaderSchema, body: setPasswordBodySchema } },
     async (request, reply) => {
       const userId = getUserId(request);
-      if (userId === "demo-user") {
+      if (isDemoUser(userId)) {
         return reply.code(403).send({ error: "Demo user cannot set password" });
       }
 
@@ -391,7 +401,7 @@ export function authRoutes(app: FastifyInstance) {
     } else {
       userId = getUserId(request);
     }
-    if (userId === "demo-user") {
+    if (isDemoUser(userId)) {
       return reply.code(403).send({ error: "Authentication required to connect Google" });
     }
     // Sign the state to prevent CSRF — attacker can't forge a valid state for another user
@@ -715,7 +725,7 @@ export function authRoutes(app: FastifyInstance) {
   // POST /api/auth/resend-verification — Resend verification email
   app.post("/resend-verification", async (request, reply) => {
     const userId = getUserId(request);
-    if (userId === "demo-user") {
+    if (isDemoUser(userId)) {
       return reply.code(403).send({ error: "Demo user" });
     }
 
@@ -738,7 +748,7 @@ export function authRoutes(app: FastifyInstance) {
   // POST /api/auth/init-sync — Trigger initial sync after login (calendar + email contacts)
   app.post("/init-sync", async (request) => {
     const userId = getUserId(request);
-    if (userId === "demo-user") {
+    if (isDemoUser(userId)) {
       return { synced: false, reason: "demo-user" };
     }
 
