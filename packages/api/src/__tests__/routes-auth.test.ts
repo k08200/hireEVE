@@ -216,6 +216,39 @@ describe("POST /api/auth/register", () => {
     expect(res.statusCode).toBe(409);
     await app.close();
   });
+
+  it("normalizes email and trims name on register", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: {
+        email: "  Alice@Example.COM  ",
+        password: "correcthorsebatterystaple",
+        name: "  Alice  ",
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.json().user.email).toBe("alice@example.com");
+    expect(res.json().user.name).toBe("Alice");
+    await app.close();
+  });
+
+  it("rejects register with empty name", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: {
+        email: "alice@example.com",
+        password: "correcthorsebatterystaple",
+        name: "   ",
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
 });
 
 describe("POST /api/auth/login", () => {
@@ -282,6 +315,20 @@ describe("POST /api/auth/login", () => {
     expect(res.statusCode).toBe(400);
     await app.close();
   });
+
+  it("normalizes login email before lookup", async () => {
+    const app = await buildApp();
+    await registerUser(app, "login@example.com", "correcthorsebattery");
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "  LOGIN@example.com ", password: "correcthorsebattery" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().user.email).toBe("login@example.com");
+    await app.close();
+  });
 });
 
 // ── GET /api/auth/me ──────────────────────────────────────────────
@@ -344,6 +391,21 @@ describe("PATCH /api/auth/me", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json().user.name).toBe("New Name");
+    await app.close();
+  });
+
+  it("rejects updating profile with empty name", async () => {
+    const app = await buildApp();
+    const token = await registerAndGetToken(app);
+
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/auth/me",
+      headers: authHeader(token),
+      payload: { name: "   " },
+    });
+
+    expect(res.statusCode).toBe(400);
     await app.close();
   });
 });
@@ -600,6 +662,25 @@ describe("POST /api/auth/forgot-password", () => {
     expect(res.statusCode).toBe(400);
     await app.close();
   });
+
+  it("normalizes forgot-password email before sending", async () => {
+    const app = await buildApp();
+    await registerAndGetToken(app, "forgot2@example.com");
+    sendPasswordResetEmailSpy.mockClear();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/forgot-password",
+      payload: { email: "  FORGOT2@example.com " },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(sendPasswordResetEmailSpy).toHaveBeenCalledWith(
+      "forgot2@example.com",
+      expect.any(String),
+    );
+    await app.close();
+  });
 });
 
 // ── POST /api/auth/reset-password ─────────────────────────────────
@@ -673,6 +754,17 @@ describe("POST /api/auth/reset-password", () => {
     });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toMatch(/6 characters/);
+    await app.close();
+  });
+
+  it("rejects reset-password with invalid token type", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/reset-password",
+      payload: { token: { bad: true }, newPassword: "newpassword1" },
+    });
+    expect(res.statusCode).toBe(400);
     await app.close();
   });
 });

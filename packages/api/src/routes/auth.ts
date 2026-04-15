@@ -20,23 +20,121 @@ import {
   getOAuth2Client,
 } from "../gmail.js";
 
-export async function authRoutes(app: FastifyInstance) {
+const authHeaderSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    authorization: { type: "string" },
+  },
+} as const;
+
+const registerBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["email", "password"],
+  properties: {
+    email: { type: "string", minLength: 3, maxLength: 320 },
+    password: { type: "string", minLength: 1, maxLength: 200 },
+    name: { type: "string", minLength: 1, maxLength: 120 },
+  },
+} as const;
+
+const loginBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["email", "password"],
+  properties: {
+    email: { type: "string", minLength: 3, maxLength: 320 },
+    password: { type: "string", minLength: 1, maxLength: 200 },
+  },
+} as const;
+
+const updateProfileBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  minProperties: 1,
+  properties: {
+    name: { type: "string", minLength: 1, maxLength: 120 },
+  },
+} as const;
+
+const changePasswordBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["currentPassword", "newPassword"],
+  properties: {
+    currentPassword: { type: "string", minLength: 1, maxLength: 200 },
+    newPassword: { type: "string", minLength: 1, maxLength: 200 },
+  },
+} as const;
+
+const setPasswordBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["newPassword"],
+  properties: {
+    newPassword: { type: "string", minLength: 1, maxLength: 200 },
+  },
+} as const;
+
+const tokenQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["token"],
+  properties: {
+    token: { type: "string", minLength: 1, maxLength: 500 },
+  },
+} as const;
+
+const forgotPasswordBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["email"],
+  properties: {
+    email: { type: "string", minLength: 3, maxLength: 320 },
+  },
+} as const;
+
+const resetPasswordBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["token", "newPassword"],
+  properties: {
+    token: { type: "string", minLength: 1, maxLength: 500 },
+    newPassword: { type: "string", minLength: 1, maxLength: 200 },
+  },
+} as const;
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function hasMeaningfulText(value: string | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+export function authRoutes(app: FastifyInstance) {
   // POST /api/auth/register — Create account
-  app.post("/register", async (request, reply) => {
+  app.post("/register", { schema: { body: registerBodySchema } }, async (request, reply) => {
     const { email, password, name } = request.body as {
       email: string;
       password: string;
       name?: string;
     };
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedName = hasMeaningfulText(name) ? name.trim() : undefined;
 
-    if (!email || !password) {
+    if (!hasMeaningfulText(normalizedEmail) || !hasMeaningfulText(password)) {
       return reply.code(400).send({ error: "Email and password required" });
     }
     if (password.length < 8) {
       return reply.code(400).send({ error: "Password must be at least 8 characters" });
     }
+    if (name !== undefined && !hasMeaningfulText(name)) {
+      return reply.code(400).send({ error: "Name cannot be empty" });
+    }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
       return reply.code(409).send({ error: "Email already registered" });
     }
@@ -46,16 +144,16 @@ export async function authRoutes(app: FastifyInstance) {
 
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash: await hashPassword(password),
-        name: name || email.split("@")[0],
+        name: normalizedName || normalizedEmail.split("@")[0],
         verifyToken,
         verifyTokenExp,
       },
     });
 
     // Send verification email (non-blocking)
-    sendVerificationEmail(email, verifyToken).catch(() => {});
+    sendVerificationEmail(normalizedEmail, verifyToken).catch(() => {});
 
     // Auto-create AutomationConfig with defaults
     prisma.automationConfig.create({ data: { userId: user.id } }).catch(() => {});
@@ -78,14 +176,15 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // POST /api/auth/login — Sign in
-  app.post("/login", async (request, reply) => {
+  app.post("/login", { schema: { body: loginBodySchema } }, async (request, reply) => {
     const { email, password } = request.body as { email: string; password: string };
+    const normalizedEmail = normalizeEmail(email);
 
-    if (!email || !password) {
+    if (!hasMeaningfulText(normalizedEmail) || !hasMeaningfulText(password)) {
       return reply.code(400).send({ error: "Email and password required" });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user?.passwordHash) {
       return reply.code(401).send({ error: "Invalid email or password" });
     }
@@ -145,16 +244,19 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // PATCH /api/auth/me — Update profile
-  app.patch("/me", async (request, reply) => {
+  app.patch("/me", { schema: { body: updateProfileBodySchema } }, async (request, reply) => {
     const userId = getUserId(request);
     if (userId === "demo-user") {
       return reply.code(403).send({ error: "Demo user cannot update profile" });
     }
 
     const { name } = request.body as { name?: string };
+    if (name !== undefined && !hasMeaningfulText(name)) {
+      return reply.code(400).send({ error: "Name cannot be empty" });
+    }
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { ...(name !== undefined && { name }) },
+      data: { ...(name !== undefined && { name: name.trim() }) },
     });
 
     return reply.send({
@@ -163,7 +265,10 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // POST /api/auth/change-password — Change password
-  app.post("/change-password", async (request, reply) => {
+  app.post(
+    "/change-password",
+    { schema: { headers: authHeaderSchema, body: changePasswordBodySchema } },
+    async (request, reply) => {
     const userId = getUserId(request);
     if (userId === "demo-user") {
       return reply.code(403).send({ error: "Demo user cannot change password" });
@@ -174,7 +279,7 @@ export async function authRoutes(app: FastifyInstance) {
       newPassword: string;
     };
 
-    if (!currentPassword || !newPassword) {
+    if (!hasMeaningfulText(currentPassword) || !hasMeaningfulText(newPassword)) {
       return reply.code(400).send({ error: "Current and new password required" });
     }
     if (newPassword.length < 6) {
@@ -197,17 +302,21 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ success: true });
-  });
+    },
+  );
 
   // POST /api/auth/set-password — Set password for OAuth users who don't have one
-  app.post("/set-password", async (request, reply) => {
+  app.post(
+    "/set-password",
+    { schema: { headers: authHeaderSchema, body: setPasswordBodySchema } },
+    async (request, reply) => {
     const userId = getUserId(request);
     if (userId === "demo-user") {
       return reply.code(403).send({ error: "Demo user cannot set password" });
     }
 
     const { newPassword } = request.body as { newPassword: string };
-    if (!newPassword || newPassword.length < 6) {
+    if (!hasMeaningfulText(newPassword) || newPassword.length < 6) {
       return reply.code(400).send({ error: "Password must be at least 6 characters" });
     }
 
@@ -225,7 +334,8 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ success: true });
-  });
+    },
+  );
 
   // GET /api/auth/has-password — Check if user has a password set
   app.get("/has-password", async (request, reply) => {
@@ -496,11 +606,15 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // POST /api/auth/forgot-password — Request password reset
-  app.post("/forgot-password", async (request, reply) => {
+  app.post(
+    "/forgot-password",
+    { schema: { body: forgotPasswordBodySchema } },
+    async (request, reply) => {
     const { email } = request.body as { email: string };
-    if (!email) return reply.code(400).send({ error: "Email required" });
+    const normalizedEmail = normalizeEmail(email);
+    if (!hasMeaningfulText(normalizedEmail)) return reply.code(400).send({ error: "Email required" });
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     // Always return success to prevent email enumeration
     if (!user) return reply.send({ success: true });
 
@@ -512,19 +626,23 @@ export async function authRoutes(app: FastifyInstance) {
       data: { resetToken, resetTokenExp },
     });
 
-    await sendPasswordResetEmail(email, resetToken);
+    await sendPasswordResetEmail(normalizedEmail, resetToken);
 
     return reply.send({ success: true });
-  });
+    },
+  );
 
   // POST /api/auth/reset-password — Reset password with token
-  app.post("/reset-password", async (request, reply) => {
+  app.post(
+    "/reset-password",
+    { schema: { body: resetPasswordBodySchema } },
+    async (request, reply) => {
     const { token, newPassword } = request.body as {
       token: string;
       newPassword: string;
     };
 
-    if (!token || !newPassword) {
+    if (!hasMeaningfulText(token) || !hasMeaningfulText(newPassword)) {
       return reply.code(400).send({ error: "Token and new password required" });
     }
     if (newPassword.length < 6) {
@@ -552,10 +670,11 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ success: true });
-  });
+    },
+  );
 
   // GET /api/auth/verify-email — Verify email with token
-  app.get("/verify-email", async (request, reply) => {
+  app.get("/verify-email", { schema: { querystring: tokenQuerySchema } }, async (request, reply) => {
     const { token } = request.query as { token?: string };
 
     if (!token) {
