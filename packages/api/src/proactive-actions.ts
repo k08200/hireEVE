@@ -353,7 +353,7 @@ async function checkFollowUpSuggestions(userId: string): Promise<void> {
   const suggestions = await Promise.all(
     stale.map(async (e) => {
       const from = e.from
-        .replace(/<[^>]+>/, "")
+        .replace(/[<>]/g, "")
         .trim()
         .slice(0, 25);
       const ctx = await getContactContext(userId, e.from);
