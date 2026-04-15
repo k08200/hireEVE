@@ -269,39 +269,39 @@ export function authRoutes(app: FastifyInstance) {
     "/change-password",
     { schema: { headers: authHeaderSchema, body: changePasswordBodySchema } },
     async (request, reply) => {
-    const userId = getUserId(request);
-    if (userId === "demo-user") {
-      return reply.code(403).send({ error: "Demo user cannot change password" });
-    }
+      const userId = getUserId(request);
+      if (userId === "demo-user") {
+        return reply.code(403).send({ error: "Demo user cannot change password" });
+      }
 
-    const { currentPassword, newPassword } = request.body as {
-      currentPassword: string;
-      newPassword: string;
-    };
+      const { currentPassword, newPassword } = request.body as {
+        currentPassword: string;
+        newPassword: string;
+      };
 
-    if (!hasMeaningfulText(currentPassword) || !hasMeaningfulText(newPassword)) {
-      return reply.code(400).send({ error: "Current and new password required" });
-    }
-    if (newPassword.length < 6) {
-      return reply.code(400).send({ error: "New password must be at least 6 characters" });
-    }
+      if (!hasMeaningfulText(currentPassword) || !hasMeaningfulText(newPassword)) {
+        return reply.code(400).send({ error: "Current and new password required" });
+      }
+      if (newPassword.length < 6) {
+        return reply.code(400).send({ error: "New password must be at least 6 characters" });
+      }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user?.passwordHash) {
-      return reply.code(400).send({ error: "No password set" });
-    }
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user?.passwordHash) {
+        return reply.code(400).send({ error: "No password set" });
+      }
 
-    const valid = await comparePassword(currentPassword, user.passwordHash);
-    if (!valid) {
-      return reply.code(401).send({ error: "Current password is incorrect" });
-    }
+      const valid = await comparePassword(currentPassword, user.passwordHash);
+      if (!valid) {
+        return reply.code(401).send({ error: "Current password is incorrect" });
+      }
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash: await hashPassword(newPassword) },
-    });
+      await prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: await hashPassword(newPassword) },
+      });
 
-    return reply.send({ success: true });
+      return reply.send({ success: true });
     },
   );
 
@@ -310,30 +310,32 @@ export function authRoutes(app: FastifyInstance) {
     "/set-password",
     { schema: { headers: authHeaderSchema, body: setPasswordBodySchema } },
     async (request, reply) => {
-    const userId = getUserId(request);
-    if (userId === "demo-user") {
-      return reply.code(403).send({ error: "Demo user cannot set password" });
-    }
+      const userId = getUserId(request);
+      if (userId === "demo-user") {
+        return reply.code(403).send({ error: "Demo user cannot set password" });
+      }
 
-    const { newPassword } = request.body as { newPassword: string };
-    if (!hasMeaningfulText(newPassword) || newPassword.length < 6) {
-      return reply.code(400).send({ error: "Password must be at least 6 characters" });
-    }
+      const { newPassword } = request.body as { newPassword: string };
+      if (!hasMeaningfulText(newPassword) || newPassword.length < 6) {
+        return reply.code(400).send({ error: "Password must be at least 6 characters" });
+      }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return reply.code(404).send({ error: "User not found" });
-    }
-    if (user.passwordHash) {
-      return reply.code(400).send({ error: "Password already set. Use change-password instead." });
-    }
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return reply.code(404).send({ error: "User not found" });
+      }
+      if (user.passwordHash) {
+        return reply
+          .code(400)
+          .send({ error: "Password already set. Use change-password instead." });
+      }
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash: await hashPassword(newPassword) },
-    });
+      await prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: await hashPassword(newPassword) },
+      });
 
-    return reply.send({ success: true });
+      return reply.send({ success: true });
     },
   );
 
@@ -610,25 +612,26 @@ export function authRoutes(app: FastifyInstance) {
     "/forgot-password",
     { schema: { body: forgotPasswordBodySchema } },
     async (request, reply) => {
-    const { email } = request.body as { email: string };
-    const normalizedEmail = normalizeEmail(email);
-    if (!hasMeaningfulText(normalizedEmail)) return reply.code(400).send({ error: "Email required" });
+      const { email } = request.body as { email: string };
+      const normalizedEmail = normalizeEmail(email);
+      if (!hasMeaningfulText(normalizedEmail))
+        return reply.code(400).send({ error: "Email required" });
 
-    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    // Always return success to prevent email enumeration
-    if (!user) return reply.send({ success: true });
+      const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      // Always return success to prevent email enumeration
+      if (!user) return reply.send({ success: true });
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetTokenExp = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetTokenExp = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { resetToken, resetTokenExp },
-    });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetToken, resetTokenExp },
+      });
 
-    await sendPasswordResetEmail(normalizedEmail, resetToken);
+      await sendPasswordResetEmail(normalizedEmail, resetToken);
 
-    return reply.send({ success: true });
+      return reply.send({ success: true });
     },
   );
 
@@ -637,73 +640,77 @@ export function authRoutes(app: FastifyInstance) {
     "/reset-password",
     { schema: { body: resetPasswordBodySchema } },
     async (request, reply) => {
-    const { token, newPassword } = request.body as {
-      token: string;
-      newPassword: string;
-    };
+      const { token, newPassword } = request.body as {
+        token: string;
+        newPassword: string;
+      };
 
-    if (!hasMeaningfulText(token) || !hasMeaningfulText(newPassword)) {
-      return reply.code(400).send({ error: "Token and new password required" });
-    }
-    if (newPassword.length < 6) {
-      return reply.code(400).send({ error: "Password must be at least 6 characters" });
-    }
+      if (!hasMeaningfulText(token) || !hasMeaningfulText(newPassword)) {
+        return reply.code(400).send({ error: "Token and new password required" });
+      }
+      if (newPassword.length < 6) {
+        return reply.code(400).send({ error: "Password must be at least 6 characters" });
+      }
 
-    const user = await prisma.user.findFirst({
-      where: {
-        resetToken: token,
-        resetTokenExp: { gte: new Date() },
-      },
-    });
+      const user = await prisma.user.findFirst({
+        where: {
+          resetToken: token,
+          resetTokenExp: { gte: new Date() },
+        },
+      });
 
-    if (!user) {
-      return reply.code(400).send({ error: "Invalid or expired reset token" });
-    }
+      if (!user) {
+        return reply.code(400).send({ error: "Invalid or expired reset token" });
+      }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash: await hashPassword(newPassword),
-        resetToken: null,
-        resetTokenExp: null,
-      },
-    });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash: await hashPassword(newPassword),
+          resetToken: null,
+          resetTokenExp: null,
+        },
+      });
 
-    return reply.send({ success: true });
+      return reply.send({ success: true });
     },
   );
 
   // GET /api/auth/verify-email — Verify email with token
-  app.get("/verify-email", { schema: { querystring: tokenQuerySchema } }, async (request, reply) => {
-    const { token } = request.query as { token?: string };
+  app.get(
+    "/verify-email",
+    { schema: { querystring: tokenQuerySchema } },
+    async (request, reply) => {
+      const { token } = request.query as { token?: string };
 
-    if (!token) {
-      return reply.code(400).send({ error: "Missing verification token" });
-    }
+      if (!token) {
+        return reply.code(400).send({ error: "Missing verification token" });
+      }
 
-    const user = await prisma.user.findFirst({
-      where: {
-        verifyToken: token,
-        verifyTokenExp: { gte: new Date() },
-      },
-    });
+      const user = await prisma.user.findFirst({
+        where: {
+          verifyToken: token,
+          verifyTokenExp: { gte: new Date() },
+        },
+      });
 
-    if (!user) {
-      return reply.code(400).send({ error: "Invalid or expired verification token" });
-    }
+      if (!user) {
+        return reply.code(400).send({ error: "Invalid or expired verification token" });
+      }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerified: true,
-        verifyToken: null,
-        verifyTokenExp: null,
-      },
-    });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          emailVerified: true,
+          verifyToken: null,
+          verifyTokenExp: null,
+        },
+      });
 
-    const webUrl = process.env.WEB_URL || "http://localhost:8001";
-    return reply.redirect(`${webUrl}/login?verified=true`);
-  });
+      const webUrl = process.env.WEB_URL || "http://localhost:8001";
+      return reply.redirect(`${webUrl}/login?verified=true`);
+    },
+  );
 
   // POST /api/auth/resend-verification — Resend verification email
   app.post("/resend-verification", async (request, reply) => {
