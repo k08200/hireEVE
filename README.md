@@ -1,165 +1,119 @@
 # hireEVE
 
-Your first AI employee. EVE autonomously handles emails, scheduling, tasks, and more — so you can focus on building.
+**Connect once. EVE handles the rest.**
 
-## What is EVE?
+EVE is an AI employee that works 24/7 on your server — reading emails, checking calendars, tracking tasks, and telling your team what to focus on next. She doesn't wait for commands. She makes decisions.
 
-EVE is an autonomous AI assistant built for solo founders and small teams. Instead of switching between tools, tell EVE what you need in plain language — or let her figure it out on her own.
+## Why EVE?
 
-She reads your emails, manages your calendar, tracks tasks, takes notes, and proactively suggests actions based on what's happening in your day. EVE learns your preferences over time and gets better the more you use her.
+Every team wastes hours switching between tools. Gmail shows emails. Calendar shows meetings. Todoist shows tasks. But none of them answer the only question that matters:
 
-## Key Features
+**"What should I do right now?"**
+
+EVE connects all your tools, cross-references everything, and delivers prioritized decisions — not just information.
+
+| Tool | What it does | What EVE does |
+|------|-------------|---------------|
+| Gmail | "You have 30 emails" | "1 needs a reply today — investor waiting 48h" |
+| Calendar | "3 meetings today" | "2pm meeting is critical, prep doc missing" |
+| Todoist | "12 tasks open" | "2 are overdue and blocking others" |
+| ChatGPT | Answers when asked | EVE acts before you ask |
+| Zapier | Rule-based automation | LLM-powered judgment calls |
+
+## How It Works
+
+1. **Sign up and connect Google** — one click
+2. **EVE starts working** — scans your email, calendar, and tasks
+3. **Morning briefing arrives** — prioritized, not just summarized
+4. **Urgent alerts in real-time** — push notifications when something can't wait
+5. **Chat when you need to** — "Draft a reply to that investor" and it's done
+
+### The Morning Briefing (EVE's "Aha Moment")
+
+You wake up. You didn't ask for anything. EVE already prepared:
+
+> **Today's Top 3:**
+> 1. Reply to Investor A — received last night, 48h response window
+> 2. 2pm client meeting — no prep doc yet, draft ready for review
+> 3. Invoice deadline — due today, payment link prepared
+
+This isn't a summary. It's a **judgment call** — only possible because EVE sees your email AND calendar AND tasks together.
 
 ### Autonomous Agent
-EVE doesn't just respond to commands — she thinks proactively. Every few minutes, she analyzes your full context (tasks, calendar, emails, notes, reminders, contacts) and decides what needs attention.
 
-- **SUGGEST mode**: Sends smart notifications with reasoning
-- **AUTO mode**: Executes low-risk actions automatically, asks approval for the rest
-- **Risk classification**: LOW (auto-execute) → MEDIUM (approval needed) → HIGH (explicit confirmation)
-- **Pattern learning**: Learns your preferences from approvals, rejections, and usage patterns
+EVE thinks proactively. She analyzes your full context and decides what needs attention:
 
-### Gmail Integration
-- Read, search, and send emails through conversation
-- AI-powered email summarization, categorization, and sentiment analysis
-- Auto-reply rules with smart template generation
-- Thread grouping and action item extraction
-- Background sync with local DB for fast access
+- **SUGGEST mode**: Smart notifications with reasoning
+- **AUTO mode**: Executes low-risk actions, asks approval for the rest
+- **Risk levels**: LOW (auto) → MEDIUM (approval) → HIGH (explicit confirmation)
+- **Pattern learning**: Gets better from your approvals and rejections
 
-### Google Calendar
-- View, create, and delete events
-- Two-way sync with Google Calendar
-- Conflict detection before scheduling
-- Meeting link support and all-day events
-- 5-minute pre-meeting notifications
+## For Teams
 
-### Task Management
-- Create tasks with priority (LOW → URGENT) and due dates
-- Status tracking: TODO → IN_PROGRESS → DONE
-- Agent-aware: EVE can suggest and create tasks based on emails or calendar
+EVE scales from solo founders to enterprise teams. The bigger the team, the more powerful the cross-context decisions:
 
-### Notes
-- Create and organize notes by category
-- Full-text search across all notes
-- EVE can draft documents, reports, and proposals
+> "Dev team's release is delayed but marketing scheduled the launch announcement for tomorrow. Should I flag this?"
 
-### Reminders
-- Schedule reminders with snooze functionality
-- Automatic delivery at the right time via push notification
-- Deduplication to prevent notification spam
+One person's email + another's calendar + the team's task board = decisions no single tool can make.
 
-### Contacts
-- Full contact management with company, role, and tags
-- Auto-populated from email senders
-- Searchable directory
+| Plan | For | Price |
+|------|-----|-------|
+| Free | Try it out | $0/mo (50 messages) |
+| Pro | Individuals | $29/mo |
+| Team | Small teams | $99/mo |
+| Enterprise | Organizations | Custom |
 
-### Memory System
-Inspired by Claude Code's memory architecture. EVE remembers facts, preferences, and feedback across conversations:
+## Features
 
-- **Types**: Preference, Fact, Decision, Context, Feedback
-- **Confidence scoring**: Tracks certainty of learned information
-- **Auto-learning**: Updates from agent interactions and user corrections
-- **Pattern detection**: Temporal patterns, tool preferences, workflow analysis
+### Core (Autonomous)
+- **Morning briefing** — prioritized daily summary with action items
+- **Email intelligence** — classification, urgency detection, draft replies
+- **Calendar awareness** — conflict detection, meeting prep, schedule optimization
+- **Task prioritization** — cross-references deadlines with email and calendar context
+- **Real-time alerts** — push notifications for time-sensitive items
+- **Pattern learning** — adapts to your preferences over time
 
-### Real-Time Notifications
-- WebSocket-based live updates
-- Web Push notifications (works even when tab is closed)
-- Notification types: reminder, calendar, email, task, meeting, briefing, agent
-
-### Daily Briefing
-- Auto-generated morning summary of your day
-- Configurable delivery time
-- Covers: today's meetings, pending tasks, important emails, upcoming deadlines
-
-### Automations
-- Email auto-classification
-- Calendar auto-sync (every 15 minutes)
-- Meeting auto-summarization
-- Download folder organization (macOS)
-- Configurable per-user settings
-
-### Workspace & Billing
-- Multi-user workspace with roles (Owner, Admin, Member)
-- Stripe-powered billing: Free, Pro, Team, Enterprise plans
-- Token usage tracking with cost estimation
-- GDPR-compliant data export and deletion
-
-## EVE's Tools (45+)
+### Tools (45+)
 
 | Category | Tools |
 |----------|-------|
-| **Email** | list, read, send, classify emails |
-| **Calendar** | list, create, delete events; check conflicts |
-| **Tasks** | list, create, update, delete tasks |
-| **Notes** | list, create, update, delete notes |
-| **Reminders** | list, create, dismiss, delete reminders |
-| **Contacts** | list, create, update, delete contacts |
-| **Memory** | remember, recall, forget |
-| **Communication** | iMessage, Slack (send/read) |
-| **Knowledge** | Notion search/create, web search, news, weather |
-| **Documents** | write documents, translate text |
-| **Files (macOS)** | search files, read/summarize, organize downloads |
-| **System (macOS)** | clipboard, screenshots, running apps, system info |
-| **Utilities** | calculate, convert currency, shorten URL, generate password |
+| Email | List, read, send, classify, auto-reply |
+| Calendar | List, create, delete events, conflict check |
+| Tasks | Create, update, delete, prioritize |
+| Notes | Create, update, delete, search |
+| Reminders | Create, dismiss, snooze |
+| Contacts | Manage, auto-populate from email |
+| Memory | Remember, recall, forget across conversations |
+| Knowledge | Web search, news, weather |
+| Documents | Write, translate |
+
+### Integrations
+- Gmail + Google Calendar (OAuth)
+- Slack (send/read messages)
+- Notion (search/create pages)
+- Web Push notifications (works with tab closed)
+- WebSocket real-time updates
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Next.js 15, Tailwind CSS, TypeScript |
-| **Backend** | Fastify, Prisma ORM, PostgreSQL |
-| **LLM** | OpenRouter (configurable model) |
-| **Auth** | JWT + Google OAuth2 |
-| **Real-time** | WebSocket + Server-Sent Events |
-| **Push** | VAPID Web Push (service worker) |
-| **Billing** | Stripe |
-| **Integrations** | Gmail API, Google Calendar API, Slack, Notion |
-| **Monorepo** | pnpm workspaces |
+| Frontend | Next.js 15, Tailwind CSS, TypeScript |
+| Backend | Fastify, Prisma ORM, PostgreSQL |
+| AI | OpenAI (user-configurable model) |
+| Auth | JWT + Google OAuth2 |
+| Real-time | WebSocket + Server-Sent Events |
+| Push | VAPID Web Push |
+| Billing | Stripe |
+| Monorepo | pnpm workspaces |
 
 ## Project Structure
 
 ```
 packages/
-  api/          Fastify server, LLM integration, autonomous agent, tools
-  web/          Next.js frontend (23 pages)
-  core/         Shared utilities and types
-```
-
-### API Architecture
-
-```
-src/
-  routes/         18 route handlers (auth, chat, email, calendar, tasks, ...)
-  autonomous-agent.ts    Proactive LLM reasoning loop
-  automation-scheduler.ts  Scheduled automations (briefing, sync, classify)
-  background.ts          Real-time event monitoring (meetings, reminders)
-  pattern-learner.ts     User behavior analysis and learning
-  tool-executor.ts       45+ tool implementations
-  memory.ts              Persistent memory system
-  gmail.ts               Gmail API client with token refresh
-  calendar.ts            Google Calendar API client
-  email-sync.ts          Gmail ↔ DB sync pipeline
-  context-compressor.ts  LLM history compaction
-```
-
-### Frontend Pages
-
-```
-/chat             Conversation list
-/chat/[id]        Chat interface with real-time streaming
-/dashboard        Activity overview
-/email            Gmail inbox with AI categorization
-/calendar         Calendar (month/week/list views)
-/tasks            Task board
-/notes            Note management
-/reminders        Reminder list with snooze
-/contacts         Contact directory
-/notifications    Notification center
-/automations      Automation settings
-/settings         Account settings + Google integration
-/settings/memory  View learned memories
-/settings/usage   Token usage and costs
-/workspace        Team management
-/billing          Subscription management
+  api/    Fastify server, autonomous agent, 45+ tools
+  web/    Next.js frontend
+  core/   Shared utilities and types
 ```
 
 ## Setup
@@ -173,18 +127,17 @@ src/
 ### Quick Start
 
 ```bash
-# Clone and install
 git clone https://github.com/k08200/hireEVE.git
 cd hireEVE
 pnpm install
 
-# Set up the API
+# API
 cd packages/api
 cp .env.example .env    # Edit with your credentials
 npx prisma migrate dev
 pnpm dev                # API on :8000
 
-# In another terminal — set up the frontend
+# Web (in another terminal)
 cd packages/web
 pnpm dev                # Web on :8001
 ```
@@ -197,23 +150,22 @@ pnpm dev                # Web on :8001
 # Required
 DATABASE_URL=postgresql://user:password@localhost:5432/hireeve
 JWT_SECRET=your-secret
-OPENROUTER_API_KEY=your-key        # Get free at openrouter.ai
+OPENROUTER_API_KEY=your-key
+TOKEN_ENCRYPTION_KEY=             # Generate: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
-# Google OAuth (for Gmail + Calendar)
+# Google OAuth
 GOOGLE_CLIENT_ID=your-id
 GOOGLE_CLIENT_SECRET=your-secret
 GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/google/callback
-
-# Frontend URL (for OAuth redirects)
 WEB_URL=http://localhost:8001
 
 # Optional
-STRIPE_SECRET_KEY=                  # Billing
-SLACK_BOT_TOKEN=                    # Slack integration
-NOTION_API_KEY=                     # Notion integration
-VAPID_PUBLIC_KEY=                   # Web Push
-VAPID_PRIVATE_KEY=                  # Web Push
-CORS_ORIGINS=http://localhost:8001  # Allowed frontend origins
+STRIPE_SECRET_KEY=
+SLACK_BOT_TOKEN=
+NOTION_API_KEY=
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+CORS_ORIGINS=http://localhost:8001
 ```
 
 #### Frontend (`packages/web/.env.local`)
@@ -228,75 +180,35 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 2. Create an OAuth 2.0 Client ID (Web application)
 3. Add authorized redirect URI: `http://localhost:8000/api/auth/google/callback`
 4. Copy Client ID and Secret to your `.env`
-5. Enable Gmail API and Google Calendar API in the console
+5. Enable Gmail API and Google Calendar API
 
-### Docker (Alternative)
+### Docker
 
 ```bash
 docker compose up
 # API on :3001, Web on :3000, PostgreSQL on :5432
 ```
 
-## How It Works
-
-### Chat Flow
-1. User sends a message → streamed to LLM with conversation history
-2. LLM decides whether to respond directly or call tools (function calling)
-3. Tool results feed back to LLM for final response
-4. Long conversations are auto-compacted to stay within context limits
-
-### Autonomous Agent Flow
-1. Every N minutes, gather full user context (tasks, calendar, emails, etc.)
-2. Send context + available tools to LLM
-3. LLM reasons about what needs attention
-4. In SUGGEST mode: create notification with reasoning
-5. In AUTO mode: execute low-risk actions, propose medium/high-risk ones
-6. Log all decisions to AgentLog for transparency
-
-### Pattern Learning Flow
-1. Track user approvals and rejections of agent proposals
-2. Analyze temporal patterns (when does the user work?)
-3. Detect tool preferences (which actions get approved most?)
-4. Save high-confidence patterns as memories
-5. Inject learned patterns into agent context for better suggestions
-
-## Database
-
-24 core models including:
-
-- **User & Auth**: User, UserToken, Workspace, WorkspaceMember
-- **Productivity**: Task, Note, Reminder, Contact, CalendarEvent
-- **Communication**: Conversation, Message, EmailMessage, EmailRule
-- **AI & Automation**: AutomationConfig, PendingAction, Memory, AgentLog
-- **Tracking**: TokenUsage, Notification, PushSubscription, ConversationSummary
-
 ## Deployment
-
-### Production Setup
 
 **Backend** (Render, Railway, etc.):
 ```bash
-# Build
 cd packages/core && pnpm build
 cd ../api && npx prisma generate && pnpm build
-
-# Start
 cd packages/api && npx prisma migrate deploy && node dist/index.js
 ```
 
 **Frontend** (Vercel):
-- Framework: Next.js
 - Set `NEXT_PUBLIC_API_URL` to your backend URL
 
-**Required production env vars**:
+**Production env vars**:
 - `CORS_ORIGINS=https://your-frontend.vercel.app`
 - `WEB_URL=https://your-frontend.vercel.app`
 - `GOOGLE_REDIRECT_URI=https://your-api.onrender.com/api/auth/google/callback`
-- Add the production redirect URI to Google Cloud Console
 
 ## Language Support
 
-EVE works in both Korean and English. She mirrors the language you use — write in Korean, get responses in Korean. Write in English, get responses in English.
+EVE works in both Korean and English. She mirrors the language you use.
 
 ## License
 
