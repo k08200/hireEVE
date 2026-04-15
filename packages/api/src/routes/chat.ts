@@ -5,8 +5,13 @@ import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { EVE_SYSTEM_PROMPT, MODEL, openai, resolveUserChatModel } from "../openai.js";
 import { sendPushNotification } from "../push.js";
+import { Semaphore } from "../semaphore.js";
 import { getEffectivePlan } from "../stripe.js";
 import { executeToolCall, getToolsForPlan, isToolAllowedForPlan } from "../tool-executor.js";
+
+/** Shared semaphore for chat tool execution — limits concurrent tool calls per request */
+const chatToolSemaphore = new Semaphore(5);
+
 import { pushNotification } from "../websocket.js";
 import { withRetry } from "../with-retry.js";
 
@@ -341,20 +346,22 @@ export async function chatRoutes(app: FastifyInstance) {
           if (choice.finish_reason === "tool_calls" || (toolCalls && toolCalls.length > 0)) {
             messages.push(choice.message);
             const results = await Promise.all(
-              (toolCalls || []).map(async (toolCall) => {
-                const fn = (
-                  toolCall as unknown as { function: { name: string; arguments: string } }
-                ).function;
-                const args = JSON.parse(fn.arguments);
-                reply.raw.write(
-                  `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
-                );
-                const result = await executeToolCall(conversation.userId, fn.name, args);
-                reply.raw.write(
-                  `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
-                );
-                return { tool_call_id: toolCall.id, content: result };
-              }),
+              (toolCalls || []).map(async (toolCall) =>
+                chatToolSemaphore.run(async () => {
+                  const fn = (
+                    toolCall as unknown as { function: { name: string; arguments: string } }
+                  ).function;
+                  const args = JSON.parse(fn.arguments);
+                  reply.raw.write(
+                    `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
+                  );
+                  const result = await executeToolCall(conversation.userId, fn.name, args);
+                  reply.raw.write(
+                    `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
+                  );
+                  return { tool_call_id: toolCall.id, content: result };
+                }),
+              ),
             );
             for (const r of results) {
               messages.push({ role: "tool", tool_call_id: r.tool_call_id, content: r.content });
@@ -730,28 +737,30 @@ export async function chatRoutes(app: FastifyInstance) {
             messages.push(choice.message);
 
             const results = await Promise.all(
-              (toolCalls || []).map(async (toolCall) => {
-                const fn = (
-                  toolCall as unknown as { function: { name: string; arguments: string } }
-                ).function;
-                const args = JSON.parse(fn.arguments);
+              (toolCalls || []).map(async (toolCall) =>
+                chatToolSemaphore.run(async () => {
+                  const fn = (
+                    toolCall as unknown as { function: { name: string; arguments: string } }
+                  ).function;
+                  const args = JSON.parse(fn.arguments);
 
-                // Intentionally no debug log here — every value derived from the
-                // tool call (name, args, result) is user-controlled and CodeQL
-                // flags it as clear-text logging. The SSE event below already
-                // gives the client visibility into which tool ran.
-                reply.raw.write(
-                  `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
-                );
+                  // Intentionally no debug log here — every value derived from the
+                  // tool call (name, args, result) is user-controlled and CodeQL
+                  // flags it as clear-text logging. The SSE event below already
+                  // gives the client visibility into which tool ran.
+                  reply.raw.write(
+                    `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
+                  );
 
-                const result = await executeToolCall(conversation.userId, fn.name, args);
+                  const result = await executeToolCall(conversation.userId, fn.name, args);
 
-                reply.raw.write(
-                  `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
-                );
+                  reply.raw.write(
+                    `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
+                  );
 
-                return { tool_call_id: toolCall.id, content: result };
-              }),
+                  return { tool_call_id: toolCall.id, content: result };
+                }),
+              ),
             );
 
             for (const r of results) {
