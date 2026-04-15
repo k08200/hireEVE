@@ -5,11 +5,19 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const FROM_EMAIL = process.env.FROM_EMAIL || "EVE <noreply@hireeve.com>";
 const WEB_URL = process.env.WEB_URL || "http://localhost:8001";
 
+/** Mask email for safe logging: "user@example.com" → "u***@example.com" */
+function maskEmail(email: string): string {
+  const at = email.indexOf("@");
+  if (at <= 0) return "***";
+  return email[0] + "***" + email.slice(at);
+}
+
 export async function sendPasswordResetEmail(to: string, resetToken: string): Promise<boolean> {
   const resetUrl = `${WEB_URL}/reset-password?token=${resetToken}`;
+  const safeAddr = maskEmail(to);
 
   if (!resend) {
-    console.log(`[EMAIL] No RESEND_API_KEY — reset link for ${to}: ${resetUrl}`);
+    console.log("[EMAIL] No RESEND_API_KEY — reset link generated for", safeAddr);
     return true;
   }
 
@@ -37,19 +45,20 @@ export async function sendPasswordResetEmail(to: string, resetToken: string): Pr
         </div>
       `,
     });
-    console.log(`[EMAIL] Password reset email sent to ${to}`);
+    console.log("[EMAIL] Password reset email sent to", safeAddr);
     return true;
   } catch (err) {
-    console.error(`[EMAIL] Failed to send reset email to ${to}:`, err);
+    console.error("[EMAIL] Failed to send reset email:", err);
     return false;
   }
 }
 
 export async function sendVerificationEmail(to: string, verifyToken: string): Promise<boolean> {
   const verifyUrl = `${WEB_URL}/verify-email?token=${verifyToken}`;
+  const safeAddr = maskEmail(to);
 
   if (!resend) {
-    console.log(`[EMAIL] No RESEND_API_KEY — verify link for ${to}: ${verifyUrl}`);
+    console.log("[EMAIL] No RESEND_API_KEY — verify link generated for", safeAddr);
     return true;
   }
 
@@ -77,10 +86,10 @@ export async function sendVerificationEmail(to: string, verifyToken: string): Pr
         </div>
       `,
     });
-    console.log(`[EMAIL] Verification email sent to ${to}`);
+    console.log("[EMAIL] Verification email sent to", safeAddr);
     return true;
   } catch (err) {
-    console.error(`[EMAIL] Failed to send verification email to ${to}:`, err);
+    console.error("[EMAIL] Failed to send verification email:", err);
     return false;
   }
 }
