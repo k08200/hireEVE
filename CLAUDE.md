@@ -46,11 +46,12 @@
 2. ~~세션 메모리~~ → `memory.ts` (remember/recall/forget 도구 + loadMemoriesForPrompt + 자동 학습)
 3. ~~에러 분류 + 자동 복구~~ → `with-retry.ts` (withRetry, 지수 백오프) + `context-compressor.ts` (토큰 초과 시 forceCompact)
 4. ~~도구 결과 예산~~ → tool-executor.ts (100K chars 제한)
+5. ~~WebSocket 재연결~~ → `use-websocket.ts` (지수 백오프 1s→30s cap + jitter)
+6. ~~도구별 승인 UI~~ → `chat/[id]/page.tsx` (send_email, create_event, create_task, create_note, create_contact, delete 미리보기)
 
 ### 다음 기능 후보
 - 스킬 시스템 — 반복 워크플로우 저장/실행 (UserSkill 테이블)
-- SSE 재연결 — 프론트엔드 지수 백오프 재연결
-- 도구별 승인 UI — 이메일 미리보기, 캘린더 시간/장소 표시
+- 이벤트 트리거 — Gmail 웹훅 → 즉시 반응 (현재 폴링)
 - 도구 배치 처리 — Promise.all + 세마포어
 - 대화 검색 — full-text search
 

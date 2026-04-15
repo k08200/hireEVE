@@ -54,6 +54,7 @@ import {
 } from "./macos.js";
 import { getUpcomingMeetings, joinMeeting, MEETING_TOOLS, summarizeMeeting } from "./meeting.js";
 import { forget, MEMORY_TOOLS, recall, remember } from "./memory.js";
+import { executeSkill, listUserSkills, SKILL_TOOLS } from "./skill-executor.js";
 import { getNews, NEWS_TOOLS } from "./news.js";
 import { createNote, deleteNote, listNotes, NOTE_TOOLS, updateNote } from "./notes.js";
 import {
@@ -114,6 +115,7 @@ export const ALWAYS_TOOLS = [
   ...NEWS_TOOLS,
   ...UTILITY_TOOLS,
   ...MEMORY_TOOLS,
+  ...SKILL_TOOLS,
   TIME_TOOL,
   ...(SLACK_CONFIGURED ? SLACK_TOOLS : []),
   ...(NOTION_CONFIGURED ? NOTION_TOOLS : []),
@@ -517,6 +519,16 @@ async function executeToolCallInternal(
           requireString(args.key, "key"),
           requireString(args.type, "type"),
         );
+      case "execute_skill":
+        return JSON.stringify(
+          await executeSkill(
+            userId,
+            requireString(args.skill_name, "skill_name"),
+            (args.variables as Record<string, string>) || undefined,
+          ),
+        );
+      case "list_skills":
+        return JSON.stringify(await listUserSkills(userId));
       default:
         return JSON.stringify({ error: `Unknown function: ${functionName}` });
     }
