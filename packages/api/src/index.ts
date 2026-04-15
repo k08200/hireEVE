@@ -21,6 +21,7 @@ import { memoryRoutes } from "./routes/memory.js";
 import { noteRoutes } from "./routes/notes.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { reminderRoutes } from "./routes/reminders.js";
+import { skillRoutes } from "./routes/skills.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { tokenUsageRoutes } from "./routes/token-usage.js";
 import { webhookRoutes } from "./routes/webhook.js";
@@ -102,8 +103,23 @@ await app.register(adminRoutes, { prefix: "/api/admin" });
 await app.register(agentRoutes, { prefix: "/api/agents" });
 await app.register(memoryRoutes, { prefix: "/api/memories" });
 await app.register(tokenUsageRoutes, { prefix: "/api/usage" });
+await app.register(skillRoutes, { prefix: "/api/skills" });
 
-app.get("/api/health", async () => ({ status: "ok", timestamp: new Date().toISOString() }));
+app.get("/api/health", async () => {
+  let dbOk = false;
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbOk = true;
+  } catch {
+    // DB unreachable
+  }
+  return {
+    status: dbOk ? "ok" : "degraded",
+    db: dbOk ? "connected" : "unreachable",
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+  };
+});
 
 // User data management — "me" routes require authentication
 app.get("/api/user/me/export", { preHandler: requireAuth }, async (request) => {
