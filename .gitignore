@@ -10,3 +10,4 @@ results/
 # Local Claude Code project guide (kept out of repo to avoid staleness
 # and to keep internal prioritization notes private)
 CLAUDE.md
+.claude/
