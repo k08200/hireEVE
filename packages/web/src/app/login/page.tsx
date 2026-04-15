@@ -233,7 +233,13 @@ function LoginForm() {
             />
           </svg>
           Continue with Google
+          <span className="text-[10px] text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded font-normal">
+            Beta
+          </span>
         </a>
+        <p className="text-[10px] text-gray-600 text-center mt-1.5">
+          Google login is in review. Email sign-up works for everyone.
+        </p>
 
         <div className="mt-3">
           <button
