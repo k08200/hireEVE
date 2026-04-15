@@ -52,10 +52,7 @@ async function checkUnansweredEmails(userId: string): Promise<void> {
 
   const emailList = unanswered
     .map((e) => {
-      const from = e.from
-        .replace(/[<>]/g, "")
-        .trim()
-        .slice(0, 30);
+      const from = e.from.replace(/[<>]/g, "").trim().slice(0, 30);
       return `${from}: ${(e.subject || "No subject").slice(0, 40)}`;
     })
     .join("\n");
