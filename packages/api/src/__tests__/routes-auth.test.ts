@@ -7,10 +7,8 @@ import { signToken, verifyToken } from "../auth.js";
 const sendVerificationEmailSpy = vi.fn(async () => true);
 const sendPasswordResetEmailSpy = vi.fn(async () => true);
 vi.mock("../email.js", () => ({
-  sendVerificationEmail: (...args: unknown[]) =>
-    sendVerificationEmailSpy(...args),
-  sendPasswordResetEmail: (...args: unknown[]) =>
-    sendPasswordResetEmailSpy(...args),
+  sendVerificationEmail: (...args: unknown[]) => sendVerificationEmailSpy(...args),
+  sendPasswordResetEmail: (...args: unknown[]) => sendPasswordResetEmailSpy(...args),
 }));
 
 // Stub gmail OAuth helpers so we don't hit googleapis in tests.
@@ -43,14 +41,11 @@ let nextUserId = 1;
 vi.mock("../db.js", () => {
   const prisma = {
     user: {
-      findUnique: vi.fn(
-        async ({ where }: { where: { email?: string; id?: string } }) => {
-          if (where.email)
-            return userStore.get(userByEmail.get(where.email) || "") ?? null;
-          if (where.id) return userStore.get(where.id) ?? null;
-          return null;
-        },
-      ),
+      findUnique: vi.fn(async ({ where }: { where: { email?: string; id?: string } }) => {
+        if (where.email) return userStore.get(userByEmail.get(where.email) || "") ?? null;
+        if (where.id) return userStore.get(where.id) ?? null;
+        return null;
+      }),
       findFirst: vi.fn(
         async ({
           where,
@@ -64,46 +59,26 @@ vi.mock("../db.js", () => {
         }) => {
           for (const user of userStore.values()) {
             if (where.resetToken && user.resetToken === where.resetToken) {
-              if (
-                user.resetTokenExp &&
-                user.resetTokenExp.getTime() >= Date.now()
-              )
-                return user;
+              if (user.resetTokenExp && user.resetTokenExp.getTime() >= Date.now()) return user;
               return null;
             }
             if (where.verifyToken && user.verifyToken === where.verifyToken) {
-              if (
-                user.verifyTokenExp &&
-                user.verifyTokenExp.getTime() >= Date.now()
-              )
-                return user;
+              if (user.verifyTokenExp && user.verifyTokenExp.getTime() >= Date.now()) return user;
               return null;
             }
           }
           return null;
         },
       ),
-      create: vi.fn(
-        async ({
-          data,
-        }: {
-          data: Omit<StoredUser, "id" | "plan" | "role">;
-        }) => {
-          const id = `user-${nextUserId++}`;
-          const user: StoredUser = { id, plan: "FREE", role: "USER", ...data };
-          userStore.set(id, user);
-          userByEmail.set(data.email, id);
-          return user;
-        },
-      ),
+      create: vi.fn(async ({ data }: { data: Omit<StoredUser, "id" | "plan" | "role"> }) => {
+        const id = `user-${nextUserId++}`;
+        const user: StoredUser = { id, plan: "FREE", role: "USER", ...data };
+        userStore.set(id, user);
+        userByEmail.set(data.email, id);
+        return user;
+      }),
       update: vi.fn(
-        async ({
-          where,
-          data,
-        }: {
-          where: { id: string };
-          data: Record<string, unknown>;
-        }) => {
+        async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
           const user = userStore.get(where.id);
           if (!user) throw new Error("User not found");
           const updated = { ...user, ...data };
@@ -190,10 +165,7 @@ describe("POST /api/auth/register", () => {
 
     // Verification email is non-blocking — give the microtask queue one tick.
     await new Promise((resolve) => setImmediate(resolve));
-    expect(sendVerificationEmailSpy).toHaveBeenCalledWith(
-      "alice@example.com",
-      expect.any(String),
-    );
+    expect(sendVerificationEmailSpy).toHaveBeenCalledWith("alice@example.com", expect.any(String));
 
     await app.close();
   });
@@ -249,11 +221,7 @@ describe("POST /api/auth/register", () => {
 describe("POST /api/auth/login", () => {
   beforeEach(resetStores);
 
-  async function registerUser(
-    app: ReturnType<typeof Fastify>,
-    email: string,
-    password: string,
-  ) {
+  async function registerUser(app: ReturnType<typeof Fastify>, email: string, password: string) {
     return app.inject({
       method: "POST",
       url: "/api/auth/register",
@@ -387,11 +355,7 @@ describe("POST /api/auth/change-password", () => {
 
   it("changes password with correct current password", async () => {
     const app = await buildApp();
-    const token = await registerAndGetToken(
-      app,
-      "cp@example.com",
-      "oldpassword1",
-    );
+    const token = await registerAndGetToken(app, "cp@example.com", "oldpassword1");
 
     const res = await app.inject({
       method: "POST",
@@ -415,11 +379,7 @@ describe("POST /api/auth/change-password", () => {
 
   it("rejects wrong current password", async () => {
     const app = await buildApp();
-    const token = await registerAndGetToken(
-      app,
-      "cp2@example.com",
-      "correctpw1",
-    );
+    const token = await registerAndGetToken(app, "cp2@example.com", "correctpw1");
 
     const res = await app.inject({
       method: "POST",
@@ -452,11 +412,7 @@ describe("POST /api/auth/change-password", () => {
 
   it("rejects new password shorter than 6 characters", async () => {
     const app = await buildApp();
-    const token = await registerAndGetToken(
-      app,
-      "short@example.com",
-      "oldpassword1",
-    );
+    const token = await registerAndGetToken(app, "short@example.com", "oldpassword1");
 
     const res = await app.inject({
       method: "POST",
@@ -510,11 +466,7 @@ describe("POST /api/auth/set-password", () => {
 
   it("rejects if password is already set", async () => {
     const app = await buildApp();
-    const token = await registerAndGetToken(
-      app,
-      "has-pw@example.com",
-      "existingpw1",
-    );
+    const token = await registerAndGetToken(app, "has-pw@example.com", "existingpw1");
 
     const res = await app.inject({
       method: "POST",
@@ -791,10 +743,7 @@ describe("POST /api/auth/resend-verification", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json().success).toBe(true);
-    expect(sendVerificationEmailSpy).toHaveBeenCalledWith(
-      "unver@example.com",
-      expect.any(String),
-    );
+    expect(sendVerificationEmailSpy).toHaveBeenCalledWith("unver@example.com", expect.any(String));
     await app.close();
   });
 
