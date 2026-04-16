@@ -24,22 +24,52 @@ interface Stats {
   planDistribution: Record<string, number>;
 }
 
+interface OpsMetrics {
+  window: string;
+  tools: { executed: number; errors: number; skipped: number; successRate: number };
+  approvals: {
+    proposed: number;
+    approved: number;
+    rejected: number;
+    pending: number;
+    approvalRate: number;
+  };
+  notifications: { sent: number; read: number; readRate: number };
+  activeUsers: { dau: number; wau: number; mau: number };
+  tokens: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+  };
+  recentErrors: Array<{
+    summary: string;
+    createdAt: string;
+    userId: string;
+    tool: string | null;
+  }>;
+}
+
 export default function AdminPage() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [ops, setOps] = useState<OpsMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"ops" | "users">("ops");
 
   useEffect(() => {
     if (!token) return;
     Promise.all([
       apiFetch<{ users: UserRow[] }>("/api/admin/users"),
       apiFetch<Stats>("/api/admin/stats"),
+      apiFetch<OpsMetrics>("/api/admin/ops"),
     ])
-      .then(([usersData, statsData]) => {
+      .then(([usersData, statsData, opsData]) => {
         setUsers(usersData.users);
         setStats(statsData);
+        setOps(opsData);
       })
       .catch((err) => {
         toast(err instanceof Error ? err.message : "Failed to load", "error");
@@ -89,7 +119,25 @@ export default function AdminPage() {
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
-      <h1 className="text-xl font-bold">Admin Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Admin Dashboard</h1>
+        <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
+          <button
+            type="button"
+            onClick={() => setTab("ops")}
+            className={`px-3 py-1 text-xs rounded ${tab === "ops" ? "bg-gray-800 text-white" : "text-gray-500 hover:text-gray-300"}`}
+          >
+            Ops
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("users")}
+            className={`px-3 py-1 text-xs rounded ${tab === "users" ? "bg-gray-800 text-white" : "text-gray-500 hover:text-gray-300"}`}
+          >
+            Users
+          </button>
+        </div>
+      </div>
 
       {/* Stats */}
       {stats && (
@@ -106,69 +154,150 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-800">
-              <th className="pb-2 pr-4">Email</th>
-              <th className="pb-2 pr-4">Name</th>
-              <th className="pb-2 pr-4">Role</th>
-              <th className="pb-2 pr-4">Plan</th>
-              <th className="pb-2 pr-4">Messages</th>
-              <th className="pb-2 pr-4">Chats</th>
-              <th className="pb-2 pr-4">Joined</th>
-              <th className="pb-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-b border-gray-800/50">
-                <td className="py-3 pr-4 text-gray-300">{u.email}</td>
-                <td className="py-3 pr-4 text-gray-400">{u.name || "-"}</td>
-                <td className="py-3 pr-4">
-                  <select
-                    value={u.role}
-                    onChange={(e) => updateUser(u.id, { role: e.target.value })}
-                    className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs"
-                  >
-                    <option value="USER">USER</option>
-                    <option value="ADMIN">ADMIN</option>
-                  </select>
-                </td>
-                <td className="py-3 pr-4">
-                  <select
-                    value={u.plan}
-                    onChange={(e) => updateUser(u.id, { plan: e.target.value })}
-                    className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs"
-                  >
-                    <option value="FREE">FREE</option>
-                    <option value="PRO">PRO</option>
-                    <option value="TEAM">TEAM</option>
-                    <option value="ENTERPRISE">ENTERPRISE</option>
-                  </select>
-                </td>
-                <td className="py-3 pr-4 text-gray-400">{u.messageCount}</td>
-                <td className="py-3 pr-4 text-gray-400">{u._count.conversations}</td>
-                <td className="py-3 pr-4 text-gray-500 text-xs">
-                  {new Date(u.createdAt).toLocaleDateString("ko-KR")}
-                </td>
-                <td className="py-3">
-                  {u.role !== "ADMIN" && (
-                    <button
-                      type="button"
-                      onClick={() => deleteUser(u.id, u.email)}
-                      className="text-red-500 hover:text-red-400 text-xs"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </td>
+      {tab === "ops" && ops && (
+        <div className="space-y-6">
+          <section>
+            <h2 className="text-sm font-medium text-gray-400 mb-3">Tool Execution (last 7d)</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                label="Success Rate"
+                value={`${(ops.tools.successRate * 100).toFixed(1)}%`}
+              />
+              <StatCard label="Executed" value={ops.tools.executed} />
+              <StatCard label="Errors" value={ops.tools.errors} />
+              <StatCard label="Skipped (dedup)" value={ops.tools.skipped} />
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-sm font-medium text-gray-400 mb-3">Approval Flow (last 7d)</h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <StatCard
+                label="Approval Rate"
+                value={`${(ops.approvals.approvalRate * 100).toFixed(1)}%`}
+              />
+              <StatCard label="Proposed" value={ops.approvals.proposed} />
+              <StatCard label="Approved" value={ops.approvals.approved} />
+              <StatCard label="Rejected" value={ops.approvals.rejected} />
+              <StatCard label="Pending" value={ops.approvals.pending} />
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-sm font-medium text-gray-400 mb-3">Active Users & Notifications</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard label="DAU" value={ops.activeUsers.dau} />
+              <StatCard label="WAU" value={ops.activeUsers.wau} />
+              <StatCard label="MAU" value={ops.activeUsers.mau} />
+              <StatCard
+                label="Notif Read Rate"
+                value={`${(ops.notifications.readRate * 100).toFixed(1)}%`}
+              />
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-sm font-medium text-gray-400 mb-3">Token Usage (last 7d)</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                label="Estimated Cost"
+                value={`$${ops.tokens.estimatedCostUsd.toFixed(2)}`}
+              />
+              <StatCard label="Prompt Tokens" value={ops.tokens.promptTokens.toLocaleString()} />
+              <StatCard
+                label="Completion Tokens"
+                value={ops.tokens.completionTokens.toLocaleString()}
+              />
+              <StatCard label="Total Tokens" value={ops.tokens.totalTokens.toLocaleString()} />
+            </div>
+          </section>
+
+          {ops.recentErrors.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-gray-400 mb-3">Recent Errors</h2>
+              <div className="bg-gray-900 border border-gray-800 rounded-lg divide-y divide-gray-800">
+                {ops.recentErrors.map((e, idx) => (
+                  <div key={`${e.createdAt}-${idx}`} className="p-3 text-xs">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-red-400 font-mono">{e.tool || "unknown"}</span>
+                      <span className="text-gray-600">
+                        {new Date(e.createdAt).toLocaleString("ko-KR")}
+                      </span>
+                    </div>
+                    <p className="text-gray-400 truncate">{e.summary}</p>
+                    <p className="text-gray-600 mt-1">user: {e.userId.slice(0, 8)}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+
+      {tab === "users" && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-gray-500 border-b border-gray-800">
+                <th className="pb-2 pr-4">Email</th>
+                <th className="pb-2 pr-4">Name</th>
+                <th className="pb-2 pr-4">Role</th>
+                <th className="pb-2 pr-4">Plan</th>
+                <th className="pb-2 pr-4">Messages</th>
+                <th className="pb-2 pr-4">Chats</th>
+                <th className="pb-2 pr-4">Joined</th>
+                <th className="pb-2">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} className="border-b border-gray-800/50">
+                  <td className="py-3 pr-4 text-gray-300">{u.email}</td>
+                  <td className="py-3 pr-4 text-gray-400">{u.name || "-"}</td>
+                  <td className="py-3 pr-4">
+                    <select
+                      value={u.role}
+                      onChange={(e) => updateUser(u.id, { role: e.target.value })}
+                      className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs"
+                    >
+                      <option value="USER">USER</option>
+                      <option value="ADMIN">ADMIN</option>
+                    </select>
+                  </td>
+                  <td className="py-3 pr-4">
+                    <select
+                      value={u.plan}
+                      onChange={(e) => updateUser(u.id, { plan: e.target.value })}
+                      className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs"
+                    >
+                      <option value="FREE">FREE</option>
+                      <option value="PRO">PRO</option>
+                      <option value="TEAM">TEAM</option>
+                      <option value="ENTERPRISE">ENTERPRISE</option>
+                    </select>
+                  </td>
+                  <td className="py-3 pr-4 text-gray-400">{u.messageCount}</td>
+                  <td className="py-3 pr-4 text-gray-400">{u._count.conversations}</td>
+                  <td className="py-3 pr-4 text-gray-500 text-xs">
+                    {new Date(u.createdAt).toLocaleDateString("ko-KR")}
+                  </td>
+                  <td className="py-3">
+                    {u.role !== "ADMIN" && (
+                      <button
+                        type="button"
+                        onClick={() => deleteUser(u.id, u.email)}
+                        className="text-red-500 hover:text-red-400 text-xs"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
