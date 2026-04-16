@@ -85,11 +85,117 @@ export default function DashboardPage() {
   );
 }
 
+interface OnboardingState {
+  googleConnected: boolean;
+  automationEnabled: boolean;
+  hasSkills: boolean;
+  hasConversation: boolean;
+}
+
+function OnboardingChecklist({
+  state,
+  onDismiss,
+}: {
+  state: OnboardingState;
+  onDismiss: () => void;
+}) {
+  const steps = [
+    {
+      key: "google",
+      label: "Connect Gmail & Calendar",
+      href: "/settings",
+      done: state.googleConnected,
+    },
+    {
+      key: "automation",
+      label: "Enable autonomous agent",
+      href: "/settings",
+      done: state.automationEnabled,
+    },
+    {
+      key: "chat",
+      label: "Start your first conversation",
+      href: "/chat",
+      done: state.hasConversation,
+    },
+    { key: "skill", label: "Save a reusable skill", href: "/skills", done: state.hasSkills },
+  ];
+
+  const completed = steps.filter((s) => s.done).length;
+  const allDone = completed === steps.length;
+
+  if (allDone) return null;
+
+  return (
+    <div className="mb-6 p-5 bg-gradient-to-br from-blue-600/5 to-purple-600/5 border border-gray-800 rounded-xl">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-semibold text-white">Get started with EVE</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {completed}/{steps.length} completed
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="text-gray-600 hover:text-gray-400 text-xs"
+        >
+          Dismiss
+        </button>
+      </div>
+      <div className="w-full bg-gray-800 rounded-full h-1 mb-4">
+        <div
+          className="bg-blue-500 h-1 rounded-full transition-all"
+          style={{ width: `${(completed / steps.length) * 100}%` }}
+        />
+      </div>
+      <div className="space-y-2">
+        {steps.map((step) => (
+          <Link
+            key={step.key}
+            href={step.href}
+            className={`flex items-center gap-3 p-3 rounded-lg transition ${
+              step.done
+                ? "bg-gray-800/30 text-gray-500"
+                : "bg-gray-800/50 hover:bg-gray-800 text-white"
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                step.done ? "border-green-500 bg-green-500/20" : "border-gray-600"
+              }`}
+            >
+              {step.done && (
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-green-400"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </div>
+            <span className={`text-sm ${step.done ? "line-through" : ""}`}>{step.label}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DashboardContent() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [agentLogs, setAgentLogs] = useState<AgentLog[]>([]);
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingState | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(true);
   const [loading, setLoading] = useState(true);
   const { user, googleConnected } = useAuth();
   const router = useRouter();
@@ -177,6 +283,27 @@ function DashboardContent() {
     apiFetch<{ activity: Activity[] }>("/api/activity")
       .then((d) => setActivity(d.activity || []))
       .catch(() => {});
+
+    // Onboarding state — check setup progress
+    Promise.all([
+      apiFetch<{ autonomousAgent?: boolean }>("/api/automations").catch(() => ({})),
+      apiFetch<{ skills: unknown[] }>("/api/skills").catch(() => ({ skills: [] })),
+      apiFetch<{ conversations: unknown[] }>("/api/chat/conversations").catch(() => ({
+        conversations: [],
+      })),
+    ]).then(([autoConfig, skillData, convData]) => {
+      setOnboarding({
+        googleConnected: googleConnected ?? false,
+        automationEnabled: !!(autoConfig as { autonomousAgent?: boolean }).autonomousAgent,
+        hasSkills: (skillData.skills || []).length > 0,
+        hasConversation: (convData.conversations || []).length > 0,
+      });
+    });
+
+    // Restore onboarding dismiss state
+    if (localStorage.getItem("eve-onboarding-dismissed") === "true") {
+      setShowOnboarding(false);
+    }
 
     apiFetch<{ logs: AgentLog[] }>("/api/automations/agent-logs?limit=5")
       .then((d) => setAgentLogs(d.logs || []))
@@ -385,6 +512,16 @@ function DashboardContent() {
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </Link>
+      )}
+
+      {showOnboarding && onboarding && (
+        <OnboardingChecklist
+          state={onboarding}
+          onDismiss={() => {
+            setShowOnboarding(false);
+            localStorage.setItem("eve-onboarding-dismissed", "true");
+          }}
+        />
       )}
 
       {loading ? (
