@@ -1119,7 +1119,22 @@ export function chatRoutes(app: FastifyInstance) {
           .then(({ learnFromApproval }) => learnFromApproval(userId, action.toolName, toolArgs))
           .catch(() => {});
 
-        return { success: true, result: toolResult };
+        // Auto-allow this tool type for future actions if requested
+        const { autoAllow } = (request.body as { autoAllow?: boolean }) || {};
+        if (autoAllow && action.toolName) {
+          const config = await prisma.automationConfig.findUnique({ where: { userId } });
+          const existing: string[] =
+            (config as unknown as { alwaysAllowedTools?: string[] })?.alwaysAllowedTools || [];
+          if (!existing.includes(action.toolName)) {
+            await prisma.automationConfig.upsert({
+              where: { userId },
+              update: { alwaysAllowedTools: [...existing, action.toolName] },
+              create: { userId, alwaysAllowedTools: [action.toolName] },
+            });
+          }
+        }
+
+        return { success: true, result: toolResult, autoAllowed: !!autoAllow };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Execution failed";
 
@@ -1197,7 +1212,23 @@ export function chatRoutes(app: FastifyInstance) {
         )
         .catch(() => {});
 
-      return { success: true };
+      // Never suggest this tool type again if requested
+      const { neverSuggest } = (request.body as { neverSuggest?: boolean }) || {};
+      if (neverSuggest && action.toolName) {
+        import("../memory.js")
+          .then(({ remember }) =>
+            remember(
+              userId,
+              "FEEDBACK",
+              `never_suggest_${action.toolName}`,
+              `User explicitly asked EVE to never propose ${action.toolName} actions.`,
+              "user",
+            ),
+          )
+          .catch(() => {});
+      }
+
+      return { success: true, neverSuggested: !!neverSuggest };
     },
   );
 }

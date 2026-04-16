@@ -496,10 +496,13 @@ function ChatPageContent() {
     toast("Exported as Markdown", "success");
   };
 
-  const handleActionApprove = async (actionId: string) => {
+  const handleActionApprove = async (actionId: string, autoAllow = false) => {
     setActionLoading(actionId);
     try {
-      await apiFetch(`/api/chat/pending-actions/${actionId}/approve`, { method: "POST" });
+      await apiFetch(`/api/chat/pending-actions/${actionId}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ autoAllow }),
+      });
       setPendingActions((prev) => {
         const next = new Map(prev);
         const action = [...prev.values()].find((a) => a.id === actionId);
@@ -517,14 +520,16 @@ function ChatPageContent() {
     setActionLoading(null);
   };
 
-  const handleActionReject = async (actionId: string) => {
-    const reason = window.prompt("Reason for rejection (optional)");
-    if (reason === null) return; // User cancelled the prompt
+  const handleActionReject = async (actionId: string, neverSuggest = false) => {
+    const reason = neverSuggest
+      ? "Never suggest this again"
+      : window.prompt("Reason for rejection (optional)");
+    if (reason === null) return;
     setActionLoading(actionId);
     try {
       await apiFetch(`/api/chat/pending-actions/${actionId}/reject`, {
         method: "POST",
-        body: JSON.stringify({ reason: reason?.trim() || undefined }),
+        body: JSON.stringify({ reason: reason?.trim() || undefined, neverSuggest }),
       });
       setPendingActions((prev) => {
         const next = new Map(prev);
@@ -776,43 +781,61 @@ function ChatPageContent() {
                                 {preview}
                               </div>
                             )}
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleActionApprove(action.id)}
-                                disabled={isLoading}
-                                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-                              >
-                                {isLoading ? (
-                                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                  <svg
-                                    aria-hidden="true"
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  >
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
-                                Approve
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleActionReject(action.id)}
-                                disabled={isLoading}
-                                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
-                              >
-                                Reject
-                              </button>
-                              <span className="text-xs text-gray-500 ml-2">
-                                {action.toolName.replace(/_/g, " ")}
-                              </span>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleActionApprove(action.id)}
+                                  disabled={isLoading}
+                                  className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                >
+                                  {isLoading ? (
+                                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                  ) : (
+                                    <svg
+                                      aria-hidden="true"
+                                      width="14"
+                                      height="14"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                  )}
+                                  Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleActionReject(action.id)}
+                                  disabled={isLoading}
+                                  className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px]">
+                                <button
+                                  type="button"
+                                  onClick={() => handleActionApprove(action.id, true)}
+                                  disabled={isLoading}
+                                  className="text-blue-400 hover:text-blue-300 disabled:opacity-50 transition"
+                                >
+                                  Always allow {action.toolName.replace(/_/g, " ")}
+                                </button>
+                                <span className="text-gray-700">|</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleActionReject(action.id, true)}
+                                  disabled={isLoading}
+                                  className="text-gray-500 hover:text-red-400 disabled:opacity-50 transition"
+                                >
+                                  Never suggest this
+                                </button>
+                              </div>
                             </div>
                           </div>
                         );
