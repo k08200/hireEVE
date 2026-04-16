@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { requireAdmin } from "../auth.js";
-import { prisma } from "../db.js";
+import { db, prisma } from "../db.js";
 
 export async function adminRoutes(app: FastifyInstance) {
   // All admin routes require ADMIN role
@@ -129,6 +129,113 @@ export async function adminRoutes(app: FastifyInstance) {
           p._count.id,
         ]),
       ),
+    };
+  });
+
+  // GET /api/admin/ops — Operational metrics (tool success rate, approval rate, DAU, token cost, etc.)
+  app.get("/ops", async () => {
+    const now = new Date();
+    const day = 24 * 60 * 60 * 1000;
+    const last24h = new Date(now.getTime() - day);
+    const last7d = new Date(now.getTime() - 7 * day);
+    const last30d = new Date(now.getTime() - 30 * day);
+
+    // Tool success/failure from AgentLog (action: auto_action|error|skip)
+    const [toolExecuted, toolErrors, toolSkipped] = await Promise.all([
+      db.agentLog.count({ where: { action: "auto_action", createdAt: { gte: last7d } } }),
+      db.agentLog.count({ where: { action: "error", createdAt: { gte: last7d } } }),
+      db.agentLog.count({ where: { action: "skip", createdAt: { gte: last7d } } }),
+    ]);
+    const totalToolCalls = toolExecuted + toolErrors;
+    const toolSuccessRate = totalToolCalls > 0 ? toolExecuted / totalToolCalls : 0;
+
+    // Approval rate from PendingAction
+    const [proposed, approved, rejected, stillPending] = await Promise.all([
+      db.pendingAction.count({ where: { createdAt: { gte: last7d } } }),
+      db.pendingAction.count({ where: { status: "EXECUTED", createdAt: { gte: last7d } } }),
+      db.pendingAction.count({ where: { status: "REJECTED", createdAt: { gte: last7d } } }),
+      db.pendingAction.count({ where: { status: "PENDING", createdAt: { gte: last7d } } }),
+    ]);
+    const decided = approved + rejected;
+    const approvalRate = decided > 0 ? approved / decided : 0;
+
+    // Notification read rate
+    const [notifSent, notifRead] = await Promise.all([
+      prisma.notification.count({ where: { createdAt: { gte: last7d } } }),
+      prisma.notification.count({ where: { createdAt: { gte: last7d }, isRead: true } }),
+    ]);
+    const readRate = notifSent > 0 ? notifRead / notifSent : 0;
+
+    // Active users
+    const [dau, wau, mau] = await Promise.all([
+      prisma.message
+        .groupBy({
+          by: ["conversationId"],
+          where: { createdAt: { gte: last24h }, role: "USER" },
+        })
+        .then((g: { conversationId: string }[]) => g.length),
+      prisma.message
+        .groupBy({
+          by: ["conversationId"],
+          where: { createdAt: { gte: last7d }, role: "USER" },
+        })
+        .then((g: { conversationId: string }[]) => g.length),
+      prisma.message
+        .groupBy({
+          by: ["conversationId"],
+          where: { createdAt: { gte: last30d }, role: "USER" },
+        })
+        .then((g: { conversationId: string }[]) => g.length),
+    ]);
+
+    // Token usage + estimated cost
+    const tokenAgg = await db.tokenUsage.aggregate({
+      where: { createdAt: { gte: last7d } },
+      _sum: { promptTokens: true, completionTokens: true, totalTokens: true },
+    });
+    const promptTokens = Number(tokenAgg._sum?.promptTokens ?? 0);
+    const completionTokens = Number(tokenAgg._sum?.completionTokens ?? 0);
+    const totalTokens = Number(tokenAgg._sum?.totalTokens ?? 0);
+    // gpt-4o-mini pricing (approx): $0.15 / 1M prompt, $0.60 / 1M completion
+    const estimatedCostUsd =
+      (promptTokens / 1_000_000) * 0.15 + (completionTokens / 1_000_000) * 0.6;
+
+    // Top errors (last 7d)
+    const recentErrors = await db.agentLog.findMany({
+      where: { action: "error", createdAt: { gte: last7d } },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      select: { summary: true, createdAt: true, userId: true, tool: true },
+    });
+
+    return {
+      window: "7d",
+      tools: {
+        executed: toolExecuted,
+        errors: toolErrors,
+        skipped: toolSkipped,
+        successRate: toolSuccessRate,
+      },
+      approvals: {
+        proposed,
+        approved,
+        rejected,
+        pending: stillPending,
+        approvalRate,
+      },
+      notifications: {
+        sent: notifSent,
+        read: notifRead,
+        readRate,
+      },
+      activeUsers: { dau, wau, mau },
+      tokens: {
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        estimatedCostUsd,
+      },
+      recentErrors,
     };
   });
 }
