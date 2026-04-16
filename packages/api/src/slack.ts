@@ -146,6 +146,22 @@ export async function slackEventRoutes(app: FastifyInstance) {
       mode: SLACK_BOT_TOKEN ? "bot_token" : SLACK_WEBHOOK_URL ? "webhook" : "none",
     };
   });
+
+  // POST /api/slack/test — Send a test message to verify the integration works
+  app.post("/test", async (_request, reply) => {
+    if (!SLACK_BOT_TOKEN && !SLACK_WEBHOOK_URL) {
+      return reply.code(503).send({ error: "Slack not configured" });
+    }
+    const channel = process.env.SLACK_DEFAULT_CHANNEL || "#general";
+    const result = await sendSlackMessage({
+      channel,
+      text: "EVE test message — Slack integration is working.",
+    });
+    if (!result.ok) {
+      return reply.code(502).send({ error: result.error || "Failed to send" });
+    }
+    return { success: true, channel };
+  });
 }
 
 // Tool definitions for EVE chat

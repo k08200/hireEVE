@@ -40,6 +40,8 @@ const TIMEZONES = [
 export default function SettingsPage() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [slackConnected, setSlackConnected] = useState(false);
+  const [slackMode, setSlackMode] = useState<"none" | "bot_token" | "webhook">("none");
+  const [slackTesting, setSlackTesting] = useState(false);
   const [notionConnected, setNotionConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile>({
@@ -495,8 +497,11 @@ export default function SettingsPage() {
           setGmailPushExpiresAt(d.gmailPushExpiresAt ?? null);
         })
         .catch(() => {}),
-      apiFetch<{ configured: boolean }>("/api/slack/status")
-        .then((d) => setSlackConnected(d.configured))
+      apiFetch<{ configured: boolean; mode: "none" | "bot_token" | "webhook" }>("/api/slack/status")
+        .then((d) => {
+          setSlackConnected(d.configured);
+          setSlackMode(d.mode);
+        })
         .catch(() => {}),
       apiFetch<{ configured: boolean }>("/api/notion/status")
         .then((d) => setNotionConnected(d.configured))
@@ -514,9 +519,11 @@ export default function SettingsPage() {
     },
     {
       name: "Slack",
-      description: "Send messages, read channels, receive mentions",
+      description: slackConnected
+        ? `Connected via ${slackMode === "bot_token" ? "bot token" : "webhook"} — ask EVE to send, list, or read Slack messages`
+        : "Configured by admin via SLACK_BOT_TOKEN or SLACK_WEBHOOK_URL env var",
       connected: slackConnected,
-      connectUrl: slackConnected ? undefined : "slack-coming-soon",
+      connectUrl: slackConnected ? undefined : "slack-admin-only",
       statusUrl: `${API_BASE}/api/slack/status`,
     },
     {
@@ -527,6 +534,26 @@ export default function SettingsPage() {
       statusUrl: `${API_BASE}/api/notion/status`,
     },
   ];
+
+  const testSlack = async () => {
+    setSlackTesting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/slack/test`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        toast("Test message sent to Slack", "success");
+      } else {
+        const body = await res.json().catch(() => ({}));
+        toast(body.error || "Failed to send test message", "error");
+      }
+    } catch {
+      toast("Failed to send test message", "error");
+    } finally {
+      setSlackTesting(false);
+    }
+  };
 
   const generateBriefing = async () => {
     const res = await fetch(`${API_BASE}/api/briefing/generate`, {
@@ -994,7 +1021,21 @@ export default function SettingsPage() {
                           Disconnect
                         </button>
                       )}
+                      {int.name === "Slack" && (
+                        <button
+                          type="button"
+                          onClick={testSlack}
+                          disabled={slackTesting}
+                          className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition"
+                        >
+                          {slackTesting ? "Sending..." : "Send test"}
+                        </button>
+                      )}
                     </div>
+                  ) : int.connectUrl?.endsWith("-admin-only") ? (
+                    <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                      Admin only
+                    </span>
                   ) : int.connectUrl?.endsWith("-coming-soon") ? (
                     <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
                       Coming Soon
