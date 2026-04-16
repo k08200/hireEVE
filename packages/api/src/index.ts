@@ -6,6 +6,7 @@ import { ensureDemoUser, getUserId, requireAuth } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
 import { briefingRoutes } from "./briefing.js";
 import { db, prisma } from "./db.js";
+import { attachPerfMonitor } from "./perf-monitor.js";
 import { adminRoutes } from "./routes/admin.js";
 import { agentRoutes } from "./routes/agents.js";
 import { authRoutes } from "./routes/auth.js";
@@ -35,6 +36,9 @@ type TxClient = Omit<
 >;
 
 const app = Fastify({ logger: true });
+
+// Attach per-request performance tracking (p50/p95/p99 per route)
+attachPerfMonitor(app);
 
 const ALLOWED_ORIGINS = (
   process.env.CORS_ORIGINS ||

@@ -50,12 +50,26 @@ interface OpsMetrics {
   }>;
 }
 
+interface PerfSnapshot {
+  routes: Array<{
+    route: string;
+    count: number;
+    errorCount: number;
+    p50: number;
+    p95: number;
+    p99: number;
+    max: number;
+  }>;
+  capturedAt: string;
+}
+
 export default function AdminPage() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [ops, setOps] = useState<OpsMetrics | null>(null);
+  const [perf, setPerf] = useState<PerfSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"ops" | "users">("ops");
 
@@ -65,11 +79,13 @@ export default function AdminPage() {
       apiFetch<{ users: UserRow[] }>("/api/admin/users"),
       apiFetch<Stats>("/api/admin/stats"),
       apiFetch<OpsMetrics>("/api/admin/ops"),
+      apiFetch<PerfSnapshot>("/api/admin/perf"),
     ])
-      .then(([usersData, statsData, opsData]) => {
+      .then(([usersData, statsData, opsData, perfData]) => {
         setUsers(usersData.users);
         setStats(statsData);
         setOps(opsData);
+        setPerf(perfData);
       })
       .catch((err) => {
         toast(err instanceof Error ? err.message : "Failed to load", "error");
@@ -211,6 +227,52 @@ export default function AdminPage() {
               <StatCard label="Total Tokens" value={ops.tokens.totalTokens.toLocaleString()} />
             </div>
           </section>
+
+          {perf && perf.routes.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-gray-400 mb-3">
+                Route Latency (since last restart)
+              </h2>
+              <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b border-gray-800">
+                      <th className="p-3">Route</th>
+                      <th className="p-3">Count</th>
+                      <th className="p-3">Errors</th>
+                      <th className="p-3">p50</th>
+                      <th className="p-3">p95</th>
+                      <th className="p-3">p99</th>
+                      <th className="p-3">Max</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {perf.routes.slice(0, 20).map((r) => (
+                      <tr key={r.route} className="border-b border-gray-800/50">
+                        <td className="p-3 font-mono text-gray-300">{r.route}</td>
+                        <td className="p-3 text-gray-400">{r.count}</td>
+                        <td
+                          className={`p-3 ${r.errorCount > 0 ? "text-red-400" : "text-gray-500"}`}
+                        >
+                          {r.errorCount}
+                        </td>
+                        <td className="p-3 text-gray-400">{r.p50}ms</td>
+                        <td className={`p-3 ${r.p95 > 1000 ? "text-yellow-400" : "text-gray-400"}`}>
+                          {r.p95}ms
+                        </td>
+                        <td className={`p-3 ${r.p99 > 1000 ? "text-yellow-400" : "text-gray-400"}`}>
+                          {r.p99}ms
+                        </td>
+                        <td className={`p-3 ${r.max > 2000 ? "text-red-400" : "text-gray-400"}`}>
+                          {r.max}ms
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
           {ops.recentErrors.length > 0 && (
             <section>

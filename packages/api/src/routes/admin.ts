@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { requireAdmin } from "../auth.js";
 import { db, prisma } from "../db.js";
+import { getPerfSnapshot } from "../perf-monitor.js";
 
 export async function adminRoutes(app: FastifyInstance) {
   // All admin routes require ADMIN role
@@ -237,5 +238,11 @@ export async function adminRoutes(app: FastifyInstance) {
       },
       recentErrors,
     };
+  });
+
+  // GET /api/admin/perf — Per-route latency (p50/p95/p99) since last server restart
+  app.get("/perf", async () => {
+    const snapshot = getPerfSnapshot();
+    return { routes: snapshot, capturedAt: new Date().toISOString() };
   });
 }
