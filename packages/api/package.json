@@ -17,6 +17,7 @@
     "@fastify/rate-limit": "^10.2.1",
     "@hireeve/core": "workspace:*",
     "@prisma/client": "^6.8.2",
+    "@sentry/node": "^10.48.0",
     "@types/web-push": "^3.6.4",
     "@types/ws": "^8.18.1",
     "bcryptjs": "^3.0.3",
