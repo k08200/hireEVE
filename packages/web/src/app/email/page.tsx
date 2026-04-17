@@ -6,6 +6,7 @@ import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
 import { API_BASE, apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { captureClientError } from "../../lib/sentry";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ export default function EmailPage() {
         body: "{}",
       })
         .then(() => fetchEmails())
-        .catch(() => {})
+        .catch((err) => captureClientError(err, { scope: "email.auto-sync" }))
         .finally(() => setSyncing(false));
     }
   }, [googleConnected, emails.length, stats, loading, syncing, autoSynced, fetchEmails]);
@@ -221,7 +222,7 @@ export default function EmailPage() {
     if (tab === "rules") {
       apiFetch<{ rules: EmailRule[] }>("/api/email/rules")
         .then((d) => setRules(d.rules || []))
-        .catch(() => {});
+        .catch((err) => captureClientError(err, { scope: "email.load-rules" }));
     }
   }, [tab]);
 
@@ -302,7 +303,7 @@ export default function EmailPage() {
       body: JSON.stringify({ isStarred: !email.isStarred }),
     })
       .then(() => fetchEmails())
-      .catch(() => {});
+      .catch((err: Error) => toast(err.message || "Failed to update star", "error"));
   };
 
   const markRead = (email: Email, isRead: boolean) => {
@@ -311,7 +312,7 @@ export default function EmailPage() {
       body: JSON.stringify({ isRead }),
     })
       .then(() => fetchEmails())
-      .catch(() => {});
+      .catch((err: Error) => toast(err.message || "Failed to update read state", "error"));
   };
 
   const deleteEmail = (email: Email) => {
@@ -406,7 +407,7 @@ export default function EmailPage() {
           prev.map((r) => (r.id === rule.id ? { ...r, isActive: !r.isActive } : r)),
         );
       })
-      .catch(() => {});
+      .catch((err: Error) => toast(err.message || "Failed to toggle rule", "error"));
   };
 
   const deleteRule = (id: string) => {
@@ -415,7 +416,7 @@ export default function EmailPage() {
         setRules((prev) => prev.filter((r) => r.id !== id));
         toast("Rule deleted", "success");
       })
-      .catch(() => {});
+      .catch((err: Error) => toast(err.message || "Failed to delete rule", "error"));
   };
 
   // ─── Category pills from stats ─────────────────────────────────────

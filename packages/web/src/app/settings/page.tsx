@@ -7,6 +7,7 @@ import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { captureClientError } from "../../lib/sentry";
 
 interface Integration {
   name: string;
@@ -160,7 +161,7 @@ export default function SettingsPage() {
     // Check if user has a password set
     apiFetch<{ hasPassword: boolean }>("/api/auth/has-password")
       .then((d) => setHasPassword(d.hasPassword))
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "settings.has-password" }));
   }, [user]);
 
   const saveProfile = async () => {
@@ -412,7 +413,7 @@ export default function SettingsPage() {
           quietHoursEnd: d.quietHoursEnd ?? null,
         });
       })
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "settings.load-automation-config" }));
   }, []);
 
   const updateAutoMarkRead = async (value: boolean) => {
@@ -550,16 +551,16 @@ export default function SettingsPage() {
           setGmailPushEnabled(!!d.gmailPushEnabled);
           setGmailPushExpiresAt(d.gmailPushExpiresAt ?? null);
         })
-        .catch(() => {}),
+        .catch((err) => captureClientError(err, { scope: "settings.google-status" })),
       apiFetch<{ configured: boolean; mode: "none" | "bot_token" | "webhook" }>("/api/slack/status")
         .then((d) => {
           setSlackConnected(d.configured);
           setSlackMode(d.mode);
         })
-        .catch(() => {}),
+        .catch((err) => captureClientError(err, { scope: "settings.slack-status" })),
       apiFetch<{ configured: boolean }>("/api/notion/status")
         .then((d) => setNotionConnected(d.configured))
-        .catch(() => {}),
+        .catch((err) => captureClientError(err, { scope: "settings.notion-status" })),
     ]).finally(() => setLoading(false));
   }, []);
 

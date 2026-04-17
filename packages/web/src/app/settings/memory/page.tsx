@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../../lib/api";
+import { captureClientError } from "../../../lib/sentry";
 
 interface Memory {
   id: string;
@@ -35,10 +36,10 @@ export default function MemoryPage() {
     if (search) params.set("search", search);
     apiFetch<{ memories: Memory[] }>(`/api/memories?${params}`)
       .then((d) => setMemories(d.memories))
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "memory.load-list" }));
     apiFetch<{ total: number; byType: { type: string; _count: number }[] }>("/api/memories/stats")
       .then(setStats)
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "memory.load-stats" }));
   };
 
   useEffect(() => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../../lib/api";
+import { captureClientError } from "../../../lib/sentry";
 
 interface UsageStats {
   period: string;
@@ -32,10 +33,10 @@ export default function UsagePage() {
   useEffect(() => {
     apiFetch<UsageStats>(`/api/usage?period=${period}`)
       .then(setStats)
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "usage.load-stats", period }));
     apiFetch<{ conversations: ConvUsage[] }>("/api/usage/conversations")
       .then((d) => setConvUsages(d.conversations))
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "usage.load-conversations" }));
   }, [period]);
 
   const formatTokens = (n: number) => {

@@ -9,6 +9,7 @@ import { DashboardSkeleton, ListSkeleton } from "../../components/skeleton";
 import { useWebSocket } from "../../components/use-websocket";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { captureClientError } from "../../lib/sentry";
 
 interface Stats {
   tasks: { total: number; done: number; overdue: number };
@@ -282,7 +283,7 @@ function DashboardContent() {
 
     apiFetch<{ activity: Activity[] }>("/api/activity")
       .then((d) => setActivity(d.activity || []))
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "dashboard.activity" }));
 
     // Onboarding state — check setup progress
     Promise.all([
@@ -307,7 +308,7 @@ function DashboardContent() {
 
     apiFetch<{ logs: AgentLog[] }>("/api/automations/agent-logs?limit=5")
       .then((d) => setAgentLogs(d.logs || []))
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "dashboard.agent-logs" }));
 
     // Fetch weather for Seoul (default)
     const savedCity = localStorage.getItem("eve-weather-city") || "Seoul";
@@ -392,7 +393,7 @@ function DashboardContent() {
             );
         },
       )
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "dashboard.weather" }));
   }, []);
 
   const isEmpty =

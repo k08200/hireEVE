@@ -8,6 +8,7 @@ import { RelativeTime } from "../../components/relative-time";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
+import { captureClientError } from "../../lib/sentry";
 
 interface Note {
   id: string;
@@ -53,7 +54,7 @@ export default function NotesPage() {
 
     apiFetch<{ notes: Note[] }>(`/api/notes?${params}`)
       .then((data) => setNotes(data.notes || []))
-      .catch(() => {})
+      .catch((err) => captureClientError(err, { scope: "notes.load", search }))
       .finally(() => setLoading(false));
   }, [search]);
 

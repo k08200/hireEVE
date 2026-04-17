@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE, apiFetch, authHeaders } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { captureClientError } from "../lib/sentry";
 import NotificationBell from "./notification-bell";
 import { useToast } from "./toast";
 
@@ -184,7 +185,7 @@ export default function Sidebar({
   const loadConversations = useCallback(() => {
     apiFetch<{ conversations: Conversation[] }>("/api/chat/conversations")
       .then((data) => setConversations(data.conversations))
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "sidebar.load-conversations" }));
   }, []);
 
   useEffect(() => {
