@@ -534,6 +534,10 @@ async function executeToolCallInternal(
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
+    captureError(err, {
+      tags: { area: "tool_executor", tool: functionName },
+      extra: { userId, argKeys: Object.keys(args) },
+    });
     return JSON.stringify({ error: message });
   }
 }
