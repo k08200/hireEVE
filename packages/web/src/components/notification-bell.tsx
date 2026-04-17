@@ -152,7 +152,9 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
   const [actionLoading, setActionLoading] = useState(false);
   // Per-notification approve/reject loading state so buttons on other rows stay interactive
-  const [pendingActionLoading, setPendingActionLoading] = useState<Record<string, "approve" | "reject" | null>>({});
+  const [pendingActionLoading, setPendingActionLoading] = useState<
+    Record<string, "approve" | "reject" | null>
+  >({});
 
   const handleApprovePendingAction = async (notif: Notification, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -410,17 +412,19 @@ export default function NotificationBell({ userId }: { userId: string }) {
                         </button>
                       </div>
                     )}
-                    {n.pendingActionId && n.pendingActionStatus && n.pendingActionStatus !== "PENDING" && (
-                      <div className="mt-2 ml-6">
-                        <span className="text-[10px] text-gray-500">
-                          {n.pendingActionStatus === "EXECUTED"
-                            ? "✓ 실행됨"
-                            : n.pendingActionStatus === "REJECTED"
-                              ? "거절됨"
-                              : n.pendingActionStatus}
-                        </span>
-                      </div>
-                    )}
+                    {n.pendingActionId &&
+                      n.pendingActionStatus &&
+                      n.pendingActionStatus !== "PENDING" && (
+                        <div className="mt-2 ml-6">
+                          <span className="text-[10px] text-gray-500">
+                            {n.pendingActionStatus === "EXECUTED"
+                              ? "✓ 실행됨"
+                              : n.pendingActionStatus === "REJECTED"
+                                ? "거절됨"
+                                : n.pendingActionStatus}
+                          </span>
+                        </div>
+                      )}
                   </div>
                 ))
               )}

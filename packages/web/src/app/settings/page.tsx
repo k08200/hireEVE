@@ -1070,7 +1070,8 @@ export default function SettingsPage() {
                   </button>
                   <p className="text-[10px] text-gray-500 mt-1">
                     EVE가 AUTO 모드로 이메일에 답장한 뒤 원본 이메일을 Gmail에서 읽음으로 표시해요.
-                    기본은 꺼짐 — Gmail의 "안 읽음" 상태를 백업 받은편지함으로 쓰던 경우 그대로 유지.
+                    기본은 꺼짐 — Gmail의 "안 읽음" 상태를 백업 받은편지함으로 쓰던 경우 그대로
+                    유지.
                   </p>
                 </div>
 
