@@ -37,7 +37,13 @@ function LoginForm() {
     const error = searchParams.get("error");
     const verified = searchParams.get("verified");
     if (error) {
-      toast(error === "google_failed" ? "Google login failed. Try again." : error, "error");
+      const message =
+        error === "google_failed"
+          ? "Google login failed. Try again."
+          : error === "session_expired"
+            ? "Your session has expired. Please sign in again."
+            : error;
+      toast(message, "error");
     }
     if (verified) {
       toast("Email verified! You can now sign in.", "success");
