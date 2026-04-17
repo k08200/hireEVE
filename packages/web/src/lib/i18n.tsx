@@ -77,6 +77,33 @@ const translations: Record<Locale, Record<string, string>> = {
     "common.delete": "Delete",
     "common.save": "Save",
     "common.or": "or",
+    // Skills
+    "skills.title": "Skills",
+    "skills.subtitle": "Reusable workflows EVE can run for you",
+    "skills.newSkill": "+ New Skill",
+    "skills.edit": "Edit Skill",
+    "skills.name": "Skill name",
+    "skills.description": "Description (optional)",
+    "skills.prompt": "Prompt template",
+    "skills.create": "Create",
+    "skills.update": "Update",
+    "skills.empty": "No skills yet",
+    // Approval UX
+    "approval.approve": "Approve",
+    "approval.reject": "Reject",
+    "approval.alwaysAllow": "Always allow",
+    "approval.neverSuggest": "Never suggest this",
+    // Notifications
+    "notif.title": "Notifications",
+    "notif.push": "Push Notifications",
+    "notif.preferences": "Which notifications do you want?",
+    "notif.quietHours": "Quiet hours",
+    "notif.quietHoursDesc": "Suppress push notifications during this window",
+    "notif.categoryEmailUrgent": "Urgent email alerts",
+    "notif.categoryMeeting": "Meeting reminders",
+    "notif.categoryTaskDue": "Task due soon or overdue",
+    "notif.categoryAgentProposal": "Agent proposals",
+    "notif.categoryDailyBriefing": "Daily briefing",
   },
   ko: {
     // Nav
@@ -149,8 +176,59 @@ const translations: Record<Locale, Record<string, string>> = {
     "common.delete": "삭제",
     "common.save": "저장",
     "common.or": "또는",
+    // Skills
+    "skills.title": "스킬",
+    "skills.subtitle": "EVE가 반복 실행할 수 있는 워크플로우",
+    "skills.newSkill": "+ 새 스킬",
+    "skills.edit": "스킬 수정",
+    "skills.name": "스킬 이름",
+    "skills.description": "설명 (선택)",
+    "skills.prompt": "프롬프트 템플릿",
+    "skills.create": "생성",
+    "skills.update": "수정",
+    "skills.empty": "아직 저장된 스킬이 없습니다",
+    // Approval UX
+    "approval.approve": "승인",
+    "approval.reject": "거부",
+    "approval.alwaysAllow": "항상 허용",
+    "approval.neverSuggest": "다시 제안하지 않기",
+    // Notifications
+    "notif.title": "알림",
+    "notif.push": "푸시 알림",
+    "notif.preferences": "받을 알림을 선택하세요",
+    "notif.quietHours": "방해 금지 시간",
+    "notif.quietHoursDesc": "이 시간대에는 푸시 알림을 숨깁니다",
+    "notif.categoryEmailUrgent": "긴급 이메일 알림",
+    "notif.categoryMeeting": "회의 리마인더",
+    "notif.categoryTaskDue": "태스크 마감 임박 및 지연",
+    "notif.categoryAgentProposal": "에이전트 제안",
+    "notif.categoryDailyBriefing": "일일 브리핑",
   },
 };
+
+/** Verify all locales have the same set of keys. Warns in dev builds. */
+function verifyTranslationSymmetry(): void {
+  const locales = Object.keys(translations) as Locale[];
+  if (locales.length === 0) return;
+  const base = locales[0];
+  const baseKeys = new Set(Object.keys(translations[base]));
+
+  for (const locale of locales.slice(1)) {
+    const localeKeys = new Set(Object.keys(translations[locale]));
+    const missing = [...baseKeys].filter((k) => !localeKeys.has(k));
+    const extra = [...localeKeys].filter((k) => !baseKeys.has(k));
+    if (missing.length > 0) {
+      console.warn(`[i18n] "${locale}" missing keys: ${missing.join(", ")}`);
+    }
+    if (extra.length > 0) {
+      console.warn(`[i18n] "${locale}" has unexpected keys: ${extra.join(", ")}`);
+    }
+  }
+}
+
+if (process.env.NODE_ENV !== "production") {
+  verifyTranslationSymmetry();
+}
 
 interface I18nContextType {
   locale: Locale;
@@ -184,6 +262,15 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setLocaleState(detectLocale());
+
+    // Re-detect when profile settings change in another tab/window
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "eve-profile") {
+        setLocaleState(detectLocale());
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const setLocale = useCallback((l: Locale) => {

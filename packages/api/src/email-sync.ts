@@ -11,7 +11,7 @@
 import { google } from "googleapis";
 import { prisma } from "./db.js";
 import { getAuthedClient } from "./gmail.js";
-import { MODEL, openai } from "./openai.js";
+import { createCompletion, MODEL, openai } from "./openai.js";
 import { wrapUntrusted } from "./untrusted.js";
 
 // ─── Gmail → DB Sync ──────────────────────────────────────────────────────
@@ -431,7 +431,7 @@ async function summarizeEmail(
   // Truncate very long bodies
   const truncatedBody = body.length > 3000 ? body.slice(0, 3000) + "\n...(truncated)" : body;
 
-  const response = await openai.chat.completions.create({
+  const response = await createCompletion({
     model: MODEL,
     temperature: 0.1,
     response_format: { type: "json_object" },
@@ -525,7 +525,9 @@ export async function getEmailThreads(
 
   // Get all matching emails
   const emails = await prisma.emailMessage.findMany({
-    where: where as Parameters<typeof prisma.emailMessage.findMany>[0] extends { where?: infer W }
+    where: where as Parameters<typeof prisma.emailMessage.findMany>[0] extends {
+      where?: infer W;
+    }
       ? W
       : never,
     orderBy: { receivedAt: "desc" },
@@ -661,7 +663,7 @@ export async function generateSmartReply(
 ): Promise<string> {
   if (!openai) return template;
 
-  const response = await openai.chat.completions.create({
+  const response = await createCompletion({
     model: MODEL,
     temperature: 0.3,
     messages: [

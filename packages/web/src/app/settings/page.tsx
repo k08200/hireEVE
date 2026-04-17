@@ -40,6 +40,8 @@ const TIMEZONES = [
 export default function SettingsPage() {
   const [googleConnected, setGoogleConnected] = useState(false);
   const [slackConnected, setSlackConnected] = useState(false);
+  const [slackMode, setSlackMode] = useState<"none" | "bot_token" | "webhook">("none");
+  const [slackTesting, setSlackTesting] = useState(false);
   const [notionConnected, setNotionConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile>({
@@ -60,6 +62,15 @@ export default function SettingsPage() {
   const [agentInterval, setAgentInterval] = useState(5);
   const [alwaysAllowedTools, setAlwaysAllowedTools] = useState<string[]>([]);
   const [preApprovableTools, setPreApprovableTools] = useState<string[]>([]);
+  const [notifPrefs, setNotifPrefs] = useState({
+    notifyEmailUrgent: true,
+    notifyMeeting: true,
+    notifyTaskDue: true,
+    notifyAgentProposal: true,
+    notifyDailyBriefing: true,
+    quietHoursStart: "" as string | null,
+    quietHoursEnd: "" as string | null,
+  });
   const [agentLogs, setAgentLogs] = useState<
     Array<{ id: string; action: string; summary: string; tool?: string; createdAt: string }>
   >([]);
@@ -374,6 +385,13 @@ export default function SettingsPage() {
       agentIntervalMin?: number;
       alwaysAllowedTools?: string[];
       preApprovableTools?: string[];
+      notifyEmailUrgent?: boolean;
+      notifyMeeting?: boolean;
+      notifyTaskDue?: boolean;
+      notifyAgentProposal?: boolean;
+      notifyDailyBriefing?: boolean;
+      quietHoursStart?: string | null;
+      quietHoursEnd?: string | null;
     }>("/api/automations")
       .then((d) => {
         setAgentEnabled(d.autonomousAgent ?? true);
@@ -381,9 +399,31 @@ export default function SettingsPage() {
         setAgentInterval(d.agentIntervalMin ?? 5);
         setAlwaysAllowedTools(d.alwaysAllowedTools ?? []);
         setPreApprovableTools(d.preApprovableTools ?? []);
+        setNotifPrefs({
+          notifyEmailUrgent: d.notifyEmailUrgent ?? true,
+          notifyMeeting: d.notifyMeeting ?? true,
+          notifyTaskDue: d.notifyTaskDue ?? true,
+          notifyAgentProposal: d.notifyAgentProposal ?? true,
+          notifyDailyBriefing: d.notifyDailyBriefing ?? true,
+          quietHoursStart: d.quietHoursStart ?? null,
+          quietHoursEnd: d.quietHoursEnd ?? null,
+        });
       })
       .catch(() => {});
   }, []);
+
+  const updateNotifPref = async (key: keyof typeof notifPrefs, value: boolean | string | null) => {
+    const next = { ...notifPrefs, [key]: value };
+    setNotifPrefs(next);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ [key]: value }),
+      });
+    } catch {
+      toast("Failed to save preference", "error");
+    }
+  };
 
   const toggleAlwaysAllowedTool = async (tool: string) => {
     const next = alwaysAllowedTools.includes(tool)
@@ -495,8 +535,11 @@ export default function SettingsPage() {
           setGmailPushExpiresAt(d.gmailPushExpiresAt ?? null);
         })
         .catch(() => {}),
-      apiFetch<{ configured: boolean }>("/api/slack/status")
-        .then((d) => setSlackConnected(d.configured))
+      apiFetch<{ configured: boolean; mode: "none" | "bot_token" | "webhook" }>("/api/slack/status")
+        .then((d) => {
+          setSlackConnected(d.configured);
+          setSlackMode(d.mode);
+        })
         .catch(() => {}),
       apiFetch<{ configured: boolean }>("/api/notion/status")
         .then((d) => setNotionConnected(d.configured))
@@ -514,9 +557,11 @@ export default function SettingsPage() {
     },
     {
       name: "Slack",
-      description: "Send messages, read channels, receive mentions",
+      description: slackConnected
+        ? `Connected via ${slackMode === "bot_token" ? "bot token" : "webhook"} — ask EVE to send, list, or read Slack messages`
+        : "Configured by admin via SLACK_BOT_TOKEN or SLACK_WEBHOOK_URL env var",
       connected: slackConnected,
-      connectUrl: slackConnected ? undefined : "slack-coming-soon",
+      connectUrl: slackConnected ? undefined : "slack-admin-only",
       statusUrl: `${API_BASE}/api/slack/status`,
     },
     {
@@ -527,6 +572,26 @@ export default function SettingsPage() {
       statusUrl: `${API_BASE}/api/notion/status`,
     },
   ];
+
+  const testSlack = async () => {
+    setSlackTesting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/slack/test`, {
+        method: "POST",
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        toast("Test message sent to Slack", "success");
+      } else {
+        const body = await res.json().catch(() => ({}));
+        toast(body.error || "Failed to send test message", "error");
+      }
+    } catch {
+      toast("Failed to send test message", "error");
+    } finally {
+      setSlackTesting(false);
+    }
+  };
 
   const generateBriefing = async () => {
     const res = await fetch(`${API_BASE}/api/briefing/generate`, {
@@ -772,6 +837,82 @@ export default function SettingsPage() {
               </button>
             )}
           </div>
+
+          {/* Granular Notification Preferences */}
+          <div className="mt-4 bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 space-y-3">
+            <div>
+              <h3 className="font-medium">Which notifications do you want?</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Disabled categories are suppressed for both push and in-app notifications
+              </p>
+            </div>
+            <div className="space-y-2">
+              {[
+                {
+                  key: "notifyEmailUrgent" as const,
+                  label: "Urgent email alerts",
+                  desc: "Incoming mail that EVE flags as time-sensitive",
+                },
+                {
+                  key: "notifyMeeting" as const,
+                  label: "Meeting reminders",
+                  desc: "Upcoming calendar events and scrum reminders",
+                },
+                {
+                  key: "notifyTaskDue" as const,
+                  label: "Task due soon or overdue",
+                  desc: "Deadline reminders for your tasks",
+                },
+                {
+                  key: "notifyAgentProposal" as const,
+                  label: "Agent proposals",
+                  desc: "When EVE wants your approval for an action",
+                },
+                {
+                  key: "notifyDailyBriefing" as const,
+                  label: "Daily briefing",
+                  desc: "Morning summary of your day",
+                },
+              ].map((row) => (
+                <label
+                  key={row.key}
+                  className="flex items-start gap-3 py-2 cursor-pointer hover:bg-gray-800/40 rounded-lg px-2 transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs[row.key]}
+                    onChange={(e) => updateNotifPref(row.key, e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-200">{row.label}</p>
+                    <p className="text-xs text-gray-500">{row.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="pt-3 border-t border-gray-800">
+              <p className="text-sm font-medium text-gray-200 mb-1">Quiet hours</p>
+              <p className="text-xs text-gray-500 mb-3">
+                Suppress push notifications during this window (leave empty to disable)
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="time"
+                  value={notifPrefs.quietHoursStart || ""}
+                  onChange={(e) => updateNotifPref("quietHoursStart", e.target.value || null)}
+                  className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-gray-200"
+                />
+                <span className="text-gray-500 text-sm">to</span>
+                <input
+                  type="time"
+                  value={notifPrefs.quietHoursEnd || ""}
+                  onChange={(e) => updateNotifPref("quietHoursEnd", e.target.value || null)}
+                  className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-gray-200"
+                />
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Autonomous Agent */}
@@ -994,7 +1135,21 @@ export default function SettingsPage() {
                           Disconnect
                         </button>
                       )}
+                      {int.name === "Slack" && (
+                        <button
+                          type="button"
+                          onClick={testSlack}
+                          disabled={slackTesting}
+                          className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition"
+                        >
+                          {slackTesting ? "Sending..." : "Send test"}
+                        </button>
+                      )}
                     </div>
+                  ) : int.connectUrl?.endsWith("-admin-only") ? (
+                    <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                      Admin only
+                    </span>
                   ) : int.connectUrl?.endsWith("-coming-soon") ? (
                     <span className="text-sm text-gray-500 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
                       Coming Soon

@@ -63,6 +63,26 @@ interface PerfSnapshot {
   capturedAt: string;
 }
 
+interface EvalReport {
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    passRate: number;
+    failures: Array<{ id: string; name: string; severity: string; message: string }>;
+  };
+  results: Array<{
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    severity: string;
+    passed: boolean;
+    message: string | null;
+  }>;
+  runAt: string;
+}
+
 export default function AdminPage() {
   const { user, token } = useAuth();
   const { toast } = useToast();
@@ -70,6 +90,8 @@ export default function AdminPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [ops, setOps] = useState<OpsMetrics | null>(null);
   const [perf, setPerf] = useState<PerfSnapshot | null>(null);
+  const [evalData, setEvalData] = useState<EvalReport | null>(null);
+  const [evalLoading, setEvalLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"ops" | "users">("ops");
 
@@ -103,6 +125,24 @@ export default function AdminPage() {
       toast("Updated", "success");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Failed", "error");
+    }
+  };
+
+  const runEval = async () => {
+    setEvalLoading(true);
+    try {
+      const data = await apiFetch<EvalReport>("/api/admin/eval");
+      setEvalData(data);
+      const summary = data.summary;
+      if (summary.failed === 0) {
+        toast(`All ${summary.total} eval scenarios passed`, "success");
+      } else {
+        toast(`${summary.failed}/${summary.total} eval scenarios failed`, "error");
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Eval failed", "error");
+    } finally {
+      setEvalLoading(false);
     }
   };
 
@@ -154,6 +194,69 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      {/* Agent Eval Harness */}
+      <section className="border border-gray-800 rounded-lg p-4 bg-gray-900/50">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="text-sm font-medium text-white">Agent Decision Eval</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Regression checks for tool risk, dedup, and plan gating logic
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={runEval}
+            disabled={evalLoading}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {evalLoading ? "Running..." : "Run eval"}
+          </button>
+        </div>
+        {evalData && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-4 text-xs">
+              <span className="text-gray-400">
+                {evalData.summary.passed}/{evalData.summary.total} passed
+              </span>
+              <span
+                className={`font-medium ${evalData.summary.failed === 0 ? "text-emerald-400" : "text-red-400"}`}
+              >
+                {(evalData.summary.passRate * 100).toFixed(0)}% pass rate
+              </span>
+              <span className="text-gray-600">
+                {new Date(evalData.runAt).toLocaleString("ko-KR")}
+              </span>
+            </div>
+            <div className="space-y-1">
+              {evalData.results.map((r) => (
+                <div
+                  key={r.id}
+                  className={`flex items-start gap-2 text-xs p-2 rounded ${
+                    r.passed ? "bg-gray-900/50" : "bg-red-950/30 border border-red-900/50"
+                  }`}
+                >
+                  <span
+                    className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${
+                      r.passed ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+                    }`}
+                  >
+                    {r.passed ? "✓" : "✕"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-gray-500">{r.id}</span>
+                      <span className="text-gray-300">{r.name}</span>
+                      <span className="text-[10px] text-gray-600 uppercase">[{r.severity}]</span>
+                    </div>
+                    {!r.passed && r.message && <p className="text-red-400 mt-0.5">{r.message}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Stats */}
       {stats && (

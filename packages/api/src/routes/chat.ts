@@ -1,9 +1,16 @@
 import type { FastifyInstance } from "fastify";
+import type OpenAI from "openai";
 import { getUserId, requireAuth } from "../auth.js";
 import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
-import { EVE_SYSTEM_PROMPT, MODEL, openai, resolveUserChatModel } from "../openai.js";
+import {
+  createCompletion,
+  EVE_SYSTEM_PROMPT,
+  MODEL,
+  openai,
+  resolveUserChatModel,
+} from "../openai.js";
 import { Semaphore } from "../semaphore.js";
 import { getEffectivePlan } from "../stripe.js";
 import { executeToolCall, getToolsForPlan } from "../tool-executor.js";
@@ -23,7 +30,7 @@ async function autoGenerateTitle(conversationId: string, userMessage: string) {
     // Only generate if title is null/empty (never been set)
     if (convo?.title) return;
 
-    const response = await openai.chat.completions.create({
+    const response = await createCompletion({
       model: MODEL,
       messages: [
         {
@@ -138,7 +145,10 @@ export function chatRoutes(app: FastifyInstance) {
     { schema: { body: createConversationBodySchema } },
     async (request, reply) => {
       const userId = getUserId(request);
-      const body = (request.body || {}) as { title?: string; initialMessage?: string };
+      const body = (request.body || {}) as {
+        title?: string;
+        initialMessage?: string;
+      };
 
       if (body.title !== undefined && !hasMeaningfulText(body.title)) {
         return reply.code(400).send({ error: "Title cannot be empty" });
@@ -244,7 +254,9 @@ export function chatRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       const body = request.body as { title?: string; pinned?: boolean };
 
-      const conversation = await prisma.conversation.findUnique({ where: { id } });
+      const conversation = await prisma.conversation.findUnique({
+        where: { id },
+      });
       if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
       if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
       if (body.title !== undefined && !hasMeaningfulText(body.title)) {
@@ -268,14 +280,18 @@ export function chatRoutes(app: FastifyInstance) {
       const userId = getUserId(request);
       const { id } = request.params as { id: string };
 
-      const conversation = await prisma.conversation.findUnique({ where: { id } });
+      const conversation = await prisma.conversation.findUnique({
+        where: { id },
+      });
       if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
       if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
       // Explicit ordered deletion to avoid FK constraint violations
       // PendingAction has dual FK (conversationId + messageId) — must delete first
       await db.pendingAction.deleteMany({ where: { conversationId: id } });
-      await db.conversationSummary.deleteMany({ where: { conversationId: id } });
+      await db.conversationSummary.deleteMany({
+        where: { conversationId: id },
+      });
       await db.tokenUsage.updateMany({
         where: { conversationId: id },
         data: { conversationId: null },
@@ -372,7 +388,9 @@ export function chatRoutes(app: FastifyInstance) {
       );
 
       const [token, retryUser] = await Promise.all([
-        prisma.userToken.findFirst({ where: { userId: conversation.userId, provider: "google" } }),
+        prisma.userToken.findFirst({
+          where: { userId: conversation.userId, provider: "google" },
+        }),
         prisma.user.findUnique({ where: { id: conversation.userId } }),
       ]);
       const retryPlan = retryUser?.plan || "FREE";
@@ -448,11 +466,9 @@ export function chatRoutes(app: FastifyInstance) {
 
           while (maxIterations-- > 0) {
             if (retryClientDisconnected) break;
-            const response = await openai.chat.completions.create({
+            const response = await createCompletion({
               model: retryChatModel,
-              messages: messages as Parameters<
-                typeof openai.chat.completions.create
-              >[0]["messages"],
+              messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
               tools,
             });
 
@@ -465,7 +481,9 @@ export function chatRoutes(app: FastifyInstance) {
                 (toolCalls || []).map(async (toolCall) =>
                   chatToolSemaphore.run(async () => {
                     const fn = (
-                      toolCall as unknown as { function: { name: string; arguments: string } }
+                      toolCall as unknown as {
+                        function: { name: string; arguments: string };
+                      }
                     ).function;
                     const args = JSON.parse(fn.arguments);
                     reply.raw.write(
@@ -480,7 +498,11 @@ export function chatRoutes(app: FastifyInstance) {
                 ),
               );
               for (const r of results) {
-                messages.push({ role: "tool", tool_call_id: r.tool_call_id, content: r.content });
+                messages.push({
+                  role: "tool",
+                  tool_call_id: r.tool_call_id,
+                  content: r.content,
+                });
               }
             } else {
               fullResponse = choice.message.content || "";
@@ -491,9 +513,9 @@ export function chatRoutes(app: FastifyInstance) {
             }
           }
         } else {
-          const stream = await openai.chat.completions.create({
+          const stream = await createCompletion({
             model: retryChatModel,
-            messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
+            messages: history as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
             stream: true,
           });
           for await (const chunk of stream) {
@@ -513,7 +535,11 @@ export function chatRoutes(app: FastifyInstance) {
 
         if (fullResponse) {
           await prisma.message.create({
-            data: { conversationId: id, role: "ASSISTANT", content: fullResponse },
+            data: {
+              conversationId: id,
+              role: "ASSISTANT",
+              content: fullResponse,
+            },
           });
         }
 
@@ -528,7 +554,11 @@ export function chatRoutes(app: FastifyInstance) {
         if (fullResponse) {
           try {
             await prisma.message.create({
-              data: { conversationId: id, role: "ASSISTANT", content: fullResponse },
+              data: {
+                conversationId: id,
+                role: "ASSISTANT",
+                content: fullResponse,
+              },
             });
           } catch {
             // DB save failed
@@ -606,7 +636,9 @@ export function chatRoutes(app: FastifyInstance) {
       if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
       // Check billing plan message limit (skip for demo-user)
-      const user = await prisma.user.findUnique({ where: { id: conversation.userId } });
+      const user = await prisma.user.findUnique({
+        where: { id: conversation.userId },
+      });
       if (user && user.id !== "demo-user") {
         const planConfig = getEffectivePlan(user.plan, user.role);
         if (planConfig.messageLimit !== Infinity) {
@@ -671,18 +703,17 @@ export function chatRoutes(app: FastifyInstance) {
         });
 
         // Generate a smarter title in the background (non-blocking)
-        openai.chat.completions
-          .create({
-            model: userChatModel,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Generate a short conversation title (max 40 chars) for this message. Reply with ONLY the title, no quotes or explanation. Use the same language as the user.",
-              },
-              { role: "user", content: trimmedContent },
-            ],
-          })
+        createCompletion({
+          model: userChatModel,
+          messages: [
+            {
+              role: "system",
+              content:
+                "Generate a short conversation title (max 40 chars) for this message. Reply with ONLY the title, no quotes or explanation. Use the same language as the user.",
+            },
+            { role: "user", content: trimmedContent },
+          ],
+        })
           .then((res) => {
             const smartTitle = res.choices[0]?.message?.content?.trim();
             if (smartTitle && smartTitle.length <= 60) {
@@ -773,7 +804,10 @@ export function chatRoutes(app: FastifyInstance) {
           ? await forceCompact(id, rawMessages)
           : await compactHistory(id, rawMessages);
         return [
-          { role: "system" as const, content: EVE_SYSTEM_PROMPT + dynamicContext + memoryContext },
+          {
+            role: "system" as const,
+            content: EVE_SYSTEM_PROMPT + dynamicContext + memoryContext,
+          },
           ...compacted,
           { role: "user" as const, content },
         ];
@@ -799,7 +833,11 @@ export function chatRoutes(app: FastifyInstance) {
 
       try {
         let apiUsage:
-          | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+          | {
+              prompt_tokens?: number;
+              completion_tokens?: number;
+              total_tokens?: number;
+            }
           | undefined;
 
         if (tools.length > 0) {
@@ -811,15 +849,13 @@ export function chatRoutes(app: FastifyInstance) {
 
           while (maxIterations-- > 0) {
             if (clientDisconnected) break;
-            let response: Awaited<ReturnType<typeof openai.chat.completions.create>>;
+            let response: OpenAI.Chat.Completions.ChatCompletion;
             try {
               response = await withRetry(
                 () =>
-                  openai.chat.completions.create({
+                  createCompletion({
                     model: userChatModel,
-                    messages: messages as Parameters<
-                      typeof openai.chat.completions.create
-                    >[0]["messages"],
+                    messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
                     tools,
                   }),
                 {
@@ -865,7 +901,9 @@ export function chatRoutes(app: FastifyInstance) {
                 (toolCalls || []).map(async (toolCall) =>
                   chatToolSemaphore.run(async () => {
                     const fn = (
-                      toolCall as unknown as { function: { name: string; arguments: string } }
+                      toolCall as unknown as {
+                        function: { name: string; arguments: string };
+                      }
                     ).function;
                     const args = JSON.parse(fn.arguments);
 
@@ -915,11 +953,9 @@ export function chatRoutes(app: FastifyInstance) {
           const openStream = () =>
             withRetry(
               () =>
-                openai.chat.completions.create({
+                createCompletion({
                   model: userChatModel,
-                  messages: history as Parameters<
-                    typeof openai.chat.completions.create
-                  >[0]["messages"],
+                  messages: history as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
                   stream: true,
                 }),
               {
@@ -967,7 +1003,11 @@ export function chatRoutes(app: FastifyInstance) {
         // Save assistant message
         if (fullResponse) {
           await prisma.message.create({
-            data: { conversationId: id, role: "ASSISTANT", content: fullResponse },
+            data: {
+              conversationId: id,
+              role: "ASSISTANT",
+              content: fullResponse,
+            },
           });
         }
 
@@ -1010,7 +1050,11 @@ export function chatRoutes(app: FastifyInstance) {
         if (fullResponse) {
           try {
             await prisma.message.create({
-              data: { conversationId: id, role: "ASSISTANT", content: fullResponse },
+              data: {
+                conversationId: id,
+                role: "ASSISTANT",
+                content: fullResponse,
+              },
             });
             await prisma.conversation.update({
               where: { id },
@@ -1045,7 +1089,9 @@ export function chatRoutes(app: FastifyInstance) {
       const userId = getUserId(request);
       const { id } = request.params as { id: string };
 
-      const conversation = await prisma.conversation.findUnique({ where: { id } });
+      const conversation = await prisma.conversation.findUnique({
+        where: { id },
+      });
       if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
       if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
@@ -1122,7 +1168,9 @@ export function chatRoutes(app: FastifyInstance) {
         // Auto-allow this tool type for future actions if requested
         const { autoAllow } = (request.body as { autoAllow?: boolean }) || {};
         if (autoAllow && action.toolName) {
-          const config = await prisma.automationConfig.findUnique({ where: { userId } });
+          const config = await prisma.automationConfig.findUnique({
+            where: { userId },
+          });
           const existing: string[] =
             (config as unknown as { alwaysAllowedTools?: string[] })?.alwaysAllowedTools || [];
           if (!existing.includes(action.toolName)) {

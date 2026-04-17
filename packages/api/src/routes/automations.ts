@@ -42,6 +42,13 @@ export async function automationRoutes(app: FastifyInstance) {
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
       alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
+      notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
+      notifyMeeting: configAny.notifyMeeting ?? true,
+      notifyTaskDue: configAny.notifyTaskDue ?? true,
+      notifyAgentProposal: configAny.notifyAgentProposal ?? true,
+      notifyDailyBriefing: configAny.notifyDailyBriefing ?? true,
+      quietHoursStart: configAny.quietHoursStart ?? null,
+      quietHoursEnd: configAny.quietHoursEnd ?? null,
     };
   });
 
@@ -63,6 +70,13 @@ export async function automationRoutes(app: FastifyInstance) {
       "agentMode",
       "agentIntervalMin",
       "alwaysAllowedTools",
+      "notifyEmailUrgent",
+      "notifyMeeting",
+      "notifyTaskDue",
+      "notifyAgentProposal",
+      "notifyDailyBriefing",
+      "quietHoursStart",
+      "quietHoursEnd",
     ];
     const data: Record<string, unknown> = {};
     for (const key of allowed) {
@@ -104,6 +118,13 @@ export async function automationRoutes(app: FastifyInstance) {
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
       alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
+      notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
+      notifyMeeting: configAny.notifyMeeting ?? true,
+      notifyTaskDue: configAny.notifyTaskDue ?? true,
+      notifyAgentProposal: configAny.notifyAgentProposal ?? true,
+      notifyDailyBriefing: configAny.notifyDailyBriefing ?? true,
+      quietHoursStart: configAny.quietHoursStart ?? null,
+      quietHoursEnd: configAny.quietHoursEnd ?? null,
     };
   });
 

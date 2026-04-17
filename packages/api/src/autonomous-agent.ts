@@ -24,10 +24,11 @@
  * Uses `never[]` for args so callers don't need explicit casts, and
  * `Promise<{ [k: string]: unknown }>` so returned objects support property access.
  */
+import type OpenAI from "openai";
 import { db, prisma } from "./db.js";
 import { markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
-import { AGENT_MODEL, openai, resolveUserAgentModel } from "./openai.js";
+import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
 import { sendPushNotification } from "./push.js";
 import { planHasFeature } from "./stripe.js";
 import { ALL_TOOLS, executeToolCall, isToolAllowedForPlan } from "./tool-executor.js";
@@ -46,44 +47,12 @@ const CONCURRENCY_LIMIT = 5; // Max users to run concurrently
  * MEDIUM → intercept and create approval proposal (propose_action style)
  * HIGH → intercept and create approval proposal with explicit warning
  */
-type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
+// Risk classification and notification key logic live in agent-logic.ts
+// so they can be imported without pulling in the full agent runtime.
+export { getNotifKey, getToolRisk, type RiskLevel, TOOL_RISK_LEVELS } from "./agent-logic.js";
 
-const TOOL_RISK_LEVELS = new Map<string, RiskLevel>([
-  // LOW — safe, easily reversible, no external side effects
-  ["create_reminder", "LOW"],
-  ["dismiss_reminder", "LOW"],
-  ["update_task", "LOW"],
-  ["classify_emails", "LOW"],
-  ["create_task", "LOW"],
-  ["update_note", "LOW"],
-  ["mark_read", "LOW"],
-
-  // MEDIUM — external-facing, requires user approval before sending
-  ["send_email", "MEDIUM"],
-
-  // MEDIUM — external-facing or calendar changes, reversible but visible
-  ["create_event", "MEDIUM"],
-  ["create_note", "MEDIUM"],
-  ["update_contact", "MEDIUM"],
-  ["create_contact", "MEDIUM"],
-
-  // LOW — skill execution (prompt template, no external side effect)
-  ["execute_skill", "LOW"],
-  ["list_skills", "LOW"],
-
-  // HIGH — destructive or hard to reverse
-  ["delete_task", "HIGH"],
-  ["delete_reminder", "HIGH"],
-  ["delete_note", "HIGH"],
-  ["delete_event", "HIGH"],
-  ["archive_email", "HIGH"],
-  ["delete_email", "HIGH"],
-]);
-
-/** Get risk level for a tool. Returns undefined for read-only tools. */
-function getToolRisk(toolName: string): RiskLevel | undefined {
-  return TOOL_RISK_LEVELS.get(toolName);
-}
+import type { RiskLevel } from "./agent-logic.js";
+import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -138,19 +107,18 @@ async function hasRepliedToEmail(userId: string, emailSubject: string): Promise<
   return !!recentSend;
 }
 
-function getNotifKey(title: string): string {
-  // Normalize: lowercase, strip whitespace/punctuation, take first 30 chars
-  // This catches slight variations like "스크럼 장소 확인" vs "스크럼 장소 중복 알림"
-  return title
-    .toLowerCase()
-    .replace(/[\s.,!?·\-_()[\]{}'"]/g, "")
-    .slice(0, 30);
-}
+// getNotifKey moved to agent-logic.ts and re-exported at the top of this file
 
 /** Track LLM token usage for cost monitoring */
 async function trackTokenUsage(
   userId: string,
-  usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined,
+  usage:
+    | {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
+      }
+    | undefined,
   modelName: string = AGENT_MODEL,
 ) {
   if (!usage) return;
@@ -395,12 +363,21 @@ async function gatherUserContext(userId: string): Promise<string> {
       where: { userId },
       orderBy: { updatedAt: "desc" },
       take: 10,
-      select: { name: true, email: true, company: true, role: true, tags: true },
+      select: {
+        name: true,
+        email: true,
+        company: true,
+        role: true,
+        tags: true,
+      },
     }),
     // Recent agent decisions — continuity across cycles (prevents amnesia)
     db.agentLog
       .findMany({
-        where: { userId, createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) } },
+        where: {
+          userId,
+          createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+        },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: { action: true, summary: true, createdAt: true },
@@ -442,7 +419,9 @@ async function gatherUserContext(userId: string): Promise<string> {
   if (calendar.length > 0) {
     const calLines = calendar.map(
       (e: { title: string; startTime: Date; meetingLink: string | null }) => {
-        const start = e.startTime.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+        const start = e.startTime.toLocaleString("ko-KR", {
+          timeZone: "Asia/Seoul",
+        });
         const minutesUntil = Math.round((e.startTime.getTime() - now.getTime()) / 60_000);
         const soon = minutesUntil <= 30 && minutesUntil > 0 ? " 🔴 STARTING SOON" : "";
         const meeting = e.meetingLink ? ` [meeting: ${e.meetingLink}]` : "";
@@ -551,7 +530,11 @@ async function gatherUserContext(userId: string): Promise<string> {
   // Previous agent decisions — continuity across cycles (prevent repeating, evolve reasoning)
   if (recentAgentLogs && recentAgentLogs.length > 0) {
     const logLines = (
-      recentAgentLogs as Array<{ action: string; summary: string; createdAt: Date }>
+      recentAgentLogs as Array<{
+        action: string;
+        summary: string;
+        createdAt: Date;
+      }>
     ).map((l) => {
       const ago = Math.round((now.getTime() - l.createdAt.getTime()) / 60_000);
       const timeLabel = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
@@ -794,7 +777,10 @@ const NOTIFY_TOOL = {
     parameters: {
       type: "object",
       properties: {
-        title: { type: "string", description: "Short notification title (Korean)" },
+        title: {
+          type: "string",
+          description: "Short notification title (Korean)",
+        },
         message: {
           type: "string",
           description:
@@ -1049,9 +1035,9 @@ How to reply:
     let toolCallCount = 0;
 
     for (let i = 0; i < 3; i++) {
-      const response = await openai.chat.completions.create({
+      const response = await createCompletion({
         model: agentModelForUser,
-        messages: messages as Parameters<typeof openai.chat.completions.create>[0]["messages"],
+        messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
         tools: agentTools,
         tool_choice: "auto",
         temperature: 0.3,
@@ -1062,7 +1048,11 @@ How to reply:
       await trackTokenUsage(
         userId,
         response.usage as
-          | { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+          | {
+              prompt_tokens?: number;
+              completion_tokens?: number;
+              total_tokens?: number;
+            }
           | undefined,
         agentModelForUser,
       );
@@ -1084,8 +1074,11 @@ How to reply:
         toolCallCount++;
         if (toolCallCount > MAX_TOOL_CALLS) break;
 
-        const fn = (toolCall as unknown as { function: { name: string; arguments: string } })
-          .function;
+        const fn = (
+          toolCall as unknown as {
+            function: { name: string; arguments: string };
+          }
+        ).function;
         const fnName = fn.name;
         interface AgentToolArgs {
           message: string;
@@ -1128,7 +1121,10 @@ How to reply:
           const alreadyNotified = await hasRecentNotification(userId, key);
 
           if (existingPending || alreadyNotified) {
-            result = JSON.stringify({ skipped: true, reason: "duplicate proposal" });
+            result = JSON.stringify({
+              skipped: true,
+              reason: "duplicate proposal",
+            });
             await logAgentAction(userId, "skip", `Dedup proposal: "${args.message.slice(0, 50)}"`);
           } else {
             // Find or create an agent conversation for today
@@ -1249,7 +1245,10 @@ How to reply:
           const alreadyNotified = await hasRecentNotification(userId, key);
 
           if (alreadyNotified) {
-            result = JSON.stringify({ skipped: true, reason: "duplicate notification" });
+            result = JSON.stringify({
+              skipped: true,
+              reason: "duplicate notification",
+            });
             await logAgentAction(userId, "skip", `Dedup: "${args.title}" already sent`);
           } else {
             // Mark as agent-generated notification
@@ -1319,14 +1318,21 @@ How to reply:
             });
 
             if (existingPending) {
-              result = JSON.stringify({ skipped: true, reason: "duplicate proposal" });
+              result = JSON.stringify({
+                skipped: true,
+                reason: "duplicate proposal",
+              });
               await logAgentAction(userId, "skip", `Dedup risk-gated proposal: ${fnName}`);
             } else {
               // Find or create agent conversation for today
               const todayStart = new Date();
               todayStart.setHours(0, 0, 0, 0);
               let agentConvo = await db.conversation.findFirst({
-                where: { userId, source: "agent", createdAt: { gte: todayStart } },
+                where: {
+                  userId,
+                  source: "agent",
+                  createdAt: { gte: todayStart },
+                },
                 orderBy: { createdAt: "desc" },
               });
               if (!agentConvo) {
@@ -1335,7 +1341,11 @@ How to reply:
                   day: "numeric",
                 });
                 agentConvo = await db.conversation.create({
-                  data: { userId, title: `EVE 제안 — ${todayStr}`, source: "agent" },
+                  data: {
+                    userId,
+                    title: `EVE 제안 — ${todayStr}`,
+                    source: "agent",
+                  },
                 });
               }
 
@@ -1345,7 +1355,11 @@ How to reply:
                   conversationId: agentConvo.id,
                   role: "ASSISTANT",
                   content: proposalMessage,
-                  metadata: JSON.stringify({ source: "agent", hasAction: true, riskLevel }),
+                  metadata: JSON.stringify({
+                    source: "agent",
+                    hasAction: true,
+                    riskLevel,
+                  }),
                 },
               });
 
@@ -1419,7 +1433,11 @@ How to reply:
               );
             }
 
-            messages.push({ role: "tool", content: result, tool_call_id: toolCall.id });
+            messages.push({
+              role: "tool",
+              content: result,
+              tool_call_id: toolCall.id,
+            });
             continue;
           }
 
@@ -1445,7 +1463,11 @@ How to reply:
               "skip",
               `Dedup: ${fnName} already ran within ${TOOL_DEDUP_HOURS}h`,
             );
-            messages.push({ role: "tool", content: result, tool_call_id: toolCall.id });
+            messages.push({
+              role: "tool",
+              content: result,
+              tool_call_id: toolCall.id,
+            });
             continue;
           }
 
@@ -1455,7 +1477,10 @@ How to reply:
             const alreadyReplied = await hasRepliedToEmail(userId, emailSubject);
 
             if (alreadyReplied) {
-              result = JSON.stringify({ skipped: true, reason: "already replied to this email" });
+              result = JSON.stringify({
+                skipped: true,
+                reason: "already replied to this email",
+              });
               await logAgentAction(userId, "skip", `Dedup: already replied to "${emailSubject}"`);
               console.log(`[AGENT] Skipped duplicate email reply for ${userId}: ${emailSubject}`);
               messages.push({
@@ -1473,7 +1498,11 @@ How to reply:
               error: `Tool "${fnName}" requires a higher plan. Current plan: ${userPlan}`,
               upgrade_required: true,
             });
-            messages.push({ role: "tool", content: result, tool_call_id: toolCall.id });
+            messages.push({
+              role: "tool",
+              content: result,
+              tool_call_id: toolCall.id,
+            });
             continue;
           }
 
@@ -1498,7 +1527,9 @@ How to reply:
                 where: {
                   userId,
                   isRead: false,
-                  receivedAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) },
+                  receivedAt: {
+                    gte: new Date(Date.now() - 48 * 60 * 60 * 1000),
+                  },
                 },
                 select: { id: true, gmailId: true, subject: true, from: true },
               });
