@@ -12,6 +12,7 @@
 
 import webPush from "web-push";
 import { prisma } from "./db.js";
+import { isSafePushEndpoint } from "./is-safe-push-endpoint.js";
 import { type NotifCategory, shouldNotify } from "./notification-prefs.js";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
@@ -57,40 +58,9 @@ export async function sendPushNotification(
 
   const data = JSON.stringify(payload);
 
-  // Filter subscriptions with valid endpoints (re-validate after DB read to prevent stored SSRF)
-  const validSubs = subscriptions.filter(
-    (sub: { endpoint: string; p256dh: string; auth: string }) => {
-      try {
-        const parsed = new URL(sub.endpoint);
-        if (parsed.protocol !== "https:") return false;
-        const host = parsed.hostname.toLowerCase();
-        if (
-          host === "localhost" ||
-          host === "127.0.0.1" ||
-          host === "::1" ||
-          host.endsWith(".internal") ||
-          host.endsWith(".local")
-        ) {
-          return false;
-        }
-        const ipMatch = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-        if (ipMatch) {
-          const [, a, b] = ipMatch.map(Number);
-          if (
-            a === 10 ||
-            (a === 172 && b >= 16 && b <= 31) ||
-            (a === 192 && b === 168) ||
-            (a === 169 && b === 254) ||
-            a === 0
-          ) {
-            return false;
-          }
-        }
-        return true;
-      } catch {
-        return false;
-      }
-    },
+  // Re-validate endpoints after DB read to prevent stored SSRF.
+  const validSubs = subscriptions.filter((sub: { endpoint: string }) =>
+    isSafePushEndpoint(sub.endpoint),
   );
 
   const results = await Promise.allSettled(
