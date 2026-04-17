@@ -40,23 +40,57 @@ async function gatherBriefingData(userId: string): Promise<BriefingData> {
 export default async function generateBriefing(userId: string): Promise<string> {
   const data = await gatherBriefingData(userId);
 
-  const briefingPrompt = `Based on the following data, create a concise daily briefing for the user.
-Include:
-1. Today's schedule (from calendar)
-2. Priority tasks that need attention
-3. Important unread emails
-4. Any relevant notes
+  const today = new Date().toLocaleDateString("ko-KR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-Format it as a clear, actionable summary in Korean. Use bullet points.
-Be concise — this is a quick morning briefing, not a long report.
+  // The brief is the user's first read of the day — it has to make them feel
+  // "someone thought about my day." Data dumps fail that bar. This prompt asks
+  // the model to *decide* what matters and surface connections across domains.
+  const briefingPrompt = `오늘은 ${today}. 사용자가 자리에 앉자마자 읽는 1분짜리 아침 브리핑을 써줘.
 
-Current data:
+## 너의 역할
+데이터를 요약하는 게 아니라, **오늘 뭐부터 해야 할지 결정**하는 것. 직원처럼 생각하고 말해.
+
+## 반드시 할 것
+1. **도메인 연결**: 이메일·캘린더·태스크·노트를 교차 참조해. 어떤 이메일이 오늘 일정이나 밀린 태스크와 관련 있으면 반드시 엮어서 언급. (이게 가장 중요함 — 단순 나열은 ChatGPT도 해.)
+2. **Top 3 액션**: 오늘 해야 할 구체적 행동 3개, 우선순위 순서대로. 각각 한 줄 이유.
+3. **빈 시간 활용**: 캘린더가 비어있으면 "여유 있으니 X하기 좋아요"처럼 능동 제안.
+4. **반드시 생략**: "데이터를 전달받았다", "X 일정이 없습니다" 같은 메타 코멘트. 유저는 그거 알 필요 없음.
+
+## 출력 형식
+- 첫 줄: 오늘 하루 한 줄 요약 (예: "오늘 미팅 1건, 답장 밀린 게 2개 있어요")
+- **오늘의 Top 3** — 번호 붙은 액션 + 이유
+- **연결된 항목** (있을 때만) — 이메일/태스크/일정이 어떻게 얽혀있는지
+- **나머지** — 일정과 이메일 요약 2~3줄
+- 한국어, 친근한 직원 톤, 리포트 톤 X
+- 전체 150~300자
+
+## 예시
+오늘은 미팅 1건, 답장 밀린 게 2개 있어요.
+
+**오늘의 Top 3**
+1. 오전에 김○○님 답장 쓰기 — 48시간 지났고 내일 미팅 리드타임이라 급함
+2. 오후 3시 Zoom 전에 Notion 자료 읽기 — 회의 효율 위해 15분만 투자
+3. 피치덱 2시간 블록 확보 — 다음 주 투자자 미팅 앞두고 밀림
+
+**연결**
+- Vercel 배포 실패 이메일 → "deploy 수정" 태스크와 같은 건. Top 1 답장과 별개로 오전 중 처리 권장.
+
+**나머지**
+- 15:00 Zoom 외 일정 없음
+- 읽지 않은 이메일 중 긴급 없음
+
+---
+
+## 오늘 데이터
 Tasks: ${JSON.stringify(data.tasks)}
 Calendar: ${JSON.stringify(data.events)}
 Emails: ${JSON.stringify(data.emails)}
-Recent Notes: ${JSON.stringify(data.notes)}
-
-Today is ${new Date().toLocaleDateString("ko-KR", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.`;
+Recent Notes: ${JSON.stringify(data.notes)}`;
 
   if (!openai) {
     return "EVE briefing unavailable — LLM not configured.";
