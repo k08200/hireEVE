@@ -3,6 +3,7 @@ import type OpenAI from "openai";
 import { getUserId, requireAuth } from "../auth.js";
 import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
+import { extractSnippet } from "../extract-snippet.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import {
   createCompletion,
@@ -602,14 +603,18 @@ export function chatRoutes(app: FastifyInstance) {
     });
 
     return {
-      results: messages.map((m: (typeof messages)[number]) => ({
-        messageId: m.id,
-        conversationId: m.conversation.id,
-        conversationTitle: m.conversation.title || "Untitled",
-        role: m.role,
-        content: m.content.length > 200 ? `${m.content.slice(0, 200)}...` : m.content,
-        createdAt: m.createdAt,
-      })),
+      results: messages.map((m: (typeof messages)[number]) => {
+        const snippet = extractSnippet(m.content, q, 200);
+        return {
+          messageId: m.id,
+          conversationId: m.conversation.id,
+          conversationTitle: m.conversation.title || "Untitled",
+          role: m.role,
+          content: snippet.text,
+          highlights: snippet.highlights,
+          createdAt: m.createdAt,
+        };
+      }),
     };
   });
 
