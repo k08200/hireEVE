@@ -8,7 +8,10 @@ services:
       corepack enable &&
       pnpm install --frozen-lockfile &&
       cd packages/core && pnpm build &&
-      cd ../api && npx prisma generate && npx prisma db push --skip-generate --accept-data-loss && pnpm build
+      cd ../api && npx prisma generate &&
+      echo "CREATE EXTENSION IF NOT EXISTS pg_trgm;" | npx prisma db execute --stdin --schema ./prisma/schema.prisma &&
+      npx prisma db push --skip-generate --accept-data-loss &&
+      pnpm build
     startCommand: cd packages/api && node dist/index.js
     envVars:
       - key: NODE_VERSION
