@@ -24,10 +24,11 @@
  * Uses `never[]` for args so callers don't need explicit casts, and
  * `Promise<{ [k: string]: unknown }>` so returned objects support property access.
  */
+import type OpenAI from "openai";
 import { db, prisma } from "./db.js";
 import { markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
-import { AGENT_MODEL, openai, resolveUserAgentModel } from "./openai.js";
+import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
 import { sendPushNotification } from "./push.js";
 import { planHasFeature } from "./stripe.js";
 import { ALL_TOOLS, executeToolCall, isToolAllowedForPlan } from "./tool-executor.js";
@@ -1049,9 +1050,9 @@ How to reply:
     let toolCallCount = 0;
 
     for (let i = 0; i < 3; i++) {
-      const response = await openai.chat.completions.create({
+      const response = await createCompletion({
         model: agentModelForUser,
-        messages: messages as Parameters<typeof openai.chat.completions.create>[0]["messages"],
+        messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
         tools: agentTools,
         tool_choice: "auto",
         temperature: 0.3,

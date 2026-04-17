@@ -1,4 +1,12 @@
 import OpenAI from "openai";
+import type { ChatCompletionCreateParamsNonStreaming, ChatCompletionCreateParamsStreaming } from "openai/resources/chat/completions";
+import {
+  FALLBACK_MODEL,
+  isBudgetError,
+  isBudgetExhausted,
+  isFreeModel,
+  markBudgetExhausted,
+} from "./model-fallback.js";
 import { getDefaultAgentModel, getDefaultChatModel, isModelAllowedForPlan } from "./stripe.js";
 
 if (!process.env.OPENROUTER_API_KEY) {
@@ -14,6 +22,47 @@ export const openai = process.env.OPENROUTER_API_KEY
 
 export const MODEL = process.env.CHAT_MODEL || "openai/gpt-5.4-nano";
 export const AGENT_MODEL = process.env.AGENT_MODEL || MODEL;
+
+/**
+ * Drop-in replacement for `openai.chat.completions.create()` with automatic
+ * fallback to a free model when the API budget is exhausted (HTTP 402).
+ *
+ * - If already in fallback mode, swaps the model before calling.
+ * - If a 402 is received mid-request, marks budget exhausted and retries once with the free model.
+ * - Streaming and non-streaming calls are both supported.
+ */
+export async function createCompletion(
+  params: ChatCompletionCreateParamsNonStreaming,
+): Promise<OpenAI.Chat.Completions.ChatCompletion>;
+export async function createCompletion(
+  params: ChatCompletionCreateParamsStreaming,
+): Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>>;
+export async function createCompletion(
+  params: ChatCompletionCreateParamsNonStreaming | ChatCompletionCreateParamsStreaming,
+): Promise<
+  | OpenAI.Chat.Completions.ChatCompletion
+  | AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
+> {
+  const effectiveModel =
+    isBudgetExhausted() && !isFreeModel(params.model)
+      ? FALLBACK_MODEL
+      : params.model;
+
+  const effectiveParams = { ...params, model: effectiveModel };
+
+  try {
+    return await (openai.chat.completions.create as Function)(effectiveParams);
+  } catch (error: unknown) {
+    if (isBudgetError(error) && !isFreeModel(effectiveModel)) {
+      markBudgetExhausted();
+      return await (openai.chat.completions.create as Function)({
+        ...params,
+        model: FALLBACK_MODEL,
+      });
+    }
+    throw error;
+  }
+}
 
 /**
  * Resolve the chat model for a specific user.

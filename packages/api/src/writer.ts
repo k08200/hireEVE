@@ -4,7 +4,7 @@
  */
 
 import { prisma } from "./db.js";
-import { EVE_SYSTEM_PROMPT, MODEL, openai } from "./openai.js";
+import { EVE_SYSTEM_PROMPT, MODEL, createCompletion, openai } from "./openai.js";
 
 export async function writeDocument(
   userId: string,
@@ -35,7 +35,7 @@ Be professional, clear, and well-structured. Use markdown formatting.`;
     return { title: topic, content: "LLM not configured.", noteId: "" };
   }
 
-  const response = await openai.chat.completions.create({
+  const response = await createCompletion({
     model: MODEL,
     messages: [
       { role: "system", content: EVE_SYSTEM_PROMPT },

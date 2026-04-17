@@ -9,7 +9,7 @@ import { execFile } from "node:child_process";
 import { readdir, readFile, rename, stat } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 import { promisify } from "node:util";
-import { MODEL, openai } from "./openai.js";
+import { MODEL, createCompletion } from "./openai.js";
 import { wrapUntrusted } from "./untrusted.js";
 
 const exec = promisify(execFile);
@@ -108,7 +108,7 @@ export async function readAndSummarize(
   // Truncate for LLM
   const truncated = content.slice(0, 5000);
 
-  const response = await openai.chat.completions.create({
+  const response = await createCompletion({
     model: MODEL,
     messages: [
       {

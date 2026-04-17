@@ -1,9 +1,10 @@
 import type { FastifyInstance } from "fastify";
+import type OpenAI from "openai";
 import { getUserId, requireAuth } from "../auth.js";
 import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
-import { EVE_SYSTEM_PROMPT, MODEL, openai, resolveUserChatModel } from "../openai.js";
+import { EVE_SYSTEM_PROMPT, MODEL, createCompletion, openai, resolveUserChatModel } from "../openai.js";
 import { Semaphore } from "../semaphore.js";
 import { getEffectivePlan } from "../stripe.js";
 import { executeToolCall, getToolsForPlan } from "../tool-executor.js";
@@ -23,7 +24,7 @@ async function autoGenerateTitle(conversationId: string, userMessage: string) {
     // Only generate if title is null/empty (never been set)
     if (convo?.title) return;
 
-    const response = await openai.chat.completions.create({
+    const response = await createCompletion({
       model: MODEL,
       messages: [
         {
@@ -448,11 +449,9 @@ export function chatRoutes(app: FastifyInstance) {
 
           while (maxIterations-- > 0) {
             if (retryClientDisconnected) break;
-            const response = await openai.chat.completions.create({
+            const response = await createCompletion({
               model: retryChatModel,
-              messages: messages as Parameters<
-                typeof openai.chat.completions.create
-              >[0]["messages"],
+              messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
               tools,
             });
 
@@ -491,9 +490,9 @@ export function chatRoutes(app: FastifyInstance) {
             }
           }
         } else {
-          const stream = await openai.chat.completions.create({
+          const stream = await createCompletion({
             model: retryChatModel,
-            messages: history as Parameters<typeof openai.chat.completions.create>[0]["messages"],
+            messages: history as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
             stream: true,
           });
           for await (const chunk of stream) {
@@ -811,15 +810,13 @@ export function chatRoutes(app: FastifyInstance) {
 
           while (maxIterations-- > 0) {
             if (clientDisconnected) break;
-            let response: Awaited<ReturnType<typeof openai.chat.completions.create>>;
+            let response: OpenAI.Chat.Completions.ChatCompletion;
             try {
               response = await withRetry(
                 () =>
-                  openai.chat.completions.create({
+                  createCompletion({
                     model: userChatModel,
-                    messages: messages as Parameters<
-                      typeof openai.chat.completions.create
-                    >[0]["messages"],
+                    messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
                     tools,
                   }),
                 {
@@ -915,11 +912,9 @@ export function chatRoutes(app: FastifyInstance) {
           const openStream = () =>
             withRetry(
               () =>
-                openai.chat.completions.create({
+                createCompletion({
                   model: userChatModel,
-                  messages: history as Parameters<
-                    typeof openai.chat.completions.create
-                  >[0]["messages"],
+                  messages: history as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
                   stream: true,
                 }),
               {

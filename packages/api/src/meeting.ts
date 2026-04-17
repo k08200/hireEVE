@@ -10,7 +10,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { decryptOptional, decryptToken } from "./crypto-tokens.js";
 import { prisma } from "./db.js";
-import { MODEL, openai } from "./openai.js";
+import { MODEL, createCompletion } from "./openai.js";
 
 const exec = promisify(execFile);
 const IS_MACOS = process.platform === "darwin";
@@ -174,7 +174,7 @@ export async function summarizeMeeting(
   notes: string,
   attendees: string[],
 ): Promise<MeetingSummary> {
-  const response = await openai.chat.completions.create({
+  const response = await createCompletion({
     model: MODEL,
     messages: [
       {

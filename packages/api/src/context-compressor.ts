@@ -7,7 +7,7 @@
  */
 
 import { db } from "./db.js";
-import { MODEL, openai } from "./openai.js";
+import { MODEL, createCompletion, openai } from "./openai.js";
 
 /** Approximate token count (rough: ~3 chars per token for mixed Korean/English) */
 function estimateTokens(text: string): number {
@@ -176,7 +176,7 @@ async function generateSummary(messages: ChatMessage[]): Promise<string> {
     .join("\n");
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await createCompletion({
       model: MODEL,
       messages: [
         {

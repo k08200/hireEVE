@@ -11,7 +11,7 @@ import { listEvents } from "./calendar.js";
 import { prisma } from "./db.js";
 import { listEmails } from "./gmail.js";
 import { listNotes } from "./notes.js";
-import { EVE_SYSTEM_PROMPT, MODEL, openai } from "./openai.js";
+import { EVE_SYSTEM_PROMPT, MODEL, createCompletion, openai } from "./openai.js";
 import { listTasks } from "./tasks.js";
 
 interface BriefingData {
@@ -62,7 +62,7 @@ Today is ${new Date().toLocaleDateString("ko-KR", { weekday: "long", year: "nume
     return "EVE briefing unavailable — LLM not configured.";
   }
 
-  const response = await openai.chat.completions.create({
+  const response = await createCompletion({
     model: MODEL,
     messages: [
       { role: "system", content: EVE_SYSTEM_PROMPT },
