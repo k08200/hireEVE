@@ -20,33 +20,43 @@ interface RetryOptions {
   onRetry?: (attempt: number, error: unknown, delayMs: number) => void;
 }
 
+/**
+ * Substrings in an error message that indicate a transient failure. Grouped by
+ * category only for the reader — matching is a single scan over the union.
+ */
+const RETRYABLE_ERROR_KEYWORDS = [
+  // Rate limit
+  "rate limit",
+  "429",
+  "too many requests",
+  // Timeouts
+  "timeout",
+  "timed out",
+  "econnreset",
+  // Server errors (5xx)
+  "500",
+  "502",
+  "503",
+  "504",
+  // Network errors
+  "network",
+  "enotfound",
+  "econnrefused",
+] as const;
+
+function hasRetryableStatus(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("status" in error)) return false;
+  const status = (error as { status: unknown }).status;
+  return typeof status === "number" && (status === 429 || status >= 500);
+}
+
 /** Default retryable error checker — retries on rate limits, timeouts, and server errors */
 function defaultIsRetryable(error: unknown): boolean {
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
-    // Rate limit errors
-    if (msg.includes("rate limit") || msg.includes("429") || msg.includes("too many requests")) {
-      return true;
-    }
-    // Timeout errors
-    if (msg.includes("timeout") || msg.includes("timed out") || msg.includes("econnreset")) {
-      return true;
-    }
-    // Server errors (5xx)
-    if (msg.includes("500") || msg.includes("502") || msg.includes("503") || msg.includes("504")) {
-      return true;
-    }
-    // Network errors
-    if (msg.includes("network") || msg.includes("enotfound") || msg.includes("econnrefused")) {
-      return true;
-    }
+    if (RETRYABLE_ERROR_KEYWORDS.some((kw) => msg.includes(kw))) return true;
   }
-  // Check for status code on error objects
-  if (typeof error === "object" && error !== null && "status" in error) {
-    const status = (error as { status: number }).status;
-    return status === 429 || status >= 500;
-  }
-  return false;
+  return hasRetryableStatus(error);
 }
 
 /**
