@@ -12,6 +12,7 @@
 
 import webPush from "web-push";
 import { prisma } from "./db.js";
+import { type NotifCategory, shouldNotify } from "./notification-prefs.js";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
@@ -28,9 +29,17 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 export async function sendPushNotification(
   userId: string,
   payload: { title: string; body: string; url?: string },
+  category: NotifCategory = "system",
 ): Promise<void> {
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
     console.log(`[PUSH] Skipped — VAPID keys not configured`);
+    return;
+  }
+
+  // Respect per-user preferences and quiet hours
+  const allowed = await shouldNotify(userId, category);
+  if (!allowed) {
+    console.log(`[PUSH] Suppressed by user prefs for ${userId} (${category})`);
     return;
   }
 

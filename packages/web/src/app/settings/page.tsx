@@ -60,6 +60,15 @@ export default function SettingsPage() {
   const [agentInterval, setAgentInterval] = useState(5);
   const [alwaysAllowedTools, setAlwaysAllowedTools] = useState<string[]>([]);
   const [preApprovableTools, setPreApprovableTools] = useState<string[]>([]);
+  const [notifPrefs, setNotifPrefs] = useState({
+    notifyEmailUrgent: true,
+    notifyMeeting: true,
+    notifyTaskDue: true,
+    notifyAgentProposal: true,
+    notifyDailyBriefing: true,
+    quietHoursStart: "" as string | null,
+    quietHoursEnd: "" as string | null,
+  });
   const [agentLogs, setAgentLogs] = useState<
     Array<{ id: string; action: string; summary: string; tool?: string; createdAt: string }>
   >([]);
@@ -374,6 +383,13 @@ export default function SettingsPage() {
       agentIntervalMin?: number;
       alwaysAllowedTools?: string[];
       preApprovableTools?: string[];
+      notifyEmailUrgent?: boolean;
+      notifyMeeting?: boolean;
+      notifyTaskDue?: boolean;
+      notifyAgentProposal?: boolean;
+      notifyDailyBriefing?: boolean;
+      quietHoursStart?: string | null;
+      quietHoursEnd?: string | null;
     }>("/api/automations")
       .then((d) => {
         setAgentEnabled(d.autonomousAgent ?? true);
@@ -381,9 +397,31 @@ export default function SettingsPage() {
         setAgentInterval(d.agentIntervalMin ?? 5);
         setAlwaysAllowedTools(d.alwaysAllowedTools ?? []);
         setPreApprovableTools(d.preApprovableTools ?? []);
+        setNotifPrefs({
+          notifyEmailUrgent: d.notifyEmailUrgent ?? true,
+          notifyMeeting: d.notifyMeeting ?? true,
+          notifyTaskDue: d.notifyTaskDue ?? true,
+          notifyAgentProposal: d.notifyAgentProposal ?? true,
+          notifyDailyBriefing: d.notifyDailyBriefing ?? true,
+          quietHoursStart: d.quietHoursStart ?? null,
+          quietHoursEnd: d.quietHoursEnd ?? null,
+        });
       })
       .catch(() => {});
   }, []);
+
+  const updateNotifPref = async (key: keyof typeof notifPrefs, value: boolean | string | null) => {
+    const next = { ...notifPrefs, [key]: value };
+    setNotifPrefs(next);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ [key]: value }),
+      });
+    } catch {
+      toast("Failed to save preference", "error");
+    }
+  };
 
   const toggleAlwaysAllowedTool = async (tool: string) => {
     const next = alwaysAllowedTools.includes(tool)
@@ -771,6 +809,82 @@ export default function SettingsPage() {
                 Enable
               </button>
             )}
+          </div>
+
+          {/* Granular Notification Preferences */}
+          <div className="mt-4 bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 space-y-3">
+            <div>
+              <h3 className="font-medium">Which notifications do you want?</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Disabled categories are suppressed for both push and in-app notifications
+              </p>
+            </div>
+            <div className="space-y-2">
+              {[
+                {
+                  key: "notifyEmailUrgent" as const,
+                  label: "Urgent email alerts",
+                  desc: "Incoming mail that EVE flags as time-sensitive",
+                },
+                {
+                  key: "notifyMeeting" as const,
+                  label: "Meeting reminders",
+                  desc: "Upcoming calendar events and scrum reminders",
+                },
+                {
+                  key: "notifyTaskDue" as const,
+                  label: "Task due soon or overdue",
+                  desc: "Deadline reminders for your tasks",
+                },
+                {
+                  key: "notifyAgentProposal" as const,
+                  label: "Agent proposals",
+                  desc: "When EVE wants your approval for an action",
+                },
+                {
+                  key: "notifyDailyBriefing" as const,
+                  label: "Daily briefing",
+                  desc: "Morning summary of your day",
+                },
+              ].map((row) => (
+                <label
+                  key={row.key}
+                  className="flex items-start gap-3 py-2 cursor-pointer hover:bg-gray-800/40 rounded-lg px-2 transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs[row.key]}
+                    onChange={(e) => updateNotifPref(row.key, e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-200">{row.label}</p>
+                    <p className="text-xs text-gray-500">{row.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="pt-3 border-t border-gray-800">
+              <p className="text-sm font-medium text-gray-200 mb-1">Quiet hours</p>
+              <p className="text-xs text-gray-500 mb-3">
+                Suppress push notifications during this window (leave empty to disable)
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="time"
+                  value={notifPrefs.quietHoursStart || ""}
+                  onChange={(e) => updateNotifPref("quietHoursStart", e.target.value || null)}
+                  className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-gray-200"
+                />
+                <span className="text-gray-500 text-sm">to</span>
+                <input
+                  type="time"
+                  value={notifPrefs.quietHoursEnd || ""}
+                  onChange={(e) => updateNotifPref("quietHoursEnd", e.target.value || null)}
+                  className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-gray-200"
+                />
+              </div>
+            </div>
           </div>
         </section>
 

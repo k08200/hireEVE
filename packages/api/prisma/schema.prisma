@@ -307,6 +307,14 @@ model AutomationConfig {
   agentMode             String   @default("SUGGEST") // "SUGGEST" | "AUTO"
   agentIntervalMin      Int      @default(5)
   alwaysAllowedTools    String[] @default([]) // MEDIUM-risk tools the user has pre-approved for AUTO mode
+  // Notification preferences — granular opt-out by category
+  notifyEmailUrgent     Boolean  @default(true)   // urgent email alerts
+  notifyMeeting         Boolean  @default(true)   // meeting reminders
+  notifyTaskDue         Boolean  @default(true)   // task due soon/overdue
+  notifyAgentProposal   Boolean  @default(true)   // autonomous agent proposals
+  notifyDailyBriefing   Boolean  @default(true)   // daily briefing notification
+  quietHoursStart       String?                   // "22:00" — suppress push during this window
+  quietHoursEnd         String?                   // "08:00"
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }
