@@ -9,7 +9,7 @@ import { execFile } from "node:child_process";
 import { readdir, readFile, rename, stat } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 import { promisify } from "node:util";
-import { MODEL, openai } from "./openai.js";
+import { createCompletion, MODEL } from "./openai.js";
 import { wrapUntrusted } from "./untrusted.js";
 
 const exec = promisify(execFile);
@@ -86,7 +86,10 @@ export async function readAndSummarize(
   filePath: string,
 ): Promise<{ content: string; summary: string }> {
   if (!isPathAllowed(filePath)) {
-    return { content: "", summary: "Access denied: this file path is restricted." };
+    return {
+      content: "",
+      summary: "Access denied: this file path is restricted.",
+    };
   }
   const ext = extname(filePath).toLowerCase();
   let content = "";
@@ -96,7 +99,9 @@ export async function readAndSummarize(
   } else if (ext === ".pdf") {
     // Use macOS built-in mdimport or textutil for basic extraction
     try {
-      const { stdout } = await exec("mdimport", ["-d2", filePath], { timeout: 10_000 });
+      const { stdout } = await exec("mdimport", ["-d2", filePath], {
+        timeout: 10_000,
+      });
       content = stdout;
     } catch {
       content = "(PDF content extraction failed — install poppler for better results)";
@@ -108,7 +113,7 @@ export async function readAndSummarize(
   // Truncate for LLM
   const truncated = content.slice(0, 5000);
 
-  const response = await openai.chat.completions.create({
+  const response = await createCompletion({
     model: MODEL,
     messages: [
       {
@@ -240,8 +245,14 @@ export const FILE_TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query (file name or content keywords)" },
-          folder: { type: "string", description: "Optional: limit search to this folder path" },
+          query: {
+            type: "string",
+            description: "Search query (file name or content keywords)",
+          },
+          folder: {
+            type: "string",
+            description: "Optional: limit search to this folder path",
+          },
         },
         required: ["query"],
       },
@@ -280,7 +291,10 @@ export const FILE_TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          count: { type: "number", description: "Number of files to list (default: 10)" },
+          count: {
+            type: "number",
+            description: "Number of files to list (default: 10)",
+          },
         },
         required: [],
       },

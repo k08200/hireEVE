@@ -10,7 +10,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { decryptOptional, decryptToken } from "./crypto-tokens.js";
 import { prisma } from "./db.js";
-import { MODEL, openai } from "./openai.js";
+import { createCompletion, MODEL } from "./openai.js";
 
 const exec = promisify(execFile);
 const IS_MACOS = process.platform === "darwin";
@@ -127,7 +127,11 @@ export async function joinMeeting(
   }
 
   if (parsed.protocol !== "https:") {
-    return { success: false, link: meetingLink, error: "Only HTTPS meeting links are allowed" };
+    return {
+      success: false,
+      link: meetingLink,
+      error: "Only HTTPS meeting links are allowed",
+    };
   }
 
   const host = parsed.hostname.toLowerCase();
@@ -135,7 +139,11 @@ export async function joinMeeting(
     (allowed) => host === allowed || host.endsWith(`.${allowed}`),
   );
   if (!isAllowed) {
-    return { success: false, link: meetingLink, error: `Unrecognized meeting platform: ${host}` };
+    return {
+      success: false,
+      link: meetingLink,
+      error: `Unrecognized meeting platform: ${host}`,
+    };
   }
 
   await exec("open", [parsed.href], { timeout: 5_000 });
@@ -174,7 +182,7 @@ export async function summarizeMeeting(
   notes: string,
   attendees: string[],
 ): Promise<MeetingSummary> {
-  const response = await openai.chat.completions.create({
+  const response = await createCompletion({
     model: MODEL,
     messages: [
       {
@@ -193,7 +201,11 @@ Keep it concise and actionable. Respond in the same language as the notes.`,
   });
 
   const content = response.choices[0]?.message?.content || "{}";
-  let parsed: { keyPoints?: string[]; actionItems?: string[]; decisions?: string[] };
+  let parsed: {
+    keyPoints?: string[];
+    actionItems?: string[];
+    decisions?: string[];
+  };
   try {
     parsed = JSON.parse(content);
   } catch {
@@ -251,7 +263,10 @@ export const MEETING_TOOLS = [
         type: "object",
         properties: {
           title: { type: "string", description: "Meeting title" },
-          notes: { type: "string", description: "Raw meeting notes or transcript" },
+          notes: {
+            type: "string",
+            description: "Raw meeting notes or transcript",
+          },
           attendees: {
             type: "array",
             items: { type: "string" },
