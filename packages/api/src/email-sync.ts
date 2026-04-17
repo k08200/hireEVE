@@ -399,9 +399,12 @@ export async function summarizeUnsummarizedEmails(userId: string, limit = 10): P
         email.subject,
         email.body || email.snippet || "",
       );
-      // Don't let AI upgrade LOW emails (ads/promotions) to URGENT
+      // Don't let AI upgrade LOW emails (ads/promotions) to ANY higher priority.
+      // The rule-based classifier already tagged this as LOW based on strong signals
+      // (CATEGORY_PROMOTIONS label, noreply sender, unsubscribe footer, etc.) — trust it
+      // over the AI which can be sycophantic on promo language.
       const aiPriority =
-        email.priority === "LOW" && result.priority === "URGENT" ? "LOW" : result.priority;
+        email.priority === "LOW" && result.priority !== "LOW" ? "LOW" : result.priority;
 
       await prisma.emailMessage.update({
         where: { id: email.id },

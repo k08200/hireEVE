@@ -1164,7 +1164,7 @@ How to reply:
             });
 
             // Create the pending action
-            await db.pendingAction.create({
+            const pendingAction = await db.pendingAction.create({
               data: {
                 conversationId: agentConvo.id,
                 messageId: assistantMsg.id,
@@ -1181,16 +1181,20 @@ How to reply:
               data: { updatedAt: new Date() },
             });
 
-            // Also create a notification so user sees it in notification bell
+            // Also create a notification so user sees it in notification bell.
+            // pendingActionId + conversationId are persisted so the drawer can render
+            // inline approve/reject buttons even after a page reload.
             const notifTitle = `[EVE] ${args.message.slice(0, 50)}${args.message.length > 50 ? "..." : ""}`;
             const proposalLink = `/chat/${agentConvo.id}`;
             const notification = await (prisma.notification.create as Function)({
               data: {
                 userId,
-                type: args.category || "insight",
+                type: "agent_proposal",
                 title: notifTitle,
                 message: args.message,
                 link: proposalLink,
+                conversationId: agentConvo.id,
+                pendingActionId: (pendingAction as { id: string }).id,
               },
             });
 
@@ -1363,7 +1367,7 @@ How to reply:
               });
 
               // Create pending action for approve/reject
-              await db.pendingAction.create({
+              const pendingAction = await db.pendingAction.create({
                 data: {
                   conversationId: agentConvo.id,
                   messageId: assistantMsg.id,
@@ -1379,16 +1383,18 @@ How to reply:
                 data: { updatedAt: new Date() },
               });
 
-              // Notification
+              // Notification with links to pending action for inline approve/reject
               const notifTitle = `[EVE] ${riskLabel}: ${fnName}`;
               const riskLink = `/chat/${agentConvo.id}`;
               const notification = await (prisma.notification.create as Function)({
                 data: {
                   userId,
-                  type: "insight",
+                  type: "agent_proposal",
                   title: notifTitle,
                   message: proposalMessage,
                   link: riskLink,
+                  conversationId: agentConvo.id,
+                  pendingActionId: (pendingAction as { id: string }).id,
                 },
               });
               pushNotification(userId, {
@@ -1507,61 +1513,89 @@ How to reply:
 
           result = await executeToolCall(userId, fnName, args);
 
-          // After successful send_email, mark original email as read in Gmail
+          // After successful send_email, optionally mark original email as read in Gmail.
+          // Gated by AutomationConfig.autoMarkReadEnabled (default off) so users who rely
+          // on Gmail's unread state as a fallback inbox don't silently lose it.
           if (fnName === "send_email" && !result.includes('"error"')) {
-            // No need to track in memory — DB-based dedup via AgentLog (logged below)
             console.log(
               `[AGENT] Marked email as replied: ${(args as { subject?: string }).subject}`,
             );
 
-            // Mark original email as read in Gmail so it won't appear as unread next cycle
-            try {
-              const replySubject = ((args as { subject?: string }).subject || "")
-                .replace(/^Re:\s*/i, "")
-                .toLowerCase()
-                .trim();
-              const replyTo = ((args as { to?: string }).to || "").toLowerCase().trim();
-              // Find ALL unread emails matching the reply — mark them all as read
-              const unreadEmails = await prisma.emailMessage.findMany({
-                where: {
-                  userId,
-                  isRead: false,
-                  receivedAt: {
-                    gte: new Date(Date.now() - 48 * 60 * 60 * 1000),
-                  },
-                },
-                select: { id: true, gmailId: true, subject: true, from: true },
-              });
-              for (const ue of unreadEmails) {
-                const ueSubject = (ue.subject || "")
+            const markReadConfig = (await prisma.automationConfig.findUnique({
+              where: { userId },
+              select: { autoMarkReadEnabled: true },
+            })) as { autoMarkReadEnabled?: boolean } | null;
+            const autoMarkReadEnabled = markReadConfig?.autoMarkReadEnabled === true;
+
+            if (autoMarkReadEnabled) {
+              try {
+                const replySubject = ((args as { subject?: string }).subject || "")
                   .replace(/^Re:\s*/i, "")
                   .toLowerCase()
                   .trim();
-                const ueFrom = (ue.from || "").toLowerCase();
-                // Match by subject similarity OR sender match
-                if (
-                  (replySubject && ueSubject.includes(replySubject.slice(0, 20))) ||
-                  (replyTo && ueFrom.includes(replyTo))
-                ) {
-                  if (ue.gmailId) {
-                    await markAsRead(userId, ue.gmailId).catch((err: unknown) =>
-                      console.warn(`[AGENT] Failed to mark ${ue.gmailId} as read:`, err),
-                    );
-                    console.log(
-                      `[AGENT] Marked Gmail message as read: ${ue.gmailId} (${ue.subject})`,
-                    );
-                  } else {
-                    // No gmailId — at least mark as read in our DB
-                    await prisma.emailMessage.update({
-                      where: { id: ue.id },
-                      data: { isRead: true },
-                    });
-                    console.log(`[AGENT] Marked DB email as read (no gmailId): ${ue.subject}`);
+                const replyTo = ((args as { to?: string }).to || "").toLowerCase().trim();
+                const unreadEmails = await prisma.emailMessage.findMany({
+                  where: {
+                    userId,
+                    isRead: false,
+                    receivedAt: {
+                      gte: new Date(Date.now() - 48 * 60 * 60 * 1000),
+                    },
+                  },
+                  select: { id: true, gmailId: true, subject: true, from: true },
+                });
+                for (const ue of unreadEmails) {
+                  const ueSubject = (ue.subject || "")
+                    .replace(/^Re:\s*/i, "")
+                    .toLowerCase()
+                    .trim();
+                  const ueFrom = (ue.from || "").toLowerCase();
+                  if (
+                    (replySubject && ueSubject.includes(replySubject.slice(0, 20))) ||
+                    (replyTo && ueFrom.includes(replyTo))
+                  ) {
+                    if (ue.gmailId) {
+                      await markAsRead(userId, ue.gmailId).catch((err: unknown) =>
+                        console.warn(`[AGENT] Failed to mark ${ue.gmailId} as read:`, err),
+                      );
+                      console.log(
+                        `[AGENT] Marked Gmail message as read: ${ue.gmailId} (${ue.subject})`,
+                      );
+                    } else {
+                      await prisma.emailMessage.update({
+                        where: { id: ue.id },
+                        data: { isRead: true },
+                      });
+                      console.log(`[AGENT] Marked DB email as read (no gmailId): ${ue.subject}`);
+                    }
+                    // Log processing so we can distinguish EVE-touched vs user-read emails later.
+                    await (
+                      prisma as unknown as {
+                        emailProcessingLog: {
+                          create: (args: unknown) => Promise<unknown>;
+                        };
+                      }
+                    ).emailProcessingLog
+                      .create({
+                        data: {
+                          userId,
+                          emailId: ue.id,
+                          mode: "AUTO",
+                          action: "mark_read",
+                        },
+                      })
+                      .catch((err: unknown) =>
+                        console.warn("[AGENT] EmailProcessingLog insert failed:", err),
+                      );
                   }
                 }
+              } catch (err) {
+                console.warn(`[AGENT] Failed to mark email as read in Gmail:`, err);
               }
-            } catch (err) {
-              console.warn(`[AGENT] Failed to mark email as read in Gmail:`, err);
+            } else {
+              console.log(
+                `[AGENT] Skipping auto-markAsRead for user ${userId} (autoMarkReadEnabled=false)`,
+              );
             }
           }
 
