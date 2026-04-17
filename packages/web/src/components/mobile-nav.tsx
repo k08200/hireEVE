@@ -14,7 +14,9 @@ const WORKSPACE_ITEMS = [
   { href: "/notes", label: "Notes" },
   { href: "/contacts", label: "Contacts" },
   { href: "/reminders", label: "Reminders" },
+  { href: "/skills", label: "Skills" },
   { href: "/automations", label: "Automations" },
+  { href: "/notifications", label: "Notifications" },
 ];
 
 const ACCOUNT_ITEMS = [
