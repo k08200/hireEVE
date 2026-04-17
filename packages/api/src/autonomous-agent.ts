@@ -25,6 +25,7 @@
  * `Promise<{ [k: string]: unknown }>` so returned objects support property access.
  */
 import type OpenAI from "openai";
+import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 import { db, prisma } from "./db.js";
 import { markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
@@ -50,7 +51,6 @@ const CONCURRENCY_LIMIT = 5; // Max users to run concurrently
 // Risk classification and notification key logic live in agent-logic.ts
 // so they can be imported without pulling in the full agent runtime.
 export { getNotifKey, getToolRisk, type RiskLevel, TOOL_RISK_LEVELS } from "./agent-logic.js";
-import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
