@@ -50,8 +50,6 @@ const CONCURRENCY_LIMIT = 5; // Max users to run concurrently
 // Risk classification and notification key logic live in agent-logic.ts
 // so they can be imported without pulling in the full agent runtime.
 export { getNotifKey, getToolRisk, type RiskLevel, TOOL_RISK_LEVELS } from "./agent-logic.js";
-
-import type { RiskLevel } from "./agent-logic.js";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 
 let intervalId: ReturnType<typeof setInterval> | null = null;

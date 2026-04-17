@@ -5,13 +5,7 @@ import { compactHistory, forceCompact, isTokenLimitError } from "../context-comp
 import { db, prisma } from "../db.js";
 import { extractSnippet } from "../extract-snippet.js";
 import { loadMemoriesForPrompt } from "../memory.js";
-import {
-  createCompletion,
-  EVE_SYSTEM_PROMPT,
-  MODEL,
-  openai,
-  resolveUserChatModel,
-} from "../openai.js";
+import { createCompletion, EVE_SYSTEM_PROMPT, MODEL, resolveUserChatModel } from "../openai.js";
 import { Semaphore } from "../semaphore.js";
 import { getEffectivePlan } from "../stripe.js";
 import { executeToolCall, getToolsForPlan } from "../tool-executor.js";

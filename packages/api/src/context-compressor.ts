@@ -7,7 +7,7 @@
  */
 
 import { db } from "./db.js";
-import { createCompletion, MODEL, openai } from "./openai.js";
+import { createCompletion, MODEL } from "./openai.js";
 
 /** Approximate token count (rough: ~3 chars per token for mixed Korean/English) */
 function estimateTokens(text: string): number {

@@ -71,7 +71,6 @@ import {
   REMINDER_TOOLS,
 } from "./reminders.js";
 import { SEARCH_TOOLS, webSearch } from "./search.js";
-import { captureError } from "./sentry.js";
 import { executeSkill, listUserSkills, SKILL_TOOLS } from "./skill-executor.js";
 import { listSlackChannels, readSlackMessages, SLACK_TOOLS, sendSlackMessage } from "./slack.js";
 import { planHasFeature, TOOL_FEATURE_MAP } from "./stripe.js";
