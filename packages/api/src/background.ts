@@ -50,38 +50,53 @@ async function addNotification(
   });
 }
 
+export interface NotificationDTO {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  link: string | null;
+  conversationId: string | null;
+  sourceEmailId: string | null;
+  pendingActionId: string | null;
+  pendingActionStatus: string | null;
+  createdAt: string;
+}
+
 export async function getNotifications(
   userId: string,
   options?: { unreadOnly?: boolean; limit?: number },
-): Promise<
-  Array<{
-    id: string;
-    type: string;
-    title: string;
-    message: string;
-    isRead: boolean;
-    link: string | null;
-    createdAt: string;
-  }>
-> {
+): Promise<NotificationDTO[]> {
   const where: { userId: string; isRead?: boolean } = { userId };
   if (options?.unreadOnly) where.isRead = false;
 
-  const rows = await prisma.notification.findMany({
+  const rows = await (
+    prisma.notification.findMany as (args: unknown) => Promise<Array<Record<string, unknown>>>
+  )({
     where,
     orderBy: { createdAt: "desc" },
     take: options?.limit || 50,
+    // Include linked PendingAction so the drawer knows whether approve/reject is still actionable.
+    include: { pendingAction: { select: { status: true } } },
   });
 
-  return rows.map((r: Record<string, unknown>) => ({
-    id: r.id as string,
-    type: r.type as string,
-    title: r.title as string,
-    message: r.message as string,
-    isRead: r.isRead as boolean,
-    link: (r.link as string | null) ?? null,
-    createdAt: (r.createdAt as Date).toISOString(),
-  }));
+  return rows.map((r: Record<string, unknown>) => {
+    const pa = r.pendingAction as { status?: string } | null | undefined;
+    return {
+      id: r.id as string,
+      type: r.type as string,
+      title: r.title as string,
+      message: r.message as string,
+      isRead: r.isRead as boolean,
+      link: (r.link as string | null) ?? null,
+      conversationId: (r.conversationId as string | null) ?? null,
+      sourceEmailId: (r.sourceEmailId as string | null) ?? null,
+      pendingActionId: (r.pendingActionId as string | null) ?? null,
+      pendingActionStatus: pa?.status ?? null,
+      createdAt: (r.createdAt as Date).toISOString(),
+    };
+  });
 }
 
 export async function markNotificationRead(notificationId: string): Promise<void> {

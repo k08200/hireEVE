@@ -8,41 +8,42 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  passwordHash  String?
-  name          String?
-  role          UserRole       @default(USER)
-  plan          Plan           @default(FREE)
-  chatModel     String         @default("openai/gpt-5.4-nano")
-  agentModel    String?
-  stripeId      String?        @unique
-  emailVerified   Boolean    @default(false)
-  verifyToken     String?
-  verifyTokenExp  DateTime?
-  resetToken      String?
-  resetTokenExp   DateTime?
-  agents          Agent[]
-  testRuns      TestRun[]
-  conversations Conversation[]
-  tokens        UserToken[]
-  tasks         Task[]
-  notes         Note[]
-  reminders     Reminder[]
-  contacts       Contact[]
-  calendarEvents CalendarEvent[]
-  workspaceMembers   WorkspaceMember[]
-  automationConfig   AutomationConfig?
-  agentLogs          AgentLog[]
-  notifications      Notification[]
-  pushSubscriptions  PushSubscription[]
-  memories           Memory[]
-  tokenUsages        TokenUsage[]
-  devices            Device[]
-  emailMessages      EmailMessage[]
-  emailRules         EmailRule[]
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  passwordHash        String?
+  name                String?
+  role                UserRole             @default(USER)
+  plan                Plan                 @default(FREE)
+  chatModel           String               @default("openai/gpt-5.4-nano")
+  agentModel          String?
+  stripeId            String?              @unique
+  emailVerified       Boolean              @default(false)
+  verifyToken         String?
+  verifyTokenExp      DateTime?
+  resetToken          String?
+  resetTokenExp       DateTime?
+  agents              Agent[]
+  testRuns            TestRun[]
+  conversations       Conversation[]
+  tokens              UserToken[]
+  tasks               Task[]
+  notes               Note[]
+  reminders           Reminder[]
+  contacts            Contact[]
+  calendarEvents      CalendarEvent[]
+  workspaceMembers    WorkspaceMember[]
+  automationConfig    AutomationConfig?
+  agentLogs           AgentLog[]
+  notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
+  memories            Memory[]
+  tokenUsages         TokenUsage[]
+  devices             Device[]
+  emailMessages       EmailMessage[]
+  emailRules          EmailRule[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  emailProcessingLogs EmailProcessingLog[]
 }
 
 enum UserRole {
@@ -51,15 +52,15 @@ enum UserRole {
 }
 
 model Device {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash   String   @unique // SHA-256 hash of the JWT token
-  deviceName  String?  // e.g. "Chrome on macOS", "iPhone 15"
-  deviceType  String   @default("web") // "web" | "desktop" | "mobile"
-  ipAddress   String?
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String   @unique // SHA-256 hash of the JWT token
+  deviceName   String? // e.g. "Chrome on macOS", "iPhone 15"
+  deviceType   String   @default("web") // "web" | "desktop" | "mobile"
+  ipAddress    String?
   lastActiveAt DateTime @default(now())
-  createdAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
 
   @@index([userId])
 }
@@ -106,21 +107,21 @@ model Agent {
 }
 
 model TestRun {
-  id             String        @id @default(uuid())
-  status         TestStatus    @default(QUEUED)
-  score          Int?
-  passCount      Int?
-  failCount      Int?
-  warnCount      Int?
-  scenarioCount  Int           @default(100)
-  agentId        String
-  agent          Agent         @relation(fields: [agentId], references: [id])
-  userId         String
-  user           User          @relation(fields: [userId], references: [id])
-  evaluations    Evaluation[]
-  startedAt      DateTime?
-  completedAt    DateTime?
-  createdAt      DateTime      @default(now())
+  id            String       @id @default(uuid())
+  status        TestStatus   @default(QUEUED)
+  score         Int?
+  passCount     Int?
+  failCount     Int?
+  warnCount     Int?
+  scenarioCount Int          @default(100)
+  agentId       String
+  agent         Agent        @relation(fields: [agentId], references: [id])
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  evaluations   Evaluation[]
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
 }
 
 model Evaluation {
@@ -158,18 +159,18 @@ enum Verdict {
 }
 
 model Conversation {
-  id             String              @id @default(uuid())
+  id             String                @id @default(uuid())
   title          String?
-  pinned         Boolean             @default(false)
-  source         String              @default("user") // "user" | "agent"
+  pinned         Boolean               @default(false)
+  source         String                @default("user") // "user" | "agent"
   userId         String
-  user           User                @relation(fields: [userId], references: [id])
+  user           User                  @relation(fields: [userId], references: [id])
   messages       Message[]
   pendingActions PendingAction[]
   tokenUsages    TokenUsage[]
   summaries      ConversationSummary[]
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 }
 
 model Message {
@@ -178,7 +179,7 @@ model Message {
   conversation   Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           Role
   content        String
-  metadata       String?        // JSON: { source: "agent" | "user", pendingActionId?: string }
+  metadata       String? // JSON: { source: "agent" | "user", pendingActionId?: string }
   pendingAction  PendingAction?
   createdAt      DateTime       @default(now())
 
@@ -192,18 +193,18 @@ enum Role {
 }
 
 model UserToken {
-  id                    String    @id @default(uuid())
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id])
-  provider              String    // "google"
-  accessToken           String
-  refreshToken          String?
-  expiresAt             DateTime?
+  id                  String    @id @default(uuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id])
+  provider            String // "google"
+  accessToken         String
+  refreshToken        String?
+  expiresAt           DateTime?
   // Gmail push watch (users.watch) expires ~7 days after registration.
   // Null means the user has not enabled real-time push.
-  gmailWatchExpiresAt   DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  gmailWatchExpiresAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@unique([userId, provider])
 }
@@ -295,55 +296,82 @@ model CalendarEvent {
 }
 
 model AutomationConfig {
-  id                    String   @id @default(uuid())
-  userId                String   @unique
-  user                  User     @relation(fields: [userId], references: [id])
-  meetingAutoJoin       Boolean  @default(true)
-  meetingAutoSummarize  Boolean  @default(true)
-  emailAutoClassify     Boolean  @default(false)
-  reminderAutoCheck     Boolean  @default(true)
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  meetingAutoJoin      Boolean  @default(true)
+  meetingAutoSummarize Boolean  @default(true)
+  emailAutoClassify    Boolean  @default(false)
+  reminderAutoCheck    Boolean  @default(true)
   dailyBriefing        Boolean  @default(true)
-  briefingTime          String   @default("09:00")
-  downloadAutoOrganize  Boolean  @default(false)
-  autonomousAgent       Boolean  @default(true)
-  agentMode             String   @default("SUGGEST") // "SUGGEST" | "AUTO"
-  agentIntervalMin      Int      @default(5)
-  alwaysAllowedTools    String[] @default([]) // MEDIUM-risk tools the user has pre-approved for AUTO mode
+  briefingTime         String   @default("09:00")
+  downloadAutoOrganize Boolean  @default(false)
+  autonomousAgent      Boolean  @default(true)
+  agentMode            String   @default("SUGGEST") // "SUGGEST" | "AUTO"
+  agentIntervalMin     Int      @default(5)
+  alwaysAllowedTools   String[] @default([]) // MEDIUM-risk tools the user has pre-approved for AUTO mode
+  // Gmail read-state opt-in: when true, EVE marks the original email as read
+  // after AUTO-replying to it. Default off so Gmail's "unread" remains a user signal.
+  autoMarkReadEnabled  Boolean  @default(false)
   // Notification preferences — granular opt-out by category
-  notifyEmailUrgent     Boolean  @default(true)   // urgent email alerts
-  notifyMeeting         Boolean  @default(true)   // meeting reminders
-  notifyTaskDue         Boolean  @default(true)   // task due soon/overdue
-  notifyAgentProposal   Boolean  @default(true)   // autonomous agent proposals
-  notifyDailyBriefing   Boolean  @default(true)   // daily briefing notification
-  quietHoursStart       String?                   // "22:00" — suppress push during this window
-  quietHoursEnd         String?                   // "08:00"
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  notifyEmailUrgent    Boolean  @default(true) // urgent email alerts
+  notifyMeeting        Boolean  @default(true) // meeting reminders
+  notifyTaskDue        Boolean  @default(true) // task due soon/overdue
+  notifyAgentProposal  Boolean  @default(true) // autonomous agent proposals
+  notifyDailyBriefing  Boolean  @default(true) // daily briefing notification
+  quietHoursStart      String? // "22:00" — suppress push during this window
+  quietHoursEnd        String? // "08:00"
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model AgentLog {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  action    String   // "notify" | "tool_call" | "skip" | "error"
-  tool      String?  // tool name if action is tool_call
-  summary   String   // what the agent decided/did
-  reasoning String?  // LLM's reasoning
+  action    String // "notify" | "tool_call" | "skip" | "error"
+  tool      String? // tool name if action is tool_call
+  summary   String // what the agent decided/did
+  reasoning String? // LLM's reasoning
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
 }
 
+// Tracks EVE's processing of individual emails (SUGGEST vs AUTO, which action taken).
+// Used to distinguish "EVE touched this" vs "Gmail native read state" so users can
+// opt into auto-mark-read without losing their fallback inbox signal.
+model EmailProcessingLog {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  emailId     String // EmailMessage.id (soft reference — no FK so we can retain history if email is deleted)
+  mode        String // "SUGGEST" | "AUTO"
+  action      String // "mark_read" | "reply" | "classify" | "archive"
+  processedAt DateTime @default(now())
+
+  @@index([userId, emailId])
+  @@index([userId, processedAt])
+}
+
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  type      String   // "reminder" | "calendar" | "email" | "task" | "meeting" | "briefing"
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  link      String?  // URL path to navigate when clicked (e.g. "/chat/abc-123", "/calendar")
-  createdAt DateTime @default(now())
+  id              String         @id @default(uuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  type            String // "reminder" | "calendar" | "email" | "task" | "meeting" | "briefing" | "agent_proposal"
+  title           String
+  message         String
+  isRead          Boolean        @default(false)
+  link            String? // URL path to navigate when clicked (e.g. "/chat/abc-123", "/calendar")
+  // Structured source links — populated when known, NULL for legacy notifications
+  conversationId  String? // for notifications tied to a chat conversation
+  sourceEmailId   String? // EmailMessage.id for email-originated notifications
+  pendingActionId String?        @unique // FK to PendingAction for inline approve/reject in drawer
+  pendingAction   PendingAction? @relation(fields: [pendingActionId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([pendingActionId])
 }
 
 model PushSubscription {
@@ -359,44 +387,44 @@ model PushSubscription {
 // Memory System — EVE remembers facts about each user across conversations
 // Inspired by Claude Code's memdir/ persistent memory architecture
 model Memory {
-  id          String     @id @default(uuid())
-  userId      String
-  user        User       @relation(fields: [userId], references: [id])
-  type        MemoryType
-  key         String     // short label, e.g. "preferred_language"
-  content     String     // the remembered fact
-  source      String?    // which conversation/context it came from
-  confidence  Float      @default(1.0) // 0-1, lower for inferred facts
-  lastUsedAt  DateTime   @default(now())
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id         String     @id @default(uuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id])
+  type       MemoryType
+  key        String // short label, e.g. "preferred_language"
+  content    String // the remembered fact
+  source     String? // which conversation/context it came from
+  confidence Float      @default(1.0) // 0-1, lower for inferred facts
+  lastUsedAt DateTime   @default(now())
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   @@unique([userId, type, key])
   @@index([userId, type])
 }
 
 enum MemoryType {
-  PREFERENCE   // user preferences (language, tone, schedule)
-  FACT         // facts about the user (name, company, role)
-  DECISION     // past decisions the user made
-  CONTEXT      // ongoing project/work context
-  FEEDBACK     // corrections or instructions from user
+  PREFERENCE // user preferences (language, tone, schedule)
+  FACT // facts about the user (name, company, role)
+  DECISION // past decisions the user made
+  CONTEXT // ongoing project/work context
+  FEEDBACK // corrections or instructions from user
 }
 
 // Token Usage Tracking — per-conversation and per-user cost tracking
 // Inspired by Claude Code's cost-tracker.ts
 model TokenUsage {
-  id             String   @id @default(uuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id])
-  conversationId String?
-  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
-  model          String   // e.g. "openai/gpt-5.4-nano"
-  promptTokens   Int
+  id               String        @id @default(uuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id])
+  conversationId   String?
+  conversation     Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  model            String // e.g. "openai/gpt-5.4-nano"
+  promptTokens     Int
   completionTokens Int
-  totalTokens    Int
-  estimatedCost  Float    @default(0) // USD
-  createdAt      DateTime @default(now())
+  totalTokens      Int
+  estimatedCost    Float         @default(0) // USD
+  createdAt        DateTime      @default(now())
 
   @@index([userId, createdAt])
   @@index([conversationId])
@@ -408,9 +436,9 @@ model ConversationSummary {
   id             String       @id @default(uuid())
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  summary        String       // compressed summary of messages
-  messageCount   Int          // how many messages were summarized
-  upToMessageId  String       // last message ID included in summary
+  summary        String // compressed summary of messages
+  messageCount   Int // how many messages were summarized
+  upToMessageId  String // last message ID included in summary
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
@@ -419,19 +447,20 @@ model ConversationSummary {
 // Pending Action — EVE's proposals awaiting user approval
 // Agent creates these when it wants to take action on behalf of the user
 model PendingAction {
-  id             String       @id @default(uuid())
+  id             String        @id @default(uuid())
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  messageId      String       @unique
-  message        Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messageId      String        @unique
+  message        Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
   userId         String
-  status         ActionStatus @default(PENDING)
-  toolName       String       // e.g. "create_reminder", "update_task"
-  toolArgs       String       // JSON string of tool arguments
-  reasoning      String?      // Why EVE suggests this action
-  result         String?      // Result after execution (JSON)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  status         ActionStatus  @default(PENDING)
+  toolName       String // e.g. "create_reminder", "update_task"
+  toolArgs       String // JSON string of tool arguments
+  reasoning      String? // Why EVE suggests this action
+  result         String? // Result after execution (JSON)
+  notification   Notification?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([userId, status])
   @@index([conversationId])
@@ -448,31 +477,31 @@ enum ActionStatus {
 // Persisted copy of Gmail messages for local search, AI summarization, and threading
 
 model EmailMessage {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  gmailId     String   // Gmail message ID
-  threadId    String?  // Gmail thread ID for conversation grouping
+  user        User          @relation(fields: [userId], references: [id])
+  gmailId     String // Gmail message ID
+  threadId    String? // Gmail thread ID for conversation grouping
   from        String
   to          String
   cc          String?
   subject     String
-  snippet     String?  // Gmail snippet (preview text)
-  body        String?  // Full plain-text body
-  htmlBody    String?  // Full HTML body (for rich rendering)
+  snippet     String? // Gmail snippet (preview text)
+  body        String? // Full plain-text body
+  htmlBody    String? // Full HTML body (for rich rendering)
   labels      String[] // Gmail labels: ["INBOX", "UNREAD", "IMPORTANT"]
-  isRead      Boolean  @default(false)
-  isStarred   Boolean  @default(false)
+  isRead      Boolean       @default(false)
+  isStarred   Boolean       @default(false)
   priority    EmailPriority @default(NORMAL)
-  category    String?  // AI classification: billing, meeting, engineering, conversation, automated, other
-  summary     String?  // AI-generated one-line summary
-  keyPoints   String?  // JSON array: AI-extracted key takeaways
-  actionItems String?  // JSON array: AI-extracted TODOs from email
-  sentiment   String?  // positive | negative | neutral
+  category    String? // AI classification: billing, meeting, engineering, conversation, automated, other
+  summary     String? // AI-generated one-line summary
+  keyPoints   String? // JSON array: AI-extracted key takeaways
+  actionItems String? // JSON array: AI-extracted TODOs from email
+  sentiment   String? // positive | negative | neutral
   receivedAt  DateTime // Original email date
-  syncedAt    DateTime @default(now()) // When we synced from Gmail
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  syncedAt    DateTime      @default(now()) // When we synced from Gmail
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@unique([userId, gmailId])
   @@index([userId, receivedAt])
@@ -490,31 +519,31 @@ enum EmailPriority {
 
 // Auto-reply rules — user-configurable patterns for automated responses
 model EmailRule {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  name        String   // Rule display name
-  description String?
-  isActive    Boolean  @default(true)
+  id              String          @id @default(uuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id])
+  name            String // Rule display name
+  description     String?
+  isActive        Boolean         @default(true)
   // Conditions (JSON): { from?: string[], subjectContains?: string[], category?: string[] }
-  conditions  String
+  conditions      String
   // Action type
-  actionType  EmailRuleAction @default(AUTO_REPLY)
+  actionType      EmailRuleAction @default(AUTO_REPLY)
   // Reply template (for AUTO_REPLY) or label name (for LABEL)
-  actionValue String
+  actionValue     String
   // How many times this rule has been triggered
-  triggerCount Int     @default(0)
+  triggerCount    Int             @default(0)
   lastTriggeredAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([userId, isActive])
 }
 
 enum EmailRuleAction {
-  AUTO_REPLY   // Send canned reply
-  DRAFT_REPLY  // Create draft for user review
-  LABEL        // Apply label
-  ARCHIVE      // Auto-archive
-  NOTIFY       // Send push notification
+  AUTO_REPLY // Send canned reply
+  DRAFT_REPLY // Create draft for user review
+  LABEL // Apply label
+  ARCHIVE // Auto-archive
+  NOTIFY // Send push notification
 }
