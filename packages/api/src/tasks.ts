@@ -1,5 +1,27 @@
 import { prisma } from "./db.js";
 
+const OPEN_STATUSES = ["TODO", "IN_PROGRESS"] as const;
+const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
+const MAX_OPEN_TASKS_IN_WINDOW = 15;
+const DUPLICATE_KEYWORD_THRESHOLD = 3;
+
+function normalizeTitle(title: string): string[] {
+  return title
+    .toLowerCase()
+    .replace(/[[\]()'"“”‘’`~!@#$%^&*_+=<>?,./\\|{}:;]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 2);
+}
+
+function countSharedKeywords(a: string, b: string): number {
+  const aWords = new Set(normalizeTitle(a));
+  const bWords = new Set(normalizeTitle(b));
+  let shared = 0;
+  for (const w of aWords) if (bWords.has(w)) shared++;
+  return shared;
+}
+
 export async function listTasks(userId: string, status?: string) {
   const where: Record<string, unknown> = { userId };
   if (status) where.status = status.toUpperCase();
@@ -37,6 +59,37 @@ export async function createTask(
   priority?: string,
   dueDate?: string,
 ) {
+  const recentOpen = await prisma.task.findMany({
+    where: {
+      userId,
+      status: { in: [...OPEN_STATUSES] },
+      createdAt: { gte: new Date(Date.now() - DUPLICATE_WINDOW_MS) },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, title: true, status: true, createdAt: true },
+  });
+
+  if (recentOpen.length >= MAX_OPEN_TASKS_IN_WINDOW) {
+    return {
+      success: false,
+      reason: "too_many_open_tasks" as const,
+      openTaskCount: recentOpen.length,
+      message: `You already have ${recentOpen.length} open tasks created in the last 24h. Complete or delete existing tasks before creating more — do not create another duplicate.`,
+    };
+  }
+
+  const duplicate = recentOpen.find(
+    (t) => countSharedKeywords(t.title, title) >= DUPLICATE_KEYWORD_THRESHOLD,
+  );
+  if (duplicate) {
+    return {
+      success: false,
+      reason: "duplicate" as const,
+      existingTask: { id: duplicate.id, title: duplicate.title, status: duplicate.status },
+      message: `A similar open task already exists: "${duplicate.title}" (id: ${duplicate.id}). Use update_task on the existing task instead of creating a new one.`,
+    };
+  }
+
   const task = await prisma.task.create({
     data: {
       userId,

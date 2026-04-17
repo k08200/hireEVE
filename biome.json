@@ -77,6 +77,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["packages/api/src/scripts/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
     }
   ],
   "files": {

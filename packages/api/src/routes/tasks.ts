@@ -40,13 +40,26 @@ export async function taskRoutes(app: FastifyInstance) {
   // POST /api/tasks
   app.post("/", async (request, reply) => {
     const userId = getUserId(request);
-    const { title, description, priority, due_date } = request.body as {
-      title: string;
+    const body = request.body as {
+      title?: string;
       description?: string;
       priority?: string;
       due_date?: string;
+      dueDate?: string;
     };
-    const result = await createTask(userId, title, description, priority, due_date);
+    if (!body?.title || typeof body.title !== "string" || !body.title.trim()) {
+      return reply.code(400).send({ error: "Title is required" });
+    }
+    const result = await createTask(
+      userId,
+      body.title,
+      body.description,
+      body.priority,
+      body.due_date ?? body.dueDate,
+    );
+    if ("success" in result && result.success === false) {
+      return reply.code(409).send(result);
+    }
     return reply.code(201).send(result);
   });
 }
