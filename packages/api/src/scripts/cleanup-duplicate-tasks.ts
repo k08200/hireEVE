@@ -63,9 +63,7 @@ async function main() {
   const arg = process.argv[2];
   const confirm = process.env.CONFIRM === "1";
   if (!arg) {
-    console.error(
-      "Usage: cleanup-duplicate-tasks.ts <userId | email>  (set CONFIRM=1 to delete)",
-    );
+    console.error("Usage: cleanup-duplicate-tasks.ts <userId | email>  (set CONFIRM=1 to delete)");
     process.exit(1);
   }
 

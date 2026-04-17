@@ -34,20 +34,22 @@ vi.mock("../db.js", () => ({
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         },
       ),
-      create: vi.fn(async ({ data }: { data: Partial<StoredTask> & { userId: string; title: string } }) => {
-        const task: StoredTask = {
-          id: `task-${idCounter++}`,
-          userId: data.userId,
-          title: data.title,
-          description: data.description ?? null,
-          status: data.status ?? "TODO",
-          priority: data.priority ?? "MEDIUM",
-          dueDate: data.dueDate ?? null,
-          createdAt: new Date(),
-        };
-        store.push(task);
-        return task;
-      }),
+      create: vi.fn(
+        async ({ data }: { data: Partial<StoredTask> & { userId: string; title: string } }) => {
+          const task: StoredTask = {
+            id: `task-${idCounter++}`,
+            userId: data.userId,
+            title: data.title,
+            description: data.description ?? null,
+            status: data.status ?? "TODO",
+            priority: data.priority ?? "MEDIUM",
+            dueDate: data.dueDate ?? null,
+            createdAt: new Date(),
+          };
+          store.push(task);
+          return task;
+        },
+      ),
     },
   },
 }));
@@ -94,10 +96,7 @@ describe("createTask dedup", () => {
   it("does not flag unrelated long titles that only share stopwords", async () => {
     const { createTask } = await import("../tasks.js");
     await createTask("user-1", "Review the quarterly financial projections with the team");
-    const result = await createTask(
-      "user-1",
-      "Ship the new onboarding flow with the designers",
-    );
+    const result = await createTask("user-1", "Ship the new onboarding flow with the designers");
     expect(result.success).toBe(true);
   });
 
