@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { runAllScenarios, summarizeEval } from "../agent-eval.js";
 import { requireAdmin } from "../auth.js";
 import { db, prisma } from "../db.js";
 
@@ -236,6 +237,24 @@ export async function adminRoutes(app: FastifyInstance) {
         estimatedCostUsd,
       },
       recentErrors,
+    };
+  });
+
+  // GET /api/admin/eval — Run agent decision-logic eval scenarios
+  app.get("/eval", async () => {
+    const results = runAllScenarios();
+    return {
+      summary: summarizeEval(results),
+      results: results.map((r) => ({
+        id: r.scenario.id,
+        name: r.scenario.name,
+        description: r.scenario.description,
+        category: r.scenario.category,
+        severity: r.scenario.severity,
+        passed: r.passed,
+        message: r.message,
+      })),
+      runAt: new Date().toISOString(),
     };
   });
 }

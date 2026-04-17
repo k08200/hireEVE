@@ -46,44 +46,12 @@ const CONCURRENCY_LIMIT = 5; // Max users to run concurrently
  * MEDIUM → intercept and create approval proposal (propose_action style)
  * HIGH → intercept and create approval proposal with explicit warning
  */
-type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
+// Risk classification and notification key logic live in agent-logic.ts
+// so they can be imported without pulling in the full agent runtime.
+export { getNotifKey, getToolRisk, type RiskLevel, TOOL_RISK_LEVELS } from "./agent-logic.js";
 
-const TOOL_RISK_LEVELS = new Map<string, RiskLevel>([
-  // LOW — safe, easily reversible, no external side effects
-  ["create_reminder", "LOW"],
-  ["dismiss_reminder", "LOW"],
-  ["update_task", "LOW"],
-  ["classify_emails", "LOW"],
-  ["create_task", "LOW"],
-  ["update_note", "LOW"],
-  ["mark_read", "LOW"],
-
-  // MEDIUM — external-facing, requires user approval before sending
-  ["send_email", "MEDIUM"],
-
-  // MEDIUM — external-facing or calendar changes, reversible but visible
-  ["create_event", "MEDIUM"],
-  ["create_note", "MEDIUM"],
-  ["update_contact", "MEDIUM"],
-  ["create_contact", "MEDIUM"],
-
-  // LOW — skill execution (prompt template, no external side effect)
-  ["execute_skill", "LOW"],
-  ["list_skills", "LOW"],
-
-  // HIGH — destructive or hard to reverse
-  ["delete_task", "HIGH"],
-  ["delete_reminder", "HIGH"],
-  ["delete_note", "HIGH"],
-  ["delete_event", "HIGH"],
-  ["archive_email", "HIGH"],
-  ["delete_email", "HIGH"],
-]);
-
-/** Get risk level for a tool. Returns undefined for read-only tools. */
-function getToolRisk(toolName: string): RiskLevel | undefined {
-  return TOOL_RISK_LEVELS.get(toolName);
-}
+import type { RiskLevel } from "./agent-logic.js";
+import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -138,14 +106,7 @@ async function hasRepliedToEmail(userId: string, emailSubject: string): Promise<
   return !!recentSend;
 }
 
-function getNotifKey(title: string): string {
-  // Normalize: lowercase, strip whitespace/punctuation, take first 30 chars
-  // This catches slight variations like "스크럼 장소 확인" vs "스크럼 장소 중복 알림"
-  return title
-    .toLowerCase()
-    .replace(/[\s.,!?·\-_()[\]{}'"]/g, "")
-    .slice(0, 30);
-}
+// getNotifKey moved to agent-logic.ts and re-exported at the top of this file
 
 /** Track LLM token usage for cost monitoring */
 async function trackTokenUsage(
