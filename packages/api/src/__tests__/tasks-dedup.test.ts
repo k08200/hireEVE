@@ -83,6 +83,32 @@ describe("createTask dedup", () => {
     expect(result.success).toBe(true);
   });
 
+  it("flags identical short titles as duplicates", async () => {
+    const { createTask } = await import("../tasks.js");
+    await createTask("user-1", "Buy milk");
+    const result = await createTask("user-1", "Buy milk");
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.reason).toBe("duplicate");
+  });
+
+  it("does not flag unrelated long titles that only share stopwords", async () => {
+    const { createTask } = await import("../tasks.js");
+    await createTask("user-1", "Review the quarterly financial projections with the team");
+    const result = await createTask(
+      "user-1",
+      "Ship the new onboarding flow with the designers",
+    );
+    expect(result.success).toBe(true);
+  });
+
+  it("treats punctuation and casing differences as the same title", async () => {
+    const { createTask } = await import("../tasks.js");
+    await createTask("user-1", "Fix the LOGIN-bug in staging");
+    const result = await createTask("user-1", "fix the login bug in staging!");
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.reason).toBe("duplicate");
+  });
+
   it("blocks creation when user has too many recent open tasks", async () => {
     const { createTask } = await import("../tasks.js");
     for (let i = 0; i < 15; i++) {

@@ -2,31 +2,18 @@
  * Cleanup duplicate open tasks for a user.
  *
  * Usage:
- *   DRY-RUN (default):  pnpm tsx src/scripts/cleanup-duplicate-tasks.ts <userId>
- *   EXECUTE DELETE:     CONFIRM=1 pnpm tsx src/scripts/cleanup-duplicate-tasks.ts <userId>
+ *   DRY-RUN (default):  pnpm tsx src/scripts/cleanup-duplicate-tasks.ts <userId | email>
+ *   EXECUTE DELETE:     CONFIRM=1 pnpm tsx src/scripts/cleanup-duplicate-tasks.ts <userId | email>
  *
- * Groups open (TODO/IN_PROGRESS) tasks by shared title keywords and keeps the
- * oldest task per cluster, deletes the rest. Prints a full preview before any
- * destructive action.
+ * Clusters open (TODO/IN_PROGRESS) tasks by title Jaccard similarity and keeps
+ * the oldest task per cluster, deletes the rest. Prints a full preview before
+ * any destructive action. Shares the similarity function with createTask so
+ * cleanup matches live dedup behavior.
  */
 import { prisma } from "../db.js";
+import { titleSimilarity } from "../tasks.js";
 
-const KEYWORD_THRESHOLD = 3;
-
-function normalize(title: string): string[] {
-  return title
-    .toLowerCase()
-    .replace(/[[\]()'"“”‘’`~!@#$%^&*_+=<>?,./\\|{}:;]/g, " ")
-    .split(/\s+/)
-    .map((w) => w.trim())
-    .filter((w) => w.length >= 2);
-}
-
-function sharedCount(a: Set<string>, b: Set<string>): number {
-  let n = 0;
-  for (const w of a) if (b.has(w)) n++;
-  return n;
-}
+const SIMILARITY_THRESHOLD = 0.5;
 
 type OpenTask = {
   id: string;
@@ -38,26 +25,20 @@ type OpenTask = {
 type Cluster = {
   keeper: OpenTask;
   duplicates: OpenTask[];
-  sharedKeywords: string[];
 };
 
 function clusterTasks(tasks: OpenTask[]): Cluster[] {
   const ordered = [...tasks].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  const keywords = ordered.map((t) => new Set(normalize(t.title)));
   const assigned = new Array(ordered.length).fill(false);
   const clusters: Cluster[] = [];
 
   for (let i = 0; i < ordered.length; i++) {
     if (assigned[i]) continue;
     assigned[i] = true;
-    const cluster: Cluster = {
-      keeper: ordered[i],
-      duplicates: [],
-      sharedKeywords: [...keywords[i]],
-    };
+    const cluster: Cluster = { keeper: ordered[i], duplicates: [] };
     for (let j = i + 1; j < ordered.length; j++) {
       if (assigned[j]) continue;
-      if (sharedCount(keywords[i], keywords[j]) >= KEYWORD_THRESHOLD) {
+      if (titleSimilarity(ordered[i].title, ordered[j].title) >= SIMILARITY_THRESHOLD) {
         assigned[j] = true;
         cluster.duplicates.push(ordered[j]);
       }
@@ -67,11 +48,30 @@ function clusterTasks(tasks: OpenTask[]): Cluster[] {
   return clusters;
 }
 
+async function resolveUserId(arg: string): Promise<string | null> {
+  if (arg.includes("@")) {
+    const user = await prisma.user.findUnique({
+      where: { email: arg },
+      select: { id: true },
+    });
+    return user?.id ?? null;
+  }
+  return arg;
+}
+
 async function main() {
-  const userId = process.argv[2];
+  const arg = process.argv[2];
   const confirm = process.env.CONFIRM === "1";
+  if (!arg) {
+    console.error(
+      "Usage: cleanup-duplicate-tasks.ts <userId | email>  (set CONFIRM=1 to delete)",
+    );
+    process.exit(1);
+  }
+
+  const userId = await resolveUserId(arg);
   if (!userId) {
-    console.error("Usage: cleanup-duplicate-tasks.ts <userId>  (set CONFIRM=1 to delete)");
+    console.error(`No user found for "${arg}".`);
     process.exit(1);
   }
 

@@ -3,23 +3,68 @@ import { prisma } from "./db.js";
 const OPEN_STATUSES = ["TODO", "IN_PROGRESS"] as const;
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_OPEN_TASKS_IN_WINDOW = 15;
-const DUPLICATE_KEYWORD_THRESHOLD = 3;
+const DUPLICATE_JACCARD_THRESHOLD = 0.5;
 
-function normalizeTitle(title: string): string[] {
-  return title
+// Noise words that should not count toward title similarity. Without this,
+// two unrelated long English titles can trip the threshold on filler words alone.
+const STOPWORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "from",
+  "into",
+  "onto",
+  "this",
+  "that",
+  "these",
+  "those",
+  "will",
+  "would",
+  "could",
+  "should",
+  "about",
+  "your",
+  "you",
+  "our",
+  "are",
+  "is",
+  "was",
+  "were",
+  "been",
+  "being",
+  "has",
+  "have",
+  "had",
+  "not",
+  "but",
+  "any",
+  "all",
+  "via",
+]);
+
+export function normalizeTitleWords(title: string): Set<string> {
+  const words = title
     .toLowerCase()
-    .replace(/[[\]()'"“”‘’`~!@#$%^&*_+=<>?,./\\|{}:;]/g, " ")
+    .replace(/[[\]()'"“”‘’`~!@#$%^&*_+=<>?,./\\|{}:;-]/g, " ")
     .split(/\s+/)
     .map((w) => w.trim())
-    .filter((w) => w.length >= 2);
+    .filter((w) => w.length >= 2 && !STOPWORDS.has(w));
+  return new Set(words);
 }
 
-function countSharedKeywords(a: string, b: string): number {
-  const aWords = new Set(normalizeTitle(a));
-  const bWords = new Set(normalizeTitle(b));
-  let shared = 0;
-  for (const w of aWords) if (bWords.has(w)) shared++;
-  return shared;
+/**
+ * Jaccard similarity on normalized title word sets: |A ∩ B| / |A ∪ B|.
+ * Identical word sets → 1.0, no overlap → 0. Either side empty → 0.
+ */
+export function titleSimilarity(a: string, b: string): number {
+  const aWords = normalizeTitleWords(a);
+  const bWords = normalizeTitleWords(b);
+  if (aWords.size === 0 || bWords.size === 0) return 0;
+  let intersect = 0;
+  for (const w of aWords) if (bWords.has(w)) intersect++;
+  const union = aWords.size + bWords.size - intersect;
+  return union === 0 ? 0 : intersect / union;
 }
 
 export async function listTasks(userId: string, status?: string) {
@@ -79,7 +124,7 @@ export async function createTask(
   }
 
   const duplicate = recentOpen.find(
-    (t) => countSharedKeywords(t.title, title) >= DUPLICATE_KEYWORD_THRESHOLD,
+    (t) => titleSimilarity(t.title, title) >= DUPLICATE_JACCARD_THRESHOLD,
   );
   if (duplicate) {
     return {
