@@ -163,6 +163,50 @@ describe("tasks routes", () => {
     await app.close();
   });
 
+  it("rejects create with missing title", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/tasks",
+      headers: auth(),
+      payload: { description: "No title" },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("rejects create with whitespace-only title", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/tasks",
+      headers: auth(),
+      payload: { title: "   " },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("returns 409 when createTask reports a duplicate", async () => {
+    createTaskSpy.mockImplementationOnce(async () => ({
+      success: false,
+      reason: "duplicate",
+      existingTask: { id: "task-existing", title: "Existing", status: "TODO" },
+      message: "A similar open task already exists",
+    }));
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/tasks",
+      headers: auth(),
+      payload: { title: "Duplicate-looking task" },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().reason).toBe("duplicate");
+    expect(res.json().existingTask.id).toBe("task-existing");
+    await app.close();
+  });
+
   // PATCH /api/tasks/:id
   it("updates own task", async () => {
     const app = await buildApp();

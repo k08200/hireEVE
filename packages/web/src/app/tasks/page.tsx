@@ -57,6 +57,8 @@ export default function TasksPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
   const [editing, setEditing] = useState<Task | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const { confirm } = useConfirm();
   const [editForm, setEditForm] = useState({
@@ -89,8 +91,10 @@ export default function TasksPage() {
   };
 
   const createTask = async () => {
+    if (creating) return;
+    setCreating(true);
     try {
-      await fetch(`${API_BASE}/api/tasks`, {
+      const res = await fetch(`${API_BASE}/api/tasks`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
@@ -100,12 +104,26 @@ export default function TasksPage() {
           dueDate: form.dueDate || undefined,
         }),
       });
+      if (res.status === 409) {
+        const payload = (await res.json().catch(() => null)) as {
+          reason?: string;
+          message?: string;
+        } | null;
+        toast(payload?.message || "Similar task already exists", "error");
+        return;
+      }
+      if (!res.ok) {
+        toast(`Failed to create task (${res.status})`, "error");
+        return;
+      }
       setShowForm(false);
       setForm({ title: "", description: "", priority: "MEDIUM", dueDate: "" });
       loadTasks();
       toast("Task created", "success");
     } catch (err) {
       toast(`Failed: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -121,21 +139,26 @@ export default function TasksPage() {
   };
 
   const saveEdit = async () => {
-    if (!editing) return;
-    await fetch(`${API_BASE}/api/tasks/${editing.id}`, {
-      method: "PATCH",
-      headers: authHeaders(),
-      body: JSON.stringify({
-        title: editForm.title,
-        description: editForm.description || null,
-        priority: editForm.priority,
-        status: editForm.status,
-        dueDate: editForm.dueDate || null,
-      }),
-    });
-    setEditing(null);
-    loadTasks();
-    toast("Task updated", "success");
+    if (!editing || saving) return;
+    setSaving(true);
+    try {
+      await fetch(`${API_BASE}/api/tasks/${editing.id}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          title: editForm.title,
+          description: editForm.description || null,
+          priority: editForm.priority,
+          status: editForm.status,
+          dueDate: editForm.dueDate || null,
+        }),
+      });
+      setEditing(null);
+      loadTasks();
+      toast("Task updated", "success");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const deleteTask = async (taskId: string) => {
@@ -259,10 +282,10 @@ export default function TasksPage() {
               <button
                 type="button"
                 onClick={createTask}
-                disabled={!form.title}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-1.5 rounded text-sm font-medium transition"
+                disabled={!form.title || creating}
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded text-sm font-medium transition"
               >
-                Save
+                {creating ? "Saving…" : "Save"}
               </button>
             </div>
           </div>
@@ -363,10 +386,10 @@ export default function TasksPage() {
                 <button
                   type="button"
                   onClick={saveEdit}
-                  disabled={!editForm.title}
-                  className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  disabled={!editForm.title || saving}
+                  className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition"
                 >
-                  Save
+                  {saving ? "Saving…" : "Save"}
                 </button>
               </div>
             </div>
