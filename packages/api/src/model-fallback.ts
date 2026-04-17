@@ -43,21 +43,33 @@ export function clearBudgetExhausted(): void {
   console.log("[MODEL-FALLBACK] Fallback mode cleared");
 }
 
-/** Detect whether an error indicates budget/credit exhaustion */
+/** Detect whether an error indicates budget/credit/key-limit exhaustion */
 export function isBudgetError(error: unknown): boolean {
-  // OpenRouter returns HTTP 402 for insufficient credits
-  if (typeof error === "object" && error !== null && "status" in error) {
-    if ((error as { status: number }).status === 402) return true;
+  const status =
+    typeof error === "object" && error !== null && "status" in error
+      ? (error as { status: number }).status
+      : undefined;
+
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  // OpenRouter returns 402 for insufficient credits
+  if (status === 402) return true;
+
+  // OpenRouter returns 403 for weekly key limit exhaustion
+  // ("Key limit exceeded (weekly limit)") — distinguish from generic auth 403
+  if (status === 403 && (message.includes("key limit") || message.includes("limit exceeded"))) {
+    return true;
   }
 
-  if (error instanceof Error) {
-    const msg = error.message.toLowerCase();
+  if (message) {
     if (
-      msg.includes("402") ||
-      msg.includes("insufficient credits") ||
-      msg.includes("budget exceeded") ||
-      msg.includes("payment required") ||
-      msg.includes("out of credits")
+      message.includes("402") ||
+      message.includes("insufficient credits") ||
+      message.includes("budget exceeded") ||
+      message.includes("payment required") ||
+      message.includes("out of credits") ||
+      message.includes("key limit exceeded") ||
+      message.includes("weekly limit")
     ) {
       return true;
     }
