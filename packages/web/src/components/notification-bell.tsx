@@ -13,7 +13,10 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
-  conversationId?: string;
+  conversationId?: string | null;
+  sourceEmailId?: string | null;
+  pendingActionId?: string | null;
+  pendingActionStatus?: string | null;
   link?: string | null;
 }
 
@@ -148,6 +151,55 @@ export default function NotificationBell({ userId }: { userId: string }) {
   }, []);
 
   const [actionLoading, setActionLoading] = useState(false);
+  // Per-notification approve/reject loading state so buttons on other rows stay interactive
+  const [pendingActionLoading, setPendingActionLoading] = useState<Record<string, "approve" | "reject" | null>>({});
+
+  const handleApprovePendingAction = async (notif: Notification, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!notif.pendingActionId || pendingActionLoading[notif.id]) return;
+    setPendingActionLoading((prev) => ({ ...prev, [notif.id]: "approve" }));
+    try {
+      await apiFetch(`/api/chat/pending-actions/${notif.pendingActionId}/approve`, {
+        method: "POST",
+      });
+      // Optimistic update — mark action resolved and notification read so the row hides its buttons
+      setNotifications((prev) =>
+        prev.map((x) =>
+          x.id === notif.id ? { ...x, pendingActionStatus: "EXECUTED", isRead: true } : x,
+        ),
+      );
+      apiFetch(`/api/notifications/${notif.id}/read`, { method: "PATCH" }).catch(() => {});
+    } catch (err) {
+      console.error("[notification-bell] approve failed", err);
+      // Let the user retry — don't silently swallow
+      alert("승인 실행에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setPendingActionLoading((prev) => ({ ...prev, [notif.id]: null }));
+    }
+  };
+
+  const handleRejectPendingAction = async (notif: Notification, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!notif.pendingActionId || pendingActionLoading[notif.id]) return;
+    setPendingActionLoading((prev) => ({ ...prev, [notif.id]: "reject" }));
+    try {
+      await apiFetch(`/api/chat/pending-actions/${notif.pendingActionId}/reject`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setNotifications((prev) =>
+        prev.map((x) =>
+          x.id === notif.id ? { ...x, pendingActionStatus: "REJECTED", isRead: true } : x,
+        ),
+      );
+      apiFetch(`/api/notifications/${notif.id}/read`, { method: "PATCH" }).catch(() => {});
+    } catch (err) {
+      console.error("[notification-bell] reject failed", err);
+      alert("거절에 실패했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setPendingActionLoading((prev) => ({ ...prev, [notif.id]: null }));
+    }
+  };
 
   // Determine where clicking a notification should navigate
   const getNotificationTarget = (n: Notification): string | null => {
@@ -338,6 +390,37 @@ export default function NotificationBell({ userId }: { userId: string }) {
                         </span>
                       )}
                     </div>
+                    {n.pendingActionId && n.pendingActionStatus === "PENDING" && (
+                      <div className="flex items-center gap-2 mt-2 ml-6">
+                        <button
+                          type="button"
+                          onClick={(e) => handleApprovePendingAction(n, e)}
+                          disabled={!!pendingActionLoading[n.id]}
+                          className="text-[11px] px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-medium transition"
+                        >
+                          {pendingActionLoading[n.id] === "approve" ? "..." : "승인"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleRejectPendingAction(n, e)}
+                          disabled={!!pendingActionLoading[n.id]}
+                          className="text-[11px] px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 font-medium transition"
+                        >
+                          {pendingActionLoading[n.id] === "reject" ? "..." : "거절"}
+                        </button>
+                      </div>
+                    )}
+                    {n.pendingActionId && n.pendingActionStatus && n.pendingActionStatus !== "PENDING" && (
+                      <div className="mt-2 ml-6">
+                        <span className="text-[10px] text-gray-500">
+                          {n.pendingActionStatus === "EXECUTED"
+                            ? "✓ 실행됨"
+                            : n.pendingActionStatus === "REJECTED"
+                              ? "거절됨"
+                              : n.pendingActionStatus}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

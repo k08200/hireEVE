@@ -61,6 +61,7 @@ export default function SettingsPage() {
   const [agentMode, setAgentMode] = useState<"SUGGEST" | "AUTO">("SUGGEST");
   const [agentInterval, setAgentInterval] = useState(5);
   const [alwaysAllowedTools, setAlwaysAllowedTools] = useState<string[]>([]);
+  const [autoMarkReadEnabled, setAutoMarkReadEnabled] = useState(false);
   const [preApprovableTools, setPreApprovableTools] = useState<string[]>([]);
   const [notifPrefs, setNotifPrefs] = useState({
     notifyEmailUrgent: true,
@@ -385,6 +386,7 @@ export default function SettingsPage() {
       agentIntervalMin?: number;
       alwaysAllowedTools?: string[];
       preApprovableTools?: string[];
+      autoMarkReadEnabled?: boolean;
       notifyEmailUrgent?: boolean;
       notifyMeeting?: boolean;
       notifyTaskDue?: boolean;
@@ -399,6 +401,7 @@ export default function SettingsPage() {
         setAgentInterval(d.agentIntervalMin ?? 5);
         setAlwaysAllowedTools(d.alwaysAllowedTools ?? []);
         setPreApprovableTools(d.preApprovableTools ?? []);
+        setAutoMarkReadEnabled(d.autoMarkReadEnabled ?? false);
         setNotifPrefs({
           notifyEmailUrgent: d.notifyEmailUrgent ?? true,
           notifyMeeting: d.notifyMeeting ?? true,
@@ -411,6 +414,19 @@ export default function SettingsPage() {
       })
       .catch(() => {});
   }, []);
+
+  const updateAutoMarkRead = async (value: boolean) => {
+    setAutoMarkReadEnabled(value);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ autoMarkReadEnabled: value }),
+      });
+    } catch {
+      setAutoMarkReadEnabled(!value);
+      toast("Failed to save preference", "error");
+    }
+  };
 
   const updateNotifPref = async (key: keyof typeof notifPrefs, value: boolean | string | null) => {
     const next = { ...notifPrefs, [key]: value };
@@ -1034,6 +1050,28 @@ export default function SettingsPage() {
                     <option value={15}>Every 15 min</option>
                     <option value={30}>Every 30 min</option>
                   </select>
+                </div>
+
+                {/* Gmail auto mark-as-read opt-in */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => updateAutoMarkRead(!autoMarkReadEnabled)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition ${
+                      autoMarkReadEnabled
+                        ? "bg-cyan-600/15 border-cyan-500/40 text-cyan-200"
+                        : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                    }`}
+                  >
+                    <span>Gmail 자동 읽음 표시</span>
+                    <span className="text-[10px] opacity-80">
+                      {autoMarkReadEnabled ? "On" : "Off"}
+                    </span>
+                  </button>
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    EVE가 AUTO 모드로 이메일에 답장한 뒤 원본 이메일을 Gmail에서 읽음으로 표시해요.
+                    기본은 꺼짐 — Gmail의 "안 읽음" 상태를 백업 받은편지함으로 쓰던 경우 그대로 유지.
+                  </p>
                 </div>
 
                 {/* Run Now Button */}
