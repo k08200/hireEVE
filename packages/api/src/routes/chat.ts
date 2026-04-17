@@ -1,17 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import type OpenAI from "openai";
 import { getUserId, requireAuth } from "../auth.js";
-import {
-  compactHistory,
-  forceCompact,
-  isTokenLimitError,
-} from "../context-compressor.js";
+import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import {
+  createCompletion,
   EVE_SYSTEM_PROMPT,
   MODEL,
-  createCompletion,
   openai,
   resolveUserChatModel,
 } from "../openai.js";
@@ -157,13 +153,8 @@ export function chatRoutes(app: FastifyInstance) {
       if (body.title !== undefined && !hasMeaningfulText(body.title)) {
         return reply.code(400).send({ error: "Title cannot be empty" });
       }
-      if (
-        body.initialMessage !== undefined &&
-        !hasMeaningfulText(body.initialMessage)
-      ) {
-        return reply
-          .code(400)
-          .send({ error: "Initial message cannot be empty" });
+      if (body.initialMessage !== undefined && !hasMeaningfulText(body.initialMessage)) {
+        return reply.code(400).send({ error: "Initial message cannot be empty" });
       }
 
       const conversation = await prisma.conversation.create({
@@ -229,38 +220,30 @@ export function chatRoutes(app: FastifyInstance) {
       );
     }
 
-    const enriched = (conversations as Array<Record<string, unknown>>).map(
-      (c) => ({
-        ...c,
-        pendingActionCount: pendingCounts[c.id as string] || 0,
-      }),
-    );
+    const enriched = (conversations as Array<Record<string, unknown>>).map((c) => ({
+      ...c,
+      pendingActionCount: pendingCounts[c.id as string] || 0,
+    }));
 
     return { conversations: enriched };
   });
 
   // GET /api/chat/conversations/:id — Get conversation with messages
-  app.get(
-    "/conversations/:id",
-    { schema: { params: idParamSchema } },
-    async (request, reply) => {
-      const userId = getUserId(request);
-      const { id } = request.params as { id: string };
+  app.get("/conversations/:id", { schema: { params: idParamSchema } }, async (request, reply) => {
+    const userId = getUserId(request);
+    const { id } = request.params as { id: string };
 
-      const conversation = await prisma.conversation.findUnique({
-        where: { id },
-        include: {
-          messages: { orderBy: { createdAt: "asc" } },
-        },
-      });
+    const conversation = await prisma.conversation.findUnique({
+      where: { id },
+      include: {
+        messages: { orderBy: { createdAt: "asc" } },
+      },
+    });
 
-      if (!conversation)
-        return reply.code(404).send({ error: "Conversation not found" });
-      if (conversation.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
-      return conversation;
-    },
-  );
+    if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+    if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
+    return conversation;
+  });
 
   // PATCH /api/chat/conversations/:id — Update conversation (title, pinned)
   app.patch(
@@ -274,10 +257,8 @@ export function chatRoutes(app: FastifyInstance) {
       const conversation = await prisma.conversation.findUnique({
         where: { id },
       });
-      if (!conversation)
-        return reply.code(404).send({ error: "Conversation not found" });
-      if (conversation.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
+      if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+      if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
       if (body.title !== undefined && !hasMeaningfulText(body.title)) {
         return reply.code(400).send({ error: "Title cannot be empty" });
       }
@@ -302,10 +283,8 @@ export function chatRoutes(app: FastifyInstance) {
       const conversation = await prisma.conversation.findUnique({
         where: { id },
       });
-      if (!conversation)
-        return reply.code(404).send({ error: "Conversation not found" });
-      if (conversation.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
+      if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+      if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
       // Explicit ordered deletion to avoid FK constraint violations
       // PendingAction has dual FK (conversationId + messageId) — must delete first
@@ -334,10 +313,8 @@ export function chatRoutes(app: FastifyInstance) {
         where: { id },
         include: { messages: { orderBy: { createdAt: "asc" } } },
       });
-      if (!convo)
-        return reply.code(404).send({ error: "Conversation not found" });
-      if (convo.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
+      if (!convo) return reply.code(404).send({ error: "Conversation not found" });
+      if (convo.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
       const title = convo.title || "Untitled Conversation";
       const date = convo.createdAt.toISOString().split("T")[0];
@@ -350,10 +327,7 @@ export function chatRoutes(app: FastifyInstance) {
 
       return reply
         .header("Content-Type", "text/markdown; charset=utf-8")
-        .header(
-          "Content-Disposition",
-          `attachment; filename="eve-chat-${date}.md"`,
-        )
+        .header("Content-Disposition", `attachment; filename="eve-chat-${date}.md"`)
         .send(md);
     },
   );
@@ -371,8 +345,7 @@ export function chatRoutes(app: FastifyInstance) {
           include: { conversation: { select: { userId: true } } },
         });
         if (!msg) return reply.code(404).send({ error: "Message not found" });
-        if (msg.conversation.userId !== userId)
-          return reply.code(403).send({ error: "Forbidden" });
+        if (msg.conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
         await prisma.message.delete({ where: { id: msgId } });
         return reply.code(204).send();
@@ -395,17 +368,12 @@ export function chatRoutes(app: FastifyInstance) {
         include: { messages: { orderBy: { createdAt: "asc" } } },
       });
 
-      if (!conversation)
-        return reply.code(404).send({ error: "Conversation not found" });
-      if (conversation.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
+      if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+      if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
       // Find last user message
-      const lastUserMsg = [...conversation.messages]
-        .reverse()
-        .find((m) => m.role === "USER");
-      if (!lastUserMsg)
-        return reply.code(400).send({ error: "No user message to retry" });
+      const lastUserMsg = [...conversation.messages].reverse().find((m) => m.role === "USER");
+      if (!lastUserMsg) return reply.code(400).send({ error: "No user message to retry" });
 
       // Delete the last assistant message if it exists
       const lastMsg = conversation.messages[conversation.messages.length - 1];
@@ -436,9 +404,7 @@ export function chatRoutes(app: FastifyInstance) {
       const retryContextParts: string[] = [];
       try {
         const now = new Date();
-        const kstTime = now
-          .toLocaleString("sv-SE", { timeZone: "Asia/Seoul" })
-          .slice(0, 16);
+        const kstTime = now.toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
         retryContextParts.push(`현재 시각: ${kstTime} KST`);
         const pendingTasks = await prisma.task.findMany({
           where: { userId: conversation.userId, status: { not: "DONE" } },
@@ -458,9 +424,7 @@ export function chatRoutes(app: FastifyInstance) {
         // optional
       }
       const retryDynamicContext =
-        retryContextParts.length > 0
-          ? `\n\n[현재 상황]\n${retryContextParts.join("\n\n")}`
-          : "";
+        retryContextParts.length > 0 ? `\n\n[현재 상황]\n${retryContextParts.join("\n\n")}` : "";
 
       // Load user memories for retry too
       let retryMemoryContext = "";
@@ -504,18 +468,14 @@ export function chatRoutes(app: FastifyInstance) {
             if (retryClientDisconnected) break;
             const response = await createCompletion({
               model: retryChatModel,
-              messages:
-                messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+              messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
               tools,
             });
 
             const choice = response.choices[0];
             const toolCalls = choice.message.tool_calls;
 
-            if (
-              choice.finish_reason === "tool_calls" ||
-              (toolCalls && toolCalls.length > 0)
-            ) {
+            if (choice.finish_reason === "tool_calls" || (toolCalls && toolCalls.length > 0)) {
               messages.push(choice.message);
               const results = await Promise.all(
                 (toolCalls || []).map(async (toolCall) =>
@@ -529,11 +489,7 @@ export function chatRoutes(app: FastifyInstance) {
                     reply.raw.write(
                       `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
                     );
-                    const result = await executeToolCall(
-                      conversation.userId,
-                      fn.name,
-                      args,
-                    );
+                    const result = await executeToolCall(conversation.userId, fn.name, args);
                     reply.raw.write(
                       `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
                     );
@@ -559,8 +515,7 @@ export function chatRoutes(app: FastifyInstance) {
         } else {
           const stream = await createCompletion({
             model: retryChatModel,
-            messages:
-              history as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+            messages: history as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
             stream: true,
           });
           for await (const chunk of stream) {
@@ -569,9 +524,7 @@ export function chatRoutes(app: FastifyInstance) {
             if (delta) {
               fullResponse += delta;
               try {
-                reply.raw.write(
-                  `data: ${JSON.stringify({ type: "token", content: delta })}\n\n`,
-                );
+                reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
               } catch {
                 retryClientDisconnected = true;
                 break;
@@ -614,9 +567,7 @@ export function chatRoutes(app: FastifyInstance) {
 
         const message = err instanceof Error ? err.message : "Unknown error";
         try {
-          reply.raw.write(
-            `data: ${JSON.stringify({ type: "error", content: message })}\n\n`,
-          );
+          reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
         } catch {
           // Client already disconnected
         }
@@ -631,43 +582,36 @@ export function chatRoutes(app: FastifyInstance) {
   );
 
   // GET /api/chat/search?q=keyword — Search across all conversations
-  app.get(
-    "/search",
-    { schema: { querystring: searchQuerySchema } },
-    async (request) => {
-      const userId = getUserId(request);
-      const { q } = request.query as { q?: string };
-      if (!q || q.trim().length < 2) {
-        return { results: [] };
-      }
+  app.get("/search", { schema: { querystring: searchQuerySchema } }, async (request) => {
+    const userId = getUserId(request);
+    const { q } = request.query as { q?: string };
+    if (!q || q.trim().length < 2) {
+      return { results: [] };
+    }
 
-      const messages = await prisma.message.findMany({
-        where: {
-          conversation: { userId },
-          content: { contains: q, mode: "insensitive" },
-        },
-        include: {
-          conversation: { select: { id: true, title: true } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-      });
+    const messages = await prisma.message.findMany({
+      where: {
+        conversation: { userId },
+        content: { contains: q, mode: "insensitive" },
+      },
+      include: {
+        conversation: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
 
-      return {
-        results: messages.map((m: (typeof messages)[number]) => ({
-          messageId: m.id,
-          conversationId: m.conversation.id,
-          conversationTitle: m.conversation.title || "Untitled",
-          role: m.role,
-          content:
-            m.content.length > 200
-              ? `${m.content.slice(0, 200)}...`
-              : m.content,
-          createdAt: m.createdAt,
-        })),
-      };
-    },
-  );
+    return {
+      results: messages.map((m: (typeof messages)[number]) => ({
+        messageId: m.id,
+        conversationId: m.conversation.id,
+        conversationTitle: m.conversation.title || "Untitled",
+        role: m.role,
+        content: m.content.length > 200 ? `${m.content.slice(0, 200)}...` : m.content,
+        createdAt: m.createdAt,
+      })),
+    };
+  });
 
   // POST /api/chat/conversations/:id/messages — Send message + SSE streaming response
   app.post(
@@ -678,9 +622,7 @@ export function chatRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
       const { content } = request.body as { content: string };
       if (!hasMeaningfulText(content)) {
-        return reply
-          .code(400)
-          .send({ error: "Message content cannot be empty" });
+        return reply.code(400).send({ error: "Message content cannot be empty" });
       }
       const trimmedContent = content.trim();
 
@@ -690,10 +632,8 @@ export function chatRoutes(app: FastifyInstance) {
         include: { messages: { orderBy: { createdAt: "asc" } } },
       });
 
-      if (!conversation)
-        return reply.code(404).send({ error: "Conversation not found" });
-      if (conversation.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
+      if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+      if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
       // Check billing plan message limit (skip for demo-user)
       const user = await prisma.user.findUnique({
@@ -756,9 +696,7 @@ export function chatRoutes(app: FastifyInstance) {
       if (!conversation.title && conversation.messages.length === 0) {
         // Set a quick fallback title immediately
         const fallback =
-          trimmedContent.length > 50
-            ? `${trimmedContent.slice(0, 50)}...`
-            : trimmedContent;
+          trimmedContent.length > 50 ? `${trimmedContent.slice(0, 50)}...` : trimmedContent;
         await prisma.conversation.update({
           where: { id },
           data: { title: fallback },
@@ -800,9 +738,7 @@ export function chatRoutes(app: FastifyInstance) {
       const contextParts: string[] = [];
       try {
         const now = new Date();
-        const kstTime2 = now
-          .toLocaleString("sv-SE", { timeZone: "Asia/Seoul" })
-          .slice(0, 16);
+        const kstTime2 = now.toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16);
         contextParts.push(`현재 시각: ${kstTime2} KST`);
 
         // Pending tasks
@@ -823,14 +759,8 @@ export function chatRoutes(app: FastifyInstance) {
 
         // Today's upcoming reminders
         // Get end of today in KST
-        const kstNow = new Date(
-          now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }),
-        );
-        const todayEnd = new Date(
-          kstNow.getFullYear(),
-          kstNow.getMonth(),
-          kstNow.getDate() + 1,
-        );
+        const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+        const todayEnd = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate() + 1);
         const upcomingReminders = await prisma.reminder.findMany({
           where: {
             userId: conversation.userId,
@@ -850,9 +780,7 @@ export function chatRoutes(app: FastifyInstance) {
       }
 
       const dynamicContext =
-        contextParts.length > 0
-          ? `\n\n[현재 상황]\n${contextParts.join("\n\n")}`
-          : "";
+        contextParts.length > 0 ? `\n\n[현재 상황]\n${contextParts.join("\n\n")}` : "";
 
       // Load user memories for personalization (Claude Code memdir/ pattern)
       let memoryContext = "";
@@ -927,16 +855,13 @@ export function chatRoutes(app: FastifyInstance) {
                 () =>
                   createCompletion({
                     model: userChatModel,
-                    messages:
-                      messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+                    messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
                     tools,
                   }),
                 {
                   maxRetries: 2,
                   onRetry: (attempt, _err, delay) =>
-                    console.log(
-                      `[CHAT] LLM retry #${attempt}, waiting ${delay}ms`,
-                    ),
+                    console.log(`[CHAT] LLM retry #${attempt}, waiting ${delay}ms`),
                 },
               );
             } catch (err) {
@@ -950,9 +875,7 @@ export function chatRoutes(app: FastifyInstance) {
                 messages.length === history.length
               ) {
                 compactionRetryUsed = true;
-                console.warn(
-                  "[CHAT] token-limit error — forcing compaction and retrying once",
-                );
+                console.warn("[CHAT] token-limit error — forcing compaction and retrying once");
                 history = await buildHistory(true);
                 messages = [...history];
                 maxIterations++;
@@ -971,10 +894,7 @@ export function chatRoutes(app: FastifyInstance) {
               toolCalls?.length || 0,
             );
 
-            if (
-              choice.finish_reason === "tool_calls" ||
-              (toolCalls && toolCalls.length > 0)
-            ) {
+            if (choice.finish_reason === "tool_calls" || (toolCalls && toolCalls.length > 0)) {
               messages.push(choice.message);
 
               const results = await Promise.all(
@@ -995,11 +915,7 @@ export function chatRoutes(app: FastifyInstance) {
                       `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
                     );
 
-                    const result = await executeToolCall(
-                      conversation.userId,
-                      fn.name,
-                      args,
-                    );
+                    const result = await executeToolCall(conversation.userId, fn.name, args);
 
                     reply.raw.write(
                       `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
@@ -1027,9 +943,7 @@ export function chatRoutes(app: FastifyInstance) {
               const chunkSize = 20;
               for (let i = 0; i < fullResponse.length; i += chunkSize) {
                 const chunk = fullResponse.slice(i, i + chunkSize);
-                reply.raw.write(
-                  `data: ${JSON.stringify({ type: "token", content: chunk })}\n\n`,
-                );
+                reply.raw.write(`data: ${JSON.stringify({ type: "token", content: chunk })}\n\n`);
               }
               break;
             }
@@ -1041,16 +955,13 @@ export function chatRoutes(app: FastifyInstance) {
               () =>
                 createCompletion({
                   model: userChatModel,
-                  messages:
-                    history as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+                  messages: history as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
                   stream: true,
                 }),
               {
                 maxRetries: 2,
                 onRetry: (attempt, _err, delay) =>
-                  console.log(
-                    `[CHAT] Stream retry #${attempt}, waiting ${delay}ms`,
-                  ),
+                  console.log(`[CHAT] Stream retry #${attempt}, waiting ${delay}ms`),
               },
             );
           let stream: Awaited<ReturnType<typeof openStream>>;
@@ -1080,9 +991,7 @@ export function chatRoutes(app: FastifyInstance) {
             if (delta) {
               fullResponse += delta;
               try {
-                reply.raw.write(
-                  `data: ${JSON.stringify({ type: "token", content: delta })}\n\n`,
-                );
+                reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
               } catch {
                 clientDisconnected = true;
                 break;
@@ -1105,15 +1014,9 @@ export function chatRoutes(app: FastifyInstance) {
         // Track token usage — use actual API usage when available, estimate for streaming
         const promptTokens =
           apiUsage?.prompt_tokens ??
-          Math.ceil(
-            (history.reduce((sum, m) => sum + m.content.length, 0) +
-              content.length) /
-              3,
-          );
-        const completionTokens =
-          apiUsage?.completion_tokens ?? Math.ceil(fullResponse.length / 3);
-        const totalTokens =
-          apiUsage?.total_tokens ?? promptTokens + completionTokens;
+          Math.ceil((history.reduce((sum, m) => sum + m.content.length, 0) + content.length) / 3);
+        const completionTokens = apiUsage?.completion_tokens ?? Math.ceil(fullResponse.length / 3);
+        const totalTokens = apiUsage?.total_tokens ?? promptTokens + completionTokens;
         db.tokenUsage
           .create({
             data: {
@@ -1123,8 +1026,7 @@ export function chatRoutes(app: FastifyInstance) {
               promptTokens,
               completionTokens,
               totalTokens,
-              estimatedCost:
-                (promptTokens * 0.00015 + completionTokens * 0.0006) / 1000,
+              estimatedCost: (promptTokens * 0.00015 + completionTokens * 0.0006) / 1000,
             },
           })
           .catch(() => {
@@ -1165,9 +1067,7 @@ export function chatRoutes(app: FastifyInstance) {
 
         const message = err instanceof Error ? err.message : "Unknown error";
         try {
-          reply.raw.write(
-            `data: ${JSON.stringify({ type: "error", content: message })}\n\n`,
-          );
+          reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
         } catch {
           // Client already disconnected — ignore write error
         }
@@ -1192,10 +1092,8 @@ export function chatRoutes(app: FastifyInstance) {
       const conversation = await prisma.conversation.findUnique({
         where: { id },
       });
-      if (!conversation)
-        return reply.code(404).send({ error: "Conversation not found" });
-      if (conversation.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
+      if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
+      if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
       const actions = await db.pendingAction.findMany({
         where: { conversationId: id },
@@ -1218,12 +1116,9 @@ export function chatRoutes(app: FastifyInstance) {
       });
 
       if (!action) return reply.code(404).send({ error: "Action not found" });
-      if (action.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
+      if (action.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
       if (action.status !== "PENDING") {
-        return reply
-          .code(400)
-          .send({ error: `Action already ${action.status.toLowerCase()}` });
+        return reply.code(400).send({ error: `Action already ${action.status.toLowerCase()}` });
       }
 
       // Atomic status claim — prevents race condition with concurrent approve/reject
@@ -1233,19 +1128,13 @@ export function chatRoutes(app: FastifyInstance) {
         data: { status: "EXECUTED", updatedAt: new Date() },
       });
       if (claimed.count === 0) {
-        return reply
-          .code(409)
-          .send({ error: "Action already processed by another request" });
+        return reply.code(409).send({ error: "Action already processed by another request" });
       }
 
       // Execute the tool — if it fails, rollback to FAILED
       try {
         const toolArgs = JSON.parse(action.toolArgs);
-        const toolResult = await executeToolCall(
-          userId,
-          action.toolName,
-          toolArgs,
-        );
+        const toolResult = await executeToolCall(userId, action.toolName, toolArgs);
 
         await db.pendingAction.update({
           where: { id: actionId },
@@ -1273,9 +1162,7 @@ export function chatRoutes(app: FastifyInstance) {
 
         // Learn from approval for pattern detection
         import("../pattern-learner.js")
-          .then(({ learnFromApproval }) =>
-            learnFromApproval(userId, action.toolName, toolArgs),
-          )
+          .then(({ learnFromApproval }) => learnFromApproval(userId, action.toolName, toolArgs))
           .catch(() => {});
 
         // Auto-allow this tool type for future actions if requested
@@ -1285,8 +1172,7 @@ export function chatRoutes(app: FastifyInstance) {
             where: { userId },
           });
           const existing: string[] =
-            (config as unknown as { alwaysAllowedTools?: string[] })
-              ?.alwaysAllowedTools || [];
+            (config as unknown as { alwaysAllowedTools?: string[] })?.alwaysAllowedTools || [];
           if (!existing.includes(action.toolName)) {
             await prisma.automationConfig.upsert({
               where: { userId },
@@ -1328,9 +1214,7 @@ export function chatRoutes(app: FastifyInstance) {
       const { actionId } = request.params as { actionId: string };
       const { reason } = (request.body as { reason?: string }) || {};
       if (reason !== undefined && !hasMeaningfulText(reason)) {
-        return reply
-          .code(400)
-          .send({ error: "Rejection reason cannot be empty" });
+        return reply.code(400).send({ error: "Rejection reason cannot be empty" });
       }
 
       const action = await db.pendingAction.findUnique({
@@ -1338,12 +1222,9 @@ export function chatRoutes(app: FastifyInstance) {
       });
 
       if (!action) return reply.code(404).send({ error: "Action not found" });
-      if (action.userId !== userId)
-        return reply.code(403).send({ error: "Forbidden" });
+      if (action.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
       if (action.status !== "PENDING") {
-        return reply
-          .code(400)
-          .send({ error: `Action already ${action.status.toLowerCase()}` });
+        return reply.code(400).send({ error: `Action already ${action.status.toLowerCase()}` });
       }
 
       // Atomic status claim — prevents race condition with concurrent approve/reject
@@ -1351,15 +1232,11 @@ export function chatRoutes(app: FastifyInstance) {
         where: { id: actionId, status: "PENDING" },
         data: {
           status: "REJECTED",
-          result: reason
-            ? `거절 사유: ${reason}`
-            : "User rejected without reason",
+          result: reason ? `거절 사유: ${reason}` : "User rejected without reason",
         },
       });
       if (claimed.count === 0) {
-        return reply
-          .code(409)
-          .send({ error: "Action already processed by another request" });
+        return reply.code(409).send({ error: "Action already processed by another request" });
       }
 
       // Add a follow-up message (include reason if provided)
@@ -1379,18 +1256,12 @@ export function chatRoutes(app: FastifyInstance) {
       // Learn from rejection for pattern detection
       import("../pattern-learner.js")
         .then(({ learnFromRejection }) =>
-          learnFromRejection(
-            userId,
-            action.toolName,
-            action.reasoning || "",
-            reason?.trim() || "",
-          ),
+          learnFromRejection(userId, action.toolName, action.reasoning || "", reason?.trim() || ""),
         )
         .catch(() => {});
 
       // Never suggest this tool type again if requested
-      const { neverSuggest } =
-        (request.body as { neverSuggest?: boolean }) || {};
+      const { neverSuggest } = (request.body as { neverSuggest?: boolean }) || {};
       if (neverSuggest && action.toolName) {
         import("../memory.js")
           .then(({ remember }) =>

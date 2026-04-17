@@ -11,7 +11,7 @@
 import { google } from "googleapis";
 import { prisma } from "./db.js";
 import { getAuthedClient } from "./gmail.js";
-import { MODEL, createCompletion, openai } from "./openai.js";
+import { createCompletion, MODEL, openai } from "./openai.js";
 import { wrapUntrusted } from "./untrusted.js";
 
 // ─── Gmail → DB Sync ──────────────────────────────────────────────────────
@@ -78,16 +78,14 @@ async function fetchGmailEmails(
 
     const headers = detail.data.payload?.headers || [];
     const getHeader = (name: string) =>
-      headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())
-        ?.value || "";
+      headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
 
     // Extract body (Gmail API returns base64url-encoded UTF-8 by default)
     let body = "";
     let htmlBody = "";
     const payload = detail.data.payload;
 
-    const decodePartBody = (data: string): string =>
-      Buffer.from(data, "base64").toString("utf-8");
+    const decodePartBody = (data: string): string => Buffer.from(data, "base64").toString("utf-8");
 
     if (payload?.parts) {
       for (const part of payload.parts) {
@@ -172,11 +170,7 @@ export async function syncEmails(
       });
     } else {
       // Classify priority using keyword heuristics first (fast)
-      const priority = classifyPriority(
-        email.from,
-        email.subject,
-        email.labels,
-      );
+      const priority = classifyPriority(email.from, email.subject, email.labels);
 
       await prisma.emailMessage.create({
         data: {
@@ -255,16 +249,12 @@ export async function reconcileEmails(
     await prisma.emailMessage.deleteMany({
       where: { id: { in: toRemove } },
     });
-    console.log(
-      `[EMAIL-SYNC] Reconciled: removed ${removed} stale emails for user ${userId}`,
-    );
+    console.log(`[EMAIL-SYNC] Reconciled: removed ${removed} stale emails for user ${userId}`);
   }
 
   // For remaining emails still in INBOX, batch-update read status
   let updated = 0;
-  const remainingGmailIds = dbEmails
-    .filter((e) => inboxIds.has(e.gmailId))
-    .map((e) => e.gmailId);
+  const remainingGmailIds = dbEmails.filter((e) => inboxIds.has(e.gmailId)).map((e) => e.gmailId);
 
   // Check read status for remaining emails (batch of 50)
   for (let i = 0; i < remainingGmailIds.length; i += 50) {
@@ -389,10 +379,7 @@ interface AISummaryResult {
  * Summarize a batch of emails using LLM.
  * Processes unsummarized emails for a user.
  */
-export async function summarizeUnsummarizedEmails(
-  userId: string,
-  limit = 10,
-): Promise<number> {
+export async function summarizeUnsummarizedEmails(userId: string, limit = 10): Promise<number> {
   if (!openai) return 0;
 
   const unsummarized = await prisma.emailMessage.findMany({
@@ -414,9 +401,7 @@ export async function summarizeUnsummarizedEmails(
       );
       // Don't let AI upgrade LOW emails (ads/promotions) to URGENT
       const aiPriority =
-        email.priority === "LOW" && result.priority === "URGENT"
-          ? "LOW"
-          : result.priority;
+        email.priority === "LOW" && result.priority === "URGENT" ? "LOW" : result.priority;
 
       await prisma.emailMessage.update({
         where: { id: email.id },
@@ -444,8 +429,7 @@ async function summarizeEmail(
   body: string,
 ): Promise<AISummaryResult> {
   // Truncate very long bodies
-  const truncatedBody =
-    body.length > 3000 ? body.slice(0, 3000) + "\n...(truncated)" : body;
+  const truncatedBody = body.length > 3000 ? body.slice(0, 3000) + "\n...(truncated)" : body;
 
   const response = await createCompletion({
     model: MODEL,
@@ -561,9 +545,7 @@ export async function getEmailThreads(
   // Build thread summaries
   const threads: EmailThread[] = [];
   for (const [threadId, msgs] of threadMap) {
-    const sorted = msgs.sort(
-      (a, b) => b.receivedAt.getTime() - a.receivedAt.getTime(),
-    );
+    const sorted = msgs.sort((a, b) => b.receivedAt.getTime() - a.receivedAt.getTime());
     const latest = sorted[0];
     const participants = [...new Set(sorted.map((m) => m.from))];
 
@@ -585,10 +567,7 @@ export async function getEmailThreads(
   }
 
   // Sort threads by latest message date
-  threads.sort(
-    (a, b) =>
-      b.lastMessage.receivedAt.getTime() - a.lastMessage.receivedAt.getTime(),
-  );
+  threads.sort((a, b) => b.lastMessage.receivedAt.getTime() - a.lastMessage.receivedAt.getTime());
 
   const total = threads.length;
   const skip = options.skip || 0;
@@ -640,11 +619,7 @@ export async function checkAutoReplyRules(
     // Check subject keywords
     if (conditions.subjectContains?.length) {
       const subjectLower = email.subject.toLowerCase();
-      if (
-        !conditions.subjectContains.some((kw) =>
-          subjectLower.includes(kw.toLowerCase()),
-        )
-      ) {
+      if (!conditions.subjectContains.some((kw) => subjectLower.includes(kw.toLowerCase()))) {
         matches = false;
       }
     }

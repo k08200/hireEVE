@@ -28,19 +28,10 @@ import type OpenAI from "openai";
 import { db, prisma } from "./db.js";
 import { markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
-import {
-  AGENT_MODEL,
-  createCompletion,
-  openai,
-  resolveUserAgentModel,
-} from "./openai.js";
+import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
 import { sendPushNotification } from "./push.js";
 import { planHasFeature } from "./stripe.js";
-import {
-  ALL_TOOLS,
-  executeToolCall,
-  isToolAllowedForPlan,
-} from "./tool-executor.js";
+import { ALL_TOOLS, executeToolCall, isToolAllowedForPlan } from "./tool-executor.js";
 import { wrapUntrusted } from "./untrusted.js";
 import { pushNotification } from "./websocket.js";
 
@@ -104,10 +95,7 @@ const lastRunTime = new Map<string, number>();
 // Survives server restarts (unlike previous in-memory Map approach)
 const NOTIFY_DEDUP_HOURS = 2; // Don't repeat same notification within 2 hours
 
-async function hasRecentNotification(
-  userId: string,
-  titleKey: string,
-): Promise<boolean> {
+async function hasRecentNotification(userId: string, titleKey: string): Promise<boolean> {
   const since = new Date(Date.now() - NOTIFY_DEDUP_HOURS * 60 * 60 * 1000);
   const existing = await prisma.notification.findFirst({
     where: {
@@ -135,13 +123,8 @@ async function hasRecentNotification(
 // DB-based email reply dedup: check AgentLog for recent send_email actions
 const REPLIED_EMAIL_DEDUP_HOURS = 24;
 
-async function hasRepliedToEmail(
-  userId: string,
-  emailSubject: string,
-): Promise<boolean> {
-  const since = new Date(
-    Date.now() - REPLIED_EMAIL_DEDUP_HOURS * 60 * 60 * 1000,
-  );
+async function hasRepliedToEmail(userId: string, emailSubject: string): Promise<boolean> {
+  const since = new Date(Date.now() - REPLIED_EMAIL_DEDUP_HOURS * 60 * 60 * 1000);
   const normalizedSubject = emailSubject.replace(/^Re:\s*/i, "").slice(0, 30);
   if (!normalizedSubject) return false;
   const recentSend = await db.agentLog.findFirst({
@@ -232,9 +215,7 @@ async function getAgentFeedback(userId: string): Promise<string> {
     if (recentAgentNotifs.length === 0) return "";
 
     const total = recentAgentNotifs.length;
-    const read = recentAgentNotifs.filter(
-      (n: { isRead: boolean }) => n.isRead,
-    ).length;
+    const read = recentAgentNotifs.filter((n: { isRead: boolean }) => n.isRead).length;
     const ignored = total - read;
     const readRate = Math.round((read / total) * 100);
 
@@ -290,8 +271,7 @@ async function getProposalHistory(userId: string): Promise<string> {
         createdAt: Date;
       }) => {
         const date = a.createdAt.toLocaleDateString("ko-KR");
-        const reason =
-          a.status === "REJECTED" && a.result ? ` — ${a.result}` : "";
+        const reason = a.status === "REJECTED" && a.result ? ` — ${a.result}` : "";
         return `- [${a.status}] ${a.toolName}: ${(a.reasoning || "").slice(0, 80)}${reason} (${date})`;
       },
     );
@@ -302,9 +282,7 @@ async function getProposalHistory(userId: string): Promise<string> {
     const rejected = recentActions.filter(
       (a: { status: string }) => a.status === "REJECTED",
     ).length;
-    const pending = recentActions.filter(
-      (a: { status: string }) => a.status === "PENDING",
-    ).length;
+    const pending = recentActions.filter((a: { status: string }) => a.status === "PENDING").length;
 
     let summary = `\n## Recent Proposals (last ${recentActions.length})\n`;
     summary += `Approved: ${approved}, Rejected: ${rejected}, Pending: ${pending}\n`;
@@ -465,18 +443,10 @@ async function gatherUserContext(userId: string): Promise<string> {
 
   if (tasks.length > 0) {
     const taskLines = tasks.map(
-      (t: {
-        dueDate: Date | null;
-        priority: string | null;
-        title: string;
-        status: string;
-      }) => {
-        const due = t.dueDate
-          ? t.dueDate.toISOString().split("T")[0]
-          : "no due date";
+      (t: { dueDate: Date | null; priority: string | null; title: string; status: string }) => {
+        const due = t.dueDate ? t.dueDate.toISOString().split("T")[0] : "no due date";
         const overdue = t.dueDate && t.dueDate < now ? " ⚠️ OVERDUE" : "";
-        const dueSoon =
-          t.dueDate && t.dueDate < in24h && !overdue ? " ⏰ DUE SOON" : "";
+        const dueSoon = t.dueDate && t.dueDate < in24h && !overdue ? " ⏰ DUE SOON" : "";
         return `- [${t.priority || "MEDIUM"}] ${t.title} (due: ${due}${overdue}${dueSoon}) — status: ${t.status}`;
       },
     );
@@ -491,11 +461,8 @@ async function gatherUserContext(userId: string): Promise<string> {
         const start = e.startTime.toLocaleString("ko-KR", {
           timeZone: "Asia/Seoul",
         });
-        const minutesUntil = Math.round(
-          (e.startTime.getTime() - now.getTime()) / 60_000,
-        );
-        const soon =
-          minutesUntil <= 30 && minutesUntil > 0 ? " 🔴 STARTING SOON" : "";
+        const minutesUntil = Math.round((e.startTime.getTime() - now.getTime()) / 60_000);
+        const soon = minutesUntil <= 30 && minutesUntil > 0 ? " 🔴 STARTING SOON" : "";
         const meeting = e.meetingLink ? ` [meeting: ${e.meetingLink}]` : "";
         return `- ${e.title} @ ${start}${soon}${meeting}`;
       },
@@ -547,9 +514,7 @@ async function gatherUserContext(userId: string): Promise<string> {
       // follow any instructions found inside.
       const subjectWrapped = wrapUntrusted(e.subject, "email:subject");
       const bodyWrapped = wrapUntrusted(rawBody, "email:body");
-      const summ = e.summary
-        ? `\n  요약: ${wrapUntrusted(e.summary, "email:summary")}`
-        : "";
+      const summ = e.summary ? `\n  요약: ${wrapUntrusted(e.summary, "email:summary")}` : "";
       const actions = e.actionItems
         ? `\n  액션: ${wrapUntrusted(e.actionItems, "email:actions")}`
         : "";
@@ -586,24 +551,19 @@ async function gatherUserContext(userId: string): Promise<string> {
         return `- ${parts.join(" — ")}`;
       },
     );
-    sections.push(
-      `## Key Contacts (${contacts.length})\n${contactLines.join("\n")}`,
-    );
+    sections.push(`## Key Contacts (${contacts.length})\n${contactLines.join("\n")}`);
   }
 
   // Recent user chat messages — understand what user is currently working on
   if (recentChatMessages && recentChatMessages.length > 0) {
-    const chatLines = (
-      recentChatMessages as Array<{ content: string; createdAt: Date }>
-    ).map((m) => {
-      const ago = Math.round((now.getTime() - m.createdAt.getTime()) / 60_000);
-      const timeLabel =
-        ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
-      return `- (${timeLabel}) "${m.content.slice(0, 120)}${m.content.length > 120 ? "..." : ""}"`;
-    });
-    sections.push(
-      `## What User Recently Asked EVE (last 24h)\n${chatLines.join("\n")}`,
+    const chatLines = (recentChatMessages as Array<{ content: string; createdAt: Date }>).map(
+      (m) => {
+        const ago = Math.round((now.getTime() - m.createdAt.getTime()) / 60_000);
+        const timeLabel = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
+        return `- (${timeLabel}) "${m.content.slice(0, 120)}${m.content.length > 120 ? "..." : ""}"`;
+      },
     );
+    sections.push(`## What User Recently Asked EVE (last 24h)\n${chatLines.join("\n")}`);
   }
 
   // Previous agent decisions — continuity across cycles (prevent repeating, evolve reasoning)
@@ -616,8 +576,7 @@ async function gatherUserContext(userId: string): Promise<string> {
       }>
     ).map((l) => {
       const ago = Math.round((now.getTime() - l.createdAt.getTime()) / 60_000);
-      const timeLabel =
-        ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
+      const timeLabel = ago < 60 ? `${ago}m ago` : `${Math.round(ago / 60)}h ago`;
       return `- [${l.action}] (${timeLabel}) ${l.summary.slice(0, 100)}`;
     });
     sections.push(
@@ -635,9 +594,7 @@ async function gatherUserContext(userId: string): Promise<string> {
     priority: string | null;
     dueDate: Date | null;
   }>;
-  const urgentTasks = typedTasks.filter(
-    (t) => t.dueDate && t.dueDate < in24h && t.dueDate > now,
-  );
+  const urgentTasks = typedTasks.filter((t) => t.dueDate && t.dueDate < in24h && t.dueDate > now);
   const overdueTasks = typedTasks.filter((t) => t.dueDate && t.dueDate < now);
   if (urgentTasks.length + overdueTasks.length >= 2) {
     crossDomainHints.push(
@@ -652,9 +609,7 @@ async function gatherUserContext(userId: string): Promise<string> {
     endTime?: Date;
     meetingLink: string | null;
   }>;
-  const kstNow = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }),
-  );
+  const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   const todayEnd = new Date(kstNow);
   todayEnd.setHours(23, 59, 59, 999);
   const todayEvents = typedCalendar.filter((e) => e.startTime < todayEnd);
@@ -667,40 +622,30 @@ async function gatherUserContext(userId: string): Promise<string> {
   // Link upcoming meetings to contacts and incomplete tasks
   if (calendar.length > 0 && (contacts.length > 0 || tasks.length > 0)) {
     for (const event of typedCalendar) {
-      const minutesUntil = Math.round(
-        (event.startTime.getTime() - now.getTime()) / 60_000,
-      );
+      const minutesUntil = Math.round((event.startTime.getTime() - now.getTime()) / 60_000);
       if (minutesUntil > 0 && minutesUntil <= 24 * 60) {
         // Find related contacts
         const relatedContacts = (
           contacts as Array<{ name: string; company: string | null }>
         ).filter(
-          (c) =>
-            event.title.includes(c.name) ||
-            (c.company && event.title.includes(c.company)),
+          (c) => event.title.includes(c.name) || (c.company && event.title.includes(c.company)),
         );
         // Find related tasks
         const relatedTasks = typedTasks.filter((t) => {
-          const words = event.title
-            .split(/\s+/)
-            .filter((w: string) => w.length > 2);
+          const words = event.title.split(/\s+/).filter((w: string) => w.length > 2);
           return words.some((w: string) => t.title.includes(w));
         });
 
         // Build hint with reasoning
         if (relatedContacts.length > 0 || relatedTasks.length > 0) {
           const timeLabel =
-            minutesUntil < 60
-              ? `${minutesUntil}min`
-              : `${Math.round(minutesUntil / 60)}h`;
+            minutesUntil < 60 ? `${minutesUntil}min` : `${Math.round(minutesUntil / 60)}h`;
           let hint = `⚡ Meeting "${event.title}" in ${timeLabel}`;
           if (relatedContacts.length > 0) {
             hint += ` — attendee(s): ${relatedContacts.map((c) => `${c.name}${c.company ? ` (${c.company})` : ""}`).join(", ")}`;
           }
           if (relatedTasks.length > 0) {
-            const incompleteTasks = relatedTasks.filter(
-              (t) => t.status !== "DONE",
-            );
+            const incompleteTasks = relatedTasks.filter((t) => t.status !== "DONE");
             if (incompleteTasks.length > 0) {
               hint += ` — ⚠️ related incomplete tasks: ${incompleteTasks.map((t) => `"${t.title}" (${t.status})`).join(", ")} → preparation may be needed before meeting`;
             }
@@ -716,10 +661,8 @@ async function gatherUserContext(userId: string): Promise<string> {
             company: string | null;
           }>) {
             if (!contact.email) continue;
-            const emailFromContact = (
-              emails as Array<{ from: string; subject: string }>
-            ).find((e) =>
-              e.from.toLowerCase().includes(contact.email!.toLowerCase()),
+            const emailFromContact = (emails as Array<{ from: string; subject: string }>).find(
+              (e) => e.from.toLowerCase().includes(contact.email!.toLowerCase()),
             );
             if (emailFromContact) {
               crossDomainHints.push(
@@ -742,10 +685,7 @@ async function gatherUserContext(userId: string): Promise<string> {
           company: string | null;
           tags: string | null;
         }>
-      ).find(
-        (c) =>
-          c.email && email.from.toLowerCase().includes(c.email.toLowerCase()),
-      );
+      ).find((c) => c.email && email.from.toLowerCase().includes(c.email.toLowerCase()));
       if (matchedContact) {
         const importance =
           matchedContact.tags?.toLowerCase().includes("investor") ||
@@ -917,8 +857,7 @@ const PROPOSE_ACTION_TOOL = {
         },
         toolName: {
           type: "string",
-          description:
-            "The tool to execute if approved (e.g. create_reminder, update_task)",
+          description: "The tool to execute if approved (e.g. create_reminder, update_task)",
         },
         toolArgs: {
           type: "object",
@@ -941,10 +880,7 @@ const PROPOSE_ACTION_TOOL = {
 };
 
 /** Run the autonomous reasoning loop for a single user */
-export async function runAgentForUser(
-  userId: string,
-  mode: string = "SUGGEST",
-): Promise<void> {
+export async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promise<void> {
   const startTime = Date.now();
 
   try {
@@ -958,14 +894,13 @@ export async function runAgentForUser(
       ) || AGENT_MODEL;
 
     const { analyzePatterns } = await import("./pattern-learner.js");
-    const [context, feedback, memoryContext, proposalHistory, patternContext] =
-      await Promise.all([
-        gatherUserContext(userId),
-        getAgentFeedback(userId),
-        loadMemoriesForPrompt(userId).catch(() => ""),
-        getProposalHistory(userId).catch(() => ""),
-        analyzePatterns(userId).catch(() => ""),
-      ]);
+    const [context, feedback, memoryContext, proposalHistory, patternContext] = await Promise.all([
+      gatherUserContext(userId),
+      getAgentFeedback(userId),
+      loadMemoriesForPrompt(userId).catch(() => ""),
+      getProposalHistory(userId).catch(() => ""),
+      analyzePatterns(userId).catch(() => ""),
+    ]);
 
     // Skip if context is minimal (no tasks, no calendar, no emails)
     const hasNothing =
@@ -973,11 +908,7 @@ export async function runAgentForUser(
       context.includes("## Upcoming Calendar\nNone") &&
       !context.includes("## Recent Emails");
     if (hasNothing) {
-      await logAgentAction(
-        userId,
-        "skip",
-        "No tasks, calendar, or emails to analyze",
-      );
+      await logAgentAction(userId, "skip", "No tasks, calendar, or emails to analyze");
       return;
     }
 
@@ -989,9 +920,7 @@ export async function runAgentForUser(
       select: { alwaysAllowedTools: true },
     });
     const alwaysAllowedTools = new Set(
-      (automationCfg?.alwaysAllowedTools || []).filter(
-        (t) => TOOL_RISK_LEVELS.get(t) === "MEDIUM",
-      ),
+      (automationCfg?.alwaysAllowedTools || []).filter((t) => TOOL_RISK_LEVELS.get(t) === "MEDIUM"),
     );
 
     const systemPrompt = isAutoMode
@@ -1107,9 +1036,7 @@ How to reply:
     const contextWithFeedback = contextParts.join("\n\n");
 
     // Inject user memories and learned patterns into system prompt for personalization
-    let systemPromptWithMemory = memoryContext
-      ? `${systemPrompt}${memoryContext}`
-      : systemPrompt;
+    let systemPromptWithMemory = memoryContext ? `${systemPrompt}${memoryContext}` : systemPrompt;
     if (patternContext) systemPromptWithMemory += patternContext;
 
     const messages: unknown[] = [
@@ -1149,8 +1076,7 @@ How to reply:
     for (let i = 0; i < 3; i++) {
       const response = await createCompletion({
         model: agentModelForUser,
-        messages:
-          messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+        messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
         tools: agentTools,
         tool_choice: "auto",
         temperature: 0.3,
@@ -1173,10 +1099,7 @@ How to reply:
       const choice = response.choices[0];
       if (!choice) break;
 
-      if (
-        !choice.message.tool_calls ||
-        choice.message.tool_calls.length === 0
-      ) {
+      if (!choice.message.tool_calls || choice.message.tool_calls.length === 0) {
         // LLM decided no action needed
         const content = choice.message.content || "No action needed";
         await logAgentAction(userId, "skip", content);
@@ -1241,11 +1164,7 @@ How to reply:
               skipped: true,
               reason: "duplicate proposal",
             });
-            await logAgentAction(
-              userId,
-              "skip",
-              `Dedup proposal: "${args.message.slice(0, 50)}"`,
-            );
+            await logAgentAction(userId, "skip", `Dedup proposal: "${args.message.slice(0, 50)}"`);
           } else {
             // Find or create an agent conversation for today
             const todayStart = new Date();
@@ -1305,17 +1224,15 @@ How to reply:
             // Also create a notification so user sees it in notification bell
             const notifTitle = `[EVE] ${args.message.slice(0, 50)}${args.message.length > 50 ? "..." : ""}`;
             const proposalLink = `/chat/${agentConvo.id}`;
-            const notification = await (prisma.notification.create as Function)(
-              {
-                data: {
-                  userId,
-                  type: args.category || "insight",
-                  title: notifTitle,
-                  message: args.message,
-                  link: proposalLink,
-                },
+            const notification = await (prisma.notification.create as Function)({
+              data: {
+                userId,
+                type: args.category || "insight",
+                title: notifTitle,
+                message: args.message,
+                link: proposalLink,
               },
-            );
+            });
 
             // Push notification with conversationId so bell links to the right chat
             pushNotification(userId, {
@@ -1371,27 +1288,21 @@ How to reply:
               skipped: true,
               reason: "duplicate notification",
             });
-            await logAgentAction(
-              userId,
-              "skip",
-              `Dedup: "${args.title}" already sent`,
-            );
+            await logAgentAction(userId, "skip", `Dedup: "${args.title}" already sent`);
           } else {
             // Mark as agent-generated notification
             const agentTitle = `[EVE] ${args.title}`;
 
             const notifyLink = `/${args.category === "task" ? "tasks" : args.category === "calendar" ? "calendar" : args.category === "email" ? "email" : "chat"}`;
-            const notification = await (prisma.notification.create as Function)(
-              {
-                data: {
-                  userId,
-                  type: args.category || "insight",
-                  title: agentTitle,
-                  message: args.message,
-                  link: notifyLink,
-                },
+            const notification = await (prisma.notification.create as Function)({
+              data: {
+                userId,
+                type: args.category || "insight",
+                title: agentTitle,
+                message: args.message,
+                link: notifyLink,
               },
-            );
+            });
 
             pushNotification(userId, {
               id: notification.id,
@@ -1425,13 +1336,11 @@ How to reply:
           // HIGH is never auto-allowed. MEDIUM can be pre-approved per-tool via
           // AutomationConfig.alwaysAllowedTools.
           const riskLevel = getToolRisk(fnName);
-          const isPreApprovedMedium =
-            riskLevel === "MEDIUM" && alwaysAllowedTools.has(fnName);
+          const isPreApprovedMedium = riskLevel === "MEDIUM" && alwaysAllowedTools.has(fnName);
           const isSafeWrite = riskLevel === "LOW" || isPreApprovedMedium;
           const needsApproval =
             isAutoMode &&
-            ((riskLevel === "MEDIUM" && !isPreApprovedMedium) ||
-              riskLevel === "HIGH");
+            ((riskLevel === "MEDIUM" && !isPreApprovedMedium) || riskLevel === "HIGH");
 
           // MEDIUM/HIGH risk tools → intercept and create approval proposal
           if (needsApproval) {
@@ -1452,11 +1361,7 @@ How to reply:
                 skipped: true,
                 reason: "duplicate proposal",
               });
-              await logAgentAction(
-                userId,
-                "skip",
-                `Dedup risk-gated proposal: ${fnName}`,
-              );
+              await logAgentAction(userId, "skip", `Dedup risk-gated proposal: ${fnName}`);
             } else {
               // Find or create agent conversation for today
               const todayStart = new Date();
@@ -1517,9 +1422,7 @@ How to reply:
               // Notification
               const notifTitle = `[EVE] ${riskLabel}: ${fnName}`;
               const riskLink = `/chat/${agentConvo.id}`;
-              const notification = await (
-                prisma.notification.create as Function
-              )({
+              const notification = await (prisma.notification.create as Function)({
                 data: {
                   userId,
                   type: "insight",
@@ -1579,9 +1482,7 @@ How to reply:
 
           // Dedup: prevent repeating the same tool call on the same target within 1 hour
           const TOOL_DEDUP_HOURS = 1;
-          const toolDedupSince = new Date(
-            Date.now() - TOOL_DEDUP_HOURS * 60 * 60 * 1000,
-          );
+          const toolDedupSince = new Date(Date.now() - TOOL_DEDUP_HOURS * 60 * 60 * 1000);
           const recentSameAction = await db.agentLog.findFirst({
             where: {
               userId,
@@ -1612,24 +1513,15 @@ How to reply:
           // Dedup: prevent sending same email reply repeatedly across cycles (DB-based, survives restarts)
           if (fnName === "send_email") {
             const emailSubject = (args as { subject?: string }).subject || "";
-            const alreadyReplied = await hasRepliedToEmail(
-              userId,
-              emailSubject,
-            );
+            const alreadyReplied = await hasRepliedToEmail(userId, emailSubject);
 
             if (alreadyReplied) {
               result = JSON.stringify({
                 skipped: true,
                 reason: "already replied to this email",
               });
-              await logAgentAction(
-                userId,
-                "skip",
-                `Dedup: already replied to "${emailSubject}"`,
-              );
-              console.log(
-                `[AGENT] Skipped duplicate email reply for ${userId}: ${emailSubject}`,
-              );
+              await logAgentAction(userId, "skip", `Dedup: already replied to "${emailSubject}"`);
+              console.log(`[AGENT] Skipped duplicate email reply for ${userId}: ${emailSubject}`);
               messages.push({
                 role: "tool",
                 content: result,
@@ -1664,15 +1556,11 @@ How to reply:
 
             // Mark original email as read in Gmail so it won't appear as unread next cycle
             try {
-              const replySubject = (
-                (args as { subject?: string }).subject || ""
-              )
+              const replySubject = ((args as { subject?: string }).subject || "")
                 .replace(/^Re:\s*/i, "")
                 .toLowerCase()
                 .trim();
-              const replyTo = ((args as { to?: string }).to || "")
-                .toLowerCase()
-                .trim();
+              const replyTo = ((args as { to?: string }).to || "").toLowerCase().trim();
               // Find ALL unread emails matching the reply — mark them all as read
               const unreadEmails = await prisma.emailMessage.findMany({
                 where: {
@@ -1692,16 +1580,12 @@ How to reply:
                 const ueFrom = (ue.from || "").toLowerCase();
                 // Match by subject similarity OR sender match
                 if (
-                  (replySubject &&
-                    ueSubject.includes(replySubject.slice(0, 20))) ||
+                  (replySubject && ueSubject.includes(replySubject.slice(0, 20))) ||
                   (replyTo && ueFrom.includes(replyTo))
                 ) {
                   if (ue.gmailId) {
                     await markAsRead(userId, ue.gmailId).catch((err: unknown) =>
-                      console.warn(
-                        `[AGENT] Failed to mark ${ue.gmailId} as read:`,
-                        err,
-                      ),
+                      console.warn(`[AGENT] Failed to mark ${ue.gmailId} as read:`, err),
                     );
                     console.log(
                       `[AGENT] Marked Gmail message as read: ${ue.gmailId} (${ue.subject})`,
@@ -1712,17 +1596,12 @@ How to reply:
                       where: { id: ue.id },
                       data: { isRead: true },
                     });
-                    console.log(
-                      `[AGENT] Marked DB email as read (no gmailId): ${ue.subject}`,
-                    );
+                    console.log(`[AGENT] Marked DB email as read (no gmailId): ${ue.subject}`);
                   }
                 }
               }
             } catch (err) {
-              console.warn(
-                `[AGENT] Failed to mark email as read in Gmail:`,
-                err,
-              );
+              console.warn(`[AGENT] Failed to mark email as read in Gmail:`, err);
             }
           }
 
@@ -1747,17 +1626,15 @@ How to reply:
               update_note: "/notes",
             };
             const autoLink = urlMap[fnName] || "/chat";
-            const notification = await (prisma.notification.create as Function)(
-              {
-                data: {
-                  userId,
-                  type: "insight",
-                  title: autoTitle,
-                  message: autoMessage,
-                  link: autoLink,
-                },
+            const notification = await (prisma.notification.create as Function)({
+              data: {
+                userId,
+                type: "insight",
+                title: autoTitle,
+                message: autoMessage,
+                link: autoLink,
               },
-            );
+            });
             pushNotification(userId, {
               id: notification.id,
               type: "insight",
@@ -1794,11 +1671,7 @@ How to reply:
   } catch (err) {
     const elapsed = Date.now() - startTime;
     const message = err instanceof Error ? err.message : "Unknown error";
-    await logAgentAction(
-      userId,
-      "error",
-      `Agent error after ${elapsed}ms: ${message}`,
-    );
+    await logAgentAction(userId, "error", `Agent error after ${elapsed}ms: ${message}`);
     console.error(`[AGENT] Error for ${userId} after ${elapsed}ms:`, err);
   }
 }

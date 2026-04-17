@@ -7,8 +7,7 @@
  */
 
 /** Free model used when paid API budget runs out */
-export const FALLBACK_MODEL =
-  process.env.FALLBACK_MODEL || "google/gemma-4-31b-it:free";
+export const FALLBACK_MODEL = process.env.FALLBACK_MODEL || "google/gemma-4-31b-it:free";
 
 /** How long (ms) to stay on fallback before retrying the primary model */
 const RETRY_PRIMARY_AFTER_MS = 5 * 60 * 1000; // 5 minutes
@@ -33,9 +32,7 @@ export function isBudgetExhausted(): boolean {
 /** Mark budget as exhausted — triggers fallback mode */
 export function markBudgetExhausted(): void {
   if (budgetExhaustedAt === null) {
-    console.warn(
-      `[MODEL-FALLBACK] Budget exhausted — switching to ${FALLBACK_MODEL}`,
-    );
+    console.warn(`[MODEL-FALLBACK] Budget exhausted — switching to ${FALLBACK_MODEL}`);
   }
   budgetExhaustedAt = Date.now();
 }

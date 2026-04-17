@@ -11,12 +11,7 @@ import { listEvents } from "./calendar.js";
 import { prisma } from "./db.js";
 import { listEmails } from "./gmail.js";
 import { listNotes } from "./notes.js";
-import {
-  EVE_SYSTEM_PROMPT,
-  MODEL,
-  createCompletion,
-  openai,
-} from "./openai.js";
+import { createCompletion, EVE_SYSTEM_PROMPT, MODEL, openai } from "./openai.js";
 import { listTasks } from "./tasks.js";
 
 interface BriefingData {
@@ -36,17 +31,13 @@ async function gatherBriefingData(userId: string): Promise<BriefingData> {
 
   return {
     tasks: results[0].status === "fulfilled" ? results[0].value : { tasks: [] },
-    events:
-      results[1].status === "fulfilled" ? results[1].value : { events: [] },
-    emails:
-      results[2].status === "fulfilled" ? results[2].value : { emails: [] },
+    events: results[1].status === "fulfilled" ? results[1].value : { events: [] },
+    emails: results[2].status === "fulfilled" ? results[2].value : { emails: [] },
     notes: results[3].status === "fulfilled" ? results[3].value : { notes: [] },
   };
 }
 
-export default async function generateBriefing(
-  userId: string,
-): Promise<string> {
+export default async function generateBriefing(userId: string): Promise<string> {
   const data = await gatherBriefingData(userId);
 
   const briefingPrompt = `Based on the following data, create a concise daily briefing for the user.
