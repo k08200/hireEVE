@@ -181,6 +181,8 @@ model Message {
   metadata       String?        // JSON: { source: "agent" | "user", pendingActionId?: string }
   pendingAction  PendingAction?
   createdAt      DateTime       @default(now())
+
+  @@index([content(ops: raw("gin_trgm_ops"))], map: "Message_content_trgm_idx", type: Gin)
 }
 
 enum Role {

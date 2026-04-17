@@ -23,6 +23,27 @@ interface DateGroup {
   items: Conversation[];
 }
 
+function renderHighlighted(
+  text: string,
+  highlights?: { start: number; end: number }[],
+): React.ReactNode {
+  if (!highlights || highlights.length === 0) return text;
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  highlights.forEach((h, i) => {
+    if (h.start < cursor || h.end > text.length || h.end <= h.start) return;
+    if (h.start > cursor) parts.push(text.slice(cursor, h.start));
+    parts.push(
+      <mark key={i} className="bg-yellow-500/30 text-yellow-200 rounded-sm px-0.5">
+        {text.slice(h.start, h.end)}
+      </mark>,
+    );
+    cursor = h.end;
+  });
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return parts;
+}
+
 function groupByDate(convs: Conversation[]): DateGroup[] {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -212,7 +233,13 @@ export default function Sidebar({
 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<
-    { messageId: string; conversationId: string; conversationTitle: string; content: string }[]
+    {
+      messageId: string;
+      conversationId: string;
+      conversationTitle: string;
+      content: string;
+      highlights?: { start: number; end: number }[];
+    }[]
   >([]);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -230,6 +257,7 @@ export default function Sidebar({
           conversationId: string;
           conversationTitle: string;
           content: string;
+          highlights?: { start: number; end: number }[];
         }[];
       }>(`/api/chat/search?q=${encodeURIComponent(search)}`)
         .then((data) => setSearchResults(data.results))
@@ -464,7 +492,9 @@ export default function Sidebar({
                 <p className="text-[12px] text-gray-300 truncate font-medium">
                   {r.conversationTitle}
                 </p>
-                <p className="text-[11px] text-gray-500 truncate mt-0.5">{r.content}</p>
+                <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                  {renderHighlighted(r.content, r.highlights)}
+                </p>
               </Link>
             ))}
           </div>
