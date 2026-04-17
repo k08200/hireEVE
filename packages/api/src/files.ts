@@ -18,7 +18,9 @@ const _IS_MACOS = process.platform === "darwin";
 /** Sanitize mdfind query — strip shell/SQL meta-characters, keep only safe search terms */
 function sanitizeMdfindQuery(q: string): string {
   // Only allow alphanumeric, spaces, dots, hyphens, underscores, Korean/CJK characters
-  return q.replace(/[^a-zA-Z0-9\s.\-_\uAC00-\uD7AF\u3040-\u30FF\u4E00-\u9FFF]/g, "").trim();
+  return q
+    .replace(/[^a-zA-Z0-9\s.\-_\uAC00-\uD7AF\u3040-\u30FF\u4E00-\u9FFF]/g, "")
+    .trim();
 }
 
 /** Search files using macOS Spotlight (mdfind) */
@@ -86,20 +88,28 @@ export async function readAndSummarize(
   filePath: string,
 ): Promise<{ content: string; summary: string }> {
   if (!isPathAllowed(filePath)) {
-    return { content: "", summary: "Access denied: this file path is restricted." };
+    return {
+      content: "",
+      summary: "Access denied: this file path is restricted.",
+    };
   }
   const ext = extname(filePath).toLowerCase();
   let content = "";
 
-  if ([".txt", ".md", ".csv", ".json", ".log", ".ts", ".js", ".py"].includes(ext)) {
+  if (
+    [".txt", ".md", ".csv", ".json", ".log", ".ts", ".js", ".py"].includes(ext)
+  ) {
     content = await readFile(filePath, "utf-8");
   } else if (ext === ".pdf") {
     // Use macOS built-in mdimport or textutil for basic extraction
     try {
-      const { stdout } = await exec("mdimport", ["-d2", filePath], { timeout: 10_000 });
+      const { stdout } = await exec("mdimport", ["-d2", filePath], {
+        timeout: 10_000,
+      });
       content = stdout;
     } catch {
-      content = "(PDF content extraction failed — install poppler for better results)";
+      content =
+        "(PDF content extraction failed — install poppler for better results)";
     }
   } else {
     content = `(Unsupported file type: ${ext})`;
@@ -139,11 +149,31 @@ export async function organizeDownloads(): Promise<{
 
   const categories: Record<string, string[]> = {
     Images: [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".heic"],
-    Documents: [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".md"],
+    Documents: [
+      ".pdf",
+      ".doc",
+      ".docx",
+      ".xls",
+      ".xlsx",
+      ".ppt",
+      ".pptx",
+      ".txt",
+      ".md",
+    ],
     Videos: [".mp4", ".mov", ".avi", ".mkv", ".webm"],
     Audio: [".mp3", ".wav", ".aac", ".flac", ".m4a"],
     Archives: [".zip", ".rar", ".7z", ".tar", ".gz", ".dmg"],
-    Code: [".ts", ".js", ".py", ".go", ".rs", ".java", ".html", ".css", ".json"],
+    Code: [
+      ".ts",
+      ".js",
+      ".py",
+      ".go",
+      ".rs",
+      ".java",
+      ".html",
+      ".css",
+      ".json",
+    ],
   };
 
   const files = await readdir(downloadsDir);
@@ -240,8 +270,14 @@ export const FILE_TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          query: { type: "string", description: "Search query (file name or content keywords)" },
-          folder: { type: "string", description: "Optional: limit search to this folder path" },
+          query: {
+            type: "string",
+            description: "Search query (file name or content keywords)",
+          },
+          folder: {
+            type: "string",
+            description: "Optional: limit search to this folder path",
+          },
         },
         required: ["query"],
       },
@@ -280,7 +316,10 @@ export const FILE_TOOLS = [
       parameters: {
         type: "object",
         properties: {
-          count: { type: "number", description: "Number of files to list (default: 10)" },
+          count: {
+            type: "number",
+            description: "Number of files to list (default: 10)",
+          },
         },
         required: [],
       },

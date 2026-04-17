@@ -50,7 +50,10 @@ export async function compactHistory(
   }
 
   // Calculate total tokens
-  const totalTokens = messages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
+  const totalTokens = messages.reduce(
+    (sum, m) => sum + estimateTokens(m.content),
+    0,
+  );
 
   // Under limit — no compaction needed
   if (totalTokens <= MAX_HISTORY_TOKENS) {
@@ -120,8 +123,14 @@ export function isTokenLimitError(error: unknown): boolean {
     message?: string;
     error?: { code?: string; type?: string; message?: string };
   };
-  const codes = [obj?.code, obj?.error?.code, obj?.error?.type].filter(Boolean) as string[];
-  if (codes.some((c) => c === "context_length_exceeded" || c === "string_above_max_length")) {
+  const codes = [obj?.code, obj?.error?.code, obj?.error?.type].filter(
+    Boolean,
+  ) as string[];
+  if (
+    codes.some(
+      (c) => c === "context_length_exceeded" || c === "string_above_max_length",
+    )
+  ) {
     return true;
   }
   const msg = (obj?.message || obj?.error?.message || "").toLowerCase();
@@ -170,7 +179,8 @@ async function generateSummary(messages: ChatMessage[]): Promise<string> {
     .map((m) => {
       const role = m.role === "USER" ? "User" : "EVE";
       // Truncate very long messages in the summary input
-      const content = m.content.length > 500 ? `${m.content.slice(0, 500)}...` : m.content;
+      const content =
+        m.content.length > 500 ? `${m.content.slice(0, 500)}...` : m.content;
       return `${role}: ${content}`;
     })
     .join("\n");

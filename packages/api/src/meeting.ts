@@ -36,7 +36,9 @@ interface MeetingSummary {
 }
 
 /** Check calendar for upcoming meetings with video links */
-export async function getUpcomingMeetings(userId: string): Promise<MeetingEvent[]> {
+export async function getUpcomingMeetings(
+  userId: string,
+): Promise<MeetingEvent[]> {
   const token = await prisma.userToken.findFirst({
     where: { userId, provider: "google" },
   });
@@ -68,7 +70,9 @@ export async function getUpcomingMeetings(userId: string): Promise<MeetingEvent[
         let meetingLink: string | null = null;
         const confData = event.conferenceData;
         if (confData?.entryPoints) {
-          const videoEntry = confData.entryPoints.find((e) => e.entryPointType === "video");
+          const videoEntry = confData.entryPoints.find(
+            (e) => e.entryPointType === "video",
+          );
           if (videoEntry) meetingLink = videoEntry.uri || null;
         }
         if (!meetingLink && event.hangoutLink) {
@@ -87,7 +91,9 @@ export async function getUpcomingMeetings(userId: string): Promise<MeetingEvent[
           start: event.start?.dateTime || event.start?.date || "",
           end: event.end?.dateTime || event.end?.date || "",
           meetingLink,
-          attendees: (event.attendees || []).map((a) => a.email || "").filter(Boolean),
+          attendees: (event.attendees || [])
+            .map((a) => a.email || "")
+            .filter(Boolean),
         };
       })
       .filter((e) => e.meetingLink); // Only meetings with links
@@ -127,7 +133,11 @@ export async function joinMeeting(
   }
 
   if (parsed.protocol !== "https:") {
-    return { success: false, link: meetingLink, error: "Only HTTPS meeting links are allowed" };
+    return {
+      success: false,
+      link: meetingLink,
+      error: "Only HTTPS meeting links are allowed",
+    };
   }
 
   const host = parsed.hostname.toLowerCase();
@@ -135,7 +145,11 @@ export async function joinMeeting(
     (allowed) => host === allowed || host.endsWith(`.${allowed}`),
   );
   if (!isAllowed) {
-    return { success: false, link: meetingLink, error: `Unrecognized meeting platform: ${host}` };
+    return {
+      success: false,
+      link: meetingLink,
+      error: `Unrecognized meeting platform: ${host}`,
+    };
   }
 
   await exec("open", [parsed.href], { timeout: 5_000 });
@@ -149,17 +163,23 @@ export async function startRecording(): Promise<{ path: string; pid: number }> {
   const path = `/tmp/eve-meeting-${Date.now()}.m4a`;
 
   // Use macOS built-in afrecord or sox
-  const proc = require("node:child_process").spawn("afrecord", ["-d", "aac", "-f", "m4af", path], {
-    detached: true,
-    stdio: "ignore",
-  });
+  const proc = require("node:child_process").spawn(
+    "afrecord",
+    ["-d", "aac", "-f", "m4af", path],
+    {
+      detached: true,
+      stdio: "ignore",
+    },
+  );
   proc.unref();
 
   return { path, pid: proc.pid || 0 };
 }
 
 /** Stop audio recording */
-export async function stopRecording(pid: number): Promise<{ success: boolean }> {
+export async function stopRecording(
+  pid: number,
+): Promise<{ success: boolean }> {
   try {
     process.kill(pid, "SIGTERM");
     return { success: true };
@@ -193,7 +213,11 @@ Keep it concise and actionable. Respond in the same language as the notes.`,
   });
 
   const content = response.choices[0]?.message?.content || "{}";
-  let parsed: { keyPoints?: string[]; actionItems?: string[]; decisions?: string[] };
+  let parsed: {
+    keyPoints?: string[];
+    actionItems?: string[];
+    decisions?: string[];
+  };
   try {
     parsed = JSON.parse(content);
   } catch {
@@ -251,7 +275,10 @@ export const MEETING_TOOLS = [
         type: "object",
         properties: {
           title: { type: "string", description: "Meeting title" },
-          notes: { type: "string", description: "Raw meeting notes or transcript" },
+          notes: {
+            type: "string",
+            description: "Raw meeting notes or transcript",
+          },
           attendees: {
             type: "array",
             items: { type: "string" },

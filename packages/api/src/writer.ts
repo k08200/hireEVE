@@ -4,7 +4,12 @@
  */
 
 import { prisma } from "./db.js";
-import { EVE_SYSTEM_PROMPT, MODEL, createCompletion, openai } from "./openai.js";
+import {
+  EVE_SYSTEM_PROMPT,
+  MODEL,
+  createCompletion,
+  openai,
+} from "./openai.js";
 
 export async function writeDocument(
   userId: string,
@@ -43,7 +48,8 @@ Be professional, clear, and well-structured. Use markdown formatting.`;
     ],
   });
 
-  const content = response.choices[0]?.message?.content || "Failed to generate document.";
+  const content =
+    response.choices[0]?.message?.content || "Failed to generate document.";
   const title = `${type.charAt(0).toUpperCase() + type.slice(1)}: ${topic}`;
 
   // Save as note
@@ -70,7 +76,10 @@ export const WRITER_TOOLS = [
               "Document type: report, proposal, email_draft, meeting_notes, plan, summary, blog, announcement",
           },
           topic: { type: "string", description: "What the document is about" },
-          details: { type: "string", description: "Additional context or requirements (optional)" },
+          details: {
+            type: "string",
+            description: "Additional context or requirements (optional)",
+          },
         },
         required: ["type", "topic"],
       },

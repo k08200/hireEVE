@@ -1,5 +1,8 @@
 import OpenAI from "openai";
-import type { ChatCompletionCreateParamsNonStreaming, ChatCompletionCreateParamsStreaming } from "openai/resources/chat/completions";
+import type {
+  ChatCompletionCreateParamsNonStreaming,
+  ChatCompletionCreateParamsStreaming,
+} from "openai/resources/chat/completions";
 import {
   FALLBACK_MODEL,
   isBudgetError,
@@ -7,7 +10,11 @@ import {
   isFreeModel,
   markBudgetExhausted,
 } from "./model-fallback.js";
-import { getDefaultAgentModel, getDefaultChatModel, isModelAllowedForPlan } from "./stripe.js";
+import {
+  getDefaultAgentModel,
+  getDefaultChatModel,
+  isModelAllowedForPlan,
+} from "./stripe.js";
 
 if (!process.env.OPENROUTER_API_KEY) {
   console.warn("OPENROUTER_API_KEY not set — chat endpoints will fail");
@@ -38,7 +45,9 @@ export async function createCompletion(
   params: ChatCompletionCreateParamsStreaming,
 ): Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>>;
 export async function createCompletion(
-  params: ChatCompletionCreateParamsNonStreaming | ChatCompletionCreateParamsStreaming,
+  params:
+    | ChatCompletionCreateParamsNonStreaming
+    | ChatCompletionCreateParamsStreaming,
 ): Promise<
   | OpenAI.Chat.Completions.ChatCompletion
   | AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
@@ -68,7 +77,10 @@ export async function createCompletion(
  * Resolve the chat model for a specific user.
  * Uses user's selected model if set and valid for their plan, otherwise falls back to plan default.
  */
-export function resolveUserChatModel(userChatModel: string | null, plan: string): string {
+export function resolveUserChatModel(
+  userChatModel: string | null,
+  plan: string,
+): string {
   if (userChatModel && isModelAllowedForPlan(plan, userChatModel, "chat")) {
     return userChatModel;
   }
@@ -79,7 +91,10 @@ export function resolveUserChatModel(userChatModel: string | null, plan: string)
  * Resolve the agent model for a specific user.
  * Returns null if the plan doesn't support agent models.
  */
-export function resolveUserAgentModel(userAgentModel: string | null, plan: string): string | null {
+export function resolveUserAgentModel(
+  userAgentModel: string | null,
+  plan: string,
+): string | null {
   if (userAgentModel && isModelAllowedForPlan(plan, userAgentModel, "agent")) {
     return userAgentModel;
   }
