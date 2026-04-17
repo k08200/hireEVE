@@ -30,6 +30,7 @@ import { markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
 import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
 import { sendPushNotification } from "./push.js";
+import { captureError } from "./sentry.js";
 import { planHasFeature } from "./stripe.js";
 import { ALL_TOOLS, executeToolCall, isToolAllowedForPlan } from "./tool-executor.js";
 import { wrapUntrusted } from "./untrusted.js";
@@ -1634,6 +1635,10 @@ How to reply:
     const message = err instanceof Error ? err.message : "Unknown error";
     await logAgentAction(userId, "error", `Agent error after ${elapsed}ms: ${message}`);
     console.error(`[AGENT] Error for ${userId} after ${elapsed}ms:`, err);
+    captureError(err, {
+      tags: { area: "autonomous_agent" },
+      extra: { userId, elapsedMs: elapsed },
+    });
   }
 }
 
