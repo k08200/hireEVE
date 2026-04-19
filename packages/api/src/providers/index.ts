@@ -28,9 +28,7 @@ import {
 
 export type ProviderName = "openrouter" | "gemini";
 
-type ChatParams =
-  | ChatCompletionCreateParamsNonStreaming
-  | ChatCompletionCreateParamsStreaming;
+type ChatParams = ChatCompletionCreateParamsNonStreaming | ChatCompletionCreateParamsStreaming;
 type ChatResult =
   | OpenAI.Chat.Completions.ChatCompletion
   | AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;

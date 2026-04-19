@@ -214,8 +214,6 @@ export async function* createCompletionStreaming(
     object: "chat.completion.chunk",
     created,
     model: params.model,
-    choices: [
-      { index: 0, delta: {}, finish_reason: "stop", logprobs: null },
-    ],
+    choices: [{ index: 0, delta: {}, finish_reason: "stop", logprobs: null }],
   } as unknown as OpenAI.Chat.Completions.ChatCompletionChunk;
 }

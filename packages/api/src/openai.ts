@@ -94,7 +94,9 @@ export async function createCompletion(
     // - OpenRouter: caller's model
     // - Gemini (and any non-first): resolve caller's model into the provider's namespace
     let model =
-      i === 0 && provider.name === "openrouter" ? params.model : provider.resolveModel(params.model);
+      i === 0 && provider.name === "openrouter"
+        ? params.model
+        : provider.resolveModel(params.model);
 
     try {
       return await call(provider, model);
