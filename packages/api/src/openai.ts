@@ -1,38 +1,50 @@
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import type {
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionCreateParamsStreaming,
 } from "openai/resources/chat/completions";
 import {
   FALLBACK_MODEL,
-  isBudgetError,
-  isBudgetExhausted,
+  isCreditError,
   isFreeModel,
-  markBudgetExhausted,
+  isKeyLimitError,
+  isProviderUnavailable,
+  markCreditExhausted,
+  markKeyLimited,
 } from "./model-fallback.js";
+import { getProvider, getProviderChain, type Provider } from "./providers/index.js";
 import { getDefaultAgentModel, getDefaultChatModel, isModelAllowedForPlan } from "./stripe.js";
 
-if (!process.env.OPENROUTER_API_KEY) {
-  console.warn("OPENROUTER_API_KEY not set — chat endpoints will fail");
-}
-
-export const openai = process.env.OPENROUTER_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: "https://openrouter.ai/api/v1",
-    })
-  : (null as unknown as OpenAI);
+/**
+ * Back-compat export — some legacy call sites import `openai` directly.
+ * Prefer going through createCompletion() so multi-provider failover applies.
+ */
+export const openai = (getProvider("openrouter")?.client ?? null) as unknown as OpenAI;
 
 export const MODEL = process.env.CHAT_MODEL || "openai/gpt-5.4-nano";
 export const AGENT_MODEL = process.env.AGENT_MODEL || MODEL;
 
+/** User-facing error thrown when every configured provider has failed */
+export class AllProvidersExhaustedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AllProvidersExhaustedError";
+  }
+}
+
+const KOREAN_EXHAUSTED_MESSAGE =
+  "지금 사용할 수 있는 AI 쿼터를 모두 소진했어요. 다음 주 월요일(UTC 00:00)에 무료 한도가 리셋되거나, 설정에서 본인 API 키를 등록하면 바로 복구돼요.";
+
 /**
- * Drop-in replacement for `openai.chat.completions.create()` with automatic
- * fallback to a free model when the API budget is exhausted (HTTP 402).
+ * Drop-in replacement for `openai.chat.completions.create()` with multi-provider
+ * failover:
  *
- * - If already in fallback mode, swaps the model before calling.
- * - If a 402 is received mid-request, marks budget exhausted and retries once with the free model.
- * - Streaming and non-streaming calls are both supported.
+ *   OpenRouter (caller's model)
+ *     → 402 insufficient_credits → OpenRouter FALLBACK_MODEL (:free)
+ *       → 403 weekly key limit   → Gemini (separate key, separate quota)
+ *         → all fail             → AllProvidersExhaustedError (Korean)
+ *
+ * Streaming and non-streaming calls are both supported.
  */
 export async function createCompletion(
   params: ChatCompletionCreateParamsNonStreaming,
@@ -46,31 +58,81 @@ export async function createCompletion(
   | OpenAI.Chat.Completions.ChatCompletion
   | AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
 > {
-  const effectiveModel =
-    isBudgetExhausted() && !isFreeModel(params.model) ? FALLBACK_MODEL : params.model;
-
-  const effectiveParams = { ...params, model: effectiveModel };
-
-  type CompletionResult =
+  type Result =
     | OpenAI.Chat.Completions.ChatCompletion
     | AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>;
 
-  const create = openai.chat.completions.create.bind(openai.chat.completions) as (
-    ...args: unknown[]
-  ) => Promise<CompletionResult>;
-
-  try {
-    return await create(effectiveParams);
-  } catch (error: unknown) {
-    if (isBudgetError(error) && !isFreeModel(effectiveModel)) {
-      markBudgetExhausted();
-      return await create({
-        ...params,
-        model: FALLBACK_MODEL,
-      });
-    }
-    throw error;
+  const chain = getProviderChain();
+  if (chain.length === 0) {
+    throw new Error("No LLM providers configured — set OPENROUTER_API_KEY and/or GEMINI_API_KEY");
   }
+
+  /**
+   * Per-provider call. Strips OpenAI-only params that providers like Gemini's
+   * OpenAI-compat don't reliably handle (tools/function calling), so a
+   * fallback to a tools-incapable provider degrades to plain chat instead of
+   * silently returning empty content.
+   */
+  const call = async (provider: Provider, model: string): Promise<Result> => {
+    let effectiveParams = params as typeof params & {
+      tools?: unknown;
+      tool_choice?: unknown;
+    };
+    if (!provider.supportsTools && (effectiveParams.tools || effectiveParams.tool_choice)) {
+      const { tools: _t, tool_choice: _tc, ...rest } = effectiveParams;
+      effectiveParams = rest as typeof effectiveParams;
+    }
+    return (await provider.call(effectiveParams as typeof params, model)) as Result;
+  };
+
+  let lastError: unknown;
+  for (let i = 0; i < chain.length; i++) {
+    const provider = chain[i];
+    if (isProviderUnavailable(provider.name)) continue;
+
+    // First-choice model for this provider:
+    // - OpenRouter: caller's model
+    // - Gemini (and any non-first): resolve caller's model into the provider's namespace
+    let model =
+      i === 0 && provider.name === "openrouter" ? params.model : provider.resolveModel(params.model);
+
+    try {
+      return await call(provider, model);
+    } catch (err) {
+      lastError = err;
+
+      // 402: same provider, swap to :free model, retry once
+      if (provider.name === "openrouter" && isCreditError(err) && !isFreeModel(model)) {
+        markCreditExhausted(provider.name);
+        model = FALLBACK_MODEL;
+        try {
+          return await call(provider, model);
+        } catch (err2) {
+          lastError = err2;
+          if (isKeyLimitError(err2)) {
+            markKeyLimited(provider.name);
+            continue; // → next provider
+          }
+          throw err2;
+        }
+      }
+
+      // 403 weekly key limit: this provider is done — move to next provider
+      if (isKeyLimitError(err)) {
+        markKeyLimited(provider.name);
+        continue;
+      }
+
+      // Non-budget error: don't mask it with a provider swap
+      throw err;
+    }
+  }
+
+  throw new AllProvidersExhaustedError(
+    lastError instanceof Error
+      ? `${KOREAN_EXHAUSTED_MESSAGE} (원인: ${lastError.message})`
+      : KOREAN_EXHAUSTED_MESSAGE,
+  );
 }
 
 /**
