@@ -7,6 +7,7 @@ import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 
 import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
+import { captureClientError } from "../../lib/sentry";
 
 interface Reminder {
   id: string;
@@ -29,7 +30,7 @@ export default function RemindersPage() {
   const load = () => {
     apiFetch<{ reminders: Reminder[] }>("/api/reminders")
       .then((d) => setReminders(d.reminders || []))
-      .catch(() => {})
+      .catch((err) => captureClientError(err, { scope: "reminders.load" }))
       .finally(() => setLoading(false));
   };
 

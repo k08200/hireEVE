@@ -7,6 +7,7 @@ import SpeakButton from "../../../components/speak-button";
 import { useToast } from "../../../components/toast";
 import VoiceButton from "../../../components/voice-button";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
+import { captureClientError } from "../../../lib/sentry";
 
 interface Message {
   id: string;
@@ -107,7 +108,7 @@ function ChatPageContent() {
         for (const a of data.actions) map.set(a.messageId, a);
         setPendingActions(map);
       })
-      .catch(() => {});
+      .catch((err) => captureClientError(err, { scope: "chat.load-pending-actions", id }));
 
     return () => {
       loadController.abort();
@@ -513,7 +514,7 @@ function ChatPageContent() {
       // Reload messages to get the follow-up message
       apiFetch<{ messages: Message[] }>(`/api/chat/conversations/${id}`)
         .then((data) => setMessages(data.messages))
-        .catch(() => {});
+        .catch((err) => captureClientError(err, { scope: "chat.reload-after-action", id }));
     } catch {
       toast("Execution failed", "error");
     }
@@ -540,7 +541,7 @@ function ChatPageContent() {
       // Reload messages to get the follow-up message
       apiFetch<{ messages: Message[] }>(`/api/chat/conversations/${id}`)
         .then((data) => setMessages(data.messages))
-        .catch(() => {});
+        .catch((err) => captureClientError(err, { scope: "chat.reload-after-action", id }));
     } catch {
       toast("Action failed", "error");
     }

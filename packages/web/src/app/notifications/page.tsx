@@ -9,6 +9,7 @@ import { useToast } from "../../components/toast";
 import { useWebSocket } from "../../components/use-websocket";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { captureClientError } from "../../lib/sentry";
 
 interface Notification {
   id: string;
@@ -63,7 +64,7 @@ export default function NotificationsPage() {
   const load = () => {
     apiFetch<{ notifications: Notification[] }>("/api/notifications?limit=100")
       .then((d) => setNotifications(d.notifications || []))
-      .catch(() => {})
+      .catch((err) => captureClientError(err, { scope: "notifications.load" }))
       .finally(() => setLoading(false));
   };
 
