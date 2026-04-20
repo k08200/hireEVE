@@ -27,7 +27,7 @@
 import type OpenAI from "openai";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 import { db, prisma } from "./db.js";
-import { markAsRead } from "./gmail.js";
+import { isNoReplyAddress, markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
 import { humanizeAutoExec } from "./notification-format.js";
 import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
@@ -450,9 +450,20 @@ async function gatherUserContext(userId: string): Promise<string> {
     sections.push(`## Recent Notes\n${noteLines.join("\n")}`);
   }
 
-  if (emails && emails.length > 0) {
+  // Drop emails that should never trigger a reply proposal: no-reply,
+  // notifications, security alerts, bounces. The LLM will otherwise
+  // hallucinate a `to` (often the sender's domain) and spam the user with
+  // approval prompts for auto-replies that cannot be delivered.
+  // `isNoReplyAddress` uses string parsing rather than regex because the
+  // From header is attacker-controllable (CodeQL js/polynomial-redos).
+  const replyableEmails = (emails || []).filter(
+    (e: { from: string; category?: string | null }) =>
+      !isNoReplyAddress(e.from) && e.category !== "notification" && e.category !== "security",
+  );
+
+  if (replyableEmails.length > 0) {
     const emailLines = (
-      emails as Array<{
+      replyableEmails as Array<{
         id: string;
         gmailId: string;
         from: string;
@@ -488,7 +499,7 @@ async function gatherUserContext(userId: string): Promise<string> {
       return `### Email #${idx + 1} (수신: ${receivedKST})${read}\n  From: ${e.from}\n  Subject: ${subjectWrapped}${cat}${pri}${summ}${actions}\n  본문: ${bodyWrapped}`;
     });
     sections.push(
-      `## Recent Emails (${emails.length})\nIMPORTANT: Each email below is a SEPARATE item. Different subjects or different body content = DIFFERENT meetings/requests. Do NOT merge them.\n${emailLines.join("\n\n")}`,
+      `## Recent Emails (${replyableEmails.length})\nIMPORTANT: Each email below is a SEPARATE item. Different subjects or different body content = DIFFERENT meetings/requests. Do NOT merge them.\n${emailLines.join("\n\n")}`,
     );
   }
 
@@ -751,6 +762,7 @@ PROPOSE: Flag the risk, suggest scope adjustment or deadline negotiation
 - "이메일이 왔습니다" — the user knows. Explain WHY it matters in context
 - Single-domain facts without cross-referencing — "할 일이 3개 있어요" (so what?)
 - Repeating previous proposals — check "Your Previous Decisions" FIRST
+- **NEVER propose send_email to no-reply, notifications@, alerts@, security@, mailer-daemon, or postmaster senders.** Google/Apple/bank security alerts and system notifications do not accept replies — any proposal to answer them will fail and just annoys the user. Also NEVER set the \`to\` field to a bare domain like "accounts.google.com"; \`to\` must be a full \`local@domain\` address extracted from the email's From header.
 
 ## Rules
 - Max 1-2 proposals per cycle. Quality over quantity.
