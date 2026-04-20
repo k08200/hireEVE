@@ -24,11 +24,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile header */}
-        <div className="md:hidden flex items-center gap-3 px-4 h-12 border-b border-gray-800/40 shrink-0">
+        {/* Mobile header — pt-safe respects iPhone notch in PWA */}
+        <div className="md:hidden flex items-center gap-3 px-4 h-12 pt-safe border-b border-gray-800/40 shrink-0 box-content">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
@@ -53,7 +53,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <span className="text-sm font-semibold text-gray-300">EVE</span>
         </div>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto pb-safe">{children}</main>
       </div>
     </div>
   );

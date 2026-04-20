@@ -1,34 +1,41 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-type Skill = { key: string; content: string; updatedAt: string };
-const store = new Map<string, Skill>();
+type SkillRow = {
+  id: string;
+  userId: string;
+  key: string;
+  name: string;
+  description: string;
+  prompt: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-vi.mock("../memory.js", () => ({
-  remember: vi.fn(async (_userId: string, _type: string, key: string, content: string) => {
-    store.set(key, { key, content, updatedAt: new Date().toISOString() });
-    return JSON.stringify({ success: true, id: key });
-  }),
-  recall: vi.fn(async (_userId: string, _query?: string, _type?: string) => {
-    const memories: Array<{ type: string; key: string; content: string; updatedAt: string }> = [];
-    for (const s of store.values()) {
-      memories.push({ type: "SKILL", key: s.key, content: s.content, updatedAt: s.updatedAt });
-    }
-    if (memories.length === 0)
-      return JSON.stringify({ memories: [], message: "No memories found" });
-    return JSON.stringify({ memories });
-  }),
-  forget: vi.fn(),
-  MEMORY_TOOLS: [],
-}));
+const store = new Map<string, SkillRow>(); // composite "userId|key" → row
+
+vi.mock("../db.js", () => {
+  const skill = {
+    findMany: vi.fn(async ({ where }: { where: { userId: string } }) => {
+      return Array.from(store.values()).filter((s) => s.userId === where.userId);
+    }),
+  };
+  return { prisma: { skill }, db: { skill } };
+});
 
 const { executeSkill, listUserSkills } = await import("../skill-executor.js");
 
-function addSkill(name: string, prompt: string, description = "") {
+function addSkill(userId: string, name: string, prompt: string, description = "") {
   const key = `skill_${name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
-  store.set(key, {
+  const now = new Date();
+  store.set(`${userId}|${key}`, {
+    id: key,
+    userId,
     key,
-    content: JSON.stringify({ name, description, prompt }),
-    updatedAt: new Date().toISOString(),
+    name,
+    description,
+    prompt,
+    createdAt: now,
+    updatedAt: now,
   });
 }
 
@@ -42,8 +49,8 @@ describe("skill-executor", () => {
     });
 
     it("lists skills with extracted variables", async () => {
-      addSkill("Weekly Report", "Summarize tasks for {{week}} assigned to {{team}}");
-      addSkill("Quick Note", "Create a note about {{topic}}");
+      addSkill("user-1", "Weekly Report", "Summarize tasks for {{week}} assigned to {{team}}");
+      addSkill("user-1", "Quick Note", "Create a note about {{topic}}");
 
       const result = await listUserSkills("user-1");
       expect(result.skills).toHaveLength(2);
@@ -56,7 +63,7 @@ describe("skill-executor", () => {
     });
 
     it("lists skills with no variables", async () => {
-      addSkill("Daily Standup", "List today's tasks and yesterday's completed items");
+      addSkill("user-1", "Daily Standup", "List today's tasks and yesterday's completed items");
 
       const result = await listUserSkills("user-1");
       expect(result.skills[0].variables).toEqual([]);
@@ -71,7 +78,7 @@ describe("skill-executor", () => {
     });
 
     it("executes a skill by name", async () => {
-      addSkill("Weekly Report", "Summarize this week's tasks");
+      addSkill("user-1", "Weekly Report", "Summarize this week's tasks");
 
       const result = await executeSkill("user-1", "Weekly Report");
       expect(result).toEqual({
@@ -81,21 +88,21 @@ describe("skill-executor", () => {
     });
 
     it("matches skill name case-insensitively", async () => {
-      addSkill("Weekly Report", "Summarize tasks");
+      addSkill("user-1", "Weekly Report", "Summarize tasks");
 
       const result = await executeSkill("user-1", "weekly report");
       expect(result).toHaveProperty("prompt");
     });
 
     it("matches by partial normalized name", async () => {
-      addSkill("Weekly Report", "Summarize tasks");
+      addSkill("user-1", "Weekly Report", "Summarize tasks");
 
       const result = await executeSkill("user-1", "weekly_report");
       expect(result).toHaveProperty("prompt");
     });
 
     it("substitutes variables", async () => {
-      addSkill("Greet", "Hello {{name}}, welcome to {{company}}!");
+      addSkill("user-1", "Greet", "Hello {{name}}, welcome to {{company}}!");
 
       const result = await executeSkill("user-1", "Greet", {
         name: "Alice",
@@ -108,7 +115,7 @@ describe("skill-executor", () => {
     });
 
     it("substitutes duplicate variables", async () => {
-      addSkill("Repeat", "{{word}} {{word}} {{word}}");
+      addSkill("user-1", "Repeat", "{{word}} {{word}} {{word}}");
 
       const result = await executeSkill("user-1", "Repeat", { word: "hello" });
       expect(result).toEqual({
@@ -118,7 +125,7 @@ describe("skill-executor", () => {
     });
 
     it("leaves unmatched variables as-is", async () => {
-      addSkill("Partial", "Hello {{name}}, your role is {{role}}");
+      addSkill("user-1", "Partial", "Hello {{name}}, your role is {{role}}");
 
       const result = await executeSkill("user-1", "Partial", { name: "Bob" });
       expect(result).toEqual({
@@ -128,7 +135,7 @@ describe("skill-executor", () => {
     });
 
     it("works without variables parameter", async () => {
-      addSkill("Simple", "Just do the thing");
+      addSkill("user-1", "Simple", "Just do the thing");
 
       const result = await executeSkill("user-1", "Simple");
       expect(result).toEqual({

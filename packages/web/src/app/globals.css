@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+/* iOS safe-area helpers (notch + home indicator).
+   Uses env(safe-area-inset-*) which evaluates to 0 when not in a PWA. */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+.h-dvh {
+  height: 100vh; /* fallback */
+  height: 100dvh;
+}
+
 /* ── Animations ─────────────────────────────────── */
 @keyframes slide-up {
   from {
