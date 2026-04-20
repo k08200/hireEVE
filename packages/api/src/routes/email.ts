@@ -750,7 +750,7 @@ async function checkAndExecuteAutoReply(
     sendPushNotification(userId, {
       title: `[EVE] ${email.subject}`,
       body: `From: ${email.from}`,
-      url: "/email",
+      url: "/briefing",
     });
   }
 }

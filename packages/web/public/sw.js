@@ -1,6 +1,6 @@
 // EVE Service Worker — offline caching + push notification support
-const CACHE_NAME = "eve-v3";
-const PRECACHE_URLS = ["/", "/chat", "/dashboard", "/tasks", "/email", "/manifest.json"];
+const CACHE_NAME = "eve-v4";
+const PRECACHE_URLS = ["/", "/chat", "/briefing", "/manifest.json"];
 
 // Install: precache shell
 self.addEventListener("install", (event) => {

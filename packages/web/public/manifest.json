@@ -34,19 +34,9 @@
       "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
     },
     {
-      "name": "Dashboard",
-      "short_name": "Dashboard",
-      "url": "/dashboard"
-    },
-    {
-      "name": "Tasks",
-      "short_name": "Tasks",
-      "url": "/tasks"
-    },
-    {
-      "name": "Email",
-      "short_name": "Email",
-      "url": "/email"
+      "name": "Today's Briefing",
+      "short_name": "Briefing",
+      "url": "/briefing"
     }
   ]
 }

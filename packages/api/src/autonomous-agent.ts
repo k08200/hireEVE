@@ -1453,15 +1453,9 @@ How to reply:
           if (isSafeWrite && isAutoMode) {
             const autoTitle = `[EVE] 자동 실행: ${fnName}`;
             const autoMessage = `${fnName}을(를) 자동 실행했습니다: ${JSON.stringify(args).slice(0, 100)}`;
-            const urlMap: Record<string, string> = {
-              create_event: "/calendar",
-              send_email: "/email",
-              create_reminder: "/tasks",
-              update_task: "/tasks",
-              create_task: "/tasks",
-              update_note: "/notes",
-            };
-            const autoLink = urlMap[fnName] || "/chat";
+            // Dedicated list pages were removed — every auto-executed action
+            // opens the chat so the user can review or continue the thread.
+            const autoLink = "/chat";
             const notification = await (prisma.notification.create as Function)({
               data: {
                 userId,

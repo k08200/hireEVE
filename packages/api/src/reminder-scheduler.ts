@@ -63,7 +63,7 @@ async function checkDueReminders() {
       sendPushNotification(reminder.userId, {
         title: reminder.title,
         body: msg,
-        url: "/reminders",
+        url: "/chat",
       });
 
       console.log(`[REMINDER] Delivered: "${reminder.title}" to user ${reminder.userId}`);
