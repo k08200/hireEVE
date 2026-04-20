@@ -181,24 +181,77 @@ export async function readEmail(userId: string, emailId: string) {
   };
 }
 
+/** RFC 5321 hard limit — reject before any parsing to keep validation O(1). */
+const MAX_RECIPIENT_LENGTH = 320;
+
 /**
  * Loose email address validator — we only need to catch agent hallucinations
  * where `to` is a bare domain ("accounts.google.com") or otherwise clearly not
- * an address. Gmail itself does strict RFC validation on send.
+ * an address. Gmail itself does strict RFC validation on send. Implemented
+ * with string ops rather than regex because `to` is LLM-generated and we
+ * want no regex backtracking on adversarial inputs (CodeQL js/polynomial-redos).
  */
-function looksLikeEmailAddress(raw: string): boolean {
+function extractAddress(raw: string): string {
   const trimmed = raw.trim();
-  // Allow "Name <addr@host>" form — extract the <…> part if present
-  const match = trimmed.match(/<([^>]+)>\s*$/);
-  const addr = match ? match[1] : trimmed;
-  // Minimal shape: local@domain.tld, no spaces inside the local/host parts
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr);
+  // "Name <addr@host>" form — take whatever is inside the final angle brackets
+  if (trimmed.endsWith(">")) {
+    const open = trimmed.lastIndexOf("<");
+    if (open !== -1) return trimmed.slice(open + 1, -1).trim();
+  }
+  return trimmed;
 }
 
-/** Senders that should never receive an auto-reply — responses either bounce
- *  or land in an unmonitored inbox (security-alert / transactional domains). */
-const NO_REPLY_RECIPIENT_PATTERN =
-  /(^|[<@.])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|notifications?|alerts?|noreply|security)([@.>]|$)/i;
+function looksLikeEmailAddress(raw: string): boolean {
+  if (raw.length > MAX_RECIPIENT_LENGTH) return false;
+  const addr = extractAddress(raw);
+  if (addr.length === 0 || addr.length > MAX_RECIPIENT_LENGTH) return false;
+  const at = addr.indexOf("@");
+  if (at <= 0 || at !== addr.lastIndexOf("@")) return false; // need exactly one @, not at start
+  const local = addr.slice(0, at);
+  const domain = addr.slice(at + 1);
+  if (local.length === 0 || domain.length === 0) return false;
+  if (!domain.includes(".")) return false;
+  // No whitespace in either part
+  for (const part of [local, domain]) {
+    for (let i = 0; i < part.length; i++) {
+      const ch = part.charCodeAt(i);
+      if (ch === 0x20 || ch === 0x09 || ch === 0x0a || ch === 0x0d) return false;
+    }
+  }
+  return true;
+}
+
+/** Local-parts / subdomains that should never receive an auto-reply — responses
+ *  either bounce or land in an unmonitored inbox (security-alert /
+ *  transactional domains). Matched against extracted address parts, not the
+ *  raw input, so there's no regex-on-user-input risk. */
+const NO_REPLY_TOKENS = [
+  "no-reply",
+  "noreply",
+  "do-not-reply",
+  "donotreply",
+  "mailer-daemon",
+  "postmaster",
+  "notification",
+  "notifications",
+  "alert",
+  "alerts",
+  "security",
+];
+
+export function isNoReplyAddress(raw: string): boolean {
+  const addr = extractAddress(raw).toLowerCase();
+  const at = addr.indexOf("@");
+  if (at === -1) return false;
+  const local = addr.slice(0, at);
+  const domain = addr.slice(at + 1);
+  // Check local-part exact match OR any leading subdomain label
+  if (NO_REPLY_TOKENS.includes(local)) return true;
+  for (const label of domain.split(".")) {
+    if (NO_REPLY_TOKENS.includes(label)) return true;
+  }
+  return false;
+}
 
 export async function sendEmail(userId: string, to: string, subject: string, body: string) {
   if (!looksLikeEmailAddress(to)) {
@@ -206,7 +259,7 @@ export async function sendEmail(userId: string, to: string, subject: string, bod
       error: `올바른 이메일 주소가 아니에요: "${to}". 도메인(accounts.google.com 등)이 아닌 전체 주소(local@domain)가 필요해요.`,
     };
   }
-  if (NO_REPLY_RECIPIENT_PATTERN.test(to)) {
+  if (isNoReplyAddress(to)) {
     return {
       error: `이 주소(${to})는 답장을 받지 않는 시스템 발신자예요 (보안 알림·공지 등). 답장을 보내지 않습니다.`,
     };

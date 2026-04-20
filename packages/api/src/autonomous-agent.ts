@@ -27,7 +27,7 @@
 import type OpenAI from "openai";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 import { db, prisma } from "./db.js";
-import { markAsRead } from "./gmail.js";
+import { isNoReplyAddress, markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
 import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
 import { sendPushNotification } from "./push.js";
@@ -453,13 +453,11 @@ async function gatherUserContext(userId: string): Promise<string> {
   // notifications, security alerts, bounces. The LLM will otherwise
   // hallucinate a `to` (often the sender's domain) and spam the user with
   // approval prompts for auto-replies that cannot be delivered.
-  const NON_REPLYABLE_SENDER =
-    /(^|[<@.])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|notifications?|alerts?|noreply|security)([@.>]|$)/i;
+  // `isNoReplyAddress` uses string parsing rather than regex because the
+  // From header is attacker-controllable (CodeQL js/polynomial-redos).
   const replyableEmails = (emails || []).filter(
     (e: { from: string; category?: string | null }) =>
-      !NON_REPLYABLE_SENDER.test(e.from) &&
-      e.category !== "notification" &&
-      e.category !== "security",
+      !isNoReplyAddress(e.from) && e.category !== "notification" && e.category !== "security",
   );
 
   if (replyableEmails.length > 0) {
