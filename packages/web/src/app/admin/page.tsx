@@ -437,7 +437,6 @@ export default function AdminPage() {
                     >
                       <option value="FREE">FREE</option>
                       <option value="PRO">PRO</option>
-                      <option value="TEAM">TEAM</option>
                       <option value="ENTERPRISE">ENTERPRISE</option>
                     </select>
                   </td>

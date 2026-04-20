@@ -74,16 +74,23 @@ export type FeatureKey =
 
 export const PLAN_FEATURES: Record<string, Set<FeatureKey>> = {
   FREE: new Set<FeatureKey>(["email_read", "calendar_read"]),
+  // PRO now includes every paid feature (TEAM tier merged in). TEAM key retained
+  // only for existing subscribers on the legacy price; new signups go to PRO.
   PRO: new Set<FeatureKey>([
     "email_read",
     "email_write",
     "calendar_read",
     "calendar_write",
     "autonomous_agent",
+    "agent_mode_auto",
     "daily_briefing",
     "email_auto_classify",
+    "email_auto_reply",
+    "pattern_learning",
     "web_search",
     "write_document",
+    "slack",
+    "notion",
     "meeting_tools",
   ]),
   TEAM: new Set<FeatureKey>([
@@ -148,8 +155,13 @@ export const PLAN_MODELS: Record<string, { chat: string[]; agent: string[] }> = 
     agent: [], // No agent for free plan
   },
   PRO: {
-    chat: ["qwen/qwen3.5-flash-02-23", "openai/gpt-5.4-mini"],
-    agent: ["qwen/qwen3.5-flash-02-23"],
+    chat: [
+      "qwen/qwen3.5-flash-02-23",
+      "openai/gpt-5.4-mini",
+      "openai/gpt-5.4",
+      "anthropic/claude-sonnet-4.6",
+    ],
+    agent: ["qwen/qwen3.5-flash-02-23", "openai/gpt-5.4-mini"],
   },
   TEAM: {
     chat: [

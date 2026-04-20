@@ -42,24 +42,11 @@ const PLANS = [
     features: [
       "Everything in Free",
       "Email send & Calendar create",
-      "EVE autonomous agent (Suggest)",
-      "Daily briefing & Email classify",
+      "EVE autonomous agent (Suggest + Auto)",
+      "Daily briefing & Email auto-classify",
+      "Email auto-reply & Pattern learning",
+      "Slack & Notion integrations",
       "Web search & Document writer",
-      "GPT-5.4 Nano + Mini models",
-    ],
-  },
-  {
-    key: "TEAM",
-    name: "Team",
-    price: "$99",
-    period: "/mo",
-    limit: "10K msgs · 50M tokens/mo",
-    features: [
-      "Everything in Pro",
-      "EVE AUTO mode (auto-execute)",
-      "Email auto-reply",
-      "Pattern learning",
-      "Slack & Notion integration",
       "GPT-5.4 + Claude Sonnet models",
     ],
   },
@@ -70,7 +57,7 @@ const PLANS = [
     period: "",
     limit: "Unlimited",
     features: [
-      "Everything in Team",
+      "Everything in Pro",
       "Claude Opus model access",
       "On-premise option",
       "SLA guarantee",
@@ -119,7 +106,7 @@ function BillingContent() {
     }
   }
 
-  async function handleUpgrade(plan: "PRO" | "TEAM") {
+  async function handleUpgrade(plan: "PRO") {
     try {
       const { url } = await apiFetch<{ url: string }>("/api/billing/checkout", {
         method: "POST",
@@ -301,7 +288,7 @@ function BillingContent() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => handleUpgrade(plan.key as "PRO" | "TEAM")}
+                  onClick={() => handleUpgrade(plan.key as "PRO")}
                   className="bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-medium transition"
                 >
                   Upgrade to {plan.name}
