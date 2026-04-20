@@ -3,6 +3,7 @@ import AppShell from "../components/app-shell";
 import CommandPalette from "../components/command-palette";
 import KeyboardShortcuts from "../components/keyboard-shortcuts";
 import Providers from "../components/providers";
+import PushOnboardingBanner from "../components/push-onboarding-banner";
 import PushRegister from "../components/push-register";
 import PwaPrompts from "../components/pwa-prompts";
 import ServiceWorkerRegister from "../components/sw-register";
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AppShell>{children}</AppShell>
           <ServiceWorkerRegister />
           <PushRegister />
+          <PushOnboardingBanner />
           <PwaPrompts />
         </Providers>
       </body>
