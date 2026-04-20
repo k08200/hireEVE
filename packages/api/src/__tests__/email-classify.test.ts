@@ -1,0 +1,90 @@
+import { describe, expect, it } from "vitest";
+import { classifyPriority } from "../email-sync.js";
+
+describe("classifyPriority — heuristic gate before LLM", () => {
+  describe("Gmail category labels (highest precedence)", () => {
+    it("PROMOTIONS → LOW even with urgent subject", () => {
+      expect(classifyPriority("brand@x.com", "긴급! 오늘까지", ["CATEGORY_PROMOTIONS"])).toBe(
+        "LOW",
+      );
+    });
+    it("SOCIAL → LOW", () => {
+      expect(classifyPriority("notifications@x.com", "Hello", ["CATEGORY_SOCIAL"])).toBe("LOW");
+    });
+    it("SPAM → LOW", () => {
+      expect(classifyPriority("anyone@x.com", "anything", ["SPAM"])).toBe("LOW");
+    });
+  });
+
+  describe("LOW precedes URGENT — promotional Korean must stay LOW", () => {
+    it("'긴급 할인!' from marketing → LOW", () => {
+      expect(classifyPriority("marketing@brand.co.kr", "🔥 긴급 할인 오늘까지!")).toBe("LOW");
+    });
+    it("noreply sender always wins over urgent subject", () => {
+      expect(classifyPriority("noreply@service.com", "URGENT: action required")).toBe("LOW");
+    });
+    it("subject containing '광고' is LOW regardless of sender", () => {
+      expect(classifyPriority("ceo@bigco.com", "[광고] 신규 서비스 안내")).toBe("LOW");
+    });
+    it("'수신거부' marker → LOW", () => {
+      expect(classifyPriority("info@x.com", "Newsletter 수신거부")).toBe("LOW");
+    });
+  });
+
+  describe("URGENT signals (English + Korean)", () => {
+    it("'urgent' in subject → URGENT", () => {
+      expect(classifyPriority("vc@example.com", "Urgent: term sheet review")).toBe("URGENT");
+    });
+    it("'오늘까지' deadline → URGENT", () => {
+      expect(classifyPriority("client@x.com", "계약서 오늘까지 회신 부탁드립니다")).toBe("URGENT");
+    });
+    it("'내일까지' deadline → URGENT", () => {
+      expect(classifyPriority("partner@x.com", "검토 결과 내일까지 회신 가능?")).toBe("URGENT");
+    });
+    it("'ASAP' → URGENT", () => {
+      expect(classifyPriority("legal@x.com", "Need your signature ASAP")).toBe("URGENT");
+    });
+    it("'즉시' → URGENT", () => {
+      expect(classifyPriority("ops@x.com", "서버 장애 즉시 확인 필요")).toBe("URGENT");
+    });
+    it("'deadline' keyword → URGENT", () => {
+      expect(classifyPriority("a@b.com", "Deadline reminder for invoice")).toBe("URGENT");
+    });
+  });
+
+  describe("NORMAL signals", () => {
+    it("'meeting' → NORMAL", () => {
+      expect(classifyPriority("a@b.com", "Meeting next Tuesday?")).toBe("NORMAL");
+    });
+    it("'미팅' → NORMAL", () => {
+      expect(classifyPriority("a@b.com", "다음 주 미팅 일정")).toBe("NORMAL");
+    });
+    it("'회의' → NORMAL", () => {
+      expect(classifyPriority("a@b.com", "주간 회의 안건 공유")).toBe("NORMAL");
+    });
+    it("Korean reply prefix '회신' → NORMAL", () => {
+      expect(classifyPriority("a@b.com", "회신: 제안서 검토 의견")).toBe("NORMAL");
+    });
+    it("'문의' → NORMAL", () => {
+      expect(classifyPriority("a@b.com", "협업 관련 문의드립니다")).toBe("NORMAL");
+    });
+    it("'invoice' → NORMAL", () => {
+      expect(classifyPriority("billing@x.com", "Invoice INV-2026-001")).toBe("NORMAL");
+    });
+    it("'계약' → NORMAL", () => {
+      expect(classifyPriority("a@b.com", "계약 조건 확인 부탁드립니다")).toBe("NORMAL");
+    });
+  });
+
+  describe("Default fallback", () => {
+    it("unrecognized subject → NORMAL", () => {
+      expect(classifyPriority("anyone@example.com", "Just checking in")).toBe("NORMAL");
+    });
+  });
+
+  describe("Case-insensitivity", () => {
+    it("uppercase subject still classified", () => {
+      expect(classifyPriority("a@b.com", "URGENT REPLY NEEDED")).toBe("URGENT");
+    });
+  });
+});
