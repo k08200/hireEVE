@@ -11,7 +11,6 @@
 
 import generateBriefing from "./briefing.js";
 import { prisma } from "./db.js";
-import { captureError } from "./sentry.js";
 import {
   checkAutoReplyRules,
   generateSmartReply,
@@ -23,6 +22,7 @@ import { getAuthedClient, renewExpiringGmailWatches, sendEmail, trashEmail } fro
 import { formatUrgentEmailBody } from "./notification-format.js";
 import { runProactiveActions } from "./proactive-actions.js";
 import { sendPushNotification } from "./push.js";
+import { captureError } from "./sentry.js";
 import { planHasFeature } from "./stripe.js";
 import { pushNotification } from "./websocket.js";
 

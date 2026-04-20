@@ -681,7 +681,6 @@ async function gatherUserContext(userId: string): Promise<string> {
   return sections.join("\n\n");
 }
 
-
 /** Run the autonomous reasoning loop for a single user */
 export async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promise<void> {
   const startTime = Date.now();

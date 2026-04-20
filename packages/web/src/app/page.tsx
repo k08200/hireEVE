@@ -101,8 +101,8 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-12">
-            Founders hire a Chief of Staff to triage email, prep meetings, and run
-            follow-ups. EVE does it for $29/mo — and never sleeps.
+            Founders hire a Chief of Staff to triage email, prep meetings, and run follow-ups. EVE
+            does it for $29/mo — and never sleeps.
           </p>
 
           <Link
@@ -124,9 +124,8 @@ export default function LandingPage() {
           Same job. One seven-hundredth of the cost.
         </h2>
         <p className="text-center text-gray-500 mb-10 text-sm">
-          A human Chief of Staff handles a founder&apos;s inbox, calendar, and
-          follow-ups. EVE handles the same surface — at a price you don&apos;t
-          need a finance meeting to approve.
+          A human Chief of Staff handles a founder&apos;s inbox, calendar, and follow-ups. EVE
+          handles the same surface — at a price you don&apos;t need a finance meeting to approve.
         </p>
 
         <div className="overflow-x-auto rounded-2xl border border-gray-800/50 bg-gray-900/40">

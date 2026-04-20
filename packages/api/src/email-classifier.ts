@@ -187,15 +187,11 @@ function keywordFallback(email: ClassifiableEmail): ClassifiedLabel {
  * Classify a batch of emails. Ordering of the returned array matches input.
  * Emails that match a deterministic fast-path rule skip the LLM call.
  */
-export async function classifyEmailBatch(
-  emails: ClassifiableEmail[],
-): Promise<ClassifiedLabel[]> {
+export async function classifyEmailBatch(emails: ClassifiableEmail[]): Promise<ClassifiedLabel[]> {
   if (emails.length === 0) return [];
 
   const results: (ClassifiedLabel | null)[] = emails.map((e) => fastClassify(e));
-  const llmIndexes = results
-    .map((r, i) => (r === null ? i : -1))
-    .filter((i) => i !== -1);
+  const llmIndexes = results.map((r, i) => (r === null ? i : -1)).filter((i) => i !== -1);
 
   if (llmIndexes.length > 0) {
     const llmInputs = llmIndexes.map((i) => emails[i]);
