@@ -131,6 +131,25 @@ export async function briefingRoutes(app: FastifyInstance) {
     const data = await gatherBriefingData(userId);
     return data;
   });
+
+  // GET /api/briefing/today — Latest briefing stored today (or null)
+  app.get("/today", async (request) => {
+    const userId = getUserId(request);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const note = await prisma.note.findFirst({
+      where: {
+        userId,
+        title: { startsWith: "Daily Briefing" },
+        createdAt: { gte: todayStart },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, content: true, createdAt: true },
+    });
+
+    return { briefing: note };
+  });
 }
 
 // Tool for EVE to generate briefing on demand
