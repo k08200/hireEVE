@@ -5,19 +5,7 @@
  * and run user-defined skills during chat and autonomous mode.
  */
 
-import { recall } from "./memory.js";
-
-interface SkillData {
-  name: string;
-  description: string;
-  prompt: string;
-}
-
-interface SkillMemory {
-  key: string;
-  content: string;
-  updatedAt: string;
-}
+import { prisma } from "./db.js";
 
 export const SKILL_TOOLS = [
   {
@@ -59,38 +47,31 @@ export const SKILL_TOOLS = [
   },
 ];
 
-function parseSkillContent(content: string): SkillData {
-  try {
-    return JSON.parse(content) as SkillData;
-  } catch {
-    return { name: "", description: "", prompt: content };
-  }
-}
-
 function extractVariables(prompt: string): string[] {
   const matches = prompt.match(/\{\{(\w+)\}\}/g);
   if (!matches) return [];
   return [...new Set(matches.map((m) => m.slice(2, -2)))];
 }
 
+function normalize(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+}
+
 /** List all skills for a user */
 export async function listUserSkills(
   userId: string,
 ): Promise<{ skills: Array<{ name: string; description: string; variables: string[] }> }> {
-  const raw = await recall(userId, undefined, "SKILL");
-  const parsed = JSON.parse(raw);
-  const memories: SkillMemory[] = parsed.memories || [];
-
-  const skills = memories.map((m) => {
-    const data = parseSkillContent(m.content);
-    return {
-      name: data.name || m.key,
-      description: data.description || "",
-      variables: extractVariables(data.prompt),
-    };
+  const rows = await prisma.skill.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
   });
-
-  return { skills };
+  return {
+    skills: rows.map((s) => ({
+      name: s.name,
+      description: s.description,
+      variables: extractVariables(s.prompt),
+    })),
+  };
 }
 
 /** Execute a skill by name with optional variable substitution */
@@ -99,31 +80,22 @@ export async function executeSkill(
   skillName: string,
   variables?: Record<string, string>,
 ): Promise<{ prompt: string; skillName: string } | { error: string }> {
-  const raw = await recall(userId, undefined, "SKILL");
-  const parsed = JSON.parse(raw);
-  const memories: SkillMemory[] = parsed.memories || [];
+  const normalized = normalize(skillName);
+  const candidateKey = `skill_${normalized}`;
 
-  // Match by name (case-insensitive) or by key
-  const normalizedName = skillName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-  const match = memories.find((m) => {
-    const data = parseSkillContent(m.content);
-    const nameMatch = data.name.toLowerCase().replace(/[^a-z0-9]+/g, "_") === normalizedName;
-    const keyMatch = m.key === `skill_${normalizedName}`;
-    return nameMatch || keyMatch;
-  });
+  const rows = await prisma.skill.findMany({ where: { userId } });
+  const match = rows.find((s) => s.key === candidateKey || normalize(s.name) === normalized);
 
   if (!match) {
     return { error: `Skill "${skillName}" not found. Use list_skills to see available skills.` };
   }
 
-  const data = parseSkillContent(match.content);
-  let prompt = data.prompt;
-
+  let prompt = match.prompt;
   if (variables) {
     for (const [k, v] of Object.entries(variables)) {
       prompt = prompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
     }
   }
 
-  return { prompt, skillName: data.name || match.key };
+  return { prompt, skillName: match.name };
 }

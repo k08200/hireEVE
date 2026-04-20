@@ -1,20 +1,31 @@
 /**
- * Skills API — Reusable workflows saved as memory-backed templates.
+ * Skills API — Reusable workflows defined by the user.
  *
- * Uses the existing Memory table with type="SKILL" to store user-defined
- * shortcuts like "weekly report", "investor update email", "daily task review".
- *
- * No schema migration needed — leverages existing infrastructure.
+ * Each skill is a named prompt template (with optional {{variable}} slots)
+ * that EVE can run on demand or via the execute_skill tool.
  */
 
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
-import { forget, recall, remember } from "../memory.js";
+import { prisma } from "../db.js";
 
 interface SkillPayload {
   name: string;
-  description: string;
+  description?: string;
   prompt: string;
+}
+
+function slugify(name: string): string {
+  // Bound input first so the regex pass is linear regardless of caller input.
+  // Then split the leading/trailing underscore trim into two anchored regexes
+  // — alternation with `+` on the same regex can backtrack polynomially.
+  return `skill_${name
+    .slice(0, 100)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+/, "")
+    .replace(/_+$/, "")
+    .slice(0, 40)}`;
 }
 
 export async function skillRoutes(app: FastifyInstance) {
@@ -23,50 +34,43 @@ export async function skillRoutes(app: FastifyInstance) {
   // GET /api/skills — List user's skills
   app.get("/", async (request) => {
     const userId = getUserId(request);
-    const raw = await recall(userId, undefined, "SKILL");
-    const parsed = JSON.parse(raw);
-    const skills = (parsed.memories || []).map(
-      (m: { key: string; content: string; updatedAt: string }) => {
-        try {
-          const data = JSON.parse(m.content);
-          return {
-            id: m.key,
-            name: data.name,
-            description: data.description,
-            prompt: data.prompt,
-            updatedAt: m.updatedAt,
-          };
-        } catch {
-          return {
-            id: m.key,
-            name: m.key,
-            description: "",
-            prompt: m.content,
-            updatedAt: m.updatedAt,
-          };
-        }
-      },
-    );
-    return { skills };
+    const rows = await prisma.skill.findMany({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+    });
+    return {
+      skills: rows.map((s) => ({
+        id: s.key,
+        name: s.name,
+        description: s.description,
+        prompt: s.prompt,
+        updatedAt: s.updatedAt.toISOString(),
+      })),
+    };
   });
 
-  // POST /api/skills — Create a skill
+  // POST /api/skills — Create or update a skill
   app.post("/", async (request, reply) => {
     const userId = getUserId(request);
     const { name, description, prompt } = request.body as SkillPayload;
 
-    if (!name || !prompt) {
+    if (!name?.trim() || !prompt?.trim()) {
       return reply.code(400).send({ error: "Name and prompt are required" });
     }
 
-    const key = `skill_${name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .slice(0, 40)}`;
-    const content = JSON.stringify({ name, description: description || "", prompt });
+    const key = slugify(name);
+    const skill = await prisma.skill.upsert({
+      where: { userId_key: { userId, key } },
+      create: { userId, key, name, description: description ?? "", prompt },
+      update: { name, description: description ?? "", prompt },
+    });
 
-    await remember(userId, "SKILL", key, content, "user");
-    return reply.code(201).send({ id: key, name, description, prompt });
+    return reply.code(201).send({
+      id: skill.key,
+      name: skill.name,
+      description: skill.description,
+      prompt: skill.prompt,
+    });
   });
 
   // DELETE /api/skills/:key — Delete a skill
@@ -74,42 +78,33 @@ export async function skillRoutes(app: FastifyInstance) {
     const userId = getUserId(request);
     const { key } = request.params as { key: string };
 
-    const result = JSON.parse(await forget(userId, key, "SKILL"));
-    if (!result.success) {
+    const result = await prisma.skill.deleteMany({ where: { userId, key } });
+    if (result.count === 0) {
       return reply.code(404).send({ error: "Skill not found" });
     }
     return reply.code(204).send();
   });
 
-  // POST /api/skills/:key/execute — Run a skill (returns the prompt for chat)
-  app.post("/:key/execute", async (request) => {
+  // POST /api/skills/:key/execute — Run a skill (returns rendered prompt)
+  app.post("/:key/execute", async (request, reply) => {
     const userId = getUserId(request);
     const { key } = request.params as { key: string };
     const { variables } = (request.body || {}) as { variables?: Record<string, string> };
 
-    const raw = await recall(userId, key, "SKILL");
-    const parsed = JSON.parse(raw);
-    const match = parsed.memories?.find((m: { key: string }) => m.key === key);
-
-    if (!match) {
-      return { error: "Skill not found" };
+    const skill = await prisma.skill.findUnique({
+      where: { userId_key: { userId, key } },
+    });
+    if (!skill) {
+      return reply.code(404).send({ error: "Skill not found" });
     }
 
-    let prompt: string;
-    try {
-      const data = JSON.parse(match.content);
-      prompt = data.prompt;
-    } catch {
-      prompt = match.content;
-    }
-
-    // Replace {{variable}} placeholders
+    let prompt = skill.prompt;
     if (variables) {
       for (const [k, v] of Object.entries(variables)) {
         prompt = prompt.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), v);
       }
     }
 
-    return { prompt, skillName: match.key };
+    return { prompt, skillName: skill.name };
   });
 }

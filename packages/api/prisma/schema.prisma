@@ -39,6 +39,7 @@ model User {
   notifications       Notification[]
   pushSubscriptions   PushSubscription[]
   memories            Memory[]
+  skills              Skill[]
   tokenUsages         TokenUsage[]
   devices             Device[]
   emailMessages       EmailMessage[]
@@ -411,6 +412,22 @@ enum MemoryType {
   DECISION // past decisions the user made
   CONTEXT // ongoing project/work context
   FEEDBACK // corrections or instructions from user
+}
+
+// Reusable workflows the user defines for EVE to execute
+model Skill {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key         String // slugified name, e.g. "weekly_report"
+  name        String
+  description String   @default("")
+  prompt      String // template, may include {{variable}} placeholders
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
 }
 
 // Token Usage Tracking — per-conversation and per-user cost tracking

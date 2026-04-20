@@ -11,37 +11,69 @@ vi.mock("../gmail.js", () => ({
   getOAuth2Client: vi.fn(),
 }));
 
-type Skill = { key: string; content: string; updatedAt: string };
-const store = new Map<string, Skill>();
+type SkillRow = {
+  id: string;
+  userId: string;
+  key: string;
+  name: string;
+  description: string;
+  prompt: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-vi.mock("../memory.js", () => ({
-  remember: vi.fn(async (_userId: string, _type: string, key: string, content: string) => {
-    store.set(key, { key, content, updatedAt: new Date().toISOString() });
-    return JSON.stringify({ success: true, id: key, message: `Remembered: ${key}` });
-  }),
-  recall: vi.fn(async (_userId: string, query?: string, _type?: string) => {
-    const memories: { type: string; key: string; content: string; updatedAt: string }[] = [];
-    for (const s of store.values()) {
-      if (!query || s.key.includes(query)) {
-        memories.push({ type: "SKILL", key: s.key, content: s.content, updatedAt: s.updatedAt });
-      }
-    }
-    if (memories.length === 0)
-      return JSON.stringify({ memories: [], message: "No memories found" });
-    return JSON.stringify({ memories });
-  }),
-  forget: vi.fn(async (_userId: string, key: string) => {
-    if (store.has(key)) {
-      store.delete(key);
-      return JSON.stringify({ success: true, message: `Forgot: ${key}` });
-    }
-    return JSON.stringify({ success: false, message: `Memory not found: ${key}` });
-  }),
-  MEMORY_TOOLS: [],
-}));
+const store = new Map<string, SkillRow>(); // composite "userId|key" → row
 
 vi.mock("../db.js", () => {
-  const prisma = {
+  const skill = {
+    findMany: vi.fn(
+      async ({ where, orderBy: _orderBy }: { where: { userId: string }; orderBy?: unknown }) => {
+        return Array.from(store.values())
+          .filter((s) => s.userId === where.userId)
+          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      },
+    ),
+    findUnique: vi.fn(
+      async ({ where }: { where: { userId_key: { userId: string; key: string } } }) => {
+        return store.get(`${where.userId_key.userId}|${where.userId_key.key}`) ?? null;
+      },
+    ),
+    upsert: vi.fn(
+      async ({
+        where,
+        create,
+        update,
+      }: {
+        where: { userId_key: { userId: string; key: string } };
+        create: Omit<SkillRow, "id" | "createdAt" | "updatedAt">;
+        update: Partial<SkillRow>;
+      }) => {
+        const compositeKey = `${where.userId_key.userId}|${where.userId_key.key}`;
+        const existing = store.get(compositeKey);
+        const now = new Date();
+        if (existing) {
+          const updated = { ...existing, ...update, updatedAt: now };
+          store.set(compositeKey, updated);
+          return updated;
+        }
+        const created: SkillRow = {
+          ...create,
+          id: where.userId_key.key,
+          createdAt: now,
+          updatedAt: now,
+        };
+        store.set(compositeKey, created);
+        return created;
+      },
+    ),
+    deleteMany: vi.fn(async ({ where }: { where: { userId: string; key: string } }) => {
+      const compositeKey = `${where.userId}|${where.key}`;
+      const existed = store.delete(compositeKey);
+      return { count: existed ? 1 : 0 };
+    }),
+  };
+  const prismaMock = {
+    skill,
     user: { findUnique: vi.fn(async () => ({ id: "user-1", plan: "FREE", role: "USER" })) },
     device: {
       findUnique: vi.fn(async () => ({ id: "d1" })),
@@ -50,7 +82,7 @@ vi.mock("../db.js", () => {
       update: vi.fn(async () => ({})),
     },
   };
-  return { prisma, db: prisma };
+  return { prisma: prismaMock, db: prismaMock };
 });
 
 const TOKEN = signToken({ userId: "user-1", email: "t@e.com" });

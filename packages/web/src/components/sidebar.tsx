@@ -895,7 +895,7 @@ export default function Sidebar({
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:block w-[260px] h-screen shrink-0 sticky top-0">
+      <aside className="hidden md:block w-[260px] h-dvh shrink-0 sticky top-0">
         {sidebarContent}
       </aside>
 
