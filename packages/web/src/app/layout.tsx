@@ -9,21 +9,22 @@ import ServiceWorkerRegister from "../components/sw-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EVE — Your First AI Employee",
+  title: "EVE — Your AI Chief of Staff",
   description:
-    "An autonomous AI employee that handles email, scheduling, tasks, and more for solo founders and small teams.",
+    "Your AI Chief of Staff. Triages email, preps meetings, and runs follow-ups for founders — without the six-figure salary.",
   manifest: "/manifest.json",
   openGraph: {
-    title: "EVE — Your First AI Employee",
+    title: "EVE — Your AI Chief of Staff",
     description:
-      "An autonomous AI employee for solo founders. Email, tasks, scheduling, and more — all in one conversation.",
+      "Same job a human Chief of Staff does — email triage, meeting prep, follow-ups — for $29/mo, running 24/7.",
     siteName: "hireEVE",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "EVE — Your First AI Employee",
-    description: "An autonomous AI teammate for solo founders.",
+    title: "EVE — Your AI Chief of Staff",
+    description:
+      "The AI CoS founders couldn't afford to hire. $29/mo. Always on. Connect Gmail once, EVE handles the rest.",
   },
   appleWebApp: {
     capable: true,

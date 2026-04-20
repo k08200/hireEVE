@@ -1,7 +1,7 @@
 {
-  "name": "EVE — Your First AI Employee",
+  "name": "EVE — Your AI Chief of Staff",
   "short_name": "EVE",
-  "description": "An autonomous AI teammate for solo founders. Chat, email, tasks, scheduling, and more.",
+  "description": "Your AI Chief of Staff. Triages email, preps meetings, and runs follow-ups — for $29/mo, not $200K/yr.",
   "start_url": "/chat",
   "display": "standalone",
   "background_color": "#030712",

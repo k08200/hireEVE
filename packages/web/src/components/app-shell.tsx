@@ -10,7 +10,6 @@ const NO_SIDEBAR_ROUTES = [
   "/auth/callback",
   "/reset-password",
   "/verify-email",
-  "/download",
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

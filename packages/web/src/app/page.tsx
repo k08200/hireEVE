@@ -91,27 +91,81 @@ export default function LandingPage() {
 
         <div className="relative">
           <h1 className="text-5xl md:text-7xl font-bold leading-[1.08] tracking-tight mb-8">
-            Connect once.
+            Your AI Chief
+            <br />
+            of Staff.
             <br />
             <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-              EVE handles the rest.
+              Without the $200K salary.
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed mb-12">
-            EVE is an AI employee that works 24/7 on your behalf.
-            <br className="hidden md:block" />
-            She reads your emails, decides what&apos;s urgent, and acts &mdash; even while you
-            sleep.
+            Founders hire a Chief of Staff to triage email, prep meetings, and run
+            follow-ups. EVE does it for $29/mo — and never sleeps.
           </p>
 
           <Link
             href="/login"
             className="group inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-xl text-base font-medium transition-all shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30"
           >
-            Get Started Free
+            Start Free
             <Icon type="arrow" />
           </Link>
+          <p className="text-xs text-gray-600 mt-4">
+            No credit card. Connect Gmail &amp; Calendar in one click.
+          </p>
+        </div>
+      </section>
+
+      {/* Human CoS vs EVE — the core pitch */}
+      <section className="max-w-4xl mx-auto px-6 py-20">
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 text-center">
+          Same job. One seven-hundredth of the cost.
+        </h2>
+        <p className="text-center text-gray-500 mb-10 text-sm">
+          A human Chief of Staff handles a founder&apos;s inbox, calendar, and
+          follow-ups. EVE handles the same surface — at a price you don&apos;t
+          need a finance meeting to approve.
+        </p>
+
+        <div className="overflow-x-auto rounded-2xl border border-gray-800/50 bg-gray-900/40">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-900/60 text-gray-400 text-xs uppercase tracking-wider">
+              <tr>
+                <th className="text-left px-5 py-3 font-medium">&nbsp;</th>
+                <th className="text-left px-5 py-3 font-medium">Human CoS</th>
+                <th className="text-left px-5 py-3 font-medium text-blue-300">EVE</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800/60 text-gray-300">
+              <tr>
+                <td className="px-5 py-3 text-gray-500">Annual cost</td>
+                <td className="px-5 py-3">$150K — $250K</td>
+                <td className="px-5 py-3 text-white font-medium">$348</td>
+              </tr>
+              <tr>
+                <td className="px-5 py-3 text-gray-500">Hours per week</td>
+                <td className="px-5 py-3">40 — 60</td>
+                <td className="px-5 py-3 text-white font-medium">168 (24/7)</td>
+              </tr>
+              <tr>
+                <td className="px-5 py-3 text-gray-500">Onboarding</td>
+                <td className="px-5 py-3">4 — 12 weeks</td>
+                <td className="px-5 py-3 text-white font-medium">One OAuth click</td>
+              </tr>
+              <tr>
+                <td className="px-5 py-3 text-gray-500">Sick days</td>
+                <td className="px-5 py-3">5 — 10 / year</td>
+                <td className="px-5 py-3 text-white font-medium">0</td>
+              </tr>
+              <tr>
+                <td className="px-5 py-3 text-gray-500">Quits without notice</td>
+                <td className="px-5 py-3">Sometimes</td>
+                <td className="px-5 py-3 text-white font-medium">Never</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -230,13 +284,13 @@ export default function LandingPage() {
               </div>
               <div className="w-px h-12 bg-gray-800" />
               <div>
-                <p className="text-2xl font-bold text-white">0</p>
-                <p className="text-gray-500">Setup required</p>
+                <p className="text-2xl font-bold text-white">1</p>
+                <p className="text-gray-500">Click to set up</p>
               </div>
               <div className="w-px h-12 bg-gray-800" />
               <div>
-                <p className="text-2xl font-bold text-white">60+</p>
-                <p className="text-gray-500">Actions available</p>
+                <p className="text-2xl font-bold text-white">3 min</p>
+                <p className="text-gray-500">To first briefing</p>
               </div>
             </div>
           </div>
