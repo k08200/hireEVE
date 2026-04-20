@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthGuard from "../../components/auth-guard";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -83,7 +84,9 @@ interface EvalReport {
   runAt: string;
 }
 
-export default function AdminPage() {
+type SectionError = { endpoint: string; message: string };
+
+function AdminDashboard() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -93,24 +96,40 @@ export default function AdminPage() {
   const [evalData, setEvalData] = useState<EvalReport | null>(null);
   const [evalLoading, setEvalLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<SectionError[]>([]);
   const [tab, setTab] = useState<"ops" | "users">("ops");
 
   useEffect(() => {
     if (!token) return;
-    Promise.all([
+    // allSettled — partial failures (e.g. one endpoint 404 on an older deploy)
+    // must not blow up the whole page. Each section degrades independently.
+    Promise.allSettled([
       apiFetch<{ users: UserRow[] }>("/api/admin/users"),
       apiFetch<Stats>("/api/admin/stats"),
       apiFetch<OpsMetrics>("/api/admin/ops"),
       apiFetch<PerfSnapshot>("/api/admin/perf"),
     ])
-      .then(([usersData, statsData, opsData, perfData]) => {
-        setUsers(usersData.users);
-        setStats(statsData);
-        setOps(opsData);
-        setPerf(perfData);
-      })
-      .catch((err) => {
-        toast(err instanceof Error ? err.message : "Failed to load", "error");
+      .then(([usersRes, statsRes, opsRes, perfRes]) => {
+        const failed: SectionError[] = [];
+
+        if (usersRes.status === "fulfilled") setUsers(usersRes.value.users);
+        else failed.push({ endpoint: "/api/admin/users", message: errMsg(usersRes.reason) });
+
+        if (statsRes.status === "fulfilled") setStats(statsRes.value);
+        else failed.push({ endpoint: "/api/admin/stats", message: errMsg(statsRes.reason) });
+
+        if (opsRes.status === "fulfilled") setOps(opsRes.value);
+        else failed.push({ endpoint: "/api/admin/ops", message: errMsg(opsRes.reason) });
+
+        if (perfRes.status === "fulfilled") setPerf(perfRes.value);
+        else failed.push({ endpoint: "/api/admin/perf", message: errMsg(perfRes.reason) });
+
+        setErrors(failed);
+        if (failed.length > 0 && failed.length < 4) {
+          toast(`${failed.length} admin section(s) failed to load`, "error");
+        } else if (failed.length === 4) {
+          toast("Admin endpoints unreachable — check API deploy", "error");
+        }
       })
       .finally(() => setLoading(false));
   }, [token, toast]);
@@ -175,6 +194,16 @@ export default function AdminPage() {
 
   return (
     <div className="h-full overflow-y-auto p-6 space-y-6">
+      {errors.length > 0 && (
+        <div className="border border-amber-700/50 bg-amber-950/30 rounded-lg p-3 text-xs space-y-1">
+          <p className="font-medium text-amber-300">Some sections failed to load</p>
+          {errors.map((e) => (
+            <p key={e.endpoint} className="text-amber-400/80 font-mono">
+              {e.endpoint} — {e.message}
+            </p>
+          ))}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Admin Dashboard</h1>
         <div className="flex gap-1 bg-gray-900 border border-gray-800 rounded-lg p-1">
@@ -473,5 +502,18 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
       <p className="text-xs text-gray-500">{label}</p>
       <p className="text-lg font-semibold mt-1">{value}</p>
     </div>
+  );
+}
+
+function errMsg(reason: unknown): string {
+  if (reason instanceof Error) return reason.message;
+  return String(reason);
+}
+
+export default function AdminPage() {
+  return (
+    <AuthGuard>
+      <AdminDashboard />
+    </AuthGuard>
   );
 }
