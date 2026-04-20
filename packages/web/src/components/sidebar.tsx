@@ -361,7 +361,7 @@ export default function Sidebar({
     : "";
 
   const sidebarContent = (
-    <div className="relative flex flex-col h-full bg-[#0a0a0f] border-r border-gray-800/40">
+    <div className="relative flex flex-col h-full bg-[#0a0a0f] border-r border-gray-800/40 pt-safe pb-safe">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-3">
         <Link
@@ -897,7 +897,7 @@ export default function Sidebar({
       {mobileOpen && (
         <>
           <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={onMobileClose} />
-          <aside className="fixed inset-y-0 left-0 w-[280px] z-50 md:hidden animate-slide-in-left">
+          <aside className="fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50 md:hidden animate-slide-in-left pl-safe">
             {sidebarContent}
           </aside>
         </>
