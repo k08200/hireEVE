@@ -14,8 +14,9 @@
 .pr-safe {
   padding-right: env(safe-area-inset-right);
 }
+/* dvh = dynamic viewport height (iOS 15.4+, all evergreen browsers).
+   We already gate the PWA on iOS 16.4+ for Web Push, so no fallback needed. */
 .h-dvh {
-  height: 100vh; /* fallback */
   height: 100dvh;
 }
 
