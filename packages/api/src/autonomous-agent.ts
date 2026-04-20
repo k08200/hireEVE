@@ -29,6 +29,7 @@ import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 import { db, prisma } from "./db.js";
 import { markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
+import { humanizeAutoExec } from "./notification-format.js";
 import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
 import { sendPushNotification } from "./push.js";
 import { captureError } from "./sentry.js";
@@ -1609,8 +1610,7 @@ How to reply:
 
           // Auto-notify user about automatic actions taken
           if (isSafeWrite && isAutoMode) {
-            const autoTitle = `[EVE] 자동 실행: ${fnName}`;
-            const autoMessage = `${fnName}을(를) 자동 실행했습니다: ${JSON.stringify(args).slice(0, 100)}`;
+            const { autoTitle, autoMessage } = humanizeAutoExec(fnName, args);
             const urlMap: Record<string, string> = {
               create_event: "/calendar",
               send_email: "/email",

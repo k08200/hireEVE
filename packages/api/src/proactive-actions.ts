@@ -17,6 +17,7 @@
  */
 
 import { prisma } from "./db.js";
+import { senderName } from "./notification-format.js";
 import { sendPushNotification } from "./push.js";
 import { pushNotification } from "./websocket.js";
 
@@ -50,23 +51,25 @@ async function checkUnansweredEmails(userId: string): Promise<void> {
   const existing = await prisma.notification.findFirst({
     where: {
       userId,
-      type: "email",
-      title: { contains: "unanswered" },
+      type: "email_followup",
       createdAt: { gte: todayStart },
     },
   });
   if (existing) return;
 
   const emailList = unanswered
-    .map((e) => {
-      const from = e.from.replace(/[<>]/g, "").trim().slice(0, 30);
-      return `${from}: ${(e.subject || "No subject").slice(0, 40)}`;
-    })
+    .map((e) => `• ${senderName(e.from)} — "${truncate(e.subject || "제목 없음", 40)}"`)
     .join("\n");
 
-  const message = `${unanswered.length} email(s) waiting for your reply:\n${emailList}`;
+  const top = unanswered[0];
+  const title = `답장 대기 ${unanswered.length}건`;
+  const message = `가장 오래된 건: ${senderName(top.from)} — "${truncate(top.subject || "제목 없음", 40)}"\n\n${emailList}`;
 
-  await notify(userId, "email", `${unanswered.length} unanswered email(s)`, message, "/email");
+  await notify(userId, "email_followup", title, message, "/email");
+}
+
+function truncate(value: string, max: number): string {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }
 
 /** Send a notification 1 hour before meetings with a mini-brief */
