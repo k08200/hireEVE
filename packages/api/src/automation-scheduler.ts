@@ -20,6 +20,7 @@ import {
   syncEmails,
 } from "./email-sync.js";
 import { getAuthedClient, renewExpiringGmailWatches, sendEmail, trashEmail } from "./gmail.js";
+import { formatUrgentEmailBody } from "./notification-format.js";
 import { runProactiveActions } from "./proactive-actions.js";
 import { sendPushNotification } from "./push.js";
 import { planHasFeature } from "./stripe.js";
@@ -424,18 +425,18 @@ async function runAutomations() {
               const newUrgent = urgentEmails.filter((e) => !notifiedGmailIds.has(e.gmailId));
 
               if (newUrgent.length > 0) {
-                const top = newUrgent[0];
-                const emailMsg =
-                  newUrgent.length === 1
-                    ? `긴급 이메일: ${top.summary || top.subject || "새 이메일"} (from: ${top.from || "unknown"}) [${top.gmailId}]`
-                    : `긴급 이메일 ${newUrgent.length}건. 최신: ${top.summary || top.subject || ""} [${top.gmailId}]`;
+                // User-visible body: who + what, no internal IDs.
+                // DB message keeps the [gmailId] suffix because the dedup
+                // regex above (notifiedGmailIds) reads it back from message.
+                const userBody = formatUrgentEmailBody(newUrgent);
+                const dbMessage = `${userBody} [${newUrgent[0].gmailId}]`;
 
                 const notification = await prisma.notification.create({
                   data: {
                     userId: config.userId,
                     type: "email",
                     title: "긴급 이메일",
-                    message: emailMsg,
+                    message: dbMessage,
                   },
                 });
 
@@ -443,13 +444,13 @@ async function runAutomations() {
                   id: notification.id,
                   type: "email",
                   title: "긴급 이메일",
-                  message: emailMsg,
+                  message: userBody,
                   createdAt: notification.createdAt.toISOString(),
                 });
 
                 sendPushNotification(config.userId, {
-                  title: "[EVE] 긴급 이메일",
-                  body: emailMsg,
+                  title: "긴급 메일",
+                  body: userBody,
                   url: "/briefing",
                 });
               }

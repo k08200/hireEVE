@@ -19,6 +19,7 @@ import {
   syncEmails,
 } from "../email-sync.js";
 import { archiveEmail, sendEmail, toggleReadGmail, toggleStarGmail, trashEmail } from "../gmail.js";
+import { senderName } from "../notification-format.js";
 import { sendPushNotification } from "../push.js";
 import { pushNotification } from "../websocket.js";
 
@@ -748,8 +749,8 @@ async function checkAndExecuteAutoReply(
     }
   } else if (matched.actionType === "NOTIFY") {
     sendPushNotification(userId, {
-      title: `[EVE] ${email.subject}`,
-      body: `From: ${email.from}`,
+      title: "새 메일 알림",
+      body: `${senderName(email.from)} — "${(email.subject || "제목 없음").slice(0, 60)}"`,
       url: "/briefing",
     });
   }

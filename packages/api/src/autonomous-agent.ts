@@ -30,6 +30,7 @@ import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 import { db, prisma } from "./db.js";
 import { isNoReplyAddress, markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
+import { humanizeAutoExec } from "./notification-format.js";
 import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
 import { sendPushNotification } from "./push.js";
 import { captureError } from "./sentry.js";
@@ -1451,10 +1452,10 @@ How to reply:
 
           // Auto-notify user about automatic actions taken
           if (isSafeWrite && isAutoMode) {
-            const autoTitle = `[EVE] 자동 실행: ${fnName}`;
-            const autoMessage = `${fnName}을(를) 자동 실행했습니다: ${JSON.stringify(args).slice(0, 100)}`;
-            // Dedicated list pages were removed — every auto-executed action
-            // opens the chat so the user can review or continue the thread.
+            const { autoTitle, autoMessage } = humanizeAutoExec(fnName, args);
+            // Dedicated list pages (/calendar, /email, /tasks, /notes) were
+            // removed in Week 1. Every auto-executed action now opens the
+            // chat so the user can review or continue the thread.
             const autoLink = "/chat";
             const notification = await (prisma.notification.create as Function)({
               data: {
