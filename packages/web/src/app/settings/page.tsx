@@ -1369,7 +1369,7 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold text-gray-300 mb-3">About</h2>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4">
             <p className="text-sm text-gray-400">
-              <span className="text-blue-400 font-medium">EVE</span> — Your First AI Employee
+              <span className="text-blue-400 font-medium">EVE</span> — Your AI Chief of Staff
             </p>
             <p className="text-sm text-gray-500 mt-1">
               Built for solo founders who wear too many hats.

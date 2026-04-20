@@ -170,7 +170,7 @@ async function checkUpcomingMeetings() {
               type: "meeting",
               title: `${Math.ceil(minutesUntil)}분 후 회의: ${meeting.summary}`,
               message: msg,
-              link: meeting.meetingLink || "/calendar",
+              link: meeting.meetingLink || "/briefing",
             });
 
             // Also send browser push with meeting link
@@ -179,7 +179,7 @@ async function checkUpcomingMeetings() {
               sendPushNotification(userId, {
                 title: `${Math.ceil(minutesUntil)}분 후 회의`,
                 body: meeting.summary,
-                url: meeting.meetingLink || "/calendar",
+                url: meeting.meetingLink || "/briefing",
               });
             } catch {
               // Push not available

@@ -7,9 +7,7 @@ import { apiFetch } from "../lib/api";
 const SHORTCUTS = [
   { keys: ["Cmd", "K"], label: "Command palette" },
   { keys: ["Cmd", "N"], label: "New conversation" },
-  { keys: ["Cmd", "D"], label: "Go to Dashboard" },
-  { keys: ["Cmd", "E"], label: "Go to Email" },
-  { keys: ["Cmd", "T"], label: "Go to Tasks" },
+  { keys: ["Cmd", "B"], label: "Go to Briefing" },
   { keys: ["Cmd", "/"], label: "Show shortcuts" },
   { keys: ["Esc"], label: "Close modal" },
 ];
@@ -37,17 +35,9 @@ export default function KeyboardShortcuts() {
             .then((conv) => router.push(`/chat/${conv.id}`))
             .catch(() => router.push("/chat"));
           break;
-        case "d":
+        case "b":
           e.preventDefault();
-          router.push("/dashboard");
-          break;
-        case "e":
-          e.preventDefault();
-          router.push("/email");
-          break;
-        case "t":
-          e.preventDefault();
-          router.push("/tasks");
+          router.push("/briefing");
           break;
         case "/":
           e.preventDefault();

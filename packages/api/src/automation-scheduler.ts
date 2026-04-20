@@ -22,6 +22,7 @@ import { getAuthedClient, renewExpiringGmailWatches, sendEmail, trashEmail } fro
 import { formatUrgentEmailBody } from "./notification-format.js";
 import { runProactiveActions } from "./proactive-actions.js";
 import { sendPushNotification } from "./push.js";
+import { captureError } from "./sentry.js";
 import { planHasFeature } from "./stripe.js";
 import { pushNotification } from "./websocket.js";
 
@@ -58,6 +59,29 @@ function getCurrentHHMM(): string {
   return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
+/**
+ * True if the scheduled briefing time has arrived or recently passed. Using
+ * a small grace window prevents missed briefings when the 60-second tick
+ * slips (server under load, restart, DB round-trip, etc.). We still rely on
+ * DB-based dedup to avoid double-sending within the same day.
+ */
+function isBriefingDue(briefingTime: string | null | undefined): boolean {
+  if (!briefingTime) return false;
+  const match = /^(\d{2}):(\d{2})$/.exec(briefingTime);
+  if (!match) return false;
+  const targetHour = Number(match[1]);
+  const targetMinute = Number(match[2]);
+
+  const now = new Date();
+  const targetMinutes = targetHour * 60 + targetMinute;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const delta = currentMinutes - targetMinutes;
+
+  // Fire if we're within 60 minutes after the target. Don't fire early.
+  // DB dedup (hasBriefingBeenSentToday) prevents double-sends within the window.
+  return delta >= 0 && delta <= 60;
+}
+
 async function runAutomations() {
   try {
     // Gmail watch renewal runs once per hour regardless of configs.
@@ -87,7 +111,6 @@ async function runAutomations() {
     const automationPlanMap = new Map(automationUsers.map((u) => [u.id, u.plan]));
 
     const today = getTodayStr();
-    const currentTime = getCurrentHHMM();
 
     // Reset briefing tracker on new day
     for (const [userId, date] of briefingSentToday) {
@@ -103,7 +126,7 @@ async function runAutomations() {
         !briefingSentToday.has(config.userId) &&
         planHasFeature(configUserPlan, "daily_briefing")
       ) {
-        if (currentTime === config.briefingTime) {
+        if (isBriefingDue(config.briefingTime)) {
           // DB-based dedup: check if briefing was already sent today (survives restarts)
           const alreadySent = await hasBriefingBeenSentToday(config.userId);
           if (alreadySent) {
@@ -144,17 +167,21 @@ async function runAutomations() {
               createdAt: notification.createdAt.toISOString(),
             });
 
-            // Send browser push
+            // Send browser push — tap opens today's briefing page
             sendPushNotification(config.userId, {
               title: "Daily Briefing Ready",
               body: briefingMsg,
-              url: "/notes",
+              url: "/briefing",
             });
 
             briefingSentToday.set(config.userId, today);
             console.log(`[AUTOMATION] Briefing delivered to ${config.userId}`);
           } catch (err) {
             console.error(`[AUTOMATION] Briefing failed for ${config.userId}:`, err);
+            captureError(err, {
+              tags: { scope: "automation.briefing", userId: config.userId },
+              extra: { briefingTime: config.briefingTime },
+            });
           }
         }
       }
@@ -424,7 +451,7 @@ async function runAutomations() {
                 sendPushNotification(config.userId, {
                   title: "긴급 메일",
                   body: userBody,
-                  url: "/email",
+                  url: "/briefing",
                 });
               }
             }

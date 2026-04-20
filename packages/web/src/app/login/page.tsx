@@ -115,7 +115,7 @@ function LoginForm() {
           <h1 className="text-2xl font-bold">
             <span className="text-blue-400">EVE</span>
           </h1>
-          <p className="text-gray-500 text-xs mt-1.5">Your First AI Employee</p>
+          <p className="text-gray-500 text-xs mt-1.5">Your AI Chief of Staff</p>
         </div>
 
         {/* Form */}

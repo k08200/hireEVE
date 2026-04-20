@@ -65,7 +65,7 @@ async function checkUnansweredEmails(userId: string): Promise<void> {
   const title = `답장 대기 ${unanswered.length}건`;
   const message = `가장 오래된 건: ${senderName(top.from)} — "${truncate(top.subject || "제목 없음", 40)}"\n\n${emailList}`;
 
-  await notify(userId, "email_followup", title, message, "/email");
+  await notify(userId, "email_followup", title, message, "/briefing");
 }
 
 function truncate(value: string, max: number): string {
@@ -121,7 +121,7 @@ async function checkUpcomingMeetings(userId: string): Promise<void> {
       "calendar",
       `Meeting in 1 hour: ${event.title.slice(0, 30)}`,
       message,
-      "/calendar",
+      "/briefing",
     );
   }
 }
@@ -164,7 +164,7 @@ async function checkOverdueTasks(userId: string): Promise<void> {
 
   const message = `${overdue.length} task(s) past deadline:\n${taskList}`;
 
-  await notify(userId, "task", `${overdue.length} overdue task(s)`, message, "/tasks");
+  await notify(userId, "task", `${overdue.length} overdue task(s)`, message, "/briefing");
 }
 
 /** Weekly review summary every Monday morning */
@@ -201,7 +201,7 @@ async function checkWeeklyReview(userId: string): Promise<void> {
 
   const message = `Last week: ${completedTasks} tasks completed, ${emailCount} emails processed, ${meetingCount} meetings attended.`;
 
-  await notify(userId, "review", "Weekly Review", message, "/dashboard");
+  await notify(userId, "review", "Weekly Review", message, "/briefing");
 }
 
 // ─── NEW: End-of-day review (6pm) ──────────────────────────────────────
@@ -260,7 +260,7 @@ async function checkEndOfDayReview(userId: string): Promise<void> {
     parts.push("Tomorrow looks clear.");
   }
 
-  await notify(userId, "eod_review", "End of Day Summary", parts.join("\n"), "/dashboard");
+  await notify(userId, "eod_review", "End of Day Summary", parts.join("\n"), "/briefing");
 }
 
 // ─── NEW: Deadline countdown (D-3) ─────────────────────────────────────
@@ -304,7 +304,7 @@ async function checkDeadlineCountdown(userId: string): Promise<void> {
     "deadline",
     `${approaching.length} deadline(s) approaching`,
     `These tasks are due within ${DEADLINE_WARNING_DAYS} days:\n${taskList}`,
-    "/tasks",
+    "/briefing",
   );
 }
 
@@ -412,7 +412,7 @@ async function checkBackToBackMeetings(userId: string): Promise<void> {
     "schedule_warning",
     `${backToBackCount} back-to-back meeting(s) today`,
     `You have ${events.length} meetings today with ${backToBackCount} gap(s) under 15 minutes. Consider blocking focus time.`,
-    "/calendar",
+    "/briefing",
   );
 }
 

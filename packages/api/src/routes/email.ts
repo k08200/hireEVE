@@ -751,7 +751,7 @@ async function checkAndExecuteAutoReply(
     sendPushNotification(userId, {
       title: "새 메일 알림",
       body: `${senderName(email.from)} — "${(email.subject || "제목 없음").slice(0, 60)}"`,
-      url: "/email",
+      url: "/briefing",
     });
   }
 }

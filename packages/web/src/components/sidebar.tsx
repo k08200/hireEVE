@@ -72,13 +72,7 @@ function groupByDate(convs: Conversation[]): DateGroup[] {
   return groups.filter((g) => g.items.length > 0);
 }
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "grid" },
-  { href: "/email", label: "Email", icon: "mail" },
-  { href: "/calendar", label: "Calendar", icon: "calendar" },
-  { href: "/tasks", label: "Tasks", icon: "check" },
-  { href: "/skills", label: "Skills", icon: "zap" },
-];
+const NAV_ITEMS = [{ href: "/briefing", label: "Briefing", icon: "bell" }];
 
 function NavIcon({ type, size = 16 }: { type: string; size?: number }) {
   const props = {

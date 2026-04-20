@@ -17,8 +17,14 @@ export async function billingRoutes(app: FastifyInstance) {
   app.post("/checkout", async (request, reply) => {
     const userId = getUserId(request);
     const { plan } = request.body as {
-      plan: "PRO" | "TEAM";
+      plan: "PRO";
     };
+
+    // Only PRO accepts new checkouts. Legacy TEAM subscriptions keep working
+    // via webhook/status routes but cannot be purchased from the UI.
+    if (plan !== "PRO") {
+      return reply.code(400).send({ error: "Invalid plan" });
+    }
 
     const planConfig = PLANS[plan];
     if (!planConfig?.priceId) {

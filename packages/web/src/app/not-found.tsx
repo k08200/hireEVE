@@ -16,10 +16,10 @@ export default function NotFound() {
           Go to Chat
         </Link>
         <Link
-          href="/dashboard"
+          href="/briefing"
           className="bg-gray-800 hover:bg-gray-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition border border-gray-700"
         >
-          Dashboard
+          Briefing
         </Link>
       </div>
     </main>

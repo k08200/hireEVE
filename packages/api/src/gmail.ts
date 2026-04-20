@@ -382,77 +382,33 @@ export async function classifyEmails(userId: string, maxResults = 10) {
   const result = await listEmails(userId, maxResults);
   if ("error" in result) return result;
 
-  const classified = result.emails.map((email) => {
-    const from = (email.from || "").toLowerCase();
-    const subject = (email.subject || "").toLowerCase();
+  const { classifyEmailBatch, sortByPriority } = await import("./email-classifier.js");
+  const labels = await classifyEmailBatch(
+    result.emails.map((e) => ({
+      id: e.id,
+      from: e.from || "",
+      subject: e.subject || "",
+      snippet: e.snippet || "",
+    })),
+  );
 
-    let priority: "high" | "medium" | "low" = "low";
-    let category = "other";
+  const classified = result.emails.map((email, i) => ({
+    ...email,
+    priority: labels[i].priority,
+    category: labels[i].category,
+    needsReply: labels[i].needsReply,
+    reason: labels[i].reason,
+  }));
 
-    // High priority signals
-    if (
-      subject.includes("urgent") ||
-      subject.includes("긴급") ||
-      subject.includes("asap") ||
-      subject.includes("important") ||
-      subject.includes("중요") ||
-      subject.includes("action required")
-    ) {
-      priority = "high";
-    }
-
-    // Category detection
-    if (
-      subject.includes("invoice") ||
-      subject.includes("payment") ||
-      subject.includes("결제") ||
-      subject.includes("청구")
-    ) {
-      category = "billing";
-      if (priority === "low") priority = "medium";
-    } else if (
-      subject.includes("meeting") ||
-      subject.includes("미팅") ||
-      subject.includes("invite") ||
-      subject.includes("calendar")
-    ) {
-      category = "meeting";
-      if (priority === "low") priority = "medium";
-    } else if (
-      subject.includes("deploy") ||
-      subject.includes("build") ||
-      subject.includes("error") ||
-      subject.includes("alert")
-    ) {
-      category = "engineering";
-      if (priority === "low") priority = "medium";
-    } else if (
-      from.includes("noreply") ||
-      from.includes("no-reply") ||
-      from.includes("newsletter") ||
-      from.includes("marketing")
-    ) {
-      category = "automated";
-      priority = "low";
-    } else if (subject.includes("re:") || subject.includes("회신")) {
-      category = "conversation";
-      if (priority === "low") priority = "medium";
-    }
-
-    return { ...email, priority, category };
-  });
-
-  // Sort: high → medium → low
-  const order = { high: 0, medium: 1, low: 2 };
-  classified.sort((a, b) => order[a.priority] - order[b.priority]);
+  const sorted = sortByPriority(classified);
 
   const summary = {
-    high: classified.filter((e) => e.priority === "high").length,
-    medium: classified.filter((e) => e.priority === "medium").length,
-    low: classified.filter((e) => e.priority === "low").length,
+    high: sorted.filter((e) => e.priority === "high").length,
+    medium: sorted.filter((e) => e.priority === "medium").length,
+    low: sorted.filter((e) => e.priority === "low").length,
   };
 
-  return { emails: classified, summary };
+  return { emails: sorted, summary };
 }
 
 // ─── Push Notifications (Gmail watch + Pub/Sub) ──────────────────────────
