@@ -181,7 +181,37 @@ export async function readEmail(userId: string, emailId: string) {
   };
 }
 
+/**
+ * Loose email address validator — we only need to catch agent hallucinations
+ * where `to` is a bare domain ("accounts.google.com") or otherwise clearly not
+ * an address. Gmail itself does strict RFC validation on send.
+ */
+function looksLikeEmailAddress(raw: string): boolean {
+  const trimmed = raw.trim();
+  // Allow "Name <addr@host>" form — extract the <…> part if present
+  const match = trimmed.match(/<([^>]+)>\s*$/);
+  const addr = match ? match[1] : trimmed;
+  // Minimal shape: local@domain.tld, no spaces inside the local/host parts
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr);
+}
+
+/** Senders that should never receive an auto-reply — responses either bounce
+ *  or land in an unmonitored inbox (security-alert / transactional domains). */
+const NO_REPLY_RECIPIENT_PATTERN =
+  /(^|[<@.])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|postmaster|notifications?|alerts?|noreply|security)([@.>]|$)/i;
+
 export async function sendEmail(userId: string, to: string, subject: string, body: string) {
+  if (!looksLikeEmailAddress(to)) {
+    return {
+      error: `올바른 이메일 주소가 아니에요: "${to}". 도메인(accounts.google.com 등)이 아닌 전체 주소(local@domain)가 필요해요.`,
+    };
+  }
+  if (NO_REPLY_RECIPIENT_PATTERN.test(to)) {
+    return {
+      error: `이 주소(${to})는 답장을 받지 않는 시스템 발신자예요 (보안 알림·공지 등). 답장을 보내지 않습니다.`,
+    };
+  }
+
   const auth = await getAuthedClient(userId);
   if (!auth) return { error: "Gmail not connected." };
 
