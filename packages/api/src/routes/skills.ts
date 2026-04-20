@@ -16,10 +16,15 @@ interface SkillPayload {
 }
 
 function slugify(name: string): string {
+  // Bound input first so the regex pass is linear regardless of caller input.
+  // Then split the leading/trailing underscore trim into two anchored regexes
+  // — alternation with `+` on the same regex can backtrack polynomially.
   return `skill_${name
+    .slice(0, 100)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
+    .replace(/^_+/, "")
+    .replace(/_+$/, "")
     .slice(0, 40)}`;
 }
 
