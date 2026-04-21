@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type OpenAI from "openai";
+import { resolveActionTarget } from "../action-target.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
@@ -1107,19 +1108,32 @@ export function chatRoutes(app: FastifyInstance) {
       },
     })) as PendingActionRow[];
 
-    return {
-      actions: actions.map((a) => ({
-        id: a.id,
-        conversationId: a.conversationId,
-        conversationTitle: a.conversation?.title ?? null,
-        status: a.status,
-        toolName: a.toolName,
-        toolArgs: a.toolArgs,
-        reasoning: a.reasoning,
-        result: a.result,
-        createdAt: a.createdAt.toISOString(),
-      })),
-    };
+    // Resolve a human-readable target label for each action (title/name instead of raw UUID).
+    const enriched = await Promise.all(
+      actions.map(async (a) => {
+        let targetLabel: string | null = null;
+        try {
+          const parsed = JSON.parse(a.toolArgs) as Record<string, unknown>;
+          targetLabel = await resolveActionTarget(a.toolName, parsed);
+        } catch {
+          // Malformed toolArgs — leave label null
+        }
+        return {
+          id: a.id,
+          conversationId: a.conversationId,
+          conversationTitle: a.conversation?.title ?? null,
+          status: a.status,
+          toolName: a.toolName,
+          toolArgs: a.toolArgs,
+          targetLabel,
+          reasoning: a.reasoning,
+          result: a.result,
+          createdAt: a.createdAt.toISOString(),
+        };
+      }),
+    );
+
+    return { actions: enriched };
   });
 
   // GET /api/chat/conversations/:id/pending-actions — Get pending actions for a conversation
