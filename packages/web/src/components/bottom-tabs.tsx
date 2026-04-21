@@ -6,12 +6,13 @@ import { usePathname } from "next/navigation";
 interface Tab {
   href: string;
   label: string;
-  icon: "chat" | "calendar" | "briefing" | "inbox";
+  icon: "chat" | "calendar" | "email" | "briefing" | "inbox";
 }
 
 const TABS: Tab[] = [
   { href: "/chat", label: "Chat", icon: "chat" },
   { href: "/calendar", label: "Calendar", icon: "calendar" },
+  { href: "/email", label: "Email", icon: "email" },
   { href: "/briefing", label: "Briefing", icon: "briefing" },
   { href: "/inbox", label: "Inbox", icon: "inbox" },
 ];
@@ -24,7 +25,7 @@ export default function BottomTabs() {
       aria-label="Main navigation"
       className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-[#0a0a0f]/95 backdrop-blur-sm border-t border-gray-800/60 pb-safe"
     >
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {TABS.map((tab) => {
           const active = isActive(pathname, tab.href);
           return (
@@ -79,6 +80,13 @@ function TabIcon({ type, active }: { type: Tab["icon"]; active: boolean }) {
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      );
+    case "email":
+      return (
+        <svg {...props}>
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <polyline points="22,6 12,13 2,6" />
         </svg>
       );
     case "briefing":

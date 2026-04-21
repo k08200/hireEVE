@@ -304,7 +304,7 @@ model AutomationConfig {
   user                 User     @relation(fields: [userId], references: [id])
   meetingAutoJoin      Boolean  @default(true)
   meetingAutoSummarize Boolean  @default(true)
-  emailAutoClassify    Boolean  @default(false)
+  emailAutoClassify    Boolean  @default(true)
   reminderAutoCheck    Boolean  @default(true)
   dailyBriefing        Boolean  @default(true)
   briefingTime         String   @default("09:00")
