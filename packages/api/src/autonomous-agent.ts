@@ -25,6 +25,7 @@
  * `Promise<{ [k: string]: unknown }>` so returned objects support property access.
  */
 import type OpenAI from "openai";
+import { resolveActionTarget } from "./action-target.js";
 import { AGENT_SYSTEM_PROMPT, NOTIFY_TOOL, PROPOSE_ACTION_TOOL } from "./agent/prompt.js";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 import { db, prisma } from "./db.js";
@@ -1151,10 +1152,14 @@ How to reply:
           // MEDIUM/HIGH risk tools → intercept and create approval proposal
           if (needsApproval) {
             const riskLabel = riskLevel === "HIGH" ? "⚠️ 위험" : "확인 필요";
+            // Resolve the target (task title, contact name, etc.) so the user
+            // sees "Meet with Alice" instead of a raw UUID in the proposal.
+            const targetLabel = await resolveActionTarget(fnName, args as Record<string, unknown>);
+            const targetLine = targetLabel ? `\n대상: ${targetLabel}` : "";
             const proposalMessage =
               riskLevel === "HIGH"
-                ? `[${riskLabel}] ${fnName}을(를) 실행하려 합니다. 되돌리기 어려운 작업입니다.\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`
-                : `[${riskLabel}] ${fnName}을(를) 실행해도 될까요?\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`;
+                ? `[${riskLabel}] ${fnName}을(를) 실행하려 합니다. 되돌리기 어려운 작업입니다.${targetLine}\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`
+                : `[${riskLabel}] ${fnName}을(를) 실행해도 될까요?${targetLine}\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`;
 
             // Dedup: check if there's already a PENDING action with same toolName
             const existingPending = await db.pendingAction.findFirst({

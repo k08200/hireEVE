@@ -771,8 +771,15 @@ function ChatPageContent() {
                             name === "delete_task" ||
                             name === "delete_note" ||
                             name === "delete_contact"
-                          )
-                            return `Delete: ${args.id || "?"}`;
+                          ) {
+                            const idKey =
+                              name === "delete_task"
+                                ? "task_id"
+                                : name === "delete_note"
+                                  ? "note_id"
+                                  : "contact_id";
+                            return `Delete: ${args[idKey] || args.id || "?"}`;
+                          }
                           return null;
                         })();
                         return (

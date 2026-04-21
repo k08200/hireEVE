@@ -13,6 +13,8 @@ interface PendingActionItem {
   status: "PENDING" | "REJECTED" | "EXECUTED" | "FAILED";
   toolName: string;
   toolArgs: string;
+  /** Server-resolved human label (task title, contact name, …) — null when n/a */
+  targetLabel: string | null;
   reasoning: string | null;
   result: string | null;
   createdAt: string;
@@ -197,7 +199,7 @@ function ActionCard({
   onApprove: () => void;
   onReject: () => void;
 }) {
-  const preview = buildPreview(action.toolName, action.toolArgs);
+  const preview = buildPreview(action.toolName, action.toolArgs, action.targetLabel);
   const isPending = action.status === "PENDING";
 
   return (
@@ -293,7 +295,11 @@ function StatusBadge({ status }: { status: PendingActionItem["status"] }) {
   );
 }
 
-function buildPreview(toolName: string, rawArgs: string): string | null {
+function buildPreview(
+  toolName: string,
+  rawArgs: string,
+  targetLabel: string | null,
+): string | null {
   let args: Record<string, unknown>;
   try {
     args = JSON.parse(rawArgs) as Record<string, unknown>;
@@ -328,7 +334,24 @@ function buildPreview(toolName: string, rawArgs: string): string | null {
     return `${pick("name") || "?"}${email ? ` (${email})` : ""}`;
   }
   if (toolName === "delete_task" || toolName === "delete_note" || toolName === "delete_contact") {
-    return `삭제: ${pick("id") || "?"}`;
+    // Prefer server-resolved label (task title / contact name); fall back to
+    // the correct id key so the user at least sees *something* they can match.
+    const idKey =
+      toolName === "delete_task"
+        ? "task_id"
+        : toolName === "delete_note"
+          ? "note_id"
+          : "contact_id";
+    return `삭제: ${targetLabel || pick(idKey) || "?"}`;
+  }
+  if (toolName === "update_task" || toolName === "update_note" || toolName === "update_contact") {
+    const idKey =
+      toolName === "update_task"
+        ? "task_id"
+        : toolName === "update_note"
+          ? "note_id"
+          : "contact_id";
+    return `수정: ${targetLabel || pick(idKey) || "?"}`;
   }
   return null;
 }
