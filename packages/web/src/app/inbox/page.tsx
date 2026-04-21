@@ -70,9 +70,7 @@ function InboxView() {
     setActionLoading((prev) => ({ ...prev, [actionId]: "approve" }));
     try {
       await apiFetch(`/api/chat/pending-actions/${actionId}/approve`, { method: "POST" });
-      setActions((prev) =>
-        prev.map((a) => (a.id === actionId ? { ...a, status: "EXECUTED" } : a)),
-      );
+      setActions((prev) => prev.map((a) => (a.id === actionId ? { ...a, status: "EXECUTED" } : a)));
     } catch (err) {
       captureClientError(err, { scope: "inbox.approve", actionId });
       alert("승인 실행에 실패했어요. 잠시 후 다시 시도해주세요.");
@@ -89,9 +87,7 @@ function InboxView() {
         method: "POST",
         body: JSON.stringify({}),
       });
-      setActions((prev) =>
-        prev.map((a) => (a.id === actionId ? { ...a, status: "REJECTED" } : a)),
-      );
+      setActions((prev) => prev.map((a) => (a.id === actionId ? { ...a, status: "REJECTED" } : a)));
     } catch (err) {
       captureClientError(err, { scope: "inbox.reject", actionId });
       alert("거절에 실패했어요. 잠시 후 다시 시도해주세요.");
@@ -331,11 +327,7 @@ function buildPreview(toolName: string, rawArgs: string): string | null {
     const email = pick("email");
     return `${pick("name") || "?"}${email ? ` (${email})` : ""}`;
   }
-  if (
-    toolName === "delete_task" ||
-    toolName === "delete_note" ||
-    toolName === "delete_contact"
-  ) {
+  if (toolName === "delete_task" || toolName === "delete_note" || toolName === "delete_contact") {
     return `삭제: ${pick("id") || "?"}`;
   }
   return null;
