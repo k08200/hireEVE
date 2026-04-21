@@ -403,7 +403,9 @@ export default function NotificationBell({ userId }: { userId: string }) {
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />
                       )}
                     </div>
-                    <p className="text-[13px] md:text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
+                    <p className="text-[13px] md:text-xs text-gray-400 mt-1 line-clamp-2 ml-6">
+                      {n.message}
+                    </p>
                     <div className="flex items-center gap-2 mt-1 ml-6">
                       <p className="text-[10px] text-gray-600">{formatRelative(n.createdAt)}</p>
                       {getNotificationTarget(n) && (
