@@ -55,11 +55,21 @@ export default function NotificationBell({ userId }: { userId: string }) {
   const router = useRouter();
   const { connected, on, connectedClients } = useWebSocket(userId);
 
-  // Compute fixed position for dropdown based on bell button location
+  // Compute fixed position for dropdown based on bell button location.
+  // On mobile we ignore the bell's x and span the viewport with an inset gutter;
+  // anchoring to bell.x was pushing the 320px dropdown off the right edge,
+  // which looked like a "half cut" drawer on iPhone.
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({
     top: 0,
     left: 0,
   });
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
   useEffect(() => {
     if (open && bellRef.current) {
       const rect = bellRef.current.getBoundingClientRect();
@@ -203,22 +213,22 @@ export default function NotificationBell({ userId }: { userId: string }) {
     }
   };
 
-  // Determine where clicking a notification should navigate
+  // Determine where clicking a notification should navigate.
+  // Week 1 removed /calendar, /tasks, /email, /notes — every fallback now
+  // points at a surviving surface so taps never 404.
   const getNotificationTarget = (n: Notification): string | null => {
-    // Explicit link from backend
     if (n.link) return n.link;
-    // WebSocket-delivered conversationId
     if (n.conversationId) return `/chat/${n.conversationId}`;
-    // Type-based fallback
     const typeRoutes: Record<string, string> = {
-      meeting: "/calendar",
-      calendar: "/calendar",
-      task: "/tasks",
-      reminder: "/tasks",
-      email: "/email",
-      briefing: "/notes",
+      briefing: "/briefing",
+      meeting: "/briefing",
+      calendar: "/briefing",
+      email: "/briefing",
+      task: "/chat",
+      reminder: "/chat",
+      insight: "/chat",
     };
-    return typeRoutes[n.type] || null;
+    return typeRoutes[n.type] || "/briefing";
   };
 
   const handleNotificationClick = (n: Notification) => {
@@ -305,13 +315,23 @@ export default function NotificationBell({ userId }: { userId: string }) {
         createPortal(
           <div
             ref={dropdownRef}
-            style={{
-              position: "fixed",
-              top: dropdownPos.top,
-              left: dropdownPos.left,
-              zIndex: 9999,
-            }}
-            className="w-[min(20rem,calc(100vw-2rem))] bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden"
+            style={
+              isMobile
+                ? {
+                    position: "fixed",
+                    top: dropdownPos.top,
+                    left: 8,
+                    right: 8,
+                    zIndex: 9999,
+                  }
+                : {
+                    position: "fixed",
+                    top: dropdownPos.top,
+                    left: dropdownPos.left,
+                    zIndex: 9999,
+                  }
+            }
+            className="md:w-[min(20rem,calc(100vw-2rem))] bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[min(70vh,calc(100vh-6rem))] md:max-h-[28rem]"
           >
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
               <div className="flex items-center gap-2">
@@ -350,7 +370,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                 )}
               </div>
             </div>
-            <div className="max-h-80 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto overscroll-contain">
               {notifications.length === 0 ? (
                 <p className="text-center text-gray-500 text-sm py-6">No notifications</p>
               ) : (
@@ -361,7 +381,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     tabIndex={0}
                     onClick={() => handleNotificationClick(n)}
                     onKeyDown={(e) => e.key === "Enter" && handleNotificationClick(n)}
-                    className={`w-full text-left px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition cursor-pointer ${
+                    className={`w-full text-left px-4 py-3.5 md:py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition cursor-pointer ${
                       !n.isRead ? "bg-blue-600/5" : ""
                     } ${isAgentNotification(n.title) ? "border-l-2 border-l-cyan-500/60" : ""}`}
                   >
@@ -383,7 +403,9 @@ export default function NotificationBell({ userId }: { userId: string }) {
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />
                       )}
                     </div>
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
+                    <p className="text-[13px] md:text-xs text-gray-400 mt-1 line-clamp-2 ml-6">
+                      {n.message}
+                    </p>
                     <div className="flex items-center gap-2 mt-1 ml-6">
                       <p className="text-[10px] text-gray-600">{formatRelative(n.createdAt)}</p>
                       {getNotificationTarget(n) && (
@@ -393,12 +415,12 @@ export default function NotificationBell({ userId }: { userId: string }) {
                       )}
                     </div>
                     {n.pendingActionId && n.pendingActionStatus === "PENDING" && (
-                      <div className="flex items-center gap-2 mt-2 ml-6">
+                      <div className="flex items-center gap-2 mt-2.5 ml-6">
                         <button
                           type="button"
                           onClick={(e) => handleApprovePendingAction(n, e)}
                           disabled={!!pendingActionLoading[n.id]}
-                          className="text-[11px] px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-medium transition"
+                          className="text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
                         >
                           {pendingActionLoading[n.id] === "approve" ? "..." : "승인"}
                         </button>
@@ -406,7 +428,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                           type="button"
                           onClick={(e) => handleRejectPendingAction(n, e)}
                           disabled={!!pendingActionLoading[n.id]}
-                          className="text-[11px] px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 font-medium transition"
+                          className="text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 font-medium transition min-w-[72px] md:min-w-0"
                         >
                           {pendingActionLoading[n.id] === "reject" ? "..." : "거절"}
                         </button>
