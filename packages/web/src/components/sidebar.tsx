@@ -550,7 +550,7 @@ export default function Sidebar({
                         {conv.title || "New conversation"}
                       </span>
                       <span
-                        className={`flex items-center gap-0.5 shrink-0 ${isActive ? "visible" : "invisible group-hover/conv:visible"}`}
+                        className={`hidden md:flex items-center gap-0.5 shrink-0 ${isActive ? "md:visible" : "md:invisible md:group-hover/conv:visible"}`}
                       >
                         <button
                           type="button"
@@ -612,6 +612,27 @@ export default function Sidebar({
                           </svg>
                         </button>
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => confirmDelete(e, conv.id)}
+                        className="md:hidden flex items-center justify-center min-w-[44px] min-h-[44px] -my-2 -mr-2 text-gray-500 active:text-red-400 transition shrink-0"
+                        aria-label="Delete conversation"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
                     </Link>
                   )}
                 </div>
@@ -656,7 +677,7 @@ export default function Sidebar({
                         {conv.title || "New conversation"}
                       </span>
                       <span
-                        className={`flex items-center gap-0.5 shrink-0 ${isActive ? "visible" : "invisible group-hover/conv:visible"}`}
+                        className={`hidden md:flex items-center gap-0.5 shrink-0 ${isActive ? "md:visible" : "md:invisible md:group-hover/conv:visible"}`}
                       >
                         <button
                           type="button"
@@ -721,6 +742,27 @@ export default function Sidebar({
                           </svg>
                         </button>
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => confirmDelete(e, conv.id)}
+                        className="md:hidden flex items-center justify-center min-w-[44px] min-h-[44px] -my-2 -mr-2 text-gray-500 active:text-red-400 transition shrink-0"
+                        aria-label="Delete conversation"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
                     </Link>
                   )}
                 </div>
