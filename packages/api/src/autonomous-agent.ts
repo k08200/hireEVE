@@ -795,8 +795,9 @@ For EVERY unread email, you MUST take action. Follow this decision tree:
 
 ### Step 1: Classify the email
 Determine the type:
-- **ACTION_REQUIRED**: Someone asks a question, requests info, proposes a meeting, sends a greeting → needs a reply
-- **FYI_ONLY**: Newsletter, marketing, automated notification (noreply@), system alert, receipt → no reply needed
+- **ACTION_REQUIRED**: A real person asks a question, requests info, proposes a meeting, sends a greeting → needs a reply
+- **SECURITY_ALERT**: Password reset, suspicious login, account recovery from a known provider (Google, Apple, bank) → notify only, do not reply
+- **NOISE**: Newsletter, marketing, promotional, digest, receipt, build/CI alerts, GitHub notifications, social media digest, anything from a noreply@/no-reply@/newsletter@/marketing@/notifications@/alerts@/info@/updates@ sender → skip entirely
 - **ALREADY_HANDLED**: You already replied in a previous cycle (check "Your Previous Decisions") → skip
 
 ### Step 2: Take action based on type
@@ -816,8 +817,12 @@ How to reply:
    - body: appropriate Korean 존댓말 reply about THAT specific email's content
 2. THEN call notify_user: "[답장 완료] OO님에게 OO 관련 답장을 보냈습니다"
 
-**FYI_ONLY → notify_user only (no reply)**
-- call notify_user: "[새 메일] OO로부터 OO 내용의 메일이 왔습니다"
+**SECURITY_ALERT → notify_user only (no reply)**
+- call notify_user: "[보안] OO 계정 관련 알림" with the provider name and what changed
+- Use this ONLY for genuine account/security/compliance alerts. Marketing dressed up as "important" is still NOISE.
+
+**NOISE → skip entirely. Do NOT call notify_user. Do NOT call send_email.**
+Silently ignore. The user does not want a push every time a newsletter arrives or GitHub pings about a PR. If you're not sure whether something is NOISE or SECURITY_ALERT, default to NOISE.
 
 **ALREADY_HANDLED → skip entirely**
 
@@ -1086,6 +1091,31 @@ How to reply:
             });
           }
         } else if (fnName === "notify_user") {
+          // Server-side guard against NOISE notifications. Even if the LLM
+          // misclassifies a newsletter/marketing/promo email as worth
+          // surfacing, we block the push here. Cheaper to drop a legit
+          // alert once than to burn user trust with every ad that lands.
+          const combined = `${args.title || ""} ${args.message || ""}`.toLowerCase();
+          const isNoise =
+            /^\[새 메일\]/.test(args.title || "") ||
+            /newsletter|광고|marketing|promotion|unsubscribe|수신거부|digest|\[ad\]|\[광고\]|할인|coupon|\bsale\b|deal|welcome to |verify your |confirm your /.test(
+              combined,
+            );
+          if (isNoise) {
+            result = JSON.stringify({
+              skipped: true,
+              reason: "noise notification suppressed",
+            });
+            await logAgentAction(
+              userId,
+              "skip",
+              `Noise suppressed: "${args.title}"`,
+              "notify_user",
+              args.category,
+            );
+            continue;
+          }
+
           // Lightweight notification — no approval needed
           const key = getNotifKey(args.title);
           const alreadyNotified = await hasRecentNotification(userId, key);
@@ -1100,7 +1130,14 @@ How to reply:
             // Mark as agent-generated notification
             const agentTitle = `[EVE] ${args.title}`;
 
-            const notifyLink = `/${args.category === "task" ? "tasks" : args.category === "calendar" ? "calendar" : args.category === "email" ? "email" : "chat"}`;
+            // /tasks was removed in week 1; /email and /calendar are back.
+            // Everything else taps back into /briefing (the primary surface).
+            const notifyLink =
+              args.category === "calendar"
+                ? "/calendar"
+                : args.category === "email"
+                  ? "/email"
+                  : "/briefing";
             const notification = await (prisma.notification.create as Function)({
               data: {
                 userId,
