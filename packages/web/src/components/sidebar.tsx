@@ -74,6 +74,7 @@ function groupByDate(convs: Conversation[]): DateGroup[] {
 
 const NAV_ITEMS = [
   { href: "/inbox", label: "Inbox", icon: "check" },
+  { href: "/calendar", label: "Calendar", icon: "calendar" },
   { href: "/briefing", label: "Briefing", icon: "bell" },
 ];
 
