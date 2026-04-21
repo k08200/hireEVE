@@ -218,17 +218,20 @@ export default function NotificationBell({ userId }: { userId: string }) {
   // points at a surviving surface so taps never 404.
   const getNotificationTarget = (n: Notification): string | null => {
     if (n.link) return n.link;
+    // A pending action the user still needs to approve/reject — Inbox is
+    // the one place that shows every unresolved item with action buttons.
+    if (n.pendingActionId && n.pendingActionStatus === "PENDING") return "/inbox";
     if (n.conversationId) return `/chat/${n.conversationId}`;
     const typeRoutes: Record<string, string> = {
       briefing: "/briefing",
       meeting: "/briefing",
       calendar: "/briefing",
       email: "/briefing",
-      task: "/chat",
-      reminder: "/chat",
-      insight: "/chat",
+      task: "/inbox",
+      reminder: "/inbox",
+      insight: "/inbox",
     };
-    return typeRoutes[n.type] || "/briefing";
+    return typeRoutes[n.type] || "/inbox";
   };
 
   const handleNotificationClick = (n: Notification) => {

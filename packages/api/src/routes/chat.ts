@@ -1080,6 +1080,48 @@ export function chatRoutes(app: FastifyInstance) {
     },
   );
 
+  // GET /api/chat/pending-actions — All pending actions for the current user across conversations.
+  // Powers the mobile inbox so users can see & act on every "needs your attention" item in one place.
+  app.get("/pending-actions", async (request) => {
+    const userId = getUserId(request);
+    const { status } = request.query as { status?: string };
+    const statusFilter = status === "all" ? undefined : status || "PENDING";
+
+    type PendingActionRow = {
+      id: string;
+      conversationId: string;
+      status: string;
+      toolName: string;
+      toolArgs: string;
+      reasoning: string | null;
+      result: string | null;
+      createdAt: Date;
+      conversation?: { id: string; title: string | null } | null;
+    };
+    const actions = (await db.pendingAction.findMany({
+      where: { userId, ...(statusFilter ? { status: statusFilter } : {}) },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: {
+        conversation: { select: { id: true, title: true } },
+      },
+    })) as PendingActionRow[];
+
+    return {
+      actions: actions.map((a) => ({
+        id: a.id,
+        conversationId: a.conversationId,
+        conversationTitle: a.conversation?.title ?? null,
+        status: a.status,
+        toolName: a.toolName,
+        toolArgs: a.toolArgs,
+        reasoning: a.reasoning,
+        result: a.result,
+        createdAt: a.createdAt.toISOString(),
+      })),
+    };
+  });
+
   // GET /api/chat/conversations/:id/pending-actions — Get pending actions for a conversation
   app.get(
     "/conversations/:id/pending-actions",
