@@ -60,6 +60,30 @@ function getCurrentHHMM(): string {
 }
 
 /**
+ * Per-user gate: "has at least INTERVAL_MIN minutes passed since the last
+ * sync for this user?" The previous `minute % 15 === 0` check silently
+ * skipped a whole 15-minute window whenever the 60-second tick landed on
+ * minute :01 instead of :00 (server restart, busy loop, DB pause), so
+ * brand-new emails could sit unsynced for 15–29 minutes. Tracking
+ * per-user timestamps removes that class of misses.
+ */
+const lastEmailSyncAt = new Map<string, number>();
+const EMAIL_SYNC_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
+function isEmailSyncDue(userId: string): boolean {
+  const last = lastEmailSyncAt.get(userId);
+  if (!last) return true;
+  return Date.now() - last >= EMAIL_SYNC_INTERVAL_MS;
+}
+
+const lastReconcileAt = new Map<string, number>();
+const RECONCILE_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+function isReconcileDue(userId: string): boolean {
+  const last = lastReconcileAt.get(userId);
+  if (!last) return true;
+  return Date.now() - last >= RECONCILE_INTERVAL_MS;
+}
+
+/**
  * True if the scheduled briefing time has arrived or recently passed. Using
  * a small grace window prevents missed briefings when the 60-second tick
  * slips (server under load, restart, DB round-trip, etc.). We still rely on
@@ -292,10 +316,12 @@ async function runAutomations() {
       }
 
       // --- Email Sync + AI Classify (requires PRO+ for classify, TEAM+ for auto-reply) ---
+      // emailAutoClassify now defaults to true in schema — we still honor an
+      // explicit opt-out, but for the vast majority of users sync runs on
+      // its own interval without any config step.
       if (config.emailAutoClassify && planHasFeature(configUserPlan, "email_auto_classify")) {
-        // Run every 15 minutes (check modulo)
-        const minute = new Date().getMinutes();
-        if (minute % 15 === 0) {
+        if (isEmailSyncDue(config.userId)) {
+          lastEmailSyncAt.set(config.userId, Date.now());
           try {
             // Sync from Gmail → DB
             const syncResult = await syncEmails(config.userId, 20);
@@ -378,13 +404,18 @@ async function runAutomations() {
               }
             }
 
-            // Reconcile DB with Gmail (remove deleted/archived emails)
-            // Run less frequently — only at 0 and 30 minute marks
-            if (minute === 0 || minute === 30) {
+            // Reconcile DB with Gmail (remove deleted/archived emails).
+            // Runs at most once every 30 minutes per user, independent of
+            // wall-clock minute so a slipped tick doesn't skip the window.
+            if (isReconcileDue(config.userId)) {
+              lastReconcileAt.set(config.userId, Date.now());
               try {
                 await reconcileEmails(config.userId);
               } catch (err) {
                 console.error(`[AUTOMATION] Reconcile failed for ${config.userId}:`, err);
+                captureError(err, {
+                  tags: { scope: "automation.reconcile", userId: config.userId },
+                });
               }
             }
 
@@ -455,8 +486,15 @@ async function runAutomations() {
                 });
               }
             }
-          } catch {
-            // Gmail not connected or sync failed — skip silently
+          } catch (err) {
+            // Gmail not connected, token expired, rate-limited, or network
+            // flake — log + capture so "EVE stopped reading email" doesn't
+            // become an invisible outage. Returns early so the next tick
+            // still tries.
+            console.error(`[AUTOMATION] Email sync failed for ${config.userId}:`, err);
+            captureError(err, {
+              tags: { scope: "automation.email-sync", userId: config.userId },
+            });
           }
         }
       }
