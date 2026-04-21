@@ -14,6 +14,7 @@ import webPush from "web-push";
 import { prisma } from "./db.js";
 import { isSafePushEndpoint } from "./is-safe-push-endpoint.js";
 import { type NotifCategory, shouldNotify } from "./notification-prefs.js";
+import { recordPushAttempt } from "./push-rate-limit.js";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
@@ -41,6 +42,14 @@ export async function sendPushNotification(
   const allowed = await shouldNotify(userId, category);
   if (!allowed) {
     console.log(`[PUSH] Suppressed by user prefs for ${userId} (${category})`);
+    return;
+  }
+
+  // Global per-user rate limit — blocks phone ring; DB notification is
+  // already persisted upstream so the bell still surfaces this event.
+  const rate = recordPushAttempt(userId);
+  if (!rate.allowed) {
+    console.log(`[PUSH] Rate-limited for ${userId}: ${rate.reason} — "${payload.title}"`);
     return;
   }
 

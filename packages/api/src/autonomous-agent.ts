@@ -1474,12 +1474,10 @@ How to reply:
               link: autoLink,
             });
 
-            // Send macOS/browser push notification
-            sendPushNotification(userId, {
-              title: autoTitle,
-              body: autoMessage,
-              url: autoLink,
-            });
+            // No phone push for LOW-risk auto-exec — the DB notification above
+            // keeps the bell badge updating, but we no longer ring the phone
+            // for every tool call. A single cycle that updates N tasks used
+            // to fire N pushes in one second (see 2026-04-20 dogfood logs).
             console.log(`[AGENT] Auto-executed ${fnName} for ${userId}`);
           }
         }
