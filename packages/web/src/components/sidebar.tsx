@@ -72,7 +72,10 @@ function groupByDate(convs: Conversation[]): DateGroup[] {
   return groups.filter((g) => g.items.length > 0);
 }
 
-const NAV_ITEMS = [{ href: "/briefing", label: "Briefing", icon: "bell" }];
+const NAV_ITEMS = [
+  { href: "/inbox", label: "Inbox", icon: "check" },
+  { href: "/briefing", label: "Briefing", icon: "bell" },
+];
 
 function NavIcon({ type, size = 16 }: { type: string; size?: number }) {
   const props = {
@@ -437,7 +440,11 @@ export default function Sidebar({
         {/* EVE Suggestions — agent conversations with pending actions */}
         {agentSuggestions.length > 0 && (
           <div className="mb-3">
-            <p className="text-[11px] font-medium text-cyan-400/80 px-2 py-1.5 flex items-center gap-1.5">
+            <Link
+              href="/inbox"
+              onClick={onMobileClose}
+              className="text-[11px] font-medium text-cyan-400/80 hover:text-cyan-300 px-2 py-1.5 flex items-center gap-1.5 rounded-md hover:bg-cyan-500/5 transition"
+            >
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
               EVE Suggestions
               {totalPending > 0 && (
@@ -445,7 +452,7 @@ export default function Sidebar({
                   {totalPending}
                 </span>
               )}
-            </p>
+            </Link>
             {agentSuggestions.map((conv) => {
               const isActive = activeConvId === conv.id;
               return (
@@ -732,21 +739,29 @@ export default function Sidebar({
       {/* Workspace nav */}
       <div className="border-t border-gray-800/40 px-2 py-2">
         <div className="space-y-0.5">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onMobileClose}
-              className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] transition ${
-                pathname.startsWith(item.href)
-                  ? "bg-gray-800/80 text-white"
-                  : "text-gray-500 hover:bg-gray-800/50 hover:text-gray-300"
-              }`}
-            >
-              <NavIcon type={item.icon} size={14} />
-              {item.label}
-            </Link>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const badge = item.href === "/inbox" && totalPending > 0 ? totalPending : null;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onMobileClose}
+                className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] transition ${
+                  pathname.startsWith(item.href)
+                    ? "bg-gray-800/80 text-white"
+                    : "text-gray-500 hover:bg-gray-800/50 hover:text-gray-300"
+                }`}
+              >
+                <NavIcon type={item.icon} size={14} />
+                <span className="flex-1">{item.label}</span>
+                {badge !== null && (
+                  <span className="bg-cyan-500/20 text-cyan-300 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+                    {badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
           {user?.role === "ADMIN" && (
             <Link
               href="/admin"

@@ -135,7 +135,7 @@ async function notifyUser(
   url: string,
 ) {
   const notification = await prisma.notification.create({
-    data: { userId, type, title, message },
+    data: { userId, type, title, message, link: url },
   });
 
   pushNotification(userId, {
@@ -143,6 +143,7 @@ async function notifyUser(
     type,
     title,
     message,
+    link: url,
     createdAt: notification.createdAt.toISOString(),
   });
 

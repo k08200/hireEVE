@@ -425,7 +425,7 @@ async function notify(
   url: string,
 ): Promise<void> {
   const notification = await prisma.notification.create({
-    data: { userId, type, title, message },
+    data: { userId, type, title, message, link: url },
   });
 
   pushNotification(userId, {
@@ -433,6 +433,7 @@ async function notify(
     type,
     title,
     message,
+    link: url,
     createdAt: notification.createdAt.toISOString(),
   });
 
