@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import BottomTabs from "./bottom-tabs";
 import Sidebar from "./sidebar";
 
 const NO_SIDEBAR_ROUTES = ["/", "/login", "/auth/callback", "/reset-password", "/verify-email"];
@@ -46,7 +47,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <span className="text-sm font-semibold text-gray-300">EVE</span>
         </div>
-        <main className="flex-1 overflow-y-auto pb-safe">{children}</main>
+        <main className="flex-1 overflow-y-auto pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-safe">
+          {children}
+        </main>
+        <BottomTabs />
       </div>
     </div>
   );
