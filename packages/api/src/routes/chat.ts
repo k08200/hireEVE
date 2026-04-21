@@ -450,9 +450,20 @@ export function chatRoutes(app: FastifyInstance) {
       let fullResponse = "";
       let retryClientDisconnected = false;
 
+      // Keep the LLM running even if the user navigated away — the DB save
+      // below still happens, so they see the full response when they return.
       request.raw.on("close", () => {
         retryClientDisconnected = true;
       });
+
+      const retrySafeWrite = (payload: string) => {
+        if (retryClientDisconnected) return;
+        try {
+          reply.raw.write(payload);
+        } catch {
+          retryClientDisconnected = true;
+        }
+      };
 
       try {
         if (tools.length > 0) {
@@ -460,7 +471,6 @@ export function chatRoutes(app: FastifyInstance) {
           let maxIterations = 5;
 
           while (maxIterations-- > 0) {
-            if (retryClientDisconnected) break;
             const response = await createCompletion({
               model: retryChatModel,
               messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
@@ -481,11 +491,11 @@ export function chatRoutes(app: FastifyInstance) {
                       }
                     ).function;
                     const args = JSON.parse(fn.arguments);
-                    reply.raw.write(
+                    retrySafeWrite(
                       `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
                     );
                     const result = await executeToolCall(conversation.userId, fn.name, args);
-                    reply.raw.write(
+                    retrySafeWrite(
                       `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
                     );
                     return { tool_call_id: toolCall.id, content: result };
@@ -501,7 +511,7 @@ export function chatRoutes(app: FastifyInstance) {
               }
             } else {
               fullResponse = choice.message.content || "";
-              reply.raw.write(
+              retrySafeWrite(
                 `data: ${JSON.stringify({ type: "token", content: fullResponse })}\n\n`,
               );
               break;
@@ -514,16 +524,10 @@ export function chatRoutes(app: FastifyInstance) {
             stream: true,
           });
           for await (const chunk of stream) {
-            if (retryClientDisconnected) break;
             const delta = chunk.choices[0]?.delta?.content;
             if (delta) {
               fullResponse += delta;
-              try {
-                reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
-              } catch {
-                retryClientDisconnected = true;
-                break;
-              }
+              retrySafeWrite(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
             }
           }
         }
@@ -543,7 +547,7 @@ export function chatRoutes(app: FastifyInstance) {
           data: { updatedAt: new Date() },
         });
 
-        reply.raw.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+        retrySafeWrite(`data: ${JSON.stringify({ type: "done" })}\n\n`);
       } catch (err) {
         // Save partial response even if client disconnected
         if (fullResponse) {
@@ -561,11 +565,7 @@ export function chatRoutes(app: FastifyInstance) {
         }
 
         const message = err instanceof Error ? err.message : "Unknown error";
-        try {
-          reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
-        } catch {
-          // Client already disconnected
-        }
+        retrySafeWrite(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
       }
 
       try {
@@ -825,10 +825,21 @@ export function chatRoutes(app: FastifyInstance) {
       let fullResponse = "";
       let clientDisconnected = false;
 
-      // Detect client disconnect — stop LLM generation early
+      // Detect client disconnect — keep generating so the DB gets the full
+      // response even if the user navigated away, but stop attempting to
+      // write SSE frames (would throw EPIPE).
       request.raw.on("close", () => {
         clientDisconnected = true;
       });
+
+      const safeWrite = (payload: string) => {
+        if (clientDisconnected) return;
+        try {
+          reply.raw.write(payload);
+        } catch {
+          clientDisconnected = true;
+        }
+      };
 
       try {
         let apiUsage:
@@ -847,7 +858,6 @@ export function chatRoutes(app: FastifyInstance) {
           console.log("[CHAT] Tools enabled, starting function calling loop");
 
           while (maxIterations-- > 0) {
-            if (clientDisconnected) break;
             let response: OpenAI.Chat.Completions.ChatCompletion;
             try {
               response = await withRetry(
@@ -910,13 +920,13 @@ export function chatRoutes(app: FastifyInstance) {
                     // tool call (name, args, result) is user-controlled and CodeQL
                     // flags it as clear-text logging. The SSE event below already
                     // gives the client visibility into which tool ran.
-                    reply.raw.write(
+                    safeWrite(
                       `data: ${JSON.stringify({ type: "tool_call", name: fn.name, args })}\n\n`,
                     );
 
                     const result = await executeToolCall(conversation.userId, fn.name, args);
 
-                    reply.raw.write(
+                    safeWrite(
                       `data: ${JSON.stringify({ type: "tool_result", name: fn.name })}\n\n`,
                     );
 
@@ -942,7 +952,7 @@ export function chatRoutes(app: FastifyInstance) {
               const chunkSize = 20;
               for (let i = 0; i < fullResponse.length; i += chunkSize) {
                 const chunk = fullResponse.slice(i, i + chunkSize);
-                reply.raw.write(`data: ${JSON.stringify({ type: "token", content: chunk })}\n\n`);
+                safeWrite(`data: ${JSON.stringify({ type: "token", content: chunk })}\n\n`);
               }
               break;
             }
@@ -980,21 +990,14 @@ export function chatRoutes(app: FastifyInstance) {
           }
 
           for await (const chunk of stream) {
-            if (clientDisconnected) {
-              console.log(
-                `[CHAT] Client disconnected mid-stream, saving partial response (${fullResponse.length} chars)`,
-              );
-              break;
-            }
             const delta = chunk.choices[0]?.delta?.content;
             if (delta) {
               fullResponse += delta;
-              try {
-                reply.raw.write(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
-              } catch {
-                clientDisconnected = true;
-                break;
-              }
+              // Keep accumulating into fullResponse even if client is gone —
+              // safeWrite no-ops when disconnected. The completed response is
+              // persisted in the DB save below, so navigating away no longer
+              // truncates the answer.
+              safeWrite(`data: ${JSON.stringify({ type: "token", content: delta })}\n\n`);
             }
           }
         }
@@ -1043,7 +1046,7 @@ export function chatRoutes(app: FastifyInstance) {
           autoGenerateTitle(id, trimmedContent);
         }
 
-        reply.raw.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+        safeWrite(`data: ${JSON.stringify({ type: "done" })}\n\n`);
       } catch (err) {
         // Save partial response even if client disconnected mid-stream
         if (fullResponse) {
@@ -1065,11 +1068,7 @@ export function chatRoutes(app: FastifyInstance) {
         }
 
         const message = err instanceof Error ? err.message : "Unknown error";
-        try {
-          reply.raw.write(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
-        } catch {
-          // Client already disconnected — ignore write error
-        }
+        safeWrite(`data: ${JSON.stringify({ type: "error", content: message })}\n\n`);
       }
 
       try {
