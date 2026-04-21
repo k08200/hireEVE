@@ -115,12 +115,12 @@ function ChatPageContent() {
     };
   }, [id, searchParams]);
 
-  // Abort in-flight streaming when navigating away or conversation changes
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-    };
-  }, [id]);
+  // Intentionally do NOT abort in-flight streams on unmount or conversation
+  // change. The server keeps generating and writes the final response to the
+  // DB even if the client disconnects, so navigating to /briefing (or opening
+  // another conversation) should NOT cancel the answer the user is waiting
+  // for. The only way to stop a stream is the explicit Stop button, which
+  // calls abortRef.current?.abort() directly.
 
   useEffect(() => {
     inputRef.current?.focus();
