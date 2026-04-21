@@ -179,9 +179,7 @@ function EmailRowItem({ email }: { email: EmailRow }) {
             >
               {senderName(email.from)}
             </p>
-            <p className="text-xs text-gray-400 truncate mt-0.5">
-              {email.subject || "제목 없음"}
-            </p>
+            <p className="text-xs text-gray-400 truncate mt-0.5">{email.subject || "제목 없음"}</p>
             {email.summary ? (
               <p className="text-[11px] text-cyan-400/80 line-clamp-2 mt-1">
                 <span className="text-cyan-500 mr-1">EVE:</span>
