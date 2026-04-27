@@ -26,7 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="text-gray-400 hover:text-white transition p-1"
+            className="flex items-center justify-center min-w-[44px] min-h-[44px] -ml-2 text-gray-400 hover:text-white active:text-white transition"
             aria-label="Menu"
           >
             <svg

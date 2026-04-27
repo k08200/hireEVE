@@ -81,7 +81,7 @@ export default function PwaPrompts() {
     <>
       {/* Offline indicator */}
       {offline && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-600 text-white text-center py-1.5 text-xs font-medium">
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-600 text-white text-center py-1.5 text-xs font-medium pt-[calc(env(safe-area-inset-top)+0.375rem)]">
           You are offline. Some features may be unavailable.
         </div>
       )}
