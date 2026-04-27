@@ -1570,7 +1570,7 @@ async function runAutonomousAgent() {
       if (now - lastRun < intervalMs - 30_000) continue;
 
       // Plan-based mode gating: AUTO mode requires TEAM+ plan
-      let mode = (cfg.agentMode as string) || "AUTO";
+      let mode = (cfg.agentMode as string) || "SUGGEST";
       if (mode === "AUTO" && !planHasFeature(userPlan, "agent_mode_auto")) {
         mode = "SUGGEST"; // Downgrade to SUGGEST for PRO users
       }
