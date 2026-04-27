@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("eve-token", data.token);
       setToken(data.token);
       setUser(data.user);
-      router.push("/chat");
+      router.push("/inbox");
 
       // Fire-and-forget: trigger initial sync if Google is connected
       apiFetch("/api/auth/init-sync", {
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("eve-token", data.token);
       setToken(data.token);
       setUser(data.user);
-      router.push("/chat");
+      router.push("/inbox");
     },
     [router],
   );
@@ -118,8 +118,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers: { Authorization: `Bearer ${newToken}` },
     }).catch(() => {});
 
-    console.log("[auth] loginWithToken: redirecting to /chat");
-    window.location.href = "/chat";
+    console.log("[auth] loginWithToken: redirecting to /inbox");
+    window.location.href = "/inbox";
   }, []);
 
   const logout = useCallback(() => {

@@ -53,8 +53,8 @@ function VerifyEmailContent() {
             <p className="text-gray-400 text-sm mb-6">
               Check your inbox and click the verification link.
             </p>
-            <Link href="/chat" className="text-sm text-blue-400 hover:text-blue-300">
-              Go to Chat
+            <Link href="/inbox" className="text-sm text-blue-400 hover:text-blue-300">
+              Go to Inbox
             </Link>
           </>
         ) : status === "pending" ? (
