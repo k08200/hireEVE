@@ -28,7 +28,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/chat");
+      router.push("/inbox");
     }
   }, [user, authLoading, router]);
 

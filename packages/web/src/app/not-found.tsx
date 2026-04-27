@@ -10,10 +10,10 @@ export default function NotFound() {
       </p>
       <div className="flex gap-3">
         <Link
-          href="/chat"
+          href="/inbox"
           className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition"
         >
-          Go to Chat
+          Go to Inbox
         </Link>
         <Link
           href="/briefing"
