@@ -38,7 +38,7 @@ export async function automationRoutes(app: FastifyInstance) {
       briefingTime: config.briefingTime,
       downloadAutoOrganize: config.downloadAutoOrganize,
       autonomousAgent: configAny.autonomousAgent ?? true,
-      agentMode: configAny.agentMode ?? "AUTO",
+      agentMode: configAny.agentMode ?? "SUGGEST",
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
       alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
@@ -116,7 +116,7 @@ export async function automationRoutes(app: FastifyInstance) {
       briefingTime: config.briefingTime,
       downloadAutoOrganize: config.downloadAutoOrganize,
       autonomousAgent: configAny.autonomousAgent ?? true,
-      agentMode: configAny.agentMode ?? "AUTO",
+      agentMode: configAny.agentMode ?? "SUGGEST",
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
       alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
@@ -139,7 +139,7 @@ export async function automationRoutes(app: FastifyInstance) {
     }
 
     const config = await prisma.automationConfig.findUnique({ where: { userId } });
-    const mode = ((config as Record<string, unknown>)?.agentMode as string) || "AUTO";
+    const mode = ((config as Record<string, unknown>)?.agentMode as string) || "SUGGEST";
 
     // Run in background so the response returns immediately
     runAgentForUser(userId, mode).catch((err) => {
