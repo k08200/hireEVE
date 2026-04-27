@@ -23,6 +23,8 @@ interface PendingAction {
   status: "PENDING" | "REJECTED" | "EXECUTED" | "FAILED";
   toolName: string;
   toolArgs: string;
+  /** Server-resolved human label (task title, contact name, …) — null when n/a */
+  targetLabel?: string | null;
   reasoning?: string;
   result?: string;
 }
@@ -778,7 +780,30 @@ function ChatPageContent() {
                                 : name === "delete_note"
                                   ? "note_id"
                                   : "contact_id";
-                            return `Delete: ${args[idKey] || args.id || "?"}`;
+                            const label =
+                              action.targetLabel ||
+                              args[idKey] ||
+                              args.id ||
+                              "⚠️ 항목을 찾을 수 없음";
+                            return `Delete: ${label}`;
+                          }
+                          if (
+                            name === "update_task" ||
+                            name === "update_note" ||
+                            name === "update_contact"
+                          ) {
+                            const idKey =
+                              name === "update_task"
+                                ? "task_id"
+                                : name === "update_note"
+                                  ? "note_id"
+                                  : "contact_id";
+                            const label =
+                              action.targetLabel ||
+                              args[idKey] ||
+                              args.id ||
+                              "⚠️ 항목을 찾을 수 없음";
+                            return `Update: ${label}`;
                           }
                           return null;
                         })();

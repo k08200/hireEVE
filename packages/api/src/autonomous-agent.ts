@@ -1154,12 +1154,23 @@ How to reply:
             const riskLabel = riskLevel === "HIGH" ? "⚠️ 위험" : "확인 필요";
             // Resolve the target (task title, contact name, etc.) so the user
             // sees "Meet with Alice" instead of a raw UUID in the proposal.
-            const targetLabel = await resolveActionTarget(fnName, args as Record<string, unknown>);
-            const targetLine = targetLabel ? `\n대상: ${targetLabel}` : "";
+            const argsRecord = args as Record<string, unknown>;
+            const targetLabel = await resolveActionTarget(fnName, argsRecord);
+            // delete_*/update_* only carry a useless UUID in args, so we
+            // replace the "요청 내용: {json}" line with the resolved target.
+            // When resolution fails we say so explicitly instead of leaving
+            // the user staring at a truncated UUID.
+            const isTargetOnly = /^(delete|update)_/.test(fnName);
+            const detailLine = (() => {
+              if (targetLabel) return `\n대상: ${targetLabel}`;
+              if (isTargetOnly)
+                return "\n대상: ⚠️ 항목을 찾을 수 없어요 (이미 삭제됐거나 ID가 잘못된 상태)";
+              return `\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`;
+            })();
             const proposalMessage =
               riskLevel === "HIGH"
-                ? `[${riskLabel}] ${fnName}을(를) 실행하려 합니다. 되돌리기 어려운 작업입니다.${targetLine}\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`
-                : `[${riskLabel}] ${fnName}을(를) 실행해도 될까요?${targetLine}\n\n요청 내용: ${JSON.stringify(args).slice(0, 200)}`;
+                ? `[${riskLabel}] ${fnName}을(를) 실행하려 합니다. 되돌리기 어려운 작업입니다.${detailLine}`
+                : `[${riskLabel}] ${fnName}을(를) 실행해도 될까요?${detailLine}`;
 
             // Dedup: check if there's already a PENDING action with same toolName
             const existingPending = await db.pendingAction.findFirst({

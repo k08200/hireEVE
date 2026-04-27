@@ -1149,11 +1149,37 @@ export function chatRoutes(app: FastifyInstance) {
       if (!conversation) return reply.code(404).send({ error: "Conversation not found" });
       if (conversation.userId !== userId) return reply.code(403).send({ error: "Forbidden" });
 
-      const actions = await db.pendingAction.findMany({
+      type ActionRow = {
+        id: string;
+        messageId: string;
+        status: string;
+        toolName: string;
+        toolArgs: string;
+        reasoning: string | null;
+        result: string | null;
+        createdAt: Date;
+      };
+      const actions = (await db.pendingAction.findMany({
         where: { conversationId: id },
         orderBy: { createdAt: "desc" },
-      });
-      return { actions };
+      })) as ActionRow[];
+
+      // Include resolved targetLabel so the chat preview can show the real
+      // task/note/contact name instead of the raw UUID.
+      const enriched = await Promise.all(
+        actions.map(async (a) => {
+          let targetLabel: string | null = null;
+          try {
+            const parsed = JSON.parse(a.toolArgs) as Record<string, unknown>;
+            targetLabel = await resolveActionTarget(a.toolName, parsed);
+          } catch {
+            // Malformed toolArgs — leave label null
+          }
+          return { ...a, targetLabel };
+        }),
+      );
+
+      return { actions: enriched };
     },
   );
 
