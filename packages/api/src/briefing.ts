@@ -7,6 +7,7 @@
 
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "./auth.js";
+import { type BriefingSignals, buildBriefingSignals } from "./briefing-signals.js";
 import { getBriefingStatus } from "./briefing-status.js";
 import { listEvents } from "./calendar.js";
 import { prisma } from "./db.js";
@@ -20,6 +21,7 @@ interface BriefingData {
   events: unknown;
   emails: unknown;
   notes: unknown;
+  signals: BriefingSignals;
 }
 
 async function gatherBriefingData(userId: string): Promise<BriefingData> {
@@ -30,11 +32,16 @@ async function gatherBriefingData(userId: string): Promise<BriefingData> {
     listNotes(userId).catch(() => ({ notes: [] })),
   ]);
 
-  return {
+  const data = {
     tasks: results[0].status === "fulfilled" ? results[0].value : { tasks: [] },
     events: results[1].status === "fulfilled" ? results[1].value : { events: [] },
     emails: results[2].status === "fulfilled" ? results[2].value : { emails: [] },
     notes: results[3].status === "fulfilled" ? results[3].value : { notes: [] },
+  };
+
+  return {
+    ...data,
+    signals: buildBriefingSignals(data),
   };
 }
 
@@ -57,7 +64,7 @@ export default async function generateBriefing(userId: string): Promise<string> 
 데이터를 요약하는 게 아니라, **오늘 뭐부터 해야 할지 결정**하는 것. 직원처럼 생각하고 말해.
 
 ## 반드시 할 것
-1. **도메인 연결**: 이메일·캘린더·태스크·노트를 교차 참조해. 어떤 이메일이 오늘 일정이나 밀린 태스크와 관련 있으면 반드시 엮어서 언급. (이게 가장 중요함 — 단순 나열은 ChatGPT도 해.)
+1. **도메인 연결**: "서버가 미리 찾은 신호"의 crossLinks를 우선 근거로 삼아 이메일·캘린더·태스크를 엮어서 언급. 새로운 연결을 상상해서 만들지 말고, 근거가 약하면 생략.
 2. **Top 3 액션**: 오늘 해야 할 구체적 행동 3개, 우선순위 순서대로. 각각 한 줄 이유.
 3. **빈 시간 활용**: 캘린더가 비어있으면 "여유 있으니 X하기 좋아요"처럼 능동 제안.
 4. **반드시 생략**: "데이터를 전달받았다", "X 일정이 없습니다" 같은 메타 코멘트. 유저는 그거 알 필요 없음.
@@ -87,6 +94,10 @@ export default async function generateBriefing(userId: string): Promise<string> 
 
 ---
 
+## 서버가 미리 찾은 신호
+이 섹션은 결정적 규칙으로 만든 근거다. 연결된 항목을 말할 때는 가능한 한 이 안의 crossLinks, deadlines, urgentItems를 사용해.
+Signals: ${JSON.stringify(data.signals)}
+
 ## 오늘 데이터
 Tasks: ${JSON.stringify(data.tasks)}
 Calendar: ${JSON.stringify(data.events)}
@@ -108,7 +119,7 @@ Recent Notes: ${JSON.stringify(data.notes)}`;
   return response.choices[0]?.message?.content || "No briefing generated.";
 }
 
-export async function briefingRoutes(app: FastifyInstance) {
+export function briefingRoutes(app: FastifyInstance) {
   // POST /api/briefing/generate — Generate daily briefing
   app.post("/generate", async (request) => {
     const userId = getUserId(request);
@@ -153,7 +164,7 @@ export async function briefingRoutes(app: FastifyInstance) {
   });
 
   // GET /api/briefing/status — Today's briefing, notification, and push state
-  app.get("/status", async (request) => {
+  app.get("/status", (request) => {
     const userId = getUserId(request);
     return getBriefingStatus(userId);
   });
