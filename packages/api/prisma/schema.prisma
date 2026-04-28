@@ -44,6 +44,7 @@ model User {
   devices             Device[]
   emailMessages       EmailMessage[]
   emailRules          EmailRule[]
+  attentionItems      AttentionItem[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   emailProcessingLogs EmailProcessingLog[]
@@ -565,4 +566,76 @@ enum EmailRuleAction {
   LABEL // Apply label
   ARCHIVE // Auto-archive
   NOTIFY // Send push notification
+}
+
+// ─── Attention Queue ──────────────────────────────────────────────────────
+// Unified queue of "things the user should look at." Replaces the ad-hoc join
+// of PendingAction/Task/CalendarEvent/Notification used by /api/inbox/summary.
+//
+// Notification stays as the bell. AttentionItem is the work queue — what EVE
+// believes you would lose value by missing.
+//
+// This first migration only adds the table. Producers and consumers land in
+// follow-up PRs so the schema can be reviewed in isolation.
+
+model AttentionItem {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Which underlying signal this row represents. (source, sourceId) is unique
+  // so a given PendingAction/Task/etc. only ever has one AttentionItem.
+  source   AttentionSource
+  sourceId String
+
+  type          AttentionType
+  status        AttentionStatus @default(OPEN)
+  // Priority is a 0-100 integer so callers can sort without picking a scale.
+  // Default 50 = medium; producers can override deterministically.
+  priority      Int             @default(50)
+  // Confidence in the classification (0.0-1.0). 1.0 for hand-built items
+  // (PendingAction → AttentionItem), <1.0 for inferred ones (e.g. EVE-derived).
+  confidence    Float           @default(1.0)
+  // Autopilot Ladder rung this item is allowed to act at. 0 = observe only,
+  // 5 = exception-only. Default 1 = suggest.
+  autonomyLevel Int             @default(1)
+
+  title           String
+  body            String?
+  suggestedAction String? // Human-readable: "Reply to Sarah", "Reschedule"
+  costOfIgnoring  String? // "Misses close window", "Loses Q2 budget"
+  evidence        Json? // Supporting links/snippets backing the judgment
+
+  surfacedAt   DateTime  @default(now())
+  resolvedAt   DateTime?
+  snoozedUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([source, sourceId])
+  @@index([userId, status, surfacedAt])
+}
+
+enum AttentionSource {
+  PENDING_ACTION
+  TASK
+  CALENDAR_EVENT
+  NOTIFICATION
+}
+
+enum AttentionType {
+  REPLY_NEEDED
+  MEETING_PREP
+  RISK
+  DEADLINE
+  FOLLOWUP
+  DECISION
+}
+
+enum AttentionStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+  SNOOZED
 }
