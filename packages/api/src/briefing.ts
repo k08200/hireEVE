@@ -65,7 +65,7 @@ export default async function generateBriefing(userId: string): Promise<string> 
 
 ## 반드시 할 것
 1. **도메인 연결**: "서버가 미리 찾은 신호"의 crossLinks를 우선 근거로 삼아 이메일·캘린더·태스크를 엮어서 언급. 새로운 연결을 상상해서 만들지 말고, 근거가 약하면 생략.
-2. **Top 3 액션**: 오늘 해야 할 구체적 행동 3개, 우선순위 순서대로. 각각 한 줄 이유.
+2. **Top 3 액션**: "서버가 미리 찾은 신호"의 topActions 순서를 기본값으로 사용. 순서를 임의로 바꾸지 말고, 표현만 자연스럽게 다듬어. 각각 한 줄 이유.
 3. **빈 시간 활용**: 캘린더가 비어있으면 "여유 있으니 X하기 좋아요"처럼 능동 제안.
 4. **반드시 생략**: "데이터를 전달받았다", "X 일정이 없습니다" 같은 메타 코멘트. 유저는 그거 알 필요 없음.
 
@@ -96,6 +96,7 @@ export default async function generateBriefing(userId: string): Promise<string> 
 
 ## 서버가 미리 찾은 신호
 이 섹션은 결정적 규칙으로 만든 근거다. 연결된 항목을 말할 때는 가능한 한 이 안의 crossLinks, deadlines, urgentItems를 사용해.
+오늘의 Top 3는 topActions를 우선 사용해. LLM은 톤을 다듬는 역할이고, 새로운 Top 3를 재선정하지 않는다.
 Signals: ${JSON.stringify(data.signals)}
 
 ## 오늘 데이터

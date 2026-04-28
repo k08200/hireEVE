@@ -31,10 +31,20 @@ export interface BriefingCrossLink {
   event?: BriefingReference;
 }
 
+export interface BriefingTopAction {
+  id: string;
+  rank: number;
+  score: number;
+  action: string;
+  reason: string;
+  refs: BriefingReference[];
+}
+
 export interface BriefingSignals {
   deadlines: BriefingDeadlineSignal[];
   urgentItems: BriefingUrgencySignal[];
   crossLinks: BriefingCrossLink[];
+  topActions: BriefingTopAction[];
 }
 
 interface NormalizedTask {
@@ -423,6 +433,137 @@ function buildCrossLinks(input: {
   return links.sort((a, b) => b.strength - a.strength).slice(0, 8);
 }
 
+function priorityBoost(task: NormalizedTask | undefined): number {
+  if (!task) return 0;
+  if (task.priority === "URGENT") return 14;
+  if (task.priority === "HIGH") return 9;
+  return 0;
+}
+
+function scoreDeadline(signal: BriefingDeadlineSignal, now: Date): number {
+  const due = parseDate(signal.dueAt);
+  if (!due) return 48;
+  const hoursUntilDue = (due.getTime() - now.getTime()) / (60 * 60 * 1000);
+  if (hoursUntilDue < 0) return 92;
+  if (hoursUntilDue <= 4) return 86;
+  if (hoursUntilDue <= 12) return 78;
+  if (hoursUntilDue <= 36) return 66;
+  return 54;
+}
+
+function actionForDeadline(signal: BriefingDeadlineSignal): string {
+  switch (signal.source) {
+    case "task":
+      return `Finish: ${signal.title}`;
+    case "calendar":
+      return `Prepare for: ${signal.title}`;
+    case "email":
+      return `Handle email deadline: ${signal.title}`;
+  }
+}
+
+function actionForUrgency(signal: BriefingUrgencySignal): string {
+  switch (signal.source) {
+    case "task":
+      return `Handle high-priority task: ${signal.title}`;
+    case "email":
+      return `Review urgent email: ${signal.title}`;
+    case "calendar":
+      return `Review urgent event: ${signal.title}`;
+  }
+}
+
+function refsFromLink(link: BriefingCrossLink): BriefingReference[] {
+  return [link.email, link.task, link.event].filter(
+    (item): item is BriefingReference => item !== undefined,
+  );
+}
+
+function actionForLink(link: BriefingCrossLink): string {
+  if (link.email && link.task) return `Resolve linked email and task: ${link.email.title}`;
+  if (link.email && link.event) return `Review email before event: ${link.event.title}`;
+  if (link.task && link.event) return `Finish task before event: ${link.task.title}`;
+  return "Review linked work item";
+}
+
+function scoreLink(link: BriefingCrossLink): number {
+  const relationshipBoost = link.kind === "email_task" ? 10 : link.kind === "task_event" ? 8 : 6;
+  const dueBoost = link.reason.includes("task due before event") ? 14 : 0;
+  return 62 + link.strength * 6 + relationshipBoost + dueBoost;
+}
+
+function refKey(ref: BriefingReference): string | null {
+  return ref.id ? `${ref.source}:${ref.id}` : null;
+}
+
+function candidateKey(prefix: string, refs: BriefingReference[]): string {
+  return `${prefix}:${refs
+    .map((item) => refKey(item) || `${item.source}:${item.title}`)
+    .join("|")}`;
+}
+
+function buildTopActions(input: {
+  tasks: NormalizedTask[];
+  deadlines: BriefingDeadlineSignal[];
+  urgentItems: BriefingUrgencySignal[];
+  crossLinks: BriefingCrossLink[];
+  now: Date;
+}): BriefingTopAction[] {
+  const tasksById = new Map(
+    input.tasks.filter((task) => task.id !== null).map((task) => [task.id, task]),
+  );
+  const candidates: Array<Omit<BriefingTopAction, "rank">> = [];
+
+  for (const link of input.crossLinks) {
+    const refs = refsFromLink(link);
+    candidates.push({
+      id: candidateKey(link.kind, refs),
+      score: scoreLink(link),
+      action: actionForLink(link),
+      reason: link.reason,
+      refs,
+    });
+  }
+
+  for (const deadline of input.deadlines) {
+    const task = deadline.source === "task" ? tasksById.get(deadline.id) : undefined;
+    const refs = [ref(deadline.source, deadline.id, deadline.title)];
+    candidates.push({
+      id: candidateKey("deadline", refs),
+      score: scoreDeadline(deadline, input.now) + priorityBoost(task),
+      action: actionForDeadline(deadline),
+      reason: `${deadline.reason}; ${deadline.dueText}`,
+      refs,
+    });
+  }
+
+  for (const urgent of input.urgentItems) {
+    const task = urgent.source === "task" ? tasksById.get(urgent.id) : undefined;
+    const refs = [ref(urgent.source, urgent.id, urgent.title)];
+    candidates.push({
+      id: candidateKey("urgent", refs),
+      score: 64 + priorityBoost(task),
+      action: actionForUrgency(urgent),
+      reason: urgent.reason,
+      refs,
+    });
+  }
+
+  const chosen: BriefingTopAction[] = [];
+  const usedRefs = new Set<string>();
+  for (const candidate of candidates.sort(
+    (a, b) => b.score - a.score || a.id.localeCompare(b.id),
+  )) {
+    const keys = candidate.refs.map(refKey).filter((key): key is string => key !== null);
+    if (keys.some((key) => usedRefs.has(key))) continue;
+    chosen.push({ ...candidate, rank: chosen.length + 1 });
+    for (const key of keys) usedRefs.add(key);
+    if (chosen.length === 3) break;
+  }
+
+  return chosen;
+}
+
 export function buildBriefingSignals(
   data: { tasks: unknown; events: unknown; emails: unknown },
   opts?: { now?: Date },
@@ -431,10 +572,14 @@ export function buildBriefingSignals(
   const tasks = normalizeTasks(data.tasks);
   const events = normalizeEvents(data.events);
   const emails = normalizeEmails(data.emails);
+  const deadlines = buildDeadlines({ tasks, emails, events, now });
+  const urgentItems = buildUrgency({ tasks, emails });
+  const crossLinks = buildCrossLinks({ tasks, emails, events });
 
   return {
-    deadlines: buildDeadlines({ tasks, emails, events, now }),
-    urgentItems: buildUrgency({ tasks, emails }),
-    crossLinks: buildCrossLinks({ tasks, emails, events }),
+    deadlines,
+    urgentItems,
+    crossLinks,
+    topActions: buildTopActions({ tasks, deadlines, urgentItems, crossLinks, now }),
   };
 }
