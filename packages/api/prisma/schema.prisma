@@ -48,6 +48,7 @@ model User {
   attentionItems      AttentionItem[]
   commitments         Commitment[]
   feedbackEvents      FeedbackEvent[]
+  emailLabelFeedback  EmailLabelFeedback[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   emailProcessingLogs EmailProcessingLog[]
@@ -556,6 +557,31 @@ model EmailMessage {
   @@index([userId, priority])
   @@index([userId, category])
   @@index([userId, isRead])
+}
+
+// User-supplied corrections of EVE's automatic email priority classification.
+// Each row captures both the auto-label that was wrong AND the heuristic
+// signals/reason at the moment of feedback, so we can later replay the
+// classifier against these cases as a regression suite or feed them in as
+// few-shot examples without losing why the model was originally fooled.
+model EmailLabelFeedback {
+  id                String        @id @default(uuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailId           String // EmailMessage.id (soft FK — keep history if email is deleted)
+  originalPriority  EmailPriority // priority EVE assigned at the moment of feedback
+  correctedPriority EmailPriority // priority the user intended
+  reason            String? // classifyPriorityDetailed.reason snapshot (or "auto" if pre-detailed)
+  signals           String[] // classifyPriorityDetailed.signals snapshot
+  fromAddress       String // sender at feedback time — for fixture export
+  subject           String // subject at feedback time — for fixture export
+  labels            String[] // gmail labels at feedback time
+  note              String? // optional free-text comment from the user
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([userId, emailId])
+  @@index([userId, createdAt])
 }
 
 enum EmailPriority {
