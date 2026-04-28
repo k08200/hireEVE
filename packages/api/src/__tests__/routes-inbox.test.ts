@@ -56,13 +56,68 @@ const notifications: Array<{
   createdAt: Date;
 }> = [];
 
+type AttentionRow = {
+  id: string;
+  userId: string;
+  source: string;
+  sourceId: string;
+  status: string;
+  surfacedAt: Date;
+};
+const attentionItems: AttentionRow[] = [];
+
 vi.mock("../db.js", () => {
   const prisma = {
     pendingAction: {
-      findMany: vi.fn(async ({ where }: { where: { userId: string; status?: string } }) =>
-        pendingActions.filter(
-          (a) => a.userId === where.userId && (!where.status || a.status === where.status),
-        ),
+      findMany: vi.fn(
+        async ({ where }: { where: { userId?: string; status?: string; id?: { in: string[] } } }) =>
+          pendingActions.filter((a) => {
+            if (where.userId && a.userId !== where.userId) return false;
+            if (where.status && a.status !== where.status) return false;
+            if (where.id?.in && !where.id.in.includes(a.id)) return false;
+            return true;
+          }),
+      ),
+    },
+    attentionItem: {
+      findMany: vi.fn(
+        async ({ where }: { where: { userId: string; source?: string; status?: string } }) =>
+          attentionItems.filter(
+            (a) =>
+              a.userId === where.userId &&
+              (!where.source || a.source === where.source) &&
+              (!where.status || a.status === where.status),
+          ),
+      ),
+      upsert: vi.fn(
+        async ({
+          where,
+          create,
+        }: {
+          where: { source_sourceId: { source: string; sourceId: string } };
+          create: { userId: string; status: string };
+          update: { status: string };
+        }) => {
+          const idx = attentionItems.findIndex(
+            (a) =>
+              a.source === where.source_sourceId.source &&
+              a.sourceId === where.source_sourceId.sourceId,
+          );
+          if (idx >= 0) {
+            attentionItems[idx] = { ...attentionItems[idx] };
+            return attentionItems[idx];
+          }
+          const row: AttentionRow = {
+            id: `ai-${attentionItems.length + 1}`,
+            userId: create.userId,
+            source: where.source_sourceId.source,
+            sourceId: where.source_sourceId.sourceId,
+            status: create.status,
+            surfacedAt: new Date(),
+          };
+          attentionItems.push(row);
+          return row;
+        },
       ),
     },
     task: {
@@ -135,6 +190,7 @@ function resetStores() {
   tasks.length = 0;
   events.length = 0;
   notifications.length = 0;
+  attentionItems.length = 0;
 }
 
 describe("inbox routes", () => {
@@ -195,6 +251,37 @@ describe("inbox routes", () => {
     const body = res.json();
     expect(body.top3[0]).toMatchObject({ kind: "pending_action", id: "pa-1" });
     expect(body.top3[1]).toMatchObject({ kind: "overdue_task", id: "t-1" });
+    await app.close();
+  });
+
+  it("backfills AttentionItems for orphaned PendingActions on read", async () => {
+    pendingActions.push({
+      id: "pa-orphan",
+      userId: "user-1",
+      conversationId: "c-1",
+      status: "PENDING",
+      toolName: "send_email",
+      toolArgs: "{}",
+      reasoning: "old PA created before mirror existed",
+      createdAt: new Date(),
+    });
+    expect(attentionItems).toHaveLength(0);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/inbox/summary",
+      headers: auth(),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(attentionItems).toHaveLength(1);
+    expect(attentionItems[0]).toMatchObject({
+      source: "PENDING_ACTION",
+      sourceId: "pa-orphan",
+      status: "OPEN",
+    });
+    expect(res.json().top3[0]).toMatchObject({ kind: "pending_action", id: "pa-orphan" });
     await app.close();
   });
 

@@ -12,6 +12,7 @@
  */
 
 import { resolveActionTarget } from "./action-target.js";
+import { upsertAttentionForPendingAction } from "./attention-mirror.js";
 import { prisma } from "./db.js";
 
 export interface PendingActionInput {
@@ -255,6 +256,7 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
 
   type PendingActionRow = {
     id: string;
+    userId: string;
     conversationId: string;
     status: string;
     toolName: string;
@@ -285,26 +287,68 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
     }),
   ]);
 
-  const pendingActions: PendingActionInput[] = await Promise.all(
-    pendingRows.map(async (a) => {
-      let targetLabel: string | null = null;
-      try {
-        const parsed = JSON.parse(a.toolArgs) as Record<string, unknown>;
-        targetLabel = await resolveActionTarget(a.toolName, parsed);
-      } catch {
-        // Malformed toolArgs — leave label null
-      }
-      return {
-        id: a.id,
-        conversationId: a.conversationId,
-        status: a.status,
-        toolName: a.toolName,
-        targetLabel,
-        reasoning: a.reasoning,
-        createdAt: a.createdAt.toISOString(),
-      };
-    }),
+  // Backfill AttentionItems for any PendingActions still missing from the queue
+  // (rows created before #153 landed). Idempotent — upsert keyed on (source,
+  // sourceId) so no duplicates and no extra writes once the queue is in sync.
+  const existingAttention = (await prisma.attentionItem.findMany({
+    where: { userId, source: "PENDING_ACTION", status: "OPEN" },
+    select: { sourceId: true },
+  })) as Array<{ sourceId: string }>;
+  const mirroredIds = new Set(existingAttention.map((a) => a.sourceId));
+  const orphans = pendingRows.filter((p) => !mirroredIds.has(p.id));
+  if (orphans.length > 0) {
+    await Promise.all(orphans.map((p) => upsertAttentionForPendingAction(p)));
+  }
+
+  // Read the queue from AttentionItem now — sourceId joins back to PendingAction
+  // for the conversation/tool metadata the UI still needs.
+  type AttentionItemRow = {
+    id: string;
+    sourceId: string;
+    surfacedAt: Date;
+  };
+  const queue = (await prisma.attentionItem.findMany({
+    where: { userId, source: "PENDING_ACTION", status: "OPEN" },
+    orderBy: [{ priority: "desc" }, { surfacedAt: "desc" }],
+    take: 50,
+    select: { id: true, sourceId: true, surfacedAt: true },
+  })) as AttentionItemRow[];
+
+  const queueSourceIds = queue.map((q) => q.sourceId);
+  const paBySourceId = new Map<string, PendingActionRow>(
+    queueSourceIds.length === 0
+      ? []
+      : (
+          (await (prisma.pendingAction.findMany as (args: unknown) => Promise<PendingActionRow[]>)({
+            where: { id: { in: queueSourceIds }, status: "PENDING" },
+          })) as PendingActionRow[]
+        ).map((p) => [p.id, p]),
   );
+
+  const pendingActions: PendingActionInput[] = (
+    await Promise.all(
+      queue.map(async (q) => {
+        const a = paBySourceId.get(q.sourceId);
+        if (!a) return null;
+        let targetLabel: string | null = null;
+        try {
+          const parsed = JSON.parse(a.toolArgs) as Record<string, unknown>;
+          targetLabel = await resolveActionTarget(a.toolName, parsed);
+        } catch {
+          // Malformed toolArgs — leave label null
+        }
+        return {
+          id: a.id,
+          conversationId: a.conversationId,
+          status: a.status,
+          toolName: a.toolName,
+          targetLabel,
+          reasoning: a.reasoning,
+          createdAt: a.createdAt.toISOString(),
+        };
+      }),
+    )
+  ).filter((x): x is PendingActionInput => x !== null);
 
   const tasks: TaskInput[] = taskRows.map((t) => ({
     id: t.id,
