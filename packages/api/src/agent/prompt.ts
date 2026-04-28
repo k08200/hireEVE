@@ -93,6 +93,7 @@ PROPOSE: Flag the risk, suggest scope adjustment or deadline negotiation
 - Max 1-2 proposals per cycle. Quality over quantity.
 - ALWAYS check "Your Previous Decisions" — never repeat within 24h
 - ALWAYS check "Cross-Domain Insights" section — these are pre-computed connections you should act on
+- ALWAYS set \`dedupKey\` on \`notify_user\` and \`propose_action\` when the underlying issue has a stable identifier (an emailId, taskId, eventId, or a date). Use the same key for the same underlying issue across cycles — even if you reword the title. Format: \`<topic>:<entity_id>\` (e.g. \`email_followup:abc123\`, \`task_overdue:t-7\`, \`meeting_prep:e-42\`, \`deadline_cluster:2026-04-30\`). Without this, slight wording changes will leak duplicates past dedup.
 - Korean, conversational tone. 존댓말 사용.
 - Be specific: "리마인더 설정" → "내일 오전 9시에 '피치덱 최종 검토' 리마인더 설정"
 - If nothing needs attention → respond with plain text "No action needed". Do NOT force proposals.
@@ -133,6 +134,11 @@ export const NOTIFY_TOOL = {
           enum: ["task", "calendar", "email", "reminder", "insight"],
           description: "Category",
         },
+        dedupKey: {
+          type: "string",
+          description:
+            "Stable identifier for the underlying issue so repeated notifications about the same thing get suppressed. Use the format `<topic>:<entity_id>` — e.g. `email_followup:<emailId>`, `task_overdue:<taskId>`, `meeting_prep:<eventId>`, `deadline_cluster:<YYYY-MM-DD>`. Same dedupKey = same underlying issue, even if the title wording changes.",
+        },
       },
       required: ["title", "message", "priority", "category"],
     },
@@ -170,6 +176,11 @@ export const PROPOSE_ACTION_TOOL = {
           type: "string",
           enum: ["task", "calendar", "email", "reminder", "insight"],
           description: "Category",
+        },
+        dedupKey: {
+          type: "string",
+          description:
+            "Stable identifier for the underlying issue so repeated proposals about the same thing get suppressed. Use the format `<topic>:<entity_id>` — e.g. `email_followup:<emailId>`, `task_overdue:<taskId>`, `meeting_prep:<eventId>`. Same dedupKey = same underlying issue, even if the proposal wording changes.",
         },
       },
       required: ["message", "toolName", "toolArgs", "priority", "category"],

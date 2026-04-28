@@ -27,6 +27,7 @@
 import type OpenAI from "openai";
 import { resolveActionTarget } from "./action-target.js";
 import { AGENT_SYSTEM_PROMPT, NOTIFY_TOOL, PROPOSE_ACTION_TOOL } from "./agent/prompt.js";
+import { recordDedupKey, wasRecentlyDeduped } from "./agent-dedup.js";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 import { db, prisma } from "./db.js";
 import { isNoReplyAddress, markAsRead } from "./gmail.js";
@@ -952,7 +953,12 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
 
         if (fnName === "propose_action") {
           // Propose action via chat — create conversation + message + pending action
+          const dedupKey = typeof args.dedupKey === "string" ? args.dedupKey : "";
           const key = getNotifKey(args.message);
+
+          // In-memory dedupKey check first — catches LLM wording variations within
+          // the TTL window that the fuzzy title hash cannot detect.
+          const dedupKeyHit = dedupKey && wasRecentlyDeduped(userId, dedupKey);
 
           // DB-backed dedup: check RECENT PENDING actions (not stale ones older than 6h)
           const pendingCutoff = new Date(Date.now() - 6 * 60 * 60 * 1000);
@@ -967,10 +973,10 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
           });
           const alreadyNotified = await hasRecentNotification(userId, key);
 
-          if (existingPending || alreadyNotified) {
+          if (dedupKeyHit || existingPending || alreadyNotified) {
             result = JSON.stringify({
               skipped: true,
-              reason: "duplicate proposal",
+              reason: dedupKeyHit ? "duplicate proposal (dedupKey)" : "duplicate proposal",
             });
             await logAgentAction(userId, "skip", `Dedup proposal: "${args.message.slice(0, 50)}"`);
           } else {
@@ -1064,6 +1070,8 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
               url: `/chat/${agentConvo.id}`,
             });
 
+            if (dedupKey) recordDedupKey(userId, dedupKey);
+
             result = JSON.stringify({
               success: true,
               proposed: true,
@@ -1117,13 +1125,15 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
           }
 
           // Lightweight notification — no approval needed
+          const dedupKey = typeof args.dedupKey === "string" ? args.dedupKey : "";
+          const dedupKeyHit = dedupKey && wasRecentlyDeduped(userId, dedupKey);
           const key = getNotifKey(args.title);
           const alreadyNotified = await hasRecentNotification(userId, key);
 
-          if (alreadyNotified) {
+          if (dedupKeyHit || alreadyNotified) {
             result = JSON.stringify({
               skipped: true,
-              reason: "duplicate notification",
+              reason: dedupKeyHit ? "duplicate notification (dedupKey)" : "duplicate notification",
             });
             await logAgentAction(userId, "skip", `Dedup: "${args.title}" already sent`);
           } else {
@@ -1163,6 +1173,8 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
               body: args.message,
               url: notifyLink,
             });
+
+            if (dedupKey) recordDedupKey(userId, dedupKey);
 
             result = JSON.stringify({ success: true, notified: true });
 
