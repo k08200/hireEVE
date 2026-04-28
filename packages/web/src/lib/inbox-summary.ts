@@ -34,6 +34,18 @@ export type AttentionItem =
       title: string;
       message: string;
       link: string | null;
+    }
+  | {
+      kind: "commitment";
+      id: string;
+      title: string;
+      description: string | null;
+      commitmentKind: string;
+      owner: string;
+      dueAt: string | null;
+      dueText: string | null;
+      confidence: number;
+      attentionType: "COMMITMENT_DUE" | "COMMITMENT_OVERDUE" | "COMMITMENT_UNCONFIRMED";
     };
 
 export interface TaskItem {

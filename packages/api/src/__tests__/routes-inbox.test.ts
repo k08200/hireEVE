@@ -55,12 +55,25 @@ const notifications: Array<{
   pendingActionId: string | null;
   createdAt: Date;
 }> = [];
+const commitments: Array<{
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  kind: string;
+  owner: string;
+  dueAt: Date | null;
+  dueText: string | null;
+  confidence: number;
+}> = [];
 
 type AttentionRow = {
   id: string;
   userId: string;
   source: string;
   sourceId: string;
+  type: string;
   status: string;
   priority: number;
   surfacedAt: Date;
@@ -125,8 +138,8 @@ vi.mock("../db.js", () => {
           update,
         }: {
           where: { source_sourceId: { source: string; sourceId: string } };
-          create: { userId: string; status: string; priority?: number };
-          update: { status: string; priority?: number };
+          create: { userId: string; status: string; type: string; priority?: number };
+          update: { status: string; type: string; priority?: number };
         }) => {
           const idx = attentionItems.findIndex(
             (a) =>
@@ -136,6 +149,7 @@ vi.mock("../db.js", () => {
           if (idx >= 0) {
             attentionItems[idx] = {
               ...attentionItems[idx],
+              type: update.type,
               status: update.status,
               priority: update.priority ?? attentionItems[idx].priority,
             };
@@ -146,6 +160,7 @@ vi.mock("../db.js", () => {
             userId: create.userId,
             source: where.source_sourceId.source,
             sourceId: where.source_sourceId.sourceId,
+            type: create.type,
             status: create.status,
             priority: create.priority ?? 50,
             surfacedAt: new Date(),
@@ -216,6 +231,17 @@ vi.mock("../db.js", () => {
           }),
       ),
     },
+    commitment: {
+      findMany: vi.fn(
+        async ({ where }: { where: { userId?: string; status?: string; id?: { in: string[] } } }) =>
+          commitments.filter((c) => {
+            if (where.userId && c.userId !== where.userId) return false;
+            if (where.status && c.status !== where.status) return false;
+            if (where.id?.in && !where.id.in.includes(c.id)) return false;
+            return true;
+          }),
+      ),
+    },
     user: {
       findUnique: vi.fn(async () => ({ id: "user-1", plan: "FREE", role: "USER" })),
     },
@@ -247,6 +273,7 @@ function resetStores() {
   tasks.length = 0;
   events.length = 0;
   notifications.length = 0;
+  commitments.length = 0;
   attentionItems.length = 0;
 }
 
@@ -400,6 +427,43 @@ describe("inbox routes", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().top3).toEqual([]);
+    await app.close();
+  });
+
+  it("surfaces commitments from the Attention queue", async () => {
+    commitments.push({
+      id: "cm-1",
+      userId: "user-1",
+      title: "자료 보내기",
+      description: "Chat message",
+      status: "OPEN",
+      kind: "DELIVERABLE",
+      owner: "USER",
+      dueAt: null,
+      dueText: "내일",
+      confidence: 0.55,
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/inbox/summary",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(attentionItems[0]).toMatchObject({
+      source: "COMMITMENT",
+      sourceId: "cm-1",
+      type: "COMMITMENT_UNCONFIRMED",
+    });
+    expect(res.json().top3[0]).toMatchObject({
+      kind: "commitment",
+      id: "cm-1",
+      title: "자료 보내기",
+      owner: "USER",
+      dueText: "내일",
+      attentionType: "COMMITMENT_UNCONFIRMED",
+    });
     await app.close();
   });
 });
