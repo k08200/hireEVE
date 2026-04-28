@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
+import CommandCenterSummary from "../../components/command-center-summary";
 import { apiFetch } from "../../lib/api";
 import { captureClientError } from "../../lib/sentry";
 
@@ -130,6 +131,8 @@ function InboxView() {
           <FilterTab active={filter === "all"} label="전체" onClick={() => setFilter("all")} />
         </div>
       </header>
+
+      <CommandCenterSummary />
 
       {loading && actions.length === 0 && (
         <p className="text-sm text-gray-500 py-8 text-center">로딩 중...</p>
