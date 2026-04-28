@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dogfoodEmailClassificationFixtures } from "../__fixtures__/email-classification/dogfood.js";
+import { evaluateEmailPriorityFixtures } from "../email-classification-eval.js";
 import { classifyPriority, classifyPriorityDetailed } from "../email-sync.js";
 
 describe("classifyPriority — heuristic gate before LLM", () => {
@@ -102,13 +103,8 @@ describe("classifyPriority — heuristic gate before LLM", () => {
 
   describe("dogfood fixture baseline", () => {
     it("has no known heuristic gaps against the redacted fixture set", () => {
-      const mismatches = dogfoodEmailClassificationFixtures
-        .filter(
-          (fixture) =>
-            classifyPriority(fixture.from, fixture.subject, fixture.labels) !==
-            fixture.expectedSyncPriority,
-        )
-        .map((fixture) => fixture.id);
+      const report = evaluateEmailPriorityFixtures(dogfoodEmailClassificationFixtures);
+      const mismatches = report.mismatches.map((fixture) => fixture.id);
       const knownGaps = dogfoodEmailClassificationFixtures
         .filter((fixture) => fixture.knownHeuristicGap)
         .map((fixture) => fixture.id);

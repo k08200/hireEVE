@@ -20,6 +20,11 @@ vi.mock("../email-sync.js", () => ({
   reconcileEmails: vi.fn(async () => ({ removed: 0, updated: 0 })),
   summarizeUnsummarizedEmails: vi.fn(async () => 0),
   generateSmartReply: vi.fn(async () => "Reply"),
+  classifyPriorityDetailed: vi.fn((from: string, subject: string, labels: string[] = []) => ({
+    priority: from.includes("newsletter") ? "LOW" : "NORMAL",
+    reason: labels.length > 0 ? "test_labels" : "test_default",
+    signals: [subject],
+  })),
   checkAutoReplyRules: vi.fn(async () => null),
   getEmailThreads: vi.fn(async () => ({ threads: [], total: 0 })),
 }));
@@ -39,6 +44,9 @@ vi.mock("../db.js", () => {
       findMany: vi.fn(async () => []),
       create: vi.fn(async () => ({ id: "r1", name: "Rule", conditions: "{}" })),
       findFirst: vi.fn(async () => null),
+    },
+    emailLabelFeedback: {
+      findMany: vi.fn(async () => []),
     },
     contact: { findFirst: vi.fn(async () => null) },
     user: { findUnique: vi.fn(async () => ({ id: "user-1", plan: "FREE", role: "USER" })) },
@@ -113,6 +121,49 @@ describe("email routes (demo mode)", () => {
     const res = await app.inject({ method: "GET", url: "/api/email/threads", headers: auth() });
     expect(res.statusCode).toBe(200);
     expect(res.json().source).toBe("demo");
+    await app.close();
+  });
+
+  it("evaluates user feedback fixtures against the current heuristic", async () => {
+    const { prisma } = await import("../db.js");
+    vi.mocked(prisma.emailLabelFeedback.findMany).mockResolvedValueOnce([
+      {
+        id: "fb-1",
+        originalPriority: "LOW",
+        correctedPriority: "NORMAL",
+        reason: "newsletter_sender",
+        signals: ["newsletter@example.com"],
+        fromAddress: "newsletter@example.com",
+        subject: "Weekly digest",
+        labels: ["INBOX"],
+        note: null,
+        createdAt: new Date("2026-04-28T00:00:00.000Z"),
+      },
+    ]);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/email/feedback/eval?limit=10",
+      headers: auth(),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      total: 1,
+      matched: 0,
+      mismatched: 1,
+      stillMatchesCapturedHeuristic: 1,
+      changedButStillMismatched: 0,
+      nowMatchesUser: 0,
+    });
+    expect(res.json().mismatches[0]).toMatchObject({
+      id: "feedback-fb-1",
+      expectedPriority: "NORMAL",
+      actualPriority: "LOW",
+      capturedPriority: "LOW",
+      status: "still_matches_captured_heuristic",
+    });
     await app.close();
   });
 });
