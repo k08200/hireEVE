@@ -1,14 +1,15 @@
 /**
  * Feedback ledger inspection API.
  *
- * Read-only for now — Step 8.1 only writes the ledger. Settings UI in #171
- * will let the user inspect what's been captured before the policy
- * extraction (#169) and prompt integration (#170) start acting on it.
+ * Read-only for now. #169 derives policy candidates from the ledger, while
+ * #170/#171 decide how those candidates become agent context and user-facing
+ * controls.
  */
 import type { FeedbackSignal, FeedbackSource } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
+import { getFeedbackPolicyCandidates } from "../policy-extraction.js";
 
 const ALLOWED_SOURCES = new Set<FeedbackSource>([
   "PENDING_ACTION",
@@ -25,7 +26,7 @@ const ALLOWED_SIGNALS = new Set<FeedbackSignal>([
   "DISMISSED",
 ]);
 
-export async function feedbackRoutes(app: FastifyInstance) {
+export function feedbackRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
 
   // GET /api/feedback — recent events for inspection
@@ -81,4 +82,27 @@ export async function feedbackRoutes(app: FastifyInstance) {
     for (const row of grouped) counts[row.signal] = row._count.signal;
     return { since: since.toISOString(), counts };
   });
+
+  // GET /api/feedback/policy-candidates — conservative read-only patterns
+  // extracted from recent feedback. These are not active policies yet.
+  app.get("/policy-candidates", async (request) => {
+    const userId = getUserId(request);
+    const { days, limit, minEvents } = request.query as {
+      days?: string;
+      limit?: string;
+      minEvents?: string;
+    };
+
+    return await getFeedbackPolicyCandidates(userId, {
+      days: parseOptionalInteger(days),
+      limit: parseOptionalInteger(limit),
+      minEvents: parseOptionalInteger(minEvents),
+    });
+  });
+}
+
+function parseOptionalInteger(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
