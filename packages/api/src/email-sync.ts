@@ -9,9 +9,11 @@
  */
 
 import { google } from "googleapis";
+import { extractAndUpsertCommitmentsFromText } from "./commitment-ingestion.js";
 import { prisma } from "./db.js";
 import { getAuthedClient } from "./gmail.js";
 import { createCompletion, MODEL, openai } from "./openai.js";
+import { captureError } from "./sentry.js";
 import { wrapUntrusted } from "./untrusted.js";
 
 // ─── Gmail → DB Sync ──────────────────────────────────────────────────────
@@ -172,7 +174,7 @@ export async function syncEmails(
       // Classify priority using keyword heuristics first (fast)
       const priority = classifyPriority(email.from, email.subject, email.labels);
 
-      await prisma.emailMessage.create({
+      const createdEmail = await prisma.emailMessage.create({
         data: {
           userId,
           gmailId: email.gmailId,
@@ -191,6 +193,24 @@ export async function syncEmails(
           receivedAt: email.receivedAt,
         },
       });
+      const commitmentText = [email.subject, email.body || email.snippet]
+        .filter(Boolean)
+        .join("\n\n");
+      if (commitmentText.trim()) {
+        extractAndUpsertCommitmentsFromText({
+          userId,
+          sourceType: "EMAIL",
+          sourceId: createdEmail.id,
+          threadId: email.threadId,
+          text: commitmentText,
+          contextTitle: email.subject,
+        }).catch((err) => {
+          captureError(err, {
+            tags: { scope: "commitment.email_ingestion" },
+            extra: { userId, emailId: createdEmail.id, gmailId: email.gmailId },
+          });
+        });
+      }
       newCount++;
     }
   }
