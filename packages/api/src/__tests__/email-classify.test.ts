@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dogfoodEmailClassificationFixtures } from "../__fixtures__/email-classification/dogfood.js";
-import { classifyPriority } from "../email-sync.js";
+import { classifyPriority, classifyPriorityDetailed } from "../email-sync.js";
 
 describe("classifyPriority — heuristic gate before LLM", () => {
   describe("Gmail category labels (highest precedence)", () => {
@@ -51,6 +51,17 @@ describe("classifyPriority — heuristic gate before LLM", () => {
     it("'deadline' keyword → URGENT", () => {
       expect(classifyPriority("a@b.com", "Deadline reminder for invoice")).toBe("URGENT");
     });
+    it("investor/fundraising sender with near-term review → URGENT", () => {
+      const result = classifyPriorityDetailed(
+        "Mina Park <mina@alpha-capital.com>",
+        "Re: Seed round follow-up",
+      );
+
+      expect(result).toMatchObject({
+        priority: "URGENT",
+        reason: "investor_deadline_or_fundraising_signal",
+      });
+    });
   });
 
   describe("NORMAL signals", () => {
@@ -90,7 +101,7 @@ describe("classifyPriority — heuristic gate before LLM", () => {
   });
 
   describe("dogfood fixture baseline", () => {
-    it("documents current heuristic gaps against redacted real-world patterns", () => {
+    it("has no known heuristic gaps against the redacted fixture set", () => {
       const mismatches = dogfoodEmailClassificationFixtures
         .filter(
           (fixture) =>

@@ -307,15 +307,68 @@ export async function reconcileEmails(
 
 // ─── Priority Classification (keyword-based, fast) ────────────────────────
 
+export interface PriorityClassification {
+  priority: "URGENT" | "NORMAL" | "LOW";
+  reason: string;
+  signals: string[];
+}
+
+function senderLooksLikeInvestor(from: string): boolean {
+  return (
+    from.includes(".vc") ||
+    from.includes(" vc") ||
+    from.includes("capital") ||
+    from.includes("ventures") ||
+    from.includes("investor") ||
+    from.includes("fund") ||
+    from.includes("partners")
+  );
+}
+
+function subjectLooksInvestorCritical(subject: string): boolean {
+  return (
+    subject.includes("term sheet") ||
+    subject.includes("safe") ||
+    subject.includes("seed") ||
+    subject.includes("series a") ||
+    subject.includes("투자") ||
+    subject.includes("텀시트")
+  );
+}
+
+function subjectHasDeadline(subject: string): boolean {
+  return (
+    subject.includes("urgent") ||
+    subject.includes("긴급") ||
+    subject.includes("asap") ||
+    subject.includes("action required") ||
+    subject.includes("response required") ||
+    subject.includes("response needed") ||
+    subject.includes("today") ||
+    subject.includes("tomorrow") ||
+    subject.includes("by eod") ||
+    subject.includes("eod") ||
+    subject.includes("오늘까지") ||
+    subject.includes("내일까지") ||
+    subject.includes("즉시") ||
+    subject.includes("급함") ||
+    subject.includes("빠른 회신") ||
+    subject.includes("빠른 답변") ||
+    subject.includes("중요") ||
+    subject.includes("deadline") ||
+    subject.includes("expir")
+  );
+}
+
 // Exported for unit testing — heuristic-only, runs before LLM summarization.
 // Order matters: check LOW signals first to short-circuit promotional traffic
 // before any URGENT keyword check (so a marketing subject like "긴급 할인!"
 // stays LOW instead of getting flagged as URGENT).
-export function classifyPriority(
+export function classifyPriorityDetailed(
   from: string,
   subject: string,
   labels: string[] = [],
-): "URGENT" | "NORMAL" | "LOW" {
+): PriorityClassification {
   const f = from.toLowerCase();
   const s = subject.toLowerCase();
 
@@ -327,7 +380,7 @@ export function classifyPriority(
     labels.includes("SPAM") ||
     labels.includes("TRASH")
   ) {
-    return "LOW";
+    return { priority: "LOW", reason: "gmail_low_priority_label", signals: labels };
   }
 
   // Low priority signals (automated/newsletter/ads)
@@ -363,29 +416,24 @@ export function classifyPriority(
     s.includes("verify your") ||
     s.includes("confirm your")
   ) {
-    return "LOW";
+    return {
+      priority: "LOW",
+      reason: "automated_or_promotional_signal",
+      signals: [f, s].filter(Boolean),
+    };
+  }
+
+  if (senderLooksLikeInvestor(f) && (subjectLooksInvestorCritical(s) || subjectHasDeadline(s))) {
+    return {
+      priority: "URGENT",
+      reason: "investor_deadline_or_fundraising_signal",
+      signals: [from, subject],
+    };
   }
 
   // Urgent signals — explicit deadlines or time pressure
-  if (
-    s.includes("urgent") ||
-    s.includes("긴급") ||
-    s.includes("asap") ||
-    s.includes("action required") ||
-    s.includes("response required") ||
-    s.includes("response needed") ||
-    s.includes("today") ||
-    s.includes("오늘까지") ||
-    s.includes("내일까지") ||
-    s.includes("즉시") ||
-    s.includes("급함") ||
-    s.includes("빠른 회신") ||
-    s.includes("빠른 답변") ||
-    s.includes("중요") ||
-    s.includes("deadline") ||
-    s.includes("expir")
-  ) {
-    return "URGENT";
+  if (subjectHasDeadline(s)) {
+    return { priority: "URGENT", reason: "deadline_or_time_pressure", signals: [subject] };
   }
 
   // Medium signals → NORMAL
@@ -401,10 +449,18 @@ export function classifyPriority(
     s.includes("답장") ||
     s.includes("문의")
   ) {
-    return "NORMAL";
+    return { priority: "NORMAL", reason: "reply_or_business_context", signals: [subject] };
   }
 
-  return "NORMAL";
+  return { priority: "NORMAL", reason: "default", signals: [] };
+}
+
+export function classifyPriority(
+  from: string,
+  subject: string,
+  labels: string[] = [],
+): "URGENT" | "NORMAL" | "LOW" {
+  return classifyPriorityDetailed(from, subject, labels).priority;
 }
 
 // ─── AI Summarization ─────────────────────────────────────────────────────
