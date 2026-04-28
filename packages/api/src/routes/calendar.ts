@@ -12,6 +12,7 @@ import { getUserId, requireAuth } from "../auth.js";
 import { createEvent as googleCreateEvent, deleteEvent as googleDeleteEvent } from "../calendar.js";
 import { prisma } from "../db.js";
 import { getAuthedClient } from "../gmail.js";
+import { buildMeetingPrepPack } from "../meeting-prep-pack.js";
 
 export async function calendarRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
@@ -43,6 +44,15 @@ export async function calendarRoutes(app: FastifyInstance) {
     });
 
     return { events };
+  });
+
+  // Get deterministic prep pack for a meeting/event
+  app.get("/:id/prep-pack", async (request, reply) => {
+    const uid = getUserId(request);
+    const { id } = request.params as { id: string };
+    const pack = await buildMeetingPrepPack(uid, id);
+    if (!pack) return reply.code(404).send({ error: "Event not found" });
+    return pack;
   });
 
   // Get single event
