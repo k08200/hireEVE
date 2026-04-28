@@ -10,6 +10,7 @@ import type { EmailRuleAction, Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
+import { listUserFeedbackFixtures } from "../email-feedback-fixtures.js";
 import {
   type EmailPriorityValue,
   FeedbackError,
@@ -588,6 +589,19 @@ export async function emailRoutes(app: FastifyInstance) {
   });
 
   // ─── Label Feedback ───────────────────────────────────────────────────
+  // GET /api/email/feedback — list the user's accumulated label corrections
+  // in fixture-shape so they can be inspected (and later replayed against
+  // the classifier as a regression suite).
+  app.get("/feedback", async (request) => {
+    const userId = getUserId(request);
+    const { limit } = request.query as { limit?: string };
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
+    const fixtures = await listUserFeedbackFixtures(userId, {
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+    });
+    return { fixtures, count: fixtures.length };
+  });
+
   // POST /api/email/:id/feedback — user reports the auto-priority is wrong.
   // Idempotent on (user, email): re-correction overwrites prior feedback.
   app.post("/:id/feedback", async (request, reply) => {
