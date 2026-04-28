@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  __resetDedupForTests,
-  recordDedupKey,
-  wasRecentlyDeduped,
-} from "../agent-dedup.js";
+import { __resetDedupForTests, recordDedupKey, wasRecentlyDeduped } from "../agent-dedup.js";
 
 describe("agent-dedup", () => {
   beforeEach(() => {

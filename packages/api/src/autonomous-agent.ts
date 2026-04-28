@@ -26,8 +26,8 @@
  */
 import type OpenAI from "openai";
 import { resolveActionTarget } from "./action-target.js";
-import { recordDedupKey, wasRecentlyDeduped } from "./agent-dedup.js";
 import { AGENT_SYSTEM_PROMPT, NOTIFY_TOOL, PROPOSE_ACTION_TOOL } from "./agent/prompt.js";
+import { recordDedupKey, wasRecentlyDeduped } from "./agent-dedup.js";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
 import { db, prisma } from "./db.js";
 import { isNoReplyAddress, markAsRead } from "./gmail.js";
