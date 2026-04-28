@@ -46,6 +46,7 @@ model User {
   emailRules          EmailRule[]
   attentionItems      AttentionItem[]
   commitments         Commitment[]
+  feedbackEvents      FeedbackEvent[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   emailProcessingLogs EmailProcessingLog[]
@@ -721,4 +722,55 @@ enum CommitmentSource {
   SLACK
   NOTE
   CALENDAR
+}
+
+// ─── Feedback Ledger ───────────────────────────────────────────────────────
+// Captures every signal the user gives EVE about what was useful — approve,
+// reject, edit, ignore, dismiss, snooze. Step 8 of the Attention OS roadmap
+// uses this ledger as the substrate for policy extraction (Step 8.2) and
+// agent prompt integration (Step 8.3). This first PR only writes the rows;
+// readers stay in follow-up PRs so the data shape can be validated against
+// real dogfood traffic before anything depends on it.
+
+model FeedbackEvent {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  source   FeedbackSource
+  // FK-by-string into the source row (PendingAction.id, AttentionItem.id, etc.)
+  sourceId String
+
+  signal FeedbackSignal
+
+  // Optional context — narrows the policy that future extraction can derive.
+  toolName  String? // which tool was being proposed (when relevant)
+  recipient String? // email address, contact id, "team", etc.
+  threadId  String? // gmail thread id or chat conversation id
+
+  // Original user wording: rejection reason, edit diff snippet, etc.
+  evidence String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, signal])
+  @@index([userId, recipient])
+  @@index([userId, toolName])
+}
+
+enum FeedbackSource {
+  PENDING_ACTION
+  ATTENTION_ITEM
+  NOTIFICATION
+  DRAFT
+}
+
+enum FeedbackSignal {
+  APPROVED
+  REJECTED
+  EDITED
+  IGNORED
+  SNOOZED
+  DISMISSED
 }

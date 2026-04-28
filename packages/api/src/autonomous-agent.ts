@@ -36,6 +36,7 @@ import {
   upsertAttentionForPendingAction,
 } from "./attention-mirror.js";
 import { db, prisma } from "./db.js";
+import { recipientFromToolArgs, recordFeedback } from "./feedback.js";
 import { isNoReplyAddress, markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
 import { humanizeAutoExec } from "./notification-format.js";
@@ -1629,10 +1630,17 @@ const PENDING_ACTION_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — expire faster t
 async function expireStalePendingActions() {
   try {
     const cutoff = new Date(Date.now() - PENDING_ACTION_TTL_MS);
-    const expiringRows = await db.pendingAction.findMany({
+    type ExpiringRow = {
+      id: string;
+      userId: string;
+      toolName: string;
+      toolArgs: string;
+      conversationId: string;
+    };
+    const expiringRows = (await db.pendingAction.findMany({
       where: { status: "PENDING", createdAt: { lt: cutoff } },
-      select: { id: true },
-    });
+      select: { id: true, userId: true, toolName: true, toolArgs: true, conversationId: true },
+    })) as ExpiringRow[];
     const expired = await db.pendingAction.updateMany({
       where: { status: "PENDING", createdAt: { lt: cutoff } },
       data: { status: "REJECTED", result: "자동 만료 (24시간 초과)" },
@@ -1640,8 +1648,24 @@ async function expireStalePendingActions() {
     if (expired.count > 0) {
       console.log(`[AGENT] Expired ${expired.count} stale pending action(s)`);
       await bulkResolveAttentionForPendingActions(
-        expiringRows.map((r: { id: string }) => r.id),
+        expiringRows.map((r: ExpiringRow) => r.id),
         "REJECTED",
+      );
+      // IGNORED is a distinct policy signal from REJECTED — the user didn't
+      // say no, they just never showed up. Step 8.2 will weight these
+      // differently when extracting "this user ignores X" rules.
+      await Promise.all(
+        expiringRows.map((row: ExpiringRow) =>
+          recordFeedback({
+            userId: row.userId,
+            source: "PENDING_ACTION",
+            sourceId: row.id,
+            signal: "IGNORED",
+            toolName: row.toolName,
+            recipient: recipientFromToolArgs(row.toolArgs),
+            threadId: row.conversationId,
+          }),
+        ),
       );
     }
   } catch {
