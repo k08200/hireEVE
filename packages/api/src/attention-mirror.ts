@@ -52,6 +52,11 @@ function titleFor(pa: PendingActionLike): string {
   return pa.toolName.replace(/_/g, " ");
 }
 
+// PendingAction priority is fixed at 100 — strictly above any task or event
+// score so the canonical rule "user-blocking decisions never get buried" holds
+// even when an URGENT overdue task is sitting in the queue.
+const PENDING_ACTION_PRIORITY = 100;
+
 /**
  * Upsert the AttentionItem mirroring this PendingAction. Safe to call after
  * either a create or an update — uses the (source, sourceId) unique key.
@@ -70,6 +75,7 @@ export async function upsertAttentionForPendingAction(pa: PendingActionLike): Pr
         sourceId: pa.id,
         type,
         status,
+        priority: PENDING_ACTION_PRIORITY,
         title: titleFor(pa),
         body: pa.reasoning,
         suggestedAction: pa.toolName.replace(/_/g, " "),
@@ -77,6 +83,7 @@ export async function upsertAttentionForPendingAction(pa: PendingActionLike): Pr
       },
       update: {
         status,
+        priority: PENDING_ACTION_PRIORITY,
         resolvedAt: isResolved ? new Date() : null,
       },
     });
