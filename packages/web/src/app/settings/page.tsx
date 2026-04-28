@@ -5,6 +5,7 @@ import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
 import { FeedbackPolicyPanel } from "../../components/feedback-policy-panel";
 import { ListSkeleton } from "../../components/skeleton";
+import { TeamRiskPanel } from "../../components/team-risk-panel";
 import { useToast } from "../../components/toast";
 import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -1211,6 +1212,8 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+
+        <TeamRiskPanel />
 
         {/* Integrations */}
         <section className="mb-8">
