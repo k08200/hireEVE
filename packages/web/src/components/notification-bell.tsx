@@ -318,9 +318,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             AI
           </span>
         )}
-        {!n.isRead && (
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />
-        )}
+        {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />}
       </div>
       <p className="text-[13px] md:text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
       <div className="flex items-center gap-2 mt-1 ml-6">
@@ -351,19 +349,17 @@ export default function NotificationBell({ userId }: { userId: string }) {
           </button>
         </div>
       )}
-      {n.pendingActionId &&
-        n.pendingActionStatus &&
-        n.pendingActionStatus !== "PENDING" && (
-          <div className="mt-2 ml-6">
-            <span className="text-[10px] text-gray-500">
-              {n.pendingActionStatus === "EXECUTED"
-                ? "✓ 실행됨"
-                : n.pendingActionStatus === "REJECTED"
-                  ? "거절됨"
-                  : n.pendingActionStatus}
-            </span>
-          </div>
-        )}
+      {n.pendingActionId && n.pendingActionStatus && n.pendingActionStatus !== "PENDING" && (
+        <div className="mt-2 ml-6">
+          <span className="text-[10px] text-gray-500">
+            {n.pendingActionStatus === "EXECUTED"
+              ? "✓ 실행됨"
+              : n.pendingActionStatus === "REJECTED"
+                ? "거절됨"
+                : n.pendingActionStatus}
+          </span>
+        </div>
+      )}
     </div>
   );
 
@@ -380,9 +376,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
         aria-expanded={expanded}
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm">
-            {group.isEve ? "🤖" : typeIcon[group.type] || "📌"}
-          </span>
+          <span className="text-sm">{group.isEve ? "🤖" : typeIcon[group.type] || "📌"}</span>
           <span
             className={`text-sm ${group.unreadCount > 0 ? "font-semibold" : "text-gray-300"} ${group.isEve ? "text-cyan-300" : ""}`}
           >
