@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import CommandCenterSummary from "../../components/command-center-summary";
+import WorkGraphSummaryCard from "../../components/work-graph-summary";
 import { apiFetch } from "../../lib/api";
 import { captureClientError } from "../../lib/sentry";
 
@@ -172,6 +173,7 @@ function InboxView() {
       </header>
 
       <CommandCenterSummary />
+      <WorkGraphSummaryCard />
 
       {commitments.length > 0 && (
         <CommitmentSection
