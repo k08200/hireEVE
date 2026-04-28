@@ -3,56 +3,21 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
-import {
-  type AttentionItem,
-  buildTodaySection,
-  type EventInput,
-  type NotificationInput,
-  type PendingActionInput,
-  pickTop3,
-  type TaskInput,
-  type TodaySection,
-} from "../lib/attention-ranking";
+import type { AttentionItem, InboxSummary, TodaySection } from "../lib/inbox-summary";
 
-interface SummaryData {
-  top3: AttentionItem[];
-  today: TodaySection;
-}
-
-const EMPTY_SUMMARY: SummaryData = {
+const EMPTY_SUMMARY: InboxSummary = {
   top3: [],
   today: { events: [], overdueTasks: [], todayTasks: [] },
 };
 
 export default function CommandCenterSummary() {
-  const [data, setData] = useState<SummaryData>(EMPTY_SUMMARY);
+  const [data, setData] = useState<InboxSummary>(EMPTY_SUMMARY);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const [pendingRes, tasksRes, eventsRes, notifRes] = await Promise.all([
-        apiFetch<{ actions: PendingActionInput[] }>("/api/chat/pending-actions").catch(() => ({
-          actions: [] as PendingActionInput[],
-        })),
-        apiFetch<{ tasks: TaskInput[] }>("/api/tasks").catch(() => ({ tasks: [] as TaskInput[] })),
-        apiFetch<{ events: EventInput[] }>("/api/calendar?days=1").catch(() => ({
-          events: [] as EventInput[],
-        })),
-        apiFetch<{ notifications: NotificationInput[] }>("/api/notifications?limit=30").catch(
-          () => ({ notifications: [] as NotificationInput[] }),
-        ),
-      ]);
-      const top3 = pickTop3({
-        pendingActions: pendingRes.actions ?? [],
-        tasks: tasksRes.tasks ?? [],
-        events: eventsRes.events ?? [],
-        notifications: notifRes.notifications ?? [],
-      });
-      const today = buildTodaySection({
-        tasks: tasksRes.tasks ?? [],
-        events: eventsRes.events ?? [],
-      });
-      setData({ top3, today });
+      const summary = await apiFetch<InboxSummary>("/api/inbox/summary").catch(() => EMPTY_SUMMARY);
+      setData(summary);
     } finally {
       setLoading(false);
     }
