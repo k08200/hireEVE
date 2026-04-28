@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import {
+  DOGFOOD_BRIEFING_NOW,
+  dogfoodBriefingFixture,
+  expectedDogfoodTopActionRefs,
+} from "../__fixtures__/briefing/dogfood.js";
 import { buildBriefingSignals } from "../briefing-signals.js";
 
 const NOW = new Date("2026-04-28T09:00:00.000Z");
@@ -139,5 +144,27 @@ describe("buildBriefingSignals", () => {
     expect(signals.urgentItems).toHaveLength(0);
     expect(signals.crossLinks.some((link) => link.kind === "email_task")).toBe(false);
     expect(signals.crossLinks.some((link) => link.kind === "task_event")).toBe(false);
+  });
+
+  it("builds a deterministic top 3 from scores instead of leaving ranking to the LLM", () => {
+    const signals = buildBriefingSignals(dogfoodBriefingFixture, {
+      now: DOGFOOD_BRIEFING_NOW,
+    });
+
+    expect(signals.topActions).toHaveLength(3);
+    expect(signals.topActions.map((action) => action.rank)).toEqual([1, 2, 3]);
+    expect(
+      signals.topActions.map((action) => `${action.refs[0]?.source}:${action.refs[0]?.id}`),
+    ).toEqual(expectedDogfoodTopActionRefs);
+    expect(signals.topActions[0]).toMatchObject({
+      action: "Finish task before event: Investor deck update",
+      score: 96,
+      reason: "shared terms: investor; task due before event",
+    });
+    expect(signals.topActions[1]?.refs.map((item) => item.id)).toEqual([
+      "task-partnerco-deck",
+      "event-partnerco",
+    ]);
+    expect(signals.crossLinks.some((link) => link.email?.id === "email-partnerco")).toBe(true);
   });
 });
