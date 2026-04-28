@@ -1,60 +1,82 @@
 # hireEVE
 
-**Connect once. EVE handles the rest.**
+**Your AI Chief of Staff. Without the $200K salary.**
 
-EVE is an AI employee that works 24/7 on your server — reading emails, checking calendars, tracking tasks, and telling your team what to focus on next. She doesn't wait for commands. She makes decisions.
+EVE is an autonomous attention layer for work. She reads your email, watches your calendar, tracks promises you made, and turns the noise into a queue of decisions you can approve in one click.
 
 ## Why EVE?
 
-Every team wastes hours switching between tools. Gmail shows emails. Calendar shows meetings. Todoist shows tasks. But none of them answer the only question that matters:
+Every founder checks five apps every morning and none of them answer the only question that matters: **"What should I do right now?"**
 
-**"What should I do right now?"**
-
-EVE connects all your tools, cross-references everything, and delivers prioritized decisions — not just information.
+EVE connects Gmail, Calendar, Slack, and Notion, then cross-references everything to surface decisions — not just summaries.
 
 | Tool | What it does | What EVE does |
 |------|-------------|---------------|
-| Gmail | "You have 30 emails" | "1 needs a reply today — investor waiting 48h" |
-| Calendar | "3 meetings today" | "2pm meeting is critical, prep doc missing" |
-| Todoist | "12 tasks open" | "2 are overdue and blocking others" |
+| Gmail | "30 unread emails" | "Investor reply needed within 48h — draft ready" |
+| Calendar | "3 meetings today" | "2pm meeting — prep pack ready, no conflicts" |
+| Tasks | "12 tasks open" | "These 2 are overdue and blocking others" |
 | ChatGPT | Answers when asked | EVE acts before you ask |
-| Zapier | Rule-based automation | LLM-powered judgment calls |
+| Zapier | Rule-based automation | LLM-powered judgment with approval gates |
 
 ## How It Works
 
-1. **Sign up and connect Google** — one click
-2. **EVE starts working** — scans your email, calendar, and tasks
-3. **Morning briefing arrives** — prioritized, not just summarized
-4. **Urgent alerts in real-time** — push notifications when something can't wait
-5. **Chat when you need to** — "Draft a reply to that investor" and it's done
+1. **Connect** — Link Gmail and Calendar in one click
+2. **EVE listens** — Ingests email, events, and tasks; extracts people, promises, deadlines, and risks
+3. **Command Center** — Your home screen shows what to act on now, what needs approval, what was handled
+4. **Morning briefing** — Prioritized day-plan delivered before you open your laptop
+5. **Autopilot ladder** — EVE earns trust gradually: observe → suggest → draft → execute with approval → execute autonomously
 
-### The Morning Briefing (EVE's "Aha Moment")
+### Command Center (the home screen)
 
-You wake up. You didn't ask for anything. EVE already prepared:
+Not a chat. Not an inbox. An **operations console**:
 
-> **Today's Top 3:**
-> 1. Reply to Investor A — received last night, 48h response window
-> 2. 2pm client meeting — no prep doc yet, draft ready for review
-> 3. Invoice deadline — due today, payment link prepared
+- Top 3 things to act on now
+- Pending approvals
+- Today's commitments and risks
+- What EVE handled silently
+- What's likely to bite you tomorrow
 
-This isn't a summary. It's a **judgment call** — only possible because EVE sees your email AND calendar AND tasks together.
+### Commitment Ledger
 
-### Autonomous Agent
+EVE extracts implicit promises from your conversations — *"I'll send it by Friday"*, *"Let's revisit next week"* — and tracks them so they don't fall through the cracks.
 
-EVE thinks proactively. She analyzes your full context and decides what needs attention:
+### Work Graph
 
-- **SUGGEST mode**: Smart notifications with reasoning
-- **AUTO mode**: Executes low-risk actions, asks approval for the rest
-- **Risk levels**: LOW (auto) → MEDIUM (approval) → HIGH (explicit confirmation)
-- **Pattern learning**: Gets better from your approvals and rejections
+People, companies, projects, and threads linked together. *"Min-soo Kim = ABC Ventures investor → linked to pitch deck task → due before Friday meeting."*
+
+### Shadow Employee Mode
+
+EVE doesn't auto-execute on day one. She watches for two weeks, learns your patterns, and asks for permission:
+> "I noticed you always prep meeting notes the night before. Want me to start drafting them automatically?"
+
+Trust is earned, not toggled.
+
+### Autopilot Ladder
+
+Not AUTO/OFF. Five stages:
+
+| Level | Behavior |
+|-------|----------|
+| L0 | Observe only |
+| L1 | Suggest |
+| L2 | Draft |
+| L3 | Execute on approval |
+| L4 | Auto within pre-approved scope |
+| L5 | Report exceptions only |
+
+### Other Autonomous Behaviors
+- **Meeting prep pack** — Briefing doc auto-generated before each event
+- **Feedback policy learning** — Your approvals and rejections shape future judgments
+- **Team risk radar** — For teams: detects cross-member conflicts (release delayed, launch scheduled)
+- **Playbooks** — Reusable patterns: investor follow-up, customer ticket triage, launch week, hiring pipeline
 
 ## For Teams
 
-EVE scales from solo founders to enterprise teams. The bigger the team, the more powerful the cross-context decisions:
+The bigger the team, the more powerful the cross-context decisions:
 
 > "Dev team's release is delayed but marketing scheduled the launch announcement for tomorrow. Should I flag this?"
 
-One person's email + another's calendar + the team's task board = decisions no single tool can make.
+One person's email + another's calendar + the team's tasks = decisions no single tool can make.
 
 | Plan | For | Price |
 |------|-----|-------|
@@ -65,34 +87,38 @@ One person's email + another's calendar + the team's task board = decisions no s
 
 ## Features
 
-### Core (Autonomous)
-- **Morning briefing** — prioritized daily summary with action items
-- **Email intelligence** — classification, urgency detection, draft replies
-- **Calendar awareness** — conflict detection, meeting prep, schedule optimization
-- **Task prioritization** — cross-references deadlines with email and calendar context
-- **Real-time alerts** — push notifications for time-sensitive items
-- **Pattern learning** — adapts to your preferences over time
+### Core
+- **Command Center** — Attention queue, not a notification feed
+- **Morning briefing** — Prioritized daily plan
+- **Commitment Ledger** — Tracks implicit promises across email and chat
+- **Work Graph** — People, projects, and threads connected
+- **Shadow mode** — Trust-earning observation period
+- **Autopilot ladder** — Five autonomy levels per action class
+- **Meeting prep pack** — Auto-generated briefings before events
+- **Feedback learning** — Policy that adapts to your approvals
+- **Team risk radar** — Cross-member conflict detection
+- **Playbooks** — Reusable workflow templates
 
-### Tools (45+)
+### Tools (60+)
 
 | Category | Tools |
 |----------|-------|
-| Email | List, read, send, classify, auto-reply |
-| Calendar | List, create, delete events, conflict check |
-| Tasks | Create, update, delete, prioritize |
+| Email | List, read, send, classify, draft, auto-reply rules |
+| Calendar | List, create, delete events, conflict check, prep packs |
+| Tasks | Create, update, delete, prioritize, deadline tracking |
 | Notes | Create, update, delete, search |
-| Reminders | Create, dismiss, snooze |
-| Contacts | Manage, auto-populate from email |
+| Reminders | Create, dismiss, snooze, bulk delete |
+| Contacts | Manage, tag, auto-populate from email |
 | Memory | Remember, recall, forget across conversations |
 | Knowledge | Web search, news, weather |
 | Documents | Write, translate |
 
 ### Integrations
 - Gmail + Google Calendar (OAuth)
-- Slack (send/read messages)
-- Notion (search/create pages)
+- Slack (send/read messages, webhooks)
 - Web Push notifications (works with tab closed)
 - WebSocket real-time updates
+- Notion *(coming soon)*
 
 ## Tech Stack
 
@@ -100,8 +126,9 @@ One person's email + another's calendar + the team's task board = decisions no s
 |-------|-----------|
 | Frontend | Next.js 15, Tailwind CSS, TypeScript |
 | Backend | Fastify, Prisma ORM, PostgreSQL |
-| AI | OpenAI (user-configurable model) |
-| Auth | JWT + Google OAuth2 |
+| Desktop | Tauri v2 |
+| AI | OpenRouter (primary) + Gemini (fallback) |
+| Auth | JWT + Google OAuth2 + bcrypt |
 | Real-time | WebSocket + Server-Sent Events |
 | Push | VAPID Web Push |
 | Billing | Stripe |
@@ -111,9 +138,11 @@ One person's email + another's calendar + the team's task board = decisions no s
 
 ```
 packages/
-  api/    Fastify server, autonomous agent, 45+ tools
-  web/    Next.js frontend
+  api/    Fastify server, autonomous agent, 60+ tools, attention queue
+  web/    Next.js frontend (Command Center, Briefing, Inbox)
   core/   Shared utilities and types
+apps/
+  desktop/  Tauri v2 desktop app
 ```
 
 ## Setup
@@ -148,21 +177,23 @@ pnpm dev                # Web on :8001
 
 ```bash
 # Required
-DATABASE_URL=postgresql://user:password@localhost:5432/hireeve
+DATABASE_URL=postgresql://user:password@localhost:5433/hireeve
 JWT_SECRET=your-secret
 OPENROUTER_API_KEY=your-key
 TOKEN_ENCRYPTION_KEY=             # Generate: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
-# Google OAuth
+# Google OAuth (Gmail + Calendar)
 GOOGLE_CLIENT_ID=your-id
 GOOGLE_CLIENT_SECRET=your-secret
 GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/google/callback
 WEB_URL=http://localhost:8001
 
 # Optional
+GEMINI_API_KEY=                   # Fallback when OpenRouter quota exhausted
 STRIPE_SECRET_KEY=
 SLACK_BOT_TOKEN=
-NOTION_API_KEY=
+SLACK_WEBHOOK_URL=
+SLACK_SIGNING_SECRET=
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 CORS_ORIGINS=http://localhost:8001
