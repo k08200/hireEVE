@@ -1,0 +1,309 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "../lib/api";
+import {
+  type AttentionItem,
+  buildTodaySection,
+  type EventInput,
+  type NotificationInput,
+  type PendingActionInput,
+  pickTop3,
+  type TaskInput,
+  type TodaySection,
+} from "../lib/attention-ranking";
+
+interface SummaryData {
+  top3: AttentionItem[];
+  today: TodaySection;
+}
+
+const EMPTY_SUMMARY: SummaryData = {
+  top3: [],
+  today: { events: [], overdueTasks: [], todayTasks: [] },
+};
+
+export default function CommandCenterSummary() {
+  const [data, setData] = useState<SummaryData>(EMPTY_SUMMARY);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    try {
+      const [pendingRes, tasksRes, eventsRes, notifRes] = await Promise.all([
+        apiFetch<{ actions: PendingActionInput[] }>("/api/chat/pending-actions").catch(() => ({
+          actions: [] as PendingActionInput[],
+        })),
+        apiFetch<{ tasks: TaskInput[] }>("/api/tasks").catch(() => ({ tasks: [] as TaskInput[] })),
+        apiFetch<{ events: EventInput[] }>("/api/calendar?days=1").catch(() => ({
+          events: [] as EventInput[],
+        })),
+        apiFetch<{ notifications: NotificationInput[] }>("/api/notifications?limit=30").catch(
+          () => ({ notifications: [] as NotificationInput[] }),
+        ),
+      ]);
+      const top3 = pickTop3({
+        pendingActions: pendingRes.actions ?? [],
+        tasks: tasksRes.tasks ?? [],
+        events: eventsRes.events ?? [],
+        notifications: notifRes.notifications ?? [],
+      });
+      const today = buildTodaySection({
+        tasks: tasksRes.tasks ?? [],
+        events: eventsRes.events ?? [],
+      });
+      setData({ top3, today });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    const handler = () => refresh();
+    window.addEventListener("conversations-updated", handler);
+    return () => window.removeEventListener("conversations-updated", handler);
+  }, [refresh]);
+
+  const todayHasContent =
+    data.today.events.length + data.today.overdueTasks.length + data.today.todayTasks.length > 0;
+
+  if (loading && data.top3.length === 0 && !todayHasContent) {
+    return null;
+  }
+
+  if (data.top3.length === 0 && !todayHasContent) {
+    return null;
+  }
+
+  return (
+    <section className="mb-6 space-y-4" aria-label="Command center summary">
+      {data.top3.length > 0 && <Top3Section items={data.top3} />}
+      {todayHasContent && <TodaySectionView section={data.today} />}
+    </section>
+  );
+}
+
+function Top3Section({ items }: { items: AttentionItem[] }) {
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-gray-100">지금 봐야 할 것</h2>
+        <span className="text-[11px] text-gray-500">Top {items.length}</span>
+      </div>
+      <ol className="space-y-2">
+        {items.map((item, idx) => (
+          <li key={`${item.kind}_${item.id}`}>
+            <AttentionRow item={item} index={idx + 1} />
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function AttentionRow({ item, index }: { item: AttentionItem; index: number }) {
+  const badge = badgeFor(item);
+  const body = bodyFor(item);
+  const href = hrefFor(item);
+  const content = (
+    <div className="flex items-start gap-3 px-3 py-2.5 rounded-lg border border-gray-800/60 bg-gray-900/40 hover:bg-gray-800/40 transition">
+      <span className="text-[11px] font-semibold text-gray-500 mt-0.5 shrink-0 w-4 text-center">
+        {index}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className={`text-[10px] font-medium border rounded px-1.5 py-0.5 ${badge.className}`}
+          >
+            {badge.label}
+          </span>
+          <span className="text-sm text-gray-100 truncate">{body.title}</span>
+        </div>
+        {body.subtitle && (
+          <p className="mt-1 text-[11px] text-gray-400 line-clamp-1">{body.subtitle}</p>
+        )}
+      </div>
+    </div>
+  );
+  return href ? (
+    <Link href={href} className="block">
+      {content}
+    </Link>
+  ) : (
+    content
+  );
+}
+
+function badgeFor(item: AttentionItem): { label: string; className: string } {
+  switch (item.kind) {
+    case "pending_action":
+      return {
+        label: "승인 필요",
+        className: "text-amber-300 bg-amber-400/10 border-amber-400/20",
+      };
+    case "overdue_task":
+      return { label: "지난 일", className: "text-red-300 bg-red-500/10 border-red-500/20" };
+    case "today_event":
+      return { label: "곧 시작", className: "text-cyan-300 bg-cyan-400/10 border-cyan-400/20" };
+    case "agent_proposal":
+      return { label: "EVE 제안", className: "text-blue-300 bg-blue-400/10 border-blue-400/20" };
+  }
+}
+
+function bodyFor(item: AttentionItem): { title: string; subtitle: string | null } {
+  switch (item.kind) {
+    case "pending_action":
+      return { title: item.label, subtitle: item.reasoning };
+    case "overdue_task":
+      return {
+        title: item.title,
+        subtitle: `${item.daysOverdue}일 지남`,
+      };
+    case "today_event":
+      return {
+        title: item.title,
+        subtitle: formatEventSubtitle(item.startTime, item.minutesAway, item.location),
+      };
+    case "agent_proposal":
+      return { title: stripEvePrefix(item.title), subtitle: item.message };
+  }
+}
+
+function hrefFor(item: AttentionItem): string | null {
+  switch (item.kind) {
+    case "pending_action":
+      return `/chat/${item.conversationId}`;
+    case "overdue_task":
+      return null;
+    case "today_event":
+      return "/calendar";
+    case "agent_proposal":
+      return item.link ?? null;
+  }
+}
+
+function stripEvePrefix(title: string): string {
+  return title.startsWith("[EVE]") ? title.slice(5).trim() : title;
+}
+
+function formatEventSubtitle(
+  startTime: string,
+  minutesAway: number,
+  location: string | null,
+): string {
+  const time = new Date(startTime).toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const inMin =
+    minutesAway <= 0
+      ? "진행 중"
+      : minutesAway < 60
+        ? `${minutesAway}분 뒤`
+        : `${Math.round(minutesAway / 60)}시간 뒤`;
+  return location ? `${time} · ${inMin} · ${location}` : `${time} · ${inMin}`;
+}
+
+function TodaySectionView({ section }: { section: TodaySection }) {
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-4">
+      <h2 className="text-sm font-semibold text-gray-100 mb-3">오늘 챙겨야 할 것</h2>
+      <div className="space-y-3">
+        {section.events.length > 0 && (
+          <SubList
+            label="오늘 일정"
+            items={section.events.map((e) => ({
+              key: e.id,
+              primary: e.title,
+              secondary: formatTime(e.startTime),
+            }))}
+          />
+        )}
+        {section.overdueTasks.length > 0 && (
+          <SubList
+            label="지난 마감"
+            tone="warn"
+            items={section.overdueTasks.map((t) => ({
+              key: t.id,
+              primary: t.title,
+              secondary: t.dueDate ? formatDate(t.dueDate) : null,
+            }))}
+          />
+        )}
+        {section.todayTasks.length > 0 && (
+          <SubList
+            label="오늘 마감"
+            items={section.todayTasks.map((t) => ({
+              key: t.id,
+              primary: t.title,
+              secondary: priorityLabel(t.priority),
+            }))}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface SubListItem {
+  key: string;
+  primary: string;
+  secondary: string | null;
+}
+
+function SubList({
+  label,
+  items,
+  tone,
+}: {
+  label: string;
+  items: SubListItem[];
+  tone?: "warn";
+}) {
+  const labelClass =
+    tone === "warn" ? "text-red-300" : "text-gray-400";
+  return (
+    <div>
+      <p className={`text-[11px] font-medium mb-1.5 ${labelClass}`}>
+        {label} · {items.length}
+      </p>
+      <ul className="space-y-1">
+        {items.slice(0, 3).map((it) => (
+          <li
+            key={it.key}
+            className="flex items-center gap-2 text-sm text-gray-200 px-2 py-1 rounded border border-transparent hover:border-gray-800/80"
+          >
+            <span className="truncate flex-1">{it.primary}</span>
+            {it.secondary && (
+              <span className="text-[11px] text-gray-500 shrink-0">{it.secondary}</span>
+            )}
+          </li>
+        ))}
+        {items.length > 3 && (
+          <li className="text-[11px] text-gray-600 px-2">+ {items.length - 3}개 더</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+}
+
+function priorityLabel(p: string): string | null {
+  const up = p.toUpperCase();
+  if (up === "URGENT") return "긴급";
+  if (up === "HIGH") return "높음";
+  if (up === "MEDIUM") return "보통";
+  if (up === "LOW") return "낮음";
+  return null;
+}
