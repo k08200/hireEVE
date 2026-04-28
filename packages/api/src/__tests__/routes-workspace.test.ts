@@ -10,6 +10,17 @@ vi.mock("../gmail.js", () => ({
   getGoogleUserInfo: vi.fn(),
   getOAuth2Client: vi.fn(),
 }));
+vi.mock("../team-risk.js", () => ({
+  buildTeamRiskSummary: vi.fn(async (workspaceId: string) => ({
+    generatedAt: "2026-04-28T00:00:00.000Z",
+    workspaceId,
+    memberCount: 1,
+    highRiskCount: 1,
+    mediumRiskCount: 0,
+    sharedContextCount: 0,
+    risks: [{ id: "u-1:ctx-1", sharedWith: 0 }],
+  })),
+}));
 
 type Ws = { id: string; name: string; slug: string; plan: string; _count: { members: number } };
 type WsMember = {
@@ -193,6 +204,39 @@ describe("workspace routes", () => {
     const res = await app.inject({ method: "GET", url: "/api/workspaces", headers: auth() });
     expect(res.statusCode).toBe(200);
     expect(res.json().workspaces).toHaveLength(1);
+    await app.close();
+  });
+
+  it("returns team risks for workspace members", async () => {
+    const app = await buildApp();
+    const c = await app.inject({
+      method: "POST",
+      url: "/api/workspaces",
+      headers: auth(),
+      payload: { name: "Risk Team" },
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: `/api/workspaces/${c.json().id}/risks`,
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      workspaceId: c.json().id,
+      highRiskCount: 1,
+      risks: [{ id: "u-1:ctx-1" }],
+    });
+    await app.close();
+  });
+
+  it("rejects team risk reads for non-members", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/workspaces/ws-missing/risks",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(403);
     await app.close();
   });
 
