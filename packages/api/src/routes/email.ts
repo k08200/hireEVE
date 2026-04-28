@@ -11,6 +11,13 @@ import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
 import {
+  type EmailPriorityValue,
+  FeedbackError,
+  type FeedbackRecord,
+  getFeedback,
+  recordFeedback,
+} from "../email-label-feedback.js";
+import {
   checkAutoReplyRules,
   generateSmartReply,
   getEmailThreads,
@@ -180,6 +187,20 @@ async function autoAddContacts(userId: string, emails: { from: string }[]): Prom
       /* race condition */
     }
   }
+}
+
+function serializeFeedback(row: FeedbackRecord) {
+  return {
+    id: row.id,
+    emailId: row.emailId,
+    originalPriority: row.originalPriority,
+    correctedPriority: row.correctedPriority,
+    reason: row.reason,
+    signals: row.signals,
+    note: row.note,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
 export async function emailRoutes(app: FastifyInstance) {
@@ -564,6 +585,45 @@ export async function emailRoutes(app: FastifyInstance) {
     }
 
     return { success: true };
+  });
+
+  // ─── Label Feedback ───────────────────────────────────────────────────
+  // POST /api/email/:id/feedback — user reports the auto-priority is wrong.
+  // Idempotent on (user, email): re-correction overwrites prior feedback.
+  app.post("/:id/feedback", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = getUserId(request);
+    const body = (request.body ?? {}) as {
+      correctedPriority?: string;
+      note?: string;
+    };
+
+    if (!body.correctedPriority) {
+      return reply.code(400).send({ error: "correctedPriority is required" });
+    }
+
+    try {
+      const row = await recordFeedback({
+        userId,
+        emailId: id,
+        correctedPriority: body.correctedPriority as EmailPriorityValue,
+        note: typeof body.note === "string" ? body.note.slice(0, 500) : undefined,
+      });
+      return { feedback: serializeFeedback(row) };
+    } catch (err) {
+      if (err instanceof FeedbackError) {
+        return reply.code(err.statusCode).send({ error: err.message });
+      }
+      throw err;
+    }
+  });
+
+  // GET /api/email/:id/feedback — returns the user's prior correction (or null).
+  app.get("/:id/feedback", async (request) => {
+    const { id } = request.params as { id: string };
+    const userId = getUserId(request);
+    const row = await getFeedback(userId, id);
+    return { feedback: row ? serializeFeedback(row) : null };
   });
 
   // ─── Email Stats ──────────────────────────────────────────────────────

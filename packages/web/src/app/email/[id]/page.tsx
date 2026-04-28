@@ -7,6 +7,8 @@ import AuthGuard from "../../../components/auth-guard";
 import { apiFetch } from "../../../lib/api";
 import { captureClientError } from "../../../lib/sentry";
 
+type EmailPriority = "URGENT" | "NORMAL" | "LOW";
+
 interface EmailDetail {
   id: string;
   gmailId: string;
@@ -17,12 +19,24 @@ interface EmailDetail {
   body: string | null;
   snippet: string | null;
   date: string;
-  priority: "URGENT" | "NORMAL" | "LOW";
+  priority: EmailPriority;
   category: string | null;
   summary: string | null;
   keyPoints: string[];
   actionItems: string[];
   sentiment: string | null;
+}
+
+interface LabelFeedback {
+  id: string;
+  emailId: string;
+  originalPriority: EmailPriority;
+  correctedPriority: EmailPriority;
+  reason: string | null;
+  signals: string[];
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function EmailDetailPage() {
@@ -148,7 +162,7 @@ function EveAnalysis({ email }: { email: EmailDetail }) {
 
   return (
     <section className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         <span className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider">
           EVE 분석
         </span>
@@ -156,6 +170,7 @@ function EveAnalysis({ email }: { email: EmailDetail }) {
           <PriorityPill priority={email.priority} />
           {email.category && <CategoryPill category={email.category} />}
         </div>
+        <LabelFeedbackControl emailId={email.id} currentPriority={email.priority} />
       </div>
 
       {email.summary && <p className="text-sm text-gray-200 leading-relaxed">{email.summary}</p>}
@@ -192,6 +207,111 @@ function EveAnalysis({ email }: { email: EmailDetail }) {
         </div>
       )}
     </section>
+  );
+}
+
+const PRIORITY_LABELS: Record<EmailPriority, string> = {
+  URGENT: "긴급",
+  NORMAL: "보통",
+  LOW: "낮음",
+};
+
+function LabelFeedbackControl({
+  emailId,
+  currentPriority,
+}: {
+  emailId: string;
+  currentPriority: EmailPriority;
+}) {
+  const [feedback, setFeedback] = useState<LabelFeedback | null>(null);
+  const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState<EmailPriority | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<{ feedback: LabelFeedback | null }>(`/api/email/${emailId}/feedback`)
+      .then((data) => {
+        if (!cancelled) setFeedback(data.feedback);
+      })
+      .catch((err) => captureClientError(err, { scope: "email.feedback.load", emailId }));
+    return () => {
+      cancelled = true;
+    };
+  }, [emailId]);
+
+  const submit = async (correctedPriority: EmailPriority) => {
+    if (submitting) return;
+    setSubmitting(correctedPriority);
+    setError(null);
+    try {
+      const data = await apiFetch<{ feedback: LabelFeedback }>(`/api/email/${emailId}/feedback`, {
+        method: "POST",
+        body: JSON.stringify({ correctedPriority }),
+      });
+      setFeedback(data.feedback);
+      setOpen(false);
+    } catch (err) {
+      captureClientError(err, { scope: "email.feedback.submit", emailId, correctedPriority });
+      setError("보고하지 못했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  if (feedback) {
+    return (
+      <span className="text-[11px] text-emerald-300/80 inline-flex items-center gap-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        보고됨: {PRIORITY_LABELS[feedback.originalPriority]} →{" "}
+        {PRIORITY_LABELS[feedback.correctedPriority]}
+      </span>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-[11px] text-gray-500 hover:text-gray-300 underline-offset-2 hover:underline"
+      >
+        분류 틀림
+      </button>
+    );
+  }
+
+  const options: EmailPriority[] = (["URGENT", "NORMAL", "LOW"] as const).filter(
+    (p) => p !== currentPriority,
+  );
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[11px] text-gray-500">실제 우선순위:</span>
+      {options.map((p) => (
+        <button
+          key={p}
+          type="button"
+          onClick={() => submit(p)}
+          disabled={!!submitting}
+          className="text-[11px] px-1.5 py-0.5 rounded border border-gray-700 text-gray-200 hover:bg-gray-800 disabled:opacity-50 transition"
+        >
+          {submitting === p ? "..." : PRIORITY_LABELS[p]}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(false);
+          setError(null);
+        }}
+        disabled={!!submitting}
+        className="text-[11px] text-gray-500 hover:text-gray-300"
+      >
+        취소
+      </button>
+      {error && <span className="text-[11px] text-red-300">{error}</span>}
+    </div>
   );
 }
 
