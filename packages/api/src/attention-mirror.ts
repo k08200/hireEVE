@@ -399,3 +399,97 @@ export async function deleteAttentionForNotifications(notificationIds: string[])
     console.warn("[attention-mirror] deleteAttentionForNotifications failed", err);
   }
 }
+
+// ─── Commitments ────────────────────────────────────────────────────────────
+// Commitments project into the queue with three different shapes:
+//   - COMMITMENT_DUE:        OPEN, dueAt is today or in the near future
+//   - COMMITMENT_OVERDUE:    OPEN, dueAt has passed
+//   - COMMITMENT_UNCONFIRMED: OPEN, no parsed dueAt yet (LLM low-confidence
+//                            or extractor couldn't pin a date)
+// DONE/DISMISSED commitments resolve. SNOOZED commitments stay out of the
+// queue until snoozedUntil passes (a future producer concern).
+
+export interface CommitmentLike {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  dueAt: Date | null;
+  confidence: number;
+}
+
+const COMMITMENT_NEAR_WINDOW_MS = 24 * 60 * 60 * 1000; // due "soon" = within 24h
+
+function commitmentTypeFor(
+  c: CommitmentLike,
+  now: number,
+): "COMMITMENT_DUE" | "COMMITMENT_OVERDUE" | "COMMITMENT_UNCONFIRMED" {
+  if (!c.dueAt) return "COMMITMENT_UNCONFIRMED";
+  const due = c.dueAt.getTime();
+  if (!Number.isFinite(due)) return "COMMITMENT_UNCONFIRMED";
+  return due < now ? "COMMITMENT_OVERDUE" : "COMMITMENT_DUE";
+}
+
+function priorityForCommitment(
+  type: "COMMITMENT_DUE" | "COMMITMENT_OVERDUE" | "COMMITMENT_UNCONFIRMED",
+  c: CommitmentLike,
+  now: number,
+): number {
+  if (type === "COMMITMENT_OVERDUE") return 80;
+  if (type === "COMMITMENT_UNCONFIRMED") return 40; // below baseline — needs human triage
+  // COMMITMENT_DUE — bump if due within 24h
+  if (c.dueAt && c.dueAt.getTime() - now <= COMMITMENT_NEAR_WINDOW_MS) return 70;
+  return 55;
+}
+
+export async function upsertAttentionForCommitment(
+  c: CommitmentLike,
+  now = Date.now(),
+): Promise<void> {
+  const status: AttentionStatus =
+    c.status === "DONE" || c.status === "DISMISSED" ? "RESOLVED" : "OPEN";
+  const isResolved = status !== "OPEN";
+  const type = commitmentTypeFor(c, now);
+  const priority = priorityForCommitment(type, c, now);
+
+  try {
+    await prisma.attentionItem.upsert({
+      where: { source_sourceId: { source: "COMMITMENT", sourceId: c.id } },
+      create: {
+        userId: c.userId,
+        source: "COMMITMENT",
+        sourceId: c.id,
+        type,
+        status,
+        priority,
+        confidence: c.confidence,
+        title: c.title,
+        body: c.description,
+        resolvedAt: isResolved ? new Date() : null,
+      },
+      update: {
+        status,
+        type,
+        priority,
+        confidence: c.confidence,
+        title: c.title,
+        body: c.description,
+        resolvedAt: isResolved ? new Date() : null,
+      },
+    });
+  } catch (err) {
+    console.warn("[attention-mirror] upsert failed for Commitment", c.id, err);
+  }
+}
+
+export async function deleteAttentionForCommitments(commitmentIds: string[]): Promise<void> {
+  if (commitmentIds.length === 0) return;
+  try {
+    await prisma.attentionItem.deleteMany({
+      where: { source: "COMMITMENT", sourceId: { in: commitmentIds } },
+    });
+  } catch (err) {
+    console.warn("[attention-mirror] deleteAttentionForCommitments failed", err);
+  }
+}

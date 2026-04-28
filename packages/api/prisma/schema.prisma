@@ -45,6 +45,7 @@ model User {
   emailMessages       EmailMessage[]
   emailRules          EmailRule[]
   attentionItems      AttentionItem[]
+  commitments         Commitment[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   emailProcessingLogs EmailProcessingLog[]
@@ -622,6 +623,7 @@ enum AttentionSource {
   TASK
   CALENDAR_EVENT
   NOTIFICATION
+  COMMITMENT
 }
 
 enum AttentionType {
@@ -631,6 +633,9 @@ enum AttentionType {
   DEADLINE
   FOLLOWUP
   DECISION
+  COMMITMENT_DUE
+  COMMITMENT_UNCONFIRMED
+  COMMITMENT_OVERDUE
 }
 
 enum AttentionStatus {
@@ -638,4 +643,82 @@ enum AttentionStatus {
   RESOLVED
   DISMISSED
   SNOOZED
+}
+
+// ─── Commitment Ledger ─────────────────────────────────────────────────────
+// "내일까지 보내드릴게요", "다음 주에 다시 논의하죠" — implicit promises that
+// would otherwise vanish into a thread. The ledger is the canonical record;
+// AttentionItem is just the projection of "currently relevant" commitments.
+
+model Commitment {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  status      CommitmentStatus @default(OPEN)
+  kind        CommitmentKind   @default(DELIVERABLE)
+  // Who owes the action. USER = "I will send X" (we owe), COUNTERPARTY = "Sarah
+  // will send X" (they owe), TEAM = shared, UNKNOWN = couldn't tell.
+  owner       CommitmentOwner  @default(USER)
+
+  counterpartyName String?
+  contactId        String?
+
+  // The promise: parsed dueAt is the machine-usable form, dueText preserves
+  // the original phrasing ("end of week", "다음 주") for display.
+  dueAt   DateTime?
+  dueText String?
+
+  // Where the commitment came from. sourceId is a free-text reference into
+  // the source system (Gmail message id, Slack ts, etc.) and threadId groups
+  // related commitments from the same conversation.
+  sourceType   CommitmentSource @default(EMAIL)
+  sourceId     String?
+  threadId     String?
+  evidenceText String? // Snippet from the source backing the extraction
+
+  confidence Float   @default(1.0) // 0.0-1.0, lowered when extraction was noisy
+  // dedupKey lets us collapse near-duplicate extractions ("send the deck"
+  // detected twice across reply chain) without storing fuzzy matchers in DB.
+  dedupKey   String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@unique([userId, dedupKey])
+  @@index([userId, status, dueAt])
+  @@index([userId, threadId])
+}
+
+enum CommitmentStatus {
+  OPEN
+  DONE
+  DISMISSED
+  SNOOZED
+}
+
+enum CommitmentKind {
+  DELIVERABLE
+  FOLLOW_UP
+  DECISION
+  MEETING
+  REVIEW
+}
+
+enum CommitmentOwner {
+  USER
+  COUNTERPARTY
+  TEAM
+  UNKNOWN
+}
+
+enum CommitmentSource {
+  EMAIL
+  CHAT
+  SLACK
+  NOTE
+  CALENDAR
 }

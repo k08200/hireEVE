@@ -20,9 +20,11 @@ const {
   upsertAttentionForTask,
   upsertAttentionForCalendarEvent,
   upsertAttentionForNotification,
+  upsertAttentionForCommitment,
   bulkResolveAttentionForPendingActions,
   deleteAttentionForPendingActions,
   deleteAttentionForCalendarEvents,
+  deleteAttentionForCommitments,
 } = await import("../attention-mirror.js");
 
 beforeEach(() => {
@@ -386,6 +388,101 @@ describe("upsertAttentionForNotification", () => {
     });
     const call = upsertSpy.mock.calls[0]?.[0] as { create: { status: string } };
     expect(call.create.status).toBe("DISMISSED");
+  });
+});
+
+describe("upsertAttentionForCommitment", () => {
+  const NOW = new Date("2026-04-28T10:00:00Z").getTime();
+
+  it("classifies a future-due commitment as COMMITMENT_DUE", async () => {
+    await upsertAttentionForCommitment(
+      {
+        id: "c-1",
+        userId: "u",
+        title: "send the deck",
+        description: null,
+        status: "OPEN",
+        dueAt: new Date(NOW + 4 * 60 * 60 * 1000),
+        confidence: 0.9,
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as {
+      create: { type: string; status: string; priority: number };
+    };
+    expect(call.create.type).toBe("COMMITMENT_DUE");
+    expect(call.create.status).toBe("OPEN");
+    // Within 24h → priority bump
+    expect(call.create.priority).toBe(70);
+  });
+
+  it("classifies an already-past commitment as COMMITMENT_OVERDUE", async () => {
+    await upsertAttentionForCommitment(
+      {
+        id: "c-2",
+        userId: "u",
+        title: "late deck",
+        description: null,
+        status: "OPEN",
+        dueAt: new Date(NOW - 24 * 60 * 60 * 1000),
+        confidence: 0.9,
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as {
+      create: { type: string; priority: number };
+    };
+    expect(call.create.type).toBe("COMMITMENT_OVERDUE");
+    expect(call.create.priority).toBe(80);
+  });
+
+  it("classifies a commitment without dueAt as COMMITMENT_UNCONFIRMED", async () => {
+    await upsertAttentionForCommitment(
+      {
+        id: "c-3",
+        userId: "u",
+        title: "follow up",
+        description: null,
+        status: "OPEN",
+        dueAt: null,
+        confidence: 0.5,
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as {
+      create: { type: string; priority: number; confidence: number };
+    };
+    expect(call.create.type).toBe("COMMITMENT_UNCONFIRMED");
+    expect(call.create.priority).toBe(40);
+    expect(call.create.confidence).toBe(0.5);
+  });
+
+  it("marks a DONE commitment as RESOLVED", async () => {
+    await upsertAttentionForCommitment(
+      {
+        id: "c-4",
+        userId: "u",
+        title: "shipped",
+        description: null,
+        status: "DONE",
+        dueAt: new Date(NOW + 60 * 60 * 1000),
+        confidence: 0.9,
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as { create: { status: string } };
+    expect(call.create.status).toBe("RESOLVED");
+  });
+});
+
+describe("deleteAttentionForCommitments", () => {
+  it("deletes by source=COMMITMENT", async () => {
+    await deleteAttentionForCommitments(["c-1", "c-2"]);
+    const call = deleteManySpy.mock.calls[0]?.[0] as {
+      where: { source: string; sourceId: { in: string[] } };
+    };
+    expect(call.where.source).toBe("COMMITMENT");
+    expect(call.where.sourceId.in).toEqual(["c-1", "c-2"]);
   });
 });
 

@@ -96,6 +96,7 @@ export async function adminRoutes(app: FastifyInstance) {
       prisma.reminder.deleteMany({ where: { userId: id } }),
       prisma.note.deleteMany({ where: { userId: id } }),
       prisma.task.deleteMany({ where: { userId: id } }),
+      prisma.commitment.deleteMany({ where: { userId: id } }),
       prisma.message.deleteMany({ where: { conversation: { userId: id } } }),
       prisma.conversation.deleteMany({ where: { userId: id } }),
       prisma.userToken.deleteMany({ where: { userId: id } }),
