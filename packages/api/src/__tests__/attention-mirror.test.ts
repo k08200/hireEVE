@@ -46,13 +46,37 @@ describe("upsertAttentionForPendingAction", () => {
     expect(upsertSpy).toHaveBeenCalledOnce();
     const call = upsertSpy.mock.calls[0]?.[0] as {
       where: { source_sourceId: { source: string; sourceId: string } };
-      create: { status: string; resolvedAt: Date | null; title: string };
-      update: { status: string; resolvedAt: Date | null };
+      create: { status: string; resolvedAt: Date | null; title: string; autonomyLevel: number };
+      update: { status: string; resolvedAt: Date | null; autonomyLevel: number };
     };
     expect(call.where.source_sourceId).toEqual({ source: "PENDING_ACTION", sourceId: "pa-1" });
     expect(call.create.status).toBe("OPEN");
     expect(call.create.resolvedAt).toBeNull();
     expect(call.create.title).toBe("Reply needed for Sarah");
+    expect(call.create.autonomyLevel).toBe(2);
+    expect(call.update.autonomyLevel).toBe(2);
+  });
+
+  it("maps tool risk onto autonomy levels", async () => {
+    await upsertAttentionForPendingAction({
+      id: "pa-low",
+      userId: "user-1",
+      toolName: "create_task",
+      status: "PENDING",
+      reasoning: null,
+    });
+    await upsertAttentionForPendingAction({
+      id: "pa-high",
+      userId: "user-1",
+      toolName: "delete_email",
+      status: "PENDING",
+      reasoning: null,
+    });
+
+    const low = upsertSpy.mock.calls[0]?.[0] as { create: { autonomyLevel: number } };
+    const high = upsertSpy.mock.calls[1]?.[0] as { create: { autonomyLevel: number } };
+    expect(low.create.autonomyLevel).toBe(3);
+    expect(high.create.autonomyLevel).toBe(1);
   });
 
   it("marks the AttentionItem RESOLVED when the PA reaches EXECUTED", async () => {
@@ -194,10 +218,11 @@ describe("upsertAttentionForTask", () => {
       NOW,
     );
     const call = upsertSpy.mock.calls[0]?.[0] as {
-      create: { priority: number; status: string };
+      create: { priority: number; status: string; autonomyLevel: number };
     };
     expect(call.create.status).toBe("OPEN");
     expect(call.create.priority).toBe(50);
+    expect(call.create.autonomyLevel).toBe(0);
   });
 
   it("bumps priority for overdue tasks", async () => {
@@ -296,10 +321,11 @@ describe("upsertAttentionForCalendarEvent", () => {
       NOW,
     );
     const call = upsertSpy.mock.calls[0]?.[0] as {
-      create: { status: string; priority: number };
+      create: { status: string; priority: number; autonomyLevel: number };
     };
     expect(call.create.status).toBe("OPEN");
     expect(call.create.priority).toBe(50);
+    expect(call.create.autonomyLevel).toBe(0);
   });
 
   it("bumps priority for events starting within an hour", async () => {
@@ -369,11 +395,12 @@ describe("upsertAttentionForNotification", () => {
       pendingActionId: null,
     });
     const call = upsertSpy.mock.calls[0]?.[0] as {
-      create: { status: string; type: string; title: string };
+      create: { status: string; type: string; title: string; autonomyLevel: number };
     };
     expect(call.create.status).toBe("OPEN");
     expect(call.create.type).toBe("FOLLOWUP");
     expect(call.create.title).toBe("[EVE] heads-up");
+    expect(call.create.autonomyLevel).toBe(1);
   });
 
   it("flips a read agent_proposal to DISMISSED", async () => {
@@ -408,12 +435,13 @@ describe("upsertAttentionForCommitment", () => {
       NOW,
     );
     const call = upsertSpy.mock.calls[0]?.[0] as {
-      create: { type: string; status: string; priority: number };
+      create: { type: string; status: string; priority: number; autonomyLevel: number };
     };
     expect(call.create.type).toBe("COMMITMENT_DUE");
     expect(call.create.status).toBe("OPEN");
     // Within 24h → priority bump
     expect(call.create.priority).toBe(70);
+    expect(call.create.autonomyLevel).toBe(0);
   });
 
   it("classifies an already-past commitment as COMMITMENT_OVERDUE", async () => {

@@ -215,6 +215,16 @@ describe("GET /api/automations", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.alwaysAllowedTools).toEqual(["send_email"]);
+    expect(body.agentModes.map((m: { mode: string }) => m.mode)).toEqual([
+      "SHADOW",
+      "SUGGEST",
+      "AUTO",
+    ]);
+    expect(body.agentModes[0]).toMatchObject({
+      mode: "SHADOW",
+      autonomyLevel: 0,
+      proposalNotifications: false,
+    });
     // The whitelist must only contain MEDIUM-risk tools the user may pre-approve.
     expect(body.preApprovableTools).toEqual(
       expect.arrayContaining([

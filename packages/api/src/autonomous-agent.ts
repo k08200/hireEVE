@@ -12,8 +12,9 @@
  * 5. Log all decisions to AgentLog for transparency
  *
  * Modes:
- * - SUGGEST: Only sends notifications with reasoning (default, safe)
- * - AUTO: Executes low-risk actions automatically (future)
+ * - SHADOW: Prepares proposals quietly in Inbox/Command Center
+ * - SUGGEST: Sends approval proposals and alerts
+ * - AUTO: Executes low-risk actions automatically, gates everything else
  */
 
 /**
@@ -29,7 +30,7 @@ import { resolveActionTarget } from "./action-target.js";
 import { AGENT_SYSTEM_PROMPT, NOTIFY_TOOL, PROPOSE_ACTION_TOOL } from "./agent/prompt.js";
 import { recordDedupKey, wasRecentlyDeduped } from "./agent-dedup.js";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
-import { type AgentMode, normalizeAgentMode } from "./agent-mode.js";
+import { type AgentMode, getAgentModePolicy, normalizeAgentMode } from "./agent-mode.js";
 import {
   bulkResolveAttentionForPendingActions,
   upsertAttentionForPendingAction,
@@ -709,7 +710,8 @@ export async function runAgentForUser(
   mode: AgentMode | string = "SUGGEST",
 ): Promise<void> {
   const startTime = Date.now();
-  const agentMode = normalizeAgentMode(mode);
+  const agentModePolicy = getAgentModePolicy(mode);
+  const agentMode = agentModePolicy.mode;
 
   try {
     // Load user plan and model for tool gating
@@ -740,8 +742,8 @@ export async function runAgentForUser(
       return;
     }
 
-    const isAutoMode = agentMode === "AUTO";
-    const isShadowMode = agentMode === "SHADOW";
+    const isAutoMode = agentModePolicy.lowRiskAutoExecution;
+    const isShadowMode = !agentModePolicy.proposalNotifications;
 
     // Load user's pre-approved MEDIUM-risk tools (HIGH is never auto-allowed).
     const automationCfg = await prisma.automationConfig.findUnique({

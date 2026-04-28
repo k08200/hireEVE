@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { normalizeAgentMode } from "../agent-mode.js";
+import { listAgentModePolicies, normalizeAgentMode } from "../agent-mode.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { runAgentForUser } from "../autonomous-agent.js";
 import { db, prisma } from "../db.js";
@@ -40,6 +40,7 @@ export async function automationRoutes(app: FastifyInstance) {
       downloadAutoOrganize: config.downloadAutoOrganize,
       autonomousAgent: configAny.autonomousAgent ?? true,
       agentMode: normalizeAgentMode(configAny.agentMode),
+      agentModes: listAgentModePolicies(),
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
       alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
@@ -118,6 +119,7 @@ export async function automationRoutes(app: FastifyInstance) {
       downloadAutoOrganize: config.downloadAutoOrganize,
       autonomousAgent: configAny.autonomousAgent ?? true,
       agentMode: normalizeAgentMode(configAny.agentMode),
+      agentModes: listAgentModePolicies(),
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
       alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
