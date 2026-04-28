@@ -17,6 +17,8 @@
  */
 
 import type { AttentionStatus, AttentionType } from "@prisma/client";
+import { getToolRisk } from "./agent-logic.js";
+import { AUTOPILOT_LEVEL, type AutopilotLevel } from "./agent-mode.js";
 import { prisma } from "./db.js";
 
 export interface PendingActionLike {
@@ -57,6 +59,13 @@ function titleFor(pa: PendingActionLike): string {
 // even when an URGENT overdue task is sitting in the queue.
 const PENDING_ACTION_PRIORITY = 100;
 
+function autonomyLevelForPendingAction(pa: PendingActionLike): AutopilotLevel {
+  const risk = getToolRisk(pa.toolName);
+  if (risk === "LOW") return AUTOPILOT_LEVEL.SAFE_AUTO;
+  if (risk === "MEDIUM") return AUTOPILOT_LEVEL.APPROVAL;
+  return AUTOPILOT_LEVEL.SUGGEST;
+}
+
 /**
  * Upsert the AttentionItem mirroring this PendingAction. Safe to call after
  * either a create or an update — uses the (source, sourceId) unique key.
@@ -65,6 +74,7 @@ export async function upsertAttentionForPendingAction(pa: PendingActionLike): Pr
   const status = statusFor(pa.status);
   const isResolved = status !== "OPEN";
   const type: AttentionType = "DECISION";
+  const autonomyLevel = autonomyLevelForPendingAction(pa);
 
   try {
     await prisma.attentionItem.upsert({
@@ -76,6 +86,7 @@ export async function upsertAttentionForPendingAction(pa: PendingActionLike): Pr
         type,
         status,
         priority: PENDING_ACTION_PRIORITY,
+        autonomyLevel,
         title: titleFor(pa),
         body: pa.reasoning,
         suggestedAction: pa.toolName.replace(/_/g, " "),
@@ -84,6 +95,7 @@ export async function upsertAttentionForPendingAction(pa: PendingActionLike): Pr
       update: {
         status,
         priority: PENDING_ACTION_PRIORITY,
+        autonomyLevel,
         resolvedAt: isResolved ? new Date() : null,
       },
     });
@@ -206,12 +218,14 @@ export async function upsertAttentionForTask(task: TaskLike, now = Date.now()): 
         type,
         status,
         priority: priorityForTask(task, isOverdue),
+        autonomyLevel: AUTOPILOT_LEVEL.OBSERVE,
         title: task.title,
         resolvedAt: isResolved ? new Date() : null,
       },
       update: {
         status,
         priority: priorityForTask(task, isOverdue),
+        autonomyLevel: AUTOPILOT_LEVEL.OBSERVE,
         title: task.title,
         resolvedAt: isResolved ? new Date() : null,
       },
@@ -312,12 +326,14 @@ export async function upsertAttentionForCalendarEvent(
         type,
         status,
         priority,
+        autonomyLevel: AUTOPILOT_LEVEL.OBSERVE,
         title: event.title,
         resolvedAt: isResolved ? new Date() : null,
       },
       update: {
         status,
         priority,
+        autonomyLevel: AUTOPILOT_LEVEL.OBSERVE,
         title: event.title,
         resolvedAt: isResolved ? new Date() : null,
       },
@@ -373,12 +389,14 @@ export async function upsertAttentionForNotification(notif: NotificationLike): P
         sourceId: notif.id,
         type: "FOLLOWUP",
         status,
+        autonomyLevel: AUTOPILOT_LEVEL.SUGGEST,
         title: notif.title,
         body: notif.message,
         resolvedAt: isResolved ? new Date() : null,
       },
       update: {
         status,
+        autonomyLevel: AUTOPILOT_LEVEL.SUGGEST,
         title: notif.title,
         body: notif.message,
         resolvedAt: isResolved ? new Date() : null,
@@ -463,6 +481,7 @@ export async function upsertAttentionForCommitment(
         type,
         status,
         priority,
+        autonomyLevel: AUTOPILOT_LEVEL.OBSERVE,
         confidence: c.confidence,
         title: c.title,
         body: c.description,
@@ -472,6 +491,7 @@ export async function upsertAttentionForCommitment(
         status,
         type,
         priority,
+        autonomyLevel: AUTOPILOT_LEVEL.OBSERVE,
         confidence: c.confidence,
         title: c.title,
         body: c.description,

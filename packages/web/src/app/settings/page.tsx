@@ -11,7 +11,21 @@ import { captureClientError } from "../../lib/sentry";
 
 type AgentMode = "SHADOW" | "SUGGEST" | "AUTO";
 
-const AGENT_MODE_OPTIONS: Array<{ mode: AgentMode; label: string; description: string }> = [
+interface AgentModeOption {
+  mode: AgentMode;
+  label: string;
+  description: string;
+  autonomyLevel?: number;
+}
+
+interface ApiAgentModeOption {
+  mode?: string;
+  label?: string;
+  description?: string;
+  autonomyLevel?: number;
+}
+
+const DEFAULT_AGENT_MODE_OPTIONS: AgentModeOption[] = [
   { mode: "SHADOW", label: "SHADOW", description: "Prepare quietly" },
   { mode: "SUGGEST", label: "SUGGEST", description: "Ask before action" },
   { mode: "AUTO", label: "AUTO", description: "Run safe actions" },
@@ -20,6 +34,28 @@ const AGENT_MODE_OPTIONS: Array<{ mode: AgentMode; label: string; description: s
 function normalizeAgentMode(value: string | undefined): AgentMode {
   if (value === "SHADOW" || value === "SUGGEST" || value === "AUTO") return value;
   return "SUGGEST";
+}
+
+function normalizeAgentModeOptions(options: ApiAgentModeOption[] | undefined): AgentModeOption[] {
+  if (!options?.length) return DEFAULT_AGENT_MODE_OPTIONS;
+  const seen = new Set<AgentMode>();
+  const normalized = options.flatMap((option) => {
+    const mode = normalizeAgentMode(option.mode);
+    if (seen.has(mode)) return [];
+    seen.add(mode);
+    return [
+      {
+        mode,
+        label: option.label || mode,
+        description:
+          option.description ||
+          DEFAULT_AGENT_MODE_OPTIONS.find((fallback) => fallback.mode === mode)?.description ||
+          mode,
+        autonomyLevel: option.autonomyLevel,
+      },
+    ];
+  });
+  return normalized.length > 0 ? normalized : DEFAULT_AGENT_MODE_OPTIONS;
 }
 
 function agentModeToast(mode: AgentMode): string {
@@ -91,6 +127,9 @@ export default function SettingsPage() {
   const [hasPassword, setHasPassword] = useState(true);
   const [agentEnabled, setAgentEnabled] = useState(true);
   const [agentMode, setAgentMode] = useState<AgentMode>("SUGGEST");
+  const [agentModeOptions, setAgentModeOptions] = useState<AgentModeOption[]>(
+    DEFAULT_AGENT_MODE_OPTIONS,
+  );
   const [agentInterval, setAgentInterval] = useState(5);
   const [alwaysAllowedTools, setAlwaysAllowedTools] = useState<string[]>([]);
   const [autoMarkReadEnabled, setAutoMarkReadEnabled] = useState(false);
@@ -415,6 +454,7 @@ export default function SettingsPage() {
     apiFetch<{
       autonomousAgent?: boolean;
       agentMode?: string;
+      agentModes?: ApiAgentModeOption[];
       agentIntervalMin?: number;
       alwaysAllowedTools?: string[];
       preApprovableTools?: string[];
@@ -430,6 +470,7 @@ export default function SettingsPage() {
       .then((d) => {
         setAgentEnabled(d.autonomousAgent ?? true);
         setAgentMode(normalizeAgentMode(d.agentMode));
+        setAgentModeOptions(normalizeAgentModeOptions(d.agentModes));
         setAgentInterval(d.agentIntervalMin ?? 5);
         setAlwaysAllowedTools(d.alwaysAllowedTools ?? []);
         setPreApprovableTools(d.preApprovableTools ?? []);
@@ -992,7 +1033,7 @@ export default function SettingsPage() {
                 <div>
                   <div className="text-sm text-gray-400 mb-2">Agent mode</div>
                   <div className="grid grid-cols-3 gap-2">
-                    {AGENT_MODE_OPTIONS.map((option) => (
+                    {agentModeOptions.map((option) => (
                       <button
                         key={option.mode}
                         type="button"
