@@ -1,0 +1,189 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "../lib/api";
+import { captureClientError } from "../lib/sentry";
+
+type FeedbackPolicyKind =
+  | "ALLOW_AFTER_SUGGESTION"
+  | "REQUIRE_DRAFT_REVIEW"
+  | "AVOID_SUGGESTION"
+  | "LOWER_PRIORITY";
+
+interface FeedbackPolicyCandidate {
+  id: string;
+  kind: FeedbackPolicyKind;
+  scope: {
+    type: "RECIPIENT_TOOL" | "TOOL";
+    toolName: string;
+    recipient: string | null;
+  };
+  confidence: number;
+  support: {
+    approved: number;
+    rejected: number;
+    edited: number;
+    ignored: number;
+    snoozed: number;
+    dismissed: number;
+    total: number;
+    distinctRecipients: number;
+  };
+  rationale: string;
+  active: false;
+}
+
+interface FeedbackPolicyResponse {
+  since: string;
+  candidates: FeedbackPolicyCandidate[];
+}
+
+const KIND_COPY: Record<
+  FeedbackPolicyKind,
+  { label: string; tone: string; dot: string; summary: string }
+> = {
+  ALLOW_AFTER_SUGGESTION: {
+    label: "Usually approved",
+    tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
+    dot: "bg-emerald-400",
+    summary: "Propose confidently",
+  },
+  REQUIRE_DRAFT_REVIEW: {
+    label: "Draft review",
+    tone: "border-sky-500/30 bg-sky-500/10 text-sky-200",
+    dot: "bg-sky-400",
+    summary: "Keep reviewable",
+  },
+  AVOID_SUGGESTION: {
+    label: "Usually rejected",
+    tone: "border-rose-500/30 bg-rose-500/10 text-rose-200",
+    dot: "bg-rose-400",
+    summary: "Avoid proposing",
+  },
+  LOWER_PRIORITY: {
+    label: "Low priority",
+    tone: "border-gray-600 bg-gray-800 text-gray-300",
+    dot: "bg-gray-400",
+    summary: "Stay quiet",
+  },
+};
+
+export function FeedbackPolicyPanel() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [since, setSince] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<FeedbackPolicyCandidate[]>([]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const data = await apiFetch<FeedbackPolicyResponse>(
+        "/api/feedback/policy-candidates?limit=500&minEvents=3",
+      );
+      setSince(data.since);
+      setCandidates(data.candidates);
+    } catch (err) {
+      setError(true);
+      setCandidates([]);
+      captureClientError(err, { scope: "settings.feedback-policy-candidates" });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <div className="rounded-xl border border-gray-800/60 bg-gray-900/80 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="font-medium">Learned policy signals</h3>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {since ? `Since ${new Date(since).toLocaleDateString()}` : "Recent feedback patterns"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={load}
+          disabled={loading}
+          className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-300 transition hover:bg-gray-700 disabled:opacity-50"
+        >
+          {loading ? "Loading" : "Refresh"}
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="mt-4 space-y-2">
+          <div className="h-16 animate-pulse rounded-lg bg-gray-800/80" />
+          <div className="h-16 animate-pulse rounded-lg bg-gray-800/60" />
+        </div>
+      ) : error ? (
+        <div className="mt-4 rounded-lg border border-red-900/50 bg-red-950/20 px-3 py-2 text-sm text-red-200">
+          Unable to load policy signals.
+        </div>
+      ) : candidates.length === 0 ? (
+        <div className="mt-4 rounded-lg border border-gray-800 bg-gray-950/30 px-3 py-3 text-sm text-gray-500">
+          No stable policy signals yet.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {candidates.slice(0, 6).map((candidate) => {
+            const copy = KIND_COPY[candidate.kind];
+            return (
+              <div
+                key={candidate.id}
+                className="rounded-lg border border-gray-800 bg-gray-950/30 px-3 py-3"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${copy.dot}`} />
+                      <span className="break-words font-mono text-xs text-gray-200">
+                        {candidate.scope.toolName}
+                      </span>
+                      {candidate.scope.recipient && (
+                        <span className="break-all text-xs text-gray-500">
+                          {candidate.scope.recipient}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">{copy.summary}</p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full border px-2 py-1 text-[10px] ${copy.tone}`}
+                  >
+                    {copy.label}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] text-gray-500 sm:grid-cols-6">
+                  <SignalCount label="Approved" value={candidate.support.approved} />
+                  <SignalCount label="Rejected" value={candidate.support.rejected} />
+                  <SignalCount label="Edited" value={candidate.support.edited} />
+                  <SignalCount label="Ignored" value={candidate.support.ignored} />
+                  <SignalCount label="Snoozed" value={candidate.support.snoozed} />
+                  <SignalCount label="Dismissed" value={candidate.support.dismissed} />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[10px] text-gray-600">
+                  <span>{Math.round(candidate.confidence * 100)}% confidence</span>
+                  <span>{candidate.support.total} events</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SignalCount({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md bg-gray-900/70 px-2 py-1">
+      <div className="text-gray-600">{label}</div>
+      <div className="text-xs font-medium text-gray-300">{value}</div>
+    </div>
+  );
+}
