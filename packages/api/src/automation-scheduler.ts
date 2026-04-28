@@ -192,11 +192,16 @@ async function runAutomations() {
             });
 
             // Send browser push — tap opens today's briefing page
-            sendPushNotification(config.userId, {
-              title: "Daily Briefing Ready",
-              body: briefingMsg,
-              url: "/briefing",
-            });
+            sendPushNotification(
+              config.userId,
+              {
+                title: "Daily Briefing Ready",
+                body: briefingMsg,
+                url: "/briefing",
+                notificationId: notification.id,
+              },
+              "daily_briefing",
+            );
 
             briefingSentToday.set(config.userId, today);
             console.log(`[AUTOMATION] Briefing delivered to ${config.userId}`);
