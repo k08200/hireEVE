@@ -10,7 +10,11 @@
 import { createHash } from "node:crypto";
 import type { CommitmentKind, CommitmentSource } from "@prisma/client";
 import { type CommitmentCandidate, extractCommitmentCandidates } from "./commitment-extractor.js";
-import { upsertCommitment } from "./commitments.js";
+import {
+  type CommitmentRefinement,
+  maybeRefineCommitmentCandidateWithLlm,
+} from "./commitment-refiner.js";
+import { type CommitmentInput, upsertCommitment } from "./commitments.js";
 import { prisma } from "./db.js";
 
 const TITLE_MAX_LEN = 120;
@@ -23,6 +27,8 @@ export interface CommitmentIngestionInput {
   threadId?: string | null;
   text: string;
   contextTitle?: string | null;
+  referenceDate?: Date;
+  timeZone?: string;
   maxCandidates?: number;
 }
 
@@ -65,6 +71,29 @@ function confidenceForCandidate(candidate: CommitmentCandidate): number {
   return candidate.dueHint ? 0.55 : 0.45;
 }
 
+function buildCommitmentInput(
+  input: CommitmentIngestionInput,
+  candidate: CommitmentCandidate,
+  refinement: CommitmentRefinement | null,
+  dedupKey: string,
+): CommitmentInput {
+  return {
+    title: compactText(refinement?.title ?? candidate.text),
+    description: input.contextTitle ? compactText(input.contextTitle, 180) : null,
+    kind: refinement?.kind ?? kindForCandidate(candidate),
+    owner: refinement?.owner ?? candidate.owner,
+    counterpartyName: refinement?.counterpartyName ?? null,
+    dueAt: refinement?.dueAt ?? null,
+    dueText: refinement?.dueText ?? candidate.dueHint,
+    sourceType: input.sourceType,
+    sourceId: input.sourceId,
+    threadId: input.threadId ?? null,
+    evidenceText: compactText(candidate.text, 500),
+    confidence: refinement?.confidence ?? confidenceForCandidate(candidate),
+    dedupKey,
+  };
+}
+
 /**
  * Extract commitment candidates from a source text and upsert them into the
  * ledger. This function is idempotent for a given (source/thread, candidate)
@@ -81,25 +110,27 @@ export async function extractAndUpsertCommitmentsFromText(
   let duplicatesSkipped = 0;
 
   for (const candidate of candidates) {
+    const refinement = await maybeRefineCommitmentCandidateWithLlm({
+      candidate,
+      sourceType: input.sourceType,
+      sourceText: input.text,
+      contextTitle: input.contextTitle,
+      referenceDate: input.referenceDate,
+      timeZone: input.timeZone,
+    });
+    if (refinement?.isCommitment === false) continue;
+    const usableRefinement = refinement?.isCommitment === true ? refinement : null;
+
     const dedupKey = buildDedupKey(input, candidate);
     const existing = await prisma.commitment.findUnique({
       where: { userId_dedupKey: { userId: input.userId, dedupKey } },
       select: { id: true },
     });
 
-    await upsertCommitment(input.userId, {
-      title: compactText(candidate.text),
-      description: input.contextTitle ? compactText(input.contextTitle, 180) : null,
-      kind: kindForCandidate(candidate),
-      owner: candidate.owner,
-      dueText: candidate.dueHint,
-      sourceType: input.sourceType,
-      sourceId: input.sourceId,
-      threadId: input.threadId ?? null,
-      evidenceText: compactText(candidate.text, 500),
-      confidence: confidenceForCandidate(candidate),
-      dedupKey,
-    });
+    await upsertCommitment(
+      input.userId,
+      buildCommitmentInput(input, candidate, usableRefinement, dedupKey),
+    );
 
     if (existing) duplicatesSkipped++;
     else commitmentsCreated++;
