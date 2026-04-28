@@ -19,6 +19,7 @@ const {
   upsertAttentionForPendingAction,
   upsertAttentionForTask,
   upsertAttentionForCalendarEvent,
+  upsertAttentionForNotification,
   bulkResolveAttentionForPendingActions,
   deleteAttentionForPendingActions,
   deleteAttentionForCalendarEvents,
@@ -325,6 +326,66 @@ describe("upsertAttentionForCalendarEvent", () => {
     );
     const call = upsertSpy.mock.calls[0]?.[0] as { create: { status: string } };
     expect(call.create.status).toBe("RESOLVED");
+  });
+});
+
+describe("upsertAttentionForNotification", () => {
+  it("skips non agent_proposal types", async () => {
+    await upsertAttentionForNotification({
+      id: "n-1",
+      userId: "u",
+      type: "reminder",
+      title: "title",
+      message: "msg",
+      isRead: false,
+      pendingActionId: null,
+    });
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it("skips agent_proposal notifications already linked to a PendingAction", async () => {
+    await upsertAttentionForNotification({
+      id: "n-2",
+      userId: "u",
+      type: "agent_proposal",
+      title: "title",
+      message: "msg",
+      isRead: false,
+      pendingActionId: "pa-99",
+    });
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it("surfaces naked unread agent_proposal as OPEN", async () => {
+    await upsertAttentionForNotification({
+      id: "n-3",
+      userId: "u",
+      type: "agent_proposal",
+      title: "[EVE] heads-up",
+      message: "something to look at",
+      isRead: false,
+      pendingActionId: null,
+    });
+    const call = upsertSpy.mock.calls[0]?.[0] as {
+      create: { status: string; type: string; title: string };
+    };
+    expect(call.create.status).toBe("OPEN");
+    expect(call.create.type).toBe("FOLLOWUP");
+    expect(call.create.title).toBe("[EVE] heads-up");
+  });
+
+  it("flips a read agent_proposal to DISMISSED", async () => {
+    await upsertAttentionForNotification({
+      id: "n-4",
+      userId: "u",
+      type: "agent_proposal",
+      title: "[EVE] heads-up",
+      message: "msg",
+      isRead: true,
+      pendingActionId: null,
+    });
+    const call = upsertSpy.mock.calls[0]?.[0] as { create: { status: string } };
+    expect(call.create.status).toBe("DISMISSED");
   });
 });
 
