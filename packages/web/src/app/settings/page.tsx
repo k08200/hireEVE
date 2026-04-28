@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
+import { FeedbackPolicyPanel } from "../../components/feedback-policy-panel";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
@@ -1140,6 +1141,8 @@ export default function SettingsPage() {
                     유지.
                   </p>
                 </div>
+
+                <FeedbackPolicyPanel />
 
                 {/* Run Now Button */}
                 <div>
