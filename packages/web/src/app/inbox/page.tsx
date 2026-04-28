@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
+import BriefingCard from "../../components/briefing-card";
 import CommandCenterSummary from "../../components/command-center-summary";
 import PlaybookRecommendations from "../../components/playbook-recommendations";
 import WorkGraphSummaryCard from "../../components/work-graph-summary";
@@ -173,6 +174,7 @@ function InboxView() {
         </div>
       </header>
 
+      <BriefingCard />
       <CommandCenterSummary />
       <WorkGraphSummaryCard />
       <PlaybookRecommendations />

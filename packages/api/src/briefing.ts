@@ -7,6 +7,7 @@
 
 import type { FastifyInstance } from "fastify";
 import { getUserId } from "./auth.js";
+import { getBriefingStatus } from "./briefing-status.js";
 import { listEvents } from "./calendar.js";
 import { prisma } from "./db.js";
 import { listEmails } from "./gmail.js";
@@ -149,6 +150,12 @@ export async function briefingRoutes(app: FastifyInstance) {
     });
 
     return { briefing: note };
+  });
+
+  // GET /api/briefing/status — Today's briefing, notification, and push state
+  app.get("/status", async (request) => {
+    const userId = getUserId(request);
+    return getBriefingStatus(userId);
   });
 }
 
