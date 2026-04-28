@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { dogfoodEmailClassificationFixtures } from "../__fixtures__/email-classification/dogfood.js";
 import { classifyPriority } from "../email-sync.js";
 
 describe("classifyPriority — heuristic gate before LLM", () => {
@@ -85,6 +86,33 @@ describe("classifyPriority — heuristic gate before LLM", () => {
   describe("Case-insensitivity", () => {
     it("uppercase subject still classified", () => {
       expect(classifyPriority("a@b.com", "URGENT REPLY NEEDED")).toBe("URGENT");
+    });
+  });
+
+  describe("dogfood fixture baseline", () => {
+    it("documents current heuristic gaps against redacted real-world patterns", () => {
+      const mismatches = dogfoodEmailClassificationFixtures
+        .filter(
+          (fixture) =>
+            classifyPriority(fixture.from, fixture.subject, fixture.labels) !==
+            fixture.expectedSyncPriority,
+        )
+        .map((fixture) => fixture.id);
+      const knownGaps = dogfoodEmailClassificationFixtures
+        .filter((fixture) => fixture.knownHeuristicGap)
+        .map((fixture) => fixture.id);
+
+      expect(mismatches).toEqual(knownGaps);
+    });
+
+    it("keeps non-gap dogfood cases pinned to the desired heuristic priority", () => {
+      for (const fixture of dogfoodEmailClassificationFixtures.filter(
+        (item) => !item.knownHeuristicGap,
+      )) {
+        expect(classifyPriority(fixture.from, fixture.subject, fixture.labels)).toBe(
+          fixture.expectedSyncPriority,
+        );
+      }
     });
   });
 });
