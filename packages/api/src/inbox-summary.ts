@@ -12,7 +12,7 @@
  */
 
 import { resolveActionTarget } from "./action-target.js";
-import { upsertAttentionForPendingAction } from "./attention-mirror.js";
+import { upsertAttentionForPendingAction, upsertAttentionForTask } from "./attention-mirror.js";
 import { prisma } from "./db.js";
 
 export interface PendingActionInput {
@@ -298,6 +298,18 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
   const orphans = pendingRows.filter((p) => !mirroredIds.has(p.id));
   if (orphans.length > 0) {
     await Promise.all(orphans.map((p) => upsertAttentionForPendingAction(p)));
+  }
+
+  // Mirror tasks whose due window is open into AttentionItem. Idempotent —
+  // upserts keyed on (source, sourceId) so revisiting a task that's already
+  // mirrored is a no-op aside from refreshing priority/title.
+  const dueTaskRows = taskRows.filter((t) => {
+    if (!t.dueDate) return false;
+    const due = t.dueDate.getTime();
+    return Number.isFinite(due) && due < tomorrowStart.getTime();
+  });
+  if (dueTaskRows.length > 0) {
+    await Promise.all(dueTaskRows.map((t) => upsertAttentionForTask(t, now)));
   }
 
   // Read the queue from AttentionItem now — sourceId joins back to PendingAction

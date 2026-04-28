@@ -192,6 +192,7 @@ app.delete("/api/user/me/data", { preHandler: requireAuth }, async (request, rep
     await tx.note.deleteMany({ where: { userId } });
     await tx.contact.deleteMany({ where: { userId } });
     await tx.reminder.deleteMany({ where: { userId } });
+    await tx.attentionItem.deleteMany({ where: { userId } });
   });
   return reply.code(204).send();
 });
@@ -261,6 +262,7 @@ app.delete("/api/user/data", { preHandler: requireAuth }, async (request, reply)
     await tx.note.deleteMany({ where: { userId } });
     await tx.contact.deleteMany({ where: { userId } });
     await tx.reminder.deleteMany({ where: { userId } });
+    await tx.attentionItem.deleteMany({ where: { userId } });
   });
   return reply.code(204).send();
 });

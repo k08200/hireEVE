@@ -1,3 +1,4 @@
+import { deleteAttentionForTasks, upsertAttentionForTask } from "./attention-mirror.js";
 import { prisma } from "./db.js";
 
 const OPEN_STATUSES = ["TODO", "IN_PROGRESS"] as const;
@@ -144,6 +145,7 @@ export async function createTask(
       dueDate: dueDate ? new Date(dueDate) : null,
     },
   });
+  await upsertAttentionForTask(task);
 
   return { success: true, task: { id: task.id, title: task.title, status: task.status } };
 }
@@ -159,6 +161,7 @@ export async function updateTask(taskId: string, updates: Record<string, unknown
   }
 
   const task = await prisma.task.update({ where: { id: taskId }, data });
+  await upsertAttentionForTask(task);
 
   return {
     success: true,
@@ -168,6 +171,7 @@ export async function updateTask(taskId: string, updates: Record<string, unknown
 
 export async function deleteTask(taskId: string) {
   await prisma.task.delete({ where: { id: taskId } });
+  await deleteAttentionForTasks([taskId]);
   return { success: true };
 }
 
