@@ -17,6 +17,7 @@ vi.mock("../db.js", () => {
 
 const {
   upsertAttentionForPendingAction,
+  upsertAttentionForTask,
   bulkResolveAttentionForPendingActions,
   deleteAttentionForPendingActions,
 } = await import("../attention-mirror.js");
@@ -134,6 +135,114 @@ describe("bulkResolveAttentionForPendingActions", () => {
     };
     expect(call.where.sourceId.in).toEqual(["a", "b"]);
     expect(call.data.status).toBe("RESOLVED");
+  });
+});
+
+describe("upsertAttentionForTask", () => {
+  const NOW = new Date("2026-04-28T10:00:00Z").getTime();
+  const TODAY_START = (() => {
+    const d = new Date(NOW);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  })();
+
+  it("skips tasks without a dueDate", async () => {
+    await upsertAttentionForTask(
+      {
+        id: "t-1",
+        userId: "u",
+        title: "no due",
+        status: "TODO",
+        priority: "MEDIUM",
+        dueDate: null,
+      },
+      NOW,
+    );
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it("skips tasks dueDate in the future (tomorrow or later)", async () => {
+    await upsertAttentionForTask(
+      {
+        id: "t-2",
+        userId: "u",
+        title: "future",
+        status: "TODO",
+        priority: "MEDIUM",
+        dueDate: new Date(TODAY_START + 2 * 24 * 60 * 60 * 1000),
+      },
+      NOW,
+    );
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it("surfaces today-due tasks at base priority", async () => {
+    await upsertAttentionForTask(
+      {
+        id: "t-3",
+        userId: "u",
+        title: "today",
+        status: "TODO",
+        priority: "MEDIUM",
+        dueDate: new Date(NOW + 60 * 60 * 1000),
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as {
+      create: { priority: number; status: string };
+    };
+    expect(call.create.status).toBe("OPEN");
+    expect(call.create.priority).toBe(50);
+  });
+
+  it("bumps priority for overdue tasks", async () => {
+    await upsertAttentionForTask(
+      {
+        id: "t-4",
+        userId: "u",
+        title: "old",
+        status: "TODO",
+        priority: "MEDIUM",
+        dueDate: new Date(TODAY_START - 24 * 60 * 60 * 1000),
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as { create: { priority: number } };
+    // base 50 + overdue 20 = 70
+    expect(call.create.priority).toBe(70);
+  });
+
+  it("further bumps priority for HIGH/URGENT tasks", async () => {
+    await upsertAttentionForTask(
+      {
+        id: "t-5",
+        userId: "u",
+        title: "urgent overdue",
+        status: "TODO",
+        priority: "URGENT",
+        dueDate: new Date(TODAY_START - 24 * 60 * 60 * 1000),
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as { create: { priority: number } };
+    // base 50 + overdue 20 + URGENT 20 = 90
+    expect(call.create.priority).toBe(90);
+  });
+
+  it("marks the AttentionItem RESOLVED when the task is DONE", async () => {
+    await upsertAttentionForTask(
+      {
+        id: "t-6",
+        userId: "u",
+        title: "done",
+        status: "DONE",
+        priority: "MEDIUM",
+        dueDate: new Date(TODAY_START - 24 * 60 * 60 * 1000),
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as { create: { status: string } };
+    expect(call.create.status).toBe("RESOLVED");
   });
 });
 
