@@ -59,6 +59,11 @@ export interface FeedbackPolicyExtractionOptions {
   minEvents?: number;
 }
 
+export interface FeedbackPolicyPromptOptions {
+  limit?: number;
+  minConfidence?: number;
+}
+
 type FeedbackPolicyEvent = Pick<
   FeedbackEvent,
   "id" | "signal" | "toolName" | "recipient" | "threadId" | "evidence" | "createdAt"
@@ -114,6 +119,29 @@ export function extractFeedbackPolicyCandidates(
   }
 
   return candidates.sort(compareCandidates);
+}
+
+export function formatFeedbackPolicyCandidatesForPrompt(
+  candidates: FeedbackPolicyCandidate[],
+  opts: FeedbackPolicyPromptOptions = {},
+): string {
+  const limit = clampInteger(opts.limit ?? 5, 1, 20);
+  const minConfidence = Math.min(Math.max(opts.minConfidence ?? 0.6, 0), 1);
+  const selected = candidates
+    .filter((candidate) => candidate.confidence >= minConfidence)
+    .slice(0, limit);
+  if (selected.length === 0) return "";
+
+  const lines = selected.map((candidate) => {
+    const scope = describeScope(candidate.scope);
+    const support = describeSupport(candidate.support);
+    return `- ${describeKind(candidate.kind, scope)} Confidence: ${Math.round(candidate.confidence * 100)}%. Support: ${support}.`;
+  });
+
+  return `\n\n## Learned Feedback Policy Signals
+These are soft signals derived from repeated approve/reject/edit/ignore feedback. Use them to shape whether you propose, draft, stay quiet, or ask for review.
+They are NOT authorization to bypass the current autonomy/risk policy, approval gates, or tool safety rules.
+${lines.join("\n")}`;
 }
 
 function buildBuckets(events: FeedbackPolicyEvent[]): Map<string, Bucket> {
@@ -291,6 +319,36 @@ function confidence(dominantCount: number, total: number): number {
   const ratio = dominantCount / total;
   const volumeBonus = Math.min(0.12, Math.max(0, total - DEFAULT_MIN_EVENTS) * 0.03);
   return Math.round(Math.min(0.95, Math.max(0.55, ratio - 0.05 + volumeBonus)) * 100) / 100;
+}
+
+function describeKind(kind: FeedbackPolicyCandidateKind, scope: string): string {
+  if (kind === "ALLOW_AFTER_SUGGESTION") {
+    return `User usually approves ${scope}; you may propose it confidently when the live context truly matches.`;
+  }
+  if (kind === "REQUIRE_DRAFT_REVIEW") {
+    return `User often edits ${scope}; keep it as a reviewable draft/proposal instead of sounding final.`;
+  }
+  if (kind === "AVOID_SUGGESTION") {
+    return `User usually rejects ${scope}; avoid proposing it unless there is strong new evidence.`;
+  }
+  return `User often ignores or snoozes ${scope}; lower its priority and stay quiet unless it is urgent.`;
+}
+
+function describeScope(scope: FeedbackPolicyScope): string {
+  const tool = `tool ${scope.toolName}`;
+  return scope.recipient ? `${tool} for ${scope.recipient}` : tool;
+}
+
+function describeSupport(support: FeedbackPolicySupport): string {
+  const parts = [
+    `approved ${support.approved}`,
+    `rejected ${support.rejected}`,
+    `edited ${support.edited}`,
+    `ignored ${support.ignored}`,
+    `snoozed ${support.snoozed}`,
+    `dismissed ${support.dismissed}`,
+  ];
+  return `${parts.join(", ")} out of ${support.total}`;
 }
 
 function scopeKey(scope: FeedbackPolicyScope): string {
