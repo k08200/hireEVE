@@ -263,7 +263,8 @@ function LabelFeedbackControl({
     return (
       <span className="text-[11px] text-emerald-300/80 inline-flex items-center gap-1">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-        보고됨: {PRIORITY_LABELS[feedback.originalPriority]} → {PRIORITY_LABELS[feedback.correctedPriority]}
+        보고됨: {PRIORITY_LABELS[feedback.originalPriority]} →{" "}
+        {PRIORITY_LABELS[feedback.correctedPriority]}
       </span>
     );
   }
