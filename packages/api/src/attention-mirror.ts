@@ -330,3 +330,65 @@ export async function deleteAttentionForCalendarEvents(eventIds: string[]): Prom
     console.warn("[attention-mirror] deleteAttentionForCalendarEvents failed", err);
   }
 }
+
+// ─── Notifications (agent_proposal only) ───────────────────────────────────
+// agent_proposal notifications without an attached PendingAction surface as
+// FOLLOWUP. These are typically legacy rows from before the PA → notification
+// link was added; new proposals go through the PendingAction mirror so they
+// don't get double-counted here.
+
+export interface NotificationLike {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  pendingActionId: string | null;
+}
+
+export async function upsertAttentionForNotification(notif: NotificationLike): Promise<void> {
+  // Only mirror agent_proposal notifications that aren't already represented
+  // by a PendingAction — anything else is either noise or already in the
+  // queue via another source.
+  if (notif.type !== "agent_proposal") return;
+  if (notif.pendingActionId !== null) return;
+
+  const status: AttentionStatus = notif.isRead ? "DISMISSED" : "OPEN";
+  const isResolved = status !== "OPEN";
+
+  try {
+    await prisma.attentionItem.upsert({
+      where: { source_sourceId: { source: "NOTIFICATION", sourceId: notif.id } },
+      create: {
+        userId: notif.userId,
+        source: "NOTIFICATION",
+        sourceId: notif.id,
+        type: "FOLLOWUP",
+        status,
+        title: notif.title,
+        body: notif.message,
+        resolvedAt: isResolved ? new Date() : null,
+      },
+      update: {
+        status,
+        title: notif.title,
+        body: notif.message,
+        resolvedAt: isResolved ? new Date() : null,
+      },
+    });
+  } catch (err) {
+    console.warn("[attention-mirror] upsert failed for Notification", notif.id, err);
+  }
+}
+
+export async function deleteAttentionForNotifications(notificationIds: string[]): Promise<void> {
+  if (notificationIds.length === 0) return;
+  try {
+    await prisma.attentionItem.deleteMany({
+      where: { source: "NOTIFICATION", sourceId: { in: notificationIds } },
+    });
+  } catch (err) {
+    console.warn("[attention-mirror] deleteAttentionForNotifications failed", err);
+  }
+}

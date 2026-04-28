@@ -104,6 +104,11 @@ export async function markNotificationRead(notificationId: string): Promise<void
     where: { id: notificationId },
     data: { isRead: true },
   });
+  // Mirror the read state onto the FOLLOWUP queue entry, if one exists.
+  await prisma.attentionItem.updateMany({
+    where: { source: "NOTIFICATION", sourceId: notificationId, status: "OPEN" },
+    data: { status: "DISMISSED", resolvedAt: new Date() },
+  });
 }
 
 export async function markAllNotificationsRead(userId: string): Promise<void> {
@@ -111,10 +116,17 @@ export async function markAllNotificationsRead(userId: string): Promise<void> {
     where: { userId, isRead: false },
     data: { isRead: true },
   });
+  await prisma.attentionItem.updateMany({
+    where: { userId, source: "NOTIFICATION", status: "OPEN" },
+    data: { status: "DISMISSED", resolvedAt: new Date() },
+  });
 }
 
 export async function clearNotifications(userId: string): Promise<void> {
   await prisma.notification.deleteMany({ where: { userId } });
+  // Drop the mirrored queue entries — without this, the queue keeps showing
+  // FOLLOWUP rows pointing at notifications that no longer exist.
+  await prisma.attentionItem.deleteMany({ where: { userId, source: "NOTIFICATION" } });
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: meeting check has inherent nested logic (users → meetings → dedup → notify)

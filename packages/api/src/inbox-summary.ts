@@ -14,6 +14,7 @@
 import { resolveActionTarget } from "./action-target.js";
 import {
   upsertAttentionForCalendarEvent,
+  upsertAttentionForNotification,
   upsertAttentionForPendingAction,
   upsertAttentionForTask,
 } from "./attention-mirror.js";
@@ -320,6 +321,12 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
   // today, so every row is in-window — pass them straight through.
   if (eventRows.length > 0) {
     await Promise.all(eventRows.map((e) => upsertAttentionForCalendarEvent(e, now)));
+  }
+
+  // Mirror naked agent_proposal notifications (no attached PA) into the queue.
+  // Newer proposals go through the PA mirror, so this is mostly legacy data.
+  if (notifRows.length > 0) {
+    await Promise.all(notifRows.map((n) => upsertAttentionForNotification(n)));
   }
 
   // Read the queue from AttentionItem now — sourceId joins back to PendingAction
