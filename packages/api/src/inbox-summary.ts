@@ -1,15 +1,18 @@
 /**
- * Deterministic ranking for the inbox Command Center summary.
+ * Server-side ranking for the inbox Command Center summary.
  *
- * Intentionally rule-based — no LLM judgment in v0. The order is:
- *   1. PendingAction (PENDING) — user-blocking decisions
- *   2. Overdue tasks — already past due
+ * Deterministic, rule-based — no LLM judgment. Pure functions over plain inputs
+ * so the route is easy to unit-test without touching the database.
+ *
+ * Order:
+ *   1. PendingAction (PENDING) — user-blocking decisions, never buried
+ *   2. Overdue tasks
  *   3. Today's events that are starting soon
- *   4. Unread agent_proposal notifications — secondary signal
- *
- * `pickTop3` always pulls pending actions first when present, so "approval
- * needed" never gets buried below noisy notifications.
+ *   4. Unread agent_proposal notifications without an attached PendingAction
  */
+
+import { resolveActionTarget } from "./action-target.js";
+import { prisma } from "./db.js";
 
 export interface PendingActionInput {
   id: string;
@@ -87,8 +90,14 @@ export interface TodaySection {
   todayTasks: TaskInput[];
 }
 
+export interface InboxSummary {
+  top3: AttentionItem[];
+  today: TodaySection;
+}
+
 const TOP_LIMIT = 3;
-const SOON_WINDOW_MS = 6 * 60 * 60 * 1000; // 6 hours — "starting soon"
+const SOON_WINDOW_MS = 6 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function startOfToday(now: number): number {
   const d = new Date(now);
@@ -97,11 +106,7 @@ function startOfToday(now: number): number {
 }
 
 function endOfToday(now: number): number {
-  return startOfToday(now) + 24 * 60 * 60 * 1000;
-}
-
-function isPending(a: PendingActionInput): boolean {
-  return a.status === "PENDING";
+  return startOfToday(now) + DAY_MS;
 }
 
 function dueDateMs(t: TaskInput): number | null {
@@ -145,13 +150,16 @@ function toPendingItem(a: PendingActionInput): AttentionItem {
 }
 
 function toOverdueItem(t: TaskInput, now: number): AttentionItem {
-  const due = dueDateMs(t)!;
-  const daysOverdue = Math.max(1, Math.floor((startOfToday(now) - due) / (24 * 60 * 60 * 1000)));
+  const due = dueDateMs(t);
+  if (due === null || !t.dueDate) {
+    throw new Error("toOverdueItem requires a task with a valid dueDate");
+  }
+  const daysOverdue = Math.max(1, Math.floor((startOfToday(now) - due) / DAY_MS));
   return {
     kind: "overdue_task",
     id: t.id,
     title: t.title,
-    dueDate: t.dueDate!,
+    dueDate: t.dueDate,
     daysOverdue,
   };
 }
@@ -191,7 +199,7 @@ export function pickTop3(input: {
 }): AttentionItem[] {
   const now = input.now ?? Date.now();
 
-  const pending = input.pendingActions.filter(isPending).map(toPendingItem);
+  const pending = input.pendingActions.filter((a) => a.status === "PENDING").map(toPendingItem);
 
   const overdueSorted = input.tasks
     .filter((t) => t.status !== "DONE" && isOverdue(t, now))
@@ -211,13 +219,12 @@ export function pickTop3(input: {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .map(toProposalItem);
 
-  const ordered: AttentionItem[] = [...pending, ...overdueSorted, ...eventsSoon, ...proposals];
-  return ordered.slice(0, TOP_LIMIT);
+  return [...pending, ...overdueSorted, ...eventsSoon, ...proposals].slice(0, TOP_LIMIT);
 }
 
 /**
- * Bundle the "오늘 봐야 할 것" section. Returned arrays are pre-sorted and
- * deduplicated against each other (today-due tasks excluded from overdue, etc).
+ * Bundle the "오늘 봐야 할 것" section. Events for today, overdue tasks, and
+ * today-due tasks — each pre-sorted, with no overlap between overdue and today.
  */
 export function buildTodaySection(input: {
   tasks: TaskInput[];
@@ -235,4 +242,100 @@ export function buildTodaySection(input: {
     .filter((t) => t.status !== "DONE" && isDueToday(t, now))
     .sort((a, b) => (dueDateMs(a) ?? 0) - (dueDateMs(b) ?? 0));
   return { events, overdueTasks, todayTasks };
+}
+
+/**
+ * Build the inbox summary by reading the four signal sources directly from the
+ * database. Centralising this on the server keeps the `/inbox` page to a single
+ * fetch and gives EVE a single place to evolve the ranking logic.
+ */
+export async function buildInboxSummary(userId: string, now = Date.now()): Promise<InboxSummary> {
+  const todayStart = new Date(startOfToday(now));
+  const tomorrowStart = new Date(endOfToday(now));
+
+  type PendingActionRow = {
+    id: string;
+    conversationId: string;
+    status: string;
+    toolName: string;
+    toolArgs: string;
+    reasoning: string | null;
+    createdAt: Date;
+  };
+
+  const [pendingRows, taskRows, eventRows, notifRows] = await Promise.all([
+    (prisma.pendingAction.findMany as (args: unknown) => Promise<PendingActionRow[]>)({
+      where: { userId, status: "PENDING" },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    prisma.task.findMany({
+      where: { userId, status: { not: "DONE" } },
+      orderBy: { dueDate: "asc" },
+      take: 100,
+    }),
+    prisma.calendarEvent.findMany({
+      where: { userId, startTime: { gte: todayStart, lt: tomorrowStart } },
+      orderBy: { startTime: "asc" },
+    }),
+    prisma.notification.findMany({
+      where: { userId, type: "agent_proposal", isRead: false, pendingActionId: null },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+  ]);
+
+  const pendingActions: PendingActionInput[] = await Promise.all(
+    pendingRows.map(async (a) => {
+      let targetLabel: string | null = null;
+      try {
+        const parsed = JSON.parse(a.toolArgs) as Record<string, unknown>;
+        targetLabel = await resolveActionTarget(a.toolName, parsed);
+      } catch {
+        // Malformed toolArgs — leave label null
+      }
+      return {
+        id: a.id,
+        conversationId: a.conversationId,
+        status: a.status,
+        toolName: a.toolName,
+        targetLabel,
+        reasoning: a.reasoning,
+        createdAt: a.createdAt.toISOString(),
+      };
+    }),
+  );
+
+  const tasks: TaskInput[] = taskRows.map((t) => ({
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    priority: t.priority,
+    dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+  }));
+
+  const events: EventInput[] = eventRows.map((e) => ({
+    id: e.id,
+    title: e.title,
+    startTime: e.startTime.toISOString(),
+    endTime: e.endTime ? e.endTime.toISOString() : undefined,
+    location: e.location,
+  }));
+
+  const notifications: NotificationInput[] = notifRows.map((n) => ({
+    id: n.id,
+    type: n.type,
+    title: n.title,
+    message: n.message,
+    isRead: n.isRead,
+    link: n.link,
+    conversationId: n.conversationId,
+    pendingActionId: n.pendingActionId,
+    createdAt: n.createdAt.toISOString(),
+  }));
+
+  const top3 = pickTop3({ pendingActions, tasks, events, notifications, now });
+  const today = buildTodaySection({ tasks, events, now });
+
+  return { top3, today };
 }
