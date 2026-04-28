@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { useConfirm } from "../../components/confirm-dialog";
@@ -153,6 +154,7 @@ export default function SettingsPage() {
   const [gmailPushEnabled, setGmailPushEnabled] = useState(false);
   const [gmailPushExpiresAt, setGmailPushExpiresAt] = useState<string | null>(null);
   const [gmailPushLoading, setGmailPushLoading] = useState(false);
+  const [emailFeedbackCount, setEmailFeedbackCount] = useState<number | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
@@ -632,6 +634,12 @@ export default function SettingsPage() {
         .then((d) => setNotionConnected(d.configured))
         .catch((err) => captureClientError(err, { scope: "settings.notion-status" })),
     ]).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    apiFetch<{ fixtures: unknown[]; count: number }>("/api/email/feedback?limit=200")
+      .then((data) => setEmailFeedbackCount(data.count))
+      .catch((err) => captureClientError(err, { scope: "settings.email-feedback-count" }));
   }, []);
 
   const integrations: Integration[] = [
@@ -1399,6 +1407,20 @@ export default function SettingsPage() {
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-gray-300 mb-3">Data</h2>
           <div className="space-y-3">
+            <Link
+              href="/settings/email-feedback"
+              className="flex items-center justify-between rounded-xl border border-gray-800/60 bg-gray-900/80 p-4 transition hover:border-gray-700 hover:bg-gray-900"
+            >
+              <div className="min-w-0">
+                <h3 className="font-medium">Email classification corrections</h3>
+                <p className="text-sm text-gray-400">
+                  {emailFeedbackCount === null
+                    ? "Loading corrections..."
+                    : `${emailFeedbackCount} corrections recorded`}
+                </p>
+              </div>
+              <span className="ml-4 shrink-0 text-sm font-medium text-gray-400">Review →</span>
+            </Link>
             <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Export Data</h3>
