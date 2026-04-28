@@ -312,7 +312,7 @@ model AutomationConfig {
   briefingTime         String   @default("09:00")
   downloadAutoOrganize Boolean  @default(false)
   autonomousAgent      Boolean  @default(true)
-  agentMode            String   @default("SUGGEST") // "SUGGEST" | "AUTO"
+  agentMode            String   @default("SUGGEST") // "SHADOW" | "SUGGEST" | "AUTO"
   agentIntervalMin     Int      @default(5)
   alwaysAllowedTools   String[] @default([]) // MEDIUM-risk tools the user has pre-approved for AUTO mode
   // Gmail read-state opt-in: when true, EVE marks the original email as read
@@ -351,7 +351,7 @@ model EmailProcessingLog {
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   emailId     String // EmailMessage.id (soft reference — no FK so we can retain history if email is deleted)
-  mode        String // "SUGGEST" | "AUTO"
+  mode        String // "SHADOW" | "SUGGEST" | "AUTO"
   action      String // "mark_read" | "reply" | "classify" | "archive"
   processedAt DateTime @default(now())
 

@@ -51,7 +51,7 @@ describe("PATCH /api/automations alwaysAllowedTools validation", () => {
       briefingTime: "09:00",
       downloadAutoOrganize: false,
       autonomousAgent: true,
-      agentMode: "AUTO",
+      agentMode: (args.update.agentMode as string) ?? "AUTO",
       agentIntervalMin: 5,
       alwaysAllowedTools: (args.update.alwaysAllowedTools as string[]) ?? [],
     }));
@@ -71,6 +71,38 @@ describe("PATCH /api/automations alwaysAllowedTools validation", () => {
 
     const call = upsertSpy.mock.calls[0][0];
     expect(call.update.alwaysAllowedTools).toEqual(["send_email", "create_event"]);
+    await app.close();
+  });
+
+  it("accepts SHADOW mode", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { agentMode: "SHADOW" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().agentMode).toBe("SHADOW");
+
+    const call = upsertSpy.mock.calls[0][0];
+    expect(call.update.agentMode).toBe("SHADOW");
+    await app.close();
+  });
+
+  it("normalizes unknown agent modes to SUGGEST", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { agentMode: "LOUD" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().agentMode).toBe("SUGGEST");
+
+    const call = upsertSpy.mock.calls[0][0];
+    expect(call.update.agentMode).toBe("SUGGEST");
     await app.close();
   });
 

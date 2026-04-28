@@ -9,6 +9,37 @@ import { API_BASE, apiFetch, authHeaders } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { captureClientError } from "../../lib/sentry";
 
+type AgentMode = "SHADOW" | "SUGGEST" | "AUTO";
+
+const AGENT_MODE_OPTIONS: Array<{ mode: AgentMode; label: string; description: string }> = [
+  { mode: "SHADOW", label: "SHADOW", description: "Prepare quietly" },
+  { mode: "SUGGEST", label: "SUGGEST", description: "Ask before action" },
+  { mode: "AUTO", label: "AUTO", description: "Run safe actions" },
+];
+
+function normalizeAgentMode(value: string | undefined): AgentMode {
+  if (value === "SHADOW" || value === "SUGGEST" || value === "AUTO") return value;
+  return "SUGGEST";
+}
+
+function agentModeToast(mode: AgentMode): string {
+  switch (mode) {
+    case "SHADOW":
+      return "SHADOW mode — EVE will prepare work quietly";
+    case "AUTO":
+      return "AUTO mode — EVE will auto-execute safe actions";
+    case "SUGGEST":
+      return "SUGGEST mode — EVE will ask before acting";
+  }
+}
+
+function agentModeClasses(mode: AgentMode, active: boolean): string {
+  if (!active) return "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600";
+  if (mode === "SHADOW") return "bg-violet-600/20 border-violet-500/50 text-violet-300";
+  if (mode === "AUTO") return "bg-cyan-600/20 border-cyan-500/50 text-cyan-300";
+  return "bg-blue-600/20 border-blue-500/50 text-blue-300";
+}
+
 interface Integration {
   name: string;
   description: string;
@@ -59,7 +90,7 @@ export default function SettingsPage() {
   );
   const [hasPassword, setHasPassword] = useState(true);
   const [agentEnabled, setAgentEnabled] = useState(true);
-  const [agentMode, setAgentMode] = useState<"SUGGEST" | "AUTO">("SUGGEST");
+  const [agentMode, setAgentMode] = useState<AgentMode>("SUGGEST");
   const [agentInterval, setAgentInterval] = useState(5);
   const [alwaysAllowedTools, setAlwaysAllowedTools] = useState<string[]>([]);
   const [autoMarkReadEnabled, setAutoMarkReadEnabled] = useState(false);
@@ -398,7 +429,7 @@ export default function SettingsPage() {
     }>("/api/automations")
       .then((d) => {
         setAgentEnabled(d.autonomousAgent ?? true);
-        setAgentMode((d.agentMode as "SUGGEST" | "AUTO") ?? "SUGGEST");
+        setAgentMode(normalizeAgentMode(d.agentMode));
         setAgentInterval(d.agentIntervalMin ?? 5);
         setAlwaysAllowedTools(d.alwaysAllowedTools ?? []);
         setPreApprovableTools(d.preApprovableTools ?? []);
@@ -510,7 +541,7 @@ export default function SettingsPage() {
     setRunningAgent(true);
     try {
       await apiFetch<{ triggered: boolean }>("/api/automations/run-now", { method: "POST" });
-      toast("Agent triggered — check chat for results", "success");
+      toast("Agent triggered — check Inbox for results", "success");
     } catch {
       toast("Failed to trigger agent", "error");
     } finally {
@@ -518,21 +549,17 @@ export default function SettingsPage() {
     }
   };
 
-  const toggleAgentMode = async (mode: "SUGGEST" | "AUTO") => {
+  const toggleAgentMode = async (mode: AgentMode) => {
+    const previousMode = agentMode;
     setAgentMode(mode);
     try {
       await apiFetch("/api/automations", {
         method: "PATCH",
         body: JSON.stringify({ agentMode: mode }),
       });
-      toast(
-        mode === "AUTO"
-          ? "AUTO mode — EVE will auto-execute safe actions"
-          : "SUGGEST mode — EVE will only send notifications",
-        "success",
-      );
+      toast(agentModeToast(mode), "success");
     } catch {
-      setAgentMode(mode === "AUTO" ? "SUGGEST" : "AUTO");
+      setAgentMode(previousMode);
       toast("Failed to update mode", "error");
     }
   };
@@ -940,8 +967,8 @@ export default function SettingsPage() {
               <div>
                 <h3 className="font-medium">Proactive AI Brain</h3>
                 <p className="text-sm text-gray-400">
-                  EVE analyzes your tasks, calendar, and emails in the background and sends smart
-                  notifications
+                  EVE analyzes your tasks, calendar, and emails in the background and prepares the
+                  next move
                 </p>
               </div>
               <button
@@ -963,33 +990,30 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 {/* Agent Mode */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Agent mode</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleAgentMode("SUGGEST")}
-                      className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition ${
-                        agentMode === "SUGGEST"
-                          ? "bg-blue-600/20 border-blue-500/50 text-blue-300"
-                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
-                      }`}
-                    >
-                      <div className="font-medium">SUGGEST</div>
-                      <div className="text-[10px] mt-0.5 opacity-70">Notifications only</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleAgentMode("AUTO")}
-                      className={`flex-1 px-4 py-2.5 rounded-lg border text-sm transition ${
-                        agentMode === "AUTO"
-                          ? "bg-cyan-600/20 border-cyan-500/50 text-cyan-300"
-                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
-                      }`}
-                    >
-                      <div className="font-medium">AUTO</div>
-                      <div className="text-[10px] mt-0.5 opacity-70">Auto-execute safe actions</div>
-                    </button>
+                  <div className="text-sm text-gray-400 mb-2">Agent mode</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {AGENT_MODE_OPTIONS.map((option) => (
+                      <button
+                        key={option.mode}
+                        type="button"
+                        onClick={() => toggleAgentMode(option.mode)}
+                        className={`min-w-0 px-3 py-2.5 rounded-lg border text-sm transition ${agentModeClasses(
+                          option.mode,
+                          agentMode === option.mode,
+                        )}`}
+                      >
+                        <div className="font-medium truncate">{option.label}</div>
+                        <div className="text-[10px] mt-0.5 opacity-70 truncate">
+                          {option.description}
+                        </div>
+                      </button>
+                    ))}
                   </div>
+                  {agentMode === "SHADOW" && (
+                    <p className="text-[10px] text-violet-300/75 mt-2">
+                      EVE가 조용히 초안과 승인 대기 작업을 준비하고 Inbox에만 쌓아둬요.
+                    </p>
+                  )}
                   {agentMode === "AUTO" && (
                     <p className="text-[10px] text-cyan-400/70 mt-2">
                       Safe actions like creating reminders, updating tasks, classifying emails, and

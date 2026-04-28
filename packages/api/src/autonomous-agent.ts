@@ -29,6 +29,7 @@ import { resolveActionTarget } from "./action-target.js";
 import { AGENT_SYSTEM_PROMPT, NOTIFY_TOOL, PROPOSE_ACTION_TOOL } from "./agent/prompt.js";
 import { recordDedupKey, wasRecentlyDeduped } from "./agent-dedup.js";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
+import { type AgentMode, normalizeAgentMode } from "./agent-mode.js";
 import {
   bulkResolveAttentionForPendingActions,
   upsertAttentionForPendingAction,
@@ -687,9 +688,28 @@ async function gatherUserContext(userId: string): Promise<string> {
   return sections.join("\n\n");
 }
 
+function buildShadowSystemPrompt(): string {
+  return AGENT_SYSTEM_PROMPT.replace(
+    /## Primary Tool: propose_action[\s\S]*?## Message Format for Proposals/,
+    `## CRITICAL: SHADOW Mode — Quiet Preparation
+
+You are working like a shadow employee. Your job is to prepare useful drafts and approval-ready proposals quietly.
+
+Use propose_action when you find a concrete action worth preparing. The proposal will appear in the user's Inbox/Command Center for later triage.
+
+Do NOT notify the user. Do NOT ask for immediate attention. Do NOT call notify_user. If the signal is only a time-sensitive alert, stay quiet unless it can become a concrete prepared action.
+
+## Message Format for Proposals`,
+  );
+}
+
 /** Run the autonomous reasoning loop for a single user */
-export async function runAgentForUser(userId: string, mode: string = "SUGGEST"): Promise<void> {
+export async function runAgentForUser(
+  userId: string,
+  mode: AgentMode | string = "SUGGEST",
+): Promise<void> {
   const startTime = Date.now();
+  const agentMode = normalizeAgentMode(mode);
 
   try {
     // Load user plan and model for tool gating
@@ -720,7 +740,8 @@ export async function runAgentForUser(userId: string, mode: string = "SUGGEST"):
       return;
     }
 
-    const isAutoMode = mode === "AUTO";
+    const isAutoMode = agentMode === "AUTO";
+    const isShadowMode = agentMode === "SHADOW";
 
     // Load user's pre-approved MEDIUM-risk tools (HIGH is never auto-allowed).
     const automationCfg = await prisma.automationConfig.findUnique({
@@ -841,7 +862,9 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
 - Reply to EACH email separately. 2 unread emails = 2 separate replies
 - NEVER skip notify_user. The user depends on notifications to know what happened.
 - After EVERY action (create_event, send_email, create_reminder, update_task), ALWAYS call notify_user.`
-      : AGENT_SYSTEM_PROMPT;
+      : isShadowMode
+        ? buildShadowSystemPrompt()
+        : AGENT_SYSTEM_PROMPT;
 
     const contextParts = [context];
     if (feedback) contextParts.push(feedback);
@@ -864,7 +887,7 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
     const agentTools = [
       // In AUTO mode, skip propose_action — agent calls tools directly, we gate by risk level
       ...(isAutoMode ? [] : [PROPOSE_ACTION_TOOL]),
-      NOTIFY_TOOL,
+      ...(isShadowMode ? [] : [NOTIFY_TOOL]),
       ...ALL_TOOLS.filter((t) => {
         const name = t.function.name;
         // Always allow read-only tools
@@ -1040,53 +1063,56 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
               data: { updatedAt: new Date() },
             });
 
-            // Also create a notification so user sees it in notification bell.
-            // pendingActionId + conversationId are persisted so the drawer can render
-            // inline approve/reject buttons even after a page reload.
-            const notifTitle = `[EVE] ${args.message.slice(0, 50)}${args.message.length > 50 ? "..." : ""}`;
             const proposalLink = `/chat/${agentConvo.id}`;
-            const notification = await (prisma.notification.create as Function)({
-              data: {
-                userId,
-                type: "agent_proposal",
+            if (!isShadowMode) {
+              // Also create a notification so user sees it in notification bell.
+              // pendingActionId + conversationId are persisted so the drawer can render
+              // inline approve/reject buttons even after a page reload.
+              const notifTitle = `[EVE] ${args.message.slice(0, 50)}${args.message.length > 50 ? "..." : ""}`;
+              const notification = await (prisma.notification.create as Function)({
+                data: {
+                  userId,
+                  type: "agent_proposal",
+                  title: notifTitle,
+                  message: args.message,
+                  link: proposalLink,
+                  conversationId: agentConvo.id,
+                  pendingActionId: (pendingAction as { id: string }).id,
+                },
+              });
+
+              // Push notification with conversationId so bell links to the right chat
+              pushNotification(userId, {
+                id: notification.id,
+                type: args.category || "insight",
                 title: notifTitle,
                 message: args.message,
-                link: proposalLink,
+                createdAt: notification.createdAt.toISOString(),
                 conversationId: agentConvo.id,
-                pendingActionId: (pendingAction as { id: string }).id,
-              },
-            });
+                link: proposalLink,
+              });
 
-            // Push notification with conversationId so bell links to the right chat
-            pushNotification(userId, {
-              id: notification.id,
-              type: args.category || "insight",
-              title: notifTitle,
-              message: args.message,
-              createdAt: notification.createdAt.toISOString(),
-              conversationId: agentConvo.id,
-              link: proposalLink,
-            });
-
-            // Always send push notification for proposed actions (phone/browser)
-            sendPushNotification(userId, {
-              title: "[EVE] 확인이 필요해요",
-              body: args.message.slice(0, 100),
-              url: `/chat/${agentConvo.id}`,
-            });
+              // Always send push notification for proposed actions (phone/browser)
+              sendPushNotification(userId, {
+                title: "[EVE] 확인이 필요해요",
+                body: args.message.slice(0, 100),
+                url: proposalLink,
+              });
+            }
 
             if (dedupKey) recordDedupKey(userId, dedupKey);
 
             result = JSON.stringify({
               success: true,
               proposed: true,
+              shadow: isShadowMode,
               conversationId: agentConvo.id,
             });
 
             await logAgentAction(
               userId,
               "propose",
-              `[${args.priority}] Proposed ${args.toolName}: ${args.message.slice(0, 100)}`,
+              `${isShadowMode ? "[SHADOW] " : ""}[${args.priority}] Proposed ${args.toolName}: ${args.message.slice(0, 100)}`,
               "propose_action",
               args.category,
             );
@@ -1104,93 +1130,109 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
             });
           }
         } else if (fnName === "notify_user") {
-          // Server-side guard against NOISE notifications. Even if the LLM
-          // misclassifies a newsletter/marketing/promo email as worth
-          // surfacing, we block the push here. Cheaper to drop a legit
-          // alert once than to burn user trust with every ad that lands.
-          const combined = `${args.title || ""} ${args.message || ""}`.toLowerCase();
-          const isNoise =
-            /^\[새 메일\]/.test(args.title || "") ||
-            /newsletter|광고|marketing|promotion|unsubscribe|수신거부|digest|\[ad\]|\[광고\]|할인|coupon|\bsale\b|deal|welcome to |verify your |confirm your /.test(
-              combined,
-            );
-          if (isNoise) {
+          if (isShadowMode) {
             result = JSON.stringify({
               skipped: true,
-              reason: "noise notification suppressed",
+              reason: "shadow mode suppresses notifications",
             });
             await logAgentAction(
               userId,
               "skip",
-              `Noise suppressed: "${args.title}"`,
+              `Shadow suppressed notification: "${args.title}"`,
               "notify_user",
               args.category,
             );
-            continue;
-          }
-
-          // Lightweight notification — no approval needed
-          const dedupKey = typeof args.dedupKey === "string" ? args.dedupKey : "";
-          const dedupKeyHit = dedupKey && wasRecentlyDeduped(userId, dedupKey);
-          const key = getNotifKey(args.title);
-          const alreadyNotified = await hasRecentNotification(userId, key);
-
-          if (dedupKeyHit || alreadyNotified) {
-            result = JSON.stringify({
-              skipped: true,
-              reason: dedupKeyHit ? "duplicate notification (dedupKey)" : "duplicate notification",
-            });
-            await logAgentAction(userId, "skip", `Dedup: "${args.title}" already sent`);
           } else {
-            // Mark as agent-generated notification
-            const agentTitle = `[EVE] ${args.title}`;
-
-            // /tasks was removed in week 1; /email and /calendar are back.
-            // Everything else taps back into /briefing (the primary surface).
-            const notifyLink =
-              args.category === "calendar"
-                ? "/calendar"
-                : args.category === "email"
-                  ? "/email"
-                  : "/briefing";
-            const notification = await (prisma.notification.create as Function)({
-              data: {
+            // Server-side guard against NOISE notifications. Even if the LLM
+            // misclassifies a newsletter/marketing/promo email as worth
+            // surfacing, we block the push here. Cheaper to drop a legit
+            // alert once than to burn user trust with every ad that lands.
+            const combined = `${args.title || ""} ${args.message || ""}`.toLowerCase();
+            const isNoise =
+              /^\[새 메일\]/.test(args.title || "") ||
+              /newsletter|광고|marketing|promotion|unsubscribe|수신거부|digest|\[ad\]|\[광고\]|할인|coupon|\bsale\b|deal|welcome to |verify your |confirm your /.test(
+                combined,
+              );
+            if (isNoise) {
+              result = JSON.stringify({
+                skipped: true,
+                reason: "noise notification suppressed",
+              });
+              await logAgentAction(
                 userId,
+                "skip",
+                `Noise suppressed: "${args.title}"`,
+                "notify_user",
+                args.category,
+              );
+              continue;
+            }
+
+            // Lightweight notification — no approval needed
+            const dedupKey = typeof args.dedupKey === "string" ? args.dedupKey : "";
+            const dedupKeyHit = dedupKey && wasRecentlyDeduped(userId, dedupKey);
+            const key = getNotifKey(args.title);
+            const alreadyNotified = await hasRecentNotification(userId, key);
+
+            if (dedupKeyHit || alreadyNotified) {
+              result = JSON.stringify({
+                skipped: true,
+                reason: dedupKeyHit
+                  ? "duplicate notification (dedupKey)"
+                  : "duplicate notification",
+              });
+              await logAgentAction(userId, "skip", `Dedup: "${args.title}" already sent`);
+            } else {
+              // Mark as agent-generated notification
+              const agentTitle = `[EVE] ${args.title}`;
+
+              // /tasks was removed in week 1; /email and /calendar are back.
+              // Everything else taps back into /briefing (the primary surface).
+              const notifyLink =
+                args.category === "calendar"
+                  ? "/calendar"
+                  : args.category === "email"
+                    ? "/email"
+                    : "/briefing";
+              const notification = await (prisma.notification.create as Function)({
+                data: {
+                  userId,
+                  type: args.category || "insight",
+                  title: agentTitle,
+                  message: args.message,
+                  link: notifyLink,
+                },
+              });
+
+              pushNotification(userId, {
+                id: notification.id,
                 type: args.category || "insight",
                 title: agentTitle,
                 message: args.message,
+                createdAt: notification.createdAt.toISOString(),
                 link: notifyLink,
-              },
-            });
+              });
 
-            pushNotification(userId, {
-              id: notification.id,
-              type: args.category || "insight",
-              title: agentTitle,
-              message: args.message,
-              createdAt: notification.createdAt.toISOString(),
-              link: notifyLink,
-            });
+              // Always send push notification for agent notifications (phone/browser)
+              sendPushNotification(userId, {
+                title: agentTitle,
+                body: args.message,
+                url: notifyLink,
+              });
 
-            // Always send push notification for agent notifications (phone/browser)
-            sendPushNotification(userId, {
-              title: agentTitle,
-              body: args.message,
-              url: notifyLink,
-            });
+              if (dedupKey) recordDedupKey(userId, dedupKey);
 
-            if (dedupKey) recordDedupKey(userId, dedupKey);
+              result = JSON.stringify({ success: true, notified: true });
 
-            result = JSON.stringify({ success: true, notified: true });
-
-            await logAgentAction(
-              userId,
-              "notify",
-              `[${args.priority}] ${agentTitle}: ${args.message}`,
-              "notify_user",
-              args.category,
-            );
-            console.log(`[AGENT] Notified ${userId}: ${agentTitle}`);
+              await logAgentAction(
+                userId,
+                "notify",
+                `[${args.priority}] ${agentTitle}: ${args.message}`,
+                "notify_user",
+                args.category,
+              );
+              console.log(`[AGENT] Notified ${userId}: ${agentTitle}`);
+            }
           }
         } else {
           // Risk-based execution gating for AUTO mode.
@@ -1633,7 +1675,7 @@ async function runAutonomousAgent() {
     const userPlanMap = new Map(users.map((u) => [u.id, u.plan]));
 
     // Filter users that are due for a run
-    const usersToRun: Array<{ userId: string; mode: string }> = [];
+    const usersToRun: Array<{ userId: string; mode: AgentMode }> = [];
     for (const config of configs) {
       const cfg = config as unknown as Record<string, unknown>;
       if (cfg.autonomousAgent === false) continue;
@@ -1649,7 +1691,7 @@ async function runAutonomousAgent() {
       if (now - lastRun < intervalMs - 30_000) continue;
 
       // Plan-based mode gating: AUTO mode requires TEAM+ plan
-      let mode = (cfg.agentMode as string) || "SUGGEST";
+      let mode = normalizeAgentMode(cfg.agentMode);
       if (mode === "AUTO" && !planHasFeature(userPlan, "agent_mode_auto")) {
         mode = "SUGGEST"; // Downgrade to SUGGEST for PRO users
       }
