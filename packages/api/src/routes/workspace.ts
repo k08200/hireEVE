@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
+import { buildTeamRiskSummary } from "../team-risk.js";
 
 export async function workspaceRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
@@ -65,6 +66,20 @@ export async function workspaceRoutes(app: FastifyInstance) {
       slug: workspace.slug,
       role: "OWNER",
     });
+  });
+
+  // GET /api/workspaces/:id/risks — Team risk summary from member Work Graphs
+  app.get("/:id/risks", async (request, reply) => {
+    const userId = getUserId(request);
+    const { id } = request.params as { id: string };
+    const { limit } = request.query as { limit?: string };
+
+    const membership = await prisma.workspaceMember.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId: id } },
+    });
+    if (!membership) return reply.code(403).send({ error: "Not a member" });
+
+    return buildTeamRiskSummary(id, { limit: parseOptionalInteger(limit) });
   });
 
   // GET /api/workspaces/:id/members — List members
@@ -170,4 +185,10 @@ export async function workspaceRoutes(app: FastifyInstance) {
     await prisma.workspace.delete({ where: { id } });
     return reply.code(204).send();
   });
+}
+
+function parseOptionalInteger(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
