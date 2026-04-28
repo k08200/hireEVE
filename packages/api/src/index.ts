@@ -28,6 +28,7 @@ import { skillRoutes } from "./routes/skills.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { tokenUsageRoutes } from "./routes/token-usage.js";
 import { webhookRoutes } from "./routes/webhook.js";
+import { workGraphRoutes } from "./routes/work-graph.js";
 import { workspaceRoutes } from "./routes/workspace.js";
 import { slackEventRoutes } from "./slack.js";
 import { getClientCount, initWebSocket } from "./websocket.js";
@@ -112,6 +113,7 @@ await app.register(agentRoutes, { prefix: "/api/agents" });
 await app.register(memoryRoutes, { prefix: "/api/memories" });
 await app.register(tokenUsageRoutes, { prefix: "/api/usage" });
 await app.register(skillRoutes, { prefix: "/api/skills" });
+await app.register(workGraphRoutes, { prefix: "/api/work-graph" });
 
 app.get("/api/health", async () => {
   let dbOk = false;
