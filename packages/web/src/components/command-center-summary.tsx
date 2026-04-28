@@ -255,17 +255,8 @@ interface SubListItem {
   secondary: string | null;
 }
 
-function SubList({
-  label,
-  items,
-  tone,
-}: {
-  label: string;
-  items: SubListItem[];
-  tone?: "warn";
-}) {
-  const labelClass =
-    tone === "warn" ? "text-red-300" : "text-gray-400";
+function SubList({ label, items, tone }: { label: string; items: SubListItem[]; tone?: "warn" }) {
+  const labelClass = tone === "warn" ? "text-red-300" : "text-gray-400";
   return (
     <div>
       <p className={`text-[11px] font-medium mb-1.5 ${labelClass}`}>
