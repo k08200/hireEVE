@@ -10,6 +10,7 @@ import { extractAndUpsertCommitmentsFromText } from "../commitment-ingestion.js"
 import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
 import { extractSnippet } from "../extract-snippet.js";
+import { recipientFromToolArgs, recordFeedback } from "../feedback.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { createCompletion, EVE_SYSTEM_PROMPT, MODEL, resolveUserChatModel } from "../openai.js";
 import { Semaphore } from "../semaphore.js";
@@ -1282,6 +1283,17 @@ export function chatRoutes(app: FastifyInstance) {
           .then(({ learnFromApproval }) => learnFromApproval(userId, action.toolName, toolArgs))
           .catch(() => {});
 
+        // Append to the structured feedback ledger — Step 8.1 substrate.
+        await recordFeedback({
+          userId,
+          source: "PENDING_ACTION",
+          sourceId: actionId,
+          signal: "APPROVED",
+          toolName: action.toolName,
+          recipient: recipientFromToolArgs(action.toolArgs),
+          threadId: action.conversationId,
+        });
+
         // Auto-allow this tool type for future actions if requested
         const { autoAllow } = (request.body as { autoAllow?: boolean }) || {};
         if (autoAllow && action.toolName) {
@@ -1378,6 +1390,17 @@ export function chatRoutes(app: FastifyInstance) {
           learnFromRejection(userId, action.toolName, action.reasoning || "", reason?.trim() || ""),
         )
         .catch(() => {});
+
+      await recordFeedback({
+        userId,
+        source: "PENDING_ACTION",
+        sourceId: actionId,
+        signal: "REJECTED",
+        toolName: action.toolName,
+        recipient: recipientFromToolArgs(action.toolArgs),
+        threadId: action.conversationId,
+        evidence: reason?.trim() || null,
+      });
 
       // Never suggest this tool type again if requested
       const { neverSuggest } = (request.body as { neverSuggest?: boolean }) || {};
