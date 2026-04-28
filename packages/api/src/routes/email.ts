@@ -10,6 +10,7 @@ import type { EmailRuleAction, Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
+import { evaluateUserCorrectionFixtures } from "../email-classification-eval.js";
 import { listUserFeedbackFixtures } from "../email-feedback-fixtures.js";
 import {
   type EmailPriorityValue,
@@ -600,6 +601,21 @@ export async function emailRoutes(app: FastifyInstance) {
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
     });
     return { fixtures, count: fixtures.length };
+  });
+
+  // GET /api/email/feedback/eval — replay the user's corrections against
+  // the current heuristic classifier without changing runtime behavior.
+  app.get("/feedback/eval", async (request) => {
+    const userId = getUserId(request);
+    const { limit } = request.query as { limit?: string };
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
+    const fixtures = await listUserFeedbackFixtures(userId, {
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+    });
+    return {
+      generatedAt: new Date().toISOString(),
+      ...evaluateUserCorrectionFixtures(fixtures),
+    };
   });
 
   // POST /api/email/:id/feedback — user reports the auto-priority is wrong.
