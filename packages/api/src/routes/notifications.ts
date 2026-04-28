@@ -8,9 +8,31 @@ import {
 } from "../background.js";
 import { prisma } from "../db.js";
 import { getVapidPublicKey, sendPushNotification } from "../push.js";
+import { getPushDeliveryStats, recordPushReceipt } from "../push-delivery.js";
 
 export async function notificationRoutes(app: FastifyInstance) {
-  app.addHook("preHandler", requireAuth);
+  // POST /api/notifications/push/receipts/:deliveryId — public, high-entropy
+  // receipt from the service worker. It returns no user data.
+  app.post("/push/receipts/:deliveryId", async (request, reply) => {
+    const { deliveryId } = request.params as { deliveryId: string };
+    const { event } = (request.body || {}) as { event?: "received" | "clicked" };
+    if (event !== "received" && event !== "clicked") {
+      return reply.code(400).send({ error: "Invalid receipt event" });
+    }
+    await recordPushReceipt(deliveryId, event);
+    return reply.code(204).send();
+  });
+
+  app.addHook("preHandler", async (request, reply) => {
+    const path = request.url.split("?")[0] ?? "";
+    if (
+      path.startsWith("/push/receipts/") ||
+      path.startsWith("/api/notifications/push/receipts/")
+    ) {
+      return;
+    }
+    return requireAuth(request, reply);
+  });
 
   // GET /api/notifications — Get notifications (supports ?unread=true&limit=50)
   app.get("/", async (request) => {
@@ -114,14 +136,24 @@ export async function notificationRoutes(app: FastifyInstance) {
   });
 
   // POST /api/notifications/push/test — Send a test push notification
-  app.post("/push/test", async (request, reply) => {
+  app.post("/push/test", async (request) => {
     const userId = getUserId(request);
-    await sendPushNotification(userId, {
+    const result = await sendPushNotification(userId, {
       title: "EVE 테스트",
       body: "Push 알림이 정상 작동합니다!",
       url: "/chat",
     });
-    return { sent: true };
+    return { sent: result.status === "sent" && result.accepted > 0, result };
+  });
+
+  // GET /api/notifications/push/delivery-stats — Push delivery observability
+  app.get("/push/delivery-stats", async (request) => {
+    const userId = getUserId(request);
+    const { hours, limit } = request.query as { hours?: string; limit?: string };
+    return getPushDeliveryStats(userId, {
+      hours: parseOptionalInteger(hours),
+      limit: parseOptionalInteger(limit),
+    });
   });
 
   // DELETE /api/notifications/push/unsubscribe — Remove push subscription
@@ -135,4 +167,10 @@ export async function notificationRoutes(app: FastifyInstance) {
     await prisma.pushSubscription.deleteMany({ where: { endpoint, userId } });
     return reply.code(204).send();
   });
+}
+
+function parseOptionalInteger(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }

@@ -20,7 +20,28 @@ vi.mock("../background.js", () => ({
 }));
 vi.mock("../push.js", () => ({
   getVapidPublicKey: vi.fn(() => "test-vapid-key"),
-  sendPushNotification: vi.fn(async () => {}),
+  sendPushNotification: vi.fn(async () => ({
+    status: "sent",
+    subscriptions: 1,
+    attempted: 1,
+    accepted: 1,
+    failed: 0,
+  })),
+}));
+vi.mock("../push-delivery.js", () => ({
+  recordPushReceipt: vi.fn(async () => true),
+  getPushDeliveryStats: vi.fn(async () => ({
+    since: "2026-04-28T00:00:00.000Z",
+    total: 1,
+    accepted: 1,
+    failed: 0,
+    skipped: 0,
+    received: 1,
+    clicked: 0,
+    receiptRate: 1,
+    clickRate: 0,
+    recent: [],
+  })),
 }));
 
 vi.mock("../db.js", () => {
@@ -125,6 +146,28 @@ describe("notification routes", () => {
     await app.close();
   });
 
+  it("records push receipts without auth", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/notifications/push/receipts/delivery-1",
+      payload: { event: "received" },
+    });
+    expect(res.statusCode).toBe(204);
+    await app.close();
+  });
+
+  it("rejects invalid push receipt events", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/notifications/push/receipts/delivery-1",
+      payload: { event: "opened" },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
   it("registers push subscription with valid HTTPS endpoint", async () => {
     const app = await buildApp();
     const res = await app.inject({
@@ -179,6 +222,18 @@ describe("notification routes", () => {
       payload: { endpoint: "https://fcm.googleapis.com/fcm/send/abc" },
     });
     expect(res.statusCode).toBe(204);
+    await app.close();
+  });
+
+  it("returns push delivery stats", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/notifications/push/delivery-stats?hours=24&limit=10",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ accepted: 1, received: 1, receiptRate: 1 });
     await app.close();
   });
 });

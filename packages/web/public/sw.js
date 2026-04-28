@@ -76,52 +76,81 @@ self.addEventListener("fetch", (event) => {
 // Push notifications
 self.addEventListener("push", (event) => {
   console.log("[SW] Push event received!", event.data ? "has data" : "no data");
+  const rawText = event.data ? event.data.text() : null;
+
   // Forward to all open tabs so user can see in browser console
-  self.clients.matchAll({ type: "window" }).then((clients) => {
+  const debugPromise = self.clients.matchAll({ type: "window" }).then((clients) => {
     for (const c of clients) {
       c.postMessage({
         type: "PUSH_DEBUG",
         msg: "Push event fired!",
-        data: event.data ? event.data.text() : null,
+        data: rawText,
       });
     }
   });
+
+  let data = {};
   let title = "EVE";
   let options = {
     body: "You have a new notification",
     icon: "/icon-192.svg",
     badge: "/icon-192.svg",
-    data: { url: "/chat" },
+    data: { url: "/chat", deliveryId: null, receiptUrl: null },
   };
   try {
-    const data = event.data ? event.data.json() : {};
+    data = rawText ? JSON.parse(rawText) : {};
     console.log("[SW] Push data parsed:", JSON.stringify(data));
     title = data.title || "EVE";
     options = {
       body: data.body || "You have a new notification",
       icon: "/icon-192.svg",
       badge: "/icon-192.svg",
-      data: { url: data.url || "/chat" },
+      data: {
+        url: data.url || "/chat",
+        deliveryId: data.deliveryId || null,
+        receiptUrl: data.receiptUrl || null,
+      },
     };
   } catch (err) {
     console.error("[SW] Push data parse error:", err);
     // Show fallback notification even if parsing fails
     title = "EVE — New notification";
-    options.body = event.data ? event.data.text() : "Check EVE for details";
+    options.body = rawText || "Check EVE for details";
   }
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    Promise.all([
+      debugPromise,
+      sendPushReceipt(data, "received"),
+      self.registration.showNotification(title, options),
+    ]),
+  );
 });
 
 // Notification click → open app
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/chat";
+  const data = event.notification.data || {};
+  const url = data.url || "/chat";
   event.waitUntil(
-    self.clients.matchAll({ type: "window" }).then((clients) => {
-      for (const client of clients) {
-        if (client.url.includes(url) && "focus" in client) return client.focus();
-      }
-      return self.clients.openWindow(url);
-    }),
+    Promise.all([
+      sendPushReceipt(data, "clicked"),
+      self.clients.matchAll({ type: "window" }).then((clients) => {
+        for (const client of clients) {
+          if (client.url.includes(url) && "focus" in client) return client.focus();
+        }
+        return self.clients.openWindow(url);
+      }),
+    ]),
   );
 });
+
+function sendPushReceipt(data, event) {
+  if (!data || !data.deliveryId || !data.receiptUrl) return Promise.resolve();
+  return fetch(data.receiptUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event }),
+  }).catch((err) => {
+    console.warn("[SW] Push receipt failed:", err);
+  });
+}
