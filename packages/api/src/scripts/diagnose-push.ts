@@ -90,6 +90,39 @@ async function main() {
   });
   console.log(`\nBRIEFINGS TODAY: ${briefingsToday}`);
 
+  // 9. Push delivery receipts (last 24h)
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const deliveryLogs = await prisma.pushDeliveryLog.findMany({
+    where: { userId, createdAt: { gte: since } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+    select: {
+      category: true,
+      title: true,
+      status: true,
+      skipReason: true,
+      endpointHost: true,
+      errorStatusCode: true,
+      acceptedAt: true,
+      receivedAt: true,
+      clickedAt: true,
+      createdAt: true,
+    },
+  });
+  const accepted = deliveryLogs.filter((log) => log.status === "ACCEPTED").length;
+  const received = deliveryLogs.filter((log) => log.receivedAt).length;
+  const failed = deliveryLogs.filter((log) => log.status === "FAILED").length;
+  const skipped = deliveryLogs.filter((log) => log.status === "SKIPPED").length;
+  const receiptRate = accepted > 0 ? `${Math.round((received / accepted) * 100)}%` : "n/a";
+  console.log(
+    `\nPUSH DELIVERY 24H: ${accepted} accepted, ${received} received (${receiptRate}), ${failed} failed, ${skipped} skipped`,
+  );
+  for (const log of deliveryLogs.slice(0, 10)) {
+    const receipt = log.receivedAt ? "received" : log.acceptedAt ? "accepted" : log.status;
+    const detail = log.skipReason || log.errorStatusCode || log.endpointHost || "";
+    console.log(`  ${log.createdAt.toISOString()} [${log.category}] ${receipt} ${detail}`);
+  }
+
   await prisma.$disconnect();
 }
 

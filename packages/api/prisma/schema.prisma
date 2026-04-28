@@ -38,6 +38,7 @@ model User {
   agentLogs           AgentLog[]
   notifications       Notification[]
   pushSubscriptions   PushSubscription[]
+  pushDeliveryLogs    PushDeliveryLog[]
   memories            Memory[]
   skills              Skill[]
   tokenUsages         TokenUsage[]
@@ -388,6 +389,30 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+}
+
+model PushDeliveryLog {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId  String?
+  notificationId  String?
+  endpointHost    String?
+  category        String   @default("system")
+  title           String
+  status          String   @default("PENDING") // PENDING | ACCEPTED | FAILED | SKIPPED
+  skipReason      String?
+  errorStatusCode Int?
+  errorBody       String?
+  acceptedAt      DateTime?
+  receivedAt      DateTime?
+  clickedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([userId, status, createdAt])
+  @@index([subscriptionId])
 }
 
 // Memory System — EVE remembers facts about each user across conversations
