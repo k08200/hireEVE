@@ -4,6 +4,10 @@
  * Provides local calendar events stored in DB + optional Google Calendar sync.
  */
 import type { FastifyInstance } from "fastify";
+import {
+  deleteAttentionForCalendarEvents,
+  upsertAttentionForCalendarEvent,
+} from "../attention-mirror.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { createEvent as googleCreateEvent, deleteEvent as googleDeleteEvent } from "../calendar.js";
 import { prisma } from "../db.js";
@@ -105,6 +109,7 @@ export async function calendarRoutes(app: FastifyInstance) {
         googleId,
       },
     });
+    await upsertAttentionForCalendarEvent(event);
 
     return event;
   });
@@ -132,6 +137,7 @@ export async function calendarRoutes(app: FastifyInstance) {
       where: { id },
       data,
     });
+    await upsertAttentionForCalendarEvent(event);
     return event;
   });
 
@@ -153,6 +159,7 @@ export async function calendarRoutes(app: FastifyInstance) {
     }
 
     await prisma.calendarEvent.delete({ where: { id } });
+    await deleteAttentionForCalendarEvents([id]);
     return reply.code(204).send();
   });
 

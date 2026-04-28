@@ -18,8 +18,10 @@ vi.mock("../db.js", () => {
 const {
   upsertAttentionForPendingAction,
   upsertAttentionForTask,
+  upsertAttentionForCalendarEvent,
   bulkResolveAttentionForPendingActions,
   deleteAttentionForPendingActions,
+  deleteAttentionForCalendarEvents,
 } = await import("../attention-mirror.js");
 
 beforeEach(() => {
@@ -243,6 +245,102 @@ describe("upsertAttentionForTask", () => {
     );
     const call = upsertSpy.mock.calls[0]?.[0] as { create: { status: string } };
     expect(call.create.status).toBe("RESOLVED");
+  });
+});
+
+describe("upsertAttentionForCalendarEvent", () => {
+  const NOW = new Date("2026-04-28T10:00:00Z").getTime();
+  const TODAY_START = (() => {
+    const d = new Date(NOW);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  })();
+
+  it("skips events scheduled before today", async () => {
+    await upsertAttentionForCalendarEvent(
+      {
+        id: "e-past-day",
+        userId: "u",
+        title: "yesterday",
+        startTime: new Date(TODAY_START - 24 * 60 * 60 * 1000),
+      },
+      NOW,
+    );
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it("skips events scheduled after today", async () => {
+    await upsertAttentionForCalendarEvent(
+      {
+        id: "e-tomorrow",
+        userId: "u",
+        title: "tomorrow",
+        startTime: new Date(TODAY_START + 25 * 60 * 60 * 1000),
+      },
+      NOW,
+    );
+    expect(upsertSpy).not.toHaveBeenCalled();
+  });
+
+  it("surfaces today events in the future as OPEN", async () => {
+    await upsertAttentionForCalendarEvent(
+      {
+        id: "e-soon",
+        userId: "u",
+        title: "afternoon",
+        startTime: new Date(NOW + 90 * 60 * 1000),
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as {
+      create: { status: string; priority: number };
+    };
+    expect(call.create.status).toBe("OPEN");
+    expect(call.create.priority).toBe(50);
+  });
+
+  it("bumps priority for events starting within an hour", async () => {
+    await upsertAttentionForCalendarEvent(
+      {
+        id: "e-imminent",
+        userId: "u",
+        title: "starting soon",
+        startTime: new Date(NOW + 30 * 60 * 1000),
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as { create: { priority: number } };
+    expect(call.create.priority).toBe(70);
+  });
+
+  it("marks today events that have already started as RESOLVED", async () => {
+    await upsertAttentionForCalendarEvent(
+      {
+        id: "e-already-running",
+        userId: "u",
+        title: "earlier today",
+        startTime: new Date(NOW - 2 * 60 * 60 * 1000),
+      },
+      NOW,
+    );
+    const call = upsertSpy.mock.calls[0]?.[0] as { create: { status: string } };
+    expect(call.create.status).toBe("RESOLVED");
+  });
+});
+
+describe("deleteAttentionForCalendarEvents", () => {
+  it("noops on empty list", async () => {
+    await deleteAttentionForCalendarEvents([]);
+    expect(deleteManySpy).not.toHaveBeenCalled();
+  });
+
+  it("deletes by source=CALENDAR_EVENT", async () => {
+    await deleteAttentionForCalendarEvents(["e1", "e2"]);
+    const call = deleteManySpy.mock.calls[0]?.[0] as {
+      where: { source: string; sourceId: { in: string[] } };
+    };
+    expect(call.where.source).toBe("CALENDAR_EVENT");
+    expect(call.where.sourceId.in).toEqual(["e1", "e2"]);
   });
 });
 
