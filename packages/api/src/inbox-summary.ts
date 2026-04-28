@@ -1,14 +1,14 @@
 /**
  * Server-side ranking for the inbox Command Center summary.
  *
- * Deterministic, rule-based — no LLM judgment. Pure functions over plain inputs
- * so the route is easy to unit-test without touching the database.
+ * Top 3 reads from the AttentionItem queue: rows with status=OPEN, ordered
+ * by priority desc then surfacedAt desc. Each row is mapped back to its
+ * source (PendingAction / Task / CalendarEvent / Notification) for the
+ * display metadata the UI still needs.
  *
- * Order:
- *   1. PendingAction (PENDING) — user-blocking decisions, never buried
- *   2. Overdue tasks
- *   3. Today's events that are starting soon
- *   4. Unread agent_proposal notifications without an attached PendingAction
+ * The "today" section stays as a separate snapshot read — overdue tasks,
+ * today-due tasks, today's events. It's a calendar view, not a queue, so
+ * AttentionItem is the wrong substrate for it.
  */
 
 import { resolveActionTarget } from "./action-target.js";
@@ -19,16 +19,6 @@ import {
   upsertAttentionForTask,
 } from "./attention-mirror.js";
 import { prisma } from "./db.js";
-
-export interface PendingActionInput {
-  id: string;
-  conversationId: string;
-  status: string;
-  toolName: string;
-  targetLabel: string | null;
-  reasoning: string | null;
-  createdAt: string;
-}
 
 export interface TaskInput {
   id: string;
@@ -44,18 +34,6 @@ export interface EventInput {
   startTime: string;
   endTime?: string;
   location?: string | null;
-}
-
-export interface NotificationInput {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  link?: string | null;
-  conversationId?: string | null;
-  pendingActionId?: string | null;
-  createdAt: string;
 }
 
 export type AttentionItem =
@@ -102,7 +80,6 @@ export interface InboxSummary {
 }
 
 const TOP_LIMIT = 3;
-const SOON_WINDOW_MS = 6 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function startOfToday(now: number): number {
@@ -139,95 +116,6 @@ function isTodayEvent(e: EventInput, now: number): boolean {
   return start >= startOfToday(now) && start < endOfToday(now);
 }
 
-function pendingLabel(a: PendingActionInput): string {
-  if (a.targetLabel) return `${a.toolName.replace(/_/g, " ")}: ${a.targetLabel}`;
-  return a.toolName.replace(/_/g, " ");
-}
-
-function toPendingItem(a: PendingActionInput): AttentionItem {
-  return {
-    kind: "pending_action",
-    id: a.id,
-    toolName: a.toolName,
-    label: pendingLabel(a),
-    conversationId: a.conversationId,
-    reasoning: a.reasoning,
-  };
-}
-
-function toOverdueItem(t: TaskInput, now: number): AttentionItem {
-  const due = dueDateMs(t);
-  if (due === null || !t.dueDate) {
-    throw new Error("toOverdueItem requires a task with a valid dueDate");
-  }
-  const daysOverdue = Math.max(1, Math.floor((startOfToday(now) - due) / DAY_MS));
-  return {
-    kind: "overdue_task",
-    id: t.id,
-    title: t.title,
-    dueDate: t.dueDate,
-    daysOverdue,
-  };
-}
-
-function toEventItem(e: EventInput, now: number): AttentionItem {
-  const start = new Date(e.startTime).getTime();
-  return {
-    kind: "today_event",
-    id: e.id,
-    title: e.title,
-    startTime: e.startTime,
-    minutesAway: Math.round((start - now) / 60_000),
-    location: e.location ?? null,
-  };
-}
-
-function toProposalItem(n: NotificationInput): AttentionItem {
-  return {
-    kind: "agent_proposal",
-    id: n.id,
-    title: n.title,
-    message: n.message,
-    link: n.link ?? null,
-  };
-}
-
-/**
- * Pick the top items the user should look at right now. Pending actions get
- * absolute priority — never buried below notifications.
- */
-export function pickTop3(input: {
-  pendingActions: PendingActionInput[];
-  tasks: TaskInput[];
-  events: EventInput[];
-  notifications: NotificationInput[];
-  now?: number;
-}): AttentionItem[] {
-  const now = input.now ?? Date.now();
-
-  const pending = input.pendingActions.filter((a) => a.status === "PENDING").map(toPendingItem);
-
-  const overdueSorted = input.tasks
-    .filter((t) => t.status !== "DONE" && isOverdue(t, now))
-    .sort((a, b) => (dueDateMs(a) ?? 0) - (dueDateMs(b) ?? 0))
-    .map((t) => toOverdueItem(t, now));
-
-  const eventsSoon = input.events
-    .filter((e) => {
-      const start = new Date(e.startTime).getTime();
-      return Number.isFinite(start) && start >= now && start - now <= SOON_WINDOW_MS;
-    })
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-    .map((e) => toEventItem(e, now));
-
-  const proposals = input.notifications
-    .filter((n) => n.type === "agent_proposal" && !n.isRead && !n.pendingActionId)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .map(toProposalItem);
-
-  return [...pending, ...overdueSorted, ...eventsSoon, ...proposals].slice(0, TOP_LIMIT);
-}
-
 /**
  * Bundle the "오늘 봐야 할 것" section. Events for today, overdue tasks, and
  * today-due tasks — each pre-sorted, with no overlap between overdue and today.
@@ -250,25 +138,157 @@ export function buildTodaySection(input: {
   return { events, overdueTasks, todayTasks };
 }
 
+// ─── Queue read helpers ────────────────────────────────────────────────────
+
+type AttentionRow = {
+  id: string;
+  source: "PENDING_ACTION" | "TASK" | "CALENDAR_EVENT" | "NOTIFICATION";
+  sourceId: string;
+};
+
+type PendingActionRow = {
+  id: string;
+  userId: string;
+  conversationId: string;
+  status: string;
+  toolName: string;
+  toolArgs: string;
+  reasoning: string | null;
+  createdAt: Date;
+};
+
+type TaskRow = {
+  id: string;
+  userId: string;
+  title: string;
+  status: string;
+  priority: string;
+  dueDate: Date | null;
+};
+
+type CalendarEventRow = {
+  id: string;
+  userId: string;
+  title: string;
+  startTime: Date;
+  endTime: Date;
+  location: string | null;
+};
+
+type NotificationRow = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  link: string | null;
+  pendingActionId: string | null;
+};
+
+async function buildPendingItem(
+  row: AttentionRow,
+  pa: PendingActionRow,
+): Promise<AttentionItem | null> {
+  if (pa.status !== "PENDING") return null;
+  let targetLabel: string | null = null;
+  try {
+    const parsed = JSON.parse(pa.toolArgs) as Record<string, unknown>;
+    targetLabel = await resolveActionTarget(pa.toolName, parsed);
+  } catch {
+    // Malformed toolArgs — leave label null
+  }
+  const baseLabel = pa.toolName.replace(/_/g, " ");
+  return {
+    kind: "pending_action",
+    id: pa.id,
+    toolName: pa.toolName,
+    label: targetLabel ? `${baseLabel}: ${targetLabel}` : baseLabel,
+    conversationId: pa.conversationId,
+    reasoning: pa.reasoning,
+  };
+}
+
+function buildOverdueTaskItem(task: TaskRow, now: number): AttentionItem | null {
+  if (task.status === "DONE" || !task.dueDate) return null;
+  const due = task.dueDate.getTime();
+  if (!Number.isFinite(due)) return null;
+  if (due >= startOfToday(now)) return null; // not overdue
+  const daysOverdue = Math.max(1, Math.floor((startOfToday(now) - due) / DAY_MS));
+  return {
+    kind: "overdue_task",
+    id: task.id,
+    title: task.title,
+    dueDate: task.dueDate.toISOString(),
+    daysOverdue,
+  };
+}
+
+function buildTodayEventItem(event: CalendarEventRow, now: number): AttentionItem | null {
+  const start = event.startTime.getTime();
+  if (!Number.isFinite(start)) return null;
+  if (start < now) return null; // already started — RESOLVED on next mirror pass
+  return {
+    kind: "today_event",
+    id: event.id,
+    title: event.title,
+    startTime: event.startTime.toISOString(),
+    minutesAway: Math.round((start - now) / 60_000),
+    location: event.location,
+  };
+}
+
+function buildAgentProposalItem(notif: NotificationRow): AttentionItem | null {
+  if (notif.isRead) return null;
+  if (notif.pendingActionId) return null; // mirrored via the PA row instead
+  if (notif.type !== "agent_proposal") return null;
+  return {
+    kind: "agent_proposal",
+    id: notif.id,
+    title: notif.title,
+    message: notif.message,
+    link: notif.link,
+  };
+}
+
+async function buildItemFromAttention(
+  row: AttentionRow,
+  sources: {
+    paById: Map<string, PendingActionRow>;
+    taskById: Map<string, TaskRow>;
+    eventById: Map<string, CalendarEventRow>;
+    notifById: Map<string, NotificationRow>;
+  },
+  now: number,
+): Promise<AttentionItem | null> {
+  switch (row.source) {
+    case "PENDING_ACTION": {
+      const pa = sources.paById.get(row.sourceId);
+      return pa ? buildPendingItem(row, pa) : null;
+    }
+    case "TASK": {
+      const task = sources.taskById.get(row.sourceId);
+      return task ? buildOverdueTaskItem(task, now) : null;
+    }
+    case "CALENDAR_EVENT": {
+      const event = sources.eventById.get(row.sourceId);
+      return event ? buildTodayEventItem(event, now) : null;
+    }
+    case "NOTIFICATION": {
+      const notif = sources.notifById.get(row.sourceId);
+      return notif ? buildAgentProposalItem(notif) : null;
+    }
+  }
+}
+
 /**
- * Build the inbox summary by reading the four signal sources directly from the
- * database. Centralising this on the server keeps the `/inbox` page to a single
- * fetch and gives EVE a single place to evolve the ranking logic.
+ * Build the inbox summary. Top 3 reads from the AttentionItem queue; today
+ * section reads its source tables directly. The producers in attention-mirror.ts
+ * keep the queue in sync, with a lazy backfill here for any rows that
+ * pre-date the producers.
  */
 export async function buildInboxSummary(userId: string, now = Date.now()): Promise<InboxSummary> {
   const todayStart = new Date(startOfToday(now));
   const tomorrowStart = new Date(endOfToday(now));
-
-  type PendingActionRow = {
-    id: string;
-    userId: string;
-    conversationId: string;
-    status: string;
-    toolName: string;
-    toolArgs: string;
-    reasoning: string | null;
-    createdAt: Date;
-  };
 
   const [pendingRows, taskRows, eventRows, notifRows] = await Promise.all([
     (prisma.pendingAction.findMany as (args: unknown) => Promise<PendingActionRow[]>)({
@@ -292,93 +312,63 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
     }),
   ]);
 
-  // Backfill AttentionItems for any PendingActions still missing from the queue
-  // (rows created before #153 landed). Idempotent — upsert keyed on (source,
-  // sourceId) so no duplicates and no extra writes once the queue is in sync.
-  const existingAttention = (await prisma.attentionItem.findMany({
-    where: { userId, source: "PENDING_ACTION", status: "OPEN" },
-    select: { sourceId: true },
-  })) as Array<{ sourceId: string }>;
-  const mirroredIds = new Set(existingAttention.map((a) => a.sourceId));
-  const orphans = pendingRows.filter((p) => !mirroredIds.has(p.id));
-  if (orphans.length > 0) {
-    await Promise.all(orphans.map((p) => upsertAttentionForPendingAction(p)));
-  }
+  // Lazy backfill — refresh the queue from current source state. Idempotent
+  // upserts keyed on (source, sourceId) so this is a no-op once the producers
+  // have caught up.
+  await Promise.all([
+    ...pendingRows.map((p) => upsertAttentionForPendingAction(p)),
+    ...taskRows
+      .filter((t) => t.dueDate && t.dueDate.getTime() < tomorrowStart.getTime())
+      .map((t) => upsertAttentionForTask(t, now)),
+    ...eventRows.map((e) => upsertAttentionForCalendarEvent(e, now)),
+    ...notifRows.map((n) => upsertAttentionForNotification(n)),
+  ]);
 
-  // Mirror tasks whose due window is open into AttentionItem. Idempotent —
-  // upserts keyed on (source, sourceId) so revisiting a task that's already
-  // mirrored is a no-op aside from refreshing priority/title.
-  const dueTaskRows = taskRows.filter((t) => {
-    if (!t.dueDate) return false;
-    const due = t.dueDate.getTime();
-    return Number.isFinite(due) && due < tomorrowStart.getTime();
-  });
-  if (dueTaskRows.length > 0) {
-    await Promise.all(dueTaskRows.map((t) => upsertAttentionForTask(t, now)));
-  }
-
-  // Mirror today's calendar events. The eventRows query already restricts to
-  // today, so every row is in-window — pass them straight through.
-  if (eventRows.length > 0) {
-    await Promise.all(eventRows.map((e) => upsertAttentionForCalendarEvent(e, now)));
-  }
-
-  // Mirror naked agent_proposal notifications (no attached PA) into the queue.
-  // Newer proposals go through the PA mirror, so this is mostly legacy data.
-  if (notifRows.length > 0) {
-    await Promise.all(notifRows.map((n) => upsertAttentionForNotification(n)));
-  }
-
-  // Read the queue from AttentionItem now — sourceId joins back to PendingAction
-  // for the conversation/tool metadata the UI still needs.
-  type AttentionItemRow = {
-    id: string;
-    sourceId: string;
-    surfacedAt: Date;
-  };
+  // Single queue read replaces the per-source merge in the old pickTop3.
   const queue = (await prisma.attentionItem.findMany({
-    where: { userId, source: "PENDING_ACTION", status: "OPEN" },
+    where: { userId, status: "OPEN" },
     orderBy: [{ priority: "desc" }, { surfacedAt: "desc" }],
-    take: 50,
-    select: { id: true, sourceId: true, surfacedAt: true },
-  })) as AttentionItemRow[];
+    take: TOP_LIMIT * 4, // overfetch to absorb any rows whose source row no longer qualifies
+    select: { id: true, source: true, sourceId: true },
+  })) as AttentionRow[];
 
-  const queueSourceIds = queue.map((q) => q.sourceId);
-  const paBySourceId = new Map<string, PendingActionRow>(
-    queueSourceIds.length === 0
-      ? []
-      : (
-          (await (prisma.pendingAction.findMany as (args: unknown) => Promise<PendingActionRow[]>)({
-            where: { id: { in: queueSourceIds }, status: "PENDING" },
-          })) as PendingActionRow[]
-        ).map((p) => [p.id, p]),
-  );
+  // Bucket source ids and fetch the display data in a single round trip per source.
+  const idsBySource = {
+    PENDING_ACTION: [] as string[],
+    TASK: [] as string[],
+    CALENDAR_EVENT: [] as string[],
+    NOTIFICATION: [] as string[],
+  };
+  for (const row of queue) idsBySource[row.source].push(row.sourceId);
 
-  const pendingActions: PendingActionInput[] = (
-    await Promise.all(
-      queue.map(async (q) => {
-        const a = paBySourceId.get(q.sourceId);
-        if (!a) return null;
-        let targetLabel: string | null = null;
-        try {
-          const parsed = JSON.parse(a.toolArgs) as Record<string, unknown>;
-          targetLabel = await resolveActionTarget(a.toolName, parsed);
-        } catch {
-          // Malformed toolArgs — leave label null
-        }
-        return {
-          id: a.id,
-          conversationId: a.conversationId,
-          status: a.status,
-          toolName: a.toolName,
-          targetLabel,
-          reasoning: a.reasoning,
-          createdAt: a.createdAt.toISOString(),
-        };
-      }),
-    )
-  ).filter((x): x is PendingActionInput => x !== null);
+  const [paJoinRows, taskJoinRows, eventJoinRows, notifJoinRows] = await Promise.all([
+    idsBySource.PENDING_ACTION.length === 0
+      ? Promise.resolve([] as PendingActionRow[])
+      : (prisma.pendingAction.findMany as (args: unknown) => Promise<PendingActionRow[]>)({
+          where: { id: { in: idsBySource.PENDING_ACTION } },
+        }),
+    idsBySource.TASK.length === 0
+      ? Promise.resolve([] as TaskRow[])
+      : prisma.task.findMany({ where: { id: { in: idsBySource.TASK } } }),
+    idsBySource.CALENDAR_EVENT.length === 0
+      ? Promise.resolve([] as CalendarEventRow[])
+      : prisma.calendarEvent.findMany({ where: { id: { in: idsBySource.CALENDAR_EVENT } } }),
+    idsBySource.NOTIFICATION.length === 0
+      ? Promise.resolve([] as NotificationRow[])
+      : prisma.notification.findMany({ where: { id: { in: idsBySource.NOTIFICATION } } }),
+  ]);
 
+  const sources = {
+    paById: new Map(paJoinRows.map((r) => [r.id, r])),
+    taskById: new Map(taskJoinRows.map((r) => [r.id, r])),
+    eventById: new Map(eventJoinRows.map((r) => [r.id, r])),
+    notifById: new Map(notifJoinRows.map((r) => [r.id, r])),
+  };
+
+  const built = await Promise.all(queue.map((row) => buildItemFromAttention(row, sources, now)));
+  const top3 = built.filter((x): x is AttentionItem => x !== null).slice(0, TOP_LIMIT);
+
+  // Today section — separate view, reads source tables directly.
   const tasks: TaskInput[] = taskRows.map((t) => ({
     id: t.id,
     title: t.title,
@@ -386,7 +376,6 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
     priority: t.priority,
     dueDate: t.dueDate ? t.dueDate.toISOString() : null,
   }));
-
   const events: EventInput[] = eventRows.map((e) => ({
     id: e.id,
     title: e.title,
@@ -394,20 +383,6 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
     endTime: e.endTime ? e.endTime.toISOString() : undefined,
     location: e.location,
   }));
-
-  const notifications: NotificationInput[] = notifRows.map((n) => ({
-    id: n.id,
-    type: n.type,
-    title: n.title,
-    message: n.message,
-    isRead: n.isRead,
-    link: n.link,
-    conversationId: n.conversationId,
-    pendingActionId: n.pendingActionId,
-    createdAt: n.createdAt.toISOString(),
-  }));
-
-  const top3 = pickTop3({ pendingActions, tasks, events, notifications, now });
   const today = buildTodaySection({ tasks, events, now });
 
   return { top3, today };

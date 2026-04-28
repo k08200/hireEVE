@@ -62,6 +62,7 @@ type AttentionRow = {
   source: string;
   sourceId: string;
   status: string;
+  priority: number;
   surfacedAt: Date;
 };
 const attentionItems: AttentionRow[] = [];
@@ -81,22 +82,51 @@ vi.mock("../db.js", () => {
     },
     attentionItem: {
       findMany: vi.fn(
-        async ({ where }: { where: { userId: string; source?: string; status?: string } }) =>
-          attentionItems.filter(
+        async ({
+          where,
+          orderBy,
+          take,
+        }: {
+          where: { userId: string; source?: string; status?: string };
+          orderBy?: Array<Record<string, "desc" | "asc">>;
+          take?: number;
+        }) => {
+          let rows = attentionItems.filter(
             (a) =>
               a.userId === where.userId &&
               (!where.source || a.source === where.source) &&
               (!where.status || a.status === where.status),
-          ),
+          );
+          if (orderBy) {
+            rows = [...rows].sort((a, b) => {
+              for (const clause of orderBy) {
+                const [key, dir] = Object.entries(clause)[0] as [
+                  keyof AttentionRow,
+                  "desc" | "asc",
+                ];
+                const av = a[key];
+                const bv = b[key];
+                const aNum = av instanceof Date ? av.getTime() : (av as number);
+                const bNum = bv instanceof Date ? bv.getTime() : (bv as number);
+                if (aNum === bNum) continue;
+                return dir === "desc" ? bNum - aNum : aNum - bNum;
+              }
+              return 0;
+            });
+          }
+          if (typeof take === "number") rows = rows.slice(0, take);
+          return rows;
+        },
       ),
       upsert: vi.fn(
         async ({
           where,
           create,
+          update,
         }: {
           where: { source_sourceId: { source: string; sourceId: string } };
-          create: { userId: string; status: string };
-          update: { status: string };
+          create: { userId: string; status: string; priority?: number };
+          update: { status: string; priority?: number };
         }) => {
           const idx = attentionItems.findIndex(
             (a) =>
@@ -104,7 +134,11 @@ vi.mock("../db.js", () => {
               a.sourceId === where.source_sourceId.sourceId,
           );
           if (idx >= 0) {
-            attentionItems[idx] = { ...attentionItems[idx] };
+            attentionItems[idx] = {
+              ...attentionItems[idx],
+              status: update.status,
+              priority: update.priority ?? attentionItems[idx].priority,
+            };
             return attentionItems[idx];
           }
           const row: AttentionRow = {
@@ -113,6 +147,7 @@ vi.mock("../db.js", () => {
             source: where.source_sourceId.source,
             sourceId: where.source_sourceId.sourceId,
             status: create.status,
+            priority: create.priority ?? 50,
             surfacedAt: new Date(),
           };
           attentionItems.push(row);
@@ -121,21 +156,41 @@ vi.mock("../db.js", () => {
       ),
     },
     task: {
-      findMany: vi.fn(async ({ where }: { where: { userId: string; status?: { not: string } } }) =>
-        tasks.filter(
-          (t) => t.userId === where.userId && (!where.status?.not || t.status !== where.status.not),
-        ),
+      findMany: vi.fn(
+        async ({
+          where,
+        }: {
+          where: { userId?: string; status?: { not: string }; id?: { in: string[] } };
+        }) =>
+          tasks.filter((t) => {
+            if (where.userId && t.userId !== where.userId) return false;
+            if (where.status?.not && t.status === where.status.not) return false;
+            if (where.id?.in && !where.id.in.includes(t.id)) return false;
+            return true;
+          }),
       ),
     },
     calendarEvent: {
       findMany: vi.fn(
-        async ({ where }: { where: { userId: string; startTime: { gte: Date; lt: Date } } }) =>
-          events.filter(
-            (e) =>
-              e.userId === where.userId &&
-              e.startTime >= where.startTime.gte &&
-              e.startTime < where.startTime.lt,
-          ),
+        async ({
+          where,
+        }: {
+          where: {
+            userId?: string;
+            startTime?: { gte: Date; lt: Date };
+            id?: { in: string[] };
+          };
+        }) =>
+          events.filter((e) => {
+            if (where.userId && e.userId !== where.userId) return false;
+            if (
+              where.startTime &&
+              (e.startTime < where.startTime.gte || e.startTime >= where.startTime.lt)
+            )
+              return false;
+            if (where.id?.in && !where.id.in.includes(e.id)) return false;
+            return true;
+          }),
       ),
     },
     notification: {
@@ -144,19 +199,21 @@ vi.mock("../db.js", () => {
           where,
         }: {
           where: {
-            userId: string;
+            userId?: string;
             type?: string;
             isRead?: boolean;
             pendingActionId?: null;
+            id?: { in: string[] };
           };
         }) =>
-          notifications.filter(
-            (n) =>
-              n.userId === where.userId &&
-              (!where.type || n.type === where.type) &&
-              (where.isRead === undefined || n.isRead === where.isRead) &&
-              (where.pendingActionId !== null || n.pendingActionId === null),
-          ),
+          notifications.filter((n) => {
+            if (where.userId && n.userId !== where.userId) return false;
+            if (where.type && n.type !== where.type) return false;
+            if (where.isRead !== undefined && n.isRead !== where.isRead) return false;
+            if (where.pendingActionId === null && n.pendingActionId !== null) return false;
+            if (where.id?.in && !where.id.in.includes(n.id)) return false;
+            return true;
+          }),
       ),
     },
     user: {
@@ -282,6 +339,44 @@ describe("inbox routes", () => {
       status: "OPEN",
     });
     expect(res.json().top3[0]).toMatchObject({ kind: "pending_action", id: "pa-orphan" });
+    await app.close();
+  });
+
+  it("keeps a PendingAction ahead of an URGENT overdue task on priority", async () => {
+    // Without the explicit PENDING_ACTION_PRIORITY=100 in the producer, an
+    // URGENT overdue task (90) would sort above a PendingAction (50). Pin the
+    // canonical "pending actions never get buried" rule.
+    pendingActions.push({
+      id: "pa-base",
+      userId: "user-1",
+      conversationId: "c-1",
+      status: "PENDING",
+      toolName: "send_email",
+      toolArgs: "{}",
+      reasoning: "decide",
+      createdAt: new Date(),
+    });
+    const oldDue = new Date();
+    oldDue.setDate(oldDue.getDate() - 3);
+    tasks.push({
+      id: "t-urgent-overdue",
+      userId: "user-1",
+      title: "urgent late",
+      status: "TODO",
+      priority: "URGENT",
+      dueDate: oldDue,
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/inbox/summary",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.top3[0].kind).toBe("pending_action");
+    expect(body.top3[1].kind).toBe("overdue_task");
     await app.close();
   });
 
