@@ -1,9 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiFetch } from "../lib/api";
+import {
+  getTypeLabel,
+  groupNotifications,
+  type NotificationGroup,
+  unreadGroupCount,
+} from "../lib/notification-grouping";
 import { useWebSocket } from "./use-websocket";
 
 interface Notification {
@@ -275,8 +281,125 @@ export default function NotificationBell({ userId }: { userId: string }) {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const groups = useMemo(() => groupNotifications(notifications), [notifications]);
+  const unreadCount = unreadGroupCount(groups);
   const tabCount = connectedClients.filter((c) => c.type === "web").length;
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (key: string) =>
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  const renderItem = (n: Notification) => (
+    <div
+      key={n.id}
+      role="button"
+      tabIndex={0}
+      onClick={() => handleNotificationClick(n)}
+      onKeyDown={(e) => e.key === "Enter" && handleNotificationClick(n)}
+      className={`w-full text-left px-4 py-3.5 md:py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition cursor-pointer ${
+        !n.isRead ? "bg-blue-600/5" : ""
+      } ${isAgentNotification(n.title) ? "border-l-2 border-l-cyan-500/60" : ""}`}
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-sm">
+          {isAgentNotification(n.title) ? "🤖" : typeIcon[n.type] || "📌"}
+        </span>
+        <span
+          className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-gray-300"} ${isAgentNotification(n.title) ? "text-cyan-300" : ""}`}
+        >
+          {n.title}
+        </span>
+        {isAgentNotification(n.title) && (
+          <span className="text-[9px] text-cyan-400 bg-cyan-400/10 px-1 py-0.5 rounded shrink-0">
+            AI
+          </span>
+        )}
+        {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />}
+      </div>
+      <p className="text-[13px] md:text-xs text-gray-400 mt-1 line-clamp-2 ml-6">{n.message}</p>
+      <div className="flex items-center gap-2 mt-1 ml-6">
+        <p className="text-[10px] text-gray-600">{formatRelative(n.createdAt)}</p>
+        {getNotificationTarget(n) && (
+          <span className="text-[10px] text-cyan-400">
+            {isAgentNotification(n.title) ? "View →" : "Open →"}
+          </span>
+        )}
+      </div>
+      {n.pendingActionId && n.pendingActionStatus === "PENDING" && (
+        <div className="flex items-center gap-2 mt-2.5 ml-6">
+          <button
+            type="button"
+            onClick={(e) => handleApprovePendingAction(n, e)}
+            disabled={!!pendingActionLoading[n.id]}
+            className="text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
+          >
+            {pendingActionLoading[n.id] === "approve" ? "..." : "승인"}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => handleRejectPendingAction(n, e)}
+            disabled={!!pendingActionLoading[n.id]}
+            className="text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 font-medium transition min-w-[72px] md:min-w-0"
+          >
+            {pendingActionLoading[n.id] === "reject" ? "..." : "거절"}
+          </button>
+        </div>
+      )}
+      {n.pendingActionId && n.pendingActionStatus && n.pendingActionStatus !== "PENDING" && (
+        <div className="mt-2 ml-6">
+          <span className="text-[10px] text-gray-500">
+            {n.pendingActionStatus === "EXECUTED"
+              ? "✓ 실행됨"
+              : n.pendingActionStatus === "REJECTED"
+                ? "거절됨"
+                : n.pendingActionStatus}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderGroupHeader = (group: NotificationGroup<Notification>, expanded: boolean) => {
+    const label = `${group.isEve ? "EVE " : ""}${getTypeLabel(group.type)}`;
+    return (
+      <button
+        key={`${group.key}_header`}
+        type="button"
+        onClick={() => toggleGroup(group.key)}
+        className={`w-full text-left px-4 py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition ${
+          group.unreadCount > 0 ? "bg-blue-600/5" : ""
+        } ${group.isEve ? "border-l-2 border-l-cyan-500/60" : ""}`}
+        aria-expanded={expanded}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm">{group.isEve ? "🤖" : typeIcon[group.type] || "📌"}</span>
+          <span
+            className={`text-sm ${group.unreadCount > 0 ? "font-semibold" : "text-gray-300"} ${group.isEve ? "text-cyan-300" : ""}`}
+          >
+            {label} {group.items.length}건
+          </span>
+          {group.unreadCount > 0 && (
+            <span className="text-[10px] text-blue-300 bg-blue-400/10 px-1.5 py-0.5 rounded shrink-0">
+              {group.unreadCount} new
+            </span>
+          )}
+          <span className="text-[10px] text-gray-500 ml-auto shrink-0">
+            {expanded ? "접기 ▴" : "펼치기 ▾"}
+          </span>
+        </div>
+        <p className="text-[13px] md:text-xs text-gray-400 mt-1 line-clamp-1 ml-6">
+          {group.latestItem.title}
+        </p>
+        <p className="text-[10px] text-gray-600 mt-1 ml-6">
+          최신 {formatRelative(group.latestItem.createdAt)}
+        </p>
+      </button>
+    );
+  };
 
   return (
     <div className="relative flex items-center gap-2" ref={containerRef}>
@@ -377,81 +500,16 @@ export default function NotificationBell({ userId }: { userId: string }) {
               {notifications.length === 0 ? (
                 <p className="text-center text-gray-500 text-sm py-6">No notifications</p>
               ) : (
-                notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => handleNotificationClick(n)}
-                    onKeyDown={(e) => e.key === "Enter" && handleNotificationClick(n)}
-                    className={`w-full text-left px-4 py-3.5 md:py-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition cursor-pointer ${
-                      !n.isRead ? "bg-blue-600/5" : ""
-                    } ${isAgentNotification(n.title) ? "border-l-2 border-l-cyan-500/60" : ""}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">
-                        {isAgentNotification(n.title) ? "🤖" : typeIcon[n.type] || "📌"}
-                      </span>
-                      <span
-                        className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-gray-300"} ${isAgentNotification(n.title) ? "text-cyan-300" : ""}`}
-                      >
-                        {n.title}
-                      </span>
-                      {isAgentNotification(n.title) && (
-                        <span className="text-[9px] text-cyan-400 bg-cyan-400/10 px-1 py-0.5 rounded shrink-0">
-                          AI
-                        </span>
-                      )}
-                      {!n.isRead && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 ml-auto" />
-                      )}
+                groups.map((group) => {
+                  if (group.items.length === 1) return renderItem(group.items[0]);
+                  const expanded = expandedGroups.has(group.key);
+                  return (
+                    <div key={group.key}>
+                      {renderGroupHeader(group, expanded)}
+                      {expanded && group.items.map(renderItem)}
                     </div>
-                    <p className="text-[13px] md:text-xs text-gray-400 mt-1 line-clamp-2 ml-6">
-                      {n.message}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1 ml-6">
-                      <p className="text-[10px] text-gray-600">{formatRelative(n.createdAt)}</p>
-                      {getNotificationTarget(n) && (
-                        <span className="text-[10px] text-cyan-400">
-                          {isAgentNotification(n.title) ? "View →" : "Open →"}
-                        </span>
-                      )}
-                    </div>
-                    {n.pendingActionId && n.pendingActionStatus === "PENDING" && (
-                      <div className="flex items-center gap-2 mt-2.5 ml-6">
-                        <button
-                          type="button"
-                          onClick={(e) => handleApprovePendingAction(n, e)}
-                          disabled={!!pendingActionLoading[n.id]}
-                          className="text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
-                        >
-                          {pendingActionLoading[n.id] === "approve" ? "..." : "승인"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => handleRejectPendingAction(n, e)}
-                          disabled={!!pendingActionLoading[n.id]}
-                          className="text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-gray-300 font-medium transition min-w-[72px] md:min-w-0"
-                        >
-                          {pendingActionLoading[n.id] === "reject" ? "..." : "거절"}
-                        </button>
-                      </div>
-                    )}
-                    {n.pendingActionId &&
-                      n.pendingActionStatus &&
-                      n.pendingActionStatus !== "PENDING" && (
-                        <div className="mt-2 ml-6">
-                          <span className="text-[10px] text-gray-500">
-                            {n.pendingActionStatus === "EXECUTED"
-                              ? "✓ 실행됨"
-                              : n.pendingActionStatus === "REJECTED"
-                                ? "거절됨"
-                                : n.pendingActionStatus}
-                          </span>
-                        </div>
-                      )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
             {tabCount > 1 && (
