@@ -41,6 +41,10 @@ import { isNoReplyAddress, markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
 import { humanizeAutoExec } from "./notification-format.js";
 import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
+import {
+  formatFeedbackPolicyCandidatesForPrompt,
+  getFeedbackPolicyCandidates,
+} from "./policy-extraction.js";
 import { sendPushNotification } from "./push.js";
 import { captureError } from "./sentry.js";
 import { planHasFeature } from "./stripe.js";
@@ -712,7 +716,6 @@ export async function runAgentForUser(
 ): Promise<void> {
   const startTime = Date.now();
   const agentModePolicy = getAgentModePolicy(mode);
-  const agentMode = agentModePolicy.mode;
 
   try {
     // Load user plan and model for tool gating
@@ -725,13 +728,17 @@ export async function runAgentForUser(
       ) || AGENT_MODEL;
 
     const { analyzePatterns } = await import("./pattern-learner.js");
-    const [context, feedback, memoryContext, proposalHistory, patternContext] = await Promise.all([
-      gatherUserContext(userId),
-      getAgentFeedback(userId),
-      loadMemoriesForPrompt(userId).catch(() => ""),
-      getProposalHistory(userId).catch(() => ""),
-      analyzePatterns(userId).catch(() => ""),
-    ]);
+    const [context, feedback, memoryContext, proposalHistory, patternContext, policyContext] =
+      await Promise.all([
+        gatherUserContext(userId),
+        getAgentFeedback(userId),
+        loadMemoriesForPrompt(userId).catch(() => ""),
+        getProposalHistory(userId).catch(() => ""),
+        analyzePatterns(userId).catch(() => ""),
+        getFeedbackPolicyCandidates(userId, { limit: 500 })
+          .then(({ candidates }) => formatFeedbackPolicyCandidatesForPrompt(candidates))
+          .catch(() => ""),
+      ]);
 
     // Skip if context is minimal (no tasks, no calendar, no emails)
     const hasNothing =
@@ -876,6 +883,7 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
 
     // Inject user memories and learned patterns into system prompt for personalization
     let systemPromptWithMemory = memoryContext ? `${systemPrompt}${memoryContext}` : systemPrompt;
+    if (policyContext) systemPromptWithMemory += policyContext;
     if (patternContext) systemPromptWithMemory += patternContext;
 
     const messages: unknown[] = [

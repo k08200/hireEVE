@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractFeedbackPolicyCandidates,
   type FeedbackPolicyCandidateKind,
+  formatFeedbackPolicyCandidatesForPrompt,
 } from "../policy-extraction.js";
 
 type FeedbackPolicyEvent = Parameters<typeof extractFeedbackPolicyCandidates>[0][number];
@@ -120,5 +121,31 @@ describe("extractFeedbackPolicyCandidates", () => {
     ]);
 
     expect(kinds(out)).toEqual(["LOWER_PRIORITY"]);
+  });
+
+  it("formats candidates as soft prompt policy, not authorization", () => {
+    const candidates = extractFeedbackPolicyCandidates([
+      event({ id: "a", recipient: "sarah@example.com" }),
+      event({ id: "b", recipient: "sarah@example.com" }),
+      event({ id: "c", recipient: "sarah@example.com" }),
+    ]);
+
+    const prompt = formatFeedbackPolicyCandidatesForPrompt(candidates);
+    expect(prompt).toContain("Learned Feedback Policy Signals");
+    expect(prompt).toContain("tool send_email for sarah@example.com");
+    expect(prompt).toContain("NOT authorization");
+    expect(prompt).toContain("approval gates");
+  });
+
+  it("omits prompt context when there are no confident candidates", () => {
+    expect(formatFeedbackPolicyCandidatesForPrompt([])).toBe("");
+    const candidates = extractFeedbackPolicyCandidates(
+      [
+        event({ id: "a", signal: "REJECTED", toolName: "send_email" }),
+        event({ id: "b", signal: "DISMISSED", toolName: "send_email" }),
+      ],
+      { minEvents: 2 },
+    );
+    expect(formatFeedbackPolicyCandidatesForPrompt(candidates, { minConfidence: 0.96 })).toBe("");
   });
 });
