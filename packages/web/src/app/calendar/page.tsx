@@ -22,6 +22,14 @@ interface DayGroup {
   events: CalendarEvent[];
 }
 
+interface MeetingPrepPack {
+  readiness: "ready" | "watch" | "needs_review";
+  checklist: string[];
+  relatedEmails: Array<{ id: string; from: string; subject: string; snippet: string | null }>;
+  openTasks: Array<{ id: string; title: string; priority: string; dueDate: string | null }>;
+  openCommitments: Array<{ id: string; title: string; owner: string; dueText: string | null }>;
+}
+
 export default function CalendarPage() {
   return (
     <AuthGuard>
@@ -133,9 +141,32 @@ function CalendarView() {
 }
 
 function EventRow({ event }: { event: CalendarEvent }) {
+  const [prepOpen, setPrepOpen] = useState(false);
+  const [prepLoading, setPrepLoading] = useState(false);
+  const [prep, setPrep] = useState<MeetingPrepPack | null>(null);
+  const [prepError, setPrepError] = useState<string | null>(null);
   const start = new Date(event.startTime);
   const end = new Date(event.endTime);
   const timeLabel = event.allDay ? "하루 종일" : `${formatTime(start)}–${formatTime(end)}`;
+
+  const togglePrep = async () => {
+    if (prepOpen) {
+      setPrepOpen(false);
+      return;
+    }
+    setPrepOpen(true);
+    if (prep) return;
+    setPrepLoading(true);
+    setPrepError(null);
+    try {
+      setPrep(await apiFetch<MeetingPrepPack>(`/api/calendar/${event.id}/prep-pack`));
+    } catch (err) {
+      captureClientError(err, { scope: "calendar.prep_pack", eventId: event.id });
+      setPrepError("준비팩을 만들지 못했어요.");
+    } finally {
+      setPrepLoading(false);
+    }
+  };
 
   return (
     <li className="rounded-lg border border-gray-800 bg-gray-900/40 p-3 active:bg-gray-900/70 transition">
@@ -173,10 +204,93 @@ function EventRow({ event }: { event: CalendarEvent }) {
               </svg>
             </a>
           )}
+          <button
+            type="button"
+            onClick={togglePrep}
+            className="ml-3 inline-flex items-center gap-1 text-xs text-violet-300 hover:text-violet-200 mt-1"
+          >
+            준비팩
+          </button>
         </div>
       </div>
+      {prepOpen && (
+        <div className="mt-3 pt-3 border-t border-gray-800">
+          {prepLoading && <p className="text-xs text-gray-500">준비팩 생성 중...</p>}
+          {prepError && <p className="text-xs text-red-300">{prepError}</p>}
+          {prep && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <span
+                  className={`text-[11px] font-medium rounded px-1.5 py-0.5 border ${readinessClass(
+                    prep.readiness,
+                  )}`}
+                >
+                  {readinessLabel(prep.readiness)}
+                </span>
+                <span className="text-[11px] text-gray-500">
+                  메일 {prep.relatedEmails.length} · 할 일 {prep.openTasks.length} · 약속{" "}
+                  {prep.openCommitments.length}
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {prep.checklist.map((item) => (
+                  <li key={item} className="text-xs text-gray-300">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              {prep.relatedEmails.length > 0 && (
+                <div>
+                  <p className="text-[11px] text-gray-500 mb-1">관련 메일</p>
+                  <ul className="space-y-1">
+                    {prep.relatedEmails.map((email) => (
+                      <li key={email.id} className="text-xs text-gray-300 truncate">
+                        {email.subject}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {prep.openTasks.length > 0 && (
+                <div>
+                  <p className="text-[11px] text-gray-500 mb-1">미팅 전 할 일</p>
+                  <ul className="space-y-1">
+                    {prep.openTasks.map((task) => (
+                      <li key={task.id} className="text-xs text-gray-300 truncate">
+                        {task.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </li>
   );
+}
+
+function readinessLabel(readiness: MeetingPrepPack["readiness"]): string {
+  switch (readiness) {
+    case "ready":
+      return "준비됨";
+    case "watch":
+      return "확인 필요";
+    case "needs_review":
+      return "준비 필요";
+  }
+}
+
+function readinessClass(readiness: MeetingPrepPack["readiness"]): string {
+  switch (readiness) {
+    case "ready":
+      return "text-emerald-300 bg-emerald-500/10 border-emerald-500/20";
+    case "watch":
+      return "text-amber-300 bg-amber-400/10 border-amber-400/20";
+    case "needs_review":
+      return "text-red-300 bg-red-500/10 border-red-500/20";
+  }
 }
 
 function formatTime(d: Date): string {
