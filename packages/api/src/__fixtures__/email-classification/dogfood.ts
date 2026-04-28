@@ -27,7 +27,6 @@ export const dogfoodEmailClassificationFixtures: EmailClassificationFixture[] = 
       needsReply: true,
       reason: "investor asks for deadline review",
     },
-    knownHeuristicGap: true,
   },
   {
     id: "promo_urgent_discount_stays_low",

@@ -19,6 +19,6 @@ describe("email classification dogfood fixtures", () => {
       .filter((fixture) => fixture.knownHeuristicGap)
       .map((fixture) => fixture.id);
 
-    expect(knownGapIds).toEqual(["investor_reply_needs_same_day_review"]);
+    expect(knownGapIds).toEqual([]);
   });
 });
