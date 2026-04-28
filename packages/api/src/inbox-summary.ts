@@ -12,7 +12,11 @@
  */
 
 import { resolveActionTarget } from "./action-target.js";
-import { upsertAttentionForPendingAction, upsertAttentionForTask } from "./attention-mirror.js";
+import {
+  upsertAttentionForCalendarEvent,
+  upsertAttentionForPendingAction,
+  upsertAttentionForTask,
+} from "./attention-mirror.js";
 import { prisma } from "./db.js";
 
 export interface PendingActionInput {
@@ -310,6 +314,12 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
   });
   if (dueTaskRows.length > 0) {
     await Promise.all(dueTaskRows.map((t) => upsertAttentionForTask(t, now)));
+  }
+
+  // Mirror today's calendar events. The eventRows query already restricts to
+  // today, so every row is in-window — pass them straight through.
+  if (eventRows.length > 0) {
+    await Promise.all(eventRows.map((e) => upsertAttentionForCalendarEvent(e, now)));
   }
 
   // Read the queue from AttentionItem now — sourceId joins back to PendingAction

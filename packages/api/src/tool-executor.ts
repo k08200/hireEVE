@@ -4,6 +4,7 @@
  * Extracts executeToolCall from chat.ts so background agents can use the same tools.
  */
 
+import { upsertAttentionForCalendarEvent } from "./attention-mirror.js";
 import { BRIEFING_TOOLS } from "./briefing.js";
 import {
   CALENDAR_TOOLS,
@@ -238,7 +239,7 @@ async function executeToolCallInternal(
         // Also save to local DB
         const evGoogleId =
           "eventId" in evResult && evResult.eventId ? (evResult.eventId as string) : null;
-        await prisma.calendarEvent.create({
+        const localEvent = await prisma.calendarEvent.create({
           data: {
             userId,
             title: evSummary,
@@ -249,6 +250,7 @@ async function executeToolCallInternal(
             googleId: evGoogleId,
           },
         });
+        await upsertAttentionForCalendarEvent(localEvent);
 
         return JSON.stringify(evResult);
       }

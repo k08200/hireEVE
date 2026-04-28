@@ -257,3 +257,76 @@ export async function deleteAllAttentionForUser(userId: string): Promise<void> {
     console.warn("[attention-mirror] deleteAllAttentionForUser failed", userId, err);
   }
 }
+
+// ─── Calendar Events ───────────────────────────────────────────────────────
+// Calendar events surface as MEETING_PREP for the day they happen. Future
+// dates stay invisible until their morning; past events resolve so they don't
+// linger. Like tasks, the "is it surfaceable right now?" check happens inside
+// the upsert, so write-time hooks can call this on every change without
+// guarding the timing themselves.
+
+export interface CalendarEventLike {
+  id: string;
+  userId: string;
+  title: string;
+  startTime: Date;
+}
+
+const SOON_WINDOW_MS = 60 * 60 * 1000; // "starting within an hour" → priority bump
+
+export async function upsertAttentionForCalendarEvent(
+  event: CalendarEventLike,
+  now = Date.now(),
+): Promise<void> {
+  const start = event.startTime.getTime();
+  if (!Number.isFinite(start)) return;
+
+  const todayStart = startOfTodayMs(now);
+  const tomorrowStart = todayStart + DAY_MS;
+
+  // Only events happening today are eligible.
+  if (start < todayStart || start >= tomorrowStart) return;
+
+  const status: AttentionStatus = start < now ? "RESOLVED" : "OPEN";
+  const isResolved = status !== "OPEN";
+  const type: AttentionType = "MEETING_PREP";
+
+  // Priority bump when the event is starting within the hour — that's the
+  // window where the user actually needs prep.
+  const priority = !isResolved && start - now <= SOON_WINDOW_MS ? 70 : 50;
+
+  try {
+    await prisma.attentionItem.upsert({
+      where: { source_sourceId: { source: "CALENDAR_EVENT", sourceId: event.id } },
+      create: {
+        userId: event.userId,
+        source: "CALENDAR_EVENT",
+        sourceId: event.id,
+        type,
+        status,
+        priority,
+        title: event.title,
+        resolvedAt: isResolved ? new Date() : null,
+      },
+      update: {
+        status,
+        priority,
+        title: event.title,
+        resolvedAt: isResolved ? new Date() : null,
+      },
+    });
+  } catch (err) {
+    console.warn("[attention-mirror] upsert failed for CalendarEvent", event.id, err);
+  }
+}
+
+export async function deleteAttentionForCalendarEvents(eventIds: string[]): Promise<void> {
+  if (eventIds.length === 0) return;
+  try {
+    await prisma.attentionItem.deleteMany({
+      where: { source: "CALENDAR_EVENT", sourceId: { in: eventIds } },
+    });
+  } catch (err) {
+    console.warn("[attention-mirror] deleteAttentionForCalendarEvents failed", err);
+  }
+}
