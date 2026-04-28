@@ -126,11 +126,17 @@ vi.mock("../db.js", () => {
       count: vi.fn(async () => 1),
       update: vi.fn(async () => ({})),
     },
+    attentionItem: {
+      upsert: vi.fn(async () => ({})),
+      updateMany: vi.fn(async () => ({ count: 0 })),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
+    },
   };
   const db = {
     ...prisma,
     pendingAction: {
       groupBy: vi.fn(async () => []),
+      findMany: vi.fn(async () => []),
       deleteMany: vi.fn(async () => ({})),
     },
     conversationSummary: { deleteMany: vi.fn(async () => ({})) },

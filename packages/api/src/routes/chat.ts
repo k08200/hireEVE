@@ -1,6 +1,10 @@
 import type { FastifyInstance } from "fastify";
 import type OpenAI from "openai";
 import { resolveActionTarget } from "../action-target.js";
+import {
+  deleteAttentionForPendingActions,
+  upsertAttentionForPendingAction,
+} from "../attention-mirror.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
@@ -284,7 +288,14 @@ export function chatRoutes(app: FastifyInstance) {
 
       // Explicit ordered deletion to avoid FK constraint violations
       // PendingAction has dual FK (conversationId + messageId) — must delete first
+      const conversationPendingActions = await db.pendingAction.findMany({
+        where: { conversationId: id },
+        select: { id: true },
+      });
       await db.pendingAction.deleteMany({ where: { conversationId: id } });
+      await deleteAttentionForPendingActions(
+        conversationPendingActions.map((p: { id: string }) => p.id),
+      );
       await db.conversationSummary.deleteMany({
         where: { conversationId: id },
       });
@@ -1210,6 +1221,7 @@ export function chatRoutes(app: FastifyInstance) {
       if (claimed.count === 0) {
         return reply.code(409).send({ error: "Action already processed by another request" });
       }
+      await upsertAttentionForPendingAction({ ...action, status: "EXECUTED" });
 
       // Execute the tool — if it fails, rollback to FAILED
       try {
@@ -1270,6 +1282,7 @@ export function chatRoutes(app: FastifyInstance) {
           where: { id: actionId },
           data: { status: "FAILED", result: message },
         });
+        await upsertAttentionForPendingAction({ ...action, status: "FAILED" });
 
         await db.message.create({
           data: {
@@ -1318,6 +1331,7 @@ export function chatRoutes(app: FastifyInstance) {
       if (claimed.count === 0) {
         return reply.code(409).send({ error: "Action already processed by another request" });
       }
+      await upsertAttentionForPendingAction({ ...action, status: "REJECTED" });
 
       // Add a follow-up message (include reason if provided)
       const rejectMsg = reason

@@ -29,6 +29,10 @@ import { resolveActionTarget } from "./action-target.js";
 import { AGENT_SYSTEM_PROMPT, NOTIFY_TOOL, PROPOSE_ACTION_TOOL } from "./agent/prompt.js";
 import { recordDedupKey, wasRecentlyDeduped } from "./agent-dedup.js";
 import { getNotifKey, getToolRisk, TOOL_RISK_LEVELS } from "./agent-logic.js";
+import {
+  bulkResolveAttentionForPendingActions,
+  upsertAttentionForPendingAction,
+} from "./attention-mirror.js";
 import { db, prisma } from "./db.js";
 import { isNoReplyAddress, markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
@@ -1028,6 +1032,7 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
                 reasoning: args.message,
               },
             });
+            await upsertAttentionForPendingAction(pendingAction);
 
             // Update conversation timestamp
             await prisma.conversation.update({
@@ -1284,6 +1289,7 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
                   reasoning: proposalMessage,
                 },
               });
+              await upsertAttentionForPendingAction(pendingAction);
 
               await prisma.conversation.update({
                 where: { id: agentConvo.id },
@@ -1579,12 +1585,20 @@ const PENDING_ACTION_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — expire faster t
 async function expireStalePendingActions() {
   try {
     const cutoff = new Date(Date.now() - PENDING_ACTION_TTL_MS);
+    const expiringRows = await db.pendingAction.findMany({
+      where: { status: "PENDING", createdAt: { lt: cutoff } },
+      select: { id: true },
+    });
     const expired = await db.pendingAction.updateMany({
       where: { status: "PENDING", createdAt: { lt: cutoff } },
       data: { status: "REJECTED", result: "자동 만료 (24시간 초과)" },
     });
     if (expired.count > 0) {
       console.log(`[AGENT] Expired ${expired.count} stale pending action(s)`);
+      await bulkResolveAttentionForPendingActions(
+        expiringRows.map((r: { id: string }) => r.id),
+        "REJECTED",
+      );
     }
   } catch {
     // Non-critical
