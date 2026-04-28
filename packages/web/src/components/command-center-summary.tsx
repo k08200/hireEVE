@@ -116,6 +116,20 @@ function badgeFor(item: AttentionItem): { label: string; className: string } {
       return { label: "곧 시작", className: "text-cyan-300 bg-cyan-400/10 border-cyan-400/20" };
     case "agent_proposal":
       return { label: "EVE 제안", className: "text-blue-300 bg-blue-400/10 border-blue-400/20" };
+    case "commitment":
+      if (item.attentionType === "COMMITMENT_OVERDUE") {
+        return { label: "약속 지남", className: "text-red-300 bg-red-500/10 border-red-500/20" };
+      }
+      if (item.attentionType === "COMMITMENT_UNCONFIRMED") {
+        return {
+          label: "약속 확인",
+          className: "text-violet-300 bg-violet-400/10 border-violet-400/20",
+        };
+      }
+      return {
+        label: "약속 예정",
+        className: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20",
+      };
   }
 }
 
@@ -135,6 +149,13 @@ function bodyFor(item: AttentionItem): { title: string; subtitle: string | null 
       };
     case "agent_proposal":
       return { title: stripEvePrefix(item.title), subtitle: item.message };
+    case "commitment":
+      return {
+        title: item.title,
+        subtitle:
+          [ownerLabel(item.owner), dueLabel(item), item.description].filter(Boolean).join(" · ") ||
+          null,
+      };
   }
 }
 
@@ -148,7 +169,30 @@ function hrefFor(item: AttentionItem): string | null {
       return "/calendar";
     case "agent_proposal":
       return item.link ?? null;
+    case "commitment":
+      return null;
   }
+}
+
+function ownerLabel(owner: string): string | null {
+  switch (owner) {
+    case "USER":
+      return "내가 한 약속";
+    case "COUNTERPARTY":
+      return "상대가 한 약속";
+    case "TEAM":
+      return "팀 약속";
+    case "UNKNOWN":
+      return "확인 필요";
+    default:
+      return null;
+  }
+}
+
+function dueLabel(item: Extract<AttentionItem, { kind: "commitment" }>): string | null {
+  if (item.dueText) return item.dueText;
+  if (!item.dueAt) return null;
+  return formatDate(item.dueAt);
 }
 
 function stripEvePrefix(title: string): string {

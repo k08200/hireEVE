@@ -14,6 +14,7 @@
 import { resolveActionTarget } from "./action-target.js";
 import {
   upsertAttentionForCalendarEvent,
+  upsertAttentionForCommitment,
   upsertAttentionForNotification,
   upsertAttentionForPendingAction,
   upsertAttentionForTask,
@@ -66,6 +67,18 @@ export type AttentionItem =
       title: string;
       message: string;
       link: string | null;
+    }
+  | {
+      kind: "commitment";
+      id: string;
+      title: string;
+      description: string | null;
+      commitmentKind: string;
+      owner: string;
+      dueAt: string | null;
+      dueText: string | null;
+      confidence: number;
+      attentionType: "COMMITMENT_DUE" | "COMMITMENT_OVERDUE" | "COMMITMENT_UNCONFIRMED";
     };
 
 export interface TodaySection {
@@ -142,8 +155,9 @@ export function buildTodaySection(input: {
 
 type AttentionRow = {
   id: string;
-  source: "PENDING_ACTION" | "TASK" | "CALENDAR_EVENT" | "NOTIFICATION";
+  source: "PENDING_ACTION" | "TASK" | "CALENDAR_EVENT" | "NOTIFICATION" | "COMMITMENT";
   sourceId: string;
+  type: string;
 };
 
 type PendingActionRow = {
@@ -185,10 +199,20 @@ type NotificationRow = {
   pendingActionId: string | null;
 };
 
-async function buildPendingItem(
-  row: AttentionRow,
-  pa: PendingActionRow,
-): Promise<AttentionItem | null> {
+type CommitmentRow = {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  kind: string;
+  owner: string;
+  dueAt: Date | null;
+  dueText: string | null;
+  confidence: number;
+};
+
+async function buildPendingItem(pa: PendingActionRow): Promise<AttentionItem | null> {
   if (pa.status !== "PENDING") return null;
   let targetLabel: string | null = null;
   try {
@@ -250,6 +274,29 @@ function buildAgentProposalItem(notif: NotificationRow): AttentionItem | null {
   };
 }
 
+function buildCommitmentItem(row: AttentionRow, commitment: CommitmentRow): AttentionItem | null {
+  if (commitment.status !== "OPEN") return null;
+  if (
+    row.type !== "COMMITMENT_DUE" &&
+    row.type !== "COMMITMENT_OVERDUE" &&
+    row.type !== "COMMITMENT_UNCONFIRMED"
+  ) {
+    return null;
+  }
+  return {
+    kind: "commitment",
+    id: commitment.id,
+    title: commitment.title,
+    description: commitment.description,
+    commitmentKind: commitment.kind,
+    owner: commitment.owner,
+    dueAt: commitment.dueAt ? commitment.dueAt.toISOString() : null,
+    dueText: commitment.dueText,
+    confidence: commitment.confidence,
+    attentionType: row.type,
+  };
+}
+
 async function buildItemFromAttention(
   row: AttentionRow,
   sources: {
@@ -257,13 +304,14 @@ async function buildItemFromAttention(
     taskById: Map<string, TaskRow>;
     eventById: Map<string, CalendarEventRow>;
     notifById: Map<string, NotificationRow>;
+    commitmentById: Map<string, CommitmentRow>;
   },
   now: number,
 ): Promise<AttentionItem | null> {
   switch (row.source) {
     case "PENDING_ACTION": {
       const pa = sources.paById.get(row.sourceId);
-      return pa ? buildPendingItem(row, pa) : null;
+      return pa ? await buildPendingItem(pa) : null;
     }
     case "TASK": {
       const task = sources.taskById.get(row.sourceId);
@@ -276,6 +324,10 @@ async function buildItemFromAttention(
     case "NOTIFICATION": {
       const notif = sources.notifById.get(row.sourceId);
       return notif ? buildAgentProposalItem(notif) : null;
+    }
+    case "COMMITMENT": {
+      const commitment = sources.commitmentById.get(row.sourceId);
+      return commitment ? buildCommitmentItem(row, commitment) : null;
     }
   }
 }
@@ -290,7 +342,7 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
   const todayStart = new Date(startOfToday(now));
   const tomorrowStart = new Date(endOfToday(now));
 
-  const [pendingRows, taskRows, eventRows, notifRows] = await Promise.all([
+  const [pendingRows, taskRows, eventRows, notifRows, commitmentRows] = await Promise.all([
     (prisma.pendingAction.findMany as (args: unknown) => Promise<PendingActionRow[]>)({
       where: { userId, status: "PENDING" },
       orderBy: { createdAt: "desc" },
@@ -310,6 +362,11 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
       orderBy: { createdAt: "desc" },
       take: 30,
     }),
+    prisma.commitment.findMany({
+      where: { userId, status: "OPEN" },
+      orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+      take: 50,
+    }),
   ]);
 
   // Lazy backfill — refresh the queue from current source state. Idempotent
@@ -322,6 +379,7 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
       .map((t) => upsertAttentionForTask(t, now)),
     ...eventRows.map((e) => upsertAttentionForCalendarEvent(e, now)),
     ...notifRows.map((n) => upsertAttentionForNotification(n)),
+    ...commitmentRows.map((c) => upsertAttentionForCommitment(c, now)),
   ]);
 
   // Single queue read replaces the per-source merge in the old pickTop3.
@@ -329,7 +387,7 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
     where: { userId, status: "OPEN" },
     orderBy: [{ priority: "desc" }, { surfacedAt: "desc" }],
     take: TOP_LIMIT * 4, // overfetch to absorb any rows whose source row no longer qualifies
-    select: { id: true, source: true, sourceId: true },
+    select: { id: true, source: true, sourceId: true, type: true },
   })) as AttentionRow[];
 
   // Bucket source ids and fetch the display data in a single round trip per source.
@@ -338,31 +396,37 @@ export async function buildInboxSummary(userId: string, now = Date.now()): Promi
     TASK: [] as string[],
     CALENDAR_EVENT: [] as string[],
     NOTIFICATION: [] as string[],
+    COMMITMENT: [] as string[],
   };
   for (const row of queue) idsBySource[row.source].push(row.sourceId);
 
-  const [paJoinRows, taskJoinRows, eventJoinRows, notifJoinRows] = await Promise.all([
-    idsBySource.PENDING_ACTION.length === 0
-      ? Promise.resolve([] as PendingActionRow[])
-      : (prisma.pendingAction.findMany as (args: unknown) => Promise<PendingActionRow[]>)({
-          where: { id: { in: idsBySource.PENDING_ACTION } },
-        }),
-    idsBySource.TASK.length === 0
-      ? Promise.resolve([] as TaskRow[])
-      : prisma.task.findMany({ where: { id: { in: idsBySource.TASK } } }),
-    idsBySource.CALENDAR_EVENT.length === 0
-      ? Promise.resolve([] as CalendarEventRow[])
-      : prisma.calendarEvent.findMany({ where: { id: { in: idsBySource.CALENDAR_EVENT } } }),
-    idsBySource.NOTIFICATION.length === 0
-      ? Promise.resolve([] as NotificationRow[])
-      : prisma.notification.findMany({ where: { id: { in: idsBySource.NOTIFICATION } } }),
-  ]);
+  const [paJoinRows, taskJoinRows, eventJoinRows, notifJoinRows, commitmentJoinRows] =
+    await Promise.all([
+      idsBySource.PENDING_ACTION.length === 0
+        ? Promise.resolve([] as PendingActionRow[])
+        : (prisma.pendingAction.findMany as (args: unknown) => Promise<PendingActionRow[]>)({
+            where: { id: { in: idsBySource.PENDING_ACTION } },
+          }),
+      idsBySource.TASK.length === 0
+        ? Promise.resolve([] as TaskRow[])
+        : prisma.task.findMany({ where: { id: { in: idsBySource.TASK } } }),
+      idsBySource.CALENDAR_EVENT.length === 0
+        ? Promise.resolve([] as CalendarEventRow[])
+        : prisma.calendarEvent.findMany({ where: { id: { in: idsBySource.CALENDAR_EVENT } } }),
+      idsBySource.NOTIFICATION.length === 0
+        ? Promise.resolve([] as NotificationRow[])
+        : prisma.notification.findMany({ where: { id: { in: idsBySource.NOTIFICATION } } }),
+      idsBySource.COMMITMENT.length === 0
+        ? Promise.resolve([] as CommitmentRow[])
+        : prisma.commitment.findMany({ where: { id: { in: idsBySource.COMMITMENT } } }),
+    ]);
 
   const sources = {
     paById: new Map(paJoinRows.map((r) => [r.id, r])),
     taskById: new Map(taskJoinRows.map((r) => [r.id, r])),
     eventById: new Map(eventJoinRows.map((r) => [r.id, r])),
     notifById: new Map(notifJoinRows.map((r) => [r.id, r])),
+    commitmentById: new Map(commitmentJoinRows.map((r) => [r.id, r])),
   };
 
   const built = await Promise.all(queue.map((row) => buildItemFromAttention(row, sources, now)));
