@@ -21,6 +21,20 @@ interface PendingActionItem {
   createdAt: string;
 }
 
+interface CommitmentItem {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "OPEN" | "DONE" | "DISMISSED" | "SNOOZED";
+  kind: "DELIVERABLE" | "FOLLOW_UP" | "DECISION" | "MEETING" | "REVIEW";
+  owner: "USER" | "COUNTERPARTY" | "TEAM" | "UNKNOWN";
+  dueAt: string | null;
+  dueText: string | null;
+  sourceType: string;
+  confidence: number;
+  createdAt: string;
+}
+
 type StatusFilter = "pending" | "all";
 
 export default function InboxPage() {
@@ -33,22 +47,28 @@ export default function InboxPage() {
 
 function InboxView() {
   const [actions, setActions] = useState<PendingActionItem[]>([]);
+  const [commitments, setCommitments] = useState<CommitmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [actionLoading, setActionLoading] = useState<Record<string, "approve" | "reject" | null>>(
     {},
   );
+  const [commitmentLoading, setCommitmentLoading] = useState<
+    Record<string, "done" | "dismiss" | null>
+  >({});
 
   const load = useCallback(async (statusFilter: StatusFilter) => {
     setLoading(true);
     setError(null);
     try {
       const qs = statusFilter === "all" ? "?status=all" : "";
-      const data = await apiFetch<{ actions: PendingActionItem[] }>(
-        `/api/chat/pending-actions${qs}`,
-      );
-      setActions(data.actions);
+      const [actionData, commitmentData] = await Promise.all([
+        apiFetch<{ actions: PendingActionItem[] }>(`/api/chat/pending-actions${qs}`),
+        apiFetch<{ commitments: CommitmentItem[] }>("/api/commitments?status=OPEN&limit=8"),
+      ]);
+      setActions(actionData.actions);
+      setCommitments(commitmentData.commitments);
     } catch (err) {
       captureClientError(err, { scope: "inbox.load" });
       setError("받은 일을 불러오지 못했어요.");
@@ -99,6 +119,25 @@ function InboxView() {
     }
   };
 
+  const handleCommitmentStatus = async (commitmentId: string, status: "DONE" | "DISMISSED") => {
+    if (commitmentLoading[commitmentId]) return;
+    const loadingState = status === "DONE" ? "done" : "dismiss";
+    setCommitmentLoading((prev) => ({ ...prev, [commitmentId]: loadingState }));
+    try {
+      await apiFetch(`/api/commitments/${commitmentId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      setCommitments((prev) => prev.filter((c) => c.id !== commitmentId));
+      window.dispatchEvent(new Event("conversations-updated"));
+    } catch (err) {
+      captureClientError(err, { scope: "inbox.commitment_status", commitmentId, status });
+      alert("약속 상태를 바꾸지 못했어요. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setCommitmentLoading((prev) => ({ ...prev, [commitmentId]: null }));
+    }
+  };
+
   const pendingCount = actions.filter((a) => a.status === "PENDING").length;
 
   return (
@@ -134,6 +173,15 @@ function InboxView() {
 
       <CommandCenterSummary />
 
+      {commitments.length > 0 && (
+        <CommitmentSection
+          commitments={commitments}
+          loading={commitmentLoading}
+          onDone={(id) => handleCommitmentStatus(id, "DONE")}
+          onDismiss={(id) => handleCommitmentStatus(id, "DISMISSED")}
+        />
+      )}
+
       {loading && actions.length === 0 && (
         <p className="text-sm text-gray-500 py-8 text-center">로딩 중...</p>
       )}
@@ -144,7 +192,7 @@ function InboxView() {
         </div>
       )}
 
-      {!loading && !error && actions.length === 0 && (
+      {!loading && !error && actions.length === 0 && commitments.length === 0 && (
         <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-8 text-center">
           <p className="text-sm text-gray-300 mb-1">
             {filter === "pending" ? "대기 중인 항목이 없어요" : "받은 일이 없어요"}
@@ -166,6 +214,101 @@ function InboxView() {
         ))}
       </ul>
     </div>
+  );
+}
+
+function CommitmentSection({
+  commitments,
+  loading,
+  onDone,
+  onDismiss,
+}: {
+  commitments: CommitmentItem[];
+  loading: Record<string, "done" | "dismiss" | null>;
+  onDone: (id: string) => void;
+  onDismiss: (id: string) => void;
+}) {
+  return (
+    <section className="mb-6" aria-label="Commitment ledger">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-sm font-semibold text-gray-100">챙길 약속</h2>
+        <span className="text-[11px] text-gray-500">{commitments.length}</span>
+      </div>
+      <ul className="space-y-2">
+        {commitments.map((commitment) => (
+          <li key={commitment.id}>
+            <CommitmentCard
+              commitment={commitment}
+              loading={loading[commitment.id] ?? null}
+              onDone={() => onDone(commitment.id)}
+              onDismiss={() => onDismiss(commitment.id)}
+            />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function CommitmentCard({
+  commitment,
+  loading,
+  onDone,
+  onDismiss,
+}: {
+  commitment: CommitmentItem;
+  loading: "done" | "dismiss" | null;
+  onDone: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <article className="rounded-xl border border-gray-800 bg-gray-900/40 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <CommitmentOwnerBadge owner={commitment.owner} />
+            <span className="text-[11px] text-gray-500">
+              {commitmentKindLabel(commitment.kind)}
+            </span>
+            <span className="text-[11px] text-gray-600">{commitmentDueLabel(commitment)}</span>
+          </div>
+          <p className="mt-2 text-sm font-medium text-gray-100 break-words">{commitment.title}</p>
+          {commitment.description && (
+            <p className="mt-1 text-xs text-gray-400 line-clamp-2">{commitment.description}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mt-4">
+        <button
+          type="button"
+          onClick={onDone}
+          disabled={!!loading}
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition min-w-[72px]"
+        >
+          {loading === "done" ? (
+            <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            "완료"
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          disabled={!!loading}
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition min-w-[72px]"
+        >
+          {loading === "dismiss" ? (
+            <span className="w-3 h-3 border-2 border-gray-300/30 border-t-gray-200 rounded-full animate-spin" />
+          ) : (
+            "숨김"
+          )}
+        </button>
+        <span className="ml-auto text-[11px] text-gray-600">
+          신뢰도 {Math.round(commitment.confidence * 100)}%
+        </span>
+      </div>
+    </article>
   );
 }
 
@@ -278,6 +421,65 @@ function ActionCard({
       )}
     </article>
   );
+}
+
+function CommitmentOwnerBadge({ owner }: { owner: CommitmentItem["owner"] }) {
+  const entry = commitmentOwnerEntry(owner);
+  return (
+    <span className={`text-[11px] font-medium border rounded px-1.5 py-0.5 ${entry.className}`}>
+      {entry.label}
+    </span>
+  );
+}
+
+function commitmentOwnerEntry(owner: CommitmentItem["owner"]): {
+  label: string;
+  className: string;
+} {
+  switch (owner) {
+    case "USER":
+      return {
+        label: "내 약속",
+        className: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20",
+      };
+    case "COUNTERPARTY":
+      return {
+        label: "상대 약속",
+        className: "text-cyan-300 bg-cyan-400/10 border-cyan-400/20",
+      };
+    case "TEAM":
+      return {
+        label: "팀 약속",
+        className: "text-blue-300 bg-blue-400/10 border-blue-400/20",
+      };
+    case "UNKNOWN":
+      return {
+        label: "확인 필요",
+        className: "text-amber-300 bg-amber-400/10 border-amber-400/20",
+      };
+  }
+}
+
+function commitmentKindLabel(kind: CommitmentItem["kind"]): string {
+  const labels: Record<CommitmentItem["kind"], string> = {
+    DELIVERABLE: "전달",
+    FOLLOW_UP: "후속",
+    DECISION: "결정",
+    MEETING: "미팅",
+    REVIEW: "검토",
+  };
+  return labels[kind];
+}
+
+function commitmentDueLabel(commitment: CommitmentItem): string {
+  if (commitment.dueText) return commitment.dueText;
+  if (commitment.dueAt) {
+    return new Date(commitment.dueAt).toLocaleDateString("ko-KR", {
+      month: "short",
+      day: "numeric",
+    });
+  }
+  return "마감 확인 필요";
 }
 
 function StatusBadge({ status }: { status: PendingActionItem["status"] }) {
