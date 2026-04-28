@@ -6,12 +6,14 @@ import {
   upsertAttentionForPendingAction,
 } from "../attention-mirror.js";
 import { getUserId, requireAuth } from "../auth.js";
+import { extractAndUpsertCommitmentsFromText } from "../commitment-ingestion.js";
 import { compactHistory, forceCompact, isTokenLimitError } from "../context-compressor.js";
 import { db, prisma } from "../db.js";
 import { extractSnippet } from "../extract-snippet.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { createCompletion, EVE_SYSTEM_PROMPT, MODEL, resolveUserChatModel } from "../openai.js";
 import { Semaphore } from "../semaphore.js";
+import { captureError } from "../sentry.js";
 import { getEffectivePlan } from "../stripe.js";
 import { executeToolCall, getToolsForPlan } from "../tool-executor.js";
 
@@ -135,6 +137,27 @@ function hasMeaningfulText(value: string | undefined): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function extractCommitmentsFromUserMessage(
+  userId: string,
+  conversationId: string,
+  messageId: string,
+  content: string,
+) {
+  extractAndUpsertCommitmentsFromText({
+    userId,
+    sourceType: "CHAT",
+    sourceId: messageId,
+    threadId: conversationId,
+    text: content,
+    contextTitle: "Chat message",
+  }).catch((err) => {
+    captureError(err, {
+      tags: { scope: "commitment.chat_ingestion" },
+      extra: { userId, conversationId, messageId },
+    });
+  });
+}
+
 export function chatRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
 
@@ -167,13 +190,14 @@ export function chatRoutes(app: FastifyInstance) {
       // If initialMessage provided, create a user message and trigger auto-title
       if (body.initialMessage) {
         const initialMessage = body.initialMessage.trim();
-        await prisma.message.create({
+        const initialMsg = await prisma.message.create({
           data: {
             conversationId: conversation.id,
             role: "USER",
             content: initialMessage,
           },
         });
+        extractCommitmentsFromUserMessage(userId, conversation.id, initialMsg.id, initialMessage);
         if (!body.title) {
           autoGenerateTitle(conversation.id, initialMessage);
         }
@@ -699,9 +723,10 @@ export function chatRoutes(app: FastifyInstance) {
       );
 
       // Save user message
-      await prisma.message.create({
+      const savedUserMessage = await prisma.message.create({
         data: { conversationId: id, role: "USER", content: trimmedContent },
       });
+      extractCommitmentsFromUserMessage(userId, id, savedUserMessage.id, trimmedContent);
 
       // Auto-generate title from first message (LLM-powered, async)
       if (!conversation.title && conversation.messages.length === 0) {
