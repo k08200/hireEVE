@@ -204,6 +204,7 @@ export async function syncEmails(
           threadId: email.threadId,
           text: commitmentText,
           contextTitle: email.subject,
+          referenceDate: email.receivedAt,
         }).catch((err) => {
           captureError(err, {
             tags: { scope: "commitment.email_ingestion" },
