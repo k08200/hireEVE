@@ -31,6 +31,7 @@ let intervalId: ReturnType<typeof setInterval> | null = null;
 
 const CHECK_INTERVAL_MS = 60_000; // 1 minute
 const WATCH_RENEWAL_INTERVAL_MS = 60 * 60 * 1000; // hourly check for expiring Gmail watches
+const DB_HEARTBEAT_ENABLED = process.env.DB_HEARTBEAT_ENABLED === "true";
 
 // In-memory cache to skip redundant DB queries within same process lifetime.
 // Actual dedup is DB-based (survives server restarts).
@@ -108,14 +109,14 @@ function isBriefingDue(briefingTime: string | null | undefined): boolean {
 }
 
 /**
- * DB heartbeat — keeps Neon's serverless compute from auto-suspending after
- * its 5-minute idle window. The scheduler already issues `automationConfig.findMany`
- * each tick, but when there are no users the rest of the function bails early,
- * and on cold deploys the very first query can race a suspended compute.
- * An explicit retried `SELECT 1` at the top of every tick guarantees the
- * connection is alive before any user-facing path needs it.
+ * Optional DB heartbeat. Keep this off on free serverless Postgres tiers:
+ * Neon's free compute budget assumes scale-to-zero, and a 60s heartbeat is
+ * effectively always-on. Paid deployments can enable it with
+ * DB_HEARTBEAT_ENABLED=true when login latency matters more than idle cost.
  */
 async function dbHeartbeat(): Promise<void> {
+  if (!DB_HEARTBEAT_ENABLED) return;
+
   try {
     await withDbRetry(() => prisma.$queryRaw`SELECT 1`, {
       label: "scheduler.heartbeat",
@@ -541,7 +542,9 @@ async function runAutomations() {
 export function startAutomationScheduler() {
   if (intervalId) return;
 
-  console.log("[AUTOMATION] Scheduler started (checking every 60s)");
+  console.log(
+    `[AUTOMATION] Scheduler started (checking every 60s, dbHeartbeat=${DB_HEARTBEAT_ENABLED ? "on" : "off"})`,
+  );
 
   // Run once on start
   runAutomations();

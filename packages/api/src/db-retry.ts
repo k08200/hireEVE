@@ -12,7 +12,14 @@
  * backoff so the wake-up completes silently. Application errors (unique
  * constraint, record not found, etc.) still propagate immediately —
  * silent retry on those would mask real bugs.
+ *
+ * Use this for bounded DB reads/writes before response streaming begins.
+ * Do not wrap SSE or token-streaming handlers: once bytes have been sent,
+ * retrying can duplicate partial responses and still cannot recover the
+ * client connection.
  */
+
+import { addBreadcrumb, captureError } from "./sentry.js";
 
 const COLD_START_PATTERNS: ReadonlyArray<RegExp> = [
   /can't reach database server/i,
@@ -66,6 +73,7 @@ export async function withDbRetry<T>(
       if (!isColdStartError(err)) throw err;
       if (attempt === maxAttempts) break;
       const delay = baseDelayMs * 2 ** (attempt - 1) + Math.floor(Math.random() * JITTER_MS);
+      addDbRetryBreadcrumb(opts.label, attempt, maxAttempts, delay, err);
       if (opts.label) {
         // Cold-start retries are quiet by default; log when caller opts in via label
         // so production traces show "OAuth callback retried 2/4 after cold start".
@@ -76,9 +84,30 @@ export async function withDbRetry<T>(
       await sleep(delay);
     }
   }
+  captureError(lastErr, {
+    tags: { scope: "db-retry.exhausted" },
+    extra: { label: opts.label ?? "unlabeled", maxAttempts },
+  });
   throw lastErr;
 }
 
 function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function addDbRetryBreadcrumb(
+  label: string | undefined,
+  attempt: number,
+  maxAttempts: number,
+  delayMs: number,
+  err: unknown,
+): void {
+  const message = err instanceof Error ? err.message : String(err);
+  addBreadcrumb("db-retry", "cold-start retry scheduled", {
+    label: label ?? "unlabeled",
+    attempt,
+    maxAttempts,
+    delayMs,
+    message,
+  });
 }
