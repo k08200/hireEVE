@@ -11,6 +11,7 @@
 
 import generateBriefing from "./briefing.js";
 import { prisma } from "./db.js";
+import { withDbRetry } from "./db-retry.js";
 import {
   checkAutoReplyRules,
   generateSmartReply,
@@ -106,7 +107,28 @@ function isBriefingDue(briefingTime: string | null | undefined): boolean {
   return delta >= 0 && delta <= 60;
 }
 
+/**
+ * DB heartbeat — keeps Neon's serverless compute from auto-suspending after
+ * its 5-minute idle window. The scheduler already issues `automationConfig.findMany`
+ * each tick, but when there are no users the rest of the function bails early,
+ * and on cold deploys the very first query can race a suspended compute.
+ * An explicit retried `SELECT 1` at the top of every tick guarantees the
+ * connection is alive before any user-facing path needs it.
+ */
+async function dbHeartbeat(): Promise<void> {
+  try {
+    await withDbRetry(() => prisma.$queryRaw`SELECT 1`, {
+      label: "scheduler.heartbeat",
+      maxAttempts: 3,
+    });
+  } catch (err) {
+    // Don't crash the scheduler on a stuck DB — the next tick will try again.
+    console.warn("[AUTOMATION] DB heartbeat failed (will retry next tick):", err);
+  }
+}
+
 async function runAutomations() {
+  await dbHeartbeat();
   try {
     // Gmail watch renewal runs once per hour regardless of configs.
     // It is a no-op when GMAIL_PUBSUB_TOPIC is unset or no watches are due.
