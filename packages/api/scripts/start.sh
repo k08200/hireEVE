@@ -28,18 +28,49 @@ deploy_with_retry() {
   done
 }
 
+schema_matches_with_retry() {
+  attempt=1
+  max_attempts=6
+  delay=2
+  while [ $attempt -le $max_attempts ]; do
+    if npx prisma migrate diff \
+      --from-url "$DATABASE_URL" \
+      --to-schema-datamodel prisma/schema.prisma \
+      --exit-code; then
+      return 0
+    else
+      code=$?
+      # Prisma --exit-code: 0 = empty diff, 1 = error, 2 = non-empty diff.
+      if [ "$code" -eq 2 ]; then
+        return 1
+      fi
+      if [ $attempt -eq $max_attempts ]; then
+        return 2
+      fi
+      echo "[start.sh] migrate diff attempt $attempt/$max_attempts errored; retrying in ${delay}s..."
+      sleep $delay
+      delay=$((delay * 2))
+      attempt=$((attempt + 1))
+    fi
+  done
+  return 2
+}
+
 if ! deploy_with_retry; then
   echo "[start.sh] migrate deploy failed after retries; checking whether existing schema can be baselined..."
 
-  if ! npx prisma migrate diff \
-    --from-url "$DATABASE_URL" \
-    --to-schema-datamodel prisma/schema.prisma \
-    --exit-code; then
-    echo "[start.sh] live database schema differs from prisma/schema.prisma; refusing to baseline."
+  if schema_matches_with_retry; then
+    echo "[start.sh] live schema matches prisma/schema.prisma; baselining checked-in migrations..."
+  else
+    diff_code=$?
+    if [ "$diff_code" -eq 1 ]; then
+      echo "[start.sh] live database schema differs from prisma/schema.prisma; refusing to baseline."
+      exit 1
+    fi
+    echo "[start.sh] migrate diff failed after retries; refusing to baseline without schema proof."
     exit 1
   fi
 
-  echo "[start.sh] live schema matches prisma/schema.prisma; baselining checked-in migrations..."
   for migration in prisma/migrations/*/; do
     name=$(basename "$migration")
     npx prisma migrate resolve --applied "$name" 2>/dev/null || true
