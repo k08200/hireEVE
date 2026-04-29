@@ -4,12 +4,6 @@
 -- Placed immediately after init so dependent tables and FKs see them.
 
 -- CreateEnum
-CREATE TYPE "AttentionSource" AS ENUM ('PENDING_ACTION', 'TASK', 'CALENDAR_EVENT', 'NOTIFICATION', 'COMMITMENT');
-
--- CreateEnum
-CREATE TYPE "AttentionType" AS ENUM ('REPLY_NEEDED', 'MEETING_PREP', 'RISK', 'DEADLINE', 'FOLLOWUP', 'DECISION', 'COMMITMENT_DUE', 'COMMITMENT_UNCONFIRMED', 'COMMITMENT_OVERDUE');
-
--- CreateEnum
 CREATE TYPE "EmailPriority" AS ENUM ('URGENT', 'NORMAL', 'LOW');
 
 -- CreateEnum
