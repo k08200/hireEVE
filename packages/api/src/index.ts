@@ -6,6 +6,7 @@ import { ensureDemoUser, getUserId, requireAuth } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
 import { briefingRoutes } from "./briefing.js";
 import { db, prisma } from "./db.js";
+import { withDbRetry } from "./db-retry.js";
 import { attachPerfMonitor } from "./perf-monitor.js";
 import { adminRoutes } from "./routes/admin.js";
 import { agentRoutes } from "./routes/agents.js";
@@ -356,14 +357,25 @@ app.addHook("onClose", async () => {
   await prisma.$disconnect();
 });
 
-// --- Server Startup (wrapped in try-catch to prevent silent crashes) ---
+// --- Server Startup ---
+// Startup DB calls are wrapped in withDbRetry so a Neon cold-start (suspended
+// compute waking up) does not kill the container. If retries are exhausted we
+// exit so Render restarts the process — this is safer than a permanent 503
+// fallback that ignores DB recovery.
 try {
-  // Verify database connection before proceeding
-  await prisma.$queryRaw`SELECT 1`;
+  await withDbRetry(() => prisma.$queryRaw`SELECT 1`, {
+    label: "startup.db_verify",
+    maxAttempts: 8,
+    baseDelayMs: 500,
+  });
   console.log("[STARTUP] Database connection verified");
 
   // Ensure demo user exists for unauthenticated access
-  await ensureDemoUser();
+  await withDbRetry(() => ensureDemoUser(), {
+    label: "startup.ensure_demo_user",
+    maxAttempts: 8,
+    baseDelayMs: 500,
+  });
 
   const port = Number(process.env.PORT) || 3001;
   await app.listen({ port, host: "0.0.0.0" });
@@ -423,21 +435,7 @@ try {
   }
 } catch (err) {
   console.error("[STARTUP] Fatal error during server initialization:", err);
-  // Still try to start a minimal health-check server so Render doesn't mark as crashed
-  try {
-    const fallbackPort = Number(process.env.PORT) || 3001;
-    const fallback = Fastify();
-    fallback.get("/api/health", async () => ({
-      status: "error",
-      message: "Server failed to start. Check logs.",
-    }));
-    fallback.get("*", async (_req, reply) => {
-      reply.code(503).send({ error: "Service unavailable — startup failed" });
-    });
-    await fallback.listen({ port: fallbackPort, host: "0.0.0.0" });
-    console.error(`[STARTUP] Fallback health server on port ${fallbackPort}`);
-  } catch (fallbackErr) {
-    console.error("[STARTUP] Even fallback server failed:", fallbackErr);
-    process.exit(1);
-  }
+  // Exit so Render restarts the container. A permanent fallback 503 server
+  // would mask DB recovery and require manual redeploy to clear.
+  process.exit(1);
 }
