@@ -11,6 +11,7 @@ import {
 } from "../auth.js";
 import { encryptOptional, encryptToken } from "../crypto-tokens.js";
 import { prisma } from "../db.js";
+import { withDbRetry } from "../db-retry.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../email.js";
 import {
   getAuthedClient,
@@ -447,48 +448,72 @@ export function authRoutes(app: FastifyInstance) {
 
         const profile = await getGoogleUserInfo(tokens.access_token);
 
-        // Find or create user by email
-        let user = await prisma.user.findUnique({ where: { email: profile.email } });
+        // Find or create user by email. Wrapped with withDbRetry so a Neon
+        // cold-start during sign-in (suspended compute waking up) does not
+        // surface as a hard "Can't reach database server" failure to the
+        // user — silent retry covers the wake-up window.
+        let user = await withDbRetry(
+          () => prisma.user.findUnique({ where: { email: profile.email } }),
+          { label: "oauth.find_user_by_email" },
+        );
         if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email: profile.email,
-              name: profile.name || profile.email.split("@")[0],
-              passwordHash: null, // Google-only user, no password
-              emailVerified: true, // Google accounts are pre-verified
-            },
-          });
+          user = await withDbRetry(
+            () =>
+              prisma.user.create({
+                data: {
+                  email: profile.email,
+                  name: profile.name || profile.email.split("@")[0],
+                  passwordHash: null, // Google-only user, no password
+                  emailVerified: true, // Google accounts are pre-verified
+                },
+              }),
+            { label: "oauth.create_user" },
+          );
         } else if (!user.emailVerified) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { emailVerified: true },
-          });
+          await withDbRetry(
+            () =>
+              prisma.user.update({
+                where: { id: user!.id },
+                data: { emailVerified: true },
+              }),
+            { label: "oauth.verify_user" },
+          );
         }
 
         // Auto-save Google tokens for Gmail/Calendar integration (one-click setup)
-        await prisma.userToken.upsert({
-          where: { userId_provider: { userId: user.id, provider: "google" } },
-          create: {
-            userId: user.id,
-            provider: "google",
-            accessToken: encryptToken(tokens.access_token ?? ""),
-            refreshToken: encryptOptional(tokens.refresh_token),
-            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-          },
-          update: {
-            accessToken: encryptToken(tokens.access_token ?? ""),
-            // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
-            ...(tokens.refresh_token ? { refreshToken: encryptToken(tokens.refresh_token) } : {}),
-            expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-          },
-        });
+        await withDbRetry(
+          () =>
+            prisma.userToken.upsert({
+              where: { userId_provider: { userId: user!.id, provider: "google" } },
+              create: {
+                userId: user!.id,
+                provider: "google",
+                accessToken: encryptToken(tokens.access_token ?? ""),
+                refreshToken: encryptOptional(tokens.refresh_token),
+                expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+              },
+              update: {
+                accessToken: encryptToken(tokens.access_token ?? ""),
+                // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
+                ...(tokens.refresh_token
+                  ? { refreshToken: encryptToken(tokens.refresh_token) }
+                  : {}),
+                expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+              },
+            }),
+          { label: "oauth.upsert_user_token" },
+        );
 
         // Auto-create AutomationConfig with defaults
-        await prisma.automationConfig.upsert({
-          where: { userId: user.id },
-          create: { userId: user.id },
-          update: {},
-        });
+        await withDbRetry(
+          () =>
+            prisma.automationConfig.upsert({
+              where: { userId: user!.id },
+              create: { userId: user!.id },
+              update: {},
+            }),
+          { label: "oauth.upsert_automation_config" },
+        );
 
         const token = signToken({ userId: user.id, email: user.email });
 
@@ -527,27 +552,33 @@ export function authRoutes(app: FastifyInstance) {
         return reply.code(400).send({ error: "Invalid OAuth state" });
       }
       const userId = statePayload.userId;
-      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const user = await withDbRetry(() => prisma.user.findUnique({ where: { id: userId } }), {
+        label: "oauth.integration.find_user",
+      });
       if (!user) {
         return reply.code(404).send({ error: "User not found" });
       }
 
-      await prisma.userToken.upsert({
-        where: { userId_provider: { userId: user.id, provider: "google" } },
-        create: {
-          userId: user.id,
-          provider: "google",
-          accessToken: encryptToken(tokens.access_token ?? ""),
-          refreshToken: encryptOptional(tokens.refresh_token),
-          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        },
-        update: {
-          accessToken: encryptToken(tokens.access_token ?? ""),
-          // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
-          ...(tokens.refresh_token ? { refreshToken: encryptToken(tokens.refresh_token) } : {}),
-          expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-        },
-      });
+      await withDbRetry(
+        () =>
+          prisma.userToken.upsert({
+            where: { userId_provider: { userId: user.id, provider: "google" } },
+            create: {
+              userId: user.id,
+              provider: "google",
+              accessToken: encryptToken(tokens.access_token ?? ""),
+              refreshToken: encryptOptional(tokens.refresh_token),
+              expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            },
+            update: {
+              accessToken: encryptToken(tokens.access_token ?? ""),
+              // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
+              ...(tokens.refresh_token ? { refreshToken: encryptToken(tokens.refresh_token) } : {}),
+              expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+            },
+          }),
+        { label: "oauth.integration.upsert_user_token" },
+      );
 
       return reply.redirect(`${webUrl}/settings?google=connected`);
     } catch (err) {
