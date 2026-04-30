@@ -15,7 +15,7 @@ export const PLANS = {
     testLimit: 10,
     messageLimit: 50,
     tokenLimit: 500_000,
-    deviceLimit: 1,
+    deviceLimit: 5,
   },
   PRO: {
     name: "Pro",
@@ -23,7 +23,7 @@ export const PLANS = {
     testLimit: 500,
     messageLimit: 2000,
     tokenLimit: 10_000_000,
-    deviceLimit: 2,
+    deviceLimit: 10,
   },
   TEAM: {
     name: "Team",
@@ -31,7 +31,7 @@ export const PLANS = {
     testLimit: 5000,
     messageLimit: 10000,
     tokenLimit: 50_000_000,
-    deviceLimit: 3,
+    deviceLimit: 25,
   },
   ENTERPRISE: {
     name: "Enterprise",
