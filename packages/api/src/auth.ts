@@ -18,10 +18,17 @@ const TOKEN_EXPIRY = "7d";
 export interface JwtPayload {
   userId: string;
   email: string;
+  sessionId?: string;
 }
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, EFFECTIVE_SECRET, { expiresIn: TOKEN_EXPIRY });
+  return jwt.sign(
+    { ...payload, sessionId: payload.sessionId || crypto.randomUUID() },
+    EFFECTIVE_SECRET,
+    {
+      expiresIn: TOKEN_EXPIRY,
+    },
+  );
 }
 
 export function verifyToken(token: string): JwtPayload {
