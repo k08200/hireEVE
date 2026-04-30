@@ -13,6 +13,7 @@ import { extractSnippet } from "../extract-snippet.js";
 import { recipientFromToolArgs, recordFeedback } from "../feedback.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { createCompletion, EVE_SYSTEM_PROMPT, MODEL, resolveUserChatModel } from "../openai.js";
+import { scheduleReminderDeliveryCheck } from "../reminder-scheduler.js";
 import { createReminder } from "../reminders.js";
 import { Semaphore } from "../semaphore.js";
 import { captureError } from "../sentry.js";
@@ -772,6 +773,13 @@ export function chatRoutes(app: FastifyInstance) {
           conversation.userId,
           directReminder.title,
           directReminder.remindAt.toISOString(),
+        );
+        const directTimerScheduled = scheduleReminderDeliveryCheck(
+          result.reminder.id,
+          new Date(result.reminder.remindAt),
+        );
+        console.log(
+          `[REMINDER] Direct chat reminder created: ${result.reminder.id} remindAt=${result.reminder.remindAt} timer=${directTimerScheduled ? "scheduled" : "scheduler-only"}`,
         );
         const fullResponse = `${directReminder.remindAt.toLocaleString("ko-KR", {
           timeZone: "Asia/Seoul",

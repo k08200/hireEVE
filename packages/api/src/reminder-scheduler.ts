@@ -15,6 +15,89 @@ import { pushNotification } from "./websocket.js";
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 const CHECK_INTERVAL_MS = 30_000; // 30 seconds
+const MAX_DIRECT_TIMER_MS = 5 * 60_000;
+
+type ReminderRecord = {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  remindAt: Date;
+};
+
+async function deliverReminder(reminder: ReminderRecord): Promise<boolean> {
+  const msg = reminder.description || `Reminder: ${reminder.title}`;
+
+  const notification = await prisma.$transaction(async (tx) => {
+    const updated = await tx.reminder.updateMany({
+      where: {
+        id: reminder.id,
+        status: "PENDING",
+        remindAt: { lte: new Date() },
+      },
+      data: { status: "SENT" },
+    });
+    if (updated.count === 0) return null;
+
+    return tx.notification.create({
+      data: {
+        userId: reminder.userId,
+        type: "reminder",
+        title: reminder.title,
+        message: msg,
+      },
+    });
+  });
+
+  if (!notification) return false;
+
+  // Push real-time notification via WebSocket
+  pushNotification(reminder.userId, {
+    id: notification.id,
+    type: "reminder",
+    title: reminder.title,
+    message: msg,
+    createdAt: notification.createdAt.toISOString(),
+  });
+
+  // Send browser push notification
+  sendPushNotification(reminder.userId, {
+    title: reminder.title,
+    body: msg,
+    url: "/chat",
+  }).catch((err) => {
+    console.error(`[REMINDER] Push delivery failed for ${reminder.id}:`, err);
+  });
+
+  console.log(`[REMINDER] Delivered: "${reminder.title}" to user ${reminder.userId}`);
+  return true;
+}
+
+export async function deliverDueReminderById(reminderId: string): Promise<boolean> {
+  const reminder = await prisma.reminder.findFirst({
+    where: {
+      id: reminderId,
+      status: "PENDING",
+      remindAt: { lte: new Date() },
+    },
+  });
+  if (!reminder) return false;
+
+  return deliverReminder(reminder);
+}
+
+export function scheduleReminderDeliveryCheck(reminderId: string, remindAt: Date): boolean {
+  const delayMs = remindAt.getTime() - Date.now();
+  if (delayMs < 0 || delayMs > MAX_DIRECT_TIMER_MS) return false;
+
+  const timer = setTimeout(() => {
+    deliverDueReminderById(reminderId).catch((err) => {
+      console.error(`[REMINDER] Direct delivery check failed for ${reminderId}:`, err);
+    });
+  }, delayMs + 500);
+  timer.unref?.();
+  return true;
+}
 
 async function checkDueReminders() {
   try {
@@ -32,41 +115,7 @@ async function checkDueReminders() {
     console.log(`[REMINDER] Found ${dueReminders.length} due reminder(s)`);
 
     for (const reminder of dueReminders) {
-      const msg = reminder.description || `Reminder: ${reminder.title}`;
-
-      // Use transaction: create notification + mark SENT atomically
-      const [notification] = await prisma.$transaction([
-        prisma.notification.create({
-          data: {
-            userId: reminder.userId,
-            type: "reminder",
-            title: reminder.title,
-            message: msg,
-          },
-        }),
-        prisma.reminder.update({
-          where: { id: reminder.id },
-          data: { status: "SENT" },
-        }),
-      ]);
-
-      // Push real-time notification via WebSocket
-      pushNotification(reminder.userId, {
-        id: notification.id,
-        type: "reminder",
-        title: reminder.title,
-        message: msg,
-        createdAt: notification.createdAt.toISOString(),
-      });
-
-      // Send browser push notification
-      sendPushNotification(reminder.userId, {
-        title: reminder.title,
-        body: msg,
-        url: "/chat",
-      });
-
-      console.log(`[REMINDER] Delivered: "${reminder.title}" to user ${reminder.userId}`);
+      await deliverReminder(reminder);
     }
   } catch (err) {
     console.error("[REMINDER] Scheduler error:", err);

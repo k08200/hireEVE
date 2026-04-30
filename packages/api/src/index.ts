@@ -133,6 +133,11 @@ app.get("/api/health", async () => {
     db: dbOk ? "connected" : "unreachable",
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
+    commit:
+      process.env.RENDER_GIT_COMMIT ||
+      process.env.GIT_COMMIT_SHA ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      null,
   };
 });
 
