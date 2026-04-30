@@ -96,24 +96,35 @@ export function scheduleReminderDeliveryCheck(reminderId: string, remindAt: Date
   return true;
 }
 
+export async function deliverDueReminders(userId?: string): Promise<{
+  found: number;
+  delivered: number;
+}> {
+  const now = new Date();
+
+  const dueReminders = await prisma.reminder.findMany({
+    where: {
+      ...(userId ? { userId } : {}),
+      status: "PENDING",
+      remindAt: { lte: now },
+    },
+  });
+
+  if (dueReminders.length === 0) return { found: 0, delivered: 0 };
+
+  console.log(`[REMINDER] Found ${dueReminders.length} due reminder(s)`);
+
+  let delivered = 0;
+  for (const reminder of dueReminders) {
+    if (await deliverReminder(reminder)) delivered++;
+  }
+
+  return { found: dueReminders.length, delivered };
+}
+
 async function checkDueReminders() {
   try {
-    const now = new Date();
-
-    const dueReminders = await prisma.reminder.findMany({
-      where: {
-        status: "PENDING",
-        remindAt: { lte: now },
-      },
-    });
-
-    if (dueReminders.length === 0) return;
-
-    console.log(`[REMINDER] Found ${dueReminders.length} due reminder(s)`);
-
-    for (const reminder of dueReminders) {
-      await deliverReminder(reminder);
-    }
+    await deliverDueReminders();
   } catch (err) {
     console.error("[REMINDER] Scheduler error:", err);
   }

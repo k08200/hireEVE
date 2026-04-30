@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
+import { deliverDueReminders } from "../reminder-scheduler.js";
 
 export async function reminderRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
@@ -12,6 +13,67 @@ export async function reminderRoutes(app: FastifyInstance) {
       orderBy: { remindAt: "asc" },
     });
     return { reminders };
+  });
+
+  app.get("/diagnostics", async (request) => {
+    const userId = getUserId(request);
+    const [recentReminders, recentNotifications, recentPushDeliveries, subscriptions] =
+      await Promise.all([
+        prisma.reminder.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        }),
+        prisma.notification.findMany({
+          where: { userId, type: "reminder" },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        }),
+        prisma.pushDeliveryLog.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        }),
+        prisma.pushSubscription.count({ where: { userId } }),
+      ]);
+
+    return {
+      now: new Date().toISOString(),
+      subscriptions,
+      reminders: recentReminders.map((r) => ({
+        id: r.id,
+        title: r.title,
+        status: r.status,
+        remindAt: r.remindAt.toISOString(),
+        createdAt: r.createdAt.toISOString(),
+        due: r.status === "PENDING" && r.remindAt <= new Date(),
+      })),
+      notifications: recentNotifications.map((n) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        isRead: n.isRead,
+        createdAt: n.createdAt.toISOString(),
+      })),
+      pushDeliveries: recentPushDeliveries.map((d) => ({
+        id: d.id,
+        notificationId: d.notificationId,
+        category: d.category,
+        title: d.title,
+        status: d.status,
+        skipReason: d.skipReason,
+        errorStatusCode: d.errorStatusCode,
+        acceptedAt: d.acceptedAt?.toISOString() ?? null,
+        receivedAt: d.receivedAt?.toISOString() ?? null,
+        clickedAt: d.clickedAt?.toISOString() ?? null,
+        createdAt: d.createdAt.toISOString(),
+      })),
+    };
+  });
+
+  app.post("/deliver-due", async (request) => {
+    const userId = getUserId(request);
+    return deliverDueReminders(userId);
   });
 
   app.post("/", async (request, reply) => {
