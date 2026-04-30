@@ -28,28 +28,24 @@ type ReminderRecord = {
 async function deliverReminder(reminder: ReminderRecord): Promise<boolean> {
   const msg = reminder.description || `Reminder: ${reminder.title}`;
 
-  const notification = await prisma.$transaction(async (tx) => {
-    const updated = await tx.reminder.updateMany({
-      where: {
-        id: reminder.id,
-        status: "PENDING",
-        remindAt: { lte: new Date() },
-      },
-      data: { status: "SENT" },
-    });
-    if (updated.count === 0) return null;
-
-    return tx.notification.create({
-      data: {
-        userId: reminder.userId,
-        type: "reminder",
-        title: reminder.title,
-        message: msg,
-      },
-    });
+  const updated = await prisma.reminder.updateMany({
+    where: {
+      id: reminder.id,
+      status: "PENDING",
+      remindAt: { lte: new Date() },
+    },
+    data: { status: "SENT" },
   });
+  if (updated.count === 0) return false;
 
-  if (!notification) return false;
+  const notification = await prisma.notification.create({
+    data: {
+      userId: reminder.userId,
+      type: "reminder",
+      title: reminder.title,
+      message: msg,
+    },
+  });
 
   // Push real-time notification via WebSocket
   pushNotification(reminder.userId, {
@@ -65,6 +61,7 @@ async function deliverReminder(reminder: ReminderRecord): Promise<boolean> {
     title: reminder.title,
     body: msg,
     url: "/chat",
+    notificationId: notification.id,
   }).catch((err) => {
     console.error(`[REMINDER] Push delivery failed for ${reminder.id}:`, err);
   });

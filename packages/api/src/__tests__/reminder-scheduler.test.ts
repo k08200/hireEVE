@@ -21,6 +21,13 @@ type NotificationRow = {
   createdAt: Date;
 };
 
+type PushPayload = {
+  title: string;
+  body: string;
+  url?: string;
+  notificationId?: string;
+};
+
 const state = vi.hoisted(() => ({
   reminders: new Map<string, ReminderRow>(),
   notifications: [] as NotificationRow[],
@@ -68,7 +75,6 @@ vi.mock("../db.js", () => {
         return notification;
       }),
     },
-    $transaction: vi.fn(async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
   };
   return { prisma };
 });
@@ -105,6 +111,9 @@ describe("reminder scheduler delivery", () => {
     expect(state.notifications).toHaveLength(1);
     expect(pushNotification).toHaveBeenCalledTimes(1);
     expect(sendPushNotification).toHaveBeenCalledTimes(1);
+    expect((vi.mocked(sendPushNotification).mock.calls[0]?.[1] as PushPayload).notificationId).toBe(
+      "notification-1",
+    );
   });
 
   it("schedules a short direct delivery check", async () => {
