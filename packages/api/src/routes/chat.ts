@@ -13,6 +13,7 @@ import { extractSnippet } from "../extract-snippet.js";
 import { recipientFromToolArgs, recordFeedback } from "../feedback.js";
 import { loadMemoriesForPrompt } from "../memory.js";
 import { createCompletion, EVE_SYSTEM_PROMPT, MODEL, resolveUserChatModel } from "../openai.js";
+import { createReminder } from "../reminders.js";
 import { Semaphore } from "../semaphore.js";
 import { captureError } from "../sentry.js";
 import { getEffectivePlan } from "../stripe.js";
@@ -157,6 +158,42 @@ function extractCommitmentsFromUserMessage(
       extra: { userId, conversationId, messageId },
     });
   });
+}
+
+type DirectReminderRequest = {
+  title: string;
+  remindAt: Date;
+};
+
+function parseDirectReminderRequest(
+  content: string,
+  now = new Date(),
+): DirectReminderRequest | null {
+  const normalized = content.trim();
+  if (!/(알림|알려줘|리마인더|리마인드|remind)/i.test(normalized)) return null;
+
+  const relative = normalized.match(
+    /([0-9]{1,3})(?:[ \t]{0,8})(분|시간|일)(?:[ \t]{0,8})(뒤에|후에|뒤|후|있다가)/,
+  );
+  if (!relative) return null;
+
+  const amount = Number.parseInt(relative[1] ?? "", 10);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  const unit = relative[2];
+  const multiplier = unit === "분" ? 60_000 : unit === "시간" ? 60 * 60_000 : 24 * 60 * 60_000;
+  const remindAt = new Date(now.getTime() + amount * multiplier);
+
+  const title =
+    normalized
+      .replace(relative[0], "")
+      .replace(/(뒤에|후에|뒤|후|있다가)/g, "")
+      .replace(/(알림|알려줘|보내줘|설정해줘|리마인더|리마인드|해줘|줘|remind me|remind)/gi, "")
+      .replace(/^[에\s]+/, "")
+      .replace(/\s+/g, " ")
+      .trim() || "테스트 알림";
+
+  return { title, remindAt };
 }
 
 export function chatRoutes(app: FastifyInstance) {
@@ -728,6 +765,43 @@ export function chatRoutes(app: FastifyInstance) {
         data: { conversationId: id, role: "USER", content: trimmedContent },
       });
       extractCommitmentsFromUserMessage(userId, id, savedUserMessage.id, trimmedContent);
+
+      const directReminder = parseDirectReminderRequest(trimmedContent);
+      if (directReminder) {
+        const result = await createReminder(
+          conversation.userId,
+          directReminder.title,
+          directReminder.remindAt.toISOString(),
+        );
+        const fullResponse = `${directReminder.remindAt.toLocaleString("ko-KR", {
+          timeZone: "Asia/Seoul",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}에 "${result.reminder.title}" 알림을 보낼게요.`;
+
+        await prisma.message.create({
+          data: {
+            conversationId: id,
+            role: "ASSISTANT",
+            content: fullResponse,
+          },
+        });
+        await prisma.conversation.update({
+          where: { id },
+          data: { updatedAt: new Date() },
+        });
+
+        reply.raw.writeHead(200, {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+          "Access-Control-Allow-Origin": "*",
+        });
+        reply.raw.write(`data: ${JSON.stringify({ type: "token", content: fullResponse })}\n\n`);
+        reply.raw.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+        reply.raw.end();
+        return;
+      }
 
       // Auto-generate title from first message (LLM-powered, async)
       if (!conversation.title && conversation.messages.length === 0) {

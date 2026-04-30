@@ -56,10 +56,19 @@ type Msg = {
   createdAt: Date;
   conversation?: { userId: string };
 };
+type Reminder = {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  remindAt: Date;
+};
 const convStore = new Map<string, Conv>();
 const msgStore = new Map<string, Msg>();
+const reminderStore = new Map<string, Reminder>();
 let nextConvId = 1;
 let nextMsgId = 1;
+let nextReminderId = 1;
 
 vi.mock("../db.js", () => {
   const prisma = {
@@ -109,6 +118,7 @@ vi.mock("../db.js", () => {
           return msg;
         },
       ),
+      count: vi.fn(async () => 0),
       findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
         const msg = msgStore.get(where.id);
         if (!msg) return null;
@@ -120,6 +130,27 @@ vi.mock("../db.js", () => {
     },
     userToken: { findFirst: vi.fn(async () => null) },
     user: { findUnique: vi.fn(async () => ({ id: "user-1", plan: "FREE", role: "USER" })) },
+    reminder: {
+      create: vi.fn(
+        async ({
+          data,
+        }: {
+          data: { userId: string; title: string; description?: string | null; remindAt: Date };
+        }) => {
+          const id = `reminder-${nextReminderId++}`;
+          const reminder: Reminder = {
+            id,
+            userId: data.userId,
+            title: data.title,
+            description: data.description ?? null,
+            remindAt: data.remindAt,
+          };
+          reminderStore.set(id, reminder);
+          return reminder;
+        },
+      ),
+      findMany: vi.fn(async () => []),
+    },
     device: {
       findUnique: vi.fn(async () => ({ id: "d1" })),
       findMany: vi.fn(async () => []),
@@ -140,7 +171,11 @@ vi.mock("../db.js", () => {
       deleteMany: vi.fn(async () => ({})),
     },
     conversationSummary: { deleteMany: vi.fn(async () => ({})) },
-    tokenUsage: { updateMany: vi.fn(async () => ({})) },
+    tokenUsage: {
+      aggregate: vi.fn(async () => ({ _sum: { totalTokens: 0 } })),
+      create: vi.fn(async () => ({})),
+      updateMany: vi.fn(async () => ({})),
+    },
   };
   return { prisma, db };
 });
@@ -168,8 +203,10 @@ async function buildApp() {
 function resetStores() {
   convStore.clear();
   msgStore.clear();
+  reminderStore.clear();
   nextConvId = 1;
   nextMsgId = 1;
+  nextReminderId = 1;
 }
 
 describe("chat routes (conversation CRUD)", () => {
@@ -459,6 +496,31 @@ describe("chat routes (conversation CRUD)", () => {
       payload: { content: { bad: true } },
     });
     expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("creates clear relative reminder requests without waiting for LLM tool calling", async () => {
+    const app = await buildApp();
+    const c = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations",
+      headers: auth(),
+    });
+
+    const before = Date.now();
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/chat/conversations/${c.json().id}/messages`,
+      headers: auth(),
+      payload: { content: "1분 뒤에 테스트 알림 보내줘" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(reminderStore.size).toBe(1);
+    const reminder = [...reminderStore.values()][0];
+    expect(reminder.title).toBe("테스트");
+    expect(reminder.remindAt.getTime()).toBeGreaterThanOrEqual(before + 55_000);
+    expect(res.body).toContain("알림을 보낼게요");
     await app.close();
   });
 });
