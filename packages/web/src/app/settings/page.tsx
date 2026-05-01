@@ -1408,6 +1408,18 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold text-gray-300 mb-3">Data</h2>
           <div className="space-y-3">
             <Link
+              href="/settings/status"
+              className="flex items-center justify-between rounded-xl border border-gray-800/60 bg-gray-900/80 p-4 transition hover:border-gray-700 hover:bg-gray-900"
+            >
+              <div className="min-w-0">
+                <h3 className="font-medium">EVE status</h3>
+                <p className="text-sm text-gray-400">
+                  Check deployment, push, reminders, briefing, and integrations
+                </p>
+              </div>
+              <span className="ml-4 shrink-0 text-sm font-medium text-gray-400">Open →</span>
+            </Link>
+            <Link
               href="/settings/email-feedback"
               className="flex items-center justify-between rounded-xl border border-gray-800/60 bg-gray-900/80 p-4 transition hover:border-gray-700 hover:bg-gray-900"
             >
