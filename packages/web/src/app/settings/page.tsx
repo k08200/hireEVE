@@ -1067,9 +1067,9 @@ export default function SettingsPage() {
                   )}
                   {agentMode === "AUTO" && (
                     <p className="text-[10px] text-cyan-400/70 mt-2">
-                      Safe actions like creating reminders, updating tasks, classifying emails, and
-                      replying to emails are auto-executed. Dangerous actions like deleting emails
-                      are never auto-executed.
+                      Safe internal actions like reminders, task updates, and email classification
+                      can run automatically. Email replies, calendar changes, and destructive
+                      actions require approval unless explicitly pre-approved where allowed.
                     </p>
                   )}
                 </div>
@@ -1103,8 +1103,8 @@ export default function SettingsPage() {
                       })}
                     </div>
                     <p className="text-[10px] text-gray-500 mt-2">
-                      Enabled tools run without asking. Destructive actions (delete, archive) always
-                      require approval and cannot be pre-approved.
+                      Enabled tools run without asking. Email replies and destructive actions always
+                      require approval and cannot be pre-approved here.
                     </p>
                   </div>
                 )}

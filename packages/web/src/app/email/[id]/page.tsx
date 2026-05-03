@@ -25,6 +25,7 @@ interface EmailDetail {
   keyPoints: string[];
   actionItems: string[];
   sentiment: string | null;
+  needsReply?: boolean;
 }
 
 interface LabelFeedback {
@@ -37,6 +38,16 @@ interface LabelFeedback {
   note: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+type ReplyNeededChoice = "needed" | "not_needed" | "later" | "done";
+
+interface ReplyNeededFeedback {
+  id: string;
+  choice: ReplyNeededChoice;
+  signal: string;
+  evidence: string | null;
+  createdAt: string;
 }
 
 export default function EmailDetailPage() {
@@ -168,6 +179,7 @@ function EveAnalysis({ email }: { email: EmailDetail }) {
         </span>
         <div className="flex items-center gap-1.5">
           <PriorityPill priority={email.priority} />
+          {email.needsReply && <ReplyNeededPill />}
           {email.category && <CategoryPill category={email.category} />}
         </div>
         <LabelFeedbackControl emailId={email.id} currentPriority={email.priority} />
@@ -206,7 +218,17 @@ function EveAnalysis({ email }: { email: EmailDetail }) {
           </ul>
         </div>
       )}
+
+      {email.needsReply && <ReplyNeededFeedbackControl emailId={email.id} />}
     </section>
+  );
+}
+
+function ReplyNeededPill() {
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded border border-amber-400/30 bg-amber-400/10 text-amber-300 font-medium">
+      답장 필요
+    </span>
   );
 }
 
@@ -311,6 +333,89 @@ function LabelFeedbackControl({
         취소
       </button>
       {error && <span className="text-[11px] text-red-300">{error}</span>}
+    </div>
+  );
+}
+
+function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
+  const [feedback, setFeedback] = useState<ReplyNeededFeedback | null>(null);
+  const [submitting, setSubmitting] = useState<ReplyNeededChoice | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch<{ feedback: ReplyNeededFeedback | null }>(
+      `/api/email/${emailId}/reply-needed/feedback`,
+    )
+      .then((data) => {
+        if (!cancelled) setFeedback(data.feedback);
+      })
+      .catch((err) =>
+        captureClientError(err, { scope: "email.reply-needed-feedback.load", emailId }),
+      );
+    return () => {
+      cancelled = true;
+    };
+  }, [emailId]);
+
+  const submit = async (choice: ReplyNeededChoice) => {
+    if (submitting) return;
+    setSubmitting(choice);
+    setError(null);
+    try {
+      const data = await apiFetch<{
+        feedback: { emailId: string; choice: ReplyNeededChoice; signal: string };
+      }>(`/api/email/${emailId}/reply-needed/feedback`, {
+        method: "POST",
+        body: JSON.stringify({ choice }),
+      });
+      setFeedback({
+        id: `${emailId}-${data.feedback.choice}`,
+        choice: data.feedback.choice,
+        signal: data.feedback.signal,
+        evidence: null,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      captureClientError(err, { scope: "email.reply-needed-feedback.submit", emailId, choice });
+      setError("저장하지 못했어요.");
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const options: Array<{ choice: ReplyNeededChoice; label: string }> = [
+    { choice: "needed", label: "맞음" },
+    { choice: "not_needed", label: "아님" },
+    { choice: "later", label: "나중에" },
+    { choice: "done", label: "처리함" },
+  ];
+
+  return (
+    <div className="mt-4 border-t border-cyan-500/10 pt-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-gray-500">답장 필요 판단:</span>
+        {options.map((option) => {
+          const selected = feedback?.choice === option.choice;
+          return (
+            <button
+              key={option.choice}
+              type="button"
+              onClick={() => submit(option.choice)}
+              aria-pressed={selected}
+              disabled={!!submitting}
+              className={`h-7 rounded-lg border px-2 text-[11px] transition disabled:opacity-50 ${
+                selected
+                  ? "border-amber-300 bg-amber-400/10 text-amber-200"
+                  : "border-gray-700 text-gray-400 hover:bg-gray-800"
+              }`}
+            >
+              {submitting === option.choice ? "..." : option.label}
+            </button>
+          );
+        })}
+        {error && <span className="text-[11px] text-red-300">{error}</span>}
+      </div>
     </div>
   );
 }

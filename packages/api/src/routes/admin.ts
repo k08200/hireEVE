@@ -4,6 +4,24 @@ import { requireAdmin } from "../auth.js";
 import { db, prisma } from "../db.js";
 import { getPerfSnapshot } from "../perf-monitor.js";
 
+type FeedbackGroup = { signal: string; _count: { signal: number } };
+
+function summarizeTrustFeedback(rows: FeedbackGroup[]) {
+  const counts = { useful: 0, wrong: 0, later: 0, done: 0 };
+  for (const row of rows) {
+    if (row.signal === "APPROVED") counts.useful += row._count.signal;
+    if (row.signal === "REJECTED") counts.wrong += row._count.signal;
+    if (row.signal === "SNOOZED") counts.later += row._count.signal;
+    if (row.signal === "DISMISSED") counts.done += row._count.signal;
+  }
+  const total = counts.useful + counts.wrong + counts.later + counts.done;
+  return {
+    total,
+    ...counts,
+    usefulRate: total > 0 ? counts.useful / total : null,
+  };
+}
+
 export async function adminRoutes(app: FastifyInstance) {
   // All admin routes require ADMIN role
   app.addHook("preHandler", requireAdmin);
@@ -170,6 +188,27 @@ export async function adminRoutes(app: FastifyInstance) {
     ]);
     const readRate = notifSent > 0 ? notifRead / notifSent : 0;
 
+    const [briefingFeedback, replyNeededFeedback] = await Promise.all([
+      prisma.feedbackEvent.groupBy({
+        by: ["signal"],
+        where: {
+          source: "ATTENTION_ITEM",
+          toolName: "briefing_top_action",
+          createdAt: { gte: last7d },
+        },
+        _count: { signal: true },
+      }),
+      prisma.feedbackEvent.groupBy({
+        by: ["signal"],
+        where: {
+          source: "ATTENTION_ITEM",
+          toolName: "reply_needed",
+          createdAt: { gte: last7d },
+        },
+        _count: { signal: true },
+      }),
+    ]);
+
     // Active users
     const [dau, wau, mau] = await Promise.all([
       prisma.message
@@ -231,6 +270,10 @@ export async function adminRoutes(app: FastifyInstance) {
         sent: notifSent,
         read: notifRead,
         readRate,
+      },
+      trust: {
+        briefingTop3: summarizeTrustFeedback(briefingFeedback),
+        replyNeeded: summarizeTrustFeedback(replyNeededFeedback),
       },
       activeUsers: { dau, wau, mau },
       tokens: {

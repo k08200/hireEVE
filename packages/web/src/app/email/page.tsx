@@ -6,7 +6,7 @@ import AuthGuard from "../../components/auth-guard";
 import { apiFetch } from "../../lib/api";
 import { captureClientError } from "../../lib/sentry";
 
-type Filter = "all" | "urgent" | "unread" | "automated";
+type Filter = "all" | "reply-needed" | "urgent" | "unread" | "automated";
 
 interface EmailRow {
   id: string;
@@ -19,6 +19,7 @@ interface EmailRow {
   priority: "URGENT" | "NORMAL" | "LOW";
   category: string | null;
   summary: string | null;
+  needsReply?: boolean;
 }
 
 interface ListResponse {
@@ -30,6 +31,7 @@ interface ListResponse {
 
 const FILTERS: { key: Filter; label: string; query: string }[] = [
   { key: "all", label: "전체", query: "" },
+  { key: "reply-needed", label: "답장 필요", query: "filter=reply-needed" },
   { key: "urgent", label: "긴급", query: "filter=urgent" },
   { key: "unread", label: "미처리", query: "filter=unread" },
   { key: "automated", label: "자동 분류", query: "category=automated" },
@@ -171,6 +173,7 @@ function EmailRowItem({ email }: { email: EmailRow }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <PriorityBadge priority={email.priority} />
+              {email.needsReply && <ReplyNeededBadge />}
               {email.category && <CategoryBadge category={email.category} />}
               {unread && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />}
             </div>
@@ -195,6 +198,14 @@ function EmailRowItem({ email }: { email: EmailRow }) {
         </div>
       </Link>
     </li>
+  );
+}
+
+function ReplyNeededBadge() {
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded border border-amber-400/30 bg-amber-400/10 text-amber-300 font-medium shrink-0">
+      답장 필요
+    </span>
   );
 }
 

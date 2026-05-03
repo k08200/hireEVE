@@ -5,15 +5,23 @@ import { runAgentForUser } from "../autonomous-agent.js";
 import { db, prisma } from "../db.js";
 
 // MEDIUM-risk tools that users may pre-approve for AUTO mode.
+// Email sending is intentionally excluded for dogfood safety: a bad auto-reply
+// costs more trust than the saved click is worth at this stage.
 // HIGH-risk tools (delete_*, archive_email) are intentionally excluded — they
 // always require per-action approval.
 const PRE_APPROVABLE_TOOLS = new Set([
-  "send_email",
   "create_event",
   "create_note",
   "update_contact",
   "create_contact",
 ]);
+
+function sanitizeAlwaysAllowedTools(value: unknown): string[] {
+  const list = Array.isArray(value)
+    ? value.filter((t): t is string => typeof t === "string" && PRE_APPROVABLE_TOOLS.has(t))
+    : [];
+  return Array.from(new Set(list));
+}
 
 export async function automationRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
@@ -42,7 +50,7 @@ export async function automationRoutes(app: FastifyInstance) {
       agentMode: normalizeAgentMode(configAny.agentMode),
       agentModes: listAgentModePolicies(),
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
-      alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
+      alwaysAllowedTools: sanitizeAlwaysAllowedTools(configAny.alwaysAllowedTools),
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
       notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
       notifyMeeting: configAny.notifyMeeting ?? true,
@@ -95,11 +103,7 @@ export async function automationRoutes(app: FastifyInstance) {
     // Validate alwaysAllowedTools — only MEDIUM-risk tools from the whitelist
     // are permitted. Drop unknown or HIGH-risk tool names silently.
     if ("alwaysAllowedTools" in data) {
-      const raw = data.alwaysAllowedTools;
-      const list = Array.isArray(raw)
-        ? raw.filter((t): t is string => typeof t === "string" && PRE_APPROVABLE_TOOLS.has(t))
-        : [];
-      data.alwaysAllowedTools = Array.from(new Set(list));
+      data.alwaysAllowedTools = sanitizeAlwaysAllowedTools(data.alwaysAllowedTools);
     }
 
     const config = await prisma.automationConfig.upsert({
@@ -121,7 +125,7 @@ export async function automationRoutes(app: FastifyInstance) {
       agentMode: normalizeAgentMode(configAny.agentMode),
       agentModes: listAgentModePolicies(),
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
-      alwaysAllowedTools: (configAny.alwaysAllowedTools as string[]) ?? [],
+      alwaysAllowedTools: sanitizeAlwaysAllowedTools(configAny.alwaysAllowedTools),
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
       notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
       notifyMeeting: configAny.notifyMeeting ?? true,

@@ -20,6 +20,12 @@ export default function CommandPalette() {
 
   const commands: Command[] = [
     {
+      id: "approval-queue",
+      label: "Go to Approval Queue",
+      sublabel: "Review pending actions",
+      action: () => router.push("/inbox"),
+    },
+    {
       id: "chat",
       label: "Go to Chat",
       sublabel: "Open chat",

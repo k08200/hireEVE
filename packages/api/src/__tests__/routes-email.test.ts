@@ -40,6 +40,14 @@ vi.mock("../db.js", () => {
       count: vi.fn(async () => 0),
       groupBy: vi.fn(async () => []),
     },
+    feedbackEvent: {
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        id: "reply-fb-1",
+        ...data,
+        createdAt: new Date("2026-05-03T00:00:00.000Z"),
+      })),
+      findFirst: vi.fn(async () => null),
+    },
     emailRule: {
       findMany: vi.fn(async () => []),
       create: vi.fn(async () => ({ id: "r1", name: "Rule", conditions: "{}" })),
@@ -99,6 +107,37 @@ describe("email routes (demo mode)", () => {
     for (const email of res.json().emails) {
       expect(email.isRead).toBe(false);
     }
+    await app.close();
+  });
+
+  it("filters synced emails by canonical needsReply", async () => {
+    const { prisma } = await import("../db.js");
+    vi.mocked(prisma.userToken.findFirst).mockResolvedValueOnce({
+      id: "token-1",
+      userId: "user-1",
+      provider: "google",
+      accessToken: "token",
+      refreshToken: null,
+      expiresAt: null,
+      gmailWatchHistoryId: null,
+      gmailWatchExpiresAt: null,
+      createdAt: new Date("2026-05-03T00:00:00.000Z"),
+      updatedAt: new Date("2026-05-03T00:00:00.000Z"),
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/email?filter=reply-needed",
+      headers: auth(),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(prisma.emailMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: "user-1", needsReply: true }),
+      }),
+    );
     await app.close();
   });
 
@@ -163,6 +202,89 @@ describe("email routes (demo mode)", () => {
       actualPriority: "LOW",
       capturedPriority: "LOW",
       status: "still_matches_captured_heuristic",
+    });
+    await app.close();
+  });
+
+  it("captures reply-needed feedback for synced emails", async () => {
+    const { prisma } = await import("../db.js");
+    vi.mocked(prisma.emailMessage.findFirst).mockResolvedValueOnce({
+      id: "email-1",
+      userId: "user-1",
+      gmailId: "gmail-1",
+      threadId: "thread-1",
+      from: "sarah@example.com",
+      to: "me@example.com",
+      cc: null,
+      subject: "Can you send the deck?",
+      snippet: "Can you send the deck?",
+      body: "Can you send the deck?",
+      htmlBody: null,
+      labels: ["INBOX"],
+      isRead: false,
+      isStarred: false,
+      priority: "NORMAL",
+      category: "conversation",
+      summary: "Sarah: deck 요청",
+      keyPoints: null,
+      actionItems: JSON.stringify(["덱 보내기"]),
+      sentiment: "neutral",
+      receivedAt: new Date("2026-05-03T00:00:00.000Z"),
+      syncedAt: new Date("2026-05-03T00:00:00.000Z"),
+      createdAt: new Date("2026-05-03T00:00:00.000Z"),
+      updatedAt: new Date("2026-05-03T00:00:00.000Z"),
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/email/email-1/reply-needed/feedback",
+      headers: auth(),
+      payload: { choice: "not_needed" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().feedback).toMatchObject({
+      emailId: "email-1",
+      choice: "not_needed",
+      signal: "REJECTED",
+      inferredNeedsReply: true,
+    });
+    expect(prisma.feedbackEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          source: "ATTENTION_ITEM",
+          sourceId: "email:email-1:reply_needed",
+          signal: "REJECTED",
+          toolName: "reply_needed",
+        }),
+      }),
+    );
+    await app.close();
+  });
+
+  it("returns latest reply-needed feedback", async () => {
+    const { prisma } = await import("../db.js");
+    vi.mocked(prisma.emailMessage.findFirst).mockResolvedValueOnce({ id: "email-1" });
+    vi.mocked(prisma.feedbackEvent.findFirst).mockResolvedValueOnce({
+      id: "reply-fb-1",
+      signal: "APPROVED",
+      evidence: null,
+      createdAt: new Date("2026-05-03T00:00:00.000Z"),
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/email/email-1/reply-needed/feedback",
+      headers: auth(),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().feedback).toMatchObject({
+      id: "reply-fb-1",
+      choice: "needed",
+      signal: "APPROVED",
     });
     await app.close();
   });

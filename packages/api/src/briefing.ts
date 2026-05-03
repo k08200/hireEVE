@@ -11,6 +11,7 @@ import { type BriefingSignals, buildBriefingSignals } from "./briefing-signals.j
 import { getBriefingStatus } from "./briefing-status.js";
 import { listEvents } from "./calendar.js";
 import { prisma } from "./db.js";
+import { recordFeedback } from "./feedback.js";
 import { listEmails } from "./gmail.js";
 import { listNotes } from "./notes.js";
 import { createCompletion, EVE_SYSTEM_PROMPT, MODEL, openai } from "./openai.js";
@@ -23,6 +24,28 @@ interface BriefingData {
   notes: unknown;
   signals: BriefingSignals;
 }
+
+type BriefingFeedbackChoice = "useful" | "wrong" | "later" | "done";
+
+const BRIEFING_TOP_ACTION_TOOL = "briefing_top_action";
+const BRIEFING_FEEDBACK_CHOICES = new Set<BriefingFeedbackChoice>([
+  "useful",
+  "wrong",
+  "later",
+  "done",
+]);
+const BRIEFING_SIGNAL_BY_CHOICE = {
+  useful: "APPROVED",
+  wrong: "REJECTED",
+  later: "SNOOZED",
+  done: "DISMISSED",
+} as const;
+const BRIEFING_CHOICE_BY_SIGNAL = {
+  APPROVED: "useful",
+  REJECTED: "wrong",
+  SNOOZED: "later",
+  DISMISSED: "done",
+} as const;
 
 async function gatherBriefingData(userId: string): Promise<BriefingData> {
   const results = await Promise.allSettled([
@@ -43,6 +66,27 @@ async function gatherBriefingData(userId: string): Promise<BriefingData> {
     ...data,
     signals: buildBriefingSignals(data),
   };
+}
+
+function briefingTopActionSourceId(noteId: string, rank: number): string {
+  return `briefing:${noteId}:top:${rank}`;
+}
+
+function parseRank(value: string | undefined): number | null {
+  if (!value) return null;
+  const rank = Number.parseInt(value, 10);
+  return Number.isInteger(rank) && rank >= 1 && rank <= 3 ? rank : null;
+}
+
+function findUserBriefingNote(userId: string, noteId: string) {
+  return prisma.note.findFirst({
+    where: {
+      id: noteId,
+      userId,
+      title: { startsWith: "Daily Briefing" },
+    },
+    select: { id: true, createdAt: true },
+  });
 }
 
 export default async function generateBriefing(userId: string): Promise<string> {
@@ -121,21 +165,58 @@ Recent Notes: ${JSON.stringify(data.notes)}`;
 }
 
 export function briefingRoutes(app: FastifyInstance) {
+  // GET /api/briefing/feedback/summary — dogfood trust metric for Top 3 quality
+  app.get("/feedback/summary", async (request) => {
+    const userId = getUserId(request);
+    const { days } = request.query as { days?: string };
+    const parsedDays = days ? Number.parseInt(days, 10) : 7;
+    const windowDays = Number.isFinite(parsedDays) ? Math.min(Math.max(parsedDays, 1), 90) : 7;
+    const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
+
+    const rows = await prisma.feedbackEvent.groupBy({
+      by: ["signal"],
+      where: {
+        userId,
+        source: "ATTENTION_ITEM",
+        toolName: BRIEFING_TOP_ACTION_TOOL,
+        createdAt: { gte: since },
+      },
+      _count: { signal: true },
+    });
+
+    const counts = { useful: 0, wrong: 0, later: 0, done: 0 };
+    for (const row of rows) {
+      const choice =
+        BRIEFING_CHOICE_BY_SIGNAL[row.signal as keyof typeof BRIEFING_CHOICE_BY_SIGNAL];
+      if (choice) counts[choice] = row._count.signal;
+    }
+    const total = counts.useful + counts.wrong + counts.later + counts.done;
+
+    return {
+      since: since.toISOString(),
+      days: windowDays,
+      total,
+      counts,
+      usefulRate: total > 0 ? counts.useful / total : null,
+    };
+  });
+
   // POST /api/briefing/generate — Generate daily briefing
   app.post("/generate", async (request) => {
     const userId = getUserId(request);
     const briefing = await generateBriefing(userId);
 
     // Save briefing as a note
-    await prisma.note.create({
+    const note = await prisma.note.create({
       data: {
         userId,
         title: `Daily Briefing — ${new Date().toLocaleDateString("ko-KR")}`,
         content: briefing,
       },
+      select: { id: true, createdAt: true },
     });
 
-    return { briefing };
+    return { briefing, note };
   });
 
   // GET /api/briefing/data — Get raw briefing data
@@ -162,6 +243,99 @@ export function briefingRoutes(app: FastifyInstance) {
     });
 
     return { briefing: note };
+  });
+
+  // GET /api/briefing/:id/top-actions/feedback — latest feedback per Top 3 rank
+  app.get("/:id/top-actions/feedback", async (request, reply) => {
+    const userId = getUserId(request);
+    const { id } = request.params as { id: string };
+    const note = await findUserBriefingNote(userId, id);
+    if (!note) return reply.code(404).send({ error: "Briefing not found" });
+
+    const sourceIds = [1, 2, 3].map((rank) => briefingTopActionSourceId(id, rank));
+    const rows = await prisma.feedbackEvent.findMany({
+      where: {
+        userId,
+        source: "ATTENTION_ITEM",
+        toolName: BRIEFING_TOP_ACTION_TOOL,
+        sourceId: { in: sourceIds },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        sourceId: true,
+        signal: true,
+        evidence: true,
+        createdAt: true,
+      },
+    });
+
+    const feedback: Record<number, unknown> = {};
+    for (const row of rows) {
+      const rank = parseRank(row.sourceId.split(":").at(-1));
+      if (!rank || feedback[rank]) continue;
+      const choice =
+        BRIEFING_CHOICE_BY_SIGNAL[row.signal as keyof typeof BRIEFING_CHOICE_BY_SIGNAL];
+      if (!choice) continue;
+      feedback[rank] = {
+        id: row.id,
+        rank,
+        choice,
+        signal: row.signal,
+        evidence: row.evidence,
+        createdAt: row.createdAt.toISOString(),
+      };
+    }
+
+    return { feedback };
+  });
+
+  // POST /api/briefing/:id/top-actions/:rank/feedback — capture Top 3 quality
+  app.post("/:id/top-actions/:rank/feedback", async (request, reply) => {
+    const userId = getUserId(request);
+    const { id, rank: rawRank } = request.params as { id: string; rank: string };
+    const rank = parseRank(rawRank);
+    if (!rank) return reply.code(400).send({ error: "rank must be 1, 2, or 3" });
+
+    const body = (request.body ?? {}) as {
+      choice?: string;
+      label?: string;
+      evidence?: string;
+    };
+    const choice = body.choice as BriefingFeedbackChoice | undefined;
+    if (!choice || !BRIEFING_FEEDBACK_CHOICES.has(choice)) {
+      return reply.code(400).send({ error: "choice must be one of useful, wrong, later, done" });
+    }
+
+    const note = await findUserBriefingNote(userId, id);
+    if (!note) return reply.code(404).send({ error: "Briefing not found" });
+
+    const signal = BRIEFING_SIGNAL_BY_CHOICE[choice];
+    const evidence = JSON.stringify({
+      choice,
+      noteId: id,
+      rank,
+      label: typeof body.label === "string" ? body.label.slice(0, 500) : null,
+      evidence: typeof body.evidence === "string" ? body.evidence.slice(0, 500) : null,
+    });
+
+    await recordFeedback({
+      userId,
+      source: "ATTENTION_ITEM",
+      sourceId: briefingTopActionSourceId(id, rank),
+      signal,
+      toolName: BRIEFING_TOP_ACTION_TOOL,
+      evidence,
+    });
+
+    return {
+      feedback: {
+        noteId: id,
+        rank,
+        choice,
+        signal,
+      },
+    };
   });
 
   // GET /api/briefing/status — Today's briefing, notification, and push state
