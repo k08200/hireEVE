@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { dogfoodEmailClassificationFixtures } from "../__fixtures__/email-classification/dogfood.js";
 import { evaluateEmailPriorityFixtures } from "../email-classification-eval.js";
-import { classifyPriority, classifyPriorityDetailed } from "../email-sync.js";
+import {
+  classifyNeedsReplyFromSignals,
+  classifyPriority,
+  classifyPriorityDetailed,
+} from "../email-sync.js";
 
 describe("classifyPriority — heuristic gate before LLM", () => {
   describe("Gmail category labels (highest precedence)", () => {
@@ -121,5 +125,42 @@ describe("classifyPriority — heuristic gate before LLM", () => {
         );
       }
     });
+  });
+});
+
+describe("classifyNeedsReplyFromSignals — canonical reply-needed gate", () => {
+  it("marks action-item emails as reply needed", () => {
+    expect(
+      classifyNeedsReplyFromSignals({
+        from: "Sarah <sarah@example.com>",
+        subject: "Can you send the deck?",
+        category: "conversation",
+        actionItems: ["덱 보내기"],
+        priority: "NORMAL",
+      }),
+    ).toMatchObject({ needsReply: true, reason: "action_items_present" });
+  });
+
+  it("blocks no-reply/newsletter even with action-looking text", () => {
+    expect(
+      classifyNeedsReplyFromSignals({
+        from: "noreply@service.com",
+        subject: "Action required",
+        category: "system",
+        actionItems: ["확인"],
+        priority: "URGENT",
+      }),
+    ).toMatchObject({ needsReply: false, reason: "automated_or_low_value_sender" });
+  });
+
+  it("uses subject reply language as a lower-confidence signal", () => {
+    expect(
+      classifyNeedsReplyFromSignals({
+        from: "partner@example.com",
+        subject: "검토 가능하신가요?",
+        category: "meeting",
+        priority: "NORMAL",
+      }),
+    ).toMatchObject({ needsReply: true, reason: "reply_language_in_subject" });
   });
 });

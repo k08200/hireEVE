@@ -18,6 +18,7 @@
 
 import { prisma } from "./db.js";
 import { senderName } from "./notification-format.js";
+import type { NotifCategory } from "./notification-prefs.js";
 import { sendPushNotification } from "./push.js";
 import { pushNotification } from "./websocket.js";
 
@@ -35,9 +36,8 @@ async function checkUnansweredEmails(userId: string): Promise<void> {
     where: {
       userId,
       isRead: true,
-      priority: { in: ["URGENT", "NORMAL"] },
+      needsReply: true,
       receivedAt: { lte: threshold, gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      category: { notIn: ["automated", "newsletter"] },
     },
     select: { id: true, from: true, subject: true, receivedAt: true },
     take: 5,
@@ -437,7 +437,26 @@ async function notify(
     createdAt: notification.createdAt.toISOString(),
   });
 
-  sendPushNotification(userId, { title, body: message.slice(0, 200), url });
+  sendPushNotification(userId, { title, body: message.slice(0, 200), url }, categoryForType(type));
+}
+
+function categoryForType(type: string): NotifCategory {
+  switch (type) {
+    case "calendar":
+    case "schedule_warning":
+      return "meeting";
+    case "task":
+    case "deadline":
+      return "task_due";
+    case "email_followup":
+    case "followup":
+      return "agent_proposal";
+    case "review":
+    case "eod_review":
+      return "daily_briefing";
+    default:
+      return "system";
+  }
 }
 
 /**

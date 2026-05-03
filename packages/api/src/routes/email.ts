@@ -27,6 +27,7 @@ import {
   summarizeUnsummarizedEmails,
   syncEmails,
 } from "../email-sync.js";
+import { recordFeedback as recordLedgerFeedback } from "../feedback.js";
 import { archiveEmail, sendEmail, toggleReadGmail, toggleStarGmail, trashEmail } from "../gmail.js";
 import { senderName } from "../notification-format.js";
 import { sendPushNotification } from "../push.js";
@@ -170,6 +171,23 @@ const SKIP_PATTERNS = [
   /newsletter@/i,
 ];
 
+type ReplyNeededChoice = "needed" | "not_needed" | "later" | "done";
+
+const REPLY_NEEDED_TOOL = "reply_needed";
+const REPLY_NEEDED_CHOICES = new Set<ReplyNeededChoice>(["needed", "not_needed", "later", "done"]);
+const REPLY_SIGNAL_BY_CHOICE = {
+  needed: "APPROVED",
+  not_needed: "REJECTED",
+  later: "SNOOZED",
+  done: "DISMISSED",
+} as const;
+const REPLY_CHOICE_BY_SIGNAL = {
+  APPROVED: "needed",
+  REJECTED: "not_needed",
+  SNOOZED: "later",
+  DISMISSED: "done",
+} as const;
+
 /** Auto-add senders as contacts */
 async function autoAddContacts(userId: string, emails: { from: string }[]): Promise<void> {
   const seen = new Set<string>();
@@ -205,6 +223,53 @@ function serializeFeedback(row: FeedbackRecord) {
   };
 }
 
+function parseJsonArray(value: string | null | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function looksReplyNeeded(input: {
+  needsReply?: boolean | null;
+  priority?: string | null;
+  category?: string | null;
+  actionItems?: string[] | null;
+  from?: string | null;
+}): boolean {
+  if (typeof input.needsReply === "boolean") return input.needsReply;
+  if (input.from && SKIP_PATTERNS.some((pattern) => pattern.test(input.from ?? ""))) return false;
+  const actionItems = input.actionItems ?? [];
+  if (actionItems.length === 0) return false;
+  if (input.category && ["automated", "newsletter", "system"].includes(input.category)) {
+    return false;
+  }
+  return input.priority === "URGENT" || actionItems.length > 0;
+}
+
+function replyNeededSourceId(emailId: string): string {
+  return `email:${emailId}:reply_needed`;
+}
+
+function serializeReplyFeedback(row: {
+  id: string;
+  signal: string;
+  evidence: string | null;
+  createdAt: Date;
+}) {
+  const choice = REPLY_CHOICE_BY_SIGNAL[row.signal as keyof typeof REPLY_CHOICE_BY_SIGNAL];
+  return {
+    id: row.id,
+    choice,
+    signal: row.signal,
+    evidence: row.evidence,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
 export async function emailRoutes(app: FastifyInstance) {
   // ─── Sync & List Emails ───────────────────────────────────────────────
   // GET /api/email?filter=unread|urgent&search=keyword&category=billing&page=1
@@ -227,6 +292,16 @@ export async function emailRoutes(app: FastifyInstance) {
       let emails = [...DEMO_EMAILS];
       if (filter === "unread") emails = emails.filter((e) => !e.isRead);
       if (filter === "urgent") emails = emails.filter((e) => e.priority === "URGENT");
+      if (filter === "reply-needed") {
+        emails = emails.filter((e) =>
+          looksReplyNeeded({
+            priority: e.priority,
+            category: e.category,
+            actionItems: e.actionItems,
+            from: e.from,
+          }),
+        );
+      }
       if (search) {
         const s = search.toLowerCase();
         emails = emails.filter(
@@ -238,7 +313,15 @@ export async function emailRoutes(app: FastifyInstance) {
       }
       if (category) emails = emails.filter((e) => e.category === category);
       return {
-        emails,
+        emails: emails.map((e) => ({
+          ...e,
+          needsReply: looksReplyNeeded({
+            priority: e.priority,
+            category: e.category,
+            actionItems: e.actionItems,
+            from: e.from,
+          }),
+        })),
         source: "demo",
         total: emails.length,
         unread: emails.filter((e) => !e.isRead).length,
@@ -251,6 +334,9 @@ export async function emailRoutes(app: FastifyInstance) {
     const where: Record<string, any> = { userId: uid };
     if (filter === "unread") where.isRead = false;
     if (filter === "urgent") where.priority = "URGENT";
+    if (filter === "reply-needed") {
+      where.needsReply = true;
+    }
     if (category) where.category = category;
     if (search) {
       where.OR = [
@@ -272,25 +358,35 @@ export async function emailRoutes(app: FastifyInstance) {
     ]);
 
     // Map to API format
-    const mapped = emails.map((e) => ({
-      id: e.id,
-      gmailId: e.gmailId,
-      threadId: e.threadId,
-      from: e.from,
-      to: e.to,
-      subject: e.subject,
-      snippet: e.snippet,
-      date: e.receivedAt.toISOString(),
-      labels: e.labels,
-      isRead: e.isRead,
-      isStarred: e.isStarred,
-      priority: e.priority,
-      category: e.category,
-      summary: e.summary,
-      keyPoints: e.keyPoints ? JSON.parse(e.keyPoints) : [],
-      actionItems: e.actionItems ? JSON.parse(e.actionItems) : [],
-      sentiment: e.sentiment,
-    }));
+    const mapped = emails.map((e) => {
+      const actionItems = parseJsonArray(e.actionItems);
+      return {
+        id: e.id,
+        gmailId: e.gmailId,
+        threadId: e.threadId,
+        from: e.from,
+        to: e.to,
+        subject: e.subject,
+        snippet: e.snippet,
+        date: e.receivedAt.toISOString(),
+        labels: e.labels,
+        isRead: e.isRead,
+        isStarred: e.isStarred,
+        priority: e.priority,
+        category: e.category,
+        summary: e.summary,
+        keyPoints: parseJsonArray(e.keyPoints),
+        actionItems,
+        sentiment: e.sentiment,
+        needsReply: looksReplyNeeded({
+          needsReply: e.needsReply,
+          priority: e.priority,
+          category: e.category,
+          actionItems,
+          from: e.from,
+        }),
+      };
+    });
 
     return { emails: mapped, source: "gmail", total, unread: unreadCount, page: pageNum };
   });
@@ -397,6 +493,7 @@ export async function emailRoutes(app: FastifyInstance) {
         toggleReadGmail(uid, dbEmail.gmailId, true).catch(() => {});
         await prisma.emailMessage.update({ where: { id: dbEmail.id }, data: { isRead: true } });
       }
+      const actionItems = parseJsonArray(dbEmail.actionItems);
       return {
         id: dbEmail.id,
         gmailId: dbEmail.gmailId,
@@ -414,16 +511,36 @@ export async function emailRoutes(app: FastifyInstance) {
         priority: dbEmail.priority,
         category: dbEmail.category,
         summary: dbEmail.summary,
-        keyPoints: dbEmail.keyPoints ? JSON.parse(dbEmail.keyPoints) : [],
-        actionItems: dbEmail.actionItems ? JSON.parse(dbEmail.actionItems) : [],
+        keyPoints: parseJsonArray(dbEmail.keyPoints),
+        actionItems,
         sentiment: dbEmail.sentiment,
+        needsReplyReason: dbEmail.needsReplyReason,
+        needsReplyConfidence: dbEmail.needsReplyConfidence,
+        needsReply: looksReplyNeeded({
+          needsReply: dbEmail.needsReply,
+          priority: dbEmail.priority,
+          category: dbEmail.category,
+          actionItems,
+          from: dbEmail.from,
+        }),
       };
     }
 
     // Demo fallback
     if (id.startsWith("demo-")) {
       const email = DEMO_EMAILS.find((e) => e.id === id);
-      if (email) return { ...email, body: email.body };
+      if (email) {
+        return {
+          ...email,
+          body: email.body,
+          needsReply: looksReplyNeeded({
+            priority: email.priority,
+            category: email.category,
+            actionItems: email.actionItems,
+            from: email.from,
+          }),
+        };
+      }
     }
 
     return { error: "Email not found" };
@@ -654,6 +771,105 @@ export async function emailRoutes(app: FastifyInstance) {
     const userId = getUserId(request);
     const row = await getFeedback(userId, id);
     return { feedback: row ? serializeFeedback(row) : null };
+  });
+
+  // POST /api/email/:id/reply-needed/feedback — capture whether EVE's
+  // "reply needed" judgment was right. This measures precision before we
+  // make reply automation any bolder.
+  app.post("/:id/reply-needed/feedback", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = getUserId(request);
+    const body = (request.body ?? {}) as { choice?: string; note?: string };
+    const choice = body.choice as ReplyNeededChoice | undefined;
+
+    if (!choice || !REPLY_NEEDED_CHOICES.has(choice)) {
+      return reply
+        .code(400)
+        .send({ error: "choice must be one of needed, not_needed, later, done" });
+    }
+
+    const email = await prisma.emailMessage.findFirst({
+      where: { userId, OR: [{ id }, { gmailId: id }] },
+      select: {
+        id: true,
+        from: true,
+        subject: true,
+        priority: true,
+        category: true,
+        actionItems: true,
+        needsReply: true,
+        needsReplyReason: true,
+        needsReplyConfidence: true,
+        threadId: true,
+      },
+    });
+    if (!email) return reply.code(404).send({ error: "Email not found" });
+
+    const actionItems = parseJsonArray(email.actionItems);
+    const inferredNeedsReply = looksReplyNeeded({
+      needsReply: email.needsReply,
+      priority: email.priority,
+      category: email.category,
+      actionItems,
+      from: email.from,
+    });
+    const evidence = JSON.stringify({
+      choice,
+      emailId: email.id,
+      subject: email.subject.slice(0, 250),
+      from: email.from.slice(0, 250),
+      priority: email.priority,
+      category: email.category,
+      actionItems,
+      inferredNeedsReply,
+      needsReplyReason: email.needsReplyReason,
+      needsReplyConfidence: email.needsReplyConfidence,
+      note: typeof body.note === "string" ? body.note.slice(0, 500) : null,
+    });
+
+    await recordLedgerFeedback({
+      userId,
+      source: "ATTENTION_ITEM",
+      sourceId: replyNeededSourceId(email.id),
+      signal: REPLY_SIGNAL_BY_CHOICE[choice],
+      toolName: REPLY_NEEDED_TOOL,
+      recipient: email.from,
+      threadId: email.threadId,
+      evidence,
+    });
+
+    return {
+      feedback: {
+        emailId: email.id,
+        choice,
+        signal: REPLY_SIGNAL_BY_CHOICE[choice],
+        inferredNeedsReply,
+      },
+    };
+  });
+
+  // GET /api/email/:id/reply-needed/feedback — latest reply-needed feedback.
+  app.get("/:id/reply-needed/feedback", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = getUserId(request);
+    const email = await prisma.emailMessage.findFirst({
+      where: { userId, OR: [{ id }, { gmailId: id }] },
+      select: { id: true },
+    });
+    if (!email) return reply.code(404).send({ error: "Email not found" });
+
+    const row = await prisma.feedbackEvent.findFirst({
+      where: {
+        userId,
+        source: "ATTENTION_ITEM",
+        sourceId: replyNeededSourceId(email.id),
+        toolName: REPLY_NEEDED_TOOL,
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, signal: true, evidence: true, createdAt: true },
+    });
+
+    return { feedback: row ? serializeReplyFeedback(row) : null };
   });
 
   // ─── Email Stats ──────────────────────────────────────────────────────

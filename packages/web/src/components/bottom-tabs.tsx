@@ -14,7 +14,7 @@ const TABS: Tab[] = [
   { href: "/calendar", label: "Calendar", icon: "calendar" },
   { href: "/email", label: "Email", icon: "email" },
   { href: "/briefing", label: "Briefing", icon: "briefing" },
-  { href: "/inbox", label: "Inbox", icon: "inbox" },
+  { href: "/inbox", label: "Approve", icon: "inbox" },
 ];
 
 export default function BottomTabs() {

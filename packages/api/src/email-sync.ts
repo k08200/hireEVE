@@ -173,6 +173,12 @@ export async function syncEmails(
     } else {
       // Classify priority using keyword heuristics first (fast)
       const priority = classifyPriority(email.from, email.subject, email.labels);
+      const replyNeeded = classifyNeedsReplyFromSignals({
+        from: email.from,
+        subject: email.subject,
+        labels: email.labels,
+        priority,
+      });
 
       const createdEmail = await prisma.emailMessage.create({
         data: {
@@ -190,6 +196,9 @@ export async function syncEmails(
           isRead: email.isRead,
           isStarred: email.isStarred,
           priority,
+          needsReply: replyNeeded.needsReply,
+          needsReplyReason: replyNeeded.reason,
+          needsReplyConfidence: replyNeeded.confidence,
           receivedAt: email.receivedAt,
         },
       });
@@ -311,6 +320,12 @@ export interface PriorityClassification {
   priority: "URGENT" | "NORMAL" | "LOW";
   reason: string;
   signals: string[];
+}
+
+export interface NeedsReplyClassification {
+  needsReply: boolean;
+  reason: string;
+  confidence: number;
 }
 
 function senderLooksLikeInvestor(from: string): boolean {
@@ -463,6 +478,65 @@ export function classifyPriority(
   return classifyPriorityDetailed(from, subject, labels).priority;
 }
 
+export function classifyNeedsReplyFromSignals(input: {
+  from: string;
+  subject: string;
+  labels?: string[];
+  category?: string | null;
+  actionItems?: string[];
+  priority?: "URGENT" | "NORMAL" | "LOW";
+}): NeedsReplyClassification {
+  const from = input.from.toLowerCase();
+  const subject = input.subject.toLowerCase();
+  const labels = input.labels ?? [];
+  const actionItems = input.actionItems ?? [];
+  const category = input.category ?? null;
+
+  if (
+    labels.includes("CATEGORY_PROMOTIONS") ||
+    labels.includes("CATEGORY_SOCIAL") ||
+    labels.includes("SPAM") ||
+    labels.includes("TRASH") ||
+    category === "automated" ||
+    category === "newsletter" ||
+    category === "system" ||
+    from.includes("noreply") ||
+    from.includes("no-reply") ||
+    from.includes("donotreply") ||
+    from.includes("newsletter") ||
+    from.includes("notification") ||
+    from.includes("mailer-daemon")
+  ) {
+    return { needsReply: false, reason: "automated_or_low_value_sender", confidence: 0.9 };
+  }
+
+  if (actionItems.length > 0) {
+    return { needsReply: true, reason: "action_items_present", confidence: 0.85 };
+  }
+
+  if (
+    subject.includes("reply") ||
+    subject.includes("response") ||
+    subject.includes("답장") ||
+    subject.includes("회신") ||
+    subject.includes("확인 부탁") ||
+    subject.includes("가능") ||
+    subject.includes("문의")
+  ) {
+    return { needsReply: true, reason: "reply_language_in_subject", confidence: 0.7 };
+  }
+
+  if (
+    input.priority === "URGENT" &&
+    category &&
+    ["business", "meeting", "conversation"].includes(category)
+  ) {
+    return { needsReply: true, reason: "urgent_human_context", confidence: 0.65 };
+  }
+
+  return { needsReply: false, reason: "no_reply_signal", confidence: 0.55 };
+}
+
 // ─── AI Summarization ─────────────────────────────────────────────────────
 
 interface AISummaryResult {
@@ -504,6 +578,14 @@ export async function summarizeUnsummarizedEmails(userId: string, limit = 10): P
       // over the AI which can be sycophantic on promo language.
       const aiPriority =
         email.priority === "LOW" && result.priority !== "LOW" ? "LOW" : result.priority;
+      const replyNeeded = classifyNeedsReplyFromSignals({
+        from: email.from,
+        subject: email.subject,
+        labels: email.labels,
+        category: result.category,
+        actionItems: result.actionItems,
+        priority: aiPriority,
+      });
 
       await prisma.emailMessage.update({
         where: { id: email.id },
@@ -514,6 +596,9 @@ export async function summarizeUnsummarizedEmails(userId: string, limit = 10): P
           actionItems: JSON.stringify(result.actionItems),
           sentiment: result.sentiment,
           priority: aiPriority,
+          needsReply: replyNeeded.needsReply,
+          needsReplyReason: replyNeeded.reason,
+          needsReplyConfidence: replyNeeded.confidence,
         },
       });
       count++;

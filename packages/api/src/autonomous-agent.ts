@@ -40,6 +40,7 @@ import { recipientFromToolArgs, recordFeedback } from "./feedback.js";
 import { isNoReplyAddress, markAsRead } from "./gmail.js";
 import { loadMemoriesForPrompt } from "./memory.js";
 import { humanizeAutoExec } from "./notification-format.js";
+import type { NotifCategory } from "./notification-prefs.js";
 import { AGENT_MODEL, createCompletion, openai, resolveUserAgentModel } from "./openai.js";
 import {
   formatFeedbackPolicyCandidatesForPrompt,
@@ -709,6 +710,20 @@ Do NOT notify the user. Do NOT ask for immediate attention. Do NOT call notify_u
   );
 }
 
+function categoryForAgentNotification(category: unknown): NotifCategory {
+  switch (category) {
+    case "email":
+      return "email_urgent";
+    case "calendar":
+      return "meeting";
+    case "task":
+    case "reminder":
+      return "task_due";
+    default:
+      return "agent_proposal";
+  }
+}
+
 /** Run the autonomous reasoning loop for a single user */
 export async function runAgentForUser(
   userId: string,
@@ -759,7 +774,9 @@ export async function runAgentForUser(
       select: { alwaysAllowedTools: true },
     });
     const alwaysAllowedTools = new Set(
-      (automationCfg?.alwaysAllowedTools || []).filter((t) => TOOL_RISK_LEVELS.get(t) === "MEDIUM"),
+      (automationCfg?.alwaysAllowedTools || []).filter(
+        (t) => t !== "send_email" && TOOL_RISK_LEVELS.get(t) === "MEDIUM",
+      ),
     );
 
     const systemPrompt = isAutoMode
@@ -780,6 +797,7 @@ Call tools DIRECTLY — the system will handle risk gating automatically.
 
 You MUST call tools directly. Do NOT use propose_action.
 LOW-risk tools execute instantly. MEDIUM/HIGH tools are automatically converted to approval proposals.
+Email replies are never sent silently in this build. send_email must become an approval proposal unless the server explicitly allows it.
 After LOW-risk execution, use notify_user to inform the user what you did.
 
 ## Secondary Tool: notify_user`,
@@ -809,25 +827,29 @@ Examples:
 - Email received 15:00 says "3시 미팅" → create_event at 15:00 KST (same day context)
 - Email says "오전 10시" → 10:00 regardless of received time
 
-## MANDATORY: Meeting Email = 4 Steps (ALL required, do NOT skip any)
-When you see an email about a meeting, you MUST do ALL 4 steps IN ORDER:
-1. call create_event with the CORRECT time (apply AM/PM rules above) and location
-2. call create_reminder 30 minutes before
-3. call send_email to reply (e.g. "확인했습니다", "참석하겠습니다", or "일정 확인 감사합니다")
-4. call notify_user to inform the user
+## Meeting Email Policy
+Meeting emails are high-value, but wrong calendar events and wrong replies are trust-breaking.
+Only act when the meeting time/date and sender intent are clear.
+Prefer one high-confidence action over completing a checklist.
 
-NEVER stop after step 1 or step 2. You MUST complete ALL 4 steps.
-If you created an event but didn't send_email AND notify_user, YOUR JOB IS NOT DONE.
-Stopping early = FAILURE. You will be evaluated on completing all 4 steps.
+When confidence is high:
+1. call create_event only if the meeting is not already on the calendar
+2. call create_reminder only if the event/reminder would clearly help
+3. call send_email only to prepare an approval proposal for the reply
+4. call notify_user only when something was executed or genuinely needs attention
 
-You MUST call create_event for each distinct meeting. If there are 2 meetings at different times, create 2 events + 2 replies.
+When confidence is low or the sender looks automated/no-reply, skip or create an approval proposal instead of executing.
+
+Create separate events for distinct meetings. If there are 2 meetings at different times, treat them separately.
 
 Example: Email says "4/15 19:00 KST 미팅" → create_event at 2026-04-15T19:00:00+09:00
 Another email says "8시미팅 강남" (received 20:09 KST) → "8시" + received after 14:00 → 20:00 PM → create_event at 2026-04-15T20:00:00+09:00
 
 ## MANDATORY: Email Processing Rules
 
-For EVERY unread email, you MUST take action. Follow this decision tree:
+Do NOT process every unread email. Most unread mail is noise.
+Only act on high-confidence items that are urgent, relationship-sensitive, tied to the calendar/tasks/commitments, or likely to cost the user something if missed.
+If uncertain, skip silently or create an approval proposal. Follow this decision tree:
 
 ### Step 1: Classify the email
 Determine the type:
@@ -838,20 +860,22 @@ Determine the type:
 
 ### Step 2: Take action based on type
 
-**ACTION_REQUIRED → auto-reply (send_email) + notify_user**
-Always reply when:
-- Someone asks a question or requests information
-- Someone confirms/changes meeting details (reply with acknowledgment)
-- Someone sends a greeting or introduction (reply politely)
-- Someone shares meeting time/location info (confirm receipt)
-- Someone shares important updates (acknowledge)
+**ACTION_REQUIRED → approval proposal for reply (send_email) + optional notify_user**
+Prepare a reply only when:
+- A real person asks a concrete question or requests information
+- A real person confirms/changes meeting details and acknowledgment is clearly expected
+- The sender is important from contacts/tags/history, or the email is tied to an upcoming meeting/task/commitment
+- The cost of missing the reply is clear
+
+Do NOT reply just because someone sent a greeting, generic intro, FYI, newsletter-like update, receipt, or automated notification.
 
 How to reply:
 1. call send_email with:
    - to: sender's email address (extract from "From:" field — use the email address inside < >, e.g. "홍길동 <example@mail.com>" → to: "example@mail.com")
    - subject: "Re: [THAT email's subject]" (NOT another email's subject!)
    - body: appropriate Korean 존댓말 reply about THAT specific email's content
-2. THEN call notify_user: "[답장 완료] OO님에게 OO 관련 답장을 보냈습니다"
+2. The system will gate send_email into an approval proposal unless explicitly allowed.
+3. Use notify_user only if the item is time-sensitive or a tool actually executed.
 
 **SECURITY_ALERT → notify_user only (no reply)**
 - call notify_user: "[보안] OO 계정 관련 알림" with the provider name and what changed
@@ -869,9 +893,10 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
 - Mirror the language of the incoming email (Korean → Korean, English → English)
 
 ### CRITICAL rules:
-- Reply to EACH email separately. 2 unread emails = 2 separate replies
-- NEVER skip notify_user. The user depends on notifications to know what happened.
-- After EVERY action (create_event, send_email, create_reminder, update_task), ALWAYS call notify_user.`
+- Never reply to an email only because it is unread.
+- Reply proposals must be per-email and must reference that email's subject/sender.
+- Do not notify after skips or low-value observations.
+- After an executed LOW-risk action, notify only if the user would reasonably want to know.`
       : isShadowMode
         ? buildShadowSystemPrompt()
         : AGENT_SYSTEM_PROMPT;
@@ -1104,11 +1129,15 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
               });
 
               // Always send push notification for proposed actions (phone/browser)
-              sendPushNotification(userId, {
-                title: "[EVE] 확인이 필요해요",
-                body: args.message.slice(0, 100),
-                url: proposalLink,
-              });
+              sendPushNotification(
+                userId,
+                {
+                  title: "[EVE] 확인이 필요해요",
+                  body: args.message.slice(0, 100),
+                  url: proposalLink,
+                },
+                "agent_proposal",
+              );
             }
 
             if (dedupKey) recordDedupKey(userId, dedupKey);
@@ -1225,11 +1254,15 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
               });
 
               // Always send push notification for agent notifications (phone/browser)
-              sendPushNotification(userId, {
-                title: agentTitle,
-                body: args.message,
-                url: notifyLink,
-              });
+              sendPushNotification(
+                userId,
+                {
+                  title: agentTitle,
+                  body: args.message,
+                  url: notifyLink,
+                },
+                categoryForAgentNotification(args.category),
+              );
 
               if (dedupKey) recordDedupKey(userId, dedupKey);
 
@@ -1372,11 +1405,15 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
                 conversationId: agentConvo.id,
                 link: riskLink,
               });
-              sendPushNotification(userId, {
-                title: notifTitle,
-                body: proposalMessage.slice(0, 100),
-                url: riskLink,
-              });
+              sendPushNotification(
+                userId,
+                {
+                  title: notifTitle,
+                  body: proposalMessage.slice(0, 100),
+                  url: riskLink,
+                },
+                "agent_proposal",
+              );
 
               // Notify sidebar to refresh
               pushNotification(userId, {

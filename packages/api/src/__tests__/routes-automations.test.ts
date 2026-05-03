@@ -62,15 +62,32 @@ describe("PATCH /api/automations alwaysAllowedTools validation", () => {
     const res = await app.inject({
       method: "PATCH",
       url: "/api/automations",
+      payload: { alwaysAllowedTools: ["create_event", "create_note"] },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.alwaysAllowedTools).toEqual(["create_event", "create_note"]);
+
+    const call = upsertSpy.mock.calls[0][0];
+    expect(call.update.alwaysAllowedTools).toEqual(["create_event", "create_note"]);
+    await app.close();
+  });
+
+  it("does not allow email sending to be pre-approved", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
       payload: { alwaysAllowedTools: ["send_email", "create_event"] },
     });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.alwaysAllowedTools).toEqual(["send_email", "create_event"]);
+    expect(body.alwaysAllowedTools).toEqual(["create_event"]);
 
     const call = upsertSpy.mock.calls[0][0];
-    expect(call.update.alwaysAllowedTools).toEqual(["send_email", "create_event"]);
+    expect(call.update.alwaysAllowedTools).toEqual(["create_event"]);
     await app.close();
   });
 
@@ -112,16 +129,16 @@ describe("PATCH /api/automations alwaysAllowedTools validation", () => {
       method: "PATCH",
       url: "/api/automations",
       payload: {
-        alwaysAllowedTools: ["send_email", "delete_email", "archive_email", "delete_task"],
+        alwaysAllowedTools: ["create_event", "delete_email", "archive_email", "delete_task"],
       },
     });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.alwaysAllowedTools).toEqual(["send_email"]);
+    expect(body.alwaysAllowedTools).toEqual(["create_event"]);
 
     const call = upsertSpy.mock.calls[0][0];
-    expect(call.update.alwaysAllowedTools).toEqual(["send_email"]);
+    expect(call.update.alwaysAllowedTools).toEqual(["create_event"]);
     await app.close();
   });
 
@@ -130,12 +147,12 @@ describe("PATCH /api/automations alwaysAllowedTools validation", () => {
     const res = await app.inject({
       method: "PATCH",
       url: "/api/automations",
-      payload: { alwaysAllowedTools: ["send_email", "hack_the_planet", "rm_rf_slash"] },
+      payload: { alwaysAllowedTools: ["create_event", "hack_the_planet", "rm_rf_slash"] },
     });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.alwaysAllowedTools).toEqual(["send_email"]);
+    expect(body.alwaysAllowedTools).toEqual(["create_event"]);
     await app.close();
   });
 
@@ -144,12 +161,12 @@ describe("PATCH /api/automations alwaysAllowedTools validation", () => {
     const res = await app.inject({
       method: "PATCH",
       url: "/api/automations",
-      payload: { alwaysAllowedTools: ["send_email", "send_email", "create_event", "send_email"] },
+      payload: { alwaysAllowedTools: ["create_event", "create_event", "create_note"] },
     });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.alwaysAllowedTools).toEqual(["send_email", "create_event"]);
+    expect(body.alwaysAllowedTools).toEqual(["create_event", "create_note"]);
     await app.close();
   });
 
@@ -173,7 +190,7 @@ describe("PATCH /api/automations alwaysAllowedTools validation", () => {
       method: "PATCH",
       url: "/api/automations",
       payload: {
-        alwaysAllowedTools: ["send_email"],
+        alwaysAllowedTools: ["send_email", "create_event"],
         forbidden_field: "should not reach upsert",
         userId: "other-user-id",
       },
@@ -206,7 +223,7 @@ describe("GET /api/automations", () => {
       autonomousAgent: true,
       agentMode: "AUTO",
       agentIntervalMin: 5,
-      alwaysAllowedTools: ["send_email"],
+      alwaysAllowedTools: ["send_email", "create_event"],
     });
 
     const app = await buildApp();
@@ -214,7 +231,7 @@ describe("GET /api/automations", () => {
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.alwaysAllowedTools).toEqual(["send_email"]);
+    expect(body.alwaysAllowedTools).toEqual(["create_event"]);
     expect(body.agentModes.map((m: { mode: string }) => m.mode)).toEqual([
       "SHADOW",
       "SUGGEST",
@@ -227,14 +244,9 @@ describe("GET /api/automations", () => {
     });
     // The whitelist must only contain MEDIUM-risk tools the user may pre-approve.
     expect(body.preApprovableTools).toEqual(
-      expect.arrayContaining([
-        "send_email",
-        "create_event",
-        "create_note",
-        "update_contact",
-        "create_contact",
-      ]),
+      expect.arrayContaining(["create_event", "create_note", "update_contact", "create_contact"]),
     );
+    expect(body.preApprovableTools).not.toContain("send_email");
     // HIGH-risk tools must never appear in the whitelist.
     expect(body.preApprovableTools).not.toContain("delete_email");
     expect(body.preApprovableTools).not.toContain("archive_email");

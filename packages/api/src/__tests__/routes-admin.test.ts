@@ -35,14 +35,36 @@ vi.mock("../db.js", () => {
       groupBy: vi.fn(async () => [{ plan: "FREE", _count: { id: 2 } }]),
     },
     conversation: { count: vi.fn(async () => 10) },
-    message: { count: vi.fn(async () => 100) },
-    notification: { deleteMany: vi.fn(async () => ({})) },
+    message: { count: vi.fn(async () => 100), groupBy: vi.fn(async () => []) },
+    notification: { deleteMany: vi.fn(async () => ({})), count: vi.fn(async () => 0) },
+    agentLog: {
+      count: vi.fn(async () => 0),
+      findMany: vi.fn(async () => []),
+    },
+    pendingAction: { count: vi.fn(async () => 0) },
+    tokenUsage: {
+      aggregate: vi.fn(async () => ({
+        _sum: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      })),
+    },
+    feedbackEvent: {
+      groupBy: vi.fn(async ({ where }: { where: { toolName?: string | null } }) =>
+        where.toolName === "briefing_top_action"
+          ? [
+              { signal: "APPROVED", _count: { signal: 3 } },
+              { signal: "REJECTED", _count: { signal: 1 } },
+            ]
+          : [{ signal: "APPROVED", _count: { signal: 2 } }],
+      ),
+      deleteMany: vi.fn(async () => ({})),
+    },
     automationConfig: { deleteMany: vi.fn(async () => ({})) },
     calendarEvent: { deleteMany: vi.fn(async () => ({})) },
     contact: { deleteMany: vi.fn(async () => ({})) },
     reminder: { deleteMany: vi.fn(async () => ({})) },
     note: { deleteMany: vi.fn(async () => ({})) },
     task: { deleteMany: vi.fn(async () => ({})) },
+    commitment: { deleteMany: vi.fn(async () => ({})) },
     userToken: { deleteMany: vi.fn(async () => ({})) },
     evaluation: { deleteMany: vi.fn(async () => ({})) },
     testRun: { deleteMany: vi.fn(async () => ({})) },
@@ -107,6 +129,29 @@ describe("admin routes", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toHaveProperty("totalUsers");
+    await app.close();
+  });
+
+  it("includes trust-loop metrics in ops", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/ops",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().trust.briefingTop3).toMatchObject({
+      total: 4,
+      useful: 3,
+      wrong: 1,
+      usefulRate: 0.75,
+    });
+    expect(res.json().trust.replyNeeded).toMatchObject({
+      total: 2,
+      useful: 2,
+      usefulRate: 1,
+    });
     await app.close();
   });
 

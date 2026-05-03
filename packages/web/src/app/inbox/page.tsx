@@ -148,9 +148,9 @@ function InboxView() {
       <header className="mb-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl md:text-2xl font-semibold text-gray-100">받은 일</h1>
+            <h1 className="text-xl md:text-2xl font-semibold text-gray-100">Approval Queue</h1>
             <p className="text-xs text-gray-500 mt-1">
-              EVE가 제안한 작업 중 승인이 필요한 항목이에요.
+              EVE가 대신하기 전에 확인이 필요한 작업이에요.
             </p>
           </div>
           <button
@@ -174,20 +174,6 @@ function InboxView() {
         </div>
       </header>
 
-      <BriefingCard />
-      <CommandCenterSummary />
-      <WorkGraphSummaryCard />
-      <PlaybookRecommendations />
-
-      {commitments.length > 0 && (
-        <CommitmentSection
-          commitments={commitments}
-          loading={commitmentLoading}
-          onDone={(id) => handleCommitmentStatus(id, "DONE")}
-          onDismiss={(id) => handleCommitmentStatus(id, "DISMISSED")}
-        />
-      )}
-
       {loading && actions.length === 0 && (
         <p className="text-sm text-gray-500 py-8 text-center">로딩 중...</p>
       )}
@@ -207,18 +193,40 @@ function InboxView() {
         </div>
       )}
 
-      <ul className="space-y-3">
-        {actions.map((action) => (
-          <li key={action.id}>
-            <ActionCard
-              action={action}
-              loading={actionLoading[action.id] ?? null}
-              onApprove={() => handleApprove(action.id)}
-              onReject={() => handleReject(action.id)}
-            />
-          </li>
-        ))}
-      </ul>
+      {actions.length > 0 && (
+        <section className="mb-6" aria-label="Approval queue">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-gray-100">승인 대기</h2>
+            <span className="text-[11px] text-gray-500">{actions.length}</span>
+          </div>
+          <ul className="space-y-3">
+            {actions.map((action) => (
+              <li key={action.id}>
+                <ActionCard
+                  action={action}
+                  loading={actionLoading[action.id] ?? null}
+                  onApprove={() => handleApprove(action.id)}
+                  onReject={() => handleReject(action.id)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {commitments.length > 0 && (
+        <CommitmentSection
+          commitments={commitments}
+          loading={commitmentLoading}
+          onDone={(id) => handleCommitmentStatus(id, "DONE")}
+          onDismiss={(id) => handleCommitmentStatus(id, "DISMISSED")}
+        />
+      )}
+
+      <BriefingCard />
+      <CommandCenterSummary />
+      <WorkGraphSummaryCard />
+      <PlaybookRecommendations />
     </div>
   );
 }
@@ -352,6 +360,7 @@ function ActionCard({
   onReject: () => void;
 }) {
   const preview = buildPreview(action.toolName, action.toolArgs, action.targetLabel);
+  const emailPreview = action.toolName === "send_email" ? buildEmailPreview(action.toolArgs) : null;
   const isPending = action.status === "PENDING";
 
   return (
@@ -366,6 +375,23 @@ function ActionCard({
             <span className="text-[11px] text-gray-600">{formatRelative(action.createdAt)}</span>
           </div>
           {preview && <p className="mt-2 text-sm text-gray-200 break-words">{preview}</p>}
+          {emailPreview && (
+            <div className="mt-3 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-medium text-amber-300">전송 전 승인 필요</span>
+                <span className="text-[11px] text-gray-500">send_email</span>
+              </div>
+              <p className="mt-2 text-xs text-gray-300 break-words">To: {emailPreview.to}</p>
+              <p className="mt-1 text-xs text-gray-400 break-words">
+                Subject: {emailPreview.subject}
+              </p>
+              {emailPreview.body && (
+                <p className="mt-2 text-xs leading-relaxed text-gray-300 line-clamp-4 whitespace-pre-wrap">
+                  {emailPreview.body}
+                </p>
+              )}
+            </div>
+          )}
           {action.reasoning && (
             <p className="mt-2 text-xs text-gray-400 leading-relaxed">{action.reasoning}</p>
           )}
@@ -565,6 +591,26 @@ function buildPreview(
     return `수정: ${targetLabel || pick(idKey) || "?"}`;
   }
   return null;
+}
+
+function buildEmailPreview(
+  rawArgs: string,
+): { to: string; subject: string; body: string | null } | null {
+  let args: Record<string, unknown>;
+  try {
+    args = JSON.parse(rawArgs) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const pick = (key: string): string | null => {
+    const value = args[key];
+    return typeof value === "string" && value.trim() ? value.trim() : null;
+  };
+  return {
+    to: pick("to") || pick("recipient") || "?",
+    subject: pick("subject") || "제목 없음",
+    body: pick("body") || pick("message"),
+  };
 }
 
 function formatRelative(date: string): string {

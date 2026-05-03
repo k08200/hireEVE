@@ -32,6 +32,7 @@ let intervalId: ReturnType<typeof setInterval> | null = null;
 const CHECK_INTERVAL_MS = 60_000; // 1 minute
 const WATCH_RENEWAL_INTERVAL_MS = 60 * 60 * 1000; // hourly check for expiring Gmail watches
 const DB_HEARTBEAT_ENABLED = process.env.DB_HEARTBEAT_ENABLED === "true";
+const PROACTIVE_ACTIONS_ENABLED = process.env.PROACTIVE_ACTIONS_ENABLED === "true";
 
 // In-memory cache to skip redundant DB queries within same process lifetime.
 // Actual dedup is DB-based (survives server restarts).
@@ -507,11 +508,15 @@ async function runAutomations() {
                   createdAt: notification.createdAt.toISOString(),
                 });
 
-                sendPushNotification(config.userId, {
-                  title: "긴급 메일",
-                  body: userBody,
-                  url: "/briefing",
-                });
+                sendPushNotification(
+                  config.userId,
+                  {
+                    title: "긴급 메일",
+                    body: userBody,
+                    url: "/briefing",
+                  },
+                  "email_urgent",
+                );
               }
             }
           } catch (err) {
@@ -528,10 +533,13 @@ async function runAutomations() {
       }
 
       // --- Proactive Actions (rule-based, no LLM cost) ---
-      // Runs for all users regardless of plan — these are core EVE behaviors
-      runProactiveActions(config.userId).catch((err) => {
-        console.error(`[PROACTIVE] Failed for ${config.userId}:`, err);
-      });
+      // Default OFF during dogfooding: these are useful but can create bell
+      // noise until each rule has stronger precision and per-user controls.
+      if (PROACTIVE_ACTIONS_ENABLED) {
+        runProactiveActions(config.userId).catch((err) => {
+          console.error(`[PROACTIVE] Failed for ${config.userId}:`, err);
+        });
+      }
     }
   } catch (err) {
     console.error("[AUTOMATION] Scheduler error:", err);
@@ -543,7 +551,7 @@ export function startAutomationScheduler() {
   if (intervalId) return;
 
   console.log(
-    `[AUTOMATION] Scheduler started (checking every 60s, dbHeartbeat=${DB_HEARTBEAT_ENABLED ? "on" : "off"})`,
+    `[AUTOMATION] Scheduler started (checking every 60s, dbHeartbeat=${DB_HEARTBEAT_ENABLED ? "on" : "off"}, proactive=${PROACTIVE_ACTIONS_ENABLED ? "on" : "off"})`,
   );
 
   // Run once on start

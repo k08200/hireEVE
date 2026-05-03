@@ -36,6 +36,24 @@ interface OpsMetrics {
     approvalRate: number;
   };
   notifications: { sent: number; read: number; readRate: number };
+  trust: {
+    briefingTop3: {
+      total: number;
+      useful: number;
+      wrong: number;
+      later: number;
+      done: number;
+      usefulRate: number | null;
+    };
+    replyNeeded: {
+      total: number;
+      useful: number;
+      wrong: number;
+      later: number;
+      done: number;
+      usefulRate: number | null;
+    };
+  };
   activeUsers: { dau: number; wau: number; mau: number };
   tokens: {
     promptTokens: number;
@@ -332,6 +350,22 @@ function AdminDashboard() {
           </section>
 
           <section>
+            <h2 className="text-sm font-medium text-gray-400 mb-3">Daily Trust Loop (last 7d)</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                label="Top 3 Useful"
+                value={formatNullableRate(ops.trust?.briefingTop3.usefulRate)}
+              />
+              <StatCard label="Top 3 Votes" value={ops.trust?.briefingTop3.total ?? 0} />
+              <StatCard
+                label="Reply Needed Precision"
+                value={formatNullableRate(ops.trust?.replyNeeded.usefulRate)}
+              />
+              <StatCard label="Reply Votes" value={ops.trust?.replyNeeded.total ?? 0} />
+            </div>
+          </section>
+
+          <section>
             <h2 className="text-sm font-medium text-gray-400 mb-3">Active Users & Notifications</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard label="DAU" value={ops.activeUsers.dau} />
@@ -507,6 +541,11 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 function errMsg(reason: unknown): string {
   if (reason instanceof Error) return reason.message;
   return String(reason);
+}
+
+function formatNullableRate(value: number | null | undefined): string {
+  if (typeof value !== "number") return "n/a";
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 export default function AdminPage() {

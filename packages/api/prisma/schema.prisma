@@ -393,23 +393,23 @@ model PushSubscription {
 }
 
 model PushDeliveryLog {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscriptionId  String?
   notificationId  String?
   endpointHost    String?
-  category        String   @default("system")
+  category        String    @default("system")
   title           String
-  status          String   @default("PENDING") // PENDING | ACCEPTED | FAILED | SKIPPED
+  status          String    @default("PENDING") // PENDING | ACCEPTED | FAILED | SKIPPED
   skipReason      String?
   errorStatusCode Int?
   errorBody       String?
   acceptedAt      DateTime?
   receivedAt      DateTime?
   clickedAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([userId, createdAt])
   @@index([userId, status, createdAt])
@@ -525,31 +525,34 @@ enum ActionStatus {
 // Persisted copy of Gmail messages for local search, AI summarization, and threading
 
 model EmailMessage {
-  id          String        @id @default(uuid())
-  userId      String
-  user        User          @relation(fields: [userId], references: [id])
-  gmailId     String // Gmail message ID
-  threadId    String? // Gmail thread ID for conversation grouping
-  from        String
-  to          String
-  cc          String?
-  subject     String
-  snippet     String? // Gmail snippet (preview text)
-  body        String? // Full plain-text body
-  htmlBody    String? // Full HTML body (for rich rendering)
-  labels      String[] // Gmail labels: ["INBOX", "UNREAD", "IMPORTANT"]
-  isRead      Boolean       @default(false)
-  isStarred   Boolean       @default(false)
-  priority    EmailPriority @default(NORMAL)
-  category    String? // AI classification: billing, meeting, engineering, conversation, automated, other
-  summary     String? // AI-generated one-line summary
-  keyPoints   String? // JSON array: AI-extracted key takeaways
-  actionItems String? // JSON array: AI-extracted TODOs from email
-  sentiment   String? // positive | negative | neutral
-  receivedAt  DateTime // Original email date
-  syncedAt    DateTime      @default(now()) // When we synced from Gmail
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                   String        @id @default(uuid())
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id])
+  gmailId              String // Gmail message ID
+  threadId             String? // Gmail thread ID for conversation grouping
+  from                 String
+  to                   String
+  cc                   String?
+  subject              String
+  snippet              String? // Gmail snippet (preview text)
+  body                 String? // Full plain-text body
+  htmlBody             String? // Full HTML body (for rich rendering)
+  labels               String[] // Gmail labels: ["INBOX", "UNREAD", "IMPORTANT"]
+  isRead               Boolean       @default(false)
+  isStarred            Boolean       @default(false)
+  priority             EmailPriority @default(NORMAL)
+  category             String? // AI classification: billing, meeting, engineering, conversation, automated, other
+  summary              String? // AI-generated one-line summary
+  keyPoints            String? // JSON array: AI-extracted key takeaways
+  actionItems          String? // JSON array: AI-extracted TODOs from email
+  needsReply           Boolean       @default(false)
+  needsReplyReason     String?
+  needsReplyConfidence Float         @default(0.0)
+  sentiment            String? // positive | negative | neutral
+  receivedAt           DateTime // Original email date
+  syncedAt             DateTime      @default(now()) // When we synced from Gmail
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   @@unique([userId, gmailId])
   @@index([userId, receivedAt])
@@ -557,6 +560,7 @@ model EmailMessage {
   @@index([userId, priority])
   @@index([userId, category])
   @@index([userId, isRead])
+  @@index([userId, needsReply])
 }
 
 // User-supplied corrections of EVE's automatic email priority classification.

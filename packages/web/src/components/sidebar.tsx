@@ -73,7 +73,7 @@ function groupByDate(convs: Conversation[]): DateGroup[] {
 }
 
 const NAV_ITEMS = [
-  { href: "/inbox", label: "Inbox", icon: "check" },
+  { href: "/inbox", label: "Approval Queue", icon: "check" },
   { href: "/calendar", label: "Calendar", icon: "calendar" },
   { href: "/briefing", label: "Briefing", icon: "bell" },
 ];
@@ -447,7 +447,7 @@ export default function Sidebar({
               className="text-[11px] font-medium text-cyan-400/80 hover:text-cyan-300 px-2 py-1.5 flex items-center gap-1.5 rounded-md hover:bg-cyan-500/5 transition"
             >
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              EVE Suggestions
+              Approval Queue
               {totalPending > 0 && (
                 <span className="ml-auto bg-cyan-500/20 text-cyan-300 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
                   {totalPending}
