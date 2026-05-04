@@ -15,6 +15,15 @@ if (!JWT_SECRET) {
 const EFFECTIVE_SECRET = JWT_SECRET || "eve-dev-secret-do-not-use-in-production";
 const TOKEN_EXPIRY = "7d";
 
+function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const adminEmails = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return adminEmails.includes(email.trim().toLowerCase());
+}
+
 export interface JwtPayload {
   userId: string;
   email: string;
@@ -93,7 +102,7 @@ export async function requireAdmin(request: FastifyRequest, reply: FastifyReply)
   try {
     const payload = verifyToken(auth.slice(7));
     const user = await prisma.user.findUnique({ where: { id: payload.userId } });
-    if (!user || user.role !== "ADMIN") {
+    if (!user || (user.role !== "ADMIN" && !isAdminEmail(user.email))) {
       return reply.code(403).send({ error: "Admin access required" });
     }
     (request as unknown as { userId: string }).userId = payload.userId;

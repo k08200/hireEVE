@@ -73,7 +73,14 @@ export type FeatureKey =
   | "meeting_tools";
 
 export const PLAN_FEATURES: Record<string, Set<FeatureKey>> = {
-  FREE: new Set<FeatureKey>(["email_read", "calendar_read"]),
+  FREE: new Set<FeatureKey>([
+    "email_read",
+    "calendar_read",
+    "daily_briefing",
+    "email_auto_classify",
+    "autonomous_agent",
+    "pattern_learning",
+  ]),
   // PRO now includes every paid feature (TEAM tier merged in). TEAM key retained
   // only for existing subscribers on the legacy price; new signups go to PRO.
   PRO: new Set<FeatureKey>([

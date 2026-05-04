@@ -1,5 +1,5 @@
 import Fastify from "fastify";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { signToken } from "../auth.js";
 
 vi.mock("../email.js", () => ({ sendVerificationEmail: vi.fn(), sendPasswordResetEmail: vi.fn() }));
@@ -92,6 +92,10 @@ async function buildApp() {
 }
 
 describe("admin routes", () => {
+  beforeEach(() => {
+    delete process.env.ADMIN_EMAILS;
+  });
+
   it("rejects unauthenticated with 401", async () => {
     const app = await buildApp();
     expect((await app.inject({ method: "GET", url: "/api/admin/users" })).statusCode).toBe(401);
@@ -115,6 +119,18 @@ describe("admin routes", () => {
       method: "GET",
       url: "/api/admin/users",
       headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it("allows env-listed founder emails to access admin routes", async () => {
+    process.env.ADMIN_EMAILS = "founder@example.com, u@e.com";
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/users",
+      headers: { authorization: `Bearer ${USER_TOKEN}` },
     });
     expect(res.statusCode).toBe(200);
     await app.close();
