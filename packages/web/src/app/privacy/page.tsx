@@ -8,13 +8,7 @@ export const metadata: Metadata = {
 
 const updatedAt = "May 4, 2026";
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
       <h2 className="text-xl font-semibold text-white">{title}</h2>
@@ -85,7 +79,9 @@ export default function PrivacyPage() {
                 Product data you create in EVE, including tasks, reminders, notes, commitments,
                 approval actions, feedback, notifications, and chat messages.
               </li>
-              <li>Usage, token, error, and delivery logs needed to operate and improve the beta.</li>
+              <li>
+                Usage, token, error, and delivery logs needed to operate and improve the beta.
+              </li>
             </ul>
           </Section>
 
@@ -93,7 +89,9 @@ export default function PrivacyPage() {
             <p>We use your data only to provide and improve EVE, including to:</p>
             <ul className="list-disc space-y-2 pl-5">
               <li>Sync Gmail and Calendar after you connect Google.</li>
-              <li>Generate morning briefings and identify emails or meetings that need attention.</li>
+              <li>
+                Generate morning briefings and identify emails or meetings that need attention.
+              </li>
               <li>Create approval proposals, reminders, tasks, and notifications.</li>
               <li>Measure whether EVE&apos;s suggestions are useful during the beta.</li>
               <li>Debug reliability issues, prevent abuse, and keep the service secure.</li>
@@ -119,8 +117,8 @@ export default function PrivacyPage() {
           <Section title="AI processing">
             <p>
               EVE may send relevant work context, such as email snippets, message bodies, calendar
-              details, tasks, or notes, to AI model providers in order to summarize, classify, draft,
-              or prioritize work. We send only the context needed for the feature being used.
+              details, tasks, or notes, to AI model providers in order to summarize, classify,
+              draft, or prioritize work. We send only the context needed for the feature being used.
             </p>
           </Section>
 

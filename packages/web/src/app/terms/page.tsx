@@ -8,13 +8,7 @@ export const metadata: Metadata = {
 
 const updatedAt = "May 4, 2026";
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
       <h2 className="text-xl font-semibold text-white">{title}</h2>
@@ -69,7 +63,9 @@ export default function TermsPage() {
               <li>You are responsible for the accounts and data you connect to EVE.</li>
               <li>You must use EVE only with accounts you own or are authorized to connect.</li>
               <li>You must review important outputs before relying on them.</li>
-              <li>You must not use EVE to violate laws, contracts, privacy rights, or platform rules.</li>
+              <li>
+                You must not use EVE to violate laws, contracts, privacy rights, or platform rules.
+              </li>
             </ul>
           </Section>
 
@@ -84,8 +80,8 @@ export default function TermsPage() {
           <Section title="Google services">
             <p>
               If you connect Gmail or Google Calendar, you authorize EVE to access the Google data
-              needed to provide EVE features. You can revoke EVE&apos;s Google access from your Google
-              account settings at any time.
+              needed to provide EVE features. You can revoke EVE&apos;s Google access from your
+              Google account settings at any time.
             </p>
           </Section>
 
@@ -100,8 +96,8 @@ export default function TermsPage() {
           <Section title="Availability and data loss">
             <p>
               We try to keep EVE reliable, but the beta is provided without uptime guarantees. We
-              are not responsible for missed notifications, delayed sync, inaccurate outputs, or data
-              loss caused by beta limitations, third-party outages, or user configuration.
+              are not responsible for missed notifications, delayed sync, inaccurate outputs, or
+              data loss caused by beta limitations, third-party outages, or user configuration.
             </p>
           </Section>
 
