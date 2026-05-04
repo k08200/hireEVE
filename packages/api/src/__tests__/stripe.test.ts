@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getEffectivePlan, planHasFeature, PLANS } from "../stripe.js";
+import { getEffectivePlan, PLANS, planHasFeature } from "../stripe.js";
 
 describe("plan device limits", () => {
   it("allows free users to stay signed in on phone and desktop at the same time", () => {
