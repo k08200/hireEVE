@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getEffectivePlan, PLANS } from "../stripe.js";
+import { getEffectivePlan, planHasFeature, PLANS } from "../stripe.js";
 
 describe("plan device limits", () => {
   it("allows free users to stay signed in on phone and desktop at the same time", () => {
@@ -13,5 +13,14 @@ describe("plan device limits", () => {
 
   it("gives admins unlimited device sessions", () => {
     expect(getEffectivePlan("FREE", "ADMIN").deviceLimit).toBe(Infinity);
+  });
+
+  it("keeps the beta trust loop available on free accounts", () => {
+    expect(planHasFeature("FREE", "daily_briefing")).toBe(true);
+    expect(planHasFeature("FREE", "email_auto_classify")).toBe(true);
+    expect(planHasFeature("FREE", "autonomous_agent")).toBe(true);
+    expect(planHasFeature("FREE", "pattern_learning")).toBe(true);
+    expect(planHasFeature("FREE", "email_auto_reply")).toBe(false);
+    expect(planHasFeature("FREE", "agent_mode_auto")).toBe(false);
   });
 });
