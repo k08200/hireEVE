@@ -15,7 +15,10 @@ import { recordFeedback } from "./feedback.js";
 import { listEmails } from "./gmail.js";
 import { listNotes } from "./notes.js";
 import { createCompletion, EVE_SYSTEM_PROMPT, MODEL, openai } from "./openai.js";
+import { sendPushNotification } from "./push.js";
 import { listTasks } from "./tasks.js";
+import { localDayUtcRange, normalizeTimeZone } from "./time-zone.js";
+import { pushNotification } from "./websocket.js";
 
 interface BriefingData {
   tasks: unknown;
@@ -164,6 +167,75 @@ Recent Notes: ${JSON.stringify(data.notes)}`;
   return response.choices[0]?.message?.content || "No briefing generated.";
 }
 
+export async function createDailyBriefingDelivery(userId: string): Promise<{
+  briefing: string;
+  note: { id: string; createdAt: Date };
+  notification: { id: string; createdAt: Date } | null;
+  reused: boolean;
+}> {
+  const today = await todayRangeForUser(userId);
+  const existing = await prisma.note.findFirst({
+    where: {
+      userId,
+      title: { startsWith: "Daily Briefing" },
+      createdAt: today,
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, content: true, createdAt: true },
+  });
+  if (existing) {
+    return {
+      briefing: existing.content,
+      note: { id: existing.id, createdAt: existing.createdAt },
+      notification: null,
+      reused: true,
+    };
+  }
+
+  const briefing = await generateBriefing(userId);
+
+  const note = await prisma.note.create({
+    data: {
+      userId,
+      title: `Daily Briefing — ${new Date().toLocaleDateString("ko-KR")}`,
+      content: briefing,
+    },
+    select: { id: true, createdAt: true },
+  });
+
+  const briefingMsg = briefing.slice(0, 200) + (briefing.length > 200 ? "..." : "");
+  const notification = await prisma.notification.create({
+    data: {
+      userId,
+      type: "briefing",
+      title: "Daily Briefing Ready",
+      message: briefingMsg,
+    },
+    select: { id: true, createdAt: true },
+  });
+
+  pushNotification(userId, {
+    id: notification.id,
+    type: "briefing",
+    title: "Daily Briefing Ready",
+    message: briefingMsg,
+    createdAt: notification.createdAt.toISOString(),
+  });
+
+  await sendPushNotification(
+    userId,
+    {
+      title: "Daily Briefing Ready",
+      body: briefingMsg,
+      url: "/briefing",
+      notificationId: notification.id,
+    },
+    "daily_briefing",
+  );
+
+  return { briefing, note, notification, reused: false };
+}
+
 export function briefingRoutes(app: FastifyInstance) {
   // GET /api/briefing/feedback/summary — dogfood trust metric for Top 3 quality
   app.get("/feedback/summary", async (request) => {
@@ -204,19 +276,8 @@ export function briefingRoutes(app: FastifyInstance) {
   // POST /api/briefing/generate — Generate daily briefing
   app.post("/generate", async (request) => {
     const userId = getUserId(request);
-    const briefing = await generateBriefing(userId);
-
-    // Save briefing as a note
-    const note = await prisma.note.create({
-      data: {
-        userId,
-        title: `Daily Briefing — ${new Date().toLocaleDateString("ko-KR")}`,
-        content: briefing,
-      },
-      select: { id: true, createdAt: true },
-    });
-
-    return { briefing, note };
+    const { briefing, note, notification, reused } = await createDailyBriefingDelivery(userId);
+    return { briefing, note, notification, reused };
   });
 
   // GET /api/briefing/data — Get raw briefing data
@@ -229,14 +290,13 @@ export function briefingRoutes(app: FastifyInstance) {
   // GET /api/briefing/today — Latest briefing stored today (or null)
   app.get("/today", async (request) => {
     const userId = getUserId(request);
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const today = await todayRangeForUser(userId);
 
     const note = await prisma.note.findFirst({
       where: {
         userId,
         title: { startsWith: "Daily Briefing" },
-        createdAt: { gte: todayStart },
+        createdAt: today,
       },
       orderBy: { createdAt: "desc" },
       select: { id: true, content: true, createdAt: true },
@@ -343,6 +403,15 @@ export function briefingRoutes(app: FastifyInstance) {
     const userId = getUserId(request);
     return getBriefingStatus(userId);
   });
+}
+
+async function todayRangeForUser(userId: string): Promise<{ gte: Date; lt: Date }> {
+  const config = await prisma.automationConfig.findUnique({
+    where: { userId },
+    select: { timezone: true },
+  });
+  const { gte, lt } = localDayUtcRange(new Date(), normalizeTimeZone(config?.timezone));
+  return { gte, lt };
 }
 
 // Tool for EVE to generate briefing on demand

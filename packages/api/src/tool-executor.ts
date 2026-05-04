@@ -318,8 +318,9 @@ async function executeToolCallInternal(
           ),
         );
       case "generate_briefing": {
-        const { default: generateBriefingForChat } = await import("./briefing.js");
-        return JSON.stringify(await generateBriefingForChat(userId));
+        const { createDailyBriefingDelivery } = await import("./briefing.js");
+        const { briefing, note, notification, reused } = await createDailyBriefingDelivery(userId);
+        return JSON.stringify({ briefing, note, notification, reused });
       }
       case "list_reminders":
         return JSON.stringify(

@@ -134,6 +134,8 @@ export default function SettingsPage() {
     DEFAULT_AGENT_MODE_OPTIONS,
   );
   const [agentInterval, setAgentInterval] = useState(5);
+  const [dailyBriefingEnabled, setDailyBriefingEnabled] = useState(true);
+  const [briefingTime, setBriefingTime] = useState("07:30");
   const [alwaysAllowedTools, setAlwaysAllowedTools] = useState<string[]>([]);
   const [autoMarkReadEnabled, setAutoMarkReadEnabled] = useState(false);
   const [preApprovableTools, setPreApprovableTools] = useState<string[]>([]);
@@ -250,6 +252,14 @@ export default function SettingsPage() {
     }
     // Save language/timezone to localStorage
     localStorage.setItem("eve-profile", JSON.stringify(profile));
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ timezone: profile.timezone }),
+      });
+    } catch {
+      // Profile still saves locally; automation timezone can be retried later.
+    }
     setProfileSaved(true);
     toast("Profile saved", "success");
     setTimeout(() => setProfileSaved(false), 2000);
@@ -460,6 +470,8 @@ export default function SettingsPage() {
       agentMode?: string;
       agentModes?: ApiAgentModeOption[];
       agentIntervalMin?: number;
+      dailyBriefing?: boolean;
+      briefingTime?: string;
       alwaysAllowedTools?: string[];
       preApprovableTools?: string[];
       autoMarkReadEnabled?: boolean;
@@ -468,6 +480,7 @@ export default function SettingsPage() {
       notifyTaskDue?: boolean;
       notifyAgentProposal?: boolean;
       notifyDailyBriefing?: boolean;
+      timezone?: string;
       quietHoursStart?: string | null;
       quietHoursEnd?: string | null;
     }>("/api/automations")
@@ -476,9 +489,12 @@ export default function SettingsPage() {
         setAgentMode(normalizeAgentMode(d.agentMode));
         setAgentModeOptions(normalizeAgentModeOptions(d.agentModes));
         setAgentInterval(d.agentIntervalMin ?? 5);
+        setDailyBriefingEnabled(d.dailyBriefing ?? true);
+        setBriefingTime(d.briefingTime ?? "07:30");
         setAlwaysAllowedTools(d.alwaysAllowedTools ?? []);
         setPreApprovableTools(d.preApprovableTools ?? []);
         setAutoMarkReadEnabled(d.autoMarkReadEnabled ?? false);
+        if (d.timezone) setProfile((p) => ({ ...p, timezone: d.timezone ?? p.timezone }));
         setNotifPrefs({
           notifyEmailUrgent: d.notifyEmailUrgent ?? true,
           notifyMeeting: d.notifyMeeting ?? true,
@@ -515,6 +531,33 @@ export default function SettingsPage() {
       });
     } catch {
       toast("Failed to save preference", "error");
+    }
+  };
+
+  const updateDailyBriefing = async (enabled: boolean) => {
+    setDailyBriefingEnabled(enabled);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ dailyBriefing: enabled }),
+      });
+      toast(enabled ? "Daily briefing enabled" : "Daily briefing disabled", "success");
+    } catch {
+      setDailyBriefingEnabled(!enabled);
+      toast("Failed to save briefing setting", "error");
+    }
+  };
+
+  const updateBriefingTime = async (value: string) => {
+    setBriefingTime(value);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ briefingTime: value, timezone: profile.timezone }),
+      });
+      toast("Briefing time saved", "success");
+    } catch {
+      toast("Failed to save briefing time", "error");
     }
   };
 
@@ -897,6 +940,47 @@ export default function SettingsPage() {
         {/* Notifications */}
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-gray-300 mb-3">Notifications</h2>
+          <div className="mb-4 bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-medium">Morning Briefing</h3>
+                <p className="text-sm text-gray-400">
+                  EVE sends one daily briefing at your local time, even if you stay signed in.
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Timezone: {profile.timezone}. Change it in Profile above.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => updateDailyBriefing(!dailyBriefingEnabled)}
+                className={`relative h-6 w-12 shrink-0 rounded-full transition-colors ${
+                  dailyBriefingEnabled ? "bg-blue-600" : "bg-gray-700"
+                }`}
+                aria-pressed={dailyBriefingEnabled}
+              >
+                <span
+                  className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                    dailyBriefingEnabled ? "translate-x-6" : ""
+                  }`}
+                />
+              </button>
+            </div>
+            <div className="flex items-center gap-3 border-t border-gray-800 pt-3">
+              <label htmlFor="briefing-time" className="text-sm font-medium text-gray-200">
+                Send at
+              </label>
+              <input
+                id="briefing-time"
+                type="time"
+                value={briefingTime}
+                disabled={!dailyBriefingEnabled}
+                onChange={(e) => updateBriefingTime(e.target.value)}
+                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-gray-200 disabled:opacity-50"
+              />
+              <span className="text-xs text-gray-500">Default is 07:30.</span>
+            </div>
+          </div>
           <div className="bg-gray-900/80 border border-gray-800/60 rounded-xl p-4 flex items-center justify-between">
             <div>
               <h3 className="font-medium">Push Notifications</h3>

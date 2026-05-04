@@ -312,7 +312,8 @@ model AutomationConfig {
   emailAutoClassify    Boolean  @default(true)
   reminderAutoCheck    Boolean  @default(true)
   dailyBriefing        Boolean  @default(true)
-  briefingTime         String   @default("09:00")
+  briefingTime         String   @default("07:30")
+  timezone             String   @default("Asia/Seoul")
   downloadAutoOrganize Boolean  @default(false)
   autonomousAgent      Boolean  @default(true)
   agentMode            String   @default("SUGGEST") // "SHADOW" | "SUGGEST" | "AUTO"

@@ -9,32 +9,39 @@ describe("isInQuietHours", () => {
   });
 
   it("returns false for same-start-and-end window", () => {
-    const now = new Date(2026, 0, 1, 12, 0);
-    expect(isInQuietHours("12:00", "12:00", now)).toBe(false);
+    const now = new Date("2026-01-01T12:00:00.000Z");
+    expect(isInQuietHours("12:00", "12:00", now, "UTC")).toBe(false);
   });
 
   it("handles same-day window correctly", () => {
     // Window 13:00–17:00
-    expect(isInQuietHours("13:00", "17:00", new Date(2026, 0, 1, 14, 0))).toBe(true);
-    expect(isInQuietHours("13:00", "17:00", new Date(2026, 0, 1, 10, 0))).toBe(false);
-    expect(isInQuietHours("13:00", "17:00", new Date(2026, 0, 1, 17, 30))).toBe(false);
+    expect(isInQuietHours("13:00", "17:00", new Date("2026-01-01T14:00:00Z"), "UTC")).toBe(true);
+    expect(isInQuietHours("13:00", "17:00", new Date("2026-01-01T10:00:00Z"), "UTC")).toBe(false);
+    expect(isInQuietHours("13:00", "17:00", new Date("2026-01-01T17:30:00Z"), "UTC")).toBe(false);
   });
 
   it("handles wrap-midnight window correctly", () => {
     // Window 22:00–08:00 (overnight)
-    expect(isInQuietHours("22:00", "08:00", new Date(2026, 0, 1, 23, 30))).toBe(true);
-    expect(isInQuietHours("22:00", "08:00", new Date(2026, 0, 1, 3, 0))).toBe(true);
-    expect(isInQuietHours("22:00", "08:00", new Date(2026, 0, 1, 7, 59))).toBe(true);
-    expect(isInQuietHours("22:00", "08:00", new Date(2026, 0, 1, 12, 0))).toBe(false);
-    expect(isInQuietHours("22:00", "08:00", new Date(2026, 0, 1, 21, 59))).toBe(false);
-    expect(isInQuietHours("22:00", "08:00", new Date(2026, 0, 1, 8, 0))).toBe(false);
+    expect(isInQuietHours("22:00", "08:00", new Date("2026-01-01T23:30:00Z"), "UTC")).toBe(true);
+    expect(isInQuietHours("22:00", "08:00", new Date("2026-01-01T03:00:00Z"), "UTC")).toBe(true);
+    expect(isInQuietHours("22:00", "08:00", new Date("2026-01-01T07:59:00Z"), "UTC")).toBe(true);
+    expect(isInQuietHours("22:00", "08:00", new Date("2026-01-01T12:00:00Z"), "UTC")).toBe(false);
+    expect(isInQuietHours("22:00", "08:00", new Date("2026-01-01T21:59:00Z"), "UTC")).toBe(false);
+    expect(isInQuietHours("22:00", "08:00", new Date("2026-01-01T08:00:00Z"), "UTC")).toBe(false);
   });
 
   it("includes start time and excludes end time", () => {
     // Boundary: at exactly start time → in quiet hours
-    expect(isInQuietHours("22:00", "08:00", new Date(2026, 0, 1, 22, 0))).toBe(true);
+    expect(isInQuietHours("22:00", "08:00", new Date("2026-01-01T22:00:00Z"), "UTC")).toBe(true);
     // At exactly end time → NOT in quiet hours
-    expect(isInQuietHours("22:00", "08:00", new Date(2026, 0, 1, 8, 0))).toBe(false);
+    expect(isInQuietHours("22:00", "08:00", new Date("2026-01-01T08:00:00Z"), "UTC")).toBe(false);
+  });
+
+  it("evaluates quiet hours in the user's timezone", () => {
+    // 2026-01-01T00:30Z is 09:30 in Asia/Seoul.
+    expect(isInQuietHours("09:00", "10:00", new Date("2026-01-01T00:30:00Z"), "Asia/Seoul")).toBe(
+      true,
+    );
   });
 
   it("rejects malformed time strings", () => {

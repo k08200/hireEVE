@@ -800,6 +800,15 @@ export function authRoutes(app: FastifyInstance) {
       emails: 0,
     };
 
+    // Login/reload is the product's bootstrap moment: make sure the daily
+    // briefing scheduler can see this user even if the account predates
+    // AutomationConfig defaults.
+    await prisma.automationConfig.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
+
     // Check if Google is connected
     const auth = await getAuthedClient(userId);
     if (!auth) {
