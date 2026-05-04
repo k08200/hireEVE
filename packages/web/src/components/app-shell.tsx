@@ -5,7 +5,15 @@ import { useState } from "react";
 import BottomTabs from "./bottom-tabs";
 import Sidebar from "./sidebar";
 
-const NO_SIDEBAR_ROUTES = ["/", "/login", "/auth/callback", "/reset-password", "/verify-email"];
+const NO_SIDEBAR_ROUTES = [
+  "/",
+  "/login",
+  "/auth/callback",
+  "/reset-password",
+  "/verify-email",
+  "/privacy",
+  "/terms",
+];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
