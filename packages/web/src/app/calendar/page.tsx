@@ -43,6 +43,7 @@ function CalendarView() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
@@ -65,8 +66,22 @@ function CalendarView() {
   const syncNow = async () => {
     setSyncing(true);
     setError(null);
+    setSyncMessage(null);
     try {
-      await apiFetch("/api/calendar/sync", { method: "POST", body: JSON.stringify({}) });
+      const result = await apiFetch<{ success?: boolean; synced?: number; error?: string }>(
+        "/api/calendar/sync",
+        { method: "POST", body: JSON.stringify({}) },
+      );
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      const synced = result.synced ?? 0;
+      setSyncMessage(
+        synced > 0
+          ? `Google Calendar에서 ${synced}개 일정을 가져왔어요.`
+          : "Google Calendar 동기화 완료. 앞으로 14일 일정이 없습니다.",
+      );
       await loadEvents();
     } catch (err) {
       captureClientError(err, { scope: "calendar.sync" });
@@ -103,16 +118,25 @@ function CalendarView() {
         </div>
       )}
 
+      {syncMessage && !error && (
+        <div className="mb-4 rounded-lg border border-emerald-900/50 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-200">
+          {syncMessage}
+        </div>
+      )}
+
       {!loading && !error && events.length === 0 && (
         <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-6 text-center">
-          <p className="text-sm text-gray-400 mb-3">앞으로 14일 동안 일정이 없어요.</p>
+          <p className="text-sm text-gray-400 mb-1">앞으로 14일 동안 일정이 없어요.</p>
+          <p className="text-xs text-gray-500 mb-4">
+            Google 연결은 정상입니다. 필요하면 다시 동기화해서 최신 상태만 확인하세요.
+          </p>
           <button
             type="button"
             onClick={syncNow}
             disabled={syncing}
             className="text-sm px-4 py-2 rounded-lg bg-white text-black hover:bg-gray-200 disabled:opacity-50 transition"
           >
-            {syncing ? "동기화 중..." : "Google Calendar에서 가져오기"}
+            {syncing ? "동기화 중..." : "다시 동기화"}
           </button>
         </div>
       )}

@@ -88,7 +88,7 @@ vi.mock("../db.js", () => {
       ),
     },
     userToken: { findFirst: vi.fn(async () => null) },
-    automationConfig: { create: vi.fn(async () => ({})) },
+    automationConfig: { create: vi.fn(async () => ({})), upsert: vi.fn(async () => ({})) },
     device: {
       create: vi.fn(async () => ({ id: "device-1" })),
       findMany: vi.fn(async () => []),

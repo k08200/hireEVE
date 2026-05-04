@@ -7,6 +7,7 @@
  */
 
 import { prisma } from "./db.js";
+import { localDayUtcRange, normalizeTimeZone } from "./time-zone.js";
 
 export type BriefingPushState =
   | "received"
@@ -44,6 +45,7 @@ export interface BriefingStatus {
     configured: boolean;
     enabled: boolean;
     briefingTime: string | null;
+    timezone: string;
     reason: "no_config" | "disabled" | null;
   };
 }
@@ -63,6 +65,7 @@ type PushLogRow = {
 type AutomationConfigRow = {
   dailyBriefing: boolean;
   briefingTime: string;
+  timezone?: string | null;
 };
 
 export async function getBriefingStatus(
@@ -70,15 +73,19 @@ export async function getBriefingStatus(
   opts: { now?: Date } = {},
 ): Promise<BriefingStatus> {
   const now = opts.now ?? new Date();
-  const todayStart = startOfLocalDay(now);
-  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  const config = (await prisma.automationConfig.findUnique({
+    where: { userId },
+    select: { dailyBriefing: true, briefingTime: true, timezone: true },
+  })) as AutomationConfigRow | null;
+  const timeZone = normalizeTimeZone(config?.timezone);
+  const today = localDayUtcRange(now, timeZone);
 
-  const [note, notification, pushSubscriptions, config] = await Promise.all([
+  const [note, notification, pushSubscriptions] = await Promise.all([
     prisma.note.findFirst({
       where: {
         userId,
         title: { startsWith: "Daily Briefing" },
-        createdAt: { gte: todayStart, lt: tomorrowStart },
+        createdAt: { gte: today.gte, lt: today.lt },
       },
       orderBy: { createdAt: "desc" },
       select: { id: true, content: true, createdAt: true },
@@ -87,22 +94,18 @@ export async function getBriefingStatus(
       where: {
         userId,
         type: "briefing",
-        createdAt: { gte: todayStart, lt: tomorrowStart },
+        createdAt: { gte: today.gte, lt: today.lt },
       },
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, message: true, createdAt: true },
     }) as Promise<NotificationRow | null>,
     prisma.pushSubscription.count({ where: { userId } }),
-    prisma.automationConfig.findUnique({
-      where: { userId },
-      select: { dailyBriefing: true, briefingTime: true },
-    }) as Promise<AutomationConfigRow | null>,
   ]);
 
-  const pushLog = await findBriefingPushLog(userId, todayStart, tomorrowStart, notification?.id);
+  const pushLog = await findBriefingPushLog(userId, today.gte, today.lt, notification?.id);
 
   return {
-    date: formatDateKey(now),
+    date: today.dateKey,
     generated: note !== null,
     note: note
       ? {
@@ -125,6 +128,7 @@ export async function getBriefingStatus(
       configured: config !== null,
       enabled: config?.dailyBriefing ?? false,
       briefingTime: config?.briefingTime ?? null,
+      timezone: timeZone,
       reason: config ? (config.dailyBriefing ? null : "disabled") : "no_config",
     },
   };
@@ -219,17 +223,4 @@ function stripMarkdown(value: string): string {
     .replace(/__/g, "")
     .replace(/`/g, "")
     .trim();
-}
-
-function startOfLocalDay(date: Date): Date {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  return start;
-}
-
-function formatDateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }

@@ -1,0 +1,108 @@
+export const DEFAULT_TIME_ZONE = "Asia/Seoul";
+
+interface LocalDateTimeParts {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+}
+
+export function normalizeTimeZone(value: unknown): string {
+  if (typeof value !== "string" || value.trim().length === 0) return DEFAULT_TIME_ZONE;
+  const tz = value.trim();
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz }).format(new Date());
+    return tz;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+export function localDateKey(now: Date = new Date(), timeZone: string = DEFAULT_TIME_ZONE): string {
+  const parts = getLocalParts(now, normalizeTimeZone(timeZone));
+  return `${parts.year}-${pad2(parts.month)}-${pad2(parts.day)}`;
+}
+
+export function localMinuteOfDay(
+  now: Date = new Date(),
+  timeZone: string = DEFAULT_TIME_ZONE,
+): number {
+  const parts = getLocalParts(now, normalizeTimeZone(timeZone));
+  return parts.hour * 60 + parts.minute;
+}
+
+export function localDayUtcRange(
+  now: Date = new Date(),
+  timeZone: string = DEFAULT_TIME_ZONE,
+): { dateKey: string; gte: Date; lt: Date } {
+  const tz = normalizeTimeZone(timeZone);
+  const dateKey = localDateKey(now, tz);
+  const nextDateKey = addDaysToDateKey(dateKey, 1);
+  return {
+    dateKey,
+    gte: localDateTimeToUtc(dateKey, "00:00", tz),
+    lt: localDateTimeToUtc(nextDateKey, "00:00", tz),
+  };
+}
+
+function localDateTimeToUtc(dateKey: string, hhmm: string, timeZone: string): Date {
+  const [year, month, day] = dateKey.split("-").map((part) => Number.parseInt(part, 10));
+  const [hour, minute] = hhmm.split(":").map((part) => Number.parseInt(part, 10));
+  const localAsUtcMs = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+
+  const firstOffset = getTimeZoneOffsetMs(new Date(localAsUtcMs), timeZone);
+  const firstUtc = localAsUtcMs - firstOffset;
+  const secondOffset = getTimeZoneOffsetMs(new Date(firstUtc), timeZone);
+  return new Date(localAsUtcMs - secondOffset);
+}
+
+function getTimeZoneOffsetMs(date: Date, timeZone: string): number {
+  const parts = getLocalParts(date, timeZone);
+  const localAsUtcMs = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+    0,
+  );
+  return localAsUtcMs - date.getTime();
+}
+
+function getLocalParts(date: Date, timeZone: string): LocalDateTimeParts {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const parts = Object.fromEntries(
+    formatter.formatToParts(date).map((part) => [part.type, part.value]),
+  );
+  const hour = Number.parseInt(parts.hour ?? "0", 10);
+  return {
+    year: Number.parseInt(parts.year ?? "1970", 10),
+    month: Number.parseInt(parts.month ?? "1", 10),
+    day: Number.parseInt(parts.day ?? "1", 10),
+    hour: hour === 24 ? 0 : hour,
+    minute: Number.parseInt(parts.minute ?? "0", 10),
+    second: Number.parseInt(parts.second ?? "0", 10),
+  };
+}
+
+function addDaysToDateKey(dateKey: string, days: number): string {
+  const [year, month, day] = dateKey.split("-").map((part) => Number.parseInt(part, 10));
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`;
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}

@@ -3,6 +3,7 @@ import { listAgentModePolicies, normalizeAgentMode } from "../agent-mode.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { runAgentForUser } from "../autonomous-agent.js";
 import { db, prisma } from "../db.js";
+import { normalizeTimeZone } from "../time-zone.js";
 
 // MEDIUM-risk tools that users may pre-approve for AUTO mode.
 // Email sending is intentionally excluded for dogfood safety: a bad auto-reply
@@ -45,6 +46,7 @@ export async function automationRoutes(app: FastifyInstance) {
       reminderAutoCheck: config.reminderAutoCheck,
       dailyBriefing: config.dailyBriefing,
       briefingTime: config.briefingTime,
+      timezone: normalizeTimeZone(configAny.timezone),
       downloadAutoOrganize: config.downloadAutoOrganize,
       autonomousAgent: configAny.autonomousAgent ?? true,
       agentMode: normalizeAgentMode(configAny.agentMode),
@@ -76,6 +78,7 @@ export async function automationRoutes(app: FastifyInstance) {
       "reminderAutoCheck",
       "dailyBriefing",
       "briefingTime",
+      "timezone",
       "downloadAutoOrganize",
       "autonomousAgent",
       "agentMode",
@@ -100,6 +103,10 @@ export async function automationRoutes(app: FastifyInstance) {
       data.agentMode = normalizeAgentMode(data.agentMode);
     }
 
+    if ("timezone" in data) {
+      data.timezone = normalizeTimeZone(data.timezone);
+    }
+
     // Validate alwaysAllowedTools — only MEDIUM-risk tools from the whitelist
     // are permitted. Drop unknown or HIGH-risk tool names silently.
     if ("alwaysAllowedTools" in data) {
@@ -120,6 +127,7 @@ export async function automationRoutes(app: FastifyInstance) {
       reminderAutoCheck: config.reminderAutoCheck,
       dailyBriefing: config.dailyBriefing,
       briefingTime: config.briefingTime,
+      timezone: normalizeTimeZone(configAny.timezone),
       downloadAutoOrganize: config.downloadAutoOrganize,
       autonomousAgent: configAny.autonomousAgent ?? true,
       agentMode: normalizeAgentMode(configAny.agentMode),

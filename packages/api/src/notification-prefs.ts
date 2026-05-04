@@ -6,6 +6,7 @@
  */
 
 import { prisma } from "./db.js";
+import { localMinuteOfDay, normalizeTimeZone } from "./time-zone.js";
 
 export type NotifCategory =
   | "email_urgent"
@@ -21,6 +22,7 @@ interface NotifPrefs {
   notifyTaskDue: boolean;
   notifyAgentProposal: boolean;
   notifyDailyBriefing: boolean;
+  timezone: string;
   quietHoursStart: string | null;
   quietHoursEnd: string | null;
 }
@@ -50,13 +52,14 @@ export function isInQuietHours(
   start: string | null,
   end: string | null,
   now: Date = new Date(),
+  timeZone: string = "Asia/Seoul",
 ): boolean {
   if (!start || !end) return false;
   const [sh, sm] = start.split(":").map((n) => Number.parseInt(n, 10));
   const [eh, em] = end.split(":").map((n) => Number.parseInt(n, 10));
   if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return false;
 
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowMin = localMinuteOfDay(now, normalizeTimeZone(timeZone));
   const startMin = sh * 60 + sm;
   const endMin = eh * 60 + em;
 
@@ -86,12 +89,14 @@ export async function shouldNotify(userId: string, category: NotifCategory): Pro
       (config as unknown as { notifyAgentProposal?: boolean }).notifyAgentProposal ?? true,
     notifyDailyBriefing:
       (config as unknown as { notifyDailyBriefing?: boolean }).notifyDailyBriefing ?? true,
+    timezone: normalizeTimeZone((config as unknown as { timezone?: string | null }).timezone),
     quietHoursStart:
       (config as unknown as { quietHoursStart?: string | null }).quietHoursStart ?? null,
     quietHoursEnd: (config as unknown as { quietHoursEnd?: string | null }).quietHoursEnd ?? null,
   };
 
   if (!categoryEnabled(prefs, category)) return false;
-  if (isInQuietHours(prefs.quietHoursStart, prefs.quietHoursEnd)) return false;
+  if (isInQuietHours(prefs.quietHoursStart, prefs.quietHoursEnd, new Date(), prefs.timezone))
+    return false;
   return true;
 }

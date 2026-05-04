@@ -25,6 +25,7 @@ interface ReadinessData {
   automationConfig: {
     dailyBriefing: boolean;
     briefingTime: string;
+    timezone: string;
     reminderAutoCheck: boolean;
     emailAutoClassify: boolean;
     autonomousAgent: boolean;
@@ -213,6 +214,7 @@ function automationCheck(data: ReadinessData): ReadinessCheck {
       ? {
           dailyBriefing: data.automationConfig.dailyBriefing,
           briefingTime: data.automationConfig.briefingTime,
+          timezone: data.automationConfig.timezone,
           reminderAutoCheck: data.automationConfig.reminderAutoCheck,
           emailAutoClassify: data.automationConfig.emailAutoClassify,
           autonomousAgent: data.automationConfig.autonomousAgent,
@@ -259,6 +261,7 @@ function briefingCheck(data: ReadinessData): ReadinessCheck {
     detail: {
       generated: data.briefing.generated,
       briefingTime: data.briefing.automation.briefingTime,
+      timezone: data.briefing.automation.timezone,
       push: data.briefing.push,
     },
   };

@@ -9,7 +9,7 @@
  * Runs every 60 seconds, checks all users with active automation configs.
  */
 
-import generateBriefing from "./briefing.js";
+import { createDailyBriefingDelivery } from "./briefing.js";
 import { prisma } from "./db.js";
 import { withDbRetry } from "./db-retry.js";
 import {
@@ -25,6 +25,12 @@ import { runProactiveActions } from "./proactive-actions.js";
 import { sendPushNotification } from "./push.js";
 import { captureError } from "./sentry.js";
 import { planHasFeature } from "./stripe.js";
+import {
+  localDateKey,
+  localDayUtcRange,
+  localMinuteOfDay,
+  normalizeTimeZone,
+} from "./time-zone.js";
 import { pushNotification } from "./websocket.js";
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -39,27 +45,17 @@ const PROACTIVE_ACTIONS_ENABLED = process.env.PROACTIVE_ACTIONS_ENABLED === "tru
 const briefingSentToday = new Map<string, string>(); // userId -> date string
 let lastWatchRenewalAt = 0;
 
-function getTodayStr(): string {
-  return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
-}
-
 /** DB-based check: did we already send a briefing notification today? */
-async function hasBriefingBeenSentToday(userId: string): Promise<boolean> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+async function hasBriefingBeenSentToday(userId: string, timeZone: string): Promise<boolean> {
+  const today = localDayUtcRange(new Date(), timeZone);
   const existing = await prisma.notification.findFirst({
     where: {
       userId,
       type: "briefing",
-      createdAt: { gte: todayStart },
+      createdAt: { gte: today.gte, lt: today.lt },
     },
   });
   return !!existing;
-}
-
-function getCurrentHHMM(): string {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
 /**
@@ -92,16 +88,19 @@ function isReconcileDue(userId: string): boolean {
  * slips (server under load, restart, DB round-trip, etc.). We still rely on
  * DB-based dedup to avoid double-sending within the same day.
  */
-function isBriefingDue(briefingTime: string | null | undefined): boolean {
+export function isBriefingDue(
+  briefingTime: string | null | undefined,
+  timeZone: string | null | undefined,
+  now: Date = new Date(),
+): boolean {
   if (!briefingTime) return false;
   const match = /^(\d{2}):(\d{2})$/.exec(briefingTime);
   if (!match) return false;
   const targetHour = Number(match[1]);
   const targetMinute = Number(match[2]);
 
-  const now = new Date();
   const targetMinutes = targetHour * 60 + targetMinute;
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes = localMinuteOfDay(now, normalizeTimeZone(timeZone));
   const delta = currentMinutes - targetMinutes;
 
   // Fire if we're within 60 minutes after the target. Don't fire early.
@@ -158,82 +157,34 @@ async function runAutomations() {
     });
     const automationPlanMap = new Map(automationUsers.map((u) => [u.id, u.plan]));
 
-    const today = getTodayStr();
-
-    // Reset briefing tracker on new day
-    for (const [userId, date] of briefingSentToday) {
-      if (date !== today) briefingSentToday.delete(userId);
-    }
-
     for (const config of configs) {
       const configUserPlan = automationPlanMap.get(config.userId) || "FREE";
+      const timeZone = normalizeTimeZone((config as unknown as { timezone?: string }).timezone);
+      const today = localDateKey(new Date(), timeZone);
 
-      // --- Daily Briefing (requires PRO+) ---
+      // --- Daily Briefing ---
       if (
         config.dailyBriefing &&
-        !briefingSentToday.has(config.userId) &&
+        briefingSentToday.get(config.userId) !== today &&
         planHasFeature(configUserPlan, "daily_briefing")
       ) {
-        if (isBriefingDue(config.briefingTime)) {
+        if (isBriefingDue(config.briefingTime, timeZone)) {
           // DB-based dedup: check if briefing was already sent today (survives restarts)
-          const alreadySent = await hasBriefingBeenSentToday(config.userId);
+          const alreadySent = await hasBriefingBeenSentToday(config.userId, timeZone);
           if (alreadySent) {
             briefingSentToday.set(config.userId, today);
             continue;
           }
           try {
             console.log(`[AUTOMATION] Generating daily briefing for ${config.userId}`);
-            const briefing = await generateBriefing(config.userId);
-
-            // Save as note
-            await prisma.note.create({
-              data: {
-                userId: config.userId,
-                title: `Daily Briefing — ${new Date().toLocaleDateString("ko-KR")}`,
-                content: briefing,
-              },
-            });
-
-            // Create notification
-            const notification = await prisma.notification.create({
-              data: {
-                userId: config.userId,
-                type: "briefing",
-                title: "Daily Briefing Ready",
-                message: briefing.slice(0, 200) + (briefing.length > 200 ? "..." : ""),
-              },
-            });
-
-            const briefingMsg = briefing.slice(0, 200) + (briefing.length > 200 ? "..." : "");
-
-            // Push via WebSocket
-            pushNotification(config.userId, {
-              id: notification.id,
-              type: "briefing",
-              title: "Daily Briefing Ready",
-              message: briefingMsg,
-              createdAt: notification.createdAt.toISOString(),
-            });
-
-            // Send browser push — tap opens today's briefing page
-            sendPushNotification(
-              config.userId,
-              {
-                title: "Daily Briefing Ready",
-                body: briefingMsg,
-                url: "/briefing",
-                notificationId: notification.id,
-              },
-              "daily_briefing",
-            );
-
+            await createDailyBriefingDelivery(config.userId);
             briefingSentToday.set(config.userId, today);
             console.log(`[AUTOMATION] Briefing delivered to ${config.userId}`);
           } catch (err) {
             console.error(`[AUTOMATION] Briefing failed for ${config.userId}:`, err);
             captureError(err, {
               tags: { scope: "automation.briefing", userId: config.userId },
-              extra: { briefingTime: config.briefingTime },
+              extra: { briefingTime: config.briefingTime, timeZone },
             });
           }
         }

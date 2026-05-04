@@ -33,6 +33,7 @@ interface BriefingStatus {
     configured: boolean;
     enabled: boolean;
     briefingTime: string | null;
+    timezone: string;
     reason: "no_config" | "disabled" | null;
   };
 }
@@ -51,6 +52,7 @@ const EMPTY_STATUS: BriefingStatus = {
     configured: false,
     enabled: false,
     briefingTime: null,
+    timezone: "Asia/Seoul",
     reason: "no_config",
   },
 };
