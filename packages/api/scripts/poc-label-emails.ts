@@ -1,5 +1,5 @@
 /**
- * POC ground-truth extractor (Day 5 of POC.md sprint).
+ * Judge ground-truth extractor — the labelling half of the accuracy gate.
  *
  * Pulls the N most-recent EmailMessage rows for a given user out of the
  * database and writes them to a JSON file with empty `label` fields. The

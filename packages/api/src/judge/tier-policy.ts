@@ -126,8 +126,9 @@ export function tierFromFeatures(
   //    misclassification. The senderTrust floor was added 2026-06-12: precise
   //    models score routine system notices (invoices, bills, deploy alerts)
   //    conf=1.0/rev=1.0 and auto-claimed them — mail from a sender with no
-  //    trust signal must never be auto-handled. Per POC.md OUT scope, AUTO is
-  //    *classified only* during the POC; actual execution stays disabled.
+  //    trust signal must never be auto-handled. AUTO is *classification only*
+  //    (CLAUDE.md doctrine); execution is gated OFF by default behind
+  //    AUTO_TIER_EXECUTION — see email-action-trigger.ts isActionableTier.
   if (
     f.reversibility >= t.auto.reversibility &&
     f.confidence >= t.auto.confidence &&
