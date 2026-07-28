@@ -494,11 +494,11 @@ private struct UpcomingSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ColumnHeader(title: "UPCOMING")
+            ColumnHeader(title: L("section.upcoming"))
             if let week = model.weekAhead {
                 let days = upcomingAgenda(now: Date(), events: week)
                 if days.isEmpty {
-                    EmptyState(icon: "calendar", title: "No events this week")
+                    EmptyState(icon: "calendar", title: L("calendar.noEventsWeek"))
                         .padding(.vertical, Theme.s2)
                 } else {
                     ForEach(days) { day in
@@ -705,7 +705,7 @@ private struct RecentPushColumn: View {
         VStack(alignment: .leading, spacing: 12) {
             ColumnHeader(title: L("section.recentPush"))
             if items.isEmpty {
-                EmptyState(icon: "checkmark.shield", title: L("push.nothingNeedsYou"))
+                EmptyState(icon: Tier.push.emptyIcon, title: Tier.push.emptyTitle)
                     .padding(.top, Theme.s6)
             } else {
                 ScrollView {
@@ -810,8 +810,8 @@ private struct AccountColumn: View {
                 .padding(.top, 4)
             }
 
-            SubtleTextButton(title: "Preferences") { actions.onOpenPreferences() }
-            SubtleTextButton(title: "Quit Klorn") { actions.onQuit() }
+            SubtleTextButton(title: L("prefs.title")) { actions.onOpenPreferences() }
+            SubtleTextButton(title: L("menu.quit")) { actions.onQuit() }
             Spacer()
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
@@ -855,6 +855,7 @@ struct FullView: View {
                     ReadingPane(actions: actions).frame(maxWidth: .infinity)
                 }
             }
+            .onAppear { model.presentTierGuideIfFirstRun() }
             if model.showPreferences {
                 // Scrim: click-off dismiss (a11y users use the Done button instead).
                 // Slate-navy tint, not pure black — matches the light theme.
@@ -862,6 +863,14 @@ struct FullView: View {
                     .onTapGesture { model.showPreferences = false }
                     .accessibilityHidden(true)
                 PreferencesView(actions: actions)
+            }
+            // Preferences wins if both are up: the guide is ambient explanation,
+            // a settings panel is something the user just asked for.
+            if model.showTierGuide && !model.showPreferences {
+                Theme.text.opacity(0.45)
+                    .onTapGesture { model.dismissTierGuide() }
+                    .accessibilityHidden(true)
+                TierGuide { model.dismissTierGuide() }
             }
         }
         .frame(width: TopBarMetrics.full.width, height: TopBarMetrics.full.height)
@@ -966,6 +975,9 @@ private struct FullSidebar: View {
                     .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
                 }
                 .buttonStyle(.plain)
+                .help(tier.blurb)
+                .accessibilityLabel(
+                    L("tier.row.a11y", tier.label, model.queue?.summary.count(for: tier) ?? 0, tier.blurb))
             }
 
             // Commitments: promises made / replies awaited — the follow-through
@@ -1066,6 +1078,7 @@ private struct FullSidebar: View {
             } else {
                 sidebarAction(L("auth.signInGoogle")) { actions.onSignIn() }
             }
+            sidebarAction(L("guide.reopen"), dim: true) { model.showTierGuide = true }
             sidebarAction(L("prefs.title"), dim: true) { model.showPreferences = true }
             sidebarAction(L("menu.quit"), dim: true) { actions.onQuit() }
         }
@@ -1158,10 +1171,7 @@ private struct FullList: View {
                 searchResultsList
             } else if items.isEmpty {
                 Spacer()
-                EmptyState(
-                    icon: tier == .push ? "checkmark.shield" : "tray",
-                    title: "Nothing in \(tier.label).",
-                    hint: tier == .push ? "Klorn is holding the line — nothing needs you." : nil)
+                EmptyState(icon: tier.emptyIcon, title: tier.emptyTitle, hint: tier.blurb)
                 Spacer()
             } else {
                 ScrollView {
@@ -1195,7 +1205,7 @@ private struct FullList: View {
             Spacer()
             EmptyState(
                 icon: "magnifyingglass",
-                title: "No mail matches “\(query.trimmingCharacters(in: .whitespaces))”.")
+                title: L("mail.noMatches", query.trimmingCharacters(in: .whitespaces)))
             Spacer()
         }
     }
@@ -1227,7 +1237,7 @@ private struct AssistantColumn: View {
                             VStack(spacing: Theme.s4) {
                                 EmptyState(
                                     icon: "sparkles",
-                                    title: "Ask about your mail, calendar, or day.")
+                                    title: L("assistant.empty"))
                                 // One-click starters: discoverability beats a
                                 // blank prompt. Each sends immediately.
                                 VStack(spacing: Theme.s2) {
@@ -1396,12 +1406,12 @@ private struct CommitmentsList: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         if !groups.waitingOn.isEmpty {
-                            ColumnHeader(title: "WAITING ON")
+                            ColumnHeader(title: L("section.waitingOn"))
                                 .padding(.horizontal, 24).padding(.top, 14).padding(.bottom, 4)
                             ForEach(groups.waitingOn) { CommitmentRow(item: $0) }
                         }
                         if !groups.iOwe.isEmpty {
-                            ColumnHeader(title: "I OWE")
+                            ColumnHeader(title: L("section.iOwe"))
                                 .padding(.horizontal, 24).padding(.top, 14).padding(.bottom, 4)
                             ForEach(groups.iOwe) { CommitmentRow(item: $0) }
                         }
@@ -1615,7 +1625,7 @@ private struct ReadingPane: View {
                 content(email)
             } else if model.selectedItemId != nil {
                 centered {
-                    EmptyState(icon: "doc.text", title: "No preview for this item.")
+                    EmptyState(icon: "doc.text", title: L("reading.noPreview"))
                 }
             } else {
                 centered {

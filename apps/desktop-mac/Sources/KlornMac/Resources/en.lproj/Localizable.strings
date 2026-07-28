@@ -260,3 +260,31 @@
 "calendar.noEvents" = "No events today";
 "calendar.eventRow.a11y" = "%1$@, %2$@. Shows details.";
 "mail.needsReconnect" = "%@ — needs reconnect";
+
+/* Tier meanings — the product's core idea, previously unexplained in-app */
+"tier.push.blurb" = "Interrupts you. Someone is waiting on a reply, or it's time-critical.";
+"tier.queue.blurb" = "Waits for you. Worth reading today, but not worth a banner.";
+"tier.silent.blurb" = "Filed, not deleted. Newsletters and receipts — still here when you look.";
+"tier.auto.blurb" = "Sorted on its own. Klorn was confident enough not to ask.";
+
+"tier.push.empty" = "Nothing needs you right now.";
+"tier.queue.empty" = "Nothing waiting to be read.";
+"tier.silent.empty" = "Nothing filed here yet.";
+"tier.auto.empty" = "Klorn hasn't sorted anything on its own yet.";
+
+/* First-run guide */
+"guide.title" = "How Klorn sorts your mail";
+"guide.intro" = "Every message lands in one of four tiers. Nothing is deleted and nothing is answered without you — the tier only decides how loudly it reaches you.";
+"guide.correcting" = "Got one wrong? Move it to another tier and Klorn learns from the correction. Each message also shows why it landed where it did.";
+"guide.done" = "Got it";
+"guide.reopen" = "How sorting works";
+
+"tier.row.a11y" = "%1$@, %2$d messages. %3$@";
+"calendar.noEventsWeek" = "No events this week";
+"reading.noPreview" = "No preview for this item.";
+"mail.noMatches" = "No mail matches \u201C%@\u201D.";
+
+"section.upcoming" = "UPCOMING";
+"section.waitingOn" = "WAITING ON";
+"section.iOwe" = "I OWE";
+"assistant.empty" = "Ask about your mail, calendar, or day.";

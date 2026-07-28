@@ -992,6 +992,24 @@ func runSelfChecks() async -> Bool {
     check("full joins Cmd+Tab",
           TopBarController.activationPolicy(for: .full) == .regular)
 
+    print("Tier guide:")
+    // The one first run is the only one there is: showing the explainer over a
+    // signed-out shell spends it on someone with no mail to explain.
+    check("offered on a first run with a mailbox",
+          GuideSeen.shouldPresent(seen: false, signedIn: true))
+    check("not offered before sign-in",
+          !GuideSeen.shouldPresent(seen: false, signedIn: false))
+    check("not offered twice", !GuideSeen.shouldPresent(seen: true, signedIn: true))
+
+    // Every tier must explain itself: a blank blurb would leave the sidebar
+    // exactly as unexplained as before, and only for that one tier.
+    check("every tier has a distinct meaning",
+          Set(Tier.allCases.map(\.blurb)).count == Tier.allCases.count
+          && Tier.allCases.allSatisfy { !$0.blurb.isEmpty && !$0.blurb.hasPrefix("tier.") })
+    check("every tier has an empty state",
+          Set(Tier.allCases.map(\.emptyTitle)).count == Tier.allCases.count
+          && Tier.allCases.allSatisfy { !$0.emptyTitle.hasPrefix("tier.") })
+
     print("Localization:")
     // A key present in one language and missing in another ships a raw key
     // ("prefs.done") to whoever runs the other language — the kind of bug that
@@ -1028,8 +1046,37 @@ func runSelfChecks() async -> Bool {
         L("reading.replyTo", "x"), L("push.sendReply.a11y", "x", "y"),
         L("prefs.updates.get", "x"), L("prefs.updates.upToDate", "x"),
         L("prefs.shortcut.change.a11y", "x"), L("prefs.infoRow.a11y", "x", "y"),
-        L("engagement.combined.a11y", "x", "y"),
+        L("engagement.combined.a11y", "x", "y"), L("proposals.row.a11y", "x", "y"),
+        L("mail.needsReconnect", "x"), L("calendar.eventRow.a11y", "x", "y"),
+        L("mail.noMatches", "x"),
     ].allSatisfy { $0.contains("x") && !$0.contains("%") })
+    // Mixed string+integer formats: the argument ORDER must survive too, since
+    // a "%1$@ %2$d" fed the wrong way round is the same pointer-read crash.
+    check("mixed formats render", [
+        L("tier.row.a11y", "x", 3, "y"), L("proposals.a11y", 2),
+    ].allSatisfy { !$0.contains("%") })
+
+    // Three separate passes each missed strings here, because the misses were
+    // never in `Text("…")` — they were in helpers that take a plain String
+    // (ColumnHeader, EmptyState, sidebarAction, SubtleTextButton). Grepping for
+    // the helpers is what actually finds them, so the harness does it.
+    let localizingHelpers = [
+        "ColumnHeader(title: \"", "EmptyState(icon: \"", "sidebarAction(\"",
+        "SubtleTextButton(title: \"", "actionItem(\"",
+    ]
+    let unlocalized = swiftFiles.filter { url in
+        guard url.lastPathComponent != "SelfCheck.swift",
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return false }
+        // EmptyState's first argument is an SF Symbol name, not a string the
+        // user reads; only its `title:` matters.
+        return localizingHelpers.contains { helper in
+            helper == "EmptyState(icon: \"" ? text.contains("\", title: \"") : text.contains(helper)
+        }
+    }
+    check("no user-facing string bypasses the catalogue", unlocalized.isEmpty)
+    if !unlocalized.isEmpty {
+        print("      offenders: \(unlocalized.map(\.lastPathComponent).joined(separator: ", "))")
+    }
 
     check("override wins over the system language",
           L10n.resolvedCode(override: .korean, preferred: ["en-US"]) == "ko")

@@ -29,6 +29,26 @@ final class AppModel {
     /// Drives the Preferences overlay in the full view.
     var showPreferences = false
 
+    /// Drives the tier explainer. Set on first run and by the sidebar's
+    /// "How sorting works", which is what keeps it re-readable.
+    var showTierGuide = false
+
+    /// Close the guide and remember it was seen. Dismissing IS the
+    /// acknowledgement — a separate "don't show again" would be a second
+    /// decision about a screen the user has already finished with.
+    func dismissTierGuide() {
+        showTierGuide = false
+        GuideSeen.value = true
+    }
+
+    /// Offer the guide once, after sign-in has actually produced a mailbox to
+    /// explain. Called when the full view appears.
+    func presentTierGuideIfFirstRun() {
+        if GuideSeen.shouldPresent(seen: GuideSeen.value, signedIn: phase == .signedIn) {
+            showTierGuide = true
+        }
+    }
+
     /// What the full view's list column shows. Model state rather than view
     /// state so any surface can open the full view already pointed at the right
     /// thing — a tier count in the compact panel, or an urgent-mail card.
