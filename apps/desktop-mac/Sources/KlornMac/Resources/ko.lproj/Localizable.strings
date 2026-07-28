@@ -236,8 +236,26 @@
 
 /* Menu bar menu */
 "menu.showBar" = "상단 바 표시";
-"menu.openWeb" = "웹 수신함 열기";
 "menu.preferences" = "환경설정…";
 "menu.signIn" = "로그인…";
 "menu.quit" = "Klorn 종료";
 "mail.reclassifying" = "다시 분류 중";
+
+/* Proposals — actions awaiting approval */
+"proposals.title" = "제안";
+"proposals.a11y" = "제안, 승인 대기 %d건";
+"proposals.approve" = "승인";
+"proposals.decline" = "거절";
+"proposals.empty" = "기다리는 항목이 없습니다.";
+"proposals.empty.detail" = "Klorn이 혼자 처리할 수 없는 일이 생기면 여기서 물어봅니다.";
+"proposals.row.a11y" = "%1$@. %2$@";
+
+/* Column headers and states the first pass missed */
+"section.inbox" = "수신함";
+"section.recentPush" = "최근 PUSH";
+"section.todayShort" = "오늘";
+"push.nothingNeedsYou" = "지금 처리할 것이 없습니다.";
+"auth.signInGoogle" = "Google로 로그인";
+"calendar.noEvents" = "오늘 일정 없음";
+"calendar.eventRow.a11y" = "%1$@, %2$@. 세부 정보를 봅니다.";
+"mail.needsReconnect" = "%@ — 다시 연결 필요";

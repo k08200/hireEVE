@@ -40,6 +40,9 @@ final class PushCardController {
     /// "Show all N": the AppDelegate wires this to the bar's expanded panel.
     /// The card hides itself first — the panel lists the same PUSH items.
     var onShowAll: (() -> Void)?
+    /// Open one item in the full view's reading pane. Set by the AppDelegate;
+    /// unset, "Open" just dismisses the card rather than silently doing nothing.
+    var onOpenInApp: ((FirewallItem) -> Void)?
 
     init(model: AppModel) {
         self.model = model
@@ -160,7 +163,7 @@ final class PushCardController {
     private func makeActions() -> PushCardActions {
         PushCardActions(
             onSend: { [weak self] index in self?.send(index) },
-            onOpen: { [weak self] in self?.openOnWeb() },
+            onOpen: { [weak self] in self?.openInApp() },
             onDismiss: { [weak self] in self?.advance() },  // local only — never archives
             onSnooze: { [weak self] option in self?.snooze(option) },
             onRetry: { [weak self] in
@@ -216,10 +219,12 @@ final class PushCardController {
         }
     }
 
-    private func openOnWeb() {
-        if let url = TopBarController.resolveURL(state.item) {
-            NSWorkspace.shared.open(url)
-        }
+    /// "Open" now lands in Klorn's own reading pane — replying, re-tiering and
+    /// snoozing all live there, so the web round trip bought nothing.
+    private func openInApp() {
+        let item = state.item
+        hide()
+        if let item { onOpenInApp?(item) }
         advance()
     }
 
@@ -313,7 +318,7 @@ final class PushCardController {
             else { return event }
             switch action {
             case .send(let index): self.send(index)
-            case .open: self.openOnWeb()
+            case .open: self.openInApp()
             case .dismiss: self.advance()
             }
             return nil  // consumed

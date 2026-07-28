@@ -189,6 +189,13 @@ final class TopBarController {
         state == .collapsed ? .accessory : .regular
     }
 
+    /// Show one item in the full view's reading pane. The single in-app answer
+    /// to "open this", shared by the panel rows and the urgent-mail card.
+    func openInApp(_ item: FirewallItem) {
+        setState(.full)
+        Task { await model.select(item) }
+    }
+
     private func makeActions() -> TopBarActions {
         TopBarActions(
             onExpand: { [weak self] in self?.setState(.expanded) },
@@ -198,11 +205,17 @@ final class TopBarController {
             onClose: { [weak self] in self?.dismiss() },     // header ✕ → back to rest
             onSignIn: { [weak self] in guard let self else { return }; Task { await self.model.signIn() } },
             onSignOut: { [weak self] in self?.model.signOut() },
-            onOpenWeb: { [weak self] item in self?.open(item) },
-            onOpenInApp: { [weak self] item in
+            onOpenInApp: { [weak self] item in self?.openInApp(item) },
+            onOpenTier: { [weak self] tier in
                 guard let self else { return }
+                self.model.showTier(tier)
                 self.setState(.full)
-                Task { await self.model.select(item) }
+            },
+            onOpenFull: { [weak self] in self?.setState(.full) },
+            onOpenProposals: { [weak self] in
+                guard let self else { return }
+                self.model.listMode = .proposals
+                self.setState(.full)
             },
             onDismiss: { [weak self] item in guard let self else { return }; Task { await self.model.dismiss(item) } },
             onSnooze: { [weak self] item, option in
@@ -275,27 +288,4 @@ final class TopBarController {
     /// Animate the panel morph unless the user asked for reduced motion. Pure for testing.
     nonisolated static func shouldAnimateFrame(reduceMotion: Bool) -> Bool { !reduceMotion }
 
-    private func open(_ item: FirewallItem?) {
-        guard let url = Self.resolveURL(item) else {
-            Log.app.debug("top bar open: no resolvable URL")
-            return
-        }
-        NSWorkspace.shared.open(url)
-    }
-
-    /// Prefer an absolute item link; otherwise join a relative href onto the web
-    /// base; with no item (or no href) fall back to the inbox root.
-    nonisolated static func resolveURL(_ item: FirewallItem?) -> URL? {
-        let base = Config.webBaseURL
-        guard let item else { return URL(string: base) }
-        if let href = item.href, let url = URL(string: href),
-           let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" {
-            return url
-        }
-        if let href = item.href, !href.isEmpty {
-            let joined = href.hasPrefix("/") ? base + href : base + "/" + href
-            return URL(string: joined)
-        }
-        return URL(string: base)
-    }
 }

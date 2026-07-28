@@ -29,6 +29,18 @@ final class AppModel {
     /// Drives the Preferences overlay in the full view.
     var showPreferences = false
 
+    /// What the full view's list column shows. Model state rather than view
+    /// state so any surface can open the full view already pointed at the right
+    /// thing — a tier count in the compact panel, or an urgent-mail card.
+    var listMode: ListMode = .tier(.push)
+
+    /// Open the full view on `tier`, and clear any reading-pane selection so the
+    /// pane doesn't keep showing a message from the tier the user just left.
+    func showTier(_ tier: Tier) {
+        listMode = .tier(tier)
+        clearSelection()
+    }
+
     // Reading pane (full view): the selected row + its loaded email content.
     private(set) var selectedItemId: String?
     private(set) var openedEmail: EmailDetail?
@@ -317,7 +329,7 @@ final class AppModel {
     /// Today's autonomous-agent receipt (nil until first load). Best-effort.
     private(set) var agentToday: TodayActions?
 
-    private func refreshAgentToday() async {
+    func refreshAgentToday() async {
         do {
             agentToday = try await api.get(
                 "/api/automations/today-actions", as: TodayActions.self)
@@ -702,6 +714,52 @@ final class AppModel {
         }
     }
 
+    // MARK: Agent proposals
+
+    /// Actions Klorn is waiting on approval for. Until now these could only be
+    /// approved on the web, which is why the agent's daily receipt linked out.
+    private(set) var pendingActions: [PendingActionsResponse.Action] = []
+    private(set) var pendingActionError: String?
+    /// Ids currently being approved/rejected — the row disables so a double
+    /// click can't fire the action twice.
+    private(set) var resolvingActions: Set<String> = []
+
+    private func refreshPendingActions() async {
+        do {
+            let resp: PendingActionsResponse = try await api.get(
+                "/api/chat/pending-actions", as: PendingActionsResponse.self)
+            pendingActions = resp.actions
+            pendingActionError = nil
+        } catch {
+            Log.app.debug("pending actions fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Approve or reject a proposal. The row is removed optimistically — the
+    /// user has decided, and leaving it on screen invites a second click — and
+    /// restored if the server refuses.
+    func resolvePendingAction(_ action: PendingActionsResponse.Action, approve: Bool) {
+        guard !resolvingActions.contains(action.id) else { return }
+        let previous = pendingActions
+        resolvingActions.insert(action.id)
+        pendingActions.removeAll { $0.id == action.id }
+        pendingActionError = nil
+        Task {
+            do {
+                try await api.post(
+                    "/api/chat/pending-actions/\(action.id)/\(approve ? "approve" : "reject")")
+                // The agent receipt counts this action too, so refresh both.
+                await refreshAgentToday()
+                await refreshPendingActions()
+            } catch {
+                pendingActions = previous
+                pendingActionError = Self.automationErrorText(error)
+                Log.app.debug("pending action resolve failed: \(String(describing: error), privacy: .private)")
+            }
+            resolvingActions.remove(action.id)
+        }
+    }
+
     /// GET /api/calendar/:id/prep-pack for the meeting card. Best-effort.
     func fetchPrepPack(eventId: String) async -> MeetingPrepPack? {
         do {
@@ -725,6 +783,7 @@ final class AppModel {
         Task { await refreshCommitments() }
         Task { await refreshAgentToday() }
         Task { await refreshAutomation() }
+        Task { await refreshPendingActions() }
         Task { await checkForUpdateIfDue() }
         do {
             let selectionAtFetch = selectedInbox

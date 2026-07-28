@@ -237,8 +237,26 @@
 
 /* Menu bar menu */
 "menu.showBar" = "Show top bar";
-"menu.openWeb" = "Open web inbox";
 "menu.preferences" = "Preferences…";
 "menu.signIn" = "Sign in…";
 "menu.quit" = "Quit Klorn";
 "mail.reclassifying" = "re-classifying";
+
+/* Proposals — actions awaiting approval */
+"proposals.title" = "Proposals";
+"proposals.a11y" = "Proposals, %d awaiting approval";
+"proposals.approve" = "Approve";
+"proposals.decline" = "Decline";
+"proposals.empty" = "Nothing waiting on you.";
+"proposals.empty.detail" = "When Klorn wants to do something it can't do on its own, it asks here.";
+"proposals.row.a11y" = "%1$@. %2$@";
+
+/* Column headers and states the first pass missed */
+"section.inbox" = "INBOX";
+"section.recentPush" = "RECENT PUSH";
+"section.todayShort" = "TODAY";
+"push.nothingNeedsYou" = "Nothing needs you right now.";
+"auth.signInGoogle" = "Sign in with Google";
+"calendar.noEvents" = "No events today";
+"calendar.eventRow.a11y" = "%1$@, %2$@. Shows details.";
+"mail.needsReconnect" = "%@ — needs reconnect";

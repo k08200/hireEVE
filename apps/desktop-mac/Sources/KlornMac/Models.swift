@@ -236,6 +236,30 @@ struct TodayActions: Codable, Sendable {
     let totals: Totals
 }
 
+/// GET /api/chat/pending-actions — the actions Klorn wants approved.
+///
+/// Approving these was the last thing that only the web app could do, which is
+/// what kept the "review the agent's work" link pointing out of the app.
+struct PendingActionsResponse: Codable, Sendable {
+    struct Action: Codable, Sendable, Identifiable, Hashable {
+        let id: String
+        let toolName: String
+        let targetLabel: String?
+        let reasoning: String?
+        let createdAt: String?
+
+        /// "Send email" rather than "send_email" — the tool name is an internal
+        /// identifier and reads like one. Unknown tools degrade to a
+        /// de-underscored form instead of being hidden: an action the user
+        /// can't identify is still an action they must be able to decline.
+        var title: String {
+            toolName.split(separator: "_").map(\.capitalized).joined(separator: " ")
+        }
+    }
+
+    let actions: [Action]
+}
+
 /// One glanceable line for the TODAY column — "2 done · 1 awaiting approval".
 /// nil when the agent did nothing today (the block hides entirely; an empty
 /// receipt is noise, not signal). Pure.

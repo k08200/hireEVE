@@ -15,10 +15,14 @@ struct TopBarActions {
     let onClose: () -> Void
     let onSignIn: () -> Void
     let onSignOut: () -> Void
-    /// Open an item on the web inbox; nil opens the inbox root.
-    let onOpenWeb: (FirewallItem?) -> Void
     /// Open an item IN-APP: jump to the full view and show it in the reading pane.
     let onOpenInApp: (FirewallItem) -> Void
+    /// Open a whole tier IN-APP: jump to the full view with that tier listed.
+    let onOpenTier: (Tier) -> Void
+    /// Jump to the full view without changing what it is showing.
+    let onOpenFull: () -> Void
+    /// Jump to the full view's proposals list — the actions awaiting approval.
+    let onOpenProposals: () -> Void
     /// Dismiss (archive) an item out of the queue.
     let onDismiss: (FirewallItem) -> Void
     /// Snooze an item to resurface at the chosen time.
@@ -283,7 +287,7 @@ struct ExpandedPanel: View {
                 columnDivider
                 RecentPushColumn(actions: actions)
                 columnDivider
-                TodayColumn()
+                TodayColumn(actions: actions)
                 columnDivider
                 AccountColumn(actions: actions)
             }
@@ -339,21 +343,22 @@ struct ExpandedPanel: View {
     }
 }
 
-/// Column 1 — per-tier open counts; click opens the web inbox.
+/// Column 1 — per-tier open counts; click opens that tier in the full view.
 /// TODAY — the day's calendar at a glance (current meeting + what's next).
 /// Rows with a meeting link open it directly; others are display-only.
 private struct TodayColumn: View {
+    let actions: TopBarActions
     @Environment(AppModel.self) private var model
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            ColumnHeader(title: "TODAY")
+            ColumnHeader(title: L("section.todayShort"))
             // Scrollable: TODAY + the 7-day UPCOMING agenda share the column,
             // and a busy week must not push the receipt off a 380pt panel.
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
             if let briefing = model.briefing {
-                BriefingCard(briefing: briefing)
+                BriefingCard(briefing: briefing) { actions.onOpenFull() }
             }
             if let today = model.today, today.total > 0 {
                 if let current = today.current {
@@ -367,15 +372,15 @@ private struct TodayColumn: View {
                         .font(.caption2).foregroundStyle(Theme.textDim)
                 }
             } else {
-                Text(model.today == nil ? "Loading…" : "No events today")
+                Text(model.today == nil ? L("bar.loading") : L("calendar.noEvents"))
                     .font(.caption).foregroundStyle(Theme.textDim)
             }
 
             // The agent's daily receipt — trust needs visibility. Hidden on
-            // no-activity days (an empty receipt is noise). Click → web inbox,
-            // where pending proposals are approved/declined.
+            // no-activity days (an empty receipt is noise). Click opens the
+            // proposals list, where pending actions are approved or declined.
             if let agent = model.agentToday, let line = agentActivityLine(agent.totals) {
-                Button { if let url = URL(string: Config.webBaseURL) { NSWorkspace.shared.open(url) } } label: {
+                Button { actions.onOpenProposals() } label: {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 5) {
                             Image(systemName: "gearshape")
@@ -403,7 +408,7 @@ private struct TodayColumn: View {
                 .padding(.top, 6)
                 .accessibilityLabel(L("today.a11y", line))
             }
-            UpcomingSection()
+            UpcomingSection(actions: actions)
                 }
             }
         }
@@ -446,14 +451,16 @@ private struct TodayColumn: View {
     }
 }
 
-/// BRIEFING preview card — the day's AI briefing, click-through to the web
-/// app. One view shared by the compact panel's TodayColumn and the full-mode
-/// sidebar so both surfaces render the same card (dogfood 2026-07-23).
+/// BRIEFING preview card — the day's AI briefing. One view shared by the
+/// compact panel's TodayColumn and the full-mode sidebar so both surfaces
+/// render the same card (dogfood 2026-07-23). Clicking opens the full view,
+/// which is where the day is actually worked.
 private struct BriefingCard: View {
     let briefing: String
+    let onOpen: () -> Void
 
     var body: some View {
-        Button { if let url = URL(string: Config.webBaseURL) { NSWorkspace.shared.open(url) } } label: {
+        Button { onOpen() } label: {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 5) {
                     Image(systemName: "sun.max").font(.caption2).foregroundStyle(Theme.accent)
@@ -482,6 +489,7 @@ private struct BriefingCard: View {
 /// compact panel's TodayColumn and the full-mode sidebar — same view, same
 /// `model.weekAhead` + `upcomingAgenda` data path.
 private struct UpcomingSection: View {
+    let actions: TopBarActions
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -499,7 +507,7 @@ private struct UpcomingSection: View {
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(Theme.textDim)
                             ForEach(day.events) { event in
-                                UpcomingEventRow(event: event)
+                                UpcomingEventRow(event: event, actions: actions)
                             }
                         }
                     }
@@ -514,9 +522,11 @@ private struct UpcomingSection: View {
 
 /// One UPCOMING row: start time + title, quiet at rest. Click opens a
 /// lightweight detail popover (title / time / location, Join when there's a
-/// meeting link) with "Open in Klorn" → the web calendar.
+/// meeting link) with "Open in Klorn" → the full view, which carries today and
+/// the week ahead.
 private struct UpcomingEventRow: View {
     let event: CalendarEventWire
+    let actions: TopBarActions
     @State private var showDetail = false
     @State private var hovering = false
 
@@ -527,7 +537,7 @@ private struct UpcomingEventRow: View {
     var body: some View {
         Button { showDetail = true } label: {
             HStack(alignment: .top, spacing: 8) {
-                Text(event.allDay ? "All day" : String(timeLabel.prefix(5)))
+                Text(event.allDay ? L("calendar.allDay") : String(timeLabel.prefix(5)))
                     .font(.caption.monospacedDigit()).foregroundStyle(Theme.textDim)
                     .frame(width: 48, alignment: .leading)
                 VStack(alignment: .leading, spacing: 1) {
@@ -550,7 +560,7 @@ private struct UpcomingEventRow: View {
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: hovering)
         .accessibilityLabel(
-            "\(event.title), \(event.allDay ? "all day" : timeLabel). Shows details.")
+            L("calendar.eventRow.a11y", event.title, event.allDay ? L("calendar.allDay") : timeLabel))
         .popover(isPresented: $showDetail, arrowEdge: .trailing) { detail }
     }
 
@@ -574,11 +584,7 @@ private struct UpcomingEventRow: View {
                         .buttonStyle(PrimaryButtonStyle())
                         .accessibilityLabel(L("calendar.join.a11y", event.title))
                 }
-                Button(L("calendar.openInKlorn")) {
-                    if let url = URL(string: Config.webBaseURL + "/calendar") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
+                Button(L("calendar.openInKlorn")) { actions.onOpenFull() }
                 .buttonStyle(.bordered).controlSize(.small)
             }
             .padding(.top, 4)
@@ -631,7 +637,7 @@ struct InboxSelectorMenu: View {
                 // menu drops SwiftUI shapes and renders symbols colorless
                 // (see the tier-dot note on FullRow) — words keep the
                 // reconnect signal perceivable, and color-independent.
-                Text(needsReconnect ? "\(label) — needs reconnect" : label)
+                Text(needsReconnect ? L("mail.needsReconnect", label) : label)
                 if value == model.selectedInbox { Image(systemName: "checkmark") }
             }
         }
@@ -645,13 +651,13 @@ private struct InboxColumn: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                ColumnHeader(title: "INBOX")
+                ColumnHeader(title: L("section.inbox"))
                 Spacer()
                 InboxSelectorMenu()
             }
             ForEach(Tier.displayOrder) { tier in
                 InboxTierRow(tier: tier, count: model.queue?.summary.count(for: tier) ?? 0) {
-                    actions.onOpenWeb(nil)
+                    actions.onOpenTier(tier)
                 }
             }
             Spacer()
@@ -660,8 +666,8 @@ private struct InboxColumn: View {
     }
 }
 
-/// One glanceable tier count in the expanded panel — hover invites the click
-/// through to the web inbox without shouting at rest.
+/// One glanceable tier count in the expanded panel — clicking opens that tier
+/// in the full view. Hover invites the click without shouting at rest.
 private struct InboxTierRow: View {
     let tier: Tier
     let count: Int
@@ -697,9 +703,9 @@ private struct RecentPushColumn: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ColumnHeader(title: "RECENT PUSH")
+            ColumnHeader(title: L("section.recentPush"))
             if items.isEmpty {
-                EmptyState(icon: "checkmark.shield", title: "Nothing needs you right now.")
+                EmptyState(icon: "checkmark.shield", title: L("push.nothingNeedsYou"))
                     .padding(.top, Theme.s6)
             } else {
                 ScrollView {
@@ -772,15 +778,14 @@ private struct AccountColumn: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            ColumnHeader(title: "ACCOUNT")
+            ColumnHeader(title: L("prefs.section.account"))
             if model.phase == .signedIn {
                 if let version = model.updateAvailable {
                     UpdateRow(version: version)
                 }
-                SubtleTextButton(title: "Open web inbox", dim: false) { actions.onOpenWeb(nil) }
-                SubtleTextButton(title: "Sign out") { actions.onSignOut() }
+                SubtleTextButton(title: L("prefs.account.signOut")) { actions.onSignOut() }
             } else {
-                SubtleTextButton(title: "Sign in with Google", dim: false) { actions.onSignIn() }
+                SubtleTextButton(title: L("auth.signInGoogle"), dim: false) { actions.onSignIn() }
             }
             if model.phase == .signedIn, let usage = model.usage {
                 VStack(alignment: .leading, spacing: 5) {
@@ -823,22 +828,29 @@ enum ListMode: Equatable {
     case tier(Tier)
     case commitments
     case assistant
+    /// Actions Klorn wants approved. Approving these used to require the web
+    /// app, which is what kept the agent receipt linking out of Klorn.
+    case proposals
 }
 
 struct FullView: View {
     @Environment(AppModel.self) private var model
     let actions: TopBarActions
-    @State private var mode: ListMode = .tier(.push)
 
     var body: some View {
+        // The list mode lives on the model, not in @State: opening the full
+        // view from somewhere else — a tier count in the compact panel, an
+        // urgent-mail card — has to be able to say which tier to land on.
+        @Bindable var model = model
+
         ZStack {
             VStack(spacing: 0) {
                 header
                 Divider().overlay(Theme.line).padding(.horizontal, 22)
                 HStack(spacing: 0) {
-                    FullSidebar(selected: $mode, actions: actions).frame(width: 220)
+                    FullSidebar(selected: $model.listMode, actions: actions).frame(width: 220)
                     Rectangle().fill(Theme.line).frame(width: 1)
-                    FullList(mode: mode, actions: actions).frame(width: 420)
+                    FullList(mode: model.listMode, actions: actions).frame(width: 420)
                     Rectangle().fill(Theme.line).frame(width: 1)
                     ReadingPane(actions: actions).frame(maxWidth: .infinity)
                 }
@@ -935,7 +947,7 @@ private struct FullSidebar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                ColumnHeader(title: "INBOX")
+                ColumnHeader(title: L("section.inbox"))
                 Spacer()
                 InboxSelectorMenu()
             }
@@ -975,6 +987,24 @@ private struct FullSidebar: View {
             .buttonStyle(.plain)
             .accessibilityLabel(L("commitments.a11y", model.commitments?.count ?? 0))
 
+            // Proposals: what Klorn wants to do and hasn't done yet.
+            Button { selected = .proposals } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "hand.raised").font(.caption)
+                        .foregroundStyle(Theme.accent).frame(width: 8)
+                        .accessibilityHidden(true)
+                    Text(L("proposals.title"))
+                        .font(.body.weight(selected == .proposals ? .semibold : .regular))
+                        .foregroundStyle(Theme.text)
+                    Spacer()
+                    Text("\(model.pendingActions.count)")
+                        .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                }
+                .modifier(SidebarRowChrome(selected: selected == .proposals))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("proposals.a11y", model.pendingActions.count))
+
             // Assistant: ask/act across mail, calendar, and the briefing.
             Button { selected = .assistant } label: {
                 HStack(spacing: 10) {
@@ -996,11 +1026,11 @@ private struct FullSidebar: View {
             // Briefing + today + UPCOMING mirror the panel's TodayColumn (same
             // shared views, dogfood 2026-07-23); scrollable so a busy week never
             // pushes ACCOUNT off the sidebar.
-            ColumnHeader(title: "TODAY").padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 6)
+            ColumnHeader(title: L("section.todayShort")).padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 6)
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     if let briefing = model.briefing {
-                        BriefingCard(briefing: briefing).padding(.horizontal, 12)
+                        BriefingCard(briefing: briefing) { actions.onOpenFull() }.padding(.horizontal, 12)
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         if let today = model.today, today.total > 0 {
@@ -1016,29 +1046,28 @@ private struct FullSidebar: View {
                                     .padding(.horizontal, 20)
                             }
                         } else {
-                            Text(model.today == nil ? "Loading…" : "No events today")
+                            Text(model.today == nil ? L("bar.loading") : L("calendar.noEvents"))
                                 .font(.caption).foregroundStyle(Theme.textDim)
                                 .padding(.horizontal, 20)
                         }
                     }
-                    UpcomingSection().padding(.horizontal, 12)
+                    UpcomingSection(actions: actions).padding(.horizontal, 12)
                 }
                 .padding(.bottom, 8)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            ColumnHeader(title: "ACCOUNT").padding(.horizontal, 20).padding(.bottom, 6)
+            ColumnHeader(title: L("prefs.section.account")).padding(.horizontal, 20).padding(.bottom, 6)
             if model.phase == .signedIn {
                 if let version = model.updateAvailable {
                     UpdateRow(version: version)
                 }
-                sidebarAction("Open web inbox") { actions.onOpenWeb(nil) }
-                sidebarAction("Sign out", dim: true) { actions.onSignOut() }
+                sidebarAction(L("prefs.account.signOut"), dim: true) { actions.onSignOut() }
             } else {
-                sidebarAction("Sign in with Google") { actions.onSignIn() }
+                sidebarAction(L("auth.signInGoogle")) { actions.onSignIn() }
             }
-            sidebarAction("Preferences", dim: true) { model.showPreferences = true }
-            sidebarAction("Quit Klorn", dim: true) { actions.onQuit() }
+            sidebarAction(L("prefs.title"), dim: true) { model.showPreferences = true }
+            sidebarAction(L("menu.quit"), dim: true) { actions.onQuit() }
         }
         .padding(.horizontal, 8).padding(.vertical, 18)
     }
@@ -1070,6 +1099,7 @@ private struct FullList: View {
         switch mode {
         case .commitments: CommitmentsList()
         case .assistant: AssistantColumn()
+        case .proposals: ProposalsList()
         case .tier: tierList
         }
     }
@@ -1622,7 +1652,6 @@ private struct ReadingPane: View {
                     HStack(spacing: 10) {
                         Button(L("reading.replyWithAI")) { startReply(item) }
                             .buttonStyle(PrimaryButtonStyle())
-                        Button(L("reading.openInWeb")) { actions.onOpenWeb(item) }
                             .buttonStyle(.bordered).controlSize(.small)
                         // menuIndicator(.hidden) kills the system-blue pull-down
                         // segment (the one off-palette element on this row —

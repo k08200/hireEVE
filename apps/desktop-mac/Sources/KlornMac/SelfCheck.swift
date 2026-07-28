@@ -241,23 +241,27 @@ func runSelfChecks() async -> Bool {
     check("detail falls back to snippet", cardDetailText(summary: "", snippet: "sn") == "sn")
     check("detail nil when both empty", cardDetailText(summary: nil, snippet: " ") == nil)
 
-    print("Top bar open URL:")
-    func item(href: String?) -> FirewallItem {
-        FirewallItem(id: "x", source: "email", sourceId: "x", type: "email", title: "t",
-                     tier: .push, tierReason: nil, priority: 0, surfacedAt: "",
-                     email: nil, href: href, hashStale: nil)
+    print("No web escape:")
+    // Klorn is a native client, not a launcher for its own web app: the only
+    // link out is sign-in (AuthFlow) and the GitHub release page (UpdateCheck).
+    // A new NSWorkspace.open on a Klorn URL would quietly reintroduce the
+    // "finish this on the web" round trip the app exists to remove, so the rule
+    // is checked against the sources rather than trusted to review.
+    let sourceDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    let swiftFiles = (try? FileManager.default.contentsOfDirectory(at: sourceDir, includingPropertiesForKeys: nil))?
+        .filter { $0.pathExtension == "swift" } ?? []
+    check("sources are readable", !swiftFiles.isEmpty)
+    let allowedWebBaseUsers: Set<String> = ["AuthFlow.swift", "Config.swift", "SelfCheck.swift"]
+    let offenders = swiftFiles.filter { url in
+        guard !allowedWebBaseUsers.contains(url.lastPathComponent),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return false }
+        return text.contains("Config.webBaseURL")
     }
-    let web = Config.webBaseURL
-    check("absolute href opens verbatim",
-          TopBarController.resolveURL(item(href: "https://x.test/mail/9"))?.absoluteString == "https://x.test/mail/9")
-    check("root-relative href joins web base",
-          TopBarController.resolveURL(item(href: "/mail/9"))?.absoluteString == web + "/mail/9")
-    check("bare-relative href joins with slash",
-          TopBarController.resolveURL(item(href: "mail/9"))?.absoluteString == web + "/mail/9")
-    check("nil href falls back to inbox root",
-          TopBarController.resolveURL(item(href: nil))?.absoluteString == web)
-    check("no item falls back to inbox root",
-          TopBarController.resolveURL(nil)?.absoluteString == web)
+    check("nothing navigates to the Klorn web app",
+          offenders.isEmpty)
+    if !offenders.isEmpty {
+        print("      offenders: \(offenders.map(\.lastPathComponent).joined(separator: ", "))")
+    }
 
     print("Dismiss:")
     let fw2JSON = """

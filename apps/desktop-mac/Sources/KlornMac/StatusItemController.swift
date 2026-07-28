@@ -77,7 +77,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         // The icon only exists while the pill is hidden, so this is always "Show".
         menu.addItem(actionItem(L("menu.showBar"), #selector(showBar)))
-        menu.addItem(actionItem(L("menu.openWeb"), #selector(openWeb)))
         menu.addItem(actionItem(L("menu.preferences"), #selector(openPreferences)))
         menu.addItem(.separator())
         if model.phase == .signedIn {
@@ -140,10 +139,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func showBar() {
         model.settings.pillVisible = true  // observation removes the icon
         topBar.refresh()
-    }
-
-    @objc private func openWeb() {
-        if let url = URL(string: Config.webBaseURL) { NSWorkspace.shared.open(url) }
     }
 
     @objc private func openPreferences() {
