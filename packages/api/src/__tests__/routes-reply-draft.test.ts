@@ -10,6 +10,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const createCompletion = vi.hoisted(() => vi.fn());
 const captureError = vi.hoisted(() => vi.fn());
 const emailFindFirst = vi.hoisted(() => vi.fn());
+const buildVoicePromptHint = vi.hoisted(() => vi.fn(async () => ""));
+const buildReplyToneHint = vi.hoisted(() => vi.fn(async () => ""));
 
 vi.mock("../auth.js", () => ({
   requireAuth: async () => {},
@@ -24,8 +26,9 @@ vi.mock("../llm/openai.js", () => ({ createCompletion, DRAFT_MODEL: "test-draft-
 vi.mock("../sentry.js", () => ({ captureError }));
 vi.mock("../llm/llm-credentials.js", () => ({ getUserLlmCredentials: vi.fn(async () => ({})) }));
 vi.mock("../learning/voice-profile-extractor.js", () => ({
-  buildVoicePromptHint: vi.fn(async () => ""),
+  buildVoicePromptHint: buildVoicePromptHint,
 }));
+vi.mock("../learning/reply-tone.js", () => ({ buildReplyToneHint: buildReplyToneHint }));
 vi.mock("../mail/email-attachments.js", () => ({
   listEmailAttachments: vi.fn(async () => []),
   buildAttachmentCandidateProfile: vi.fn(() => null),
@@ -63,7 +66,17 @@ beforeEach(() => {
   captureError.mockReset();
   emailFindFirst.mockReset();
   emailFindFirst.mockResolvedValue(EMAIL);
+  buildVoicePromptHint.mockReset();
+  buildVoicePromptHint.mockResolvedValue("");
+  buildReplyToneHint.mockReset();
+  buildReplyToneHint.mockResolvedValue("");
 });
+
+/** The system prompt the route handed the LLM on its last call. */
+function systemPrompt(): string {
+  const [request] = createCompletion.mock.calls.at(-1) ?? [];
+  return request?.messages?.find((m: { role: string }) => m.role === "system")?.content ?? "";
+}
 
 describe("POST /api/email/:id/reply-draft", () => {
   it("returns a drafted reply on the happy path", async () => {
@@ -136,6 +149,62 @@ describe("POST /api/email/:id/reply-draft", () => {
     });
     expect(res.statusCode).toBe(404);
     expect(createCompletion).not.toHaveBeenCalled();
+    await app.close();
+  });
+});
+
+// Founder decision (2026-07-28): the accept/decline/info keys are unchanged and
+// the register the user picked applies to all three drafts. /reply-draft is the
+// shared generator behind those keys, so this is where that has to hold.
+describe("POST /api/email/:id/reply-draft reply tone", () => {
+  it("carries the chosen register into the prompt", async () => {
+    buildReplyToneHint.mockResolvedValue("[Reply tone] Write formally.");
+    createCompletion.mockResolvedValue({ choices: [{ message: { content: "ok" } }] });
+
+    const app = await buildApp();
+    await app.inject({ method: "POST", url: "/api/email/e1/reply-draft", payload: {} });
+
+    expect(buildReplyToneHint).toHaveBeenCalledWith("user-1");
+    expect(systemPrompt()).toContain("Write formally.");
+    await app.close();
+  });
+
+  it("adds nothing when the user has not chosen a register", async () => {
+    createCompletion.mockResolvedValue({ choices: [{ message: { content: "ok" } }] });
+
+    const app = await buildApp();
+    await app.inject({ method: "POST", url: "/api/email/e1/reply-draft", payload: {} });
+
+    expect(systemPrompt()).not.toMatch(/\[Reply tone/i);
+    await app.close();
+  });
+
+  // An explicit choice must outrank an inferred one, and prompt order is how
+  // that is expressed — the tone has to come after the learned voice profile.
+  it("places the explicit register after the inferred writing style", async () => {
+    buildVoicePromptHint.mockResolvedValue("[User's writing style] Tone: casual");
+    buildReplyToneHint.mockResolvedValue("[Reply tone] Write formally.");
+    createCompletion.mockResolvedValue({ choices: [{ message: { content: "ok" } }] });
+
+    const app = await buildApp();
+    await app.inject({ method: "POST", url: "/api/email/e1/reply-draft", payload: {} });
+
+    const prompt = systemPrompt();
+    expect(prompt).toContain("Tone: casual");
+    expect(prompt.indexOf("[Reply tone]")).toBeGreaterThan(
+      prompt.indexOf("[User's writing style]"),
+    );
+    await app.close();
+  });
+
+  // The reply must follow the sender, never the app's UI language.
+  it("still tells the model to answer in the incoming email's language", async () => {
+    createCompletion.mockResolvedValue({ choices: [{ message: { content: "ok" } }] });
+
+    const app = await buildApp();
+    await app.inject({ method: "POST", url: "/api/email/e1/reply-draft", payload: {} });
+
+    expect(systemPrompt()).toMatch(/same language as the incoming email/i);
     await app.close();
   });
 });

@@ -315,3 +315,130 @@ describe("GET /api/automations", () => {
     await app.close();
   });
 });
+
+describe("PATCH /api/automations replyTone", () => {
+  beforeEach(() => {
+    upsertSpy.mockReset();
+    findUniqueSpy.mockReset();
+    upsertSpy.mockImplementation(async (args: { update: Record<string, unknown> }) => ({
+      userId: "test-user-id",
+      meetingAutoJoin: true,
+      meetingAutoSummarize: true,
+      emailAutoClassify: false,
+      reminderAutoCheck: true,
+      dailyBriefing: true,
+      briefingTime: "09:00",
+      downloadAutoOrganize: false,
+      autonomousAgent: false,
+      agentMode: "SUGGEST",
+      agentIntervalMin: 5,
+      alwaysAllowedTools: [],
+      replyTone: args.update.replyTone as string,
+    }));
+  });
+
+  it("persists a chosen register and echoes back what was stored", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { replyTone: "FORMAL" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(upsertSpy.mock.calls[0][0].update.replyTone).toBe("FORMAL");
+    expect(res.json().replyTone).toBe("FORMAL");
+    await app.close();
+  });
+
+  // An unknown register would be persisted and then silently ignored by the
+  // prompt builder — the setting would read as saved while doing nothing.
+  it("normalizes an unknown register to MATCH_ME before storing it", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { replyTone: "SASSY" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(upsertSpy.mock.calls[0][0].update.replyTone).toBe("MATCH_ME");
+    expect(res.json().replyTone).toBe("MATCH_ME");
+    await app.close();
+  });
+
+  it("leaves the register alone when the request doesn't mention it", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "PATCH",
+      url: "/api/automations",
+      payload: { dailyBriefing: false },
+    });
+
+    expect(upsertSpy.mock.calls[0][0].update).not.toHaveProperty("replyTone");
+    await app.close();
+  });
+});
+
+describe("GET /api/automations replyTone", () => {
+  beforeEach(() => {
+    findUniqueSpy.mockReset();
+    upsertSpy.mockReset();
+  });
+
+  const storedConfig = (replyTone?: string) => ({
+    userId: "test-user-id",
+    meetingAutoJoin: true,
+    meetingAutoSummarize: true,
+    emailAutoClassify: false,
+    reminderAutoCheck: true,
+    dailyBriefing: true,
+    briefingTime: "09:00",
+    downloadAutoOrganize: false,
+    autonomousAgent: false,
+    agentMode: "SUGGEST",
+    agentIntervalMin: 5,
+    alwaysAllowedTools: [],
+    ...(replyTone === undefined ? {} : { replyTone }),
+  });
+
+  it("returns the stored register", async () => {
+    findUniqueSpy.mockResolvedValue(storedConfig("CASUAL"));
+    const app = await buildApp();
+    const res = await app.inject({ method: "GET", url: "/api/automations" });
+
+    expect(res.json().replyTone).toBe("CASUAL");
+    await app.close();
+  });
+
+  // A row written before the column existed must read as the pre-existing
+  // behaviour (infer from the voice profile), not as a blank the client has to
+  // guess about.
+  it("reads a legacy row without the column as MATCH_ME", async () => {
+    findUniqueSpy.mockResolvedValue(storedConfig(undefined));
+    const app = await buildApp();
+    const res = await app.inject({ method: "GET", url: "/api/automations" });
+
+    expect(res.json().replyTone).toBe("MATCH_ME");
+    await app.close();
+  });
+
+  it("describes every register so the settings UI can render the picker", async () => {
+    findUniqueSpy.mockResolvedValue(storedConfig("MATCH_ME"));
+    const app = await buildApp();
+    const res = await app.inject({ method: "GET", url: "/api/automations" });
+
+    const body = res.json();
+    expect(body.replyTones.map((t: { tone: string }) => t.tone)).toEqual([
+      "MATCH_ME",
+      "FORMAL",
+      "FRIENDLY",
+      "CASUAL",
+    ]);
+    for (const policy of body.replyTones) {
+      expect(policy.label).toBeTruthy();
+      expect(policy.description).toBeTruthy();
+    }
+    await app.close();
+  });
+});
