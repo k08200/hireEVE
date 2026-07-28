@@ -1064,7 +1064,14 @@ private struct FullSidebar: View {
             // Briefing + today + UPCOMING mirror the panel's TodayColumn (same
             // shared views, dogfood 2026-07-23); scrollable so a busy week never
             // pushes ACCOUNT off the sidebar.
-            ColumnHeader(title: L("section.todayShort")).padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 6)
+            // Only label the section when it has something in it. An empty
+            // "TODAY" heading over 300pt of nothing reads as a broken pane, not
+            // as a calm one.
+            let hasToday = model.briefing != nil || (model.today?.total ?? 0) > 0
+            if hasToday {
+                ColumnHeader(title: L("section.todayShort"))
+                    .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 6)
+            }
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     if let briefing = model.briefing {
@@ -1083,8 +1090,8 @@ private struct FullSidebar: View {
                                     .font(.caption2).foregroundStyle(Theme.textDim)
                                     .padding(.horizontal, 20)
                             }
-                        } else {
-                            Text(model.today == nil ? L("bar.loading") : L("calendar.noEvents"))
+                        } else if model.today == nil {
+                            Text(L("bar.loading"))
                                 .font(.caption).foregroundStyle(Theme.textDim)
                                 .padding(.horizontal, 20)
                         }
@@ -1106,7 +1113,6 @@ private struct FullSidebar: View {
             }
             sidebarAction(L("guide.reopen"), dim: true) { model.showTierGuide = true }
             sidebarAction(L("prefs.title"), dim: true) { model.showPreferences = true }
-            sidebarAction(L("menu.quit"), dim: true) { actions.onQuit() }
         }
         .padding(.horizontal, 8).padding(.vertical, 18)
     }

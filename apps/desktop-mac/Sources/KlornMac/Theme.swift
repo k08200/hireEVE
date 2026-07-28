@@ -35,7 +35,10 @@ enum Theme {
 
     /// The web engagement graph's "you engage with this sender" pink — reused by
     /// the reading pane's learned-engagement chip so desktop matches the web signal.
-    static let engage = Color(red: 0.96, green: 0.45, blue: 0.71)
+    /// Muted from the web graph's hot pink: at full saturation it outshouts the
+    /// PUSH dot, and a learned-affinity hint must never look more urgent than
+    /// urgency itself. Still ≥4.5:1 on the panel.
+    static let engage = Color(red: 0.776, green: 0.302, blue: 0.549)
 
     /// Per-tier signal palette — semantic hues kept from the dark system, with
     /// QUEUE/AUTO nudged darker so the dots stay perceivable on the white
