@@ -11,6 +11,14 @@ enum Entry {
         if CommandLine.arguments.contains("--self-check") {
             exit(runSelfChecksBlocking() ? 0 : 1)
         }
+        // Design tooling: render the real surfaces to PNG and exit. Screen
+        // capture is unavailable in some environments, and judging a UI change
+        // by reading its diff does not work.
+        if let i = CommandLine.arguments.firstIndex(of: "--render-previews") {
+            let dir = CommandLine.arguments.count > i + 1
+                ? CommandLine.arguments[i + 1] : "./previews"
+            exit(MainActor.assumeIsolated { PreviewRender.run(outputDir: dir) } ? 0 : 1)
+        }
         // Single instance: an accessory app draws no window on re-launch, so a
         // second copy silently stacks a second top bar (the "two bars" dogfood
         // bug, 2026-07-16). If Klorn is already running, hand focus to it and

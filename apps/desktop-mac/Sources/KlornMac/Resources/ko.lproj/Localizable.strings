@@ -308,3 +308,4 @@
 "mail.inboxLinked" = "연결된 수신함";
 "push.expand.hint" = "클릭하면 펼쳐집니다";
 "push.collapse.hint" = "클릭하면 접힙니다";
+"mail.unknownSender" = "(발신자 없음)";

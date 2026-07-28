@@ -474,6 +474,24 @@ func inboxDisplayLabel(email: String?, kind: String) -> String {
     return kind == "primary" ? L("mail.inboxPrimary") : L("mail.inboxLinked")
 }
 
+/// "Sarah Kim <sarah@x.io>" → "Sarah Kim". A mail client shows who wrote to
+/// you, not the routing address: the raw form eats a list row and buries the
+/// name that identifies the sender. Falls back to the address when there is no
+/// display name, and strips the quotes some clients wrap names in. Pure.
+func senderDisplayName(_ raw: String?) -> String {
+    guard let raw, !raw.isEmpty else { return "" }
+    guard let open = raw.lastIndex(of: "<") else {
+        return raw.trimmingCharacters(in: .whitespaces)
+    }
+    let name = raw[raw.startIndex..<open]
+        .trimmingCharacters(in: .whitespaces)
+        .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+    if !name.isEmpty { return name }
+    // No display name — show the address itself, without the brackets.
+    let inside = raw[raw.index(after: open)...].prefix { $0 != ">" }
+    return inside.isEmpty ? raw : String(inside)
+}
+
 /// Compact mailbox marker — the address's local part ("yong" of "yong@x.io"),
 /// capped so a long alias can't stretch a row. nil when unknown/blank. Pure.
 func inboxShortName(_ email: String?) -> String? {

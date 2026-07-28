@@ -82,6 +82,9 @@ enum Theme {
     /// carries the hard edge, so selection is never color-alone).
     static let surfaceSelected = accent.opacity(0.12)
 
+    /// True only while `--render-previews` is drawing. See GlassPanel.
+    nonisolated(unsafe) static var isRenderingOffscreen = false
+
     // MARK: Spacing (4pt grid)
     // s2/s3 within a control, s4 between controls, s6 between sections.
     static let s1: CGFloat = 4
@@ -154,7 +157,15 @@ struct GlassPanel: ViewModifier {
         content
             .background {
                 ZStack {
-                    GlassMaterial(cornerRadius: cornerRadius)
+                    // ImageRenderer cannot draw an NSViewRepresentable — it emits a
+                    // placeholder that swamps the whole surface — so the offscreen
+                    // design renderer substitutes a flat stand-in for the blur.
+                    // Runtime behaviour is untouched.
+                    if Theme.isRenderingOffscreen {
+                        Rectangle().fill(Theme.bg)
+                    } else {
+                        GlassMaterial(cornerRadius: cornerRadius)
+                    }
                     Theme.panelGradient(
                         opacity: Theme.glassTintOpacity(reduceTransparency: reduceTransparency))
                     LinearGradient(
@@ -221,13 +232,13 @@ struct PrimaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
             .background(
                 LinearGradient(
                     colors: [Theme.accent, Theme.accentDeep],
                     startPoint: .top, endPoint: .bottom),
-                in: RoundedRectangle(cornerRadius: 7))
+                in: Capsule())
             .shadow(color: Theme.accent.opacity(isEnabled ? 0.35 : 0), radius: 6, y: 2)
             .opacity(isEnabled ? (configuration.isPressed ? 0.82 : 1.0) : 0.45)
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)

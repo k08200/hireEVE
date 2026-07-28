@@ -241,6 +241,23 @@ func runSelfChecks() async -> Bool {
     check("detail falls back to snippet", cardDetailText(summary: "", snippet: "sn") == "sn")
     check("detail nil when both empty", cardDetailText(summary: nil, snippet: " ") == nil)
 
+    print("Sender name:")
+    // The raw From header is routing data. A list row that leads with
+    // "<sarah.kim@northwind-partners.com>" hides the one thing that identifies
+    // the sender, and truncates before it gets there.
+    check("display name wins over the address",
+          senderDisplayName("Sarah Kim <sarah@x.io>") == "Sarah Kim")
+    check("quoted display names are unwrapped",
+          senderDisplayName("\"Kim, Sarah\" <sarah@x.io>") == "Kim, Sarah")
+    check("a bare address is shown as-is",
+          senderDisplayName("billing@vendor.io") == "billing@vendor.io")
+    check("an address with no name loses only the brackets",
+          senderDisplayName("<billing@vendor.io>") == "billing@vendor.io")
+    check("non-Latin display names survive",
+          senderDisplayName("이준호 <junho@team.co.kr>") == "이준호")
+    check("empty input stays empty",
+          senderDisplayName(nil).isEmpty && senderDisplayName("").isEmpty)
+
     print("No web escape:")
     // Klorn is a native client, not a launcher for its own web app: the only
     // link out is sign-in (AuthFlow) and the GitHub release page (UpdateCheck).
@@ -1087,7 +1104,8 @@ func runSelfChecks() async -> Bool {
     let proseLiteral = try! NSRegularExpression(
         pattern: #""[A-Z][a-z]+(?: [A-Za-z,'’]+){1,}\.?""#)
     var proseOffenders: [String] = []
-    for url in swiftFiles where url.lastPathComponent != "SelfCheck.swift" {
+    let proseExempt: Set<String> = ["SelfCheck.swift", "PreviewRender.swift"]
+    for url in swiftFiles where !proseExempt.contains(url.lastPathComponent) {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
         for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
             let trimmed = line.trimmingCharacters(in: .whitespaces)

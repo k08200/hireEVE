@@ -729,7 +729,7 @@ private struct RecentPushRow: View {
     let actions: TopBarActions
     @State private var hovering = false
 
-    private var sender: String { decodeHTMLEntities(item.email?.from ?? item.title) }
+    private var sender: String { senderDisplayName(item.email?.from.map(decodeHTMLEntities)) }
 
     var body: some View {
         HStack(spacing: Theme.s2) {
@@ -1470,7 +1470,10 @@ private struct SearchHitRow: View {
     let hit: EmailSearchItem
 
     private var selected: Bool { model.selectedItemId == hit.id }
-    private var sender: String { decodeHTMLEntities(hit.from ?? "(unknown sender)") }
+    private var sender: String {
+        let name = senderDisplayName(hit.from.map(decodeHTMLEntities))
+        return name.isEmpty ? L("mail.unknownSender") : name
+    }
     @State private var hovering = false
 
     var body: some View {
@@ -1518,14 +1521,14 @@ private struct SearchHitRow: View {
     }
 }
 
-private struct FullRow: View {
+struct FullRow: View {
     @Environment(AppModel.self) private var model
     let item: FirewallItem
     let actions: TopBarActions
     @FocusState private var focused: Bool
 
     private var selected: Bool { model.selectedItemId == item.id }
-    private var sender: String { decodeHTMLEntities(item.email?.from ?? item.title) }
+    private var sender: String { senderDisplayName(item.email?.from.map(decodeHTMLEntities)) }
     @State private var hovering = false
 
     var body: some View {
@@ -1534,13 +1537,19 @@ private struct FullRow: View {
             // onTapGesture, so VoiceOver / Full-Keyboard-Access can open the message.
             Button { actions.onSelect(item) } label: {
                 HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(sender).font(.body.weight(.semibold))
+                    // Hierarchy by size contrast, not by three near-equal lines:
+                    // the sender is a small label and the subject is the
+                    // statement, because the subject is what you actually scan
+                    // a list for. The old row set them one point apart, which
+                    // reads as one grey block at arm's length.
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(sender).font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.textDim).lineLimit(1)
+                        Text(decodeHTMLEntities(item.email?.subject ?? item.title))
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(Theme.text).lineLimit(1)
-                        Text(decodeHTMLEntities(item.email?.subject ?? item.title)).font(.callout)
-                            .foregroundStyle(Theme.text.opacity(0.85)).lineLimit(1)
                         if let reason = rowTierReason(item.tierReason) {
-                            Text(reason).font(.caption).foregroundStyle(Theme.textDim).lineLimit(1)
+                            Text(reason).font(.caption2).foregroundStyle(Theme.textDim).lineLimit(1)
                         }
                     }
                     Spacer(minLength: 8)
@@ -1582,7 +1591,7 @@ private struct FullRow: View {
                     .opacity(hovering || selected || focused ? 1 : 0)
             }
         }
-        .padding(.horizontal, 20).padding(.vertical, 12)
+        .padding(.horizontal, 20).padding(.vertical, 11)
         // Selection is not color-only: an accent leading bar + a stronger fill (both
         // perceivable), plus the .isSelected trait above.
         .background(alignment: .leading) {
@@ -1660,7 +1669,7 @@ private struct ReadingPane: View {
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(Theme.text).lineLimit(2)
                 HStack {
-                    Text(decodeHTMLEntities(email.from ?? ""))
+                    Text(senderDisplayName(email.from.map(decodeHTMLEntities)))
                         .font(.callout).foregroundStyle(Theme.textDim).lineLimit(1)
                     Spacer()
                     Text(Self.formatDate(email.date)).font(.caption).foregroundStyle(Theme.textDim)
@@ -1727,7 +1736,7 @@ private struct ReadingPane: View {
     private func replyComposer(_ item: FirewallItem) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(L("reading.replyTo", item.email?.from ?? ""))
+                Text(L("reading.replyTo", senderDisplayName(item.email?.from.map(decodeHTMLEntities))))
                     .font(.caption).foregroundStyle(Theme.textDim).lineLimit(1)
                 Spacer()
                 if model.isDrafting {

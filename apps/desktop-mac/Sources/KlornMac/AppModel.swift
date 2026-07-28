@@ -142,6 +142,17 @@ final class AppModel {
         }
     }
 
+    /// Populate the model from fixture JSON for the offscreen preview renderer
+    /// (`--render-previews`). Lives here because the state it fills is
+    /// `private(set)`; nothing in the running app calls it, and it performs no
+    /// network or disk I/O.
+    func seedForPreview(firewallJSON: String, emailJSON: String, selectedItemId: String?) {
+        phase = .signedIn
+        queue = try? JSONDecoder().decode(FirewallResponse.self, from: Data(firewallJSON.utf8))
+        openedEmail = try? JSONDecoder().decode(EmailDetail.self, from: Data(emailJSON.utf8))
+        self.selectedItemId = selectedItemId
+    }
+
     /// Kick off the headless lifecycle at app launch. With no window driving it,
     /// this is what starts the background poll loop when we already hold a token.
     /// `loadQueue()` -> `ensureActive()` establishes the silent PUSH baseline and

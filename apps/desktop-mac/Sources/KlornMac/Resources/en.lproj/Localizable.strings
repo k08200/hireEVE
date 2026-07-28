@@ -309,3 +309,4 @@
 "mail.inboxLinked" = "Linked inbox";
 "push.expand.hint" = "Click to expand";
 "push.collapse.hint" = "Click to collapse";
+"mail.unknownSender" = "(unknown sender)";
