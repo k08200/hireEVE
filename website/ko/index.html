@@ -20,7 +20,11 @@
   <meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
   <link rel="icon" href="/brand/favicon.svg?v=matte2" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
-  <noscript><style>.reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
+  <!-- Without JS the observer never adds .in, so anything waiting on it stays
+       at opacity:0 forever. The old fallback covered .reveal but not .reveal-pop
+       or .stagger children — which meant the hero's product window, the one
+       screenshot of the actual app, was invisible to every no-JS visitor. -->
+  <noscript><style>.reveal, .reveal-pop, .stagger > * { opacity: 1 !important; transform: none !important; }</style></noscript>
   <style>
     /* ── Reset ─────────────────────────────────── */
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -158,7 +162,12 @@
     .hero::after { content:""; position:absolute; left:0; right:0; bottom:0; height:120px; z-index:1;
       background:linear-gradient(180deg, rgba(255,255,255,0), #fff); pointer-events:none; }
     /* Full-bleed illustrated sky scene (self-contained SVG, animated drift) */
-    .hero-scene { position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+    /* The scene is anchored to the TOP with a fixed height, not stretched to
+       the hero. Stretching pushed the horizon below the product window, so the
+       app screenshot floated on white instead of standing on the meadow — the
+       one relationship the reference composition is built on. */
+    .hero-scene { position:absolute; top:0; left:0; width:100%; height:1180px; z-index:0; pointer-events:none; }
+    @media (max-width:900px){ .hero-scene { height:900px; } }
     .hero-scene .drift { will-change: transform; }
     .drift-far  { animation: drift 68s ease-in-out infinite alternate; }
     .drift-mid  { animation: drift 46s ease-in-out infinite alternate; }
