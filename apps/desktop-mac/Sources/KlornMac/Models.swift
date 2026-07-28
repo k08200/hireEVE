@@ -179,8 +179,9 @@ struct EmailDetail: Codable, Sendable, Identifiable {
 
         /// "You engage with this sender · replied once / N times" — the raw count.
         var replyCountLabel: String {
-            let times = outboundCount == 1 ? "once" : "\(outboundCount) times"
-            return "You engage with this sender · replied \(times)"
+            return outboundCount == 1
+                ? L("engagement.repliedOnce")
+                : L("engagement.repliedTimes", outboundCount)
         }
 
         /// Meter fill fraction (0…1), clamped for display safety.
@@ -194,15 +195,15 @@ struct EmailDetail: Codable, Sendable, Identifiable {
         /// signal is never conveyed by color/graphic alone (WCAG 1.4.1).
         var importanceLabel: String {
             switch importanceFill {
-            case let v where v >= 0.99: return "Consistently important to you"
-            case let v where v >= 0.5: return "Important to you"
-            default: return "Building importance"
+            case let v where v >= 0.99: return L("engagement.consistent")
+            case let v where v >= 0.5: return L("engagement.important")
+            default: return L("engagement.building")
             }
         }
 
         /// One combined string for VoiceOver — count plus, when present, strength.
         var accessibilityLabel: String {
-            showsImportance ? "\(replyCountLabel). \(importanceLabel)" : replyCountLabel
+            showsImportance ? L("engagement.combined.a11y", replyCountLabel, importanceLabel) : replyCountLabel
         }
     }
 
@@ -466,7 +467,7 @@ func inboxShortName(_ email: String?) -> String? {
 func inboxSelectorLabel(selected: String, inboxes: [InboxOption]) -> String {
     guard let value = inboxQueryParam(selected: selected),
           let match = inboxes.first(where: { $0.selectionValue == value })
-    else { return "All inboxes" }
+    else { return L("mail.allInboxes") }
     return inboxShortName(match.email) ?? inboxDisplayLabel(email: match.email, kind: match.kind)
 }
 
@@ -588,7 +589,7 @@ func upcomingAgenda(
 /// "Tomorrow" for the first agenda day, else the weekday name — unique within
 /// the 7-day window. Pure.
 func agendaDayLabel(day: Date, tomorrow: Date, calendar: Calendar) -> String {
-    if calendar.isDate(day, inSameDayAs: tomorrow) { return "Tomorrow" }
+    if calendar.isDate(day, inSameDayAs: tomorrow) { return L("calendar.tomorrow") }
     let symbols = calendar.weekdaySymbols
     let index = calendar.component(.weekday, from: day) - 1
     guard symbols.indices.contains(index) else { return "" }
@@ -612,7 +613,7 @@ func eventTimeLabel(
     allDay: Bool,
     calendar: Calendar = .current
 ) -> String {
-    if allDay { return "All day" }
+    if allDay { return L("calendar.allDay") }
     let parser = ISO8601DateFormatter()
     parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     guard let start = parser.date(from: startISO), let end = parser.date(from: endISO) else {
@@ -670,9 +671,9 @@ struct ReplyOption: Codable, Sendable, Hashable {
     /// value so a server-side tone addition degrades gracefully.
     var toneLabel: String {
         switch tone {
-        case "accept": return "Accept"
-        case "decline": return "Decline"
-        case "info": return "Ask info"
+        case "accept": return L("reply.tone.accept")
+        case "decline": return L("reply.tone.decline")
+        case "info": return L("reply.tone.info")
         default: return tone.capitalized
         }
     }
@@ -713,10 +714,10 @@ enum SnoozeOption: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .oneHour: return "In 1 hour"
-        case .thisEvening: return "This evening"
-        case .tomorrow: return "Tomorrow 9am"
-        case .nextWeek: return "Next week"
+        case .oneHour: return L("snooze.oneHour")
+        case .thisEvening: return L("snooze.thisEvening")
+        case .tomorrow: return L("snooze.tomorrow")
+        case .nextWeek: return L("snooze.nextWeek")
         }
     }
 

@@ -147,6 +147,10 @@ final class TopBarController {
         let size = TopBarMetrics.size(for: state)
         let root = TopBarRoot(state: state, actions: makeActions())
             .environment(model)
+            // Localized strings are read through L(), which SwiftUI cannot
+            // observe. Keying the tree on the language revision forces a full
+            // rebuild so a language change lands without a relaunch.
+            .id(model.settings.languageRevision)
         // Recreate the window when the focus model flips: pill/panel are
         // non-focus-stealing; full is a key-able app window so its reply field
         // can accept keyboard input.

@@ -295,7 +295,7 @@ struct FirewallRow: View {
             }
             Spacer()
             if item.hashStale == true {
-                Text("re-classifying").font(.caption2).foregroundStyle(.orange)
+                Text(L("mail.reclassifying")).font(.caption2).foregroundStyle(.orange)
             }
         }
         .padding(.vertical, 4)

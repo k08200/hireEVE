@@ -64,6 +64,22 @@ final class AppSettings {
         }
     }
 
+    /// App language: follow macOS (default) or override. Stored via L10n so a
+    /// string lookup doesn't have to hop to the main actor; bumping
+    /// `languageRevision` is what makes the change visible without a relaunch —
+    /// SwiftUI can't observe a global function's return value.
+    var appLanguage: AppLanguage = L10n.override {
+        didSet {
+            guard appLanguage != oldValue else { return }
+            L10n.override = appLanguage
+            languageRevision &+= 1
+        }
+    }
+
+    /// Incremented on every language change; the root view keys its identity on
+    /// it so the whole tree re-renders with the new strings.
+    private(set) var languageRevision = 0
+
     /// The user's global toggle shortcut (default ⌥⌘K). Persisted as a small
     /// dict; changing it re-registers the hotkey via `onShortcutChanged`.
     var shortcut: Shortcut {

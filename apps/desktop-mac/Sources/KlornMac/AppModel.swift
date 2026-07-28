@@ -695,10 +695,10 @@ final class AppModel {
 
     private static func automationErrorText(_ error: Error) -> String {
         switch error {
-        case APIError.unauthorized: return "Session expired — sign in again."
-        case APIError.forbidden: return "Your plan doesn't include this setting."
-        case APIError.transport: return "Couldn't reach Klorn. The setting wasn't saved."
-        default: return "Couldn't save that setting."
+        case APIError.unauthorized: return L("auto.error.unauthorized")
+        case APIError.forbidden: return L("auto.error.forbidden")
+        case APIError.transport: return L("auto.error.offline")
+        default: return L("auto.error.generic")
         }
     }
 

@@ -11,11 +11,15 @@ import PackageDescription
 // A full XCTest suite can be added when building under Xcode/CI.
 let package = Package(
     name: "KlornMac",
+    defaultLocalization: "en",
     platforms: [.macOS(.v14)],
     targets: [
         .executableTarget(
             name: "KlornMac",
-            path: "Sources/KlornMac"
+            path: "Sources/KlornMac",
+            // Localizations live in the target so `Bundle.module` finds the
+            // .lproj folders under both `swift run` and a packaged .app.
+            resources: [.process("Resources")]
         ),
     ]
 )

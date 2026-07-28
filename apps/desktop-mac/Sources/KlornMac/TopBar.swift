@@ -208,8 +208,8 @@ struct CollapsedBar: View {
             }
             .buttonStyle(.plain).foregroundStyle(Theme.text)
             .focusEffectDisabled()  // the default ring reads as an artifact on the capsule
-            .help("Expand")
-            .accessibilityLabel("Expand Klorn")
+            .help(L("bar.expand"))
+            .accessibilityLabel(L("bar.expand.a11y"))
 
             LogoRing()
             Text("Klorn").font(.system(.callout, design: .rounded).weight(.bold)).foregroundStyle(Theme.text)
@@ -225,7 +225,7 @@ struct CollapsedBar: View {
                     HStack(spacing: 5) {
                         Circle().fill(Theme.tint(.push)).frame(width: 7, height: 7)
                             .shadow(color: Theme.tint(.push).opacity(0.8), radius: 3)
-                        Text("\(pushCount) PUSH")
+                        Text(L("bar.push", pushCount))
                             .font(.caption.weight(.semibold).monospacedDigit())
                             .foregroundStyle(Theme.text)
                     }
@@ -234,7 +234,7 @@ struct CollapsedBar: View {
                 } else if model.loadError != nil {
                     HStack(spacing: 5) {
                         Circle().fill(Theme.tint(.push).opacity(0.7)).frame(width: 6, height: 6)
-                        Text("offline").font(.caption)
+                        Text(L("bar.offline")).font(.caption)
                     }
                     .foregroundStyle(Theme.textDim)
                     .padding(.horizontal, 8).padding(.vertical, 3)
@@ -243,14 +243,14 @@ struct CollapsedBar: View {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark").font(.caption2.weight(.semibold))
                             .accessibilityHidden(true)
-                        Text("All clear").font(.caption)
+                        Text(L("bar.allClear")).font(.caption)
                     }
                     .foregroundStyle(Theme.textDim)
                 }
             case .signingIn:
-                Text("Signing in…").font(.caption).foregroundStyle(Theme.textDim)
+                Text(L("bar.signingIn")).font(.caption).foregroundStyle(Theme.textDim)
             case .signedOut:
-                Button("Log In", action: actions.onSignIn)
+                Button(L("auth.logIn"), action: actions.onSignIn)
                     .buttonStyle(PrimaryButtonStyle())
             }
 
@@ -259,8 +259,8 @@ struct CollapsedBar: View {
             }
             .buttonStyle(.plain).hoverDim()
             .focusEffectDisabled()
-            .help("Hide the bar (it keeps running in the menu bar)")
-            .accessibilityLabel("Hide top bar")
+            .help(L("bar.hide"))
+            .accessibilityLabel(L("bar.hide.a11y"))
         }
         .padding(.leading, 18).padding(.trailing, 16)
         .frame(width: TopBarMetrics.collapsed.width, height: TopBarMetrics.collapsed.height)
@@ -310,14 +310,14 @@ struct ExpandedPanel: View {
                     Image(systemName: "arrow.up.left.and.arrow.down.right").font(.callout).iconTarget()
                 }
                 .buttonStyle(.plain).hoverDim()
-                .help("Full view")
-                .accessibilityLabel("Open full view")
+                .help(L("bar.fullView"))
+                .accessibilityLabel(L("bar.fullView.a11y"))
 
                 if model.phase == .signedIn {
-                    Button("Sign Out", action: actions.onSignOut)
+                    Button(L("auth.signOut"), action: actions.onSignOut)
                         .buttonStyle(.plain).font(.callout).hoverDim()
                 } else if model.phase == .signedOut {
-                    Button("Log In", action: actions.onSignIn)
+                    Button(L("auth.logIn"), action: actions.onSignIn)
                         .buttonStyle(PrimaryButtonStyle())
                 }
 
@@ -327,8 +327,8 @@ struct ExpandedPanel: View {
                     Image(systemName: "xmark").font(.callout.weight(.semibold)).iconTarget()
                 }
                 .buttonStyle(.plain).hoverDim()
-                .help("Close")
-                .accessibilityLabel("Close panel")
+                .help(L("bar.close"))
+                .accessibilityLabel(L("bar.close.a11y"))
             }
         }
         .padding(.horizontal, 18).frame(height: 56)
@@ -363,7 +363,7 @@ private struct TodayColumn: View {
                     eventRow(event, isNow: false)
                 }
                 if today.upcoming.count > 4 {
-                    Text("+\(today.upcoming.count - 4) more")
+                    Text(L("bar.more", today.upcoming.count - 4))
                         .font(.caption2).foregroundStyle(Theme.textDim)
                 }
             } else {
@@ -381,7 +381,7 @@ private struct TodayColumn: View {
                             Image(systemName: "gearshape")
                                 .font(.caption2).foregroundStyle(Theme.accent)
                                 .accessibilityHidden(true)
-                            Text("KLORN TODAY").font(.caption2.weight(.semibold))
+                            Text(L("section.today")).font(.caption2.weight(.semibold))
                                 .foregroundStyle(Theme.textDim)
                         }
                         Text(line).font(.caption).foregroundStyle(Theme.text)
@@ -401,7 +401,7 @@ private struct TodayColumn: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 6)
-                .accessibilityLabel("Klorn today: \(line). Opens the web inbox to review.")
+                .accessibilityLabel(L("today.a11y", line))
             }
             UpcomingSection()
                 }
@@ -416,7 +416,7 @@ private struct TodayColumn: View {
             startISO: event.startTime, endISO: event.endTime, allDay: event.allDay)
         let row = HStack(alignment: .top, spacing: 8) {
             if isNow {
-                Text("NOW")
+                Text(L("section.now"))
                     .font(.caption2.weight(.bold)).foregroundStyle(Theme.accent)
                     .padding(.top, 2)
             } else {
@@ -439,7 +439,7 @@ private struct TodayColumn: View {
         if let link = event.meetingLink, let url = URL(string: link) {
             Button { NSWorkspace.shared.open(url) } label: { row }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Join \(event.title)")
+                .accessibilityLabel(L("calendar.join.a11y", event.title))
         } else {
             row.accessibilityElement(children: .combine)
         }
@@ -458,7 +458,7 @@ private struct BriefingCard: View {
                 HStack(spacing: 5) {
                     Image(systemName: "sun.max").font(.caption2).foregroundStyle(Theme.accent)
                         .accessibilityHidden(true)
-                    Text("BRIEFING").font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
+                    Text(L("section.briefing")).font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
                 }
                 Text(briefing).font(.caption).foregroundStyle(Theme.text)
                     .lineLimit(3).multilineTextAlignment(.leading)
@@ -472,7 +472,7 @@ private struct BriefingCard: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Today's briefing: \(briefing)")
+        .accessibilityLabel(L("briefing.a11y", briefing))
     }
 }
 
@@ -505,7 +505,7 @@ private struct UpcomingSection: View {
                     }
                 }
             } else {
-                Text("Loading…").font(.caption).foregroundStyle(Theme.textDim)
+                Text(L("bar.loading")).font(.caption).foregroundStyle(Theme.textDim)
             }
         }
         .padding(.top, 6)
@@ -570,11 +570,11 @@ private struct UpcomingEventRow: View {
             }
             HStack(spacing: 8) {
                 if let link = event.meetingLink, let url = URL(string: link) {
-                    Button("Join") { NSWorkspace.shared.open(url) }
+                    Button(L("calendar.join")) { NSWorkspace.shared.open(url) }
                         .buttonStyle(PrimaryButtonStyle())
-                        .accessibilityLabel("Join \(event.title)")
+                        .accessibilityLabel(L("calendar.join.a11y", event.title))
                 }
-                Button("Open in Klorn") {
+                Button(L("calendar.openInKlorn")) {
                     if let url = URL(string: Config.webBaseURL + "/calendar") {
                         NSWorkspace.shared.open(url)
                     }
@@ -617,8 +617,8 @@ struct InboxSelectorMenu: View {
                     .lineLimit(1)
             }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help("Filter by inbox")
-            .accessibilityLabel("Filter by inbox — currently \(current)")
+            .help(L("mail.filterByInbox"))
+            .accessibilityLabel(L("mail.filterByInbox.a11y", current))
         }
     }
 
@@ -746,15 +746,15 @@ private struct RecentPushRow: View {
             }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
             .foregroundStyle(Theme.textDim)
-            .help("Snooze…")
-            .accessibilityLabel("Snooze message from \(sender)")
+            .help(L("mail.snooze"))
+            .accessibilityLabel(L("mail.snooze.a11y", sender))
             .opacity(hovering ? 1 : 0)
             Button { actions.onDismiss(item) } label: {
                 Image(systemName: "xmark").font(.caption2).iconTarget()
             }
             .buttonStyle(.plain).foregroundStyle(Theme.textDim)
-            .help("Dismiss")
-            .accessibilityLabel("Dismiss message from \(sender)")
+            .help(L("mail.dismiss"))
+            .accessibilityLabel(L("mail.dismiss.a11y", sender))
             .opacity(hovering ? 1 : 0)
         }
         .padding(.horizontal, Theme.s2).padding(.vertical, 6)
@@ -784,7 +784,7 @@ private struct AccountColumn: View {
             }
             if model.phase == .signedIn, let usage = model.usage {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("AI TODAY").font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
+                    Text(L("section.aiToday")).font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Theme.surfaceHover)
@@ -801,7 +801,7 @@ private struct AccountColumn: View {
                         .font(.caption2.monospacedDigit()).foregroundStyle(Theme.textDim)
                 }
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("AI usage today: \(usage.dailyUsed) of \(usage.dailyCap)")
+                .accessibilityLabel(L("aiUsage.a11y", usage.dailyUsed, usage.dailyCap))
                 .padding(.top, 4)
             }
 
@@ -860,11 +860,11 @@ struct FullView: View {
             Button(action: actions.onRestore) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.down.right.and.arrow.up.left").font(.callout).accessibilityHidden(true)
-                    Text("Smaller").font(.callout)
+                    Text(L("bar.smaller")).font(.callout)
                 }
             }
             .buttonStyle(.plain).hoverDim()
-            .help("Back to the compact panel")
+            .help(L("bar.smaller.help"))
             // The old "—" (collapse-to-rest) duplicated the header ✕ — gone.
 
             Spacer()
@@ -877,10 +877,10 @@ struct FullView: View {
             if model.phase == .signedIn {
                 // Secondary by design: signing out is rare — it must never
                 // compete with content. (Log In stays the accent CTA.)
-                Button("Sign Out", action: actions.onSignOut)
+                Button(L("auth.signOut"), action: actions.onSignOut)
                     .buttonStyle(.plain).font(.callout).hoverDim()
             } else if model.phase == .signedOut {
-                Button("Log In", action: actions.onSignIn)
+                Button(L("auth.logIn"), action: actions.onSignIn)
                     .buttonStyle(PrimaryButtonStyle())
             }
 
@@ -890,8 +890,8 @@ struct FullView: View {
             }
             .buttonStyle(.plain).hoverDim()
             .padding(.leading, 6)
-            .help("Close")
-            .accessibilityLabel("Close panel")
+            .help(L("bar.close"))
+            .accessibilityLabel(L("bar.close.a11y"))
         }
         .padding(.horizontal, 22).frame(height: 64)
     }
@@ -910,7 +910,7 @@ private struct FullSidebar: View {
             startISO: event.startTime, endISO: event.endTime, allDay: event.allDay)
         let row = HStack(alignment: .top, spacing: 8) {
             if isNow {
-                Text("NOW").font(.caption2.weight(.bold)).foregroundStyle(Theme.accent)
+                Text(L("section.now")).font(.caption2.weight(.bold)).foregroundStyle(Theme.accent)
             } else {
                 Text(String(time.prefix(5)))
                     .font(.caption.monospacedDigit()).foregroundStyle(Theme.textDim)
@@ -926,7 +926,7 @@ private struct FullSidebar: View {
         if let link = event.meetingLink, let url = URL(string: link) {
             Button { NSWorkspace.shared.open(url) } label: { row }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Join \(event.title)")
+                .accessibilityLabel(L("calendar.join.a11y", event.title))
         } else {
             row.accessibilityElement(children: .combine)
         }
@@ -963,7 +963,7 @@ private struct FullSidebar: View {
                     Image(systemName: "checklist").font(.caption)
                         .foregroundStyle(Theme.accent).frame(width: 8)
                         .accessibilityHidden(true)
-                    Text("Commitments")
+                    Text(L("section.commitments"))
                         .font(.body.weight(selected == .commitments ? .semibold : .regular))
                         .foregroundStyle(Theme.text)
                     Spacer()
@@ -973,7 +973,7 @@ private struct FullSidebar: View {
                 .modifier(SidebarRowChrome(selected: selected == .commitments))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Commitments, \(model.commitments?.count ?? 0) open")
+            .accessibilityLabel(L("commitments.a11y", model.commitments?.count ?? 0))
 
             // Assistant: ask/act across mail, calendar, and the briefing.
             Button { selected = .assistant } label: {
@@ -981,7 +981,7 @@ private struct FullSidebar: View {
                     Image(systemName: "sparkles").font(.caption)
                         .foregroundStyle(Theme.accent).frame(width: 8)
                         .accessibilityHidden(true)
-                    Text("Assistant")
+                    Text(L("section.assistant"))
                         .font(.body.weight(selected == .assistant ? .semibold : .regular))
                         .foregroundStyle(Theme.text)
                     Spacer()
@@ -989,7 +989,7 @@ private struct FullSidebar: View {
                 .modifier(SidebarRowChrome(selected: selected == .assistant))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Assistant")
+            .accessibilityLabel(L("section.assistant"))
 
             // TODAY lives in the full view too — the biggest surface must not
             // know less about the day than the compact panel (dogfood 2026-07-16).
@@ -1011,7 +1011,7 @@ private struct FullSidebar: View {
                                 sidebarEventRow(event, isNow: false)
                             }
                             if today.upcoming.count > 3 {
-                                Text("+\(today.upcoming.count - 3) more")
+                                Text(L("bar.more", today.upcoming.count - 3))
                                     .font(.caption2).foregroundStyle(Theme.textDim)
                                     .padding(.horizontal, 20)
                             }
@@ -1080,7 +1080,7 @@ private struct FullList: View {
                 if searching {
                     Image(systemName: "magnifyingglass").font(.body).foregroundStyle(Theme.accent)
                         .accessibilityHidden(true)
-                    Text("Search").font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                    Text(L("section.search")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
                     Text("\(model.searchTotal)")
                         .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
                 } else {
@@ -1096,16 +1096,16 @@ private struct FullList: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").font(.caption).foregroundStyle(Theme.textDim)
                     .accessibilityHidden(true)
-                TextField("Search all mail…", text: $query)
+                TextField(L("mail.searchPlaceholder"), text: $query)
                     .textFieldStyle(.plain).font(.callout).foregroundStyle(Theme.text)
                     .focused($searchFocused)
-                    .accessibilityLabel("Search all mail")
+                    .accessibilityLabel(L("mail.search.a11y"))
                 if !query.isEmpty {
                     Button {
                         query = ""
                     } label: { Image(systemName: "xmark.circle.fill").font(.caption) }
                         .buttonStyle(.plain).foregroundStyle(Theme.textDim)
-                        .accessibilityLabel("Clear search")
+                        .accessibilityLabel(L("mail.clearSearch.a11y"))
                 }
             }
             .padding(.horizontal, 10).padding(.vertical, 7)
@@ -1185,7 +1185,7 @@ private struct AssistantColumn: View {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles").font(.body).foregroundStyle(Theme.accent)
                     .accessibilityHidden(true)
-                Text("Assistant").font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                Text(L("section.assistant")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
             }
             .padding(.horizontal, 24).padding(.vertical, 18)
             Divider().overlay(Theme.line)
@@ -1229,7 +1229,7 @@ private struct AssistantColumn: View {
                         if model.isChatting {
                             HStack(spacing: 6) {
                                 ProgressView().controlSize(.small)
-                                Text("Thinking…").font(.caption).foregroundStyle(Theme.textDim)
+                                Text(L("assistant.thinking")).font(.caption).foregroundStyle(Theme.textDim)
                             }
                             .padding(.horizontal, 16)
                         }
@@ -1243,19 +1243,19 @@ private struct AssistantColumn: View {
             }
 
             HStack(spacing: Theme.s2) {
-                TextField("Message Klorn…", text: $draft, axis: .vertical)
+                TextField(L("assistant.placeholder"), text: $draft, axis: .vertical)
                     .textFieldStyle(.plain).font(.callout).foregroundStyle(Theme.text)
                     .lineLimit(1...4)
                     .focused($composerFocused)
                     .onSubmit { send() }
-                    .accessibilityLabel("Message Klorn")
+                    .accessibilityLabel(L("assistant.placeholder.a11y"))
                 Button { send() } label: {
                     Image(systemName: "arrow.up.circle.fill").font(.title2)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(canSendChat(draft, busy: model.isChatting) ? Theme.accent : Theme.textDim)
                 .disabled(!canSendChat(draft, busy: model.isChatting))
-                .accessibilityLabel("Send message")
+                .accessibilityLabel(L("assistant.send.a11y"))
             }
             .padding(.horizontal, Theme.s3).padding(.vertical, 10)
             .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 12))
@@ -1310,11 +1310,11 @@ private struct ChatBubble: View {
                             .font(.caption).foregroundStyle(Theme.text).lineLimit(2)
                     }
                     HStack(spacing: 8) {
-                        Button("Add to calendar") {
+                        Button(L("calendar.addToCalendar")) {
                             Task { await model.createEvent(from: draft, messageId: message.id) }
                         }
                         .buttonStyle(PrimaryButtonStyle())
-                        Button("Ignore") { model.clearEventDraft(message.id) }
+                        Button(L("calendar.ignore")) { model.clearEventDraft(message.id) }
                             .buttonStyle(.bordered).controlSize(.small)
                     }
                 }
@@ -1322,7 +1322,7 @@ private struct ChatBubble: View {
                 .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 10))
                 .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line))
                 .accessibilityElement(children: .contain)
-                .accessibilityLabel("Proposed event: \(eventDraftLabel(draft))")
+                .accessibilityLabel(L("calendar.proposed.a11y", eventDraftLabel(draft)))
             }
         }
         .padding(.horizontal, 16)
@@ -1340,7 +1340,7 @@ private struct CommitmentsList: View {
             HStack(spacing: 8) {
                 Image(systemName: "checklist").font(.body).foregroundStyle(Theme.accent)
                     .accessibilityHidden(true)
-                Text("Commitments").font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                Text(L("section.commitments")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
                 Text("\(model.commitments?.count ?? 0)")
                     .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
             }
@@ -1350,7 +1350,7 @@ private struct CommitmentsList: View {
             if model.commitments == nil {
                 Spacer()
                 if model.commitmentsFailed {
-                    Text("Couldn't load commitments — retrying on the next refresh.")
+                    Text(L("commitments.loadFailed"))
                         .font(.callout).foregroundStyle(Theme.textDim)
                         .frame(maxWidth: .infinity).multilineTextAlignment(.center)
                 } else {
@@ -1359,7 +1359,7 @@ private struct CommitmentsList: View {
                 Spacer()
             } else if groups.waitingOn.isEmpty && groups.iOwe.isEmpty {
                 Spacer()
-                Text("No open commitments.").font(.title3).foregroundStyle(Theme.textDim)
+                Text(L("commitments.empty")).font(.title3).foregroundStyle(Theme.textDim)
                     .frame(maxWidth: .infinity)
                 Spacer()
             } else {
@@ -1407,14 +1407,14 @@ private struct CommitmentRow: View {
             Button {
                 Task { await model.resolveCommitment(item, as: "DONE") }
             } label: { Image(systemName: "checkmark").iconTarget() }
-                .buttonStyle(.plain).foregroundStyle(Theme.textDim).help("Mark done")
-                .accessibilityLabel("Mark done: \(item.title)")
+                .buttonStyle(.plain).foregroundStyle(Theme.textDim).help(L("commitments.markDone"))
+                .accessibilityLabel(L("commitments.markDone.a11y", item.title))
                 .opacity(hovering ? 1 : 0)
             Button {
                 Task { await model.resolveCommitment(item, as: "DISMISSED") }
             } label: { Image(systemName: "xmark").iconTarget() }
-                .buttonStyle(.plain).foregroundStyle(Theme.textDim).help("Dismiss")
-                .accessibilityLabel("Dismiss: \(item.title)")
+                .buttonStyle(.plain).foregroundStyle(Theme.textDim).help(L("mail.dismiss"))
+                .accessibilityLabel(L("commitments.dismiss.a11y", item.title))
                 .opacity(hovering ? 1 : 0)
         }
         .padding(.horizontal, 24).padding(.vertical, 8)
@@ -1450,7 +1450,7 @@ private struct SearchHitRow: View {
                             .lineLimit(1)
                             .padding(.horizontal, 6).padding(.vertical, 1)
                             .background(Theme.surfaceRaised, in: Capsule())
-                            .accessibilityLabel("Inbox \(badge)")
+                            .accessibilityLabel(L("mail.inbox.a11y", badge))
                     }
                     Spacer(minLength: 0)
                     if let date = hit.date {
@@ -1473,7 +1473,7 @@ private struct SearchHitRow: View {
         }
         .background(selected ? Theme.surfaceSelected : hovering ? Theme.surfaceHover : .clear)
         .onHover { hovering = $0 }
-        .accessibilityLabel("Search result from \(sender): \(hit.subject ?? "no subject")")
+        .accessibilityLabel(L("mail.searchResult.a11y", sender, hit.subject ?? L("mail.noSubject")))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
@@ -1527,18 +1527,18 @@ private struct FullRow: View {
                     }
                     .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 }
-                .help("Move to tier… (teaches Klorn)")
-                .accessibilityLabel("Change tier for message from \(sender), currently \(item.tier.label)")
+                .help(L("mail.changeTier"))
+                .accessibilityLabel(L("mail.changeTier.a11y", sender, item.tier.label))
                 SnoozeMenu(item: item, onSnooze: actions.onSnooze) {
                     Image(systemName: "moon.zzz").iconTarget()
                 }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-                .foregroundStyle(Theme.textDim).help("Snooze…")
-                .accessibilityLabel("Snooze message from \(sender)")
+                .foregroundStyle(Theme.textDim).help(L("mail.snooze"))
+                .accessibilityLabel(L("mail.snooze.a11y", sender))
                 .opacity(hovering || selected || focused ? 1 : 0)
                 Button { actions.onDismiss(item) } label: { Image(systemName: "xmark").iconTarget() }
-                    .buttonStyle(.plain).foregroundStyle(Theme.textDim).help("Dismiss")
-                    .accessibilityLabel("Dismiss message from \(sender)")
+                    .buttonStyle(.plain).foregroundStyle(Theme.textDim).help(L("mail.dismiss"))
+                    .accessibilityLabel(L("mail.dismiss.a11y", sender))
                     .opacity(hovering || selected || focused ? 1 : 0)
             }
         }
@@ -1593,8 +1593,8 @@ private struct ReadingPane: View {
                         // The K mark, quiet — the ring identity is retired
                         // (K monogram everywhere since 0.4.80005).
                         LogoRing(size: 44).opacity(0.45)
-                        Text("Nothing open").font(.title3).foregroundStyle(Theme.textDim)
-                        Text("Pick a message on the left — read, reply,\nsnooze, and re-tier without leaving Klorn.")
+                        Text(L("reading.empty.title")).font(.title3).foregroundStyle(Theme.textDim)
+                        Text(L("reading.empty.detail"))
                             .font(.caption).foregroundStyle(Theme.textDim.opacity(0.7))
                             .multilineTextAlignment(.center)
                     }
@@ -1620,9 +1620,9 @@ private struct ReadingPane: View {
                 }
                 if let item {
                     HStack(spacing: 10) {
-                        Button("Reply with AI") { startReply(item) }
+                        Button(L("reading.replyWithAI")) { startReply(item) }
                             .buttonStyle(PrimaryButtonStyle())
-                        Button("Open in web") { actions.onOpenWeb(item) }
+                        Button(L("reading.openInWeb")) { actions.onOpenWeb(item) }
                             .buttonStyle(.bordered).controlSize(.small)
                         // menuIndicator(.hidden) kills the system-blue pull-down
                         // segment (the one off-palette element on this row —
@@ -1633,20 +1633,20 @@ private struct ReadingPane: View {
                         // leading edge by the menu button's label styling
                         // (screen-verified 0.4.80007: "∨ Snooze").
                         SnoozeMenu(item: item, onSnooze: actions.onSnooze) {
-                            Text("Snooze ")
+                            Text(L("mail.snoozePrefix"))
                                 + Text(Image(systemName: "chevron.down"))
                                 .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
                         }
                         .menuStyle(.button).buttonStyle(.bordered).controlSize(.small)
                         .menuIndicator(.hidden).fixedSize()
                         TierMenu(item: item, onSetTier: actions.onSetTier) {
-                            Text("Move to \(item.tier.label) ")
+                            Text(L("mail.moveTo", item.tier.label))
                                 + Text(Image(systemName: "chevron.down"))
                                 .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
                         }
                         .menuStyle(.button).buttonStyle(.bordered).controlSize(.small)
                         .menuIndicator(.hidden).fixedSize()
-                        Button("Dismiss") { actions.onDismiss(item) }
+                        Button(L("mail.dismiss")) { actions.onDismiss(item) }
                             .buttonStyle(.bordered).controlSize(.small)
                     }
                     .padding(.top, 2)
@@ -1678,20 +1678,20 @@ private struct ReadingPane: View {
     private func replyComposer(_ item: FirewallItem) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Reply to \(item.email?.from ?? "")")
+                Text(L("reading.replyTo", item.email?.from ?? ""))
                     .font(.caption).foregroundStyle(Theme.textDim).lineLimit(1)
                 Spacer()
                 if model.isDrafting {
                     HStack(spacing: 5) {
                         ProgressView().controlSize(.mini)
-                        Text("Klorn is drafting…").font(.caption).foregroundStyle(Theme.textDim)
+                        Text(L("reading.drafting")).font(.caption).foregroundStyle(Theme.textDim)
                     }
                 } else {
                     Button { Task { if let d = await model.draftReply(item) { replyText = d } } } label: {
-                        Label("Regenerate", systemImage: "sparkles").font(.caption)
+                        Label(L("reading.regenerate"), systemImage: "sparkles").font(.caption)
                     }
                     .buttonStyle(.plain).foregroundStyle(Theme.accent)
-                    .help("Ask Klorn to rewrite the draft")
+                    .help(L("reading.regenerate.help"))
                 }
             }
             TextEditor(text: $replyText)
@@ -1706,7 +1706,7 @@ private struct ReadingPane: View {
             }
             HStack {
                 Spacer()
-                Button("Cancel") { replying = false; replyText = "" }
+                Button(L("reading.cancel")) { replying = false; replyText = "" }
                     .buttonStyle(.bordered).controlSize(.small)
                 Button(sending ? "Sending…" : "Send") { send(item) }
                     .buttonStyle(PrimaryButtonStyle())
@@ -1728,7 +1728,7 @@ private struct ReadingPane: View {
                 if let item, let reason, !reason.isEmpty {
                     HStack(spacing: 6) {
                         Circle().fill(Theme.tint(item.tier)).frame(width: 7, height: 7)
-                        Text("Why \(item.tier.label) · \(reason)")
+                        Text(L("mail.whyTier", item.tier.label, reason))
                             .font(.caption).foregroundStyle(Theme.textDim).lineLimit(2)
                     }
                 }

@@ -81,9 +81,9 @@ enum AgentMode: String, CaseIterable, Sendable {
 
     var label: String {
         switch self {
-        case .shadow: return "Quiet"
-        case .suggest: return "Ask first"
-        case .auto: return "Auto"
+        case .shadow: return L("auto.mode.shadow")
+        case .suggest: return L("auto.mode.suggest")
+        case .auto: return L("auto.mode.auto")
         }
     }
 
@@ -92,11 +92,11 @@ enum AgentMode: String, CaseIterable, Sendable {
     var explanation: String {
         switch self {
         case .shadow:
-            return "Klorn sorts and prepares in the background. It never interrupts you and never acts."
+            return L("auto.mode.shadow.detail")
         case .suggest:
-            return "Klorn drafts the reply and asks before anything is sent. You approve every action."
+            return L("auto.mode.suggest.detail")
         case .auto:
-            return "Klorn handles safe actions itself. You still hear about anything urgent or time-bound."
+            return L("auto.mode.auto.detail")
         }
     }
 }
@@ -114,19 +114,19 @@ enum ReplyTone: String, CaseIterable, Sendable {
 
     var label: String {
         switch self {
-        case .matchMe: return "Match me"
-        case .formal: return "Formal"
-        case .friendly: return "Friendly"
-        case .casual: return "Casual"
+        case .matchMe: return L("auto.tone.matchMe")
+        case .formal: return L("auto.tone.formal")
+        case .friendly: return L("auto.tone.friendly")
+        case .casual: return L("auto.tone.casual")
         }
     }
 
     var explanation: String {
         switch self {
-        case .matchMe: return "Learn the register from your own sent mail."
-        case .formal: return "Polite and businesslike, with honorifics where the language has them."
-        case .friendly: return "Warm but professional — the everyday default."
-        case .casual: return "Relaxed and short, the way you'd write to a teammate."
+        case .matchMe: return L("auto.tone.matchMe.detail")
+        case .formal: return L("auto.tone.formal.detail")
+        case .friendly: return L("auto.tone.friendly.detail")
+        case .casual: return L("auto.tone.casual.detail")
         }
     }
 }
@@ -150,32 +150,34 @@ struct NotifyCategory: Identifiable, Sendable {
     let read: @Sendable (AutomationSettings) -> Bool
     let write: @Sendable (inout AutomationSettings, Bool) -> Void
 
-    static let all: [NotifyCategory] = [
+    /// Computed, not stored: the titles are localized, and a `static let` would
+    /// freeze them in whatever language was active the first time it was read.
+    static var all: [NotifyCategory] { [
         NotifyCategory(
-            id: "notifyEmailUrgent", title: "Urgent email",
-            detail: "Mail Klorn tiers as PUSH — someone is waiting on you.",
+            id: "notifyEmailUrgent", title: L("auto.notify.emailUrgent"),
+            detail: L("auto.notify.emailUrgent.detail"),
             essential: true, read: { $0.notifyEmailUrgent }, write: { $0.notifyEmailUrgent = $1 }),
         NotifyCategory(
-            id: "notifyMeeting", title: "Meetings",
-            detail: "Calendar events about to start.",
+            id: "notifyMeeting", title: L("auto.notify.meeting"),
+            detail: L("auto.notify.meeting.detail"),
             essential: true, read: { $0.notifyMeeting }, write: { $0.notifyMeeting = $1 }),
         NotifyCategory(
-            id: "notifyTaskDue", title: "Tasks due",
-            detail: "Commitments approaching or past their due time.",
+            id: "notifyTaskDue", title: L("auto.notify.taskDue"),
+            detail: L("auto.notify.taskDue.detail"),
             essential: false, read: { $0.notifyTaskDue }, write: { $0.notifyTaskDue = $1 }),
         NotifyCategory(
-            id: "notifyAgentProposal", title: "Klorn's proposals",
-            detail: "Actions Klorn wants your approval for.",
+            id: "notifyAgentProposal", title: L("auto.notify.agentProposal"),
+            detail: L("auto.notify.agentProposal.detail"),
             essential: false, read: { $0.notifyAgentProposal }, write: { $0.notifyAgentProposal = $1 }),
         NotifyCategory(
-            id: "notifyDailyBriefing", title: "Daily briefing",
-            detail: "The once-a-morning summary.",
+            id: "notifyDailyBriefing", title: L("auto.notify.dailyBriefing"),
+            detail: L("auto.notify.dailyBriefing.detail"),
             essential: false, read: { $0.notifyDailyBriefing }, write: { $0.notifyDailyBriefing = $1 }),
         NotifyCategory(
-            id: "notifyEmailCandidate", title: "Attachment intake",
-            detail: "Résumés and profile attachments Klorn has read.",
+            id: "notifyEmailCandidate", title: L("auto.notify.emailCandidate"),
+            detail: L("auto.notify.emailCandidate.detail"),
             essential: false, read: { $0.notifyEmailCandidate }, write: { $0.notifyEmailCandidate = $1 }),
-    ]
+    ] }
 }
 
 extension AutomationSettings {

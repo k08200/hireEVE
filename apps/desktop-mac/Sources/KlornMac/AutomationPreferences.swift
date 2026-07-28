@@ -11,9 +11,9 @@ struct AutomationPreferences: View {
 
     var body: some View {
         Group {
-            section("HOW KLORN WORKS") { modeSection }
-            section("REPLIES") { replySection }
-            section("WHAT INTERRUPTS YOU") { notificationSection }
+            section(L("auto.section.behaviour")) { modeSection }
+            section(L("auto.section.replies")) { replySection }
+            section(L("auto.section.interrupts")) { notificationSection }
         }
     }
 
@@ -34,7 +34,7 @@ struct AutomationPreferences: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("How Klorn works")
+        .accessibilityLabel(L("auto.section.behaviour.a11y"))
     }
 
     // MARK: Reply tone
@@ -44,9 +44,9 @@ struct AutomationPreferences: View {
         // A Picker, not another stack of cards: the tone list is longer and
         // secondary to the mode choice, and a menu keeps the panel readable.
         HStack {
-            Text("Tone").font(.body).foregroundStyle(Theme.text)
+            Text(L("auto.tone")).font(.body).foregroundStyle(Theme.text)
             Spacer()
-            Picker("Tone", selection: toneBinding) {
+            Picker(L("auto.tone"), selection: toneBinding) {
                 ForEach(ReplyTone.allCases, id: \.self) { tone in
                     Text(tone.label).tag(tone)
                 }
@@ -55,12 +55,12 @@ struct AutomationPreferences: View {
             .pickerStyle(.menu)
             .frame(width: 160)
             .disabled(model.automationSaving)
-            .accessibilityLabel("Reply tone")
+            .accessibilityLabel(L("auto.tone.a11y"))
         }
         Text(model.automation.replyTone.explanation)
             .font(.caption).foregroundStyle(Theme.textDim)
             .fixedSize(horizontal: false, vertical: true)
-        Text("Applies to all three one-key replies — accept, decline, and ask. It changes how they sound, not what they say.")
+        Text(L("auto.tone.scope"))
             .font(.caption).foregroundStyle(Theme.textDim)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -77,14 +77,14 @@ struct AutomationPreferences: View {
     private var notificationSection: some View {
         HStack(spacing: Theme.s2) {
             PresetChip(
-                title: "Essentials only",
+                title: L("auto.preset.essentials"),
                 selected: model.automation.isEssentialsOnly,
                 disabled: model.automationSaving
             ) {
                 model.updateAutomation { $0 = $0.applyingEssentialsOnly() }
             }
             PresetChip(
-                title: "Everything",
+                title: L("auto.preset.everything"),
                 selected: model.automation.isEverything,
                 disabled: model.automationSaving
             ) {
@@ -92,7 +92,7 @@ struct AutomationPreferences: View {
             }
             Spacer()
         }
-        Text("Essentials only: mail that needs an answer, plus anything on your calendar. Everything else stays in the bar without a banner.")
+        Text(L("auto.preset.detail"))
             .font(.caption).foregroundStyle(Theme.textDim)
             .fixedSize(horizontal: false, vertical: true)
 
@@ -236,15 +236,13 @@ private struct QuietHoursField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.s1) {
             HStack(spacing: Theme.s2) {
-                Text("Quiet hours").font(.body).foregroundStyle(Theme.text)
+                Text(L("auto.quietHours")).font(.body).foregroundStyle(Theme.text)
                 Spacer()
-                field($startText, label: "Quiet hours start")
+                field($startText, label: L("auto.quietHours.start.a11y"))
                 Text("→").foregroundStyle(Theme.textDim)
-                field($endText, label: "Quiet hours end")
+                field($endText, label: L("auto.quietHours.end.a11y"))
             }
-            Text(invalid
-                 ? "Use 24-hour times like 22:00 and 08:00. Clear both to switch it off."
-                 : "No banners during this window. A window that crosses midnight is fine.")
+            Text(invalid ? L("auto.quietHours.invalid") : L("auto.quietHours.detail"))
                 .font(.caption)
                 .foregroundStyle(invalid ? .orange : Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)

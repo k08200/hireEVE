@@ -97,7 +97,7 @@ struct PushCard: View {
         .contentShape(RoundedRectangle(cornerRadius: PushCardMetrics.corner))
         .onTapGesture { actions.onToggleExpand() }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Urgent email card")
+        .accessibilityLabel(L("push.card.a11y"))
         .accessibilityHint(state.layout == .compact ? "Click to expand" : "Click to collapse")
     }
 
@@ -109,7 +109,7 @@ struct PushCard: View {
             summary: state.detail?.summary, snippet: state.item?.email?.snippet)
         {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Summary")
+                Text(L("push.summary"))
                     .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
                 Text(text)
                     .font(.caption).foregroundStyle(Theme.text)
@@ -129,7 +129,7 @@ struct PushCard: View {
     private var bodySection: some View {
         if let body = cardBodyText(state.detail?.text) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Message").font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
+                Text(L("push.message")).font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
                 ScrollView {
                     Text(body).font(.caption).foregroundStyle(Theme.text)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -159,7 +159,7 @@ struct PushCard: View {
                 Button(label, action: actions.onShowAll)
                     .buttonStyle(.plain).font(.caption2.weight(.semibold))
                     .foregroundStyle(Theme.accent)
-                    .accessibilityLabel("Show all queued urgent emails")
+                    .accessibilityLabel(L("push.showAll.a11y"))
             }
             Menu {
                 ForEach(PushCardSnooze.options) { option in
@@ -171,15 +171,15 @@ struct PushCard: View {
                     .frame(width: 28, height: 28)
             }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            .help("Snooze until later")
-            .accessibilityLabel("Snooze this email")
+            .help(L("push.snooze.help"))
+            .accessibilityLabel(L("push.snooze.a11y"))
             Button(action: actions.onDismiss) {
                 Image(systemName: "xmark")
                     .font(.caption.weight(.semibold)).foregroundStyle(Theme.textDim)
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Dismiss card")
+            .accessibilityLabel(L("push.dismiss.a11y"))
         }
     }
 
@@ -189,21 +189,21 @@ struct PushCard: View {
         case .loading:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Drafting replies…").font(.caption).foregroundStyle(Theme.textDim)
+                Text(L("push.draftingReplies")).font(.caption).foregroundStyle(Theme.textDim)
             }
             .frame(maxWidth: .infinity, minHeight: 180)
         case .needsPro:
             VStack(alignment: .leading, spacing: 8) {
-                Text("Quick replies need Klorn Pro.")
+                Text(L("push.proRequired"))
                     .font(.callout).foregroundStyle(Theme.text)
-                Text("Press ⏎ or click Open to handle it on the web inbox.")
+                Text(L("push.proRequired.detail"))
                     .font(.caption).foregroundStyle(Theme.textDim)
             }
             .frame(maxWidth: .infinity, minHeight: 180, alignment: .topLeading)
         case .failed(let message):
             VStack(alignment: .leading, spacing: 8) {
                 Text(message).font(.caption).foregroundStyle(Theme.textDim)
-                Button("Try again", action: actions.onRetry)
+                Button(L("push.tryAgain"), action: actions.onRetry)
                     .buttonStyle(.bordered).controlSize(.small).tint(Theme.accent)
             }
             .frame(maxWidth: .infinity, minHeight: 180, alignment: .topLeading)
@@ -236,9 +236,9 @@ struct PushCard: View {
                      : "click to collapse · ⏎ open on web")
                 .font(.caption2).foregroundStyle(Theme.textDim)
             Spacer()
-            Button("Open", action: actions.onOpen)
+            Button(L("push.open"), action: actions.onOpen)
                 .buttonStyle(.plain).font(.caption.weight(.semibold)).foregroundStyle(Theme.accent)
-                .accessibilityLabel("Open on web inbox")
+                .accessibilityLabel(L("push.open.a11y"))
         }
     }
 }
@@ -287,7 +287,7 @@ private struct OptionRow: View {
                 } else if isSent {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green).padding(.top, 2)
-                        .accessibilityLabel("Sent")
+                        .accessibilityLabel(L("push.sent.a11y"))
                 }
             }
             .padding(8)
@@ -299,6 +299,6 @@ private struct OptionRow: View {
         .buttonStyle(.plain)
         .disabled(disabled)
         .onHover { hovering = $0 }
-        .accessibilityLabel("Send \(option.toneLabel) reply: \(option.body)")
+        .accessibilityLabel(L("push.sendReply.a11y", option.toneLabel, option.body))
     }
 }
