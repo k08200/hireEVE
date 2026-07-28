@@ -400,7 +400,7 @@ func decodeHTMLEntities(_ text: String) -> String {
 /// Pure for testing.
 func rowTierReason(_ reason: String?) -> String? {
     guard let reason, !reason.isEmpty,
-          reason != "Visible in queue for manual review"
+          reason != "Visible in queue for manual review"  // wire-value: matched, never shown
     else { return nil }
     return reason
 }
@@ -471,7 +471,7 @@ func firewallPath(selected: String) -> String {
 /// (mirrors the web selector's fallback copy). Pure.
 func inboxDisplayLabel(email: String?, kind: String) -> String {
     if let email, !email.isEmpty { return email }
-    return kind == "primary" ? "Primary" : "Linked inbox"
+    return kind == "primary" ? L("mail.inboxPrimary") : L("mail.inboxLinked")
 }
 
 /// Compact mailbox marker — the address's local part ("yong" of "yong@x.io"),

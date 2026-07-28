@@ -605,7 +605,7 @@ struct InboxSelectorMenu: View {
         if model.inboxes.count >= 2 {
             let current = inboxSelectorLabel(selected: model.selectedInbox, inboxes: model.inboxes)
             Menu {
-                row(value: "all", label: "All inboxes", needsReconnect: false)
+                row(value: "all", label: L("mail.allInboxes"), needsReconnect: false)
                 ForEach(model.inboxes) { inbox in
                     row(value: inbox.selectionValue,
                         label: inboxDisplayLabel(email: inbox.email, kind: inbox.kind),
@@ -1498,7 +1498,7 @@ private struct SearchHitRow: View {
                             .font(.caption2.monospacedDigit()).foregroundStyle(Theme.textDim)
                     }
                 }
-                Text(hit.subject ?? "(no subject)")
+                Text(hit.subject ?? L("mail.noSubjectParen"))
                     .font(.callout).foregroundStyle(Theme.text.opacity(0.9)).lineLimit(1)
                 if let snippet = hit.snippet, !snippet.isEmpty {
                     Text(snippet).font(.caption).foregroundStyle(Theme.textDim).lineLimit(1)
@@ -1609,6 +1609,8 @@ private struct ReadingPane: View {
     @State private var replying = false
     @State private var replyText = ""
     @State private var sending = false
+    @State private var quickReplies: AppModel.ReplyOptionsFetch?
+    @State private var loadingQuickReplies = false
 
     private var item: FirewallItem? {
         guard let id = model.selectedItemId else { return nil }
@@ -1643,13 +1645,18 @@ private struct ReadingPane: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: model.selectedItemId) { _, _ in replying = false; replyText = "" }
+        .onChange(of: model.selectedItemId) { _, _ in
+            replying = false
+            replyText = ""
+            quickReplies = nil
+            loadingQuickReplies = false
+        }
     }
 
     private func content(_ email: EmailDetail) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: Theme.s2) {
-                Text(decodeHTMLEntities(email.subject ?? "(no subject)"))
+                Text(decodeHTMLEntities(email.subject ?? L("mail.noSubjectParen")))
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(Theme.text).lineLimit(2)
                 HStack {
@@ -1694,11 +1701,14 @@ private struct ReadingPane: View {
             .padding(24)
             Divider().overlay(Theme.line)
             klornBand(email)
+            if let item, !replying {
+                quickReplyStrip(item)
+            }
             ScrollView {
                 // Reading typography: measured line length (~640pt) and open
                 // line spacing — a mail body should read like a document, not
                 // a log dump stretched across the pane.
-                Text(email.text.isEmpty ? "(no content)" : email.text)
+                Text(email.text.isEmpty ? L("reading.noContent") : email.text)
                     .font(.callout)
                     .lineSpacing(4)
                     .foregroundStyle(Theme.text.opacity(0.92))
@@ -1747,7 +1757,7 @@ private struct ReadingPane: View {
                 Spacer()
                 Button(L("reading.cancel")) { replying = false; replyText = "" }
                     .buttonStyle(.bordered).controlSize(.small)
-                Button(sending ? "Sending…" : "Send") { send(item) }
+                Button(sending ? L("reading.sending") : L("reading.send")) { send(item) }
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(sending || model.isDrafting || replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -1777,7 +1787,7 @@ private struct ReadingPane: View {
                 if email.needsReply == true {
                     HStack(spacing: 5) {
                         Image(systemName: "arrowshape.turn.up.left").font(.caption2).accessibilityHidden(true)
-                        Text((email.needsReplyReason?.isEmpty == false) ? email.needsReplyReason! : "Needs a reply")
+                        Text((email.needsReplyReason?.isEmpty == false) ? email.needsReplyReason! : L("reading.needsReply"))
                             .font(.caption)
                     }
                     .foregroundStyle(Theme.accent)
@@ -1821,6 +1831,81 @@ private struct ReadingPane: View {
             Text(engagement.importanceLabel).font(.caption2).foregroundStyle(Theme.engage.opacity(0.95))
         }
         .accessibilityHidden(true)
+    }
+
+    /// The three tone-differentiated drafts (accept / decline / info), the same
+    /// set the urgent-mail card offers — the reading pane is where mail is
+    /// actually read, so it is where answering should be one click, not a
+    /// button that starts a wait for a blank composer.
+    ///
+    /// Choosing one loads it into the composer rather than sending it. On the
+    /// card a keystroke sends because the user is triaging one message they are
+    /// staring at; here they are reading, and a click that silently sent mail
+    /// would be a trapdoor. Approval before action, same as everywhere else.
+    @ViewBuilder
+    private func quickReplyStrip(_ item: FirewallItem) -> some View {
+        VStack(alignment: .leading, spacing: Theme.s2) {
+            switch quickReplies {
+            case .ready(let options) where !options.options.isEmpty:
+                HStack(spacing: Theme.s2) {
+                    ForEach(Array(options.options.enumerated()), id: \.offset) { index, option in
+                        Button {
+                            replying = true
+                            replyText = option.body
+                        } label: {
+                            Text(option.toneLabel).frame(minHeight: 24)
+                        }
+                        .buttonStyle(.bordered).controlSize(.regular)
+                        // The card binds 1/2/3 positionally; mirroring that here
+                        // keeps one muscle memory across both surfaces.
+                        .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: [])
+                        .help(option.body)
+                        .accessibilityLabel(L("reading.quickReply.a11y", option.toneLabel, option.body))
+                    }
+                    Spacer()
+                }
+            case .ready:
+                EmptyView()
+            case .needsPro:
+                Text(L("push.proRequired")).font(.caption).foregroundStyle(Theme.textDim)
+            case .failed(let message):
+                HStack(spacing: Theme.s2) {
+                    Text(message).font(.caption).foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button(L("push.tryAgain")) { loadQuickReplies(item) }
+                        .buttonStyle(.bordered).controlSize(.small)
+                }
+            case nil:
+                if loadingQuickReplies {
+                    HStack(spacing: 5) {
+                        ProgressView().controlSize(.mini)
+                        Text(L("push.draftingReplies")).font(.caption).foregroundStyle(Theme.textDim)
+                    }
+                } else {
+                    // Not fetched on selection: every load is three LLM
+                    // completions, and most mail is read without being answered.
+                    Button(L("reading.suggestReplies")) { loadQuickReplies(item) }
+                        .buttonStyle(.bordered).controlSize(.small)
+                }
+            }
+        }
+        .padding(.horizontal, 24).padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        Divider().overlay(Theme.line)
+    }
+
+    private func loadQuickReplies(_ item: FirewallItem) {
+        guard !loadingQuickReplies else { return }
+        loadingQuickReplies = true
+        quickReplies = nil
+        Task {
+            let result = await model.fetchReplyOptions(item)
+            // The user may have moved on while three completions ran; a late
+            // result must not paint another email's drafts.
+            guard model.selectedItemId == item.id else { return }
+            quickReplies = result
+            loadingQuickReplies = false
+        }
     }
 
     /// Open the composer and let Klorn's AI draft the reply into it. The user

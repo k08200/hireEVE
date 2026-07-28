@@ -98,7 +98,7 @@ struct PushCard: View {
         .onTapGesture { actions.onToggleExpand() }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(L("push.card.a11y"))
-        .accessibilityHint(state.layout == .compact ? "Click to expand" : "Click to collapse")
+        .accessibilityHint(state.layout == .compact ? L("push.expand.hint") : L("push.collapse.hint"))
     }
 
     /// Expanded-only: Klorn's AI summary of the email (snippet fallback while

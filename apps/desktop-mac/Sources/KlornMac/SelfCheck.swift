@@ -654,8 +654,8 @@ func runSelfChecks() async -> Bool {
     check("firewall path — linked id scoped (hyphen encoded)",
           firewallPath(selected: "li-1") == "/api/inbox/firewall?inbox=li%2D1")
     check("inbox display label falls back by kind",
-          inboxDisplayLabel(email: nil, kind: "primary") == "Primary"
-          && inboxDisplayLabel(email: nil, kind: "linked") == "Linked inbox"
+          inboxDisplayLabel(email: nil, kind: "primary") == L("mail.inboxPrimary")
+          && inboxDisplayLabel(email: nil, kind: "linked") == L("mail.inboxLinked")
           && inboxDisplayLabel(email: "a@b.c", kind: "linked") == "a@b.c")
     check("inbox short name splits + caps",
           inboxShortName("averylongalias.mail@x.io") == "averylongalias"
@@ -800,7 +800,7 @@ func runSelfChecks() async -> Bool {
     // Readiness display mapping is fixed vocabulary (server enum).
     check("readiness labels", readinessLabel("ready") == "Ready"
           && readinessLabel("watch") == "Watch"
-          && readinessLabel("needs_review") == "Needs review"
+          && readinessLabel("needs_review") == L("meeting.needsReview")
           && readinessLabel("???") == "Prep")
 
     // Prep-pack wire decode (subset the card renders).
@@ -824,7 +824,8 @@ func runSelfChecks() async -> Bool {
     // never a silent no-op toggle.
     check("available for a bundled app", LoginItem.availability(hasBundleId: true) == .available)
     check("unbundled run explains itself",
-          LoginItem.availability(hasBundleId: false) == .unavailable(reason: "Packaged app only"))
+          LoginItem.availability(hasBundleId: false)
+              == .unavailable(reason: L("prefs.launchAtLogin.unavailable.value")))
 
     print("Update check:")
     // Tag comparison: strict semver on the desktop-v prefix; equal or older
@@ -1077,6 +1078,34 @@ func runSelfChecks() async -> Bool {
     if !unlocalized.isEmpty {
         print("      offenders: \(unlocalized.map(\.lastPathComponent).joined(separator: ", "))")
     }
+
+    // The helper grep above still only knows the helpers it was told about, and
+    // three rounds of misses were three different shapes. This one is
+    // shape-agnostic: any literal that reads like a sentence — two or more
+    // words, starting with a capital — is prose, and prose belongs in the
+    // catalogue. Comments, keys, symbol names and format strings don't match.
+    let proseLiteral = try! NSRegularExpression(
+        pattern: #""[A-Z][a-z]+(?: [A-Za-z,'’]+){1,}\.?""#)
+    var proseOffenders: [String] = []
+    for url in swiftFiles where url.lastPathComponent != "SelfCheck.swift" {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            // Skip comments and the catalogue-facing call itself.
+            if trimmed.hasPrefix("//") || trimmed.hasPrefix("///") || trimmed.hasPrefix("*") {
+                continue
+            }
+            if trimmed.contains("Log.") || trimmed.contains("Announcement(") { continue }
+            // Explicitly marked server values: compared against, never displayed.
+            if trimmed.contains("// wire-value") { continue }
+            let range = NSRange(trimmed.startIndex..., in: trimmed)
+            if proseLiteral.firstMatch(in: trimmed, range: range) != nil {
+                proseOffenders.append("\(url.lastPathComponent): \(trimmed.prefix(60))")
+            }
+        }
+    }
+    check("no sentence-shaped literal outside the catalogue", proseOffenders.isEmpty)
+    for offender in proseOffenders.prefix(8) { print("      \(offender)") }
 
     check("override wins over the system language",
           L10n.resolvedCode(override: .korean, preferred: ["en-US"]) == "ko")

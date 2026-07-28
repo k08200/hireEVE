@@ -14,7 +14,7 @@ enum LoginItem {
 
     /// Pure gate for the self-check harness: bundle identity decides it.
     nonisolated static func availability(hasBundleId: Bool) -> Availability {
-        hasBundleId ? .available : .unavailable(reason: "Packaged app only")
+        hasBundleId ? .available : .unavailable(reason: L("prefs.launchAtLogin.unavailable.value"))
     }
 
     static var isAvailable: Bool {

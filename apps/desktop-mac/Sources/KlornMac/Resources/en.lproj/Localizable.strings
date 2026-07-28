@@ -288,3 +288,24 @@
 "section.waitingOn" = "WAITING ON";
 "section.iOwe" = "I OWE";
 "assistant.empty" = "Ask about your mail, calendar, or day.";
+
+"reply.emailOnly" = "Quick replies only work for email items.";
+"reply.nothingToSend" = "Nothing to send.";
+"reply.needsPro" = "Replying from the app needs Klorn Pro.";
+"error.sessionExpired" = "Session expired. Please sign in again.";
+"mail.noSubjectParen" = "(no subject)";
+"reading.noContent" = "(no content)";
+"reading.send" = "Send";
+"reading.sending" = "Sending\u2026";
+"reading.needsReply" = "Needs a reply";
+"reading.suggestReplies" = "Suggest replies";
+"reading.quickReply.a11y" = "Use the %1$@ reply: %2$@";
+
+"error.badResponse" = "Unexpected response from the server.";
+"error.needsPro" = "This action needs Klorn Pro.";
+"error.generic" = "Something went wrong.";
+"meeting.needsReview" = "Needs review";
+"mail.inboxPrimary" = "Primary";
+"mail.inboxLinked" = "Linked inbox";
+"push.expand.hint" = "Click to expand";
+"push.collapse.hint" = "Click to collapse";

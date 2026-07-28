@@ -238,7 +238,7 @@ final class AppModel {
     /// its Pro hint instead of an error.
     func fetchReplyOptions(_ item: FirewallItem) async -> ReplyOptionsFetch {
         guard let emailDbId = item.email?.emailDbId else {
-            return .failed("Quick replies only work for email items.")
+            return .failed(L("reply.emailOnly"))
         }
         do {
             let options: ReplyOptionsResponse = try await api.post(
@@ -246,7 +246,7 @@ final class AppModel {
             return .ready(options)
         } catch APIError.unauthorized {
             signOut()
-            return .failed("Session expired. Please sign in again.")
+            return .failed(L("error.sessionExpired"))
         } catch APIError.forbidden {
             return .needsPro
         } catch {
@@ -277,15 +277,15 @@ final class AppModel {
     func sendReply(_ item: FirewallItem, body: String) async -> String? {
         guard let emailDbId = item.email?.emailDbId,
               !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else { return "Nothing to send." }
+        else { return L("reply.nothingToSend") }
         do {
             try await api.post("/api/email/\(emailDbId)/reply", json: ["body": body])
             return nil
         } catch APIError.unauthorized {
             signOut()
-            return "Session expired. Please sign in again."
+            return L("error.sessionExpired")
         } catch APIError.forbidden {
-            return "Replying from the app needs Klorn Pro."
+            return L("reply.needsPro")
         } catch {
             return Self.describe(error)
         }
@@ -898,10 +898,10 @@ final class AppModel {
         switch error {
         case APIError.http(let code, let msg): return msg ?? "Server error (\(code))."
         case APIError.transport: return "Network error — check your connection."
-        case APIError.decoding: return "Unexpected response from the server."
-        case APIError.unauthorized: return "Session expired. Please sign in again."
-        case APIError.forbidden: return "This action needs Klorn Pro."
-        default: return "Something went wrong."
+        case APIError.decoding: return L("error.badResponse")
+        case APIError.unauthorized: return L("error.sessionExpired")
+        case APIError.forbidden: return L("error.needsPro")
+        default: return L("error.generic")
         }
     }
 }

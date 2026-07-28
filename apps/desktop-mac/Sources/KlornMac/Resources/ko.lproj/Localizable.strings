@@ -287,3 +287,24 @@
 "section.waitingOn" = "기다리는 중";
 "section.iOwe" = "내가 할 일";
 "assistant.empty" = "메일·일정·오늘 하루에 대해 물어보세요.";
+
+"reply.emailOnly" = "빠른 답장은 메일에만 쓸 수 있습니다.";
+"reply.nothingToSend" = "보낼 내용이 없습니다.";
+"reply.needsPro" = "앱에서 답장하려면 Klorn Pro가 필요합니다.";
+"error.sessionExpired" = "세션이 만료됐습니다. 다시 로그인하세요.";
+"mail.noSubjectParen" = "(제목 없음)";
+"reading.noContent" = "(내용 없음)";
+"reading.send" = "보내기";
+"reading.sending" = "보내는 중\u2026";
+"reading.needsReply" = "답장이 필요합니다";
+"reading.suggestReplies" = "답장 제안 받기";
+"reading.quickReply.a11y" = "%1$@ 답장 사용: %2$@";
+
+"error.badResponse" = "서버 응답을 이해하지 못했습니다.";
+"error.needsPro" = "이 기능은 Klorn Pro가 필요합니다.";
+"error.generic" = "문제가 발생했습니다.";
+"meeting.needsReview" = "확인 필요";
+"mail.inboxPrimary" = "기본";
+"mail.inboxLinked" = "연결된 수신함";
+"push.expand.hint" = "클릭하면 펼쳐집니다";
+"push.collapse.hint" = "클릭하면 접힙니다";
