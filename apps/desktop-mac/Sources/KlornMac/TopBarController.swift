@@ -164,17 +164,29 @@ final class TopBarController {
         self.panel = panel
         setFrame(panel, size: size)
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
+        NSApp.setActivationPolicy(Self.activationPolicy(for: state))
         if focusable {
-            // Full is a real, focusable app window: switch to a regular activation
-            // policy (Dock icon + menu + real focus) so the reply field can type.
-            NSApp.setActivationPolicy(.regular)
+            // Full is a real, focusable app window, so it takes focus outright —
+            // the reply field has to be able to type.
             panel.makeKeyAndOrderFront(nil)
             NSApp.activate()
         } else {
-            // Ambient: no Dock icon, never steal focus from the user's app.
-            NSApp.setActivationPolicy(.accessory)
+            // Expanded is Cmd+Tab-able but still never steals focus.
             panel.orderFrontRegardless()
         }
+    }
+
+    /// Whether Klorn appears in Cmd+Tab and the Dock.
+    ///
+    /// Resting, Klorn is ambient — it must stay out of both, which is the whole
+    /// point of the accessory policy. Once the user has deliberately opened the
+    /// panel it stops being ambient and becomes something they switch back to,
+    /// so from `.expanded` up it joins the app switcher (founder decision,
+    /// 2026-07-28: regular only while open, not always). Pure, for the harness.
+    nonisolated static func activationPolicy(
+        for state: BarState
+    ) -> NSApplication.ActivationPolicy {
+        state == .collapsed ? .accessory : .regular
     }
 
     private func makeActions() -> TopBarActions {

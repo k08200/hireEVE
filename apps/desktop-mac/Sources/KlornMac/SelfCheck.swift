@@ -977,6 +977,17 @@ func runSelfChecks() async -> Bool {
     check("a full window survives", QuietHours.pair(start: "22:00", end: "8:00")
           == (start: "22:00", end: "08:00"))
 
+    print("Activation policy:")
+    // Resting must stay out of Cmd+Tab and the Dock — an ambient firewall that
+    // shows up in the app switcher is no longer ambient. Everything the user
+    // deliberately opened must be in it, or there is no way to switch back.
+    check("collapsed stays out of Cmd+Tab",
+          TopBarController.activationPolicy(for: .collapsed) == .accessory)
+    check("expanded joins Cmd+Tab",
+          TopBarController.activationPolicy(for: .expanded) == .regular)
+    check("full joins Cmd+Tab",
+          TopBarController.activationPolicy(for: .full) == .regular)
+
     print("Localization:")
     // A key present in one language and missing in another ships a raw key
     // ("prefs.done") to whoever runs the other language — the kind of bug that
