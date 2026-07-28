@@ -1,0 +1,11 @@
+-- Explicit reply register, chosen by the user in Preferences.
+--
+-- Until now the only signal for "how should this reply sound" was the inferred
+-- voice profile (learning/voice-profile-extractor.ts). Inference is not a
+-- setting: a user who wants formal replies had no way to say so, and the
+-- desktop app exposed no control at all.
+--
+-- Default "MATCH_ME" is exactly the pre-existing behaviour (profile only), so
+-- every existing row keeps writing replies the way it does today. Only a user
+-- who picks a register gets the override.
+ALTER TABLE "AutomationConfig" ADD COLUMN "replyTone" TEXT NOT NULL DEFAULT 'MATCH_ME';

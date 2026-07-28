@@ -17,9 +17,6 @@ struct PreferencesView: View {
     @State private var recordingShortcut = false
 
     var body: some View {
-        // Local @Bindable so the Toggle can write into the nested settings object.
-        @Bindable var settings = model.settings
-
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Preferences").font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
@@ -32,12 +29,37 @@ struct PreferencesView: View {
             }
             .padding(.bottom, 12)
 
+            // Pinned header, scrolling body: the behaviour sections push the
+            // panel past the 860pt full view, and Done must stay reachable
+            // without scrolling to the bottom first.
+            ScrollView { sections }
+                .frame(maxHeight: 620)
+        }
+        .onAppear { launchAtLogin = LoginItem.isEnabled }
+        .padding(22)
+        .frame(width: 440)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
+        .shadow(color: Theme.panelShadow, radius: 24, y: 8)
+    }
+
+    @ViewBuilder
+    private var sections: some View {
+        @Bindable var settings = model.settings
+
+        VStack(alignment: .leading, spacing: 0) {
+            // Server-owned behaviour first: "what does Klorn do, and what is
+            // allowed to interrupt me" outranks local chrome like the hotkey.
+            if model.phase == .signedIn {
+                AutomationPreferences()
+            }
+
             section("NOTIFICATIONS") {
                 Toggle(isOn: $settings.notificationsEnabled) {
-                    Text("Show a macOS notification for new PUSH").foregroundStyle(Theme.text)
+                    Text("Show macOS banners on this Mac").foregroundStyle(Theme.text)
                 }
                 .toggleStyle(.switch).tint(Theme.accent)
-                Text("The top bar always updates its PUSH count — this only controls the system banner.")
+                Text("A local master switch. Off silences every banner here regardless of the categories above; the top bar still updates its PUSH count.")
                     .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
             }
 
@@ -142,12 +164,6 @@ struct PreferencesView: View {
                 infoRow("API", Config.apiBaseURL)
             }
         }
-        .onAppear { launchAtLogin = LoginItem.isEnabled }
-        .padding(22)
-        .frame(width: 440)
-        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
-        .shadow(color: Theme.panelShadow, radius: 24, y: 8)
     }
 
     @ViewBuilder

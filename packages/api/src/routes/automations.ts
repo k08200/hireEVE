@@ -3,6 +3,7 @@ import { listAgentModePolicies, normalizeAgentMode } from "../agentcore/agent-mo
 import { runAgentForUser } from "../agentcore/autonomous-agent.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { db, prisma } from "../db.js";
+import { listReplyTonePolicies, normalizeReplyTone } from "../learning/reply-tone.js";
 import { normalizeTimeZone } from "../time-zone.js";
 
 // MEDIUM-risk tools that users may pre-approve for AUTO mode.
@@ -54,6 +55,8 @@ export async function automationRoutes(app: FastifyInstance) {
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
       alwaysAllowedTools: sanitizeAlwaysAllowedTools(configAny.alwaysAllowedTools),
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
+      replyTone: normalizeReplyTone(configAny.replyTone),
+      replyTones: listReplyTonePolicies(),
       notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
       notifyMeeting: configAny.notifyMeeting ?? true,
       notifyTaskDue: configAny.notifyTaskDue ?? true,
@@ -87,6 +90,7 @@ export async function automationRoutes(app: FastifyInstance) {
       "agentMode",
       "agentIntervalMin",
       "alwaysAllowedTools",
+      "replyTone",
       "notifyEmailUrgent",
       "notifyMeeting",
       "notifyTaskDue",
@@ -107,6 +111,12 @@ export async function automationRoutes(app: FastifyInstance) {
     // Validate agentMode
     if ("agentMode" in data) {
       data.agentMode = normalizeAgentMode(data.agentMode);
+    }
+
+    // Validate replyTone — an unknown register would otherwise be persisted
+    // and then silently ignored by the prompt builder.
+    if ("replyTone" in data) {
+      data.replyTone = normalizeReplyTone(data.replyTone);
     }
 
     if ("timezone" in data) {
@@ -141,6 +151,8 @@ export async function automationRoutes(app: FastifyInstance) {
       agentIntervalMin: configAny.agentIntervalMin ?? 5,
       alwaysAllowedTools: sanitizeAlwaysAllowedTools(configAny.alwaysAllowedTools),
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
+      replyTone: normalizeReplyTone(configAny.replyTone),
+      replyTones: listReplyTonePolicies(),
       notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
       notifyMeeting: configAny.notifyMeeting ?? true,
       notifyTaskDue: configAny.notifyTaskDue ?? true,

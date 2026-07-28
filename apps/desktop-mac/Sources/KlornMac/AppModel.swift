@@ -646,6 +646,62 @@ final class AppModel {
         }
     }
 
+    // MARK: Automation settings (server-owned behaviour)
+
+    /// Server-side behaviour settings shown in Preferences. Seeded with the
+    /// server's own defaults so the panel opens on the right shape; the first
+    /// fetch replaces it. `nil`-free by design — an unreachable server should
+    /// show the defaults with a save error, not an empty panel.
+    private(set) var automation = AutomationSettings()
+    private(set) var automationLoaded = false
+    private(set) var automationSaving = false
+    private(set) var automationError: String?
+
+    /// Refreshed on the queue cadence: System Settings is not the only writer —
+    /// the web settings screen can change these behind the desktop app's back.
+    private func refreshAutomation() async {
+        do {
+            automation = try await api.fetchAutomationSettings()
+            automationLoaded = true
+            automationError = nil
+        } catch {
+            Log.app.debug("automation fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Apply a settings change: paint it immediately, persist, then settle on
+    /// what the server stored. A failed write reverts to the last known-good
+    /// value rather than leaving the UI asserting a setting that isn't saved.
+    func updateAutomation(_ change: (inout AutomationSettings) -> Void) {
+        let previous = automation
+        var next = automation
+        change(&next)
+        guard next != previous else { return }
+        automation = next
+        automationSaving = true
+        automationError = nil
+        Task {
+            do {
+                automation = try await api.updateAutomationSettings(next)
+                automationLoaded = true
+            } catch {
+                automation = previous
+                automationError = Self.automationErrorText(error)
+                Log.app.debug("automation save failed: \(String(describing: error), privacy: .private)")
+            }
+            automationSaving = false
+        }
+    }
+
+    private static func automationErrorText(_ error: Error) -> String {
+        switch error {
+        case APIError.unauthorized: return "Session expired — sign in again."
+        case APIError.forbidden: return "Your plan doesn't include this setting."
+        case APIError.transport: return "Couldn't reach Klorn. The setting wasn't saved."
+        default: return "Couldn't save that setting."
+        }
+    }
+
     /// GET /api/calendar/:id/prep-pack for the meeting card. Best-effort.
     func fetchPrepPack(eventId: String) async -> MeetingPrepPack? {
         do {
@@ -668,6 +724,7 @@ final class AppModel {
         Task { await refreshBriefing() }
         Task { await refreshCommitments() }
         Task { await refreshAgentToday() }
+        Task { await refreshAutomation() }
         Task { await checkForUpdateIfDue() }
         do {
             let selectionAtFetch = selectedInbox

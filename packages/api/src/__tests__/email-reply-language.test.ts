@@ -11,9 +11,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const createCompletion = vi.hoisted(() => vi.fn());
+const automationFindUnique = vi.hoisted(() => vi.fn(async () => null as unknown));
 
 vi.mock("../db.js", () => {
-  const prisma = { emailRule: { findMany: vi.fn(), update: vi.fn() } };
+  const prisma = {
+    emailRule: { findMany: vi.fn(), update: vi.fn() },
+    automationConfig: { findUnique: automationFindUnique },
+  };
   return { prisma, db: prisma };
 });
 vi.mock("../llm/openai.js", () => ({
@@ -39,6 +43,8 @@ function systemPromptOfLastCall(): string {
 describe("generateSmartReply language handling", () => {
   beforeEach(() => {
     createCompletion.mockReset();
+    automationFindUnique.mockReset();
+    automationFindUnique.mockResolvedValue(null);
     createCompletion.mockResolvedValue({
       choices: [{ message: { content: "네, 화요일 오후 3시 좋습니다." } }],
     });
@@ -60,5 +66,46 @@ describe("generateSmartReply language handling", () => {
     await generateSmartReply("Always answer in English.", EMAIL, "user-1");
 
     expect(systemPromptOfLastCall()).toMatch(/template/i);
+  });
+});
+
+describe("generateSmartReply reply tone", () => {
+  beforeEach(() => {
+    createCompletion.mockReset();
+    automationFindUnique.mockReset();
+    createCompletion.mockResolvedValue({
+      choices: [{ message: { content: "확인했습니다." } }],
+    });
+  });
+
+  it("applies the register the user chose in Preferences", async () => {
+    automationFindUnique.mockResolvedValue({ replyTone: "FORMAL" });
+
+    await generateSmartReply("Confirm the meeting", EMAIL, "user-1");
+
+    expect(systemPromptOfLastCall()).toMatch(/honorific/i);
+  });
+
+  it("adds no tone instruction when the user has not chosen one", async () => {
+    automationFindUnique.mockResolvedValue({ replyTone: "MATCH_ME" });
+
+    await generateSmartReply("Confirm the meeting", EMAIL, "user-1");
+
+    expect(systemPromptOfLastCall()).not.toMatch(/\[Reply tone/i);
+  });
+
+  it("still drafts a reply when the preference lookup fails", async () => {
+    automationFindUnique.mockRejectedValue(new Error("db down"));
+
+    const body = await generateSmartReply("Confirm the meeting", EMAIL, "user-1");
+
+    expect(body).toBe("확인했습니다.");
+    expect(createCompletion).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips the preference lookup entirely for an anonymous caller", async () => {
+    await generateSmartReply("Confirm the meeting", EMAIL);
+
+    expect(automationFindUnique).not.toHaveBeenCalled();
   });
 });

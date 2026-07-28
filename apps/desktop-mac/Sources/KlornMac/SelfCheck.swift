@@ -904,6 +904,76 @@ func runSelfChecks() async -> Bool {
     check("mask caps fit PushCard",
           cardMask.capInsets.top + cardMask.capInsets.bottom < PushCardMetrics.compact.height)
 
+    print("Automation settings:")
+    // Decoding must survive an older desktop build meeting a newer server (and
+    // vice versa): every field absent has to land on the server's own defaults,
+    // not on false/empty, or the panel would show "all notifications off" for a
+    // user whose notifications are in fact all on.
+    if let sparse = try? JSONDecoder().decode(
+        AutomationSettings.self, from: Data("{}".utf8))
+    {
+        check("absent fields default to server defaults",
+              sparse.agentMode == .suggest && sparse.replyTone == .matchMe
+              && sparse.isEverything && sparse.quietHoursStart == nil)
+    } else {
+        check("AutomationSettings decodes an empty object", false)
+    }
+
+    let autoJSON = """
+    {"agentMode":"AUTO","replyTone":"FORMAL","notifyEmailUrgent":true,"notifyMeeting":true,
+    "notifyTaskDue":false,"notifyAgentProposal":false,"notifyDailyBriefing":false,
+    "notifyEmailCandidate":false,"quietHoursStart":"22:00","quietHoursEnd":"08:00"}
+    """
+    if let s = try? JSONDecoder().decode(AutomationSettings.self, from: Data(autoJSON.utf8)) {
+        check("decodes mode + tone", s.agentMode == .auto && s.replyTone == .formal)
+        check("decodes quiet hours", s.quietHoursStart == "22:00" && s.quietHoursEnd == "08:00")
+        check("essentials-only state is recognised", s.isEssentialsOnly && !s.isEverything)
+    } else {
+        check("AutomationSettings decodes a full payload", false)
+    }
+
+    // An unknown mode/tone from a newer server must not crash or silently
+    // become a *more* autonomous setting.
+    let unknownJSON = #"{"agentMode":"OVERDRIVE","replyTone":"SASSY"}"#
+    if let s = try? JSONDecoder().decode(AutomationSettings.self, from: Data(unknownJSON.utf8)) {
+        check("unknown mode falls back to ask-first", s.agentMode == .suggest)
+        check("unknown tone falls back to match-me", s.replyTone == .matchMe)
+    } else {
+        check("AutomationSettings tolerates unknown enum values", false)
+    }
+
+    let essentials = AutomationSettings().applyingEssentialsOnly()
+    check("essentials keeps urgent mail + meetings",
+          essentials.notifyEmailUrgent && essentials.notifyMeeting)
+    check("essentials mutes the rest",
+          !essentials.notifyTaskDue && !essentials.notifyAgentProposal
+          && !essentials.notifyDailyBriefing && !essentials.notifyEmailCandidate)
+    check("everything preset turns all categories on",
+          essentials.applyingEverything().isEverything)
+
+    // Clearing quiet hours has to reach the server as an explicit null; a
+    // dropped key would leave the old window in place.
+    let cleared = AutomationSettings().patchPayload
+    check("cleared quiet hours PATCH as null",
+          cleared["quietHoursStart"] is NSNull && cleared["quietHoursEnd"] is NSNull)
+    check("PATCH carries mode, tone and all six categories",
+          cleared["agentMode"] as? String == "SUGGEST"
+          && cleared["replyTone"] as? String == "MATCH_ME"
+          && NotifyCategory.all.allSatisfy { cleared[$0.id] != nil })
+
+    check("quiet hours normalize pads to HH:mm", QuietHours.normalize("9:5") == "09:05")
+    check("quiet hours normalize accepts 4 digits", QuietHours.normalize("2200") == "22:00")
+    check("quiet hours normalize passes through", QuietHours.normalize("22:00") == "22:00")
+    check("quiet hours reject out-of-range",
+          QuietHours.normalize("24:00") == nil && QuietHours.normalize("22:60") == nil)
+    check("quiet hours reject junk",
+          QuietHours.normalize("later") == nil && QuietHours.normalize("22") == nil
+          && QuietHours.normalize("") == nil)
+    check("half a window is discarded",
+          QuietHours.pair(start: "22:00", end: "").start == nil)
+    check("a full window survives", QuietHours.pair(start: "22:00", end: "8:00")
+          == (start: "22:00", end: "08:00"))
+
     print(failures == 0 ? "\nALL CHECKS PASSED" : "\n\(failures) CHECK(S) FAILED")
     return failures == 0
 }

@@ -400,6 +400,12 @@ model AutomationConfig {
   agentMode              String   @default("SUGGEST") // "SHADOW" | "SUGGEST" | "AUTO"
   agentIntervalMin       Int      @default(5)
   alwaysAllowedTools     String[] @default([]) // MEDIUM-risk tools the user has pre-approved for AUTO mode
+  // Register Klorn writes replies in. "MATCH_ME" (default) keeps the previous
+  // behaviour: infer it from the learned voice profile only. An explicit value
+  // outranks that inference — see learning/reply-tone.ts. Applies to every
+  // reply surface (all three /reply-options keys and AUTO rule replies); the
+  // accept/decline/info axis is unchanged.
+  replyTone              String   @default("MATCH_ME") // "MATCH_ME" | "FORMAL" | "FRIENDLY" | "CASUAL"
   // Gmail read-state opt-in: when true, Eve marks the original email as read
   // after AUTO-replying to it. Default off so Gmail's "unread" remains a user signal.
   autoMarkReadEnabled    Boolean  @default(false)

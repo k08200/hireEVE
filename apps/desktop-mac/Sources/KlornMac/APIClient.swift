@@ -45,6 +45,27 @@ struct APIClient: Sendable {
         try await get("/api/email/inboxes")
     }
 
+    /// GET /api/automations — server-owned behaviour settings (agent mode,
+    /// reply tone, notification categories, quiet hours).
+    func fetchAutomationSettings() async throws -> AutomationSettings {
+        try await get("/api/automations")
+    }
+
+    /// PATCH /api/automations. Returns the server's post-write state so the UI
+    /// settles on what was actually stored (normalized tone/mode included)
+    /// rather than on what it optimistically painted.
+    func updateAutomationSettings(_ settings: AutomationSettings) async throws -> AutomationSettings {
+        let body = try JSONSerialization.data(withJSONObject: settings.patchPayload)
+        let data = try await data(
+            "/api/automations", method: "PATCH", body: body, contentType: "application/json")
+        do {
+            return try JSONDecoder().decode(AutomationSettings.self, from: data)
+        } catch {
+            Log.net.debug("decode failed for PATCH /api/automations: \(String(describing: error), privacy: .private)")
+            throw APIError.decoding("/api/automations")
+        }
+    }
+
     /// Fire a POST (empty body); discard the response, mapping status to APIError.
     func post(_ path: String, authed: Bool = true) async throws {
         _ = try await data(path, method: "POST", authed: authed)
