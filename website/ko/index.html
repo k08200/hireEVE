@@ -129,25 +129,34 @@
 
     /* ── Floating glass pill nav ───────────────── */
     .nav { position:fixed; top:16px; left:0; right:0; z-index:60; display:flex; justify-content:center; padding:0 16px; pointer-events:none; }
+    /* Dark glass over a bright sky — the reference's signature move, and the
+       reason its nav reads at a glance instead of dissolving into the clouds.
+       A translucent white pill on this scene had almost no edge. */
     .nav-pill {
       pointer-events:auto; display:flex; align-items:center; gap:4px;
       padding:8px 8px 8px 14px; border-radius:9999px;
-      background:rgba(255,255,255,.72); backdrop-filter:blur(18px) saturate(1.4); -webkit-backdrop-filter:blur(18px) saturate(1.4);
-      border:1px solid rgba(255,255,255,.6);
-      box-shadow:0 8px 30px -12px rgba(10,50,90,.28), 0 1px 0 rgba(255,255,255,.7) inset;
+      background:rgba(12,18,26,.62); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:0 10px 34px -14px rgba(6,20,40,.6), 0 1px 0 rgba(255,255,255,.10) inset;
       max-width:100%;
     }
-    .nav-brand { display:flex; align-items:center; gap:9px; padding-right:6px; font-weight:700; letter-spacing:-.01em; font-size:16px; }
+    .nav-brand { display:flex; align-items:center; gap:9px; padding-right:6px; font-weight:700; letter-spacing:-.01em; font-size:16px; color:#fff; }
     .nav-mark { width:26px; height:26px; border-radius:7px; box-shadow:0 1px 3px rgba(10,20,40,.18); }
     .nav-links { display:flex; align-items:center; gap:2px; margin:0 4px; }
-    .nav-links a { padding:8px 14px; border-radius:9999px; font-size:14px; font-weight:500; color: var(--ink-soft); transition:.18s var(--ease); }
-    .nav-links a:hover { background:rgba(10,14,20,.05); color: var(--ink); }
-    .nav-cta { display:inline-flex; align-items:center; gap:7px; height:40px; padding:0 18px; border-radius:9999px; background: var(--ink); color:#fff; font-size:14px; font-weight:600; transition:.18s var(--ease); }
-    .nav-cta:hover { background: var(--sky-600); }
+    .nav-links a { padding:8px 14px; border-radius:9999px; font-size:14px; font-weight:500; color:rgba(255,255,255,.78); transition:.18s var(--ease); }
+    .nav-links a:hover { background:rgba(255,255,255,.12); color:#fff; }
+    /* Inside a dark pill the light chip is the strongest element, so the one
+       action reads first — same inversion the reference uses. */
+    .nav-cta { display:inline-flex; align-items:center; gap:7px; height:40px; padding:0 18px; border-radius:9999px; background:#fff; color: var(--ink); font-size:14px; font-weight:600; transition:.18s var(--ease); }
+    .nav-cta:hover { background: var(--sky-100); }
     @media (max-width:900px){ .nav-links { display:none; } }
 
     /* ── Hero ──────────────────────────────────── */
-    .hero { position:relative; overflow:hidden; padding-top:150px; padding-bottom:80px; }
+    .hero { position:relative; overflow:hidden; padding-top:132px; padding-bottom:0; }
+    /* The scene is the floor of the hero; the next section starts on white, so
+       fade the seam rather than cutting it. */
+    .hero::after { content:""; position:absolute; left:0; right:0; bottom:0; height:120px; z-index:1;
+      background:linear-gradient(180deg, rgba(255,255,255,0), #fff); pointer-events:none; }
     /* Full-bleed illustrated sky scene (self-contained SVG, animated drift) */
     .hero-scene { position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; }
     .hero-scene .drift { will-change: transform; }
@@ -156,8 +165,11 @@
     .drift-near { animation: drift 34s ease-in-out infinite alternate; }
     @keyframes drift { from { transform: translateX(-26px); } to { transform: translateX(26px); } }
     /* soft white veil so the headline stays legible over the sky */
+    /* Legibility veil, not a white-out. It stays strong only where running
+       text sits, clears through the cloud-and-meadow band so the scene is
+       actually visible, and closes to the page colour at the very bottom seam. */
     .hero-veil { position:absolute; inset:0; z-index:1; pointer-events:none;
-      background: linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,.08) 24%, rgba(255,255,255,.34) 62%, #fff 100%); }
+      background: linear-gradient(180deg, rgba(255,255,255,.46) 0%, rgba(255,255,255,.32) 28%, rgba(255,255,255,.10) 52%, rgba(255,255,255,0) 70%, rgba(255,255,255,0) 100%); }
     @media (prefers-reduced-motion: reduce) { .hero-scene .drift { animation: none; } }
 
     .hero-inner { position:relative; z-index:2; text-align:center; max-width:880px; margin:0 auto; }
@@ -527,6 +539,20 @@
           <stop offset="1" stop-color="#cfe6f6"/>
         </linearGradient>
         <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+        <filter id="haze" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="16"/></filter>
+        <linearGradient id="meadowFar" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#a9d189"/>
+          <stop offset="1" stop-color="#7cb45f"/>
+        </linearGradient>
+        <linearGradient id="meadowNear" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#78b158"/>
+          <stop offset="1" stop-color="#4f8c3f"/>
+        </linearGradient>
+        <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#efe4cd" stop-opacity="0.0"/>
+          <stop offset="0.45" stop-color="#e9dcc0" stop-opacity="0.85"/>
+          <stop offset="1" stop-color="#e3d4b2" stop-opacity="0.95"/>
+        </linearGradient>
         <symbol id="cl" viewBox="0 0 320 160">
           <g fill="url(#cloudG)">
             <ellipse cx="160" cy="132" rx="150" ry="30"/>
@@ -552,11 +578,26 @@
         <use href="#cl" x="-120" y="430" width="380" height="190"/>
         <use href="#cl" x="1230" y="470" width="420" height="210"/>
       </g>
-      <!-- near layer (big cumulus band across the bottom horizon) -->
+      <!-- near layer (big cumulus band sitting on the horizon) -->
       <g class="drift drift-near">
-        <use href="#cl" x="-220" y="700" width="720" height="360"/>
-        <use href="#cl" x="900" y="720" width="820" height="410"/>
-        <use href="#cl" x="380" y="770" width="640" height="320"/>
+        <use href="#cl" x="-220" y="640" width="720" height="360"/>
+        <use href="#cl" x="900" y="660" width="820" height="410"/>
+        <use href="#cl" x="380" y="700" width="640" height="320"/>
+      </g>
+      <!-- Ground. The sky alone was half a scene: the reference lands its
+           clouds on a meadow, and without one the hero just faded out. Two
+           hills plus a trail is enough to read as depth; any more detail and it
+           starts competing with the headline sitting on top of it. -->
+      <g>
+        <path d="M0 812 C 240 772, 470 806, 720 792 C 980 778, 1220 806, 1440 782 L1440 900 L0 900 Z"
+              fill="url(#meadowFar)"/>
+        <path d="M0 856 C 260 822, 520 862, 780 846 C 1030 830, 1250 862, 1440 840 L1440 900 L0 900 Z"
+              fill="url(#meadowNear)"/>
+        <path d="M700 900 C 706 866, 690 846, 706 824 C 718 808, 742 800, 754 790 L784 790 C 766 806, 744 816, 736 832 C 722 856, 744 876, 760 900 Z"
+              fill="url(#trail)"/>
+        <!-- Haze along the seam so the hills meet the cloud band as air, not as
+             a hard cut. -->
+        <rect x="0" y="778" width="1440" height="34" fill="#dcecd4" opacity="0.55" filter="url(#haze)"/>
       </g>
     </svg>
     <div class="hero-veil"></div>
