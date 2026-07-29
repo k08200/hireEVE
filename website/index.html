@@ -520,7 +520,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 @media(max-width:1000px){
   .play{grid-template-columns:1fr;height:auto}
   .pl-side,.pl-list{border-right:0;border-bottom:1px solid var(--line)}
-  .pl-side{display:flex;gap:6px;overflow-x:auto;padding:10px}
+  .pl-side{padding:10px}
+  /* The buttons live inside .pl-tiers, so flexing .pl-side only laid out its one
+     child and the tiers stayed a tall vertical list on a phone. */
+  .pl-side .pl-tiers{display:flex;gap:6px;overflow-x:auto}
   .pl-lab{display:none}
   .pl-t{width:auto;white-space:nowrap}
   .pl-list{max-height:260px}
@@ -641,7 +644,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <div class="play" id="play" role="application" aria-label="Interactive Klorn demo">
           <div class="pl-side">
             <div class="pl-lab">Inbox</div>
-            <div id="pl-tiers"></div>
+            <div class="pl-tiers" id="pl-tiers"></div>
           </div>
           <div class="pl-list">
             <div class="pl-h"><span class="dt" id="pl-hdot"></span><span id="pl-hname"></span>
