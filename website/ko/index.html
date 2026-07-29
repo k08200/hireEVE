@@ -1,1224 +1,1278 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="alternate" hreflang="en" href="https://klorn.ai/">
-  <link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/">
-  <link rel="canonical" href="https://klorn.ai/ko/">
-  <!-- 한국어 페이지. 기본은 영어(klorn.ai)이며, 플로팅 독의 EN 토글로 영어로 돌아갑니다. -->
-  <title>Klorn — 행동할 가치가 있는 명확한 신호</title>
-  <meta name="description" content="Klorn은 메일, 캘린더, AI 신호를 하나의 명확한 결정 큐로 걸러냅니다 — 근거와 승인 없이는 어떤 것도 손을 떠나지 않습니다.">
-  <meta property="og:title" content="Klorn — 행동할 가치가 있는 명확한 신호">
-  <meta property="og:description" content="메일, 캘린더, AI 신호를 하나의 명확한 결정 큐로 — 모든 행동 전에 근거와 승인이 먼저입니다.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://klorn.ai/ko/">
-  <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
-  <link rel="icon" href="/brand/favicon.svg?v=matte2" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
-  <!-- Without JS the observer never adds .in, so anything waiting on it stays
-       at opacity:0 forever. The old fallback covered .reveal but not .reveal-pop
-       or .stagger children — which meant the hero's product window, the one
-       screenshot of the actual app, was invisible to every no-JS visitor. -->
-  <noscript><style>.reveal, .reveal-pop, .stagger > * { opacity: 1 !important; transform: none !important; }</style></noscript>
-  <style>
-    /* ── Reset ─────────────────────────────────── */
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="alternate" hreflang="en" href="https://klorn.ai/">
+<link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/">
+<link rel="canonical" href="https://klorn.ai/ko/">
+<!-- The KO page never auto-redirects: the language script only runs on the site
+     root, so a visitor who lands here stays here. -->
+<title>Klorn — 소음은 들어오고, 신호만 남는다</title>
+<meta name="description" content="메일을 PUSH / QUEUE / SILENT / AUTO 네 단계로 분류하고, 그 이유까지 알려주는 맥 앱. 오픈소스, 셀프호스팅 가능, 당신 승인 없이는 아무것도 보내지 않습니다.">
+<meta property="og:title" content="Klorn — 소음은 들어오고, 신호만 남는다">
+<meta property="og:description" content="메일을 네 단계로 분류하고 그 이유를 알려주는 맥 앱. 다른 AI 에이전트는 당신을 대신해 행동합니다. Klorn은 무엇이 당신의 주의를 받을 자격이 있는지만 판단하고, 행동은 당신에게 남깁니다.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://klorn.ai/ko/">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<link rel="icon" href="/brand/favicon.svg?v=matte2" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
+<style>
+:root{
+  --ink:#0a0e14; --ink-2:#39424e; --ink-3:#6a7480;
+  --paper:#fbfaf6;            /* warm, not clinical white (ref: Trajectory) */
+  --line:rgba(10,14,20,.09);
+  --sky-600:#0284c7;
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{position:relative;margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Geist','Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+/* One visible focus ring for everything. Two rings — a white halo under a dark
+   one — so it survives both the dark nav pill and the pale paper. */
+:focus-visible{outline:2px solid var(--sky-600);outline-offset:3px;border-radius:6px;
+  box-shadow:0 0 0 6px rgba(255,255,255,.85)}
+.nav-pill :focus-visible{outline-color:#fff;box-shadow:0 0 0 6px rgba(4,12,26,.6)}
 
-    :root {
-      /* Light + sky design system */
-      --canvas:#ffffff;
-      --paper:#f6f9fc;
-      --ink:#0a0e14;
-      --ink-soft:#39424e;
-      --ink-mute:#6a7480;
-      --line:rgba(10,14,20,0.08);
-      --line-strong:rgba(10,14,20,0.14);
+/* Film grain — fixed, never on a scroller (perf). */
+.grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.30;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.42'/></svg>")}
 
-      --sky-50:#f0f9ff;
-      --sky-100:#e0f2fe;
-      --sky-200:#bae6fd;
-      --sky-300:#7dd3fc;
-      --sky-400:#38bdf8;
-      --sky-500:#0ea5e9;
-      --sky-600:#0284c7;
-      --sky-700:#0369a1;
+/* Blueprint grid — structure you feel before you notice (ref: NeoNet). */
+.grid-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:112px 112px;
+  -webkit-mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%);
+          mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%)}
 
-      --slate-400:#94a3b8;
-      --slate-500:#64748b;
+/* Page-wide atmosphere. The sky used to end at the fold and everything below
+   it was flat paper — the page looked like it ran out of design halfway down.
+   One document-height layer, drawn once, carrying the same grid and a few very
+   soft blooms so the background keeps changing as you pass it. */
+.field{position:absolute;top:0;left:0;right:0;height:100%;z-index:0;pointer-events:none;
+  background-image:
+    radial-gradient(46% 16% at 80% 15%, rgba(120,186,232,.34), transparent 68%),
+    radial-gradient(42% 13% at 12% 30%, rgba(150,196,168,.26), transparent 70%),
+    radial-gradient(48% 14% at 88% 48%, rgba(240,203,142,.26), transparent 70%),
+    radial-gradient(44% 13% at 8% 64%, rgba(132,180,224,.30), transparent 70%),
+    radial-gradient(46% 14% at 76% 80%, rgba(190,210,178,.26), transparent 72%),
+    radial-gradient(40% 12% at 22% 93%, rgba(126,188,230,.24), transparent 72%),
+    linear-gradient(rgba(10,14,20,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(10,14,20,.055) 1px,transparent 1px);
+  background-size:auto,auto,auto,auto,auto,auto,112px 112px,112px 112px;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%)}
 
-      --max-w:1200px;
-      --max-w-narrow:960px;
-      --ease:cubic-bezier(.2,.7,.2,1);
-    }
+/* ── Fluid island nav ─────────────────────────────── */
+.nav{position:fixed;top:22px;left:0;right:0;z-index:50;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
+.nav-pill{pointer-events:auto;display:flex;align-items:center;gap:2px;padding:7px 7px 7px 18px;border-radius:9999px;
+  background:rgba(12,16,22,.66);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.13);box-shadow:0 18px 44px -20px rgba(4,12,26,.7),inset 0 1px 0 rgba(255,255,255,.10);
+  transition:transform .7s var(--ease),box-shadow .7s var(--ease)}
+.nav-pill:hover{transform:translateY(-1px);box-shadow:0 24px 56px -22px rgba(4,12,26,.78),inset 0 1px 0 rgba(255,255,255,.14)}
+.nav-brand{color:#fff;font-weight:700;letter-spacing:-.015em;font-size:15px;margin-right:14px;
+  padding:6px 2px;border-radius:8px;transition:opacity .5s var(--ease)}
+.nav-brand:hover{opacity:.72}
+.nav-links{display:flex;gap:2px}
+.nav-links a{color:rgba(255,255,255,.72);font-size:13.5px;padding:9px 14px;border-radius:9999px;
+  transition:color .5s var(--ease),background .5s var(--ease)}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.10)}
+.nav-cta{display:inline-flex;align-items:center;gap:9px;height:38px;padding:0 6px 0 17px;border-radius:9999px;
+  background:#fff;color:var(--ink);font-size:13.5px;font-weight:650;margin-left:8px;
+  transition:transform .6s var(--ease)}
+.nav-cta:active{transform:scale(.97)}
+.nav-cta i{width:26px;height:26px;border-radius:9999px;background:rgba(10,14,20,.07);display:grid;place-items:center;
+  font-style:normal;font-size:12px;transition:transform .6s var(--ease),background .6s var(--ease)}
+.nav-cta:hover i{transform:translate(2px,-1px) scale(1.06);background:rgba(10,14,20,.12)}
+@media(max-width:880px){.nav-links{display:none}}
 
-    html { scroll-behavior: smooth; overflow-x: hidden; -webkit-text-size-adjust:100%; }
-    body {
-      position: relative;
-      font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',system-ui,sans-serif;
-      background: #fff;
-      color: var(--ink);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-      word-break: keep-all;
-      overflow-wrap: anywhere;
-    }
-    /* Page-wide background presence: layered sky glows + faint dot grid, fixed
-       so transparent sections reveal depth as you scroll. */
-    body::before {
-      content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
-      background:
-        radial-gradient(55% 45% at 84% 4%, rgba(56,189,248,.20), transparent 60%),
-        radial-gradient(48% 42% at 8% 34%, rgba(125,211,252,.20), transparent 62%),
-        radial-gradient(60% 45% at 92% 62%, rgba(186,230,253,.28), transparent 60%),
-        radial-gradient(80% 55% at 48% 106%, rgba(56,189,248,.20), transparent 60%),
-        #ffffff;
-    }
-    body::after {
-      content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
-      background-image: radial-gradient(circle, rgba(14,116,180,.09) 1px, transparent 1.5px);
-      background-size: 30px 30px;
-      -webkit-mask-image: radial-gradient(130% 100% at 50% 40%, #000 55%, transparent 88%);
-      mask-image: radial-gradient(130% 100% at 50% 40%, #000 55%, transparent 88%);
-    }
-    a { color: inherit; text-decoration: none; }
-    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
-    img, video { max-width: 100%; display: block; }
-    ::selection { background: var(--sky-200); color: var(--ink); }
+/* ── Hero ─────────────────────────────────────────── */
+.hero{position:relative;overflow:hidden;padding:196px 0 0;text-align:center}
+.hero-sky{position:absolute;top:0;left:0;width:100%;height:1120px;z-index:0}
+.wrap{position:relative;z-index:3;max-width:1180px;margin:0 auto;padding:0 24px}
 
-    .serif { font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif; }
-    .mono {
-      font-family: ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;
-      font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
-    }
-    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
-    .container.narrow { max-width: var(--max-w-narrow); }
+.eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 8px 7px 15px;border-radius:9999px;
+  background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.85);
+  box-shadow:0 8px 26px -14px rgba(10,50,90,.5);
+  font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#0b5f8a;
+  backdrop-filter:blur(12px)}
+.eyebrow b{font-weight:700;letter-spacing:0;text-transform:none;font-size:12.5px;color:var(--ink);
+  background:#fff;padding:3px 10px;border-radius:9999px}
 
-    /* ── Reveal on scroll (scale-in / zoom feel) ── */
-    .reveal { opacity: 0; transform: translateY(30px) scale(.955); transition: opacity .85s var(--ease), transform .85s var(--ease); will-change: opacity, transform; }
-    .reveal.in { opacity: 1; transform: none; }
-    /* stronger pop for hero-anchor blocks (product window, flow, big cards) */
-    .reveal-pop { opacity: 0; transform: translateY(46px) scale(.9); transition: opacity 1s var(--ease), transform 1s var(--ease); will-change: opacity, transform; }
-    .reveal-pop.in { opacity: 1; transform: none; }
-    /* staggered children — each row/card eases in after its parent */
-    .stagger > * { opacity: 0; transform: translateY(24px) scale(.96); transition: opacity .7s var(--ease), transform .7s var(--ease); }
-    .stagger.in > * { opacity: 1; transform: none; }
-    .stagger.in > *:nth-child(2){ transition-delay:.08s } .stagger.in > *:nth-child(3){ transition-delay:.16s }
-    .stagger.in > *:nth-child(4){ transition-delay:.24s } .stagger.in > *:nth-child(5){ transition-delay:.32s }
-    @media (prefers-reduced-motion: reduce) {
-      .reveal, .reveal-pop, .stagger > * { opacity: 1 !important; transform: none !important; transition: none !important; }
-      .product .win { transform: none !important; }
-    }
+h1{font-size:clamp(46px,7.2vw,88px);line-height:.98;letter-spacing:-.042em;font-weight:700;margin:26px 0 20px}
+h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;
+  color:var(--sky-600);padding-right:.06em}
+.lead{font-size:19px;color:var(--ink-2);max-width:600px;margin:0 auto 34px}
+/* The serif accent is a Latin display face. Korean has no glyphs in it, so the
+   browser substitutes whatever Hangul serif it finds — on macOS a cursive one
+   that reads as a different, wrong voice next to the sans headline. Give Hangul
+   an explicit Myeongjo stack and drop the italic, which Hangul does not have. */
+/* Hangul has no spaces inside a word but CSS will happily break between any two
+   syllables, so "당신에게" wraps as "당신에 / 게". keep-all breaks on spaces only. */
+html[lang=ko] body{word-break:keep-all;overflow-wrap:break-word}
+html[lang=ko] h1 .ser,
+html[lang=ko] .stmt-h .ser,
+html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','AppleMyungjo',serif;
+  font-style:normal;font-weight:600;padding-right:0}
 
-    /* ── Buttons (pill) ────────────────────────── */
-    .btn {
-      display:inline-flex; align-items:center; justify-content:center; gap:9px;
-      height:52px; padding:0 28px; border-radius:9999px;
-      font-size:15px; font-weight:600; white-space:nowrap;
-      transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease);
-    }
-    .btn-primary { background: var(--ink); color:#fff; }
-    .btn-primary:hover { background: var(--sky-600); transform: translateY(-1px); box-shadow:0 10px 26px -12px rgba(2,132,199,.6); }
-    .btn-ghost { background: rgba(255,255,255,.7); border:1px solid var(--line-strong); color: var(--ink); }
-    .btn-ghost:hover { border-color: var(--sky-300); background:#fff; color: var(--sky-700); }
-    .btn-sky { background: var(--sky-500); color:#fff; }
-    .btn-sky:hover { background: var(--sky-600); transform: translateY(-1px); }
-    .btn .star-count { padding:2px 9px; border-radius:9999px; background:rgba(10,14,20,.06); font-size:12px; font-weight:700; color: var(--sky-700); }
-    .btn .star-count:empty { display:none; }
-    .btn svg { flex-shrink:0; }
+.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;height:54px;padding:0 8px 0 26px;border-radius:9999px;
+  font-size:15px;font-weight:650;transition:transform .6s var(--ease),box-shadow .6s var(--ease)}
+.btn:active{transform:scale(.98)}
+.btn i{width:34px;height:34px;border-radius:9999px;display:grid;place-items:center;font-style:normal;font-size:14px;
+  transition:transform .6s var(--ease),background .6s var(--ease)}
+.btn-1{background:var(--ink);color:#fff;box-shadow:0 20px 44px -22px rgba(10,14,20,.85)}
+.btn-1 i{background:rgba(255,255,255,.14)}
+.btn-1:hover{box-shadow:0 26px 54px -22px rgba(10,14,20,.9)}
+.btn-1:hover i{transform:translate(3px,-2px) scale(1.07);background:rgba(255,255,255,.22)}
+.btn-2{background:rgba(255,255,255,.78);color:var(--ink);border:1px solid rgba(255,255,255,.9);padding-right:26px;
+  backdrop-filter:blur(12px);box-shadow:0 10px 30px -18px rgba(10,50,90,.5)}
+.btn-2:hover{background:#fff}
+.btn-dl{padding-left:22px}
+.btn-dl svg{width:17px;height:17px;transition:transform .6s var(--ease)}
+.btn-dl:hover svg{transform:translateY(2px)}
+.actions-note{max-width:560px;margin:18px auto 0;font-size:12.5px;line-height:1.6;color:var(--ink-3)}
+.actions-note a{color:#0b5f8a;font-weight:600;border-bottom:1px solid rgba(11,95,138,.28)}
+.actions-note a:hover{border-bottom-color:#0b5f8a}
 
-    /* ── Floating glass pill nav ───────────────── */
-    .nav { position:fixed; top:16px; left:0; right:0; z-index:60; display:flex; justify-content:center; padding:0 16px; pointer-events:none; }
-    /* Dark glass over a bright sky — the reference's signature move, and the
-       reason its nav reads at a glance instead of dissolving into the clouds.
-       A translucent white pill on this scene had almost no edge. */
-    .nav-pill {
-      pointer-events:auto; display:flex; align-items:center; gap:4px;
-      padding:8px 8px 8px 14px; border-radius:9999px;
-      background:rgba(12,18,26,.62); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5);
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow:0 10px 34px -14px rgba(6,20,40,.6), 0 1px 0 rgba(255,255,255,.10) inset;
-      max-width:100%;
-    }
-    .nav-brand { display:flex; align-items:center; gap:9px; padding-right:6px; font-weight:700; letter-spacing:-.01em; font-size:16px; color:#fff; }
-    .nav-mark { width:26px; height:26px; border-radius:7px; box-shadow:0 1px 3px rgba(10,20,40,.18); }
-    .nav-links { display:flex; align-items:center; gap:2px; margin:0 4px; }
-    .nav-links a { padding:8px 14px; border-radius:9999px; font-size:14px; font-weight:500; color:rgba(255,255,255,.78); transition:.18s var(--ease); }
-    .nav-links a:hover { background:rgba(255,255,255,.12); color:#fff; }
-    /* Inside a dark pill the light chip is the strongest element, so the one
-       action reads first — same inversion the reference uses. */
-    .nav-cta { display:inline-flex; align-items:center; gap:7px; height:40px; padding:0 18px; border-radius:9999px; background:#fff; color: var(--ink); font-size:14px; font-weight:600; transition:.18s var(--ease); }
-    .nav-cta:hover { background: var(--sky-100); }
-    @media (max-width:900px){ .nav-links { display:none; } }
+/* ── The real app, floating ───────────────────────── */
+.stage{position:relative;z-index:3;margin:56px auto 0;max-width:1160px;padding:0 24px 96px}
+/* Caption above the frame. Below it the stage fade washes it out, and this one
+   has to stay readable — it is the honesty label on a fake inbox. */
+.stage-cap{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;
+  margin:0 0 14px;font-size:12.5px;color:var(--ink-2)}
+.stage-cap b{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--sky-600);
+  border-radius:999px;padding:4px 10px}
+.stage-cap b::before{content:'';width:5px;height:5px;border-radius:50%;background:#fff}
+.shell{position:relative;border-radius:30px;padding:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.34));
+  border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 70px 130px -50px rgba(8,42,80,.55),0 18px 44px -26px rgba(8,42,80,.35);
+  backdrop-filter:blur(10px)}
+.core{border-radius:22px;overflow:hidden;background:#fff;border:1px solid var(--line);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
+.core img{display:block;width:100%;height:auto}
+.stage-fade{position:absolute;left:0;right:0;bottom:-1px;height:150px;z-index:4;pointer-events:none;
+  background:linear-gradient(180deg,rgba(251,250,246,0),var(--paper) 88%)}
 
-    /* ── Hero ──────────────────────────────────── */
-    .hero { position:relative; overflow:hidden; padding-top:132px; padding-bottom:0; }
-    /* The scene is the floor of the hero; the next section starts on white, so
-       fade the seam rather than cutting it. */
-    .hero::after { content:""; position:absolute; left:0; right:0; bottom:0; height:120px; z-index:1;
-      background:linear-gradient(180deg, rgba(255,255,255,0), #fff); pointer-events:none; }
-    /* Full-bleed illustrated sky scene (self-contained SVG, animated drift) */
-    /* The scene is anchored to the TOP with a fixed height, not stretched to
-       the hero. Stretching pushed the horizon below the product window, so the
-       app screenshot floated on white instead of standing on the meadow — the
-       one relationship the reference composition is built on. */
-    .hero-scene { position:absolute; top:0; left:0; width:100%; height:1180px; z-index:0; pointer-events:none; }
-    @media (max-width:900px){ .hero-scene { height:900px; } }
-    .hero-scene .drift { will-change: transform; }
-    .drift-far  { animation: drift 68s ease-in-out infinite alternate; }
-    .drift-mid  { animation: drift 46s ease-in-out infinite alternate; }
-    .drift-near { animation: drift 34s ease-in-out infinite alternate; }
-    @keyframes drift { from { transform: translateX(-26px); } to { transform: translateX(26px); } }
-    /* soft white veil so the headline stays legible over the sky */
-    /* Legibility veil, not a white-out. It stays strong only where running
-       text sits, clears through the cloud-and-meadow band so the scene is
-       actually visible, and closes to the page colour at the very bottom seam. */
-    .hero-veil { position:absolute; inset:0; z-index:1; pointer-events:none;
-      background: linear-gradient(180deg, rgba(255,255,255,.46) 0%, rgba(255,255,255,.32) 28%, rgba(255,255,255,.10) 52%, rgba(255,255,255,0) 70%, rgba(255,255,255,0) 100%); }
-    @media (prefers-reduced-motion: reduce) { .hero-scene .drift { animation: none; } }
+/* Floating signal cards pinned to the app (ref: Screenote) */
+.chip{position:absolute;z-index:5;display:flex;gap:11px;align-items:flex-start;width:238px;padding:13px 15px;
+  border-radius:17px;background:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.94);
+  box-shadow:0 26px 54px -26px rgba(8,42,80,.5);backdrop-filter:blur(16px) saturate(1.3);
+  text-align:left;animation:float 7s var(--ease) infinite alternate}
+.chip .d{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:0 0 8px}
+.chip h4{margin:0;font-size:13px;font-weight:650;letter-spacing:-.01em}
+.chip p{margin:2px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-3)}
+.chip-a{left:-14px;top:120px;animation-delay:-1.4s}
+.chip-b{right:-18px;top:238px;animation-delay:-3.2s}
+.chip-c{left:34px;bottom:150px;animation-delay:-5s}
+@keyframes float{from{transform:translateY(-7px)}to{transform:translateY(7px)}}
+@media(max-width:1080px){.chip{display:none}}
 
-    .hero-inner { position:relative; z-index:2; text-align:center; max-width:880px; margin:0 auto; }
-    .hero-eyebrow {
-      display:inline-flex; align-items:center; gap:8px; padding:6px 15px; border-radius:9999px;
-      background:rgba(255,255,255,.72); border:1px solid var(--sky-200); color: var(--sky-700);
-      font-size:12.5px; font-weight:600; margin-bottom:26px; box-shadow:0 2px 12px -4px rgba(14,165,233,.28);
-    }
-    .hero-eyebrow:hover { color: var(--sky-700); }
-    .hero-eyebrow .dot { width:7px; height:7px; border-radius:50%; background: var(--sky-500); box-shadow:0 0 0 3px rgba(14,165,233,.2); }
-    h1.hero-h { font-size:clamp(42px,6.8vw,80px); line-height:1.0; letter-spacing:-.035em; font-weight:700; margin-bottom:22px; }
-    h1.hero-h .accent { position:relative; font-style:italic; font-weight:500; color: var(--sky-600); }
-    h1.hero-h .accent::before {
-      content:""; position:absolute; left:-8%; right:-8%; top:4%; bottom:2%; z-index:-1;
-      background: radial-gradient(58% 68% at 50% 55%, rgba(56,189,248,.38), transparent 72%);
-      filter: blur(7px);
-    }
-    .hero-lead { font-size:clamp(17px,2vw,21px); color: var(--ink-mute); max-width:620px; margin:0 auto 20px; line-height:1.55; }
+/* ── Cards ────────────────────────────────────────── */
+.sec{position:relative;z-index:1;padding:104px 0 28px}
+.sec-head{max-width:1180px;margin:0 auto 40px;padding:0 24px;display:flex;gap:48px;align-items:flex-end;flex-wrap:wrap}
+.sec-head h2{flex:1 1 420px;margin:0;font-size:clamp(32px,4.2vw,52px);line-height:1.04;letter-spacing:-.035em;font-weight:700}
+.sec-head p{flex:1 1 300px;margin:0;color:var(--ink-2);font-size:16px;max-width:420px}
+.tag{display:inline-block;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:600;margin-bottom:18px}
 
-    /* compact invite-only pill */
-    .hero-invite {
-      display:inline-flex; align-items:center; gap:10px; max-width:100%;
-      margin:0 auto 28px; padding:9px 16px; border-radius:9999px;
-      background:rgba(255,255,255,.7); border:1px solid var(--sky-200);
-      box-shadow:0 6px 22px -12px rgba(2,132,199,.4); color:var(--ink-soft);
-      font-size:13.5px; line-height:1.35; transition:.18s var(--ease); text-align:left;
-    }
-    .hero-invite:hover { border-color:var(--sky-300); background:#fff; }
-    .hero-invite svg { width:15px; height:15px; color:var(--sky-600); flex-shrink:0; }
-    .hero-invite b { color:var(--sky-700); font-weight:700; }
-    .hero-invite-arrow { color:var(--sky-700); font-weight:600; white-space:nowrap; flex-shrink:0; }
-    @media (max-width:640px){ .hero-invite { flex-wrap:wrap; border-radius:16px; justify-content:center; text-align:center; } }
+.cards{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+.card{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
+  transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
+.card:hover{transform:translateY(-5px);box-shadow:0 40px 80px -46px rgba(8,42,80,.5)}
+.card-in{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line);height:100%;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9);display:flex;flex-direction:column}
+.card-shot{background:linear-gradient(180deg,#eef4fa,#fdfefe);overflow:hidden;position:relative;aspect-ratio:21/9}
+.c4 .card-shot{aspect-ratio:4/3}
+.c6 .card-shot{aspect-ratio:16/9}
+.card-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:left top;
+  transform:scale(1.02);transition:transform 1.1s var(--ease)}
+.card:hover .card-shot img{transform:scale(1.06)}
+.card-txt{padding:20px 22px 24px}
+.card-txt h3{margin:0 0 6px;font-size:17px;font-weight:650;letter-spacing:-.015em}
+.card-txt p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
+.c8{grid-column:span 8}.c4{grid-column:span 4}.c6{grid-column:span 6}
+@media(max-width:900px){.c8,.c4,.c6{grid-column:span 12}}
 
-    .hero-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-    .hero-secondary { margin-top:16px; font-size:14px; }
-    .hero-secondary a { color: var(--sky-700); font-weight:600; }
-    .hero-secondary a:hover { text-decoration:underline; }
 
-    .hero-badges { margin-top:22px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
-    .hero-badge { display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border:1px solid var(--line); border-radius:9999px; background:rgba(255,255,255,.6); font-size:12.5px; font-weight:500; color: var(--ink-soft); }
-    .hero-badge .dot { width:6px; height:6px; border-radius:50%; background: var(--sky-500); }
+/* ── Shared section furniture ─────────────────────── */
+.wrapl{max-width:1180px;margin:0 auto;padding:0 24px}
+.band{background:rgba(238,236,227,.44);border-block:1px solid var(--line)}
+.sec.band{padding-block:96px}
 
-    /* ── Floating product window (the brief) ───── */
-    .product { position:relative; z-index:2; margin:52px auto 0; max-width:940px; }
-    .product::before {
-      content:""; position:absolute; left:4%; right:4%; top:8%; bottom:-6%; z-index:0; pointer-events:none;
-      background: radial-gradient(58% 62% at 50% 42%, rgba(56,189,248,.34), rgba(125,211,252,.12) 55%, transparent 72%);
-      filter: blur(44px);
-    }
-    .win { position:relative; z-index:1; border-radius:18px; overflow:hidden; background:#fff; border:1px solid var(--line);
-      box-shadow:0 44px 90px -34px rgba(12,60,110,.36), 0 10px 28px -14px rgba(12,40,80,.2); }
-    .win-bar { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); background:linear-gradient(#fff,#fbfdff); }
-    .win-dot { width:11px; height:11px; border-radius:50%; }
-    .win-dot.r{background:#ff5f57}.win-dot.y{background:#febc2e}.win-dot.g{background:#28c840}
-    .win-title { margin-left:8px; font-size:12px; color: var(--ink-mute); font-weight:500; }
-    .brief { display:grid; grid-template-columns:210px 1fr; }
-    .brief-side { border-right:1px solid var(--line); padding:16px 12px; background:#fbfdff; }
-    .brief-who { display:flex; align-items:center; gap:9px; padding:6px 8px; margin-bottom:14px; }
-    .avatar { width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,var(--sky-400),var(--sky-600)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
-    .brief-who .nm { font-size:13px; font-weight:650; }
-    .brief-who .em { font-size:11px; color: var(--ink-mute); }
-    .brief-item { display:flex; align-items:center; gap:10px; padding:8px 11px; border-radius:9px; font-size:13px; color: var(--ink-soft); font-weight:500; }
-    .brief-item .g { width:14px; text-align:center; opacity:.75; }
-    .brief-item.on { background: var(--sky-50); color: var(--sky-700); }
-    .brief-main { padding:22px 26px; }
-    .brief-greet { font-size:19px; font-weight:650; letter-spacing:-.01em; margin-bottom:3px; }
-    .brief-greet .serif { font-style:italic; font-weight:500; }
-    .brief-sub { font-size:12.5px; color: var(--ink-mute); margin-bottom:20px; }
-    .tier { margin-bottom:18px; }
-    .tier-label { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px; }
-    .tier-label .pip { width:8px; height:8px; border-radius:50%; }
-    .tier.push .pip{background:var(--sky-500)} .tier.push .tier-label{color:var(--sky-700)}
-    .tier.queue .pip{background:var(--slate-400)} .tier.queue .tier-label{color:var(--slate-500)}
-    .brow { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:11px; border:1px solid transparent; transition:.15s var(--ease); }
-    .brow:hover { background: var(--sky-50); border-color: var(--sky-100); }
-    .brow .txt { flex:1; font-size:13.5px; color: var(--ink); }
-    .brow .txt .from { color: var(--ink-mute); font-size:12px; }
-    .brow .chip { font-size:11px; font-weight:600; color: var(--sky-700); background: var(--sky-50); border:1px solid var(--sky-100); padding:3px 10px; border-radius:9999px; white-space:nowrap; }
-    .brow .check { width:18px; height:18px; border-radius:50%; border:1.5px solid var(--line-strong); flex-shrink:0; }
-    @media (max-width:640px){ .brief { grid-template-columns:1fr; } .brief-side { display:none; } }
+.stmt{max-width:780px}
+.stmt-h{font-size:clamp(30px,4.4vw,54px);line-height:1.06;letter-spacing:-.035em;font-weight:700;margin:0 0 22px}
+.stmt-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-600)}
+.stmt-p{font-size:18px;color:var(--ink-2);margin:0 0 30px;max-width:640px}
+.pips{display:flex;gap:10px;flex-wrap:wrap}
+.pip{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:9999px;background:#fff;
+  border:1px solid var(--line);font-size:13px;font-weight:550;color:var(--ink-2)}
+.pip i{width:6px;height:6px;border-radius:50%;background:var(--sky-600)}
 
-    /* ── Trust / stat strip ────────────────────── */
-    .trust { position:relative; z-index:2; margin-top:56px; text-align:center; }
-    .trust > p { font-size:11px; letter-spacing:.16em; text-transform:uppercase; color: var(--ink-mute); margin-bottom:20px; }
-    .trust-row { display:flex; gap:40px; justify-content:center; flex-wrap:wrap; }
-    .stat { display:inline-flex; flex-direction:column; align-items:center; }
-    .stat b { font-size:34px; letter-spacing:-.03em; line-height:1; font-weight:760;
-      background:linear-gradient(180deg,var(--sky-500),var(--sky-700)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-    .stat small { margin-top:8px; font-size:10.5px; color: var(--ink-mute); text-transform:uppercase; letter-spacing:.1em; }
+.steps{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.step{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.step>*{margin:0}
+.step .sn{display:block;font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--sky-600);padding:22px 24px 0}
+.step h3{font-size:20px;letter-spacing:-.02em;padding:10px 24px 0}
+.step p{color:var(--ink-3);font-size:14px;padding:8px 24px 22px}
+@media(max-width:860px){.steps{grid-template-columns:1fr}}
 
-    /* ── Generic section ───────────────────────── */
-    .section { padding:96px 0; position:relative; }
-    .section-eyebrow { color: var(--sky-600); margin-bottom:16px; }
-    .section-h { font-size:clamp(28px,3.6vw,44px); line-height:1.08; letter-spacing:-.025em; font-weight:660; }
-    .section-lead { font-size:17px; color: var(--ink-mute); max-width:620px; margin-top:16px; line-height:1.55; }
-    .section-head-center { text-align:center; }
-    .section-head-center .section-lead { margin-left:auto; margin-right:auto; }
-    .section-bg-tint { background: linear-gradient(180deg,#fff, var(--sky-50) 50%, #fff); }
+.stats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.stat{border-radius:26px;padding:26px 26px;background:#fff;border:1px solid var(--line);
+  box-shadow:0 22px 50px -38px rgba(8,42,80,.45)}
+.stat .sv{font-size:clamp(38px,4.6vw,54px);line-height:1;letter-spacing:-.04em;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .sl{margin-top:10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:650}
+.stat p{margin:12px 0 0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
+@media(max-width:860px){.stats{grid-template-columns:1fr}}
+.foot{max-width:1180px;margin:34px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
+.foot a{color:var(--sky-600);font-weight:600}
 
-    /* ── Full-bleed statement band (poster rhythm break) ── */
-    .statement { position:relative; overflow:hidden; padding:130px 0; text-align:center;
-      background: linear-gradient(155deg, var(--sky-500) 0%, var(--sky-700) 55%, #075985 100%); color:#fff; }
-    .statement::before { content:""; position:absolute; inset:0; pointer-events:none;
-      background: radial-gradient(120% 90% at 18% -10%, rgba(255,255,255,.28), transparent 55%),
-                  radial-gradient(90% 70% at 100% 120%, rgba(3,105,161,.6), transparent 60%); }
-    .statement .container { position:relative; z-index:1; }
-    .statement-eyebrow { color: var(--sky-200); margin-bottom:20px; }
-    .statement-h { font-size:clamp(30px,4.8vw,56px); line-height:1.08; letter-spacing:-.025em; font-weight:640; }
-    .statement-h .serif { font-style:italic; font-weight:500; color: var(--sky-200); }
-    .statement-sub { margin:22px auto 0; max-width:540px; color:rgba(255,255,255,.82); font-size:clamp(16px,1.7vw,19px); line-height:1.55; }
-    .statement-tags { margin-top:30px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-    .statement-tag { display:inline-flex; align-items:center; gap:7px; padding:7px 15px; border-radius:9999px;
-      background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22); font-size:13px; font-weight:600; color:#fff; }
-    .statement-tag .pip { width:7px; height:7px; border-radius:50%; background:var(--sky-200); }
+.os{border-radius:30px;padding:10px;background:rgba(10,14,20,.04);border:1px solid var(--line)}
+.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:38px 38px;
+  display:grid;grid-template-columns:1.15fr .85fr;gap:52px;align-items:start}
+.os-h{font-size:clamp(26px,3.2vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:700}
+.os-p{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:520px}
+.os-cta{display:flex;gap:12px;flex-wrap:wrap}
+.os-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.os-list li{display:grid;gap:3px;padding:16px 0;border-top:1px solid var(--line)}
+.os-list li:first-child{border-top:0;padding-top:0}
+.os-list b{font-size:14px;font-weight:650}
+.os-list span{font-size:13px;color:var(--ink-3)}
+@media(max-width:900px){.os-in{grid-template-columns:1fr;gap:34px;padding:32px 26px}}
 
-    /* video frames */
-    .media-frame { margin-top:44px; border-radius:18px; overflow:hidden; border:1px solid var(--line); background:#000; box-shadow:0 40px 80px -34px rgba(12,60,110,.34); }
-    .media-frame video { width:100%; display:block; }
+.prices{max-width:1000px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.price{border-radius:28px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.price.feat{background:var(--ink);border-color:var(--ink)}
+.price-in{border-radius:21px;background:#fff;border:1px solid var(--line);padding:28px 28px;height:100%;
+  display:flex;flex-direction:column}
+.chip-s{align-self:flex-start;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  padding:6px 12px;border-radius:9999px;background:rgba(10,14,20,.06);color:var(--ink-2)}
+.chip-s.dark{background:var(--ink);color:#fff}
+.price h3{margin:16px 0 4px;font-size:19px;letter-spacing:-.02em}
+.amt{font-size:44px;letter-spacing:-.04em;font-weight:700;line-height:1.1}
+.amt span{font-size:15px;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.note{margin:8px 0 22px;font-size:13px;color:var(--ink-3)}
+.price ul{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:11px}
+.price li{position:relative;padding-left:24px;font-size:14px;color:var(--ink-2);line-height:1.5}
+.price li::before{content:"";position:absolute;left:2px;top:8px;width:9px;height:9px;border-radius:50%;
+  background:var(--sky-600);opacity:.85}
+.btn.full{width:100%;justify-content:center;margin-top:auto;padding-inline:26px}
+@media(max-width:820px){.prices{grid-template-columns:1fr}}
 
-    /* 4-tier legend */
-    .tier-legend { margin-top:36px; display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-    @media (max-width:820px){ .tier-legend { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:460px){ .tier-legend { grid-template-columns:1fr; } }
-    .legend-card { padding:20px; border:1px solid var(--line); border-radius:14px; background:#fff; }
-    .legend-card .lg-label { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:9px; }
-    .legend-card .lg-label .pip { width:9px; height:9px; border-radius:50%; }
-    .legend-card p { font-size:13.5px; color: var(--ink-mute); line-height:1.5; }
-    .lg-push .pip{background:var(--sky-500)} .lg-push .lg-label{color:var(--sky-700)}
-    .lg-queue .pip{background:var(--slate-400)} .lg-queue .lg-label{color:var(--slate-500)}
-    .lg-silent .pip{background:#cbd5e1} .lg-silent .lg-label{color:#94a3b8}
-    .lg-auto .pip{background:var(--sky-300)} .lg-auto .lg-label{color:var(--sky-600)}
+.final{padding:112px 0 28px;text-align:center}
+.final-h{font-size:clamp(34px,5.4vw,68px);line-height:1.02;letter-spacing:-.04em;font-weight:700;margin:0 0 18px}
+.final-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-600)}
+.final-p{color:var(--ink-2);margin:0 auto 30px;max-width:520px}
+.final .actions{justify-content:center}
 
-    /* ── How-it-works product flow (replaces demo video) ── */
-    .flow { margin-top:44px; display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:14px; align-items:stretch; }
-    @media (max-width:860px){ .flow { grid-template-columns:1fr; gap:12px; } .flow-arrow { transform:rotate(90deg); justify-self:center; padding:2px 0; } }
-    .flow-card { border:1px solid var(--line); border-radius:16px; background:#fff; box-shadow:0 24px 54px -32px rgba(12,60,110,.3); overflow:hidden; display:flex; flex-direction:column; }
-    .fc-head { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line); background:#fbfdff; font-size:12.5px; font-weight:650; color:var(--ink-soft); }
-    .fc-step { display:flex; align-items:center; gap:8px; }
-    .fc-step .n { width:20px; height:20px; border-radius:50%; background:var(--sky-100); color:var(--sky-700); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; }
-    .fc-tag { font-size:11px; font-weight:600; padding:3px 9px; border-radius:9999px; background:var(--paper); color:var(--ink-mute); }
-    .fc-tag.sky { background:var(--sky-50); color:var(--sky-700); }
-    .fc-body { padding:14px 16px; flex:1; }
-    .flow-arrow { align-self:center; color:var(--sky-400); }
-    .flow-arrow svg { width:22px; height:22px; }
-    /* card 1 — inbox */
-    .fi-row { display:flex; align-items:center; gap:9px; padding:7px 0; font-size:12.5px; color:var(--ink); border-bottom:1px dashed var(--line); }
-    .fi-row:last-of-type { border-bottom:none; }
-    .fi-row.muted { color:var(--ink-mute); }
-    .fi-dot { width:6px; height:6px; border-radius:50%; background:var(--slate-400); flex-shrink:0; }
-    .fi-more { margin-top:8px; font-size:11.5px; color:var(--ink-mute); font-style:italic; }
-    /* card 2 — tiers */
-    .ft-row { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:9px; font-size:13px; font-weight:600; margin-bottom:6px; }
-    .ft-row .pip { width:9px; height:9px; border-radius:50%; }
-    .ft-row .ft-n { margin-left:auto; font-variant-numeric:tabular-nums; font-weight:700; }
-    .ft-row.push { background:var(--sky-50); color:var(--sky-700); } .ft-row.push .pip{background:var(--sky-500)}
-    .ft-row.queue { color:var(--slate-500); } .ft-row.queue .pip{background:var(--slate-400)}
-    .ft-row.silent { color:#94a3b8; } .ft-row.silent .pip{background:#cbd5e1}
-    .ft-row.auto { color:var(--sky-600); } .ft-row.auto .pip{background:var(--sky-300)}
-    /* card 3 — decision */
-    .fd-title { font-size:15px; font-weight:660; letter-spacing:-.01em; }
-    .fd-sub { font-size:12.5px; color:var(--ink-mute); margin:5px 0 16px; }
-    .fd-evidence { display:grid; gap:7px; margin-bottom:16px; }
-    .fd-ev { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft); }
-    .fd-ev svg { width:14px; height:14px; color:var(--sky-500); flex-shrink:0; }
-    .fd-actions { display:flex; gap:8px; }
-    .fd-approve { flex:1; text-align:center; padding:9px; border-radius:10px; background:var(--ink); color:#fff; font-size:13px; font-weight:600; }
-    .fd-edit { padding:9px 16px; border-radius:10px; border:1px solid var(--line-strong); color:var(--ink-soft); font-size:13px; font-weight:600; }
+.foot-nav{position:relative;z-index:1;border-top:1px solid var(--line);padding:56px 0 28px;margin-top:76px}
+.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px}
+.foot-brand{display:inline-block;font-size:19px;font-weight:700;letter-spacing:-.02em;
+  transition:opacity .5s var(--ease)}
+.foot-brand:hover{opacity:.6}
+.foot-note{margin:8px 0 0;font-size:13.5px;color:var(--ink-3);max-width:280px}
+.foot-nav h4{margin:0 0 14px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:650}
+.foot-nav nav a{display:block;font-size:14px;color:var(--ink-2);padding:5px 0;
+  transition:color .4s var(--ease)}
+.foot-nav nav a:hover{color:var(--ink)}
+.foot-base{display:flex;justify-content:space-between;align-items:center;margin-top:54px;padding-top:24px;
+  border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+.langsw{display:inline-flex;gap:9px;align-items:center}
+.langsw a{font-weight:650}
+.langsw a[aria-current]{color:var(--ink)}
+.langsw i{opacity:.4;font-style:normal}
+@media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr;gap:30px}}
 
-    /* ── Live classifier ──────────────────────── */
-    .klassify-wrap { margin-top:44px; border:1px solid var(--line); border-radius:20px; overflow:hidden; background:#fff; box-shadow:0 40px 80px -40px rgba(12,60,110,.3); }
-    .klassify-titlebar { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); background:#fbfdff; }
-    .klassify-titlebar .dot { width:11px; height:11px; border-radius:50%; background:#dbe4ee; }
-    .klassify-titlebar .crumb { margin-left:8px; font-size:12px; color: var(--ink-mute); font-weight:500; }
-    .klassify-titlebar .hero-live { margin-left:auto; display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color: var(--sky-700); }
-    .klassify-titlebar .hero-live-dot { width:7px; height:7px; border-radius:50%; background: var(--sky-500); box-shadow:0 0 0 3px rgba(14,165,233,.2); }
-    .klassify { display:grid; grid-template-columns:1fr 1fr; }
-    @media (max-width:820px){ .klassify { grid-template-columns:1fr; } }
-    .klassify-input { padding:24px; border-right:1px solid var(--line); }
-    @media (max-width:820px){ .klassify-input { border-right:none; border-bottom:1px solid var(--line); } }
-    .klassify-eyebrow { color: var(--sky-600); margin-bottom:14px; }
-    .kf-field {
-      width:100%; height:44px; padding:0 14px; margin-bottom:10px;
-      border:1px solid var(--line-strong); border-radius:10px; background:#fff;
-      font-family:inherit; font-size:14px; color: var(--ink); transition:.15s var(--ease);
-    }
-    textarea.kf-field { height:76px; padding:12px 14px; resize:vertical; line-height:1.5; }
-    .kf-field:focus { outline:none; border-color: var(--sky-400); box-shadow:0 0 0 3px rgba(14,165,233,.15); }
-    .kf-field::placeholder { color:#9aa4b0; }
-    .klassify-keyrow { display:grid; grid-template-columns:130px 1fr; gap:10px; }
-    .klassify-keyrow .kf-field { margin-bottom:10px; }
-    .klassify-presets { display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 14px; }
-    .klassify-preset { padding:6px 12px; border:1px solid var(--line-strong); border-radius:9999px; background:#fff; font-size:12.5px; font-weight:500; color: var(--ink-soft); transition:.15s var(--ease); }
-    .klassify-preset:hover { border-color: var(--sky-300); color: var(--sky-700); background: var(--sky-50); }
-    .klassify-run { width:100%; height:48px; }
-    .klassify-run[disabled] { opacity:.6; cursor:default; }
-    .klassify-note { margin-top:12px; font-size:12px; color: var(--ink-mute); line-height:1.5; }
-    .klassify-note a { color: var(--sky-700); font-weight:600; }
-    .klassify-result { padding:24px; background:#fbfdff; }
-    .klassify-tier { display:flex; align-items:flex-start; gap:14px; }
-    .klassify-tier-badge {
-      flex-shrink:0; min-width:78px; text-align:center; padding:10px 14px; border-radius:12px;
-      font-size:13px; font-weight:700; letter-spacing:.08em; background:#eef3f8; color: var(--ink-soft);
-    }
-    .klassify-tier-badge[data-tier="PUSH"] { background: var(--sky-500); color:#fff; }
-    .klassify-tier-badge[data-tier="QUEUE"] { background: var(--sky-100); color: var(--sky-700); }
-    .klassify-tier-badge[data-tier="SILENT"] { background:#e2e8f0; color: var(--slate-500); }
-    .klassify-tier-badge[data-tier="AUTO"] { background: var(--sky-200); color: var(--sky-700); }
-    .klassify-tier-desc { font-size:13.5px; color: var(--ink-soft); line-height:1.5; padding-top:4px; }
-    .klassify-reason { margin-top:16px; font-size:13px; color: var(--ink-mute); line-height:1.55; font-style:italic; }
-    .klassify-error { color:#dc2626; font-weight:500; }
-    .klassify-features { margin-top:18px; display:grid; gap:10px; }
-    .klassify-feature { display:grid; grid-template-columns:88px 1fr 40px; align-items:center; gap:10px; }
-    .kf-label { font-size:11px; text-transform:capitalize; color: var(--ink-mute); letter-spacing:.02em; }
-    .kf-bar { height:6px; border-radius:9999px; background:#e6edf4; overflow:hidden; }
-    .kf-bar > span { display:block; height:100%; border-radius:9999px; background:linear-gradient(90deg,var(--sky-400),var(--sky-600)); }
-    .kf-val { font-size:12px; font-weight:600; color: var(--sky-700); text-align:right; font-variant-numeric:tabular-nums; }
+.proof{max-width:1180px;margin:26px auto 0;padding:0 24px;font-size:13.5px;color:var(--ink-3);max-width:720px}
+.proof a{color:var(--sky-600);font-weight:600}
 
-    /* ── Stats / measured ──────────────────────── */
-    .stats-grid { margin-top:44px; display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
-    @media (max-width:820px){ .stats-grid { grid-template-columns:1fr; } }
-    .stat-tile { padding:28px; border:1px solid var(--line); border-radius:18px; background:#fff; }
-    .stat-tile.featured { background:linear-gradient(160deg,var(--sky-500),var(--sky-700)); border-color:transparent; color:#fff; box-shadow:0 24px 50px -24px rgba(2,132,199,.5); }
-    .stat-tile .big { font-size:44px; font-weight:700; letter-spacing:-.03em; line-height:1; }
-    .stat-tile .lab { margin-top:10px; font-size:14px; font-weight:650; }
-    .stat-tile .desc { margin-top:8px; font-size:13px; color: var(--ink-mute); line-height:1.5; }
-    .stat-tile.featured .desc { color:rgba(255,255,255,.85); }
-    .stats-foot { margin-top:22px; font-size:12.5px; color: var(--ink-mute); text-align:center; line-height:1.55; }
-    .stats-foot a { color: var(--sky-700); font-weight:600; }
 
-    /* ── Decision card ─────────────────────────── */
-    .decision-grid { display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
-    @media (max-width:900px){ .decision-grid { grid-template-columns:1fr; gap:36px; } }
-    .decision-card { border:1px solid var(--line); border-radius:20px; background:#fff; padding:24px; box-shadow:0 30px 70px -34px rgba(12,60,110,.3); }
-    .dc-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
-    .dc-eyebrow { color: var(--sky-600); }
-    .approval-pill { font-size:12px; font-weight:600; padding:5px 12px; border-radius:9999px; background: var(--sky-50); color: var(--sky-700); border:1px solid var(--sky-200); transition:.2s var(--ease); }
-    .approval-pill.is-approved { background:#dcfce7; color:#15803d; border-color:#bbf7d0; }
-    .dc-title { font-size:20px; font-weight:660; letter-spacing:-.01em; margin:8px 0 18px; }
-    .dc-row { display:grid; grid-template-columns:78px 1fr; gap:14px; padding:14px 0; border-top:1px solid var(--line); }
-    .dc-row .k { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color: var(--sky-600); padding-top:2px; }
-    .dc-row .v { font-size:14px; color: var(--ink); }
-    .dc-row .v small { display:block; margin-top:3px; font-size:12.5px; color: var(--ink-mute); line-height:1.5; }
-    .decision-actions { display:flex; gap:10px; margin-top:20px; }
-    .act-btn { flex:1; height:44px; border-radius:11px; font-size:14px; font-weight:600; transition:.15s var(--ease); }
-    .act-btn.primary { background: var(--ink); color:#fff; }
-    .act-btn.primary:hover, .act-btn.primary.is-selected { background: var(--sky-600); }
-    .act-btn.ghost { border:1px solid var(--line-strong); color: var(--ink-soft); }
-    .act-btn.ghost:hover, .act-btn.ghost.is-selected { border-color: var(--sky-300); color: var(--sky-700); }
-    .act-btn.plain { color: var(--ink-mute); }
-    .act-btn.plain:hover, .act-btn.plain.is-selected { background: var(--paper); color: var(--ink); }
+/* ── Opinionated stance rows ──────────────────────── */
+.stance{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;gap:0}
+.srow{display:grid;grid-template-columns:34px 1fr 1fr;gap:32px;align-items:start;
+  padding:30px 0;border-top:1px solid var(--line)}
+.srow:last-child{border-bottom:1px solid var(--line)}
+.srow .n{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--sky-600);padding-top:5px}
+.srow h3{margin:0;font-size:clamp(19px,2.1vw,25px);line-height:1.2;letter-spacing:-.025em;font-weight:650}
+.srow .body{display:grid;gap:12px}
+.srow p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.6}
+.srow .vs{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-3);
+  padding:7px 13px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
+  align-self:flex-start}
+.srow .vs b{color:var(--ink);font-weight:650}
+@media(max-width:860px){.srow{grid-template-columns:1fr;gap:14px;padding:24px 0}.srow .n{padding-top:0}}
 
-    /* ── Pillars strip ─────────────────────────── */
-    .pillars { background: var(--sky-50); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
-    .pillars-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; }
-    @media (max-width:820px){ .pillars-grid { grid-template-columns:1fr; gap:22px; } }
-    .pillar .pn { font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color: var(--sky-600); margin-bottom:12px; }
-    .pillar h3 { font-size:19px; font-weight:640; letter-spacing:-.01em; margin-bottom:8px; }
-    .pillar p { font-size:14px; color: var(--ink-mute); line-height:1.55; }
 
-    /* ── Principle steps ───────────────────────── */
-    .steps-grid { margin-top:44px; display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
-    @media (max-width:900px){ .steps-grid { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:520px){ .steps-grid { grid-template-columns:1fr; } }
-    .step { padding-top:20px; border-top:2px solid var(--sky-200); }
-    .step .num { font-size:12px; font-weight:700; color: var(--sky-600); letter-spacing:.08em; }
-    .step h3 { font-size:17px; font-weight:640; margin:8px 0 6px; }
-    .step p { font-size:13.5px; color: var(--ink-mute); line-height:1.5; }
+/* ── Stance: bento, not a list ────────────────────── */
+.bento{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+.bcard{border-radius:28px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
+  transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
+.bcard:hover{transform:translateY(-4px);box-shadow:0 40px 80px -46px rgba(8,42,80,.45)}
+.bcard-in{border-radius:21px;background:#fff;border:1px solid var(--line);height:100%;
+  padding:30px 30px 26px;display:flex;flex-direction:column;gap:14px;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
+.bcard .n{font-size:10.5px;font-weight:700;letter-spacing:.18em;color:var(--sky-600)}
+.bcard h3{margin:0;font-size:clamp(20px,2.2vw,27px);line-height:1.16;letter-spacing:-.028em;font-weight:650}
+.bcard p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.62}
+.bcard .vs{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3);
+  padding:9px 14px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
+  align-self:flex-start;flex-wrap:wrap}
+.bcard .vs b{color:var(--ink);font-weight:650}
+.bcard .vs a{color:var(--sky-600);font-weight:650}
+.bcard.dark{background:var(--ink);border-color:var(--ink)}
+.bcard.dark .bcard-in{background:var(--ink);border-color:rgba(255,255,255,.10);box-shadow:none}
+.bcard.dark h3{color:#fff}.bcard.dark p{color:rgba(255,255,255,.72)}
+.bcard.dark .n{color:#8fd0ff}
+.bcard.dark .vs{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.66)}
+.bcard.dark .vs b{color:#fff}.bcard.dark .vs a{color:#8fd0ff}
+.b7{grid-column:span 7}.b5{grid-column:span 5}.b6{grid-column:span 6}
+@media(max-width:900px){.b7,.b5,.b6{grid-column:span 12}}
 
-    /* ── Pricing ───────────────────────────────── */
-    .pricing-grid { margin-top:44px; display:grid; grid-template-columns:1fr 1fr; gap:22px; max-width:840px; margin-left:auto; margin-right:auto; }
-    @media (max-width:760px){ .pricing-grid { grid-template-columns:1fr; } }
-    .price-card { border:1px solid var(--line); border-radius:20px; background:#fff; padding:30px; display:flex; flex-direction:column; }
-    .price-card.pro { border-color: var(--sky-300); box-shadow:0 30px 60px -30px rgba(2,132,199,.4); position:relative; }
-    .price-badge { align-self:flex-start; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:9999px; background: var(--paper); color: var(--ink-soft); margin-bottom:14px; }
-    .price-card.pro .price-badge { background: var(--sky-500); color:#fff; }
-    .price-name { font-size:18px; font-weight:660; }
-    .price-amt { margin:12px 0 4px; font-size:40px; font-weight:720; letter-spacing:-.03em; }
-    .price-amt span { font-size:15px; font-weight:500; color: var(--ink-mute); letter-spacing:0; }
-    .price-note { font-size:12.5px; color: var(--ink-mute); margin-bottom:20px; line-height:1.5; }
-    .price-feats { list-style:none; display:grid; gap:11px; margin-bottom:24px; flex:1; }
-    .price-feats li { display:flex; gap:10px; font-size:13.5px; color: var(--ink-soft); line-height:1.45; }
-    .price-feats li svg { width:17px; height:17px; flex-shrink:0; color: var(--sky-500); margin-top:1px; }
-    .price-card .btn { width:100%; }
-    .pricing-foot { margin-top:22px; text-align:center; font-size:12.5px; color: var(--ink-mute); }
+/* ── Feature list: what only this does ────────────── */
+.feats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 40px}
+.feat-i{padding:24px 0;border-top:1px solid var(--line);display:grid;gap:6px;align-content:start}
+.feat-i h4{margin:0;font-size:15.5px;font-weight:650;letter-spacing:-.015em;display:flex;align-items:center;gap:9px}
+.feat-i h4 em{font-style:normal;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+  color:var(--sky-600);background:rgba(2,132,199,.10);padding:3px 8px;border-radius:9999px}
+.feat-i p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
+@media(max-width:900px){.feats{grid-template-columns:1fr}}
 
-    /* ── Final CTA ─────────────────────────────── */
-    .final-cta { padding:110px 0; text-align:center; position:relative; overflow:hidden; }
-    .final-cta .final-bg { position:absolute; inset:0; z-index:0; background:radial-gradient(120% 100% at 50% 120%, var(--sky-100), #fff 62%); }
-    .final-inner { position:relative; z-index:2; max-width:640px; margin:0 auto; }
-    .final-cta h2 { font-size:clamp(30px,4.4vw,50px); letter-spacing:-.03em; line-height:1.05; font-weight:680; }
-    .final-cta p { margin:18px auto 30px; font-size:17px; color: var(--ink-mute); max-width:480px; }
-    .final-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+.socials{display:flex;gap:8px;margin-top:18px}
+.socials a{width:36px;height:36px;border-radius:9999px;display:grid;place-items:center;
+  border:1px solid var(--line);background:#fff;color:var(--ink-2);
+  transition:transform .5s var(--ease),color .5s var(--ease),border-color .5s var(--ease)}
+.socials a:hover{transform:translateY(-2px);color:var(--ink);border-color:var(--line-strong,rgba(10,14,20,.2))}
+.socials svg{width:16px;height:16px}
 
-    /* ── Footer ────────────────────────────────── */
-    footer { border-top:1px solid var(--line); padding:48px 0; background:#fbfdff; }
-    .footer-grid { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px; }
-    .footer-brand { display:flex; align-items:center; gap:11px; }
-    .footer-brand img { width:30px; height:30px; border-radius:8px; }
-    .footer-brand .fb-t { font-size:14px; color: var(--ink-soft); }
-    .footer-brand .fb-t b { color: var(--ink); font-weight:650; }
-    .footer-links { display:flex; align-items:center; gap:20px; font-size:13.5px; color: var(--ink-mute); }
-    .footer-links a { transition:.15s; }
-    .footer-links a:hover { color: var(--sky-700); }
-    .footer-social { display:flex; gap:14px; }
-    .footer-social a { color: var(--ink-mute); }
-    .footer-social a:hover { color: var(--sky-700); }
-    .footer-social svg { width:19px; height:19px; }
 
-    /* ── Floating download + language dock ─────── */
-    .dl-dock {
-      position:fixed; bottom:18px; left:50%; transform:translateX(-50%); z-index:55;
-      display:flex; align-items:center; gap:6px; padding:7px 8px 7px 10px; border-radius:9999px;
-      background:rgba(255,255,255,.82); backdrop-filter:blur(16px) saturate(1.4); -webkit-backdrop-filter:blur(16px) saturate(1.4);
-      border:1px solid rgba(255,255,255,.65); box-shadow:0 10px 34px -14px rgba(10,50,90,.34);
-    }
-    .dl-dock-btn { display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px; border-radius:9999px; background: var(--ink); color:#fff; font-size:13.5px; font-weight:600; transition:.18s var(--ease); }
-    .dl-dock-btn:hover { background: var(--sky-600); }
-    .dl-dock-btn svg { width:16px; height:16px; }
-    .dl-dock-help { width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color: var(--ink-mute); border:1px solid var(--line-strong); transition:.15s; }
-    .dl-dock-help:hover { color: var(--sky-700); border-color: var(--sky-300); }
-    .dl-dock-lang { display:flex; align-items:center; gap:6px; padding:0 8px 0 4px; font-size:13px; font-weight:600; }
-    .dl-dock-cur { color: var(--ink); }
-    .dl-dock-sep { color: var(--line-strong); }
-    .dl-dock-lang a { color: var(--ink-mute); }
-    .dl-dock-lang a:hover { color: var(--sky-700); }
-    @media (max-width:520px){ .dl-dock-btn span.lbl { display:none; } }
+/* ── Side-by-side comparison ──────────────────────── */
+.vsgrid{max-width:1180px;margin:0 auto;padding:0 24px}
+.vshead{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:6px}
+.vscol{display:flex;align-items:center;gap:10px;padding:16px 22px;border-radius:16px 16px 0 0}
+.vscol.ours{background:var(--ink);color:#fff}
+.vscol.them{background:rgba(10,14,20,.05);color:var(--ink-3);border:1px solid var(--line);border-bottom:0}
+.vscol b{font-size:15px;font-weight:650;letter-spacing:-.015em}
+.vscol .mk{width:20px;height:20px;border-radius:9999px;display:grid;place-items:center;font-size:11px;font-weight:700}
+.vscol.ours .mk{background:rgba(255,255,255,.16);color:#fff}
+.vscol.them .mk{background:rgba(10,14,20,.08);color:var(--ink-3)}
+.vsrow{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:0 0 12px}
+.vscell{padding:20px 22px;border:1px solid var(--line);background:#fff}
+.vscell.ours{border-color:rgba(10,14,20,.16);box-shadow:0 18px 40px -34px rgba(8,42,80,.5)}
+.vscell.them{background:rgba(10,14,20,.02);color:var(--ink-3)}
+.vsrow:last-of-type .vscell{border-radius:0 0 16px 16px}
+.vscell .k{display:block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
+  color:var(--ink-3);margin-bottom:8px}
+.vscell p{margin:0;font-size:14.5px;line-height:1.6}
+.vscell.ours p{color:var(--ink);font-weight:500}
+.vscell.ours p b{color:var(--sky-600);font-weight:650}
+@media(max-width:820px){
+  .vshead{display:none}
+  .vsrow{grid-template-columns:1fr;gap:0;padding-bottom:18px}
+  .vscell{border-radius:16px!important;margin-bottom:8px}
+  .vscell::before{content:attr(data-who);display:block;font-size:10.5px;letter-spacing:.16em;
+    text-transform:uppercase;font-weight:700;color:var(--sky-600);margin-bottom:8px}
+  .vscell.them::before{color:var(--ink-3)}
+}
 
-    /* mobile hero preview (shown < product on small) */
-    .mobile-preview { display:none; }
-  </style>
+/* Language switch, in the nav where it belongs */
+.nav-lang{display:inline-flex;align-items:center;gap:1px;margin-left:8px;padding:3px;border-radius:9999px;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12)}
+.nav-lang a{font-size:11.5px;font-weight:650;letter-spacing:.04em;color:rgba(255,255,255,.66);
+  padding:5px 10px;border-radius:9999px;transition:color .4s var(--ease),background .4s var(--ease)}
+.nav-lang a:hover{color:#fff}
+.nav-lang a[aria-current]{background:#fff;color:var(--ink)}
+@media(max-width:880px){.nav-lang{margin-left:4px}}
+
+
+@media (max-height: 900px){
+  .hero{padding-top:150px}
+  h1{font-size:clamp(40px,5.4vw,62px)}
+  .lead{font-size:17px;margin-bottom:24px}
+  .eyebrow{margin-bottom:0}
+  .btn{height:48px}
+  .demo{margin-top:26px}
+  .stage{margin-top:40px}
+}
+@media (max-height: 760px){
+  .hero{padding-top:132px}
+  h1{font-size:clamp(36px,4.6vw,52px);margin:18px 0 14px}
+  .lead{font-size:16px;margin-bottom:20px}
+  .demo-stage{height:44px}
+  .bk .v{font-size:22px}
+}
+
+/* ── Live sort: the product, demonstrated before it is described ── */
+.demo{position:relative;z-index:3;max-width:960px;margin:34px auto 0;padding:0 24px}
+.demo-in{border-radius:26px;padding:8px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 40px 80px -44px rgba(8,42,80,.45);backdrop-filter:blur(14px)}
+.demo-core{border-radius:19px;background:rgba(255,255,255,.94);border:1px solid var(--line);
+  padding:18px 20px 16px;text-align:left}
+.demo-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.demo-top .lab{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--ink-3)}
+.demo-top .cnt{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.demo-top .cnt b{color:var(--ink);font-weight:700}
+.demo-stage{position:relative;height:52px;overflow:hidden;border-radius:12px;background:rgba(10,14,20,.035);
+  border:1px solid var(--line);margin-bottom:14px}
+.mail{position:absolute;left:14px;top:9px;display:flex;align-items:center;gap:9px;max-width:calc(100% - 28px);
+  font-size:13px;opacity:0}
+.mail .from{font-weight:650;white-space:nowrap}
+.mail .subj{color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail.run{animation:sweep 1.05s var(--ease) forwards}
+@keyframes sweep{
+  0%{opacity:0;transform:translateY(9px)}
+  22%{opacity:1;transform:translateY(0)}
+  74%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(-9px)}
+}
+.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
+  transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
+.bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
+.bk .top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.bk .dot{width:8px;height:8px;border-radius:50%}
+.bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
+.bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
+.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
+.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
+.bk .dot{background:var(--c)}
+.bk.hit{border-color:var(--c)}
+.demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
+@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
+
+
+/* ── Playable replica ─────────────────────────────── */
+.play{display:grid;grid-template-columns:186px 300px 1fr;height:466px;
+  font-size:13px;text-align:left;background:#fff}
+.play *{min-width:0}
+.pl-side{border-right:1px solid var(--line);background:rgba(10,14,20,.018);padding:14px 10px;overflow:auto}
+.pl-lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:700;
+  padding:0 8px 8px}
+.pl-t{width:100%;display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;border:0;
+  background:transparent;font:inherit;color:var(--ink);cursor:pointer;text-align:left;
+  transition:background .35s var(--ease)}
+.pl-t:hover{background:rgba(10,14,20,.05)}
+.pl-t[aria-pressed=true]{background:rgba(2,132,199,.11);font-weight:650;
+  box-shadow:inset 2px 0 0 var(--sky-600)}
+.pl-t .dt{width:7px;height:7px;border-radius:50%}
+.pl-t .cn{margin-left:auto;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.pl-list{border-right:1px solid var(--line);overflow:auto}
+.pl-h{padding:12px 14px;font-weight:650;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
+.pl-h .dt{width:8px;height:8px;border-radius:50%}
+.pl-h .cn{margin-left:auto;color:var(--ink-3);font-weight:500}
+.pl-r{width:100%;display:block;text-align:left;border:0;border-bottom:1px solid var(--line);
+  background:transparent;font:inherit;padding:11px 14px;cursor:pointer;
+  transition:background .35s var(--ease)}
+.pl-r:hover{background:rgba(10,14,20,.035)}
+.pl-r[aria-current=true]{background:rgba(2,132,199,.10);box-shadow:inset 2px 0 0 var(--sky-600)}
+.pl-r .fr{display:block;font-size:11px;color:var(--ink-3);font-weight:600}
+.pl-r .sj{display:block;font-size:13.5px;font-weight:550;margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-r .rs{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.pl-read{overflow:auto;display:flex;flex-direction:column}
+.pl-top{padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.pl-sub{font-size:16px;font-weight:650;letter-spacing:-.015em;line-height:1.25}
+.pl-from{font-size:12px;color:var(--ink-3);margin-top:3px}
+.pl-acts{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+.pl-b{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:inherit;
+  font-size:12px;cursor:pointer;transition:background .35s var(--ease),border-color .35s var(--ease)}
+.pl-b:hover{background:rgba(10,14,20,.04)}
+.pl-b.on{background:var(--sky-600);border-color:var(--sky-600);color:#fff}
+.pl-b.on:hover{background:#0369a1}
+.pl-why{padding:12px 18px;background:rgba(10,14,20,.028);border-bottom:1px solid var(--line);font-size:12px}
+.pl-why .w{color:var(--ink-3)}
+.pl-why .sm{margin-top:6px;color:var(--ink);line-height:1.5}
+.pl-body{padding:16px 18px;color:var(--ink-2);line-height:1.6;font-size:12.5px;white-space:pre-line;flex:1}
+.pl-opts{padding:12px 18px;border-bottom:1px solid var(--line);display:grid;gap:7px;
+  background:rgba(2,132,199,.035)}
+.pl-opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);background:#fff;
+  border-radius:10px;padding:9px 11px;font:inherit;font-size:12px;text-align:left;cursor:pointer;
+  transition:border-color .35s var(--ease),background .35s var(--ease)}
+.pl-opt:hover{border-color:var(--sky-600);background:rgba(2,132,199,.04)}
+.pl-opt kbd{flex:0 0 18px;height:18px;border-radius:5px;background:rgba(10,14,20,.07);display:grid;
+  place-items:center;font:inherit;font-size:10px;font-weight:700}
+.pl-opt b{display:block;font-size:11px;color:var(--sky-600);margin-bottom:1px}
+.pl-hint{margin:0;padding:11px 18px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink-3);
+  background:rgba(10,14,20,.02)}
+.pl-hint b{color:var(--ink-2);font-weight:650}
+.pl-hint kbd{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;
+  background:rgba(10,14,20,.07);font:inherit;font-size:10px;font-weight:700;color:var(--ink-2);
+  vertical-align:baseline}
+.pl-comp{padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(2,132,199,.035)}
+.pl-comp textarea{width:100%;height:74px;border:1px solid var(--line);border-radius:9px;padding:9px 10px;
+  font:inherit;font-size:12.5px;resize:none;color:var(--ink);background:rgba(10,14,20,.02)}
+.pl-comp textarea:focus{outline:2px solid var(--sky-600);outline-offset:1px}
+.pl-comp .row{display:flex;gap:7px;justify-content:flex-end;margin-top:8px;align-items:center}
+.pl-sent{margin-right:auto;font-size:11.5px;color:#15803d;font-weight:600}
+.pl-empty{margin:auto;text-align:center;color:var(--ink-3);font-size:13px;padding:40px}
+@media(max-width:1000px){
+  .play{grid-template-columns:1fr;height:auto}
+  .pl-side,.pl-list{border-right:0;border-bottom:1px solid var(--line)}
+  .pl-side{display:flex;gap:6px;overflow-x:auto;padding:10px}
+  .pl-lab{display:none}
+  .pl-t{width:auto;white-space:nowrap}
+  .pl-list{max-height:260px}
+}
+
+/* Scroll reveal */
+/* Reveal is opt-IN: content is visible by default and JS arms the "from"
+   state only once it is running. The usual way round leaves anything waiting
+   on an observer permanently invisible when scripting is off — which is
+   exactly the bug this page's predecessor shipped. */
+.rv{transition:opacity .9s var(--ease),transform .9s var(--ease),filter .9s var(--ease)}
+.js .rv:not(.in){opacity:0;transform:translateY(46px);filter:blur(8px)}
+@media(prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none;filter:none;transition:none}
+  .chip{animation:none}
+}
+</style>
 </head>
 <body>
+<div class="grain"></div>
+<div class="field" aria-hidden="true"></div>
 
-  <!-- ══ NAV ══════════════════════════════════ -->
-  <nav class="nav">
-    <div class="nav-pill">
-      <a class="nav-brand" href="/ko/"><img class="nav-mark" src="/brand/mark.svg?v=matte2" alt="Klorn">Klorn</a>
-      <span class="nav-links">
-        <a href="#measured">제품</a>
-        <a href="#how">작동 방식</a>
-        <a href="#pricing">가격</a>
-        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">오픈소스</a>
-      </span>
-      <a class="nav-cta" href="https://app.klorn.ai/early-access">Klorn 열기 →</a>
-    </div>
-  </nav>
+<nav class="nav"><div class="nav-pill">
+  <a class="nav-brand" href="#top" data-top>Klorn</a>
+  <span class="nav-links"><a href="#features">기능</a><a href="#cards">제품</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
+  <span class="nav-lang">
+    <a href="/" data-lang-pick="en">EN</a><a href="/ko/" data-lang-pick="ko" aria-current="true">한국어</a>
+  </span>
+  <a class="nav-cta" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">다운로드 <i>↓</i></a>
+</div></nav>
 
-  <!-- ══ HERO ═════════════════════════════════ -->
-  <header class="hero">
-    <svg class="hero-scene" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true" role="presentation">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#3f9be0"/>
-          <stop offset="0.34" stop-color="#79c0ee"/>
-          <stop offset="0.62" stop-color="#b9e0f8"/>
-          <stop offset="0.84" stop-color="#e6f4fd"/>
-          <stop offset="1" stop-color="#fbf7ec"/>
-        </linearGradient>
-        <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#fff8e6" stop-opacity="0.95"/>
-          <stop offset="0.5" stop-color="#ffeec4" stop-opacity="0.45"/>
-          <stop offset="1" stop-color="#ffeec4" stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="cloudG" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#ffffff"/>
-          <stop offset="0.6" stop-color="#f4fbff"/>
-          <stop offset="1" stop-color="#cfe6f6"/>
-        </linearGradient>
-        <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
-        <filter id="haze" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur stdDeviation="16"/></filter>
-        <linearGradient id="meadowFar" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#a9d189"/>
-          <stop offset="1" stop-color="#7cb45f"/>
-        </linearGradient>
-        <linearGradient id="meadowNear" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#78b158"/>
-          <stop offset="1" stop-color="#4f8c3f"/>
-        </linearGradient>
-        <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#efe4cd" stop-opacity="0.0"/>
-          <stop offset="0.45" stop-color="#e9dcc0" stop-opacity="0.85"/>
-          <stop offset="1" stop-color="#e3d4b2" stop-opacity="0.95"/>
-        </linearGradient>
-        <symbol id="cl" viewBox="0 0 320 160">
-          <g fill="url(#cloudG)">
-            <ellipse cx="160" cy="132" rx="150" ry="30"/>
-            <circle cx="72" cy="104" r="52"/>
-            <circle cx="140" cy="74" r="72"/>
-            <circle cx="216" cy="88" r="62"/>
-            <circle cx="262" cy="112" r="46"/>
-            <circle cx="110" cy="112" r="48"/>
-          </g>
-        </symbol>
-      </defs>
-      <rect width="1440" height="900" fill="url(#sky)"/>
-      <ellipse cx="900" cy="760" rx="620" ry="360" fill="url(#sun)"/>
-      <!-- far layer (small, high, slow drift) -->
-      <g class="drift drift-far" filter="url(#soft)" opacity="0.8">
-        <use href="#cl" x="90" y="150" width="150" height="75"/>
-        <use href="#cl" x="470" y="120" width="112" height="56"/>
-        <use href="#cl" x="1100" y="165" width="164" height="82"/>
-        <use href="#cl" x="1300" y="115" width="126" height="63"/>
+<header class="hero" id="top">
+  <svg class="hero-sky" viewBox="0 0 1440 1220" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#3d8fcd"/><stop offset=".26" stop-color="#79b6e2"/>
+        <stop offset=".52" stop-color="#b5daf0"/><stop offset=".74" stop-color="#e4f1f8"/>
+        <stop offset=".9" stop-color="#f7f6ef"/><stop offset="1" stop-color="#fbfaf6"/>
+      </linearGradient>
+      <radialGradient id="sun" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#fff7e2" stop-opacity=".92"/>
+        <stop offset=".55" stop-color="#ffe9bd" stop-opacity=".34"/>
+        <stop offset="1" stop-color="#ffe9bd" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="ct" x1="0" y1="0" x2=".18" y2="1">
+        <stop offset="0" stop-color="#fff"/><stop offset=".58" stop-color="#f8fcff"/><stop offset="1" stop-color="#dbeaf5"/>
+      </linearGradient>
+      <linearGradient id="cu" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#c3d9e9"/><stop offset="1" stop-color="#b0cbe0"/>
+      </linearGradient>
+      <filter id="sf" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+      <g id="cl">
+        <ellipse cx="150" cy="112" rx="140" ry="25" fill="url(#cu)"/>
+        <circle cx="66" cy="92" r="46" fill="url(#ct)"/><circle cx="132" cy="66" r="64" fill="url(#ct)"/>
+        <circle cx="204" cy="84" r="52" fill="url(#ct)"/><circle cx="248" cy="102" r="38" fill="url(#ct)"/>
+        <ellipse cx="140" cy="58" rx="68" ry="24" fill="#fff" opacity=".9"/>
       </g>
-      <!-- mid layer (framing the sides, mid height) -->
-      <g class="drift drift-mid" opacity="0.94">
-        <use href="#cl" x="-120" y="430" width="380" height="190"/>
-        <use href="#cl" x="1230" y="470" width="420" height="210"/>
-      </g>
-      <!-- near layer (big cumulus band sitting on the horizon) -->
-      <g class="drift drift-near">
-        <use href="#cl" x="-220" y="640" width="720" height="360"/>
-        <use href="#cl" x="900" y="660" width="820" height="410"/>
-        <use href="#cl" x="380" y="700" width="640" height="320"/>
-      </g>
-      <!-- Ground. The sky alone was half a scene: the reference lands its
-           clouds on a meadow, and without one the hero just faded out. Two
-           hills plus a trail is enough to read as depth; any more detail and it
-           starts competing with the headline sitting on top of it. -->
-      <g>
-        <path d="M0 812 C 240 772, 470 806, 720 792 C 980 778, 1220 806, 1440 782 L1440 900 L0 900 Z"
-              fill="url(#meadowFar)"/>
-        <path d="M0 856 C 260 822, 520 862, 780 846 C 1030 830, 1250 862, 1440 840 L1440 900 L0 900 Z"
-              fill="url(#meadowNear)"/>
-        <path d="M700 900 C 706 866, 690 846, 706 824 C 718 808, 742 800, 754 790 L784 790 C 766 806, 744 816, 736 832 C 722 856, 744 876, 760 900 Z"
-              fill="url(#trail)"/>
-        <!-- Haze along the seam so the hills meet the cloud band as air, not as
-             a hard cut. -->
-        <rect x="0" y="778" width="1440" height="34" fill="#dcecd4" opacity="0.55" filter="url(#haze)"/>
-      </g>
-    </svg>
-    <div class="hero-veil"></div>
+    </defs>
+    <rect width="1440" height="1220" fill="url(#sky)"/>
+    <ellipse cx="880" cy="880" rx="760" ry="330" fill="url(#sun)"/>
+    <g opacity=".34" filter="url(#sf)">
+      <use href="#cl" x="96" y="150" width="196" height="98"/>
+      <use href="#cl" x="1168" y="112" width="228" height="114"/>
+    </g>
+    <g opacity=".52" filter="url(#sf)">
+      <use href="#cl" x="-140" y="512" width="430" height="215"/>
+      <use href="#cl" x="1190" y="548" width="440" height="220"/>
+    </g>
+  </svg>
+  <div class="grid-bg"></div>
 
-    <div class="container hero-inner">
-      <a class="hero-eyebrow" href="#measured"><span class="dot"></span>실제 메일에서 94.3% 측정</a>
-      <h1 class="hero-h">소음은 들어오고,<br><span class="accent serif">신호</span>만 나갑니다.</h1>
-      <p class="hero-lead">다른 AI는 대신 행동합니다. Klorn은 무엇에 <em>행동할 가치가 있는지</em> 당신이 결정하도록 돕습니다 — 메일·캘린더·AI 신호를 하나의 명확한 결정 큐로 걸러내고, 근거와 승인 없이는 어떤 것도 손을 떠나지 않습니다.</p>
-
-      <a class="hero-invite" href="https://app.klorn.ai/early-access">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-        <span><b>초대 전용 베타</b> — 몇 분 내 승인, Google 심사 통과 전까지 테스터 100명</span>
-        <span class="hero-invite-arrow">진행 방식 →</span>
-      </a>
-
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="https://app.klorn.ai/early-access">얼리 액세스 요청 →</a>
-        <a class="btn btn-ghost" href="#live-classifier">라이브 데모 체험</a>
-      </div>
-      <p class="hero-secondary">이미 승인받으셨나요? <a href="https://app.klorn.ai/login">로그인 →</a></p>
-
-      <div class="hero-badges stagger">
-        <span class="hero-badge"><span class="dot"></span>오픈소스 — AGPLv3</span>
-        <span class="hero-badge"><span class="dot"></span>셀프 호스팅 가능</span>
-        <span class="hero-badge"><span class="dot"></span>모든 행동은 당신의 승인이 필요</span>
-      </div>
+  <div class="wrap">
+    <span class="eyebrow rv">실제 메일로 측정 <b>94.3%</b></span>
+    <h1 class="rv">소음은 들어오고,<br><span class="ser">신호</span>만 남는다.</h1>
+    <p class="lead rv"><b style="color:var(--ink);font-weight:650">메일을 네 단계로 분류하고,
+      그 이유까지 알려주는 맥 앱.</b> 다른 AI 에이전트는 당신을 대신해 행동합니다.
+      Klorn은 무엇이 당신의 주의를 받을 자격이 있는지만 판단하고, 행동은 당신에게 남깁니다.</p>
+    <div class="actions rv">
+      <a class="btn btn-1" href="https://app.klorn.ai/early-access">베타 신청하기 <i>↗</i></a>
+      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+        맥용 다운로드</a>
     </div>
+    <!-- The app needs an approved account, so the download alone is a dead end.
+         Say so next to the button rather than after the click. -->
+    <p class="actions-note rv">무료, AGPLv3, macOS 14+. 앱은 Klorn 계정으로 로그인하며,
+      구글 검수가 끝날 때까지 베타는 초대제입니다.
+      <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
+  </div>
 
-    <!-- Floating product window: today's brief -->
-    <div class="container">
-      <div class="product reveal-pop">
-        <div class="win" data-scroll-zoom>
-          <div class="win-bar">
-            <span class="win-dot r"></span><span class="win-dot y"></span><span class="win-dot g"></span>
-            <span class="win-title">Klorn — 오늘의 브리핑</span>
+
+  <div class="demo rv">
+    <div class="demo-in"><div class="demo-core">
+      <div class="demo-top">
+        <span class="lab">오늘 아침 받은편지함 분류 중</span>
+        <span class="cnt">64통 중 <b id="dm-done">0</b> · <span id="dm-state">분류 중</span></span>
+      </div>
+      <div class="demo-stage" id="dm-stage" aria-hidden="true"></div>
+      <div class="buckets" id="dm-buckets">
+        <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
+          <div class="v" data-v>0</div><p class="d">지금 당신을 끊습니다</p></div>
+        <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
+          <div class="v" data-v>0</div><p class="d">오늘 안에 읽으면 됩니다</p></div>
+        <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
+          <div class="v" data-v>0</div><p class="d">보관됩니다, 삭제가 아닙니다</p></div>
+        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
+          <div class="v" data-v>0</div><p class="d">당신 없이 처리됐습니다</p></div>
+      </div>
+      <p class="demo-foot">직접 라벨링한 받은편지함에 대한 실제 분류기 출력 — 64통 중 3통만 당신이 필요했습니다.</p>
+    </div></div>
+  </div>
+
+  <div class="stage rv">
+    <p class="stage-cap"><b>LIVE</b> 실제로 동작하는 복제본 — 단계, 메일, 답장, 재분류 모두 눌러보세요.
+      아래에 있는 스크린샷은 출시 중인 앱 그 자체입니다.</p>
+    <div class="shell" data-tilt>
+      <div class="core">
+        <div class="play" id="play" role="application" aria-label="Klorn 인터랙티브 데모">
+          <div class="pl-side">
+            <div class="pl-lab">받은편지함</div>
+            <div id="pl-tiers"></div>
           </div>
-          <div class="brief">
-            <aside class="brief-side">
-              <div class="brief-who"><span class="avatar">J</span><div><div class="nm">김지은</div><div class="em">jane@company.com</div></div></div>
-              <div class="brief-item on"><span class="g">●</span>브리핑</div>
-              <div class="brief-item"><span class="g">◇</span>큐</div>
-              <div class="brief-item"><span class="g">○</span>사일런트</div>
-              <div class="brief-item"><span class="g">▤</span>캘린더</div>
-              <div class="brief-item"><span class="g">⌘</span>채팅</div>
-            </aside>
-            <main class="brief-main">
-              <div class="brief-greet">좋은 저녁이에요 — <span class="serif">화요일 브리핑</span></div>
-              <div class="brief-sub">신호 6개 · 2개는 당신이 필요 · 나머지는 처리됨</div>
+          <div class="pl-list">
+            <div class="pl-h"><span class="dt" id="pl-hdot"></span><span id="pl-hname"></span>
+              <span class="cn" id="pl-hcount"></span></div>
+            <div id="pl-rows"></div>
+          </div>
+          <div class="pl-read" id="pl-read"></div>
+        </div>
+      </div>
+    </div>
+    <div class="stage-fade"></div>
+  </div>
 
-              <div class="tier push">
-                <div class="tier-label"><span class="pip"></span>Push · 지금 당신이 필요</div>
-                <div class="brow"><div class="txt">Alex와 Q4 로드맵 일정 논의<div class="from">Alex Rivera · Re: 프로젝트 업데이트</div></div><span class="chip">답장 초안 완료</span></div>
-                <div class="brow"><div class="txt">금요일 전 벤더 갱신 서명<div class="from">DocuSign · 조치 필요</div></div><span class="chip">조치 1건</span></div>
-              </div>
+</header>
 
-              <div class="tier queue">
-                <div class="tier-label"><span class="pip"></span>Queue · 여유 있을 때</div>
-                <div class="brow"><div class="txt">Jordan의 대시보드 사양 수정본<div class="from">Jordan Lee</div></div><span class="check"></span></div>
-                <div class="brow"><div class="txt">2월 인보이스 내역<div class="from">자동화</div></div><span class="check"></span></div>
-                <div class="brow"><div class="txt">Support의 온보딩 플로우 아이디어<div class="from">Casey Park</div></div><span class="check"></span></div>
-              </div>
-            </main>
+<section class="sec" id="cards">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">실제 앱</span>
+      <h2 class="rv">여기 있는 모든 화면은<br>실물입니다.</h2>
+    </div>
+    <p class="rv">목업이 아닙니다. 출시 중인 macOS 빌드에서 그대로 렌더링했기 때문에,
+      보이는 것이 설치되는 것입니다.</p>
+  </div>
+
+  <div class="cards">
+    <article class="card c8 rv">
+      <div class="card-in">
+        <div class="card-shot"><img src="/media/app/full.jpg" alt="전체 화면: 단계 사이드바, 메일 목록, 그리고 메일 옆의 Klorn 판정 근거" loading="lazy"></div>
+        <div class="card-txt"><h3>한 창, 한 번의 결정</h3>
+          <p>왼쪽에 단계, 가운데에 대기열, 오른쪽에 그게 왜 중요한지. 쓰지 않을 때는 화면 맨 위 한 줄로 접힙니다.</p></div>
+      </div>
+    </article>
+    <article class="card c4 rv">
+      <div class="card-in">
+        <div class="card-shot"><img src="/media/app/rows.jpg" alt="발신자, 제목, 그리고 각 메일이 그 단계로 간 이유를 보여주는 메일 행" loading="lazy"></div>
+        <div class="card-txt"><h3>모든 줄에 이유</h3>
+          <p>메일마다 무엇 때문에 거기 갔는지 적혀 있습니다 — 틀린 판정은 클릭 한 번으로 고칩니다.</p></div>
+      </div>
+    </article>
+    <article class="card c6 rv">
+      <div class="card-in">
+        <div class="card-shot"><img src="/media/app/tier-guide.jpg" alt="Push, Queue, Silent, Auto를 설명하는 첫 실행 안내" loading="lazy"></div>
+        <div class="card-txt"><h3>네 단어, 설명까지</h3>
+          <p>Silent는 삭제가 아닙니다. Auto는 답장이 아닙니다. 앱이 첫 실행에서, 그리고 언제든 다시 알려줍니다.</p></div>
+      </div>
+    </article>
+    <article class="card c6 rv">
+      <div class="card-in">
+        <div class="card-shot"><img src="/media/app/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" loading="lazy"></div>
+        <div class="card-txt"><h3>설정은 당신 몫</h3>
+          <p>Klorn이 혼자 어디까지 할지, 답장 어투는 어떨지, 무엇이 당신을 끊어도 되는지.</p></div>
+      </div>
+    </article>
+  </div>
+  <p class="proof rv">모든 스크린샷은 <code>KlornMac --render-previews</code>가 출시 중인 SwiftUI 뷰를
+    그대로 디스크에 그려서 만듭니다. 화면이 바뀌면 사진도 같이 바뀝니다 —
+    따로 관리하다 낡아버릴 마케팅 에셋이 없습니다.
+    <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">앱 소스 보기 →</a></p>
+</section>
+<!-- ══ THE STANCE ═══════════════════════════════════ -->
+<section class="sec" id="stance">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">우리가 동의하지 않는 지점</span>
+      <h2 class="rv">대부분의 이메일 AI가<br>갖지 않는 네 가지 입장.</h2>
+    </div>
+    <p class="rv">기능이 아니라 선택입니다. 각각은 Klorn에게 대가를 치르게 하고,
+      동시에 이미 메일에 딸려 오는 어시스턴트 대신 Klorn을 쓸 이유입니다.</p>
+  </div>
+  <div class="bento">
+    <article class="bcard b7 dark rv"><div class="bcard-in">
+      <span class="n">01 · 자율성</span>
+      <h3>당신을 대신해 행동하는 에이전트는 잘못된 제품입니다.</h3>
+      <p>다들 자율성을 출시합니다. 희소한 건 노동이 아니라 판단입니다 — 답장은 90초면 씁니다.
+        마흔 통 중 어느 것이 그 90초를 받을 자격이 있는지 정하는 일이 아침을 잡아먹습니다.
+        Klorn은 그 판단을 하고, 행동은 당신에게 남깁니다.</p>
+      <span class="vs">전송·삭제·전달 전부 당신을 기다립니다 · <b>미승인 실행 0건</b></span>
+    </div></article>
+    <article class="bcard b5 rv"><div class="bcard-in">
+      <span class="n">02 · 모델</span>
+      <h3>네 단계. 폴더도, 라벨도, 점수도 아닙니다.</h3>
+      <p>신뢰도 퍼센트로는 아무것도 할 수 없고, 무제한 라벨은 두 번째 받은편지함이 됩니다.
+        메일은 당신을 끊거나, 기다리거나, 보관되거나, 이미 처리됐거나 넷 중 하나입니다. 다섯 번째 단계는 없습니다.</p>
+      <span class="vs">모든 메일이 거기 간 <b>이유를</b> 표시합니다</span>
+    </div></article>
+    <article class="bcard b5 rv"><div class="bcard-in">
+      <span class="n">03 · 근거</span>
+      <h3>확인할 수 있는 숫자가 약속을 이깁니다.</h3>
+      <p>"AI 기반"은 주장이 아닙니다. Klorn은 릴리스마다 직접 라벨링한 실제 메일로 채점하고,
+        콜드/웜 스타트를 따로 보고하며, 그 데이터셋은 저장소에 있어서 우리 라벨에 반박할 수 있습니다.</p>
+      <span class="vs">웜 <b>94.3%</b> · 콜드 81.1% ·
+        <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">데이터셋 →</a></span>
+    </div></article>
+    <article class="bcard b7 rv"><div class="bcard-in">
+      <span class="n">04 · 이탈</span>
+      <h3>떠날 수 있어야 하고, 그 전에 안을 들여다볼 수 있어야 합니다.</h3>
+      <p>이메일 에이전트는 당신이 받는 모든 것을 읽습니다. 열어볼 수도, 빠져나올 수도 없는 상자에
+        넘기기엔 너무 큰 권한입니다. Klorn은 AGPLv3이고, 당신의 DB와 모델 키로 셀프호스팅되며,
+        폭주한 루프가 청구서를 만들지 못하도록 하루 지출에 상한을 겁니다.</p>
+      <span class="vs">AGPLv3 · 셀프호스팅 · 비용 상한 ·
+        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">소스 →</a></span>
+    </div></article>
+  </div>
+</section>
+
+
+<!-- ══ WHAT ONLY KLORN DOES ═════════════════════════ -->
+<section class="sec band" id="features">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">계획이 아니라 구현됨</span>
+      <h2 class="rv">다른 어디에도<br>없는 네 가지.</h2>
+    </div>
+    <p class="rv">사양표가 아닙니다 — 옮겨올 이유 네 가지이고, 넷 다 현재 macOS 빌드에 들어 있습니다.</p>
+  </div>
+  <div class="feats">
+    <div class="feat-i rv"><h4>또 하나의 받은편지함이 아니라, 한 줄의 바 <em>여기에만</em></h4>
+      <p>Klorn은 화면 맨 위 네이티브 한 줄로 존재합니다. 작업 중에 포커스를 뺏지 않고,
+        확인해야 할 다섯 번째 창도 없습니다.</p></div>
+    <div class="feat-i rv"><h4>메일마다 붙는 판정 이유 <em>여기에만</em></h4>
+      <p>"이 발신자에게 6번 답장했습니다." 왜 그렇게 매겨졌는지 보이고, 클릭 한 번으로 반박하면,
+        분류기가 그 정정에서 배웁니다.</p></div>
+    <div class="feat-i rv"><h4>어투는 한 번만 설정 <em>여기에만</em></h4>
+      <p>격식, 친근, 캐주얼 — 아니면 당신이 보낸 메일에서 학습. 세 개의 답장 초안이 말하는 내용은
+        그대로 두고 어투만 바꾸며, 발신자가 쓴 언어 그대로 씁니다.</p></div>
+    <div class="feat-i rv"><h4>모든 실행에 영수증 <em>여기에만</em></h4>
+      <p>전송·삭제·전달은 각각 페이로드 해시가 담긴 서명된 영수증을 남깁니다.
+        당신이 승인한 것이 실제로 나간 것임을 증명할 수 있습니다.</p></div>
+  </div>
+</section>
+
+
+<!-- ══ COMPARISON ═══════════════════════════════════ -->
+<section class="sec" id="compare">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">나란히 놓고</span>
+      <h2 class="rv">같은 받은편지함,<br>다른 두 개의 베팅.</h2>
+    </div>
+    <p class="rv">기능 개수 싸움이 아닙니다. Klorn과 이미 메일에 딸려 온 어시스턴트가
+      정반대로 결정하는 네 지점입니다.</p>
+  </div>
+  <div class="vsgrid rv">
+    <div class="vshead">
+      <div class="vscol ours"><span class="mk">K</span><b>Klorn</b></div>
+      <div class="vscol them"><span class="mk">—</span><b>당신 받은편지함의 어시스턴트</b></div>
+    </div>
+
+    <div class="vsrow">
+      <div class="vscell ours" data-who="Klorn"><span class="k">누가 결정하나</span>
+        <p>분류하고 초안까지 쓴 뒤 <b>멈춥니다</b>. 전송·삭제·전달은 전부 당신을 기다리고 영수증을 남깁니다.</p></div>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">누가 결정하나</span>
+        <p>당신을 대신해 실행하고 나중에 알려줍니다. 안전장치는 실행 취소뿐입니다.</p></div>
+    </div>
+    <div class="vsrow">
+      <div class="vscell ours" data-who="Klorn"><span class="k">무엇이 보이나</span>
+        <p>고정된 네 단계, 그리고 <b>메일마다 붙는 이유</b>. 하나 옮기면 분류기가 배웁니다.</p></div>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">무엇이 보이나</span>
+        <p>중요 표시와 무제한 라벨. 이유는 없고, 고칠 것도 없습니다.</p></div>
+    </div>
+    <div class="vsrow">
+      <div class="vscell ours" data-who="Klorn"><span class="k">무엇을 주장하나</span>
+        <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b>, 콜드/웜 별도 보고.</p></div>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">무엇을 주장하나</span>
+        <p>"AI 기반." 숫자도, 평가셋도, 직접 확인할 방법도 없습니다.</p></div>
+    </div>
+    <div class="vsrow">
+      <div class="vscell ours" data-who="Klorn"><span class="k">나가고 싶다면</span>
+        <p><b>AGPLv3</b>. 읽고, 당신 키로 셀프호스팅하고, 포크해서 떠나면 됩니다.</p></div>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">나가고 싶다면</span>
+        <p>닫혀 있습니다. 당신의 메일이 학습 표면이고, 내보내기가 유일한 출구입니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MEASURED ═════════════════════════════════════ -->
+<section class="sec band" id="measured">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">약속이 아니라 측정</span>
+      <h2 class="rv">실제 받은편지함에서 나온 숫자.</h2>
+    </div>
+    <p class="rv">모든 릴리스는 출시 전에 직접 라벨링한 실제 메일 데이터셋으로 채점합니다.
+      아래는 최신 수치이고, 평가셋은 공개 저장소에 있습니다.</p>
+  </div>
+  <div class="stats">
+    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">실제 메일 정확도</div>
+      <p>직접 라벨링한 실제 메일 53통 중 50통이 올바른 단계로 분류.</p></div>
+    <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT 정밀도</div>
+      <p>Klorn이 소음으로 보관할 때, 진짜 신호를 묻어버리는 일은 거의 없습니다.</p></div>
+    <div class="stat rv"><div class="sv">0</div><div class="sl">미승인 실행</div>
+      <p>전송·삭제·전달은 전부 당신을 기다리고 서명된 영수증을 남깁니다.</p></div>
+  </div>
+  <p class="foot rv">2026년 7월, 실사용 받은편지함에서 뽑은 53통 직접 라벨링 데이터셋으로 측정.
+    학습된 컨텍스트가 있는 웜 스타트 기준입니다 (콜드 스타트: 81.1%).
+    <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">측정 방법과 평가셋 →</a></p>
+</section>
+
+<!-- ══ OPEN SOURCE ══════════════════════════════════ -->
+<section class="sec" id="open">
+  <div class="wrapl">
+    <div class="os rv">
+      <div class="os-in">
+        <div>
+          <span class="tag">오픈소스</span>
+          <h2 class="os-h">읽어보고, 직접 돌리고,<br>언제든 떠나세요.</h2>
+          <p class="os-p">이메일 에이전트는 당신이 받는 모든 것을 봅니다. "믿어달라"는 답이 될 수 없습니다.
+            Klorn은 AGPLv3이고 — 분류기, 프롬프트, 평가셋이 전부 저장소에 있으며,
+            당신의 키로 셀프호스팅됩니다.</p>
+          <div class="os-cta">
+            <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">저장소 보기 <i>↗</i></a>
+            <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">평가셋 보기</a>
           </div>
         </div>
-      </div>
-
-      <!-- trust / measured strip -->
-      <div class="trust reveal">
-        <p>실제 받은편지함에서 측정 — 약속이 아닌 실측</p>
-        <div class="trust-row stagger">
-          <span class="stat"><b>94.3%</b><small>실제 메일 정확도</small></span>
-          <span class="stat"><b>95.5%</b><small>사일런트 정밀도</small></span>
-          <span class="stat"><b>4</b><small>주의 등급</small></span>
-          <span class="stat"><b>31s</b><small>받은편지함 → 큐</small></span>
-          <span class="stat"><b>0</b><small>미승인 행동</small></span>
-        </div>
+        <ul class="os-list">
+          <li><b>AGPLv3</b><span>포크하고, 감사하고, 직접 출시하세요.</span></li>
+          <li><b>셀프호스팅</b><span>당신의 DB, 당신의 모델 키, 당신의 머신.</span></li>
+          <li><b>몰래 보내지 않음</b><span>실제 실행마다 페이로드 해시가 담긴 영수증을 남깁니다.</span></li>
+          <li><b>비용 상한</b><span>하루 AI 예산이 있어서 폭주한 루프가 청구서를 만들 수 없습니다.</span></li>
+        </ul>
       </div>
     </div>
-  </header>
+  </div>
+</section>
 
-  <!-- ══ DEMO ═════════════════════════════════ -->
-  <section class="section section-bg-tint" id="how" aria-label="Klorn walkthrough">
-    <div class="container">
-      <div class="section-head-center reveal">
-        <p class="mono section-eyebrow">작동 방식</p>
-        <h2 class="section-h">받은편지함에서 하나의 결정까지. 31초 만에.</h2>
-        <p class="section-lead">모든 신호는 네 등급 중 하나로 분류되고, 중요한 것만 원클릭으로 승인하는 결정 카드가 됩니다. 그 승인 없이는 어떤 것도 손을 떠나지 않으며, 매일의 영수증이 모든 행동을 기록합니다.</p>
-      </div>
-      <div class="flow stagger">
-        <div class="flow-card">
-          <div class="fc-head"><span class="fc-step"><span class="n">1</span>받은편지함</span><span class="fc-tag">오늘 47</span></div>
-          <div class="fc-body">
-            <div class="fi-row"><span class="fi-dot"></span>투자자 — 수정된 지표</div>
-            <div class="fi-row"><span class="fi-dot"></span>벤더 갱신 · 서명</div>
-            <div class="fi-row muted"><span class="fi-dot"></span>뉴스레터 · Morning Brew</div>
-            <div class="fi-row muted"><span class="fi-dot"></span>영수증 · Stripe 인보이스</div>
-            <div class="fi-row muted"><span class="fi-dot"></span>대시보드 사양 · Jordan</div>
-            <p class="fi-more">+ 42개 더…</p>
-          </div>
-        </div>
-        <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-        <div class="flow-card">
-          <div class="fc-head"><span class="fc-step"><span class="n">2</span>4개 등급으로 분류</span></div>
-          <div class="fc-body">
-            <div class="ft-row push"><span class="pip"></span>Push<span class="ft-n">2</span></div>
-            <div class="ft-row queue"><span class="pip"></span>Queue<span class="ft-n">6</span></div>
-            <div class="ft-row silent"><span class="pip"></span>Silent<span class="ft-n">31</span></div>
-            <div class="ft-row auto"><span class="pip"></span>Auto<span class="ft-n">8</span></div>
-          </div>
-        </div>
-        <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-        <div class="flow-card">
-          <div class="fc-head"><span class="fc-step"><span class="n">3</span>결정</span><span class="fc-tag sky">승인 필요</span></div>
-          <div class="fc-body">
-            <div class="fd-title">투자자 후속 대응</div>
-            <div class="fd-sub">내일 오후 3시 전 Mina에게 답장</div>
-            <div class="fd-evidence">
-              <div class="fd-ev"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>답장 초안 준비됨</div>
-              <div class="fd-ev"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>ARR + 번레이트 첨부</div>
-              <div class="fd-ev"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>오후 3시 확보 제안</div>
-            </div>
-            <div class="fd-actions"><span class="fd-approve">승인</span><span class="fd-edit">수정</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="tier-legend stagger">
-        <div class="legend-card lg-push"><div class="lg-label"><span class="pip"></span>Push</div><p>시간에 민감하고 중대함. 도착하는 즉시 표면화됩니다.</p></div>
-        <div class="legend-card lg-queue"><div class="lg-label"><span class="pip"></span>Queue</div><p>볼 가치는 있지만 급하지 않음. 결정 큐로 모읍니다.</p></div>
-        <div class="legend-card lg-silent"><div class="lg-label"><span class="pip"></span>Silent</div><p>소음과 참고용. 방해하지 않도록 조용히 정리됩니다.</p></div>
-        <div class="legend-card lg-auto"><div class="lg-label"><span class="pip"></span>Auto</div><p>일상적인 항목은 미리 분류 — 여전히 대기 상태이며 스스로 전송되지 않습니다.</p></div>
-      </div>
+<!-- ══ PRICING ══════════════════════════════════════ -->
+<section class="sec band" id="pricing">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">가격</span>
+      <h2 class="rv">무료로 시작하고, Klorn이<br>대신 실행할 때 업그레이드.</h2>
     </div>
-  </section>
+    <p class="rv">분류는 영원히 무료입니다. Klorn이 당신 승인으로 초안을 쓰고 보내기 시작할 때만
+      결제합니다 — 실제로 돈이 드는 부분입니다.</p>
+  </div>
+  <div class="prices">
+    <article class="price rv"><div class="price-in">
+      <span class="chip-s">무료</span>
+      <h3>방화벽</h3>
+      <div class="amt">$0<span>/월</span></div>
+      <p class="note">카드 등록 없음. 하루 AI 예산으로 지속 가능하게 유지합니다.</p>
+      <ul>
+        <li>4단계 메일 방화벽 — 진짜 신호만 당신을 끊습니다</li>
+        <li>카드마다 근거가 붙는 결정 대기열</li>
+        <li>모닝 브리핑과 캘린더 뷰</li>
+        <li>당신의 메일을 근거로 답하는 어시스턴트</li>
+      </ul>
+      <a class="btn btn-2 full" href="https://app.klorn.ai/early-access">무료로 시작</a>
+    </div></article>
+    <article class="price feat rv"><div class="price-in">
+      <span class="chip-s dark">얼리 가격</span>
+      <h3>Klorn Pro</h3>
+      <div class="amt">$7.99<span>/월</span></div>
+      <p class="note">7일 Pro 체험 후 웹에서 월 $7.99. 언제든 해지할 수 있습니다.</p>
+      <ul>
+        <li>무료의 모든 것 + 더 큰 AI 예산</li>
+        <li>Klorn에서 승인하고 바로 보내는 답장 초안</li>
+        <li>음성이나 채팅으로 캘린더 일정 생성</li>
+        <li>여러 개의 Gmail 받은편지함, 자동 처리되는 소음</li>
+      </ul>
+      <a class="btn btn-1 full" href="https://app.klorn.ai/early-access">7일 Pro 체험 시작 <i>↗</i></a>
+    </div></article>
+  </div>
+</section>
 
-  <!-- ══ STATEMENT (poster rhythm break) ══════ -->
-  <section class="statement" aria-label="Why Klorn">
-    <div class="container narrow reveal">
-      <p class="mono statement-eyebrow">진짜 문제</p>
-      <h2 class="statement-h">받은편지함은 당신의 할 일 목록이 아닙니다.<br><span class="serif">남들의</span> 할 일 목록이죠.</h2>
-      <p class="statement-sub">모든 알림은 남이 당신의 주의를 결정하는 일입니다. Klorn은 그 결정권을 되찾아 줍니다 — 진짜 당신이 행동해야 할 몇 가지만 보입니다.</p>
-      <div class="statement-tags">
-        <span class="statement-tag"><span class="pip"></span>통제권은 당신에게</span>
-        <span class="statement-tag"><span class="pip"></span>카드마다 근거</span>
-        <span class="statement-tag"><span class="pip"></span>당신 없이는 전송 없음</span>
-      </div>
+<!-- ══ FINAL ════════════════════════════════════════ -->
+<section class="sec final">
+  <div class="wrapl rv">
+    <h2 class="final-h">다음 세대의 받은편지함은<br><span class="ser">결정 대기열</span>입니다.</h2>
+    <p class="final-p">초대제 베타 — 승인은 몇 분 안에, 구글 검수가 끝날 때까지 테스터 100명.</p>
+    <div class="actions">
+      <a class="btn btn-1" href="https://app.klorn.ai/early-access">베타 신청하기 <i>↗</i></a>
+      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+        맥용 다운로드</a>
     </div>
-  </section>
+    <p class="actions-note">이미 승인받으셨나요? <a href="https://app.klorn.ai/login">로그인</a> ·
+      macOS 14+ · AGPLv3</p>
+  </div>
+</section>
 
-  <!-- ══ LIVE CLASSIFIER ══════════════════════ -->
-  <section class="section" id="live-classifier" aria-label="Live classifier" style="scroll-margin-top:90px">
-    <div class="container">
-      <div class="section-head-center reveal">
-        <p class="mono section-eyebrow">라이브 체험 · 본인 키로</p>
-        <h2 class="section-h">어떤 메일이든 실제 4등급 모델로 돌려보세요.</h2>
-        <p class="section-lead">메일을 붙여넣거나 예시를 고르고, 본인 API 키를 넣으면 Klorn이 매기는 정확한 등급(PUSH·QUEUE·SILENT·AUTO)을 근거와 신호와 함께 확인할 수 있습니다.</p>
-      </div>
-
-      <div class="klassify-wrap reveal">
-        <div class="klassify-titlebar">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="crumb">Klorn / 플레이그라운드</span>
-          <span class="hero-live"><span class="hero-live-dot"></span>라이브</span>
-        </div>
-        <div class="klassify">
-          <div class="klassify-input">
-            <p class="mono klassify-eyebrow">당신의 메일</p>
-            <div class="klassify-keyrow">
-              <select id="kf-provider" class="kf-field" aria-label="LLM provider">
-                <option value="openrouter">OpenRouter</option>
-                <option value="gemini">Gemini</option>
-                <option value="openai">OpenAI</option>
-              </select>
-              <input id="kf-key" class="kf-field" type="password" placeholder="본인 API 키" autocomplete="off" spellcheck="false">
-            </div>
-            <input id="kf-model" class="kf-field" placeholder="모델 — 선택 (예: google/gemini-2.0-flash-001)" spellcheck="false">
-            <input id="kf-from" class="kf-field" placeholder="보낸사람 — sender@example.com" spellcheck="false">
-            <input id="kf-subject" class="kf-field" placeholder="제목" spellcheck="false">
-            <textarea id="kf-snippet" class="kf-field" placeholder="미리보기 / 첫 줄 (선택)"></textarea>
-            <div class="klassify-presets" id="kf-presets"></div>
-            <button type="button" id="kf-run" class="btn btn-sky klassify-run">이 메일 분류하기</button>
-            <p class="klassify-note">실제 4등급 모델을 실행합니다. 키가 없어도 분류 버튼을 누르면 — 무료 데모가 열려 있는 동안 Klorn 자체 모델로 실행됩니다. 키를 넣으면 이 호출에 한 번만 전송되며 Klorn 서버에 저장되지 않습니다. <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer noopener">OpenRouter 키 발급받기</a>.</p>
-          </div>
-          <div class="klassify-result">
-            <div class="klassify-tier">
-              <span class="klassify-tier-badge" id="kf-badge" data-tier="">준비됨</span>
-              <span class="klassify-tier-desc" id="kf-desc">예시를 고르거나 메일을 붙여넣고 분류를 누르면 Klorn 모델이 매기는 정확한 등급(PUSH·QUEUE·SILENT·AUTO)이 표시됩니다.</span>
-            </div>
-            <p class="klassify-reason" id="kf-reason"></p>
-            <div class="klassify-features" id="kf-features"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══ MEASURED / STATS ═════════════════════ -->
-  <section class="section section-bg-tint" id="measured" aria-label="Measured accuracy">
-    <div class="container narrow">
-      <div class="section-head-center reveal">
-        <p class="mono section-eyebrow">약속이 아닌 실측</p>
-        <h2 class="section-h">실제 받은편지함에서 나온 숫자.</h2>
-        <p class="section-lead">모든 릴리스는 출시 전 손수 라벨링한 실제 메일 세트로 채점됩니다. 아래는 최신 수치이며, 방법론은 공개 저장소에 있습니다.</p>
-      </div>
-      <div class="stats-grid stagger">
-        <div class="stat-tile featured"><div class="big">94.3%</div><div class="lab">실제 메일 정확도</div><div class="desc">손수 라벨링한 실제 메일 53개 중 50개를 올바른 등급으로 분류.</div></div>
-        <div class="stat-tile"><div class="big">95.5%</div><div class="lab">사일런트 정밀도</div><div class="desc">Klorn이 메일을 소음으로 분류할 때, 진짜 신호를 묻는 일은 거의 없습니다.</div></div>
-        <div class="stat-tile"><div class="big">0</div><div class="lab">미승인 행동</div><div class="desc">모든 전송·삭제·전달은 당신의 승인을 기다리며 서명된 영수증을 남깁니다.</div></div>
-      </div>
-      <p class="stats-foot reveal">2026년 7월, 실제 받은편지함의 53개 손수 라벨링 세트에서 측정, 학습된 컨텍스트로 웜스타트(콜드스타트: 81.1%). <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">방법론과 평가셋 →</a></p>
-    </div>
-  </section>
-
-  <!-- ══ DECISION CARD ════════════════════════ -->
-  <section class="section" aria-label="Decision queue">
-    <div class="container">
-      <div class="decision-grid">
-        <div class="reveal">
-          <p class="mono section-eyebrow">결정 큐</p>
-          <h2 class="section-h">중요한 일은 카드 한 장에 담깁니다.</h2>
-          <p class="section-lead">또 하나의 받은편지함이 아닙니다. 움직일 만큼 충분한 맥락을 가진 결정만.</p>
-        </div>
-        <div class="decision-card reveal">
-          <div class="dc-top">
-            <p class="mono dc-eyebrow">결정 카드</p>
-            <span class="approval-pill">승인 필요</span>
-          </div>
-          <div class="dc-title">투자자 후속 대응 준비됨</div>
-          <div class="dc-row"><div class="k">신호</div><div class="v">투자자가 수정된 지표를 요청<small>메일, 내일 미팅, 미완성 덱 작업이 하나의 결정으로 묶입니다.</small></div></div>
-          <div class="dc-row"><div class="k">맥락</div><div class="v">피치 덱이 아직 미완성<small>답장하지 않은 메일과 열린 작업이 같은 미팅 리스크를 가리킵니다.</small></div></div>
-          <div class="dc-row"><div class="k">행동</div><div class="v">오후 3–4시 확보 후 답장 초안 준비<small>다음 행동은 무엇이든 워크스페이스를 떠나기 전 승인 대기 상태로 준비됩니다.</small></div></div>
-          <div class="decision-actions">
-            <button type="button" class="act-btn primary">승인</button>
-            <button type="button" class="act-btn ghost">먼저 수정</button>
-            <button type="button" class="act-btn plain">보류</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══ PILLARS ══════════════════════════════ -->
-  <section class="section pillars" aria-label="How Klorn works">
-    <div class="container">
-      <div class="pillars-grid stagger">
-        <div class="pillar reveal"><div class="pn">수집</div><h3>업무 신호를 읽습니다</h3><p>메일·캘린더·작업·메모리를 오늘 하루의 한 화면으로 모읍니다.</p></div>
-        <div class="pillar reveal"><div class="pn">연결</div><h3>소음을 맥락으로</h3><p>사람·마감·스레드·약속을 업무 영향도로 연결합니다.</p></div>
-        <div class="pillar reveal"><div class="pn">승인</div><h3>행동 전 확인</h3><p>중요한 실행에는 근거·리스크·명시적 승인 경로가 따라옵니다.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══ PRICING ══════════════════════════════ -->
-  <section class="section" id="pricing" aria-label="Pricing">
-    <div class="container">
-      <div class="section-head-center reveal">
-        <p class="mono section-eyebrow" style="color:var(--sky-600)">가격</p>
-        <h2 class="section-h">무료로 시작하세요. Klorn이 대신 행동할 때 업그레이드하세요.</h2>
-        <p class="section-lead">메일을 읽고·분류하고·브리핑하는 방화벽은 무료입니다. Pro는 행동을 엽니다: 답장, 캘린더 작성, 더 많은 받은편지함.</p>
-      </div>
-      <div class="pricing-grid stagger">
-        <div class="price-card">
-          <span class="price-badge">무료</span>
-          <div class="price-name">방화벽</div>
-          <div class="price-amt">$0<span> /월</span></div>
-          <p class="price-note">카드 불필요. 일일 AI 예산으로 지속 가능하게 유지합니다.</p>
-          <ul class="price-feats">
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>4등급 메일 방화벽 — 진짜 신호만 당신을 방해합니다</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>카드마다 근거가 있는 결정 큐</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>아침 브리핑과 캘린더 뷰</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>당신의 메일에서 답하는 어시스턴트</li>
-          </ul>
-          <a class="btn btn-ghost" href="https://app.klorn.ai/early-access">무료로 시작</a>
-        </div>
-        <div class="price-card pro">
-          <span class="price-badge">창립 가격</span>
-          <div class="price-name">Klorn Pro</div>
-          <div class="price-amt">$7.99<span> /월</span></div>
-          <p class="price-note">7일 Pro 체험 후 웹에서 월 $7.99. 언제든 해지 가능.</p>
-          <ul class="price-feats">
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>무료의 모든 기능 + 더 큰 AI 예산</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Klorn에서 승인하고 보내는 답장 초안</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>음성이나 채팅으로 캘린더 일정 생성</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>여러 Gmail 받은편지함, 소음 자동 처리</li>
-          </ul>
-          <a class="btn btn-sky" href="https://app.klorn.ai/login">7일 Pro 체험 시작</a>
-        </div>
-      </div>
-      <p class="pricing-foot reveal">iPhone에서는 앱에서 구독합니다. 전부 무료로 셀프 호스팅 — Klorn은 오픈소스입니다(AGPLv3).</p>
-    </div>
-  </section>
-
-  <!-- ══ FINAL CTA ════════════════════════════ -->
-  <section class="final-cta reveal" aria-label="Get started">
-    <div class="final-bg"></div>
-    <div class="final-inner">
-      <p class="mono section-eyebrow">결정을 위해 만들었습니다</p>
-      <h2>다음 세대의 받은편지함은 결정 큐입니다.</h2>
-      <p>하루가 시끄러워지기 전에, 맥락·근거·행동을 하나의 깔끔한 줄로 정렬하세요.</p>
-      <div class="final-actions">
-        <a class="btn btn-primary" href="https://app.klorn.ai/early-access">얼리 액세스 요청 →</a>
-        <a class="btn btn-ghost" href="https://github.com/k08200/klorn" rel="noreferrer noopener">
-          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          GitHub에서 셀프 호스팅 <span class="star-count" data-gh-stars></span></a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══ FOOTER ═══════════════════════════════ -->
-  <footer>
-    <div class="container footer-grid">
-      <div class="footer-brand">
-        <img src="/brand/mark.svg?v=matte2" alt="Klorn">
-        <span class="fb-t"><b>Klorn</b> — 행동할 가치가 있는 명확한 신호.</span>
-      </div>
-      <div class="footer-links">
-        <a href="https://app.klorn.ai/privacy">개인정보</a>
-        <a href="https://app.klorn.ai/terms">약관</a>
-        <a href="mailto:k0820086@gmail.com">문의</a>
-      </div>
-      <div class="footer-social">
+<footer class="foot-nav">
+  <div class="wrapl foot-grid">
+    <div>
+      <a class="foot-brand" href="#top" data-top>Klorn</a>
+      <p class="foot-note">혼자서는 아무것도 결정하지 않는 이메일 비서실장.</p>
+      <div class="socials">
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
         <a href="https://x.com/klornai" rel="noreferrer noopener" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a href="https://join.slack.com/t/klorn/shared_invite/zt-3zkj8lqxg-L4LK8dNPkzgupHEdmXgbIg" rel="noreferrer noopener" aria-label="Slack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523z"/></svg></a>
       </div>
     </div>
-  </footer>
-
-  <!-- ══ FLOATING DOWNLOAD + LANGUAGE DOCK ════ -->
-  <div class="dl-dock" id="dlDock">
-    <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener" class="dl-dock-btn" aria-label="macOS용 Klorn.app 다운로드 (네이티브 상단바 방화벽, .zip)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"></path><path d="M5 21h14"></path></svg>
-      <span class="lbl">Mac용 다운로드</span>
-    </a>
-    <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener" class="dl-dock-help" aria-label="First-launch help — macOS blocks unsigned apps once; the release notes show the one-time fix" title="macOS blocks the first launch — one-time fix in the release notes">?</a>
-    <div class="dl-dock-lang" role="group" aria-label="Language">
-      <a href="/" data-lang-switch="en" aria-label="View in English">EN</a>
-      <span class="dl-dock-sep" aria-hidden="true">·</span>
-      <span class="dl-dock-cur" aria-current="page">KO</span>
-    </div>
+    <nav aria-label="제품"><h4>제품</h4>
+      <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">맥용 다운로드</a>
+      <a href="#features">기능</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
+      <a href="https://app.klorn.ai/login">로그인</a></nav>
+    <nav aria-label="오픈소스"><h4>오픈소스</h4>
+      <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub 저장소</a>
+      <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">평가셋</a>
+      <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">릴리스</a>
+      <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">AGPLv3 라이선스</a></nav>
+    <nav aria-label="법적 고지"><h4>법적 고지</h4>
+      <a href="https://app.klorn.ai/privacy">개인정보처리방침</a><a href="https://app.klorn.ai/terms">이용약관</a>
+      <a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">보안</a>
+      <a href="mailto:k0820086@gmail.com">문의</a></nav>
   </div>
+  <div class="wrapl foot-base">
+    <span>© 2026 Klorn · AGPLv3</span>
+    <span class="langsw">
+      <a href="/" data-lang-pick="en">EN</a><i>·</i><a href="/ko/" data-lang-pick="ko" aria-current="true">KO</a>
+    </span>
+  </div>
+</footer>
 
-  <script>
-    // Fade-in + slide-up on scroll — plain IntersectionObserver.
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const REVEAL_SEL = '.reveal, .reveal-pop, .stagger';
-    if (reduceMotion) {
-      document.querySelectorAll(REVEAL_SEL).forEach((el) => el.classList.add('in'));
-    } else {
-      const revealObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in');
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+<script>
+// A reload has to land on the hero. Browsers restore the old scroll position by
+// default, which on a page built around a first-screen demo drops the visitor
+// back into the middle of the pricing table with no idea what the site is.
+// Turning restoration off is not enough on its own — Safari still restores
+// after the load event, so the reset is repeated once the page has settled.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+if (!location.hash) {
+  window.scrollTo(0, 0);
+  addEventListener('load', function () { if (!location.hash) window.scrollTo(0, 0); });
+}
 
-      document.querySelectorAll(REVEAL_SEL).forEach((el) => revealObserver.observe(el));
+// Reveal on enter. IntersectionObserver, never a scroll listener.
+document.documentElement.classList.add('js');
+const io = new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { threshold: .12, rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.rv').forEach((el, i) => { el.style.transitionDelay = (i % 5) * 70 + 'ms'; io.observe(el); });
 
-      // Scroll-linked "zoom into place": the hero product window scales 0.94 → 1
-      // as it rises through the viewport. A continuous rAF loop LERPs the current
-      // scale toward its scroll-derived target every frame, so motion stays
-      // buttery instead of stepping on each discrete scroll event. Pure
-      // transform, compositor-friendly; disabled for reduced-motion above.
-      const zoomEls = [...document.querySelectorAll('[data-scroll-zoom]')].map((el) => ({ el, cur: 0.94, target: 0.94 }));
-      if (zoomEls.length) {
-        const computeTargets = () => {
-          const vh = window.innerHeight;
-          zoomEls.forEach((z) => {
-            const r = z.el.getBoundingClientRect();
-            const p = Math.max(0, Math.min(1, 1 - (r.top - vh * 0.12) / (vh * 0.8)));
-            z.target = 0.94 + 0.06 * p;
-          });
-        };
-        const tick = () => {
-          zoomEls.forEach((z) => {
-            z.cur += (z.target - z.cur) * 0.09; // smoothing factor
-            z.el.style.transform = `scale(${z.cur.toFixed(4)})`;
-          });
-          requestAnimationFrame(tick);
-        };
-        window.addEventListener('scroll', computeTargets, { passive: true });
-        window.addEventListener('resize', computeTargets);
-        computeTargets();
-        tick();
-      }
+// Pointer tilt on the app shell — small angles only; this is a product shot,
+// not a toy. Disabled for reduced motion and on coarse pointers.
+const shell = document.querySelector('[data-tilt]');
+const fine = matchMedia('(pointer:fine)').matches && !matchMedia('(prefers-reduced-motion:reduce)').matches;
+if (shell && fine) {
+  let raf = 0;
+  addEventListener('pointermove', (ev) => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const r = shell.getBoundingClientRect();
+      const dx = (ev.clientX - (r.left + r.width / 2)) / r.width;
+      const dy = (ev.clientY - (r.top + r.height / 2)) / r.height;
+      shell.style.transform = `perspective(1600px) rotateY(${dx * 3.2}deg) rotateX(${-dy * 2.2}deg)`;
+    });
+  }, { passive: true });
+  shell.style.transition = 'transform .9s cubic-bezier(.32,.72,0,1)';
+}
+
+// The wordmark returns to the top. href="#top" is the no-JS fallback; with JS we
+// scroll instead of jumping and drop the hash again, so a later reload still
+// takes the "no hash" path above.
+document.querySelectorAll('[data-top]').forEach(function (a) {
+  a.addEventListener('click', function (ev) {
+    ev.preventDefault();
+    var smooth = !matchMedia('(prefers-reduced-motion:reduce)').matches;
+    window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+    history.replaceState(null, '', location.pathname + location.search);
+  });
+});
+
+// Language: follow the OS/browser preference on a first visit, and never again.
+// Rules that keep this from being hostile: an explicit EN/KO click is remembered
+// forever, the redirect fires at most once per browser, and it only ever runs on
+// the site root — deep links stay where they point.
+(function () {
+  var KEY = 'klorn.lang';
+  var picks = document.querySelectorAll('[data-lang-pick]');
+  picks.forEach(function (a) {
+    a.addEventListener('click', function () {
+      try { localStorage.setItem(KEY, a.getAttribute('data-lang-pick')); } catch (e) {}
+    });
+  });
+
+  var stored = null;
+  try { stored = localStorage.getItem(KEY); } catch (e) {}
+  if (stored) return;                                   // the user has decided
+  try { if (sessionStorage.getItem(KEY + '.tried')) return; } catch (e) {}
+
+  // Only on the deployed site: a file:// or preview open has no /ko/ to reach,
+  // and a failed replace() would stop the rest of this script.
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+  var path = location.pathname;
+  // Never from inside /ko/ — /ko/index.html would otherwise match the root test
+  // below and redirect the Korean page to itself.
+  if (path.indexOf('/ko/') === 0) return;
+  if (path !== '/' && !/\/index\.html$/.test(path)) return;
+
+  var prefers = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+  if (!/^ko\b/i.test(prefers)) return;                  // English page is already right
+
+  try { sessionStorage.setItem(KEY + '.tried', '1'); } catch (e) {}
+  location.replace('/ko/');
+})();
+
+// The hero demonstration. A visitor who reads only the headline still sees the
+// product do its one job: sixty-four messages arrive, four of them are yours.
+(function () {
+  var stage = document.getElementById('dm-stage');
+  if (!stage) return;
+  var mails = [
+    ['김서연', 'Re: 계약서 검토 — 오늘 중 승인 필요', 'push'],
+    ['AWS 결제', '7월 인보이스가 준비됐습니다', 'silent'],
+    ['이준호', '스탠드업 10:30으로 변경', 'push'],
+    ['Product Hunt', '오늘의 테크: 신규 런칭 12건', 'silent'],
+    ['박정우', '대시보드 스펙 수정본', 'queue'],
+    ['캘린더', '3명이 초대를 수락했습니다', 'auto'],
+    ['billing@vendor.io', '인보이스 #4821 연체', 'push'],
+    ['모닝브루', '오늘 알아야 할 5가지', 'silent'],
+    ['최다은', '온보딩 플로우 아이디어', 'queue'],
+    ['Stripe', '결제 영수증', 'auto']
+  ];
+  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
+  var cells = {};
+  document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
+    cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
+  });
+  var doneEl = document.getElementById('dm-done');
+  var stateEl = document.getElementById('dm-state');
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Reduced motion gets the answer, not the animation.
+  if (reduce) {
+    Object.keys(totals).forEach(function (k) { cells[k].num.textContent = totals[k]; });
+    doneEl.textContent = '64';
+    stateEl.textContent = '분류 완료';
+    return;
+  }
+
+  var i = 0, shown = 0;
+  function step() {
+    var m = mails[i % mails.length];
+    var el = document.createElement('div');
+    el.className = 'mail run';
+    el.innerHTML = '<span class="from"></span><span class="subj"></span>';
+    el.firstChild.textContent = m[0];
+    el.lastChild.textContent = m[1];
+    // One chip at a time: the slot is a single absolute position, so a
+    // second arrival before the first leaves lands on top of it.
+    stage.replaceChildren(el);
+    setTimeout(function () { el.remove(); }, 1050);
+
+    setTimeout(function () {
+      var c = cells[m[2]];
+      c.box.classList.add('hit');
+      setTimeout(function () { c.box.classList.remove('hit'); }, 480);
+      // Walk each tier toward its real total rather than counting one at a time,
+      // so the numbers land on the figures the eval actually produced.
+      var target = totals[m[2]];
+      var stepSize = Math.max(1, Math.round(target / 6));
+      c.n = Math.min(target, c.n + stepSize);
+      c.num.textContent = c.n;
+      shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
+      doneEl.textContent = shown;
+      if (shown >= 64) { stateEl.textContent = '분류 완료'; }
+    }, 560);
+
+    i++;
+    if (shown < 64) setTimeout(step, 1120);
+  }
+  // Only run once the strip is actually on screen.
+  new IntersectionObserver(function (es, ob) {
+    if (es[0].isIntersecting) { ob.disconnect(); step(); }
+  }, { threshold: .4 }).observe(stage);
+})();
+
+// The playable replica. A screenshot proves the app exists; it does not let
+// anyone find out whether they'd like using it. Everything here responds:
+// switch tiers, open a message, read why it was ranked, draft a reply from the
+// three one-key options, send it, or move it to another tier and watch the
+// counts follow. No network, no data leaves the page.
+(function () {
+  var root = document.getElementById('play');
+  if (!root) return;
+
+  var TIERS = [
+    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: '지금 당신을 끊습니다' },
+    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: '오늘 안에 읽으면 됩니다' },
+    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: '보관됩니다, 삭제가 아닙니다' },
+    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: '당신 없이 처리됐습니다' }
+  ];
+  var mail = [
+    { id: 1, t: 'push', from: '김서연', subj: 'Re: 계약서 검토 — 오늘 중 승인 필요',
+      why: '이 발신자에게 6번 답장했습니다',
+      sum: '법무팀이 4조에 두 군데 수정을 넣었고, 상대방이 오늘 안에 맞서명하려면 17시 전에 승인이 필요합니다.',
+      body: '안녕하세요,\n\n법무팀에서 4조에 두 가지 수정 의견을 줬습니다 — 배상 한도와 통지 기간입니다. 둘 다 경미하지만 오늘 17시 전에 승인이 필요합니다.\n\n레드라인 첨부드립니다.\n\n감사합니다,\n서연 드림',
+      r: ['확인했습니다 — 두 항목 모두 레드라인대로 괜찮습니다. 17시 전에 서명하겠습니다.',
+          '오늘 17시 전에는 어려울 것 같습니다. 맞서명을 내일 오전으로 미룰 수 있을까요?',
+          '서명 전에 확인 부탁드립니다 — 배상 한도는 지난주에 합의한 숫자 그대로인가요?'] },
+    { id: 2, t: 'push', from: 'billing@vendor.io', subj: '인보이스 #4821 연체',
+      why: '오늘이 결제 기한입니다',
+      sum: '인보이스 #4821의 기한은 7월 26일이었고 현재 3일 연체 상태입니다.',
+      body: '$2,400 상당의 인보이스 #4821 결제 기한은 7월 26일이었습니다.\n\n가능한 빨리 결제 부탁드립니다.',
+      r: ['오늘 중으로 결제하겠습니다 — 늦어서 죄송합니다.',
+          '이 건은 이의 제기 중입니다. 이번 주에 담당 팀이 따로 연락드리겠습니다.',
+          'PO 번호를 넣어서 인보이스를 다시 보내주실 수 있을까요?'] },
+    { id: 3, t: 'push', from: '이준호', subj: '스탠드업 10:30으로 변경',
+      why: '캘린더 충돌',
+      sum: '내일 스탠드업이 10:30으로 옮겨져 10:15 리뷰와 겹칩니다.',
+      body: '내일 스탠드업 10시 30분으로 옮겼습니다.\n\n괜찮으실까요?',
+      r: ['10시 30분 괜찮습니다.', '그 시간에 리뷰가 있어서 어렵습니다. 11시는 어떠신가요?',
+          '리뷰가 겹치는데, 혹시 15분만 당길 수 있을까요?'] },
+    { id: 4, t: 'queue', from: '박정우', subj: '대시보드 스펙 수정본',
+      why: '기한 언급 없음',
+      sum: '리포팅 대시보드 스펙 업데이트본이며, 시간 날 때 검토해달라는 요청입니다.',
+      body: '수정된 스펙 첨부합니다 — 대부분 리포팅 화면의 레이아웃 변경입니다.\n\n급하지 않습니다.',
+      r: ['확인했습니다. 이번 주 안에 보겠습니다.', '제가 직접 보는 대신 디자인 리뷰로 넘기겠습니다.',
+          '어느 섹션이 가장 많이 바뀌었나요? 거기부터 보겠습니다.'] },
+    { id: 5, t: 'queue', from: '최다은', subj: '온보딩 플로우 아이디어',
+      why: '진행 중인 스레드, 요청 없음',
+      sum: '첫 실행 플로우에 대한 제안 세 가지이며, 아직 결정을 요구하지는 않습니다.',
+      body: '지난 온보딩 세션 두 번을 지켜보고 떠오른 아이디어 몇 가지입니다.\n\n편하실 때 이야기 나눠요.',
+      r: ['해볼 만해 보입니다 — 목요일에 이야기하시죠.', '베타 끝날 때까지 보류하겠습니다.',
+          '세 가지 중 어떤 걸 먼저 넣고 싶으세요?'] },
+    { id: 6, t: 'silent', from: '모닝브루', subj: '오늘 알아야 할 5가지',
+      why: '뉴스레터, 한 번도 답장한 적 없음',
+      sum: '일간 뉴스레터입니다.',
+      body: '오늘의 비즈니스 소식...', r: null },
+    { id: 7, t: 'silent', from: 'AWS 결제', subj: '7월 인보이스가 준비됐습니다',
+      why: '자동 발송 영수증',
+      sum: '월간 인프라 인보이스이며, 조치할 것이 없습니다.',
+      body: '결제 콘솔에서 인보이스를 확인하실 수 있습니다.', r: null },
+    { id: 8, t: 'auto', from: '캘린더', subj: '3명이 초대를 수락했습니다',
+      why: 'Klorn이 묻지 않고 처리했습니다',
+      sum: '목요일 리뷰에 참석자 3명이 수락했습니다.',
+      body: '수락: 박정우, 최다은, 김서연.', r: null }
+  ];
+  var TONE = ['수락', '거절', '질문'];
+
+  var cur = 'push', open = null, replying = false, draft = null, sent = false;
+  var elT = document.getElementById('pl-tiers');
+  var elR = document.getElementById('pl-rows');
+  var elRead = document.getElementById('pl-read');
+
+  function count(t) { return mail.filter(function (m) { return m.t === t; }).length; }
+  function tier(id) { return TIERS.filter(function (x) { return x.id === id; })[0]; }
+  function esc(v) { return String(v).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function renderTiers() {
+    elT.innerHTML = TIERS.map(function (t) {
+      return '<button class="pl-t" data-tier="' + t.id + '" aria-pressed="' + (t.id === cur) + '">' +
+        '<span class="dt" style="background:' + t.c + '"></span>' + t.name +
+        '<span class="cn">' + count(t.id) + '</span></button>';
+    }).join('');
+  }
+  function renderList() {
+    var t = tier(cur), rows = mail.filter(function (m) { return m.t === cur; });
+    document.getElementById('pl-hdot').style.background = t.c;
+    document.getElementById('pl-hname').textContent = t.name;
+    document.getElementById('pl-hcount').textContent = t.blurb;
+    elR.innerHTML = rows.length ? rows.map(function (m) {
+      return '<button class="pl-r" data-id="' + m.id + '" aria-current="' + (open === m.id) + '">' +
+        '<span class="fr">' + esc(m.from) + '</span>' +
+        '<span class="sj">' + esc(m.subj) + '</span>' +
+        '<span class="rs">' + esc(m.why) + '</span></button>';
+    }).join('') : '<p class="pl-empty">' + t.name + '에 남은 메일이 없습니다. ' + t.blurb + '.</p>';
+  }
+  function renderRead() {
+    var m = mail.filter(function (x) { return x.id === open; })[0];
+    if (!m) {
+      elRead.innerHTML = '<p class="pl-empty">왼쪽에서 메일을 골라보세요.<br>여기 있는 건 전부 반응합니다.</p>';
+      return;
     }
+    var opts = m.r && replying && draft === null
+      ? '<div class="pl-opts">' + m.r.map(function (txt, i) {
+          return '<button class="pl-opt" data-draft="' + i + '"><kbd>' + (i + 1) + '</kbd>' +
+            '<span><b>' + TONE[i] + '</b>' + esc(txt) + '</span></button>'; }).join('') + '</div>'
+      : (m.r && draft === null
+          ? '<p class="pl-hint"><b>AI로 답장</b>을 누르거나 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 키를 누르면 ' +
+            '당신 어투로 된 초안 세 개가 나옵니다.</p>'
+          : '');
+    var comp = draft !== null
+      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="답장 초안">' + esc(m.r[draft]) + '</textarea>' +
+        '<div class="row">' + (sent ? '<span class="pl-sent">전송됨 · 영수증 기록</span>' : '') +
+        '<button class="pl-b" data-cancel>취소</button>' +
+        '<button class="pl-b on" data-send>' + (sent ? '전송됨' : '전송') + '</button></div></div>'
+      : '';
+    var others = TIERS.filter(function (t) { return t.id !== m.t; });
+    elRead.innerHTML =
+      '<div class="pl-top"><div class="pl-sub">' + esc(m.subj) + '</div>' +
+      '<div class="pl-from">' + esc(m.from) + '</div>' +
+      '<div class="pl-acts">' +
+        (m.r ? '<button class="pl-b on" data-reply>AI로 답장</button>' : '') +
+        others.map(function (t) {
+          return '<button class="pl-b" data-move="' + t.id + '">' + t.name + '로 이동</button>'; }).join('') +
+      '</div></div>' +
+      // Drafts sit directly under the action row, not after the body — at the
+      // bottom they fall below the panel's fold and "Reply with AI" reads as a
+      // dead button on a short screen.
+      opts + comp +
+      '<div class="pl-why"><span class="w">' + tier(m.t).name + ' 판정 이유 · ' + esc(m.why) + '</span>' +
+      '<div class="sm">' + esc(m.sum) + '</div></div>' +
+      '<div class="pl-body">' + esc(m.body) + '</div>';
+  }
+  function draw() { renderTiers(); renderList(); renderRead(); }
+  function reset() { replying = false; draft = null; sent = false; }
 
-    // Video hygiene: no video auto-plays for reduced-motion users (controls
-    // stay available for manual play), and the brand film only runs while
-    // it is actually on screen.
-    if (reduceMotion) {
-      document.querySelectorAll('video[autoplay]').forEach((video) => {
-        video.removeAttribute('autoplay');
-        video.pause();
-      });
-    } else {
-      const filmObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          const video = entry.target;
-          if (entry.isIntersecting) {
-            video.play().catch(() => {});
-          } else {
-            video.pause();
-          }
-        });
-      }, { threshold: 0.35 });
-      document.querySelectorAll('video[data-inview-play]').forEach((video) => filmObserver.observe(video));
+  root.addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) return;
+    if (b.dataset.tier) { cur = b.dataset.tier; open = null; reset(); return draw(); }
+    if (b.dataset.id) { open = +b.dataset.id; reset(); return draw(); }
+    if (b.hasAttribute('data-reply')) { replying = true; draft = null; sent = false; return renderRead(); }
+    // dataset.draft is "0" for the first option — a truthiness check would make
+    // Accept the one unclickable draft.
+    if (b.dataset.draft !== undefined) { draft = +b.dataset.draft; sent = false; return renderRead(); }
+    if (b.hasAttribute('data-cancel')) { replying = false; draft = null; sent = false; return renderRead(); }
+    if (b.hasAttribute('data-send')) { sent = true; return renderRead(); }
+    if (b.dataset.move) {
+      var m = mail.filter(function (x) { return x.id === open; })[0];
+      if (m) { m.t = b.dataset.move; m.why = '당신이 옮겼습니다 — Klorn이 여기서 배웁니다'; }
+      open = null; reset(); return draw();
     }
+  });
+  // 1/2/3 pick a draft, matching the app's key bindings.
+  root.addEventListener('keydown', function (ev) {
+    if (!open || draft !== null) return;
+    var i = ['1', '2', '3'].indexOf(ev.key);
+    var m = mail.filter(function (x) { return x.id === open; })[0];
+    if (i > -1 && m && m.r) { replying = true; draft = i; sent = false; renderRead(); }
+  });
 
-    // ── Hero live classifier — calls the real /api/playground/classify ──
-    const IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname) || location.hostname === '';
-    const CLASSIFY_URL = IS_LOCAL
-      ? 'http://localhost:3001/api/playground/classify'
-      : 'https://app.klorn.ai/api/playground/classify';
-    const kfEl = (id) => document.getElementById(id);
-    const kfRun = kfEl('kf-run');
-
-    if (kfRun) {
-      const kfProvider = kfEl('kf-provider');
-      const kfKey = kfEl('kf-key');
-      const kfModel = kfEl('kf-model');
-      const kfFrom = kfEl('kf-from');
-      const kfSubject = kfEl('kf-subject');
-      const kfSnippet = kfEl('kf-snippet');
-      const kfBadge = kfEl('kf-badge');
-      const kfDesc = kfEl('kf-desc');
-      const kfReason = kfEl('kf-reason');
-      const kfFeatures = kfEl('kf-features');
-
-      const TIER_DESC = {
-        PUSH: '시간에 민감하고 중대함 — Klorn이 도착 즉시 표면화합니다.',
-        QUEUE: '볼 가치는 있지만 급하지 않음 — 결정 큐로 모읍니다.',
-        SILENT: '소음이나 참고용 — 방해하지 않도록 조용히 정리됩니다.',
-        AUTO: '일상적이고 저위험 — 미리 처리되지만 여전히 승인 대기 상태입니다.',
-      };
-
-      const PRESETS = [
-        { name: '투자자 요청', from: 'Mina Kim <mina@sequoia.com>', subject: 'Revised metrics before tomorrow 3pm?', snippet: "Can you send the updated ARR and burn before our partner call tomorrow at 3? Need it to finalize the memo." },
-        { name: '뉴스레터', from: 'Morning Brew <crew@morningbrew.com>', subject: '☕ Nvidia earnings, and a $2 coffee war', snippet: 'Your daily roundup of business news. Unsubscribe anytime.' },
-        { name: '배포 실패', from: 'Vercel <notifications@vercel.com>', subject: 'Deployment to production failed', snippet: 'Build error in api route. Review env vars and redeploy.' },
-        { name: '영수증', from: 'Stripe <receipts@stripe.com>', subject: 'Your invoice #4021 was paid', snippet: 'No action needed. View invoice in your dashboard.' },
-      ];
-
-      const presetsWrap = kfEl('kf-presets');
-      PRESETS.forEach((p) => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'klassify-preset';
-        b.textContent = p.name;
-        b.addEventListener('click', () => {
-          kfFrom.value = p.from;
-          kfSubject.value = p.subject;
-          kfSnippet.value = p.snippet;
-        });
-        presetsWrap.appendChild(b);
-      });
-      kfFrom.value = PRESETS[0].from;
-      kfSubject.value = PRESETS[0].subject;
-      kfSnippet.value = PRESETS[0].snippet;
-
-      try {
-        const savedProvider = localStorage.getItem('klorn_pg_provider');
-        const savedModel = localStorage.getItem('klorn_pg_model');
-        if (savedProvider) kfProvider.value = savedProvider;
-        if (savedModel) kfModel.value = savedModel;
-      } catch (_) { /* storage blocked — fine */ }
-
-      const setBadge = (tier, text) => {
-        kfBadge.dataset.tier = tier || '';
-        kfBadge.textContent = text;
-      };
-
-      const renderFeatures = (features) => {
-        if (!features) { kfFeatures.innerHTML = ''; return; }
-        const order = ['urgency', 'senderTrust', 'reversibility', 'confidence'];
-        kfFeatures.innerHTML = order
-          .filter((k) => typeof features[k] === 'number')
-          .map((k) => {
-            const pct = Math.round(Math.max(0, Math.min(1, features[k])) * 100);
-            const label = k.replace(/([A-Z])/g, ' $1');
-            return `<div class="klassify-feature">
-              <span class="kf-label">${label}</span>
-              <span class="kf-bar"><span style="width:${pct}%"></span></span>
-              <span class="kf-val">${(features[k]).toFixed(2)}</span>
-            </div>`;
-          })
-          .join('');
-      };
-
-      const showError = (msg) => {
-        setBadge('', 'ERROR');
-        kfDesc.innerHTML = `<span class="klassify-error">${msg}</span>`;
-        kfReason.textContent = '';
-        renderFeatures(null);
-      };
-
-      const classify = async () => {
-        const provider = kfProvider.value;
-        const apiKey = kfKey.value.trim();
-        const from = kfFrom.value.trim();
-        const subject = kfSubject.value.trim();
-        const snippet = kfSnippet.value.trim();
-        const model = kfModel.value.trim();
-
-        // No key is fine: the request goes key-free first (server-paid demo);
-        // if the server answers key_required / demo_*, we fall back to the key UI.
-        if (!from || !subject) { showError('최소한 보낸사람 주소와 제목을 채워주세요.'); return; }
-
-        try {
-          localStorage.setItem('klorn_pg_provider', provider);
-          if (model) localStorage.setItem('klorn_pg_model', model);
-        } catch (_) { /* ignore */ }
-
-        kfRun.disabled = true;
-        kfRun.textContent = '분류 중…';
-        setBadge('', '···');
-        kfDesc.textContent = '메일에 모델을 실행하는 중…';
-        kfReason.textContent = '';
-        renderFeatures(null);
-
-        const body = apiKey ? { from, subject, provider, apiKey } : { from, subject };
-        if (snippet) body.snippet = snippet;
-        if (apiKey && model) body.model = model;
-
-        try {
-          const res = await fetch(CLASSIFY_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            if (!apiKey && (res.status === 401 || data.error === 'key_required')) {
-              showError('지금은 키 없는 데모가 닫혀 있어요 — 본인 API 키를 넣으면 바로 분류할 수 있습니다.');
-              kfKey.focus();
-              return;
-            }
-            if (!apiKey && data.error === 'demo_budget_exhausted') {
-              showError('오늘의 무료 데모 예산이 모두 소진됐어요 — 본인 API 키를 넣으면 계속 분류할 수 있습니다.');
-              kfKey.focus();
-              return;
-            }
-            if (!apiKey && res.status === 429) {
-              showError('데모 한도 도달(분당 3회·하루 10회) — 잠시 후 다시 시도하거나 본인 API 키를 넣어주세요.');
-              kfKey.focus();
-              return;
-            }
-            let msg = data.error || `Request failed (${res.status}).`;
-            if (res.status === 429) msg = '요청 한도 초과(분당 8회). 잠시 후 다시 시도하세요.';
-            if (data.detail) msg += ` — ${data.detail}`;
-            showError(msg);
-            return;
-          }
-          const tier = data.tier;
-          setBadge(tier, tier);
-          kfDesc.textContent = TIER_DESC[tier] || '';
-          kfReason.textContent = data.reason || '';
-          renderFeatures(data.features);
-        } catch (err) {
-          showError('분류기에 연결하지 못했습니다. 사이트 소유자라면 이 origin을 API의 CORS_ORIGINS에 추가하세요. 아니라면 연결을 확인하고 다시 시도하세요.');
-        } finally {
-          kfRun.disabled = false;
-          kfRun.textContent = '이 메일 분류하기';
-        }
-      };
-
-      kfRun.addEventListener('click', classify);
-    }
-
-    // ── Decision card: Approve / Edit first / Hold actually respond ──
-    const decisionCard = document.querySelector('.decision-card');
-    if (decisionCard) {
-      const pill = decisionCard.querySelector('.approval-pill');
-      const actions = decisionCard.querySelectorAll('.act-btn');
-      const pillDefault = pill ? pill.textContent : '';
-      actions.forEach((btn) => {
-        btn.addEventListener('click', () => {
-          if (!pill) return;
-          if (btn.classList.contains('primary')) {
-            pill.textContent = '승인됨 ✓';
-            pill.classList.add('is-approved');
-          } else if (btn.classList.contains('plain')) {
-            pill.textContent = '보류 중';
-            pill.classList.remove('is-approved');
-          } else {
-            pill.textContent = '수정 중…';
-            pill.classList.remove('is-approved');
-          }
-          actions.forEach((b) => b.classList.toggle('is-selected', b === btn));
-          clearTimeout(decisionCard._resetTimer);
-          decisionCard._resetTimer = setTimeout(() => {
-            pill.textContent = pillDefault;
-            pill.classList.remove('is-approved');
-            actions.forEach((b) => b.classList.remove('is-selected'));
-          }, 2600);
-        });
-      });
-    }
-
-    fetch('https://api.github.com/repos/k08200/klorn')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((repo) => {
-        if (!repo || typeof repo.stargazers_count !== 'number') return;
-        const count = repo.stargazers_count;
-        const label = count >= 1000 ? (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(count);
-        document.querySelectorAll('[data-gh-stars]').forEach((el) => {
-          el.textContent = '★ ' + label;
-        });
-      })
-      .catch(() => {});
-  </script>
+  open = 1;
+  draw();
+})();
+</script>
 </body>
 </html>
