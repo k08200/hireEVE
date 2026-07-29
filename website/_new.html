@@ -102,7 +102,15 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 .btn-2:hover{background:#fff}
 
 /* ── The real app, floating ───────────────────────── */
-.stage{position:relative;z-index:3;margin:56px auto 0;max-width:1160px;padding:0 24px}
+.stage{position:relative;z-index:3;margin:56px auto 0;max-width:1160px;padding:0 24px 96px}
+/* Caption above the frame. Below it the stage fade washes it out, and this one
+   has to stay readable — it is the honesty label on a fake inbox. */
+.stage-cap{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;
+  margin:0 0 14px;font-size:12.5px;color:var(--ink-2)}
+.stage-cap b{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--sky-600);
+  border-radius:999px;padding:4px 10px}
+.stage-cap b::before{content:'';width:5px;height:5px;border-radius:50%;background:#fff}
 .shell{position:relative;border-radius:30px;padding:10px;
   background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.34));
   border:1px solid rgba(255,255,255,.8);
@@ -111,7 +119,7 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 .core{border-radius:22px;overflow:hidden;background:#fff;border:1px solid var(--line);
   box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
 .core img{display:block;width:100%;height:auto}
-.stage-fade{position:absolute;left:0;right:0;bottom:-1px;height:190px;z-index:4;pointer-events:none;
+.stage-fade{position:absolute;left:0;right:0;bottom:-1px;height:150px;z-index:4;pointer-events:none;
   background:linear-gradient(180deg,rgba(251,250,246,0),var(--paper) 88%)}
 
 /* Floating signal cards pinned to the app (ref: Screenote) */
@@ -399,6 +407,81 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 @media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
 @media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
 
+
+/* ── Playable replica ─────────────────────────────── */
+.play{display:grid;grid-template-columns:186px 300px 1fr;height:466px;
+  font-size:13px;text-align:left;background:#fff}
+.play *{min-width:0}
+.pl-side{border-right:1px solid var(--line);background:rgba(10,14,20,.018);padding:14px 10px;overflow:auto}
+.pl-lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:700;
+  padding:0 8px 8px}
+.pl-t{width:100%;display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;border:0;
+  background:transparent;font:inherit;color:var(--ink);cursor:pointer;text-align:left;
+  transition:background .35s var(--ease)}
+.pl-t:hover{background:rgba(10,14,20,.05)}
+.pl-t[aria-pressed=true]{background:rgba(2,132,199,.11);font-weight:650;
+  box-shadow:inset 2px 0 0 var(--sky-600)}
+.pl-t .dt{width:7px;height:7px;border-radius:50%}
+.pl-t .cn{margin-left:auto;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.pl-list{border-right:1px solid var(--line);overflow:auto}
+.pl-h{padding:12px 14px;font-weight:650;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
+.pl-h .dt{width:8px;height:8px;border-radius:50%}
+.pl-h .cn{margin-left:auto;color:var(--ink-3);font-weight:500}
+.pl-r{width:100%;display:block;text-align:left;border:0;border-bottom:1px solid var(--line);
+  background:transparent;font:inherit;padding:11px 14px;cursor:pointer;
+  transition:background .35s var(--ease)}
+.pl-r:hover{background:rgba(10,14,20,.035)}
+.pl-r[aria-current=true]{background:rgba(2,132,199,.10);box-shadow:inset 2px 0 0 var(--sky-600)}
+.pl-r .fr{display:block;font-size:11px;color:var(--ink-3);font-weight:600}
+.pl-r .sj{display:block;font-size:13.5px;font-weight:550;margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-r .rs{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.pl-read{overflow:auto;display:flex;flex-direction:column}
+.pl-top{padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.pl-sub{font-size:16px;font-weight:650;letter-spacing:-.015em;line-height:1.25}
+.pl-from{font-size:12px;color:var(--ink-3);margin-top:3px}
+.pl-acts{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+.pl-b{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:inherit;
+  font-size:12px;cursor:pointer;transition:background .35s var(--ease),border-color .35s var(--ease)}
+.pl-b:hover{background:rgba(10,14,20,.04)}
+.pl-b.on{background:var(--sky-600);border-color:var(--sky-600);color:#fff}
+.pl-b.on:hover{background:#0369a1}
+.pl-why{padding:12px 18px;background:rgba(10,14,20,.028);border-bottom:1px solid var(--line);font-size:12px}
+.pl-why .w{color:var(--ink-3)}
+.pl-why .sm{margin-top:6px;color:var(--ink);line-height:1.5}
+.pl-body{padding:16px 18px;color:var(--ink-2);line-height:1.6;font-size:12.5px;white-space:pre-line;flex:1}
+.pl-opts{padding:12px 18px;border-bottom:1px solid var(--line);display:grid;gap:7px;
+  background:rgba(2,132,199,.035)}
+.pl-opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);background:#fff;
+  border-radius:10px;padding:9px 11px;font:inherit;font-size:12px;text-align:left;cursor:pointer;
+  transition:border-color .35s var(--ease),background .35s var(--ease)}
+.pl-opt:hover{border-color:var(--sky-600);background:rgba(2,132,199,.04)}
+.pl-opt kbd{flex:0 0 18px;height:18px;border-radius:5px;background:rgba(10,14,20,.07);display:grid;
+  place-items:center;font:inherit;font-size:10px;font-weight:700}
+.pl-opt b{display:block;font-size:11px;color:var(--sky-600);margin-bottom:1px}
+.pl-hint{margin:0;padding:11px 18px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink-3);
+  background:rgba(10,14,20,.02)}
+.pl-hint b{color:var(--ink-2);font-weight:650}
+.pl-hint kbd{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;
+  background:rgba(10,14,20,.07);font:inherit;font-size:10px;font-weight:700;color:var(--ink-2);
+  vertical-align:baseline}
+.pl-comp{padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(2,132,199,.035)}
+.pl-comp textarea{width:100%;height:74px;border:1px solid var(--line);border-radius:9px;padding:9px 10px;
+  font:inherit;font-size:12.5px;resize:none;color:var(--ink);background:rgba(10,14,20,.02)}
+.pl-comp textarea:focus{outline:2px solid var(--sky-600);outline-offset:1px}
+.pl-comp .row{display:flex;gap:7px;justify-content:flex-end;margin-top:8px;align-items:center}
+.pl-sent{margin-right:auto;font-size:11.5px;color:#15803d;font-weight:600}
+.pl-empty{margin:auto;text-align:center;color:var(--ink-3);font-size:13px;padding:40px}
+@media(max-width:1000px){
+  .play{grid-template-columns:1fr;height:auto}
+  .pl-side,.pl-list{border-right:0;border-bottom:1px solid var(--line)}
+  .pl-side{display:flex;gap:6px;overflow-x:auto;padding:10px}
+  .pl-lab{display:none}
+  .pl-t{width:auto;white-space:nowrap}
+  .pl-list{max-height:260px}
+}
+
 /* Scroll reveal */
 /* Reveal is opt-IN: content is visible by default and JS arms the "from"
    state only once it is running. The usual way round leaves anything waiting
@@ -500,17 +583,27 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
   </div>
 
   <div class="stage rv">
+    <p class="stage-cap"><b>Live</b> A working replica — click the tiers, the rows, reply, re-file.
+      The screenshots further down are the shipping app itself.</p>
     <div class="shell" data-tilt>
-      <div class="core"><img src="media/app/full.jpg" alt="Klorn's desktop app: the four-tier inbox, a mail row selected, and Klorn's reasoning beside it" width="1400" height="860"></div>
-      <div class="chip chip-a"><span class="d" style="background:#ff4d57"></span>
-        <div><h4>Push · needs you now</h4><p>Sarah is waiting on a sign-off, and the deadline is today.</p></div></div>
-      <div class="chip chip-b"><span class="d" style="background:#d97706"></span>
-        <div><h4>Queue · read later</h4><p>Worth your time today. Never worth a banner.</p></div></div>
-      <div class="chip chip-c"><span class="d" style="background:#3b82f6"></span>
-        <div><h4>Auto · sorted alone</h4><p>Klorn was sure enough not to ask you.</p></div></div>
+      <div class="core">
+        <div class="play" id="play" role="application" aria-label="Interactive Klorn demo">
+          <div class="pl-side">
+            <div class="pl-lab">Inbox</div>
+            <div id="pl-tiers"></div>
+          </div>
+          <div class="pl-list">
+            <div class="pl-h"><span class="dt" id="pl-hdot"></span><span id="pl-hname"></span>
+              <span class="cn" id="pl-hcount"></span></div>
+            <div id="pl-rows"></div>
+          </div>
+          <div class="pl-read" id="pl-read"></div>
+        </div>
+      </div>
     </div>
     <div class="stage-fade"></div>
   </div>
+
 </header>
 
 <section class="sec" id="cards">
@@ -936,6 +1029,167 @@ if (shell && fine) {
   new IntersectionObserver(function (es, ob) {
     if (es[0].isIntersecting) { ob.disconnect(); step(); }
   }, { threshold: .4 }).observe(stage);
+})();
+
+// The playable replica. A screenshot proves the app exists; it does not let
+// anyone find out whether they'd like using it. Everything here responds:
+// switch tiers, open a message, read why it was ranked, draft a reply from the
+// three one-key options, send it, or move it to another tier and watch the
+// counts follow. No network, no data leaves the page.
+(function () {
+  var root = document.getElementById('play');
+  if (!root) return;
+
+  var TIERS = [
+    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: 'Interrupts you now' },
+    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: 'Read it today' },
+    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: 'Filed, not deleted' },
+    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: 'Handled without you' }
+  ];
+  var mail = [
+    { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
+      why: 'You replied to this sender 6 times',
+      sum: 'Legal returned two changes to clause 4 and needs your sign-off before 17:00 so the counterparty can countersign today.',
+      body: 'Hi,\n\nLegal came back with two changes on clause 4 — the indemnity cap and the notice period. Both are minor but they need your sign-off before 17:00 today.\n\nI have attached the redline.\n\nBest,\nSarah',
+      r: ['Confirming — the redline looks fine on both points. Signing before 17:00.',
+          "I can't get to this before 17:00 today. Can we move the countersign to tomorrow morning?",
+          'Before I sign — is the indemnity cap the number we agreed last week, or has it moved?'] },
+    { id: 2, t: 'push', from: 'billing@vendor.io', subj: 'Invoice #4821 is overdue',
+      why: 'Payment due today',
+      sum: 'Invoice #4821 was due on 26 July and is now three days overdue.',
+      body: 'Your invoice #4821 for $2,400 was due on 26 July.\n\nPlease arrange payment at your earliest convenience.',
+      r: ['Paying this today — apologies for the delay.',
+          'This one is disputed; our team will follow up separately this week.',
+          'Can you resend the invoice with the PO number on it?'] },
+    { id: 3, t: 'push', from: '이준호', subj: 'Standup moved to 10:30',
+      why: 'Calendar conflict',
+      sum: 'Tomorrow’s standup moves to 10:30, which overlaps your 10:15 review.',
+      body: '내일 스탠드업 10시 30분으로 옮겼습니다.\n\n괜찮으실까요?',
+      r: ['10시 30분 괜찮습니다.', '그 시간에 리뷰가 있어서 어렵습니다. 11시는 어떠신가요?',
+          '리뷰가 겹치는데, 혹시 15분만 당길 수 있을까요?'] },
+    { id: 4, t: 'queue', from: 'Jordan Lee', subj: 'Revised dashboard specs',
+      why: 'No deadline mentioned',
+      sum: 'Updated specs for the reporting dashboard, sent for review when you have time.',
+      body: 'Attached the revised specs — mostly layout changes on the reporting view.\n\nNo rush.',
+      r: ['Got it, will read this week.', 'Passing this to the design review instead of reading it myself.',
+          'Which section changed most? I will start there.'] },
+    { id: 5, t: 'queue', from: 'Casey Park', subj: 'Onboarding flow ideas',
+      why: 'Ongoing thread, no ask',
+      sum: 'Three suggestions for the first-run flow, no decision requested yet.',
+      body: 'A few ideas after watching the last two onboarding sessions.\n\nHappy to talk them through.',
+      r: ['These look worth trying — let us talk Thursday.', 'Parking this until after the beta.',
+          'Which of the three would you ship first?'] },
+    { id: 6, t: 'silent', from: 'Morning Brew', subj: 'The 5 things you need to know',
+      why: 'Newsletter, never replied to',
+      sum: 'Daily newsletter.',
+      body: 'Today in business...', r: null },
+    { id: 7, t: 'silent', from: 'AWS Billing', subj: 'Your July invoice is ready',
+      why: 'Automated receipt',
+      sum: 'Monthly infrastructure invoice, no action needed.',
+      body: 'Your invoice is available in the billing console.', r: null },
+    { id: 8, t: 'auto', from: 'Calendar', subj: 'Invitation accepted by 3 people',
+      why: 'Klorn filed this without asking',
+      sum: 'Three attendees accepted the Thursday review.',
+      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null }
+  ];
+  var TONE = ['Accept', 'Decline', 'Ask'];
+
+  var cur = 'push', open = null, replying = false, draft = null, sent = false;
+  var elT = document.getElementById('pl-tiers');
+  var elR = document.getElementById('pl-rows');
+  var elRead = document.getElementById('pl-read');
+
+  function count(t) { return mail.filter(function (m) { return m.t === t; }).length; }
+  function tier(id) { return TIERS.filter(function (x) { return x.id === id; })[0]; }
+  function esc(v) { return String(v).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function renderTiers() {
+    elT.innerHTML = TIERS.map(function (t) {
+      return '<button class="pl-t" data-tier="' + t.id + '" aria-pressed="' + (t.id === cur) + '">' +
+        '<span class="dt" style="background:' + t.c + '"></span>' + t.name +
+        '<span class="cn">' + count(t.id) + '</span></button>';
+    }).join('');
+  }
+  function renderList() {
+    var t = tier(cur), rows = mail.filter(function (m) { return m.t === cur; });
+    document.getElementById('pl-hdot').style.background = t.c;
+    document.getElementById('pl-hname').textContent = t.name;
+    document.getElementById('pl-hcount').textContent = t.blurb;
+    elR.innerHTML = rows.length ? rows.map(function (m) {
+      return '<button class="pl-r" data-id="' + m.id + '" aria-current="' + (open === m.id) + '">' +
+        '<span class="fr">' + esc(m.from) + '</span>' +
+        '<span class="sj">' + esc(m.subj) + '</span>' +
+        '<span class="rs">' + esc(m.why) + '</span></button>';
+    }).join('') : '<p class="pl-empty">Nothing in ' + t.name + '. ' + t.blurb + '.</p>';
+  }
+  function renderRead() {
+    var m = mail.filter(function (x) { return x.id === open; })[0];
+    if (!m) {
+      elRead.innerHTML = '<p class="pl-empty">Pick a message on the left.<br>Everything here responds.</p>';
+      return;
+    }
+    var opts = m.r && replying && draft === null
+      ? '<div class="pl-opts">' + m.r.map(function (txt, i) {
+          return '<button class="pl-opt" data-draft="' + i + '"><kbd>' + (i + 1) + '</kbd>' +
+            '<span><b>' + TONE[i] + '</b>' + esc(txt) + '</span></button>'; }).join('') + '</div>'
+      : (m.r && draft === null
+          ? '<p class="pl-hint">Hit <b>Reply with AI</b> — or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> — ' +
+            'for three drafts in your tone.</p>'
+          : '');
+    var comp = draft !== null
+      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="Reply draft">' + esc(m.r[draft]) + '</textarea>' +
+        '<div class="row">' + (sent ? '<span class="pl-sent">Sent · receipt logged</span>' : '') +
+        '<button class="pl-b" data-cancel>Cancel</button>' +
+        '<button class="pl-b on" data-send>' + (sent ? 'Sent' : 'Send') + '</button></div></div>'
+      : '';
+    var others = TIERS.filter(function (t) { return t.id !== m.t; });
+    elRead.innerHTML =
+      '<div class="pl-top"><div class="pl-sub">' + esc(m.subj) + '</div>' +
+      '<div class="pl-from">' + esc(m.from) + '</div>' +
+      '<div class="pl-acts">' +
+        (m.r ? '<button class="pl-b on" data-reply>Reply with AI</button>' : '') +
+        others.map(function (t) {
+          return '<button class="pl-b" data-move="' + t.id + '">Move to ' + t.name + '</button>'; }).join('') +
+      '</div></div>' +
+      // Drafts sit directly under the action row, not after the body — at the
+      // bottom they fall below the panel's fold and "Reply with AI" reads as a
+      // dead button on a short screen.
+      opts + comp +
+      '<div class="pl-why"><span class="w">Why ' + tier(m.t).name + ' · ' + esc(m.why) + '</span>' +
+      '<div class="sm">' + esc(m.sum) + '</div></div>' +
+      '<div class="pl-body">' + esc(m.body) + '</div>';
+  }
+  function draw() { renderTiers(); renderList(); renderRead(); }
+  function reset() { replying = false; draft = null; sent = false; }
+
+  root.addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) return;
+    if (b.dataset.tier) { cur = b.dataset.tier; open = null; reset(); return draw(); }
+    if (b.dataset.id) { open = +b.dataset.id; reset(); return draw(); }
+    if (b.hasAttribute('data-reply')) { replying = true; draft = null; sent = false; return renderRead(); }
+    // dataset.draft is "0" for the first option — a truthiness check would make
+    // Accept the one unclickable draft.
+    if (b.dataset.draft !== undefined) { draft = +b.dataset.draft; sent = false; return renderRead(); }
+    if (b.hasAttribute('data-cancel')) { replying = false; draft = null; sent = false; return renderRead(); }
+    if (b.hasAttribute('data-send')) { sent = true; return renderRead(); }
+    if (b.dataset.move) {
+      var m = mail.filter(function (x) { return x.id === open; })[0];
+      if (m) { m.t = b.dataset.move; m.why = 'Moved by you — Klorn learns from this'; }
+      open = null; reset(); return draw();
+    }
+  });
+  // 1/2/3 pick a draft, matching the app's key bindings.
+  root.addEventListener('keydown', function (ev) {
+    if (!open || draft !== null) return;
+    var i = ['1', '2', '3'].indexOf(ev.key);
+    var m = mail.filter(function (x) { return x.id === open; })[0];
+    if (i > -1 && m && m.r) { replying = true; draft = i; sent = false; renderRead(); }
+  });
+
+  open = 1;
+  draw();
 })();
 </script>
 </body>
