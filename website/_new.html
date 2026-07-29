@@ -226,6 +226,22 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 .proof{max-width:1180px;margin:34px auto 0;padding:0 24px;font-size:13.5px;color:var(--ink-3);max-width:720px}
 .proof a{color:var(--sky-600);font-weight:600}
 
+
+/* ── Opinionated stance rows ──────────────────────── */
+.stance{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;gap:0}
+.srow{display:grid;grid-template-columns:34px 1fr 1fr;gap:32px;align-items:start;
+  padding:30px 0;border-top:1px solid var(--line)}
+.srow:last-child{border-bottom:1px solid var(--line)}
+.srow .n{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--sky-600);padding-top:5px}
+.srow h3{margin:0;font-size:clamp(19px,2.1vw,25px);line-height:1.2;letter-spacing:-.025em;font-weight:650}
+.srow .body{display:grid;gap:12px}
+.srow p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.6}
+.srow .vs{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-3);
+  padding:7px 13px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
+  align-self:flex-start}
+.srow .vs b{color:var(--ink);font-weight:650}
+@media(max-width:860px){.srow{grid-template-columns:1fr;gap:14px;padding:24px 0}.srow .n{padding-top:0}}
+
 /* Scroll reveal */
 /* Reveal is opt-IN: content is visible by default and JS arms the "from"
    state only once it is running. The usual way round leaves anything waiting
@@ -371,6 +387,57 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
         <span class="pip"><i></i>You stay in control</span>
         <span class="pip"><i></i>Evidence on every card</span>
         <span class="pip"><i></i>Nothing sent without you</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ THE STANCE ═══════════════════════════════════ -->
+<section class="sec" id="stance">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Where we disagree</span>
+      <h2 class="rv">Four opinions most<br>email AI doesn't hold.</h2>
+    </div>
+    <p class="rv">These are choices, not features. Each one costs Klorn something, and each one is the
+      reason to use it instead of the assistant already bundled with your mail.</p>
+  </div>
+  <div class="stance">
+    <div class="srow rv"><span class="n">01</span>
+      <h3>An agent that acts for you is the wrong product.</h3>
+      <div class="body">
+        <p>Everyone is shipping autonomy. We think the scarce thing is judgement, not labour — you can
+          write the reply in ninety seconds, but deciding which of forty messages deserves it is the
+          part that eats the morning. Klorn does the deciding and leaves the acting to you.</p>
+        <span class="vs">Every send, delete and forward waits for you · <b>0 unapproved actions</b></span>
+      </div>
+    </div>
+    <div class="srow rv"><span class="n">02</span>
+      <h3>Four tiers. Not folders, not labels, not scores.</h3>
+      <div class="body">
+        <p>A confidence percentage tells you nothing you can act on, and an unlimited label system
+          becomes another inbox to manage. PUSH, QUEUE, SILENT, AUTO — a message either interrupts you,
+          waits, is filed, or was handled. There is no fifth tier, and there never will be.</p>
+        <span class="vs">Every message shows <b>why</b> it landed where it did</span>
+      </div>
+    </div>
+    <div class="srow rv"><span class="n">03</span>
+      <h3>A number you can check beats a promise.</h3>
+      <div class="body">
+        <p>"AI-powered" is not a claim. Klorn is scored against a hand-labeled set of real emails before
+          every release, cold-start and warm-start reported separately, and the set itself is in the
+          repository so you can disagree with our labels.</p>
+        <span class="vs"><b>94.3%</b> warm · 81.1% cold · <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener" style="color:var(--sky-600);font-weight:650">see the set →</a></span>
+      </div>
+    </div>
+    <div class="srow rv"><span class="n">04</span>
+      <h3>You should be able to leave.</h3>
+      <div class="body">
+        <p>An email agent reads everything you receive. That is too much power to hand to a black box
+          you cannot inspect or exit. Klorn is AGPLv3, self-hosts against your own database and model
+          keys, and caps its own daily spend so a runaway loop can't bill you.</p>
+        <span class="vs">AGPLv3 · <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" style="color:var(--sky-600);font-weight:650">read the source →</a></span>
       </div>
     </div>
   </div>

@@ -46,16 +46,20 @@ struct AutomationPreferences: View {
         HStack {
             Text(L("auto.tone")).font(.body).foregroundStyle(Theme.text)
             Spacer()
-            Picker(L("auto.tone"), selection: toneBinding) {
-                ForEach(ReplyTone.allCases, id: \.self) { tone in
-                    Text(tone.label).tag(tone)
+            if Theme.isRenderingOffscreen {
+                OffscreenPickerLabel(title: model.automation.replyTone.label)
+            } else {
+                Picker(L("auto.tone"), selection: toneBinding) {
+                    ForEach(ReplyTone.allCases, id: \.self) { tone in
+                        Text(tone.label).tag(tone)
+                    }
                 }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 160)
+                .disabled(model.automationSaving)
+                .accessibilityLabel(L("auto.tone.a11y"))
             }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .frame(width: 160)
-            .disabled(model.automationSaving)
-            .accessibilityLabel(L("auto.tone.a11y"))
         }
         Text(model.automation.replyTone.explanation)
             .font(.caption).foregroundStyle(Theme.textDim)
@@ -98,15 +102,23 @@ struct AutomationPreferences: View {
 
         VStack(alignment: .leading, spacing: Theme.s2) {
             ForEach(NotifyCategory.all) { category in
-                Toggle(isOn: categoryBinding(category)) {
+                HStack(alignment: .top, spacing: Theme.s3) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(category.title).foregroundStyle(Theme.text)
                         Text(category.detail).font(.caption).foregroundStyle(Theme.textDim)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    Spacer(minLength: Theme.s2)
+                    if Theme.isRenderingOffscreen {
+                        OffscreenSwitch(on: category.read(model.automation))
+                    } else {
+                        Toggle("", isOn: categoryBinding(category))
+                            .labelsHidden()
+                            .toggleStyle(.switch).tint(Theme.accent)
+                            .disabled(model.automationSaving)
+                            .accessibilityLabel(category.title)
+                    }
                 }
-                .toggleStyle(.switch).tint(Theme.accent)
-                .disabled(model.automationSaving)
             }
         }
         .padding(.top, Theme.s1)
@@ -146,6 +158,36 @@ struct AutomationPreferences: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, Theme.s3)
         Divider().overlay(Theme.line)
+    }
+}
+
+/// Stand-ins for the AppKit-backed controls while the offscreen renderer runs.
+/// A `Toggle(.switch)` and a `.menu` Picker both paint as a "restricted"
+/// placeholder glyph under ImageRenderer, which would otherwise be what the
+/// landing page shows of Preferences.
+private struct OffscreenSwitch: View {
+    let on: Bool
+    var body: some View {
+        Capsule().fill(on ? Theme.accent : Theme.surfaceHover)
+            .frame(width: 38, height: 22)
+            .overlay(alignment: on ? .trailing : .leading) {
+                Circle().fill(.white).frame(width: 18, height: 18).padding(2)
+                    .shadow(color: .black.opacity(0.18), radius: 1, y: 1)
+            }
+            .overlay(Capsule().strokeBorder(Theme.line))
+    }
+}
+
+private struct OffscreenPickerLabel: View {
+    let title: String
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(title).font(.callout).foregroundStyle(Theme.text)
+            Image(systemName: "chevron.up.chevron.down").font(.caption2).foregroundStyle(Theme.textDim)
+        }
+        .padding(.horizontal, 11).padding(.vertical, 5)
+        .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 7))
+        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Theme.line))
     }
 }
 
@@ -263,14 +305,25 @@ private struct QuietHoursField: View {
         return pair.start == nil
     }
 
+    @ViewBuilder
     private func field(_ text: Binding<String>, label: String) -> some View {
-        TextField("--:--", text: text)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 76)
-            .multilineTextAlignment(.center)
-            .disabled(disabled)
-            .accessibilityLabel(label)
-            .onSubmit(commit)
+        if Theme.isRenderingOffscreen {
+            // TextField is AppKit-backed and paints as a placeholder glyph
+            // offscreen; this keeps the same box for the design renderer.
+            Text(text.wrappedValue.isEmpty ? "--:--" : text.wrappedValue)
+                .font(.callout).foregroundStyle(Theme.textDim)
+                .frame(width: 76, height: 22)
+                .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.field))
+        } else {
+            TextField("--:--", text: text)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 76)
+                .multilineTextAlignment(.center)
+                .disabled(disabled)
+                .accessibilityLabel(label)
+                .onSubmit(commit)
+        }
     }
 
     private func syncFromModel() {

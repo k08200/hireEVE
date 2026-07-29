@@ -115,8 +115,23 @@ enum PreviewRender {
                 Spacer(minLength: 0)
             }
         }
-        shot("preferences", size: CGSize(width: 520, height: 760)) {
-            PreferencesView(actions: actions)
+        // PreferencesView puts its body in a ScrollView, which ImageRenderer
+        // draws as nothing — the shot was a title bar over a blank sheet. Render
+        // the behaviour settings themselves, which is the part worth showing.
+        shot("preferences", size: CGSize(width: 470, height: 900)) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text(L("prefs.title")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                    Spacer()
+                    Button(L("prefs.done")) {}.buttonStyle(PrimaryButtonStyle())
+                }
+                .padding(.bottom, 10)
+                AutomationPreferences()
+            }
+            .padding(22)
+            .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
+            .padding(14)
         }
         shot("tier-guide", size: CGSize(width: 540, height: 520)) {
             TierGuide {}
