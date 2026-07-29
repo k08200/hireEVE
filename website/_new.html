@@ -324,6 +324,23 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 @media(max-width:880px){.nav-lang{margin-left:4px}}
 
 
+@media (max-height: 900px){
+  .hero{padding-top:150px}
+  h1{font-size:clamp(40px,5.4vw,62px)}
+  .lead{font-size:17px;margin-bottom:24px}
+  .eyebrow{margin-bottom:0}
+  .btn{height:48px}
+  .demo{margin-top:26px}
+  .stage{margin-top:40px}
+}
+@media (max-height: 760px){
+  .hero{padding-top:132px}
+  h1{font-size:clamp(36px,4.6vw,52px);margin:18px 0 14px}
+  .lead{font-size:16px;margin-bottom:20px}
+  .demo-stage{height:44px}
+  .bk .v{font-size:22px}
+}
+
 /* ── Live sort: the product, demonstrated before it is described ── */
 .demo{position:relative;z-index:3;max-width:960px;margin:34px auto 0;padding:0 24px}
 .demo-in{border-radius:26px;padding:8px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);
@@ -340,12 +357,12 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
   font-size:13px;opacity:0}
 .mail .from{font-weight:650;white-space:nowrap}
 .mail .subj{color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mail.run{animation:sweep 2.4s var(--ease) forwards}
+.mail.run{animation:sweep 1.05s var(--ease) forwards}
 @keyframes sweep{
-  0%{opacity:0;transform:translateX(-14px)}
-  14%{opacity:1;transform:translateX(0)}
-  70%{opacity:1;transform:translateX(0)}
-  100%{opacity:0;transform:translateX(18px)}
+  0%{opacity:0;transform:translateY(9px)}
+  22%{opacity:1;transform:translateY(0)}
+  74%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(-9px)}
 }
 .buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
@@ -418,14 +435,13 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
     </defs>
     <rect width="1440" height="1220" fill="url(#sky)"/>
     <ellipse cx="880" cy="880" rx="760" ry="330" fill="url(#sun)"/>
-    <g opacity=".5" filter="url(#sf)">
-      <use href="#cl" x="70" y="120" width="200" height="100"/>
-      <use href="#cl" x="1140" y="96" width="240" height="120"/>
-      <use href="#cl" x="560" y="150" width="150" height="75"/>
+    <g opacity=".34" filter="url(#sf)">
+      <use href="#cl" x="96" y="150" width="196" height="98"/>
+      <use href="#cl" x="1168" y="112" width="228" height="114"/>
     </g>
-    <g opacity=".9">
-      <use href="#cl" x="-90" y="470" width="440" height="220"/>
-      <use href="#cl" x="1150" y="500" width="450" height="225"/>
+    <g opacity=".52" filter="url(#sf)">
+      <use href="#cl" x="-140" y="512" width="430" height="215"/>
+      <use href="#cl" x="1190" y="548" width="440" height="220"/>
     </g>
   </svg>
   <div class="grid-bg"></div>
@@ -523,24 +539,6 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
     there is no separate marketing asset to fall out of date.
     <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">Read the app source →</a></p>
 </section>
-<!-- ══ THE PROBLEM ══════════════════════════════════ -->
-<section class="sec band" id="why">
-  <div class="wrapl">
-    <div class="stmt rv">
-      <span class="tag">The real problem</span>
-      <h2 class="stmt-h">Your inbox isn't your to-do list.<br>It's <span class="ser">everyone else's.</span></h2>
-      <p class="stmt-p">Every notification is someone else deciding what deserves your attention.
-        Klorn takes that decision back — you see only the few things that are genuinely yours to act on.</p>
-      <div class="pips">
-        <span class="pip"><i></i>You stay in control</span>
-        <span class="pip"><i></i>Evidence on every card</span>
-        <span class="pip"><i></i>Nothing sent without you</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-
 <!-- ══ THE STANCE ═══════════════════════════════════ -->
 <section class="sec" id="stance">
   <div class="sec-head">
@@ -892,8 +890,10 @@ if (shell && fine) {
     el.innerHTML = '<span class="from"></span><span class="subj"></span>';
     el.firstChild.textContent = m[0];
     el.lastChild.textContent = m[1];
-    stage.appendChild(el);
-    setTimeout(function () { el.remove(); }, 2400);
+    // One chip at a time: the slot is a single absolute position, so a
+    // second arrival before the first leaves lands on top of it.
+    stage.replaceChildren(el);
+    setTimeout(function () { el.remove(); }, 1050);
 
     setTimeout(function () {
       var c = cells[m[2]];
@@ -908,10 +908,10 @@ if (shell && fine) {
       shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
       doneEl.textContent = shown;
       if (shown >= 64) { stateEl.textContent = 'sorted'; }
-    }, 900);
+    }, 560);
 
     i++;
-    if (shown < 64) setTimeout(step, 760);
+    if (shown < 64) setTimeout(step, 1120);
   }
   // Only run once the strip is actually on screen.
   new IntersectionObserver(function (es, ob) {
