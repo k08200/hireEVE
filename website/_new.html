@@ -133,6 +133,96 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 .c8{grid-column:span 8}.c4{grid-column:span 4}.c6{grid-column:span 6}
 @media(max-width:900px){.c8,.c4,.c6{grid-column:span 12}}
 
+
+/* ── Shared section furniture ─────────────────────── */
+.wrapl{max-width:1180px;margin:0 auto;padding:0 24px}
+.band{background:#f4f2ec;border-block:1px solid var(--line)}
+.sec.band{padding-block:130px}
+
+.stmt{max-width:780px}
+.stmt-h{font-size:clamp(30px,4.4vw,54px);line-height:1.06;letter-spacing:-.035em;font-weight:700;margin:0 0 22px}
+.stmt-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-600)}
+.stmt-p{font-size:18px;color:var(--ink-2);margin:0 0 30px;max-width:640px}
+.pips{display:flex;gap:10px;flex-wrap:wrap}
+.pip{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:9999px;background:#fff;
+  border:1px solid var(--line);font-size:13px;font-weight:550;color:var(--ink-2)}
+.pip i{width:6px;height:6px;border-radius:50%;background:var(--sky-600)}
+
+.steps{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.step{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.step>*{margin:0}
+.step .sn{display:block;font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--sky-600);padding:22px 24px 0}
+.step h3{font-size:20px;letter-spacing:-.02em;padding:10px 24px 0}
+.step p{color:var(--ink-3);font-size:14px;padding:8px 24px 26px}
+@media(max-width:860px){.steps{grid-template-columns:1fr}}
+
+.stats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.stat{border-radius:26px;padding:30px 28px;background:#fff;border:1px solid var(--line);
+  box-shadow:0 22px 50px -38px rgba(8,42,80,.45)}
+.stat .sv{font-size:clamp(38px,4.6vw,54px);line-height:1;letter-spacing:-.04em;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .sl{margin-top:10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:650}
+.stat p{margin:12px 0 0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
+@media(max-width:860px){.stats{grid-template-columns:1fr}}
+.foot{max-width:1180px;margin:34px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
+.foot a{color:var(--sky-600);font-weight:600}
+
+.os{border-radius:30px;padding:10px;background:rgba(10,14,20,.04);border:1px solid var(--line)}
+.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:46px 44px;
+  display:grid;grid-template-columns:1.15fr .85fr;gap:52px;align-items:start}
+.os-h{font-size:clamp(26px,3.2vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:700}
+.os-p{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:520px}
+.os-cta{display:flex;gap:12px;flex-wrap:wrap}
+.os-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.os-list li{display:grid;gap:3px;padding:16px 0;border-top:1px solid var(--line)}
+.os-list li:first-child{border-top:0;padding-top:0}
+.os-list b{font-size:14px;font-weight:650}
+.os-list span{font-size:13px;color:var(--ink-3)}
+@media(max-width:900px){.os-in{grid-template-columns:1fr;gap:34px;padding:32px 26px}}
+
+.prices{max-width:1000px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.price{border-radius:28px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.price.feat{background:var(--ink);border-color:var(--ink)}
+.price-in{border-radius:21px;background:#fff;border:1px solid var(--line);padding:32px 30px;height:100%;
+  display:flex;flex-direction:column}
+.chip-s{align-self:flex-start;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  padding:6px 12px;border-radius:9999px;background:rgba(10,14,20,.06);color:var(--ink-2)}
+.chip-s.dark{background:var(--ink);color:#fff}
+.price h3{margin:16px 0 4px;font-size:19px;letter-spacing:-.02em}
+.amt{font-size:44px;letter-spacing:-.04em;font-weight:700;line-height:1.1}
+.amt span{font-size:15px;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.note{margin:8px 0 22px;font-size:13px;color:var(--ink-3)}
+.price ul{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:11px}
+.price li{position:relative;padding-left:24px;font-size:14px;color:var(--ink-2);line-height:1.5}
+.price li::before{content:"";position:absolute;left:2px;top:8px;width:9px;height:9px;border-radius:50%;
+  background:var(--sky-600);opacity:.85}
+.btn.full{width:100%;justify-content:center;margin-top:auto;padding-inline:26px}
+@media(max-width:820px){.prices{grid-template-columns:1fr}}
+
+.final{padding:150px 0 40px;text-align:center}
+.final-h{font-size:clamp(34px,5.4vw,68px);line-height:1.02;letter-spacing:-.04em;font-weight:700;margin:0 0 18px}
+.final-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-600)}
+.final-p{color:var(--ink-2);margin:0 auto 30px;max-width:520px}
+.final .actions{justify-content:center}
+
+.foot-nav{border-top:1px solid var(--line);padding:70px 0 34px;margin-top:110px}
+.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px}
+.foot-brand{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.foot-note{margin:8px 0 0;font-size:13.5px;color:var(--ink-3);max-width:280px}
+.foot-nav h4{margin:0 0 14px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:650}
+.foot-nav nav a{display:block;font-size:14px;color:var(--ink-2);padding:5px 0;
+  transition:color .4s var(--ease)}
+.foot-nav nav a:hover{color:var(--ink)}
+.foot-base{display:flex;justify-content:space-between;align-items:center;margin-top:54px;padding-top:24px;
+  border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+.langsw{display:inline-flex;gap:9px;align-items:center}
+.langsw a{font-weight:650}
+.langsw a[aria-current]{color:var(--ink)}
+.langsw i{opacity:.4;font-style:normal}
+@media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr;gap:30px}}
+
+.proof{max-width:1180px;margin:34px auto 0;padding:0 24px;font-size:13.5px;color:var(--ink-3);max-width:720px}
+.proof a{color:var(--sky-600);font-weight:600}
+
 /* Scroll reveal */
 /* Reveal is opt-IN: content is visible by default and JS arms the "from"
    state only once it is running. The usual way round leaves anything waiting
@@ -261,9 +351,179 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
       </div>
     </article>
   </div>
+  <p class="proof rv">Each shot is produced by <code>KlornMac --render-previews</code>, which draws the
+    shipping SwiftUI views straight to disk. If a screen changes, the picture changes with it —
+    there is no separate marketing asset to fall out of date.
+    <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">Read the app source →</a></p>
+</section>
+<!-- ══ THE PROBLEM ══════════════════════════════════ -->
+<section class="sec band" id="why">
+  <div class="wrapl">
+    <div class="stmt rv">
+      <span class="tag">The real problem</span>
+      <h2 class="stmt-h">Your inbox isn't your to-do list.<br>It's <span class="ser">everyone else's.</span></h2>
+      <p class="stmt-p">Every notification is someone else deciding what deserves your attention.
+        Klorn takes that decision back — you see only the few things that are genuinely yours to act on.</p>
+      <div class="pips">
+        <span class="pip"><i></i>You stay in control</span>
+        <span class="pip"><i></i>Evidence on every card</span>
+        <span class="pip"><i></i>Nothing sent without you</span>
+      </div>
+    </div>
+  </div>
 </section>
 
-<div style="height:120px"></div>
+<!-- ══ HOW ══════════════════════════════════════════ -->
+<section class="sec" id="work">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">How it works</span>
+      <h2 class="rv">Inbox to one decision.<br>In thirty-one seconds.</h2>
+    </div>
+    <p class="rv">Three moves, and only the last one needs you. Klorn reads, connects, then waits —
+      it never acts on your behalf without an explicit approval.</p>
+  </div>
+  <div class="steps">
+    <article class="step rv"><span class="sn">01</span>
+      <h3>Capture</h3>
+      <p>Mail, calendar, tasks and what Klorn has learned about you are pulled into one view for today.</p></article>
+    <article class="step rv"><span class="sn">02</span>
+      <h3>Connect</h3>
+      <p>People, deadlines, threads and promises are linked by what they actually cost you if missed.</p></article>
+    <article class="step rv"><span class="sn">03</span>
+      <h3>Approve</h3>
+      <p>Anything real-world carries its evidence, its risk, and a signed receipt once you say yes.</p></article>
+  </div>
+</section>
+
+<!-- ══ MEASURED ═════════════════════════════════════ -->
+<section class="sec band" id="measured">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Measured, not promised</span>
+      <h2 class="rv">Numbers from a real inbox.</h2>
+    </div>
+    <p class="rv">Every release is scored against a hand-labeled set of real emails before it ships.
+      These are the latest numbers, and the eval set is in the open repo.</p>
+  </div>
+  <div class="stats">
+    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">Real-mail accuracy</div>
+      <p>50 of 53 hand-labeled real emails sorted into the right tier.</p></div>
+    <div class="stat rv"><div class="sv">95.5%</div><div class="sl">Silent precision</div>
+      <p>When Klorn files mail as noise, it almost never buries a real signal.</p></div>
+    <div class="stat rv"><div class="sv">0</div><div class="sl">Unapproved actions</div>
+      <p>Every send, delete and forward waits for you and logs a signed receipt.</p></div>
+  </div>
+  <p class="foot rv">Measured July 2026 on a 53-email hand-labeled set from a live inbox, warm-start with
+    learned context (cold-start: 81.1%).
+    <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Methodology and eval set →</a></p>
+</section>
+
+<!-- ══ OPEN SOURCE ══════════════════════════════════ -->
+<section class="sec" id="open">
+  <div class="wrapl">
+    <div class="os rv">
+      <div class="os-in">
+        <div>
+          <span class="tag">Open source</span>
+          <h2 class="os-h">Read it. Run it yourself.<br>Leave whenever you like.</h2>
+          <p class="os-p">An email agent sees everything you receive, so "trust us" is not an answer.
+            Klorn is AGPLv3 — the classifier, the prompts and the eval set are all in the repo,
+            and it self-hosts against your own keys.</p>
+          <div class="os-cta">
+            <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">View the repository <i>↗</i></a>
+            <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">See the eval set</a>
+          </div>
+        </div>
+        <ul class="os-list">
+          <li><b>AGPLv3</b><span>Fork it, audit it, ship your own.</span></li>
+          <li><b>Self-hostable</b><span>Your database, your model keys, your machine.</span></li>
+          <li><b>No silent sends</b><span>Every real-world action logs a receipt with a payload hash.</span></li>
+          <li><b>Cost-capped</b><span>A daily AI budget, so a runaway loop can't bill you.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PRICING ══════════════════════════════════════ -->
+<section class="sec band" id="pricing">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Pricing</span>
+      <h2 class="rv">Start free. Upgrade when<br>Klorn acts for you.</h2>
+    </div>
+    <p class="rv">Sorting is free forever. You only pay once Klorn starts drafting and sending on your
+      say-so — the part that costs real money to run.</p>
+  </div>
+  <div class="prices">
+    <article class="price rv"><div class="price-in">
+      <span class="chip-s">Free</span>
+      <h3>The firewall</h3>
+      <div class="amt">$0<span>/month</span></div>
+      <p class="note">No card. A daily AI budget keeps it sustainable.</p>
+      <ul>
+        <li>4-tier mail firewall — only real signals interrupt you</li>
+        <li>Decision queue with evidence for every card</li>
+        <li>Morning briefing and calendar view</li>
+        <li>Assistant that answers from your own mail</li>
+      </ul>
+      <a class="btn btn-2 full" href="https://app.klorn.ai/early-access">Start free</a>
+    </div></article>
+    <article class="price feat rv"><div class="price-in">
+      <span class="chip-s dark">Founding price</span>
+      <h3>Klorn Pro</h3>
+      <div class="amt">$7.99<span>/month</span></div>
+      <p class="note">7-day Pro trial, then $7.99/mo on the web. Cancel anytime.</p>
+      <ul>
+        <li>Everything in Free, with a bigger AI budget</li>
+        <li>Reply drafts you approve and send from Klorn</li>
+        <li>Create calendar events by voice or chat</li>
+        <li>Multiple Gmail inboxes, auto-handled noise</li>
+      </ul>
+      <a class="btn btn-1 full" href="https://app.klorn.ai/early-access">Start 7-day Pro trial <i>↗</i></a>
+    </div></article>
+  </div>
+</section>
+
+<!-- ══ FINAL ════════════════════════════════════════ -->
+<section class="sec final">
+  <div class="wrapl rv">
+    <h2 class="final-h">The next inbox is<br>a <span class="ser">decision queue.</span></h2>
+    <p class="final-p">Invite-only beta — approved within minutes, 100 testers until Google's review clears.</p>
+    <div class="actions">
+      <a class="btn btn-1" href="https://app.klorn.ai/early-access">Request early access <i>↗</i></a>
+      <a class="btn btn-2" href="https://app.klorn.ai/login">Already approved? Log in</a>
+    </div>
+  </div>
+</section>
+
+<footer class="foot-nav">
+  <div class="wrapl foot-grid">
+    <div>
+      <div class="foot-brand">Klorn</div>
+      <p class="foot-note">An email chief-of-staff that decides nothing on its own.</p>
+    </div>
+    <nav aria-label="Product"><h4>Product</h4>
+      <a href="#work">How it works</a><a href="#measured">Accuracy</a><a href="#pricing">Pricing</a>
+      <a href="https://app.klorn.ai/login">Log in</a></nav>
+    <nav aria-label="Open source"><h4>Open source</h4>
+      <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub repository</a>
+      <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Eval set</a>
+      <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">Releases</a>
+      <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">AGPLv3 licence</a></nav>
+    <nav aria-label="Legal"><h4>Legal</h4>
+      <a href="/privacy/">Privacy</a><a href="/terms/">Terms</a>
+      <a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">Security</a></nav>
+  </div>
+  <div class="wrapl foot-base">
+    <span>© 2026 Klorn · AGPLv3</span>
+    <span class="langsw">
+      <a href="/" data-lang-pick="en" aria-current="true">EN</a><i>·</i><a href="/ko/" data-lang-pick="ko">KO</a>
+    </span>
+  </div>
+</footer>
+
 
 <script>
 // Reveal on enter. IntersectionObserver, never a scroll listener.
@@ -291,6 +551,37 @@ if (shell && fine) {
   }, { passive: true });
   shell.style.transition = 'transform .9s cubic-bezier(.32,.72,0,1)';
 }
+
+// Language: follow the OS/browser preference on a first visit, and never again.
+// Rules that keep this from being hostile: an explicit EN/KO click is remembered
+// forever, the redirect fires at most once per browser, and it only ever runs on
+// the site root — deep links stay where they point.
+(function () {
+  var KEY = 'klorn.lang';
+  var picks = document.querySelectorAll('[data-lang-pick]');
+  picks.forEach(function (a) {
+    a.addEventListener('click', function () {
+      try { localStorage.setItem(KEY, a.getAttribute('data-lang-pick')); } catch (e) {}
+    });
+  });
+
+  var stored = null;
+  try { stored = localStorage.getItem(KEY); } catch (e) {}
+  if (stored) return;                                   // the user has decided
+  try { if (sessionStorage.getItem(KEY + '.tried')) return; } catch (e) {}
+
+  // Only on the deployed site: a file:// or preview open has no /ko/ to reach,
+  // and a failed replace() would stop the rest of this script.
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+  var path = location.pathname;
+  if (path !== '/' && !/\/index\.html$/.test(path)) return;
+
+  var prefers = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+  if (!/^ko\b/i.test(prefers)) return;                  // English page is already right
+
+  try { sessionStorage.setItem(KEY + '.tried', '1'); } catch (e) {}
+  location.replace('/ko/');
+})();
 </script>
 </body>
 </html>
