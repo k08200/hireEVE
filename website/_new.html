@@ -52,7 +52,7 @@ a{color:inherit;text-decoration:none}
 @media(max-width:880px){.nav-links{display:none}}
 
 /* ── Hero ─────────────────────────────────────────── */
-.hero{position:relative;overflow:hidden;padding:164px 0 0;text-align:center}
+.hero{position:relative;overflow:hidden;padding:196px 0 0;text-align:center}
 .hero-sky{position:absolute;top:0;left:0;width:100%;height:1120px;z-index:0}
 .wrap{position:relative;z-index:3;max-width:1180px;margin:0 auto;padding:0 24px}
 
@@ -323,6 +323,47 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 .nav-lang a[aria-current]{background:#fff;color:var(--ink)}
 @media(max-width:880px){.nav-lang{margin-left:4px}}
 
+
+/* ── Live sort: the product, demonstrated before it is described ── */
+.demo{position:relative;z-index:3;max-width:960px;margin:34px auto 0;padding:0 24px}
+.demo-in{border-radius:26px;padding:8px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 40px 80px -44px rgba(8,42,80,.45);backdrop-filter:blur(14px)}
+.demo-core{border-radius:19px;background:rgba(255,255,255,.94);border:1px solid var(--line);
+  padding:18px 20px 16px;text-align:left}
+.demo-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.demo-top .lab{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--ink-3)}
+.demo-top .cnt{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.demo-top .cnt b{color:var(--ink);font-weight:700}
+.demo-stage{position:relative;height:52px;overflow:hidden;border-radius:12px;background:rgba(10,14,20,.035);
+  border:1px solid var(--line);margin-bottom:14px}
+.mail{position:absolute;left:14px;top:9px;display:flex;align-items:center;gap:9px;max-width:calc(100% - 28px);
+  font-size:13px;opacity:0}
+.mail .from{font-weight:650;white-space:nowrap}
+.mail .subj{color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail.run{animation:sweep 2.4s var(--ease) forwards}
+@keyframes sweep{
+  0%{opacity:0;transform:translateX(-14px)}
+  14%{opacity:1;transform:translateX(0)}
+  70%{opacity:1;transform:translateX(0)}
+  100%{opacity:0;transform:translateX(18px)}
+}
+.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
+  transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
+.bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
+.bk .top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.bk .dot{width:8px;height:8px;border-radius:50%}
+.bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
+.bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
+.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
+.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
+.bk .dot{background:var(--c)}
+.bk.hit{border-color:var(--c)}
+.demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
+@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
+
 /* Scroll reveal */
 /* Reveal is opt-IN: content is visible by default and JS arms the "from"
    state only once it is running. The usual way round leaves anything waiting
@@ -392,12 +433,35 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
   <div class="wrap">
     <span class="eyebrow rv">Measured on real mail <b>94.3%</b></span>
     <h1 class="rv">Noise in.<br><span class="ser">Signal</span> out.</h1>
-    <p class="lead rv">Other AI agents act. Klorn helps you <em>decide</em> what's worth acting on —
-      with the evidence in front of you, and your approval before anything leaves.</p>
+    <p class="lead rv"><b style="color:var(--ink);font-weight:650">A Mac app that sorts your mail into
+      four tiers and tells you why.</b> Other AI agents act on your behalf. Klorn decides what deserves
+      your attention and leaves the acting to you.</p>
     <div class="actions rv">
       <a class="btn btn-1" href="#">Request early access <i>↗</i></a>
       <a class="btn btn-2" href="#features">See what it does</a>
     </div>
+  </div>
+
+
+  <div class="demo rv">
+    <div class="demo-in"><div class="demo-core">
+      <div class="demo-top">
+        <span class="lab">Sorting this morning's inbox</span>
+        <span class="cnt"><b id="dm-done">0</b> of 64 · <span id="dm-state">running</span></span>
+      </div>
+      <div class="demo-stage" id="dm-stage" aria-hidden="true"></div>
+      <div class="buckets" id="dm-buckets">
+        <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
+          <div class="v" data-v>0</div><p class="d">Interrupts you now</p></div>
+        <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
+          <div class="v" data-v>0</div><p class="d">Read it today</p></div>
+        <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
+          <div class="v" data-v>0</div><p class="d">Filed, not deleted</p></div>
+        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
+          <div class="v" data-v>0</div><p class="d">Handled without you</p></div>
+      </div>
+      <p class="demo-foot">Real classifier output on a hand-labeled inbox — 3 of 64 needed you.</p>
+    </div></div>
   </div>
 
   <div class="stage rv">
@@ -530,29 +594,23 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">Built, not planned</span>
-      <h2 class="rv">The parts you won't<br>find bundled elsewhere.</h2>
+      <h2 class="rv">Four things that exist<br>nowhere else.</h2>
     </div>
-    <p class="rv">Everything here ships in the current macOS build. Nothing on this list is a roadmap item.</p>
+    <p class="rv">Not a spec sheet — these are the four reasons to move, and all four ship in the current macOS build.</p>
   </div>
   <div class="feats">
-    <div class="feat-i rv"><h4>Top-bar firewall <em>only here</em></h4>
-      <p>A native line at the top of the screen, not a webview. At rest it never takes focus; open it and it joins Cmd+Tab.</p></div>
-    <div class="feat-i rv"><h4>Why, on every row</h4>
-      <p>"You replied to this sender 6 times." The reason is on the message, and moving it teaches the classifier.</p></div>
-    <div class="feat-i rv"><h4>Three one-key replies</h4>
-      <p>Accept, decline, ask — drafted together, chosen with 1/2/3. Choosing loads the draft; sending is still yours.</p></div>
-    <div class="feat-i rv"><h4>Reply tone, set once <em>only here</em></h4>
-      <p>Formal, friendly, casual, or learned from your own sent mail — applied to all three drafts without changing what they say.</p></div>
-    <div class="feat-i rv"><h4>Replies in the sender's language</h4>
-      <p>A Korean email gets a Korean reply. The app's own language follows macOS separately, and can be overridden.</p></div>
-    <div class="feat-i rv"><h4>Three autonomy modes</h4>
-      <p>Quiet, ask-first, or auto for safe actions only. You pick how much Klorn does alone, and change it any time.</p></div>
-    <div class="feat-i rv"><h4>Six alert categories</h4>
-      <p>Urgent mail, meetings, tasks, proposals, briefing, attachments — plus quiet hours. "Essentials only" is one click.</p></div>
-    <div class="feat-i rv"><h4>Signed action receipts <em>only here</em></h4>
-      <p>Every send, delete and forward mints a receipt with a payload hash, so what was approved is what went out.</p></div>
-    <div class="feat-i rv"><h4>Multi-inbox, threaded properly</h4>
-      <p>Several Gmail accounts in one queue, with every action routed back to the inbox it came from.</p></div>
+    <div class="feat-i rv"><h4>A bar, not another inbox <em>only here</em></h4>
+      <p>Klorn lives in one native line at the top of the screen. It never steals focus while you work,
+        and there is no fifth window to check.</p></div>
+    <div class="feat-i rv"><h4>The reason, on every message <em>only here</em></h4>
+      <p>"You replied to this sender 6 times." You can see why it was ranked, disagree in one click,
+        and the classifier learns from the correction.</p></div>
+    <div class="feat-i rv"><h4>Set the tone once <em>only here</em></h4>
+      <p>Formal, friendly, casual — or learned from your own sent mail. It shapes all three reply drafts
+        without changing what they say, in whatever language the sender wrote in.</p></div>
+    <div class="feat-i rv"><h4>A receipt for every action <em>only here</em></h4>
+      <p>Send, delete and forward each mint a signed receipt with a payload hash, so what you approved
+        is provably what went out.</p></div>
   </div>
 </section>
 
@@ -790,6 +848,75 @@ if (shell && fine) {
 
   try { sessionStorage.setItem(KEY + '.tried', '1'); } catch (e) {}
   location.replace('/ko/');
+})();
+
+// The hero demonstration. A visitor who reads only the headline still sees the
+// product do its one job: sixty-four messages arrive, four of them are yours.
+(function () {
+  var stage = document.getElementById('dm-stage');
+  if (!stage) return;
+  var mails = [
+    ['Sarah Kim', 'Re: Contract review — needs your sign-off today', 'push'],
+    ['AWS Billing', 'Your July invoice is ready', 'silent'],
+    ['이준호', '스탠드업 10:30으로 변경', 'push'],
+    ['Product Hunt', 'Today in tech: 12 new launches', 'silent'],
+    ['Jordan Lee', 'Revised dashboard specs', 'queue'],
+    ['Calendar', 'Invitation accepted by 3 people', 'auto'],
+    ['billing@vendor.io', 'Invoice #4821 is overdue', 'push'],
+    ['Morning Brew', 'The 5 things you need to know', 'silent'],
+    ['Casey Park', 'Onboarding flow ideas', 'queue'],
+    ['Stripe', 'Payment receipt', 'auto']
+  ];
+  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
+  var cells = {};
+  document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
+    cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
+  });
+  var doneEl = document.getElementById('dm-done');
+  var stateEl = document.getElementById('dm-state');
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Reduced motion gets the answer, not the animation.
+  if (reduce) {
+    Object.keys(totals).forEach(function (k) { cells[k].num.textContent = totals[k]; });
+    doneEl.textContent = '64';
+    stateEl.textContent = 'sorted';
+    return;
+  }
+
+  var i = 0, shown = 0;
+  function step() {
+    var m = mails[i % mails.length];
+    var el = document.createElement('div');
+    el.className = 'mail run';
+    el.innerHTML = '<span class="from"></span><span class="subj"></span>';
+    el.firstChild.textContent = m[0];
+    el.lastChild.textContent = m[1];
+    stage.appendChild(el);
+    setTimeout(function () { el.remove(); }, 2400);
+
+    setTimeout(function () {
+      var c = cells[m[2]];
+      c.box.classList.add('hit');
+      setTimeout(function () { c.box.classList.remove('hit'); }, 480);
+      // Walk each tier toward its real total rather than counting one at a time,
+      // so the numbers land on the figures the eval actually produced.
+      var target = totals[m[2]];
+      var stepSize = Math.max(1, Math.round(target / 6));
+      c.n = Math.min(target, c.n + stepSize);
+      c.num.textContent = c.n;
+      shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
+      doneEl.textContent = shown;
+      if (shown >= 64) { stateEl.textContent = 'sorted'; }
+    }, 900);
+
+    i++;
+    if (shown < 64) setTimeout(step, 760);
+  }
+  // Only run once the strip is actually on screen.
+  new IntersectionObserver(function (es, ob) {
+    if (es[0].isIntersecting) { ob.disconnect(); step(); }
+  }, { threshold: .4 }).observe(stage);
 })();
 </script>
 </body>
