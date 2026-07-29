@@ -14,7 +14,7 @@
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--paper);color:var(--ink);
+body{position:relative;margin:0;background:var(--paper);color:var(--ink);
   font-family:'Geist','Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   line-height:1.6;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
@@ -29,6 +29,24 @@ a{color:inherit;text-decoration:none}
   background-size:112px 112px;
   -webkit-mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%);
           mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%)}
+
+/* Page-wide atmosphere. The sky used to end at the fold and everything below
+   it was flat paper — the page looked like it ran out of design halfway down.
+   One document-height layer, drawn once, carrying the same grid and a few very
+   soft blooms so the background keeps changing as you pass it. */
+.field{position:absolute;top:0;left:0;right:0;height:100%;z-index:0;pointer-events:none;
+  background-image:
+    radial-gradient(46% 16% at 80% 15%, rgba(120,186,232,.34), transparent 68%),
+    radial-gradient(42% 13% at 12% 30%, rgba(150,196,168,.26), transparent 70%),
+    radial-gradient(48% 14% at 88% 48%, rgba(240,203,142,.26), transparent 70%),
+    radial-gradient(44% 13% at 8% 64%, rgba(132,180,224,.30), transparent 70%),
+    radial-gradient(46% 14% at 76% 80%, rgba(190,210,178,.26), transparent 72%),
+    radial-gradient(40% 12% at 22% 93%, rgba(126,188,230,.24), transparent 72%),
+    linear-gradient(rgba(10,14,20,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(10,14,20,.055) 1px,transparent 1px);
+  background-size:auto,auto,auto,auto,auto,auto,112px 112px,112px 112px;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%)}
 
 /* ── Fluid island nav ─────────────────────────────── */
 .nav{position:fixed;top:22px;left:0;right:0;z-index:50;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
@@ -111,7 +129,7 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 @media(max-width:1080px){.chip{display:none}}
 
 /* ── Cards ────────────────────────────────────────── */
-.sec{position:relative;padding:104px 0 28px}
+.sec{position:relative;z-index:1;padding:104px 0 28px}
 .sec-head{max-width:1180px;margin:0 auto 40px;padding:0 24px;display:flex;gap:48px;align-items:flex-end;flex-wrap:wrap}
 .sec-head h2{flex:1 1 420px;margin:0;font-size:clamp(32px,4.2vw,52px);line-height:1.04;letter-spacing:-.035em;font-weight:700}
 .sec-head p{flex:1 1 300px;margin:0;color:var(--ink-2);font-size:16px;max-width:420px}
@@ -139,7 +157,7 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 
 /* ── Shared section furniture ─────────────────────── */
 .wrapl{max-width:1180px;margin:0 auto;padding:0 24px}
-.band{background:#f4f2ec;border-block:1px solid var(--line)}
+.band{background:rgba(238,236,227,.44);border-block:1px solid var(--line)}
 .sec.band{padding-block:96px}
 
 .stmt{max-width:780px}
@@ -207,7 +225,7 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 .final-p{color:var(--ink-2);margin:0 auto 30px;max-width:520px}
 .final .actions{justify-content:center}
 
-.foot-nav{border-top:1px solid var(--line);padding:56px 0 28px;margin-top:76px}
+.foot-nav{position:relative;z-index:1;border-top:1px solid var(--line);padding:56px 0 28px;margin-top:76px}
 .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px}
 .foot-brand{font-size:19px;font-weight:700;letter-spacing:-.02em}
 .foot-note{margin:8px 0 0;font-size:13.5px;color:var(--ink-3);max-width:280px}
@@ -223,7 +241,7 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 .langsw i{opacity:.4;font-style:normal}
 @media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr;gap:30px}}
 
-.proof{max-width:1180px;margin:34px auto 0;padding:0 24px;font-size:13.5px;color:var(--ink-3);max-width:720px}
+.proof{max-width:1180px;margin:26px auto 0;padding:0 24px;font-size:13.5px;color:var(--ink-3);max-width:720px}
 .proof a{color:var(--sky-600);font-weight:600}
 
 
@@ -396,6 +414,7 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 </head>
 <body>
 <div class="grain"></div>
+<div class="field" aria-hidden="true"></div>
 
 <nav class="nav"><div class="nav-pill">
   <span class="nav-brand">Klorn</span>
