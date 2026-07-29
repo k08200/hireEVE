@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Klorn — Noise in. Signal out.</title>
+<style>
+:root{
+  --ink:#0a0e14; --ink-2:#39424e; --ink-3:#6a7480;
+  --paper:#fbfaf6;            /* warm, not clinical white (ref: Trajectory) */
+  --line:rgba(10,14,20,.09);
+  --sky-600:#0284c7;
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Geist','Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+/* Film grain — fixed, never on a scroller (perf). */
+.grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.30;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.42'/></svg>")}
+
+/* Blueprint grid — structure you feel before you notice (ref: NeoNet). */
+.grid-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:112px 112px;
+  -webkit-mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%);
+          mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%)}
+
+/* ── Fluid island nav ─────────────────────────────── */
+.nav{position:fixed;top:22px;left:0;right:0;z-index:50;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
+.nav-pill{pointer-events:auto;display:flex;align-items:center;gap:2px;padding:7px 7px 7px 18px;border-radius:9999px;
+  background:rgba(12,16,22,.66);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.13);box-shadow:0 18px 44px -20px rgba(4,12,26,.7),inset 0 1px 0 rgba(255,255,255,.10);
+  transition:transform .7s var(--ease),box-shadow .7s var(--ease)}
+.nav-pill:hover{transform:translateY(-1px);box-shadow:0 24px 56px -22px rgba(4,12,26,.78),inset 0 1px 0 rgba(255,255,255,.14)}
+.nav-brand{color:#fff;font-weight:700;letter-spacing:-.015em;font-size:15px;margin-right:14px}
+.nav-links{display:flex;gap:2px}
+.nav-links a{color:rgba(255,255,255,.72);font-size:13.5px;padding:9px 14px;border-radius:9999px;
+  transition:color .5s var(--ease),background .5s var(--ease)}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.10)}
+.nav-cta{display:inline-flex;align-items:center;gap:9px;height:38px;padding:0 6px 0 17px;border-radius:9999px;
+  background:#fff;color:var(--ink);font-size:13.5px;font-weight:650;margin-left:8px;
+  transition:transform .6s var(--ease)}
+.nav-cta:active{transform:scale(.97)}
+.nav-cta i{width:26px;height:26px;border-radius:9999px;background:rgba(10,14,20,.07);display:grid;place-items:center;
+  font-style:normal;font-size:12px;transition:transform .6s var(--ease),background .6s var(--ease)}
+.nav-cta:hover i{transform:translate(2px,-1px) scale(1.06);background:rgba(10,14,20,.12)}
+@media(max-width:880px){.nav-links{display:none}}
+
+/* ── Hero ─────────────────────────────────────────── */
+.hero{position:relative;overflow:hidden;padding:190px 0 0;text-align:center}
+.hero-sky{position:absolute;top:0;left:0;width:100%;height:1220px;z-index:0}
+.wrap{position:relative;z-index:3;max-width:1180px;margin:0 auto;padding:0 24px}
+
+.eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 8px 7px 15px;border-radius:9999px;
+  background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.85);
+  box-shadow:0 8px 26px -14px rgba(10,50,90,.5);
+  font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#0b5f8a;
+  backdrop-filter:blur(12px)}
+.eyebrow b{font-weight:700;letter-spacing:0;text-transform:none;font-size:12.5px;color:var(--ink);
+  background:#fff;padding:3px 10px;border-radius:9999px}
+
+h1{font-size:clamp(46px,7.2vw,88px);line-height:.98;letter-spacing:-.042em;font-weight:700;margin:26px 0 20px}
+h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;
+  color:var(--sky-600);padding-right:.06em}
+.lead{font-size:19px;color:var(--ink-2);max-width:600px;margin:0 auto 34px}
+
+.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;height:54px;padding:0 8px 0 26px;border-radius:9999px;
+  font-size:15px;font-weight:650;transition:transform .6s var(--ease),box-shadow .6s var(--ease)}
+.btn:active{transform:scale(.98)}
+.btn i{width:34px;height:34px;border-radius:9999px;display:grid;place-items:center;font-style:normal;font-size:14px;
+  transition:transform .6s var(--ease),background .6s var(--ease)}
+.btn-1{background:var(--ink);color:#fff;box-shadow:0 20px 44px -22px rgba(10,14,20,.85)}
+.btn-1 i{background:rgba(255,255,255,.14)}
+.btn-1:hover{box-shadow:0 26px 54px -22px rgba(10,14,20,.9)}
+.btn-1:hover i{transform:translate(3px,-2px) scale(1.07);background:rgba(255,255,255,.22)}
+.btn-2{background:rgba(255,255,255,.78);color:var(--ink);border:1px solid rgba(255,255,255,.9);padding-right:26px;
+  backdrop-filter:blur(12px);box-shadow:0 10px 30px -18px rgba(10,50,90,.5)}
+.btn-2:hover{background:#fff}
+
+/* ── The real app, floating ───────────────────────── */
+.stage{position:relative;z-index:3;margin:72px auto 0;max-width:1160px;padding:0 24px}
+.shell{position:relative;border-radius:30px;padding:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.34));
+  border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 70px 130px -50px rgba(8,42,80,.55),0 18px 44px -26px rgba(8,42,80,.35);
+  backdrop-filter:blur(10px)}
+.core{border-radius:22px;overflow:hidden;background:#fff;border:1px solid var(--line);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
+.core img{display:block;width:100%;height:auto}
+.stage-fade{position:absolute;left:0;right:0;bottom:-1px;height:190px;z-index:4;pointer-events:none;
+  background:linear-gradient(180deg,rgba(251,250,246,0),var(--paper) 88%)}
+
+/* Floating signal cards pinned to the app (ref: Screenote) */
+.chip{position:absolute;z-index:5;display:flex;gap:11px;align-items:flex-start;width:238px;padding:13px 15px;
+  border-radius:17px;background:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.94);
+  box-shadow:0 26px 54px -26px rgba(8,42,80,.5);backdrop-filter:blur(16px) saturate(1.3);
+  text-align:left;animation:float 7s var(--ease) infinite alternate}
+.chip .d{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:0 0 8px}
+.chip h4{margin:0;font-size:13px;font-weight:650;letter-spacing:-.01em}
+.chip p{margin:2px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-3)}
+.chip-a{left:-14px;top:120px;animation-delay:-1.4s}
+.chip-b{right:-18px;top:238px;animation-delay:-3.2s}
+.chip-c{left:34px;bottom:150px;animation-delay:-5s}
+@keyframes float{from{transform:translateY(-7px)}to{transform:translateY(7px)}}
+@media(max-width:1080px){.chip{display:none}}
+
+/* ── Cards ────────────────────────────────────────── */
+.sec{position:relative;padding:150px 0 40px}
+.sec-head{max-width:1180px;margin:0 auto 54px;padding:0 24px;display:flex;gap:48px;align-items:flex-end;flex-wrap:wrap}
+.sec-head h2{flex:1 1 420px;margin:0;font-size:clamp(32px,4.2vw,52px);line-height:1.04;letter-spacing:-.035em;font-weight:700}
+.sec-head p{flex:1 1 300px;margin:0;color:var(--ink-2);font-size:16px;max-width:420px}
+.tag{display:inline-block;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:600;margin-bottom:18px}
+
+.cards{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+.card{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
+  transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
+.card:hover{transform:translateY(-5px);box-shadow:0 40px 80px -46px rgba(8,42,80,.5)}
+.card-in{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line);height:100%;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9);display:flex;flex-direction:column}
+.card-shot{background:linear-gradient(180deg,#eef4fa,#fdfefe);overflow:hidden;position:relative}
+.card-shot img{display:block;width:100%;transform:scale(1.02);transition:transform 1.1s var(--ease)}
+.card:hover .card-shot img{transform:scale(1.06)}
+.card-txt{padding:20px 22px 24px}
+.card-txt h3{margin:0 0 6px;font-size:17px;font-weight:650;letter-spacing:-.015em}
+.card-txt p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
+.c8{grid-column:span 8}.c4{grid-column:span 4}.c6{grid-column:span 6}
+@media(max-width:900px){.c8,.c4,.c6{grid-column:span 12}}
+
+/* Scroll reveal */
+/* Reveal is opt-IN: content is visible by default and JS arms the "from"
+   state only once it is running. The usual way round leaves anything waiting
+   on an observer permanently invisible when scripting is off — which is
+   exactly the bug this page's predecessor shipped. */
+.rv{transition:opacity .9s var(--ease),transform .9s var(--ease),filter .9s var(--ease)}
+.js .rv:not(.in){opacity:0;transform:translateY(46px);filter:blur(8px)}
+@media(prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none;filter:none;transition:none}
+  .chip{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<nav class="nav"><div class="nav-pill">
+  <span class="nav-brand">Klorn</span>
+  <span class="nav-links"><a href="#work">How it works</a><a href="#cards">Product</a><a href="#">Pricing</a><a href="#">Open source</a></span>
+  <a class="nav-cta" href="#">Open Klorn <i>↗</i></a>
+</div></nav>
+
+<header class="hero">
+  <svg class="hero-sky" viewBox="0 0 1440 1220" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#3d8fcd"/><stop offset=".26" stop-color="#79b6e2"/>
+        <stop offset=".52" stop-color="#b5daf0"/><stop offset=".74" stop-color="#e4f1f8"/>
+        <stop offset=".9" stop-color="#f7f6ef"/><stop offset="1" stop-color="#fbfaf6"/>
+      </linearGradient>
+      <radialGradient id="sun" cx=".5" cy=".5" r=".5">
+        <stop offset="0" stop-color="#fff7e2" stop-opacity=".92"/>
+        <stop offset=".55" stop-color="#ffe9bd" stop-opacity=".34"/>
+        <stop offset="1" stop-color="#ffe9bd" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="ct" x1="0" y1="0" x2=".18" y2="1">
+        <stop offset="0" stop-color="#fff"/><stop offset=".58" stop-color="#f8fcff"/><stop offset="1" stop-color="#dbeaf5"/>
+      </linearGradient>
+      <linearGradient id="cu" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#c3d9e9"/><stop offset="1" stop-color="#b0cbe0"/>
+      </linearGradient>
+      <filter id="sf" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+      <g id="cl">
+        <ellipse cx="150" cy="112" rx="140" ry="25" fill="url(#cu)"/>
+        <circle cx="66" cy="92" r="46" fill="url(#ct)"/><circle cx="132" cy="66" r="64" fill="url(#ct)"/>
+        <circle cx="204" cy="84" r="52" fill="url(#ct)"/><circle cx="248" cy="102" r="38" fill="url(#ct)"/>
+        <ellipse cx="140" cy="58" rx="68" ry="24" fill="#fff" opacity=".9"/>
+      </g>
+    </defs>
+    <rect width="1440" height="1220" fill="url(#sky)"/>
+    <ellipse cx="880" cy="880" rx="760" ry="330" fill="url(#sun)"/>
+    <g opacity=".5" filter="url(#sf)">
+      <use href="#cl" x="70" y="120" width="200" height="100"/>
+      <use href="#cl" x="1140" y="96" width="240" height="120"/>
+      <use href="#cl" x="560" y="150" width="150" height="75"/>
+    </g>
+    <g opacity=".9">
+      <use href="#cl" x="-90" y="470" width="440" height="220"/>
+      <use href="#cl" x="1150" y="500" width="450" height="225"/>
+    </g>
+  </svg>
+  <div class="grid-bg"></div>
+
+  <div class="wrap">
+    <span class="eyebrow rv">Measured on real mail <b>94.3%</b></span>
+    <h1 class="rv">Noise in.<br><span class="ser">Signal</span> out.</h1>
+    <p class="lead rv">Other AI agents act. Klorn helps you <em>decide</em> what's worth acting on —
+      with the evidence in front of you, and your approval before anything leaves.</p>
+    <div class="actions rv">
+      <a class="btn btn-1" href="#">Request early access <i>↗</i></a>
+      <a class="btn btn-2" href="#work">Watch it sort 64 emails</a>
+    </div>
+  </div>
+
+  <div class="stage rv">
+    <div class="shell" data-tilt>
+      <div class="core"><img src="media/app/full.jpg" alt="Klorn's desktop app: the four-tier inbox, a mail row selected, and Klorn's reasoning beside it" width="1400" height="860"></div>
+      <div class="chip chip-a"><span class="d" style="background:#ff4d57"></span>
+        <div><h4>Push · needs you now</h4><p>Sarah is waiting on a sign-off, and the deadline is today.</p></div></div>
+      <div class="chip chip-b"><span class="d" style="background:#d97706"></span>
+        <div><h4>Queue · read later</h4><p>Worth your time today. Never worth a banner.</p></div></div>
+      <div class="chip chip-c"><span class="d" style="background:#3b82f6"></span>
+        <div><h4>Auto · sorted alone</h4><p>Klorn was sure enough not to ask you.</p></div></div>
+    </div>
+    <div class="stage-fade"></div>
+  </div>
+</header>
+
+<section class="sec" id="cards">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">The actual app</span>
+      <h2 class="rv">Every screen here is<br>the real thing.</h2>
+    </div>
+    <p class="rv">No mock-ups. These are rendered straight from the shipping macOS build, so what you
+      see is what installs.</p>
+  </div>
+
+  <div class="cards">
+    <article class="card c8 rv">
+      <div class="card-in">
+        <div class="card-shot"><img src="media/app/expanded.jpg" alt="The compact panel: four tier counts and the day ahead" loading="lazy"></div>
+        <div class="card-txt"><h3>A bar, not an inbox</h3>
+          <p>At rest Klorn is one line at the top of your screen. Four counts, today's meetings, nothing else.</p></div>
+      </div>
+    </article>
+    <article class="card c4 rv">
+      <div class="card-in">
+        <div class="card-shot"><img src="media/app/rows.jpg" alt="Mail rows showing sender, subject and why each landed in its tier" loading="lazy"></div>
+        <div class="card-txt"><h3>Why, on every row</h3>
+          <p>Each message says what put it there — so a wrong call is one click to correct.</p></div>
+      </div>
+    </article>
+    <article class="card c6 rv">
+      <div class="card-in">
+        <div class="card-shot"><img src="media/app/tier-guide.jpg" alt="The first-run guide explaining Push, Queue, Silent and Auto" loading="lazy"></div>
+        <div class="card-txt"><h3>Four words, explained</h3>
+          <p>Silent isn't deleted. Auto isn't replied. The app says so on first run, and any time after.</p></div>
+      </div>
+    </article>
+    <article class="card c6 rv">
+      <div class="card-in">
+        <div class="card-shot"><img src="media/app/preferences.jpg" alt="Preferences: agent mode, reply tone, alert categories and quiet hours" loading="lazy"></div>
+        <div class="card-txt"><h3>Yours to set</h3>
+          <p>How much Klorn does alone, how its replies sound, and what is allowed to interrupt you.</p></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<div style="height:120px"></div>
+
+<script>
+// Reveal on enter. IntersectionObserver, never a scroll listener.
+document.documentElement.classList.add('js');
+const io = new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { threshold: .12, rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.rv').forEach((el, i) => { el.style.transitionDelay = (i % 5) * 70 + 'ms'; io.observe(el); });
+
+// Pointer tilt on the app shell — small angles only; this is a product shot,
+// not a toy. Disabled for reduced motion and on coarse pointers.
+const shell = document.querySelector('[data-tilt]');
+const fine = matchMedia('(pointer:fine)').matches && !matchMedia('(prefers-reduced-motion:reduce)').matches;
+if (shell && fine) {
+  let raf = 0;
+  addEventListener('pointermove', (ev) => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const r = shell.getBoundingClientRect();
+      const dx = (ev.clientX - (r.left + r.width / 2)) / r.width;
+      const dy = (ev.clientY - (r.top + r.height / 2)) / r.height;
+      shell.style.transform = `perspective(1600px) rotateY(${dx * 3.2}deg) rotateX(${-dy * 2.2}deg)`;
+    });
+  }, { passive: true });
+  shell.style.transition = 'transform .9s cubic-bezier(.32,.72,0,1)';
+}
+</script>
+</body>
+</html>

@@ -1171,7 +1171,13 @@ private struct FullList: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").font(.caption).foregroundStyle(Theme.textDim)
                     .accessibilityHidden(true)
+                if Theme.isRenderingOffscreen {
+                    Text(L("mail.searchPlaceholder"))
+                        .font(.callout).foregroundStyle(Theme.textDim)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 TextField(L("mail.searchPlaceholder"), text: $query)
+                    .opacity(Theme.isRenderingOffscreen ? 0 : 1)
                     .textFieldStyle(.plain).font(.callout).foregroundStyle(Theme.text)
                     .focused($searchFocused)
                     .accessibilityLabel(L("mail.search.a11y"))
@@ -1553,6 +1559,21 @@ private struct SearchHitRow: View {
     }
 }
 
+/// Stand-in for a `Menu` while the offscreen renderer runs. Menus are
+/// AppKit-backed and ImageRenderer paints them as a "restricted" placeholder
+/// glyph, which would otherwise end up in the screenshots the landing page
+/// ships. Same size and chrome, no AppKit.
+private struct OffscreenMenuLabel: View {
+    let title: String
+    var body: some View {
+        (Text(title) + Text(Image(systemName: "chevron.down")))
+            .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.line))
+    }
+}
+
 struct FullRow: View {
     @Environment(AppModel.self) private var model
     let item: FirewallItem
@@ -1719,20 +1740,25 @@ private struct ReadingPane: View {
                         // separate Image in the label gets reordered to the
                         // leading edge by the menu button's label styling
                         // (screen-verified 0.4.80007: "∨ Snooze").
-                        SnoozeMenu(item: item, onSnooze: actions.onSnooze) {
-                            Text(L("mail.snoozePrefix"))
-                                + Text(Image(systemName: "chevron.down"))
-                                .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
+                        if Theme.isRenderingOffscreen {
+                            OffscreenMenuLabel(title: L("mail.snoozePrefix"))
+                            OffscreenMenuLabel(title: L("mail.moveTo", item.tier.label))
+                        } else {
+                            SnoozeMenu(item: item, onSnooze: actions.onSnooze) {
+                                Text(L("mail.snoozePrefix"))
+                                    + Text(Image(systemName: "chevron.down"))
+                                    .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
+                            }
+                            .menuStyle(.button).buttonStyle(.bordered).controlSize(.small)
+                            .menuIndicator(.hidden).fixedSize()
+                            TierMenu(item: item, onSetTier: actions.onSetTier) {
+                                Text(L("mail.moveTo", item.tier.label))
+                                    + Text(Image(systemName: "chevron.down"))
+                                    .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
+                            }
+                            .menuStyle(.button).buttonStyle(.bordered).controlSize(.small)
+                            .menuIndicator(.hidden).fixedSize()
                         }
-                        .menuStyle(.button).buttonStyle(.bordered).controlSize(.small)
-                        .menuIndicator(.hidden).fixedSize()
-                        TierMenu(item: item, onSetTier: actions.onSetTier) {
-                            Text(L("mail.moveTo", item.tier.label))
-                                + Text(Image(systemName: "chevron.down"))
-                                .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
-                        }
-                        .menuStyle(.button).buttonStyle(.bordered).controlSize(.small)
-                        .menuIndicator(.hidden).fixedSize()
                         Button(L("mail.dismiss")) { actions.onDismiss(item) }
                             .buttonStyle(.bordered).controlSize(.small)
                     }
