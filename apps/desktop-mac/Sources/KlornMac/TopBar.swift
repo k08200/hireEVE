@@ -1624,17 +1624,25 @@ struct FullRow: View {
                 // area is the only variant that keeps the tint AND the menu.
                 ZStack {
                     Circle().fill(Theme.tint(item.tier)).frame(width: 8, height: 8)
-                    TierMenu(item: item, onSetTier: actions.onSetTier) {
-                        Color.clear.iconTarget()
+                    if !Theme.isRenderingOffscreen {
+                        TierMenu(item: item, onSetTier: actions.onSetTier) {
+                            Color.clear.iconTarget()
+                        }
+                        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                     }
-                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 }
                 .help(L("mail.changeTier"))
                 .accessibilityLabel(L("mail.changeTier.a11y", sender, item.tier.label))
-                SnoozeMenu(item: item, onSnooze: actions.onSnooze) {
-                    Image(systemName: "moon.zzz").iconTarget()
+                Group {
+                    if Theme.isRenderingOffscreen {
+                        Image(systemName: "moon.zzz").iconTarget()
+                    } else {
+                        SnoozeMenu(item: item, onSnooze: actions.onSnooze) {
+                            Image(systemName: "moon.zzz").iconTarget()
+                        }
+                        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                    }
                 }
-                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .foregroundStyle(Theme.textDim).help(L("mail.snooze"))
                 .accessibilityLabel(L("mail.snooze.a11y", sender))
                 .opacity(hovering || selected || focused ? 1 : 0)
