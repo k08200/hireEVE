@@ -242,6 +242,48 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 .srow .vs b{color:var(--ink);font-weight:650}
 @media(max-width:860px){.srow{grid-template-columns:1fr;gap:14px;padding:24px 0}.srow .n{padding-top:0}}
 
+
+/* ── Stance: bento, not a list ────────────────────── */
+.bento{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+.bcard{border-radius:28px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
+  transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
+.bcard:hover{transform:translateY(-4px);box-shadow:0 40px 80px -46px rgba(8,42,80,.45)}
+.bcard-in{border-radius:21px;background:#fff;border:1px solid var(--line);height:100%;
+  padding:30px 30px 26px;display:flex;flex-direction:column;gap:14px;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
+.bcard .n{font-size:10.5px;font-weight:700;letter-spacing:.18em;color:var(--sky-600)}
+.bcard h3{margin:0;font-size:clamp(20px,2.2vw,27px);line-height:1.16;letter-spacing:-.028em;font-weight:650}
+.bcard p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.62}
+.bcard .vs{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3);
+  padding:9px 14px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
+  align-self:flex-start;flex-wrap:wrap}
+.bcard .vs b{color:var(--ink);font-weight:650}
+.bcard .vs a{color:var(--sky-600);font-weight:650}
+.bcard.dark{background:var(--ink);border-color:var(--ink)}
+.bcard.dark .bcard-in{background:var(--ink);border-color:rgba(255,255,255,.10);box-shadow:none}
+.bcard.dark h3{color:#fff}.bcard.dark p{color:rgba(255,255,255,.72)}
+.bcard.dark .n{color:#8fd0ff}
+.bcard.dark .vs{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.66)}
+.bcard.dark .vs b{color:#fff}.bcard.dark .vs a{color:#8fd0ff}
+.b7{grid-column:span 7}.b5{grid-column:span 5}.b6{grid-column:span 6}
+@media(max-width:900px){.b7,.b5,.b6{grid-column:span 12}}
+
+/* ── Feature list: what only this does ────────────── */
+.feats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 40px}
+.feat-i{padding:24px 0;border-top:1px solid var(--line);display:grid;gap:6px;align-content:start}
+.feat-i h4{margin:0;font-size:15.5px;font-weight:650;letter-spacing:-.015em;display:flex;align-items:center;gap:9px}
+.feat-i h4 em{font-style:normal;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+  color:var(--sky-600);background:rgba(2,132,199,.10);padding:3px 8px;border-radius:9999px}
+.feat-i p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
+@media(max-width:900px){.feats{grid-template-columns:1fr}}
+
+.socials{display:flex;gap:8px;margin-top:18px}
+.socials a{width:36px;height:36px;border-radius:9999px;display:grid;place-items:center;
+  border:1px solid var(--line);background:#fff;color:var(--ink-2);
+  transition:transform .5s var(--ease),color .5s var(--ease),border-color .5s var(--ease)}
+.socials a:hover{transform:translateY(-2px);color:var(--ink);border-color:var(--line-strong,rgba(10,14,20,.2))}
+.socials svg{width:16px;height:16px}
+
 /* Scroll reveal */
 /* Reveal is opt-IN: content is visible by default and JS arms the "from"
    state only once it is running. The usual way round leaves anything waiting
@@ -260,7 +302,7 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
 
 <nav class="nav"><div class="nav-pill">
   <span class="nav-brand">Klorn</span>
-  <span class="nav-links"><a href="#work">How it works</a><a href="#cards">Product</a><a href="#">Pricing</a><a href="#">Open source</a></span>
+  <span class="nav-links"><a href="#features">Features</a><a href="#cards">Product</a><a href="#">Pricing</a><a href="#">Open source</a></span>
   <a class="nav-cta" href="#">Open Klorn <i>↗</i></a>
 </div></nav>
 
@@ -312,7 +354,7 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
       with the evidence in front of you, and your approval before anything leaves.</p>
     <div class="actions rv">
       <a class="btn btn-1" href="#">Request early access <i>↗</i></a>
-      <a class="btn btn-2" href="#work">Watch it sort 64 emails</a>
+      <a class="btn btn-2" href="#features">See what it does</a>
     </div>
   </div>
 
@@ -403,66 +445,72 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
     <p class="rv">These are choices, not features. Each one costs Klorn something, and each one is the
       reason to use it instead of the assistant already bundled with your mail.</p>
   </div>
-  <div class="stance">
-    <div class="srow rv"><span class="n">01</span>
+  <div class="bento">
+    <article class="bcard b7 dark rv"><div class="bcard-in">
+      <span class="n">01 · Autonomy</span>
       <h3>An agent that acts for you is the wrong product.</h3>
-      <div class="body">
-        <p>Everyone is shipping autonomy. We think the scarce thing is judgement, not labour — you can
-          write the reply in ninety seconds, but deciding which of forty messages deserves it is the
-          part that eats the morning. Klorn does the deciding and leaves the acting to you.</p>
-        <span class="vs">Every send, delete and forward waits for you · <b>0 unapproved actions</b></span>
-      </div>
-    </div>
-    <div class="srow rv"><span class="n">02</span>
-      <h3>Four tiers. Not folders, not labels, not scores.</h3>
-      <div class="body">
-        <p>A confidence percentage tells you nothing you can act on, and an unlimited label system
-          becomes another inbox to manage. PUSH, QUEUE, SILENT, AUTO — a message either interrupts you,
-          waits, is filed, or was handled. There is no fifth tier, and there never will be.</p>
-        <span class="vs">Every message shows <b>why</b> it landed where it did</span>
-      </div>
-    </div>
-    <div class="srow rv"><span class="n">03</span>
+      <p>Everyone is shipping autonomy. The scarce thing is judgement, not labour — you can write the
+        reply in ninety seconds, but deciding which of forty messages deserves it is what eats the
+        morning. Klorn does the deciding and leaves the acting to you.</p>
+      <span class="vs">Send, delete and forward all wait for you · <b>0 unapproved actions</b></span>
+    </div></article>
+    <article class="bcard b5 rv"><div class="bcard-in">
+      <span class="n">02 · Model</span>
+      <h3>Four tiers. Not folders, labels or scores.</h3>
+      <p>A confidence percentage tells you nothing you can act on, and unlimited labels become a second
+        inbox. A message either interrupts you, waits, is filed, or was handled. There is no fifth tier.</p>
+      <span class="vs">Every message shows <b>why</b> it landed there</span>
+    </div></article>
+    <article class="bcard b5 rv"><div class="bcard-in">
+      <span class="n">03 · Evidence</span>
       <h3>A number you can check beats a promise.</h3>
-      <div class="body">
-        <p>"AI-powered" is not a claim. Klorn is scored against a hand-labeled set of real emails before
-          every release, cold-start and warm-start reported separately, and the set itself is in the
-          repository so you can disagree with our labels.</p>
-        <span class="vs"><b>94.3%</b> warm · 81.1% cold · <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener" style="color:var(--sky-600);font-weight:650">see the set →</a></span>
-      </div>
-    </div>
-    <div class="srow rv"><span class="n">04</span>
-      <h3>You should be able to leave.</h3>
-      <div class="body">
-        <p>An email agent reads everything you receive. That is too much power to hand to a black box
-          you cannot inspect or exit. Klorn is AGPLv3, self-hosts against your own database and model
-          keys, and caps its own daily spend so a runaway loop can't bill you.</p>
-        <span class="vs">AGPLv3 · <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" style="color:var(--sky-600);font-weight:650">read the source →</a></span>
-      </div>
-    </div>
+      <p>"AI-powered" is not a claim. Klorn is scored against hand-labeled real mail before every
+        release, cold and warm reported separately, and the set is in the repo so you can disagree
+        with our labels.</p>
+      <span class="vs"><b>94.3%</b> warm · 81.1% cold ·
+        <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">the set →</a></span>
+    </div></article>
+    <article class="bcard b7 rv"><div class="bcard-in">
+      <span class="n">04 · Exit</span>
+      <h3>You should be able to leave, and to look inside first.</h3>
+      <p>An email agent reads everything you receive. That is too much power to hand to a box you can
+        neither inspect nor exit. Klorn is AGPLv3, self-hosts against your own database and model keys,
+        and caps its own daily spend so a runaway loop can't bill you.</p>
+      <span class="vs">AGPLv3 · self-hosted · cost-capped ·
+        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">the source →</a></span>
+    </div></article>
   </div>
 </section>
 
-<!-- ══ HOW ══════════════════════════════════════════ -->
-<section class="sec" id="work">
+
+<!-- ══ WHAT ONLY KLORN DOES ═════════════════════════ -->
+<section class="sec band" id="features">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">How it works</span>
-      <h2 class="rv">Inbox to one decision.<br>In thirty-one seconds.</h2>
+      <span class="tag rv">Built, not planned</span>
+      <h2 class="rv">The parts you won't<br>find bundled elsewhere.</h2>
     </div>
-    <p class="rv">Three moves, and only the last one needs you. Klorn reads, connects, then waits —
-      it never acts on your behalf without an explicit approval.</p>
+    <p class="rv">Everything here ships in the current macOS build. Nothing on this list is a roadmap item.</p>
   </div>
-  <div class="steps">
-    <article class="step rv"><span class="sn">01</span>
-      <h3>Capture</h3>
-      <p>Mail, calendar, tasks and what Klorn has learned about you are pulled into one view for today.</p></article>
-    <article class="step rv"><span class="sn">02</span>
-      <h3>Connect</h3>
-      <p>People, deadlines, threads and promises are linked by what they actually cost you if missed.</p></article>
-    <article class="step rv"><span class="sn">03</span>
-      <h3>Approve</h3>
-      <p>Anything real-world carries its evidence, its risk, and a signed receipt once you say yes.</p></article>
+  <div class="feats">
+    <div class="feat-i rv"><h4>Top-bar firewall <em>only here</em></h4>
+      <p>A native line at the top of the screen, not a webview. At rest it never takes focus; open it and it joins Cmd+Tab.</p></div>
+    <div class="feat-i rv"><h4>Why, on every row</h4>
+      <p>"You replied to this sender 6 times." The reason is on the message, and moving it teaches the classifier.</p></div>
+    <div class="feat-i rv"><h4>Three one-key replies</h4>
+      <p>Accept, decline, ask — drafted together, chosen with 1/2/3. Choosing loads the draft; sending is still yours.</p></div>
+    <div class="feat-i rv"><h4>Reply tone, set once <em>only here</em></h4>
+      <p>Formal, friendly, casual, or learned from your own sent mail — applied to all three drafts without changing what they say.</p></div>
+    <div class="feat-i rv"><h4>Replies in the sender's language</h4>
+      <p>A Korean email gets a Korean reply. The app's own language follows macOS separately, and can be overridden.</p></div>
+    <div class="feat-i rv"><h4>Three autonomy modes</h4>
+      <p>Quiet, ask-first, or auto for safe actions only. You pick how much Klorn does alone, and change it any time.</p></div>
+    <div class="feat-i rv"><h4>Six alert categories</h4>
+      <p>Urgent mail, meetings, tasks, proposals, briefing, attachments — plus quiet hours. "Essentials only" is one click.</p></div>
+    <div class="feat-i rv"><h4>Signed action receipts <em>only here</em></h4>
+      <p>Every send, delete and forward mints a receipt with a payload hash, so what was approved is what went out.</p></div>
+    <div class="feat-i rv"><h4>Multi-inbox, threaded properly</h4>
+      <p>Several Gmail accounts in one queue, with every action routed back to the inbox it came from.</p></div>
   </div>
 </section>
 
@@ -573,9 +621,14 @@ h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-styl
     <div>
       <div class="foot-brand">Klorn</div>
       <p class="foot-note">An email chief-of-staff that decides nothing on its own.</p>
+      <div class="socials">
+        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+        <a href="https://x.com/klornai" rel="noreferrer noopener" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="https://join.slack.com/t/klorn/shared_invite/zt-3zkj8lqxg-L4LK8dNPkzgupHEdmXgbIg" rel="noreferrer noopener" aria-label="Slack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523z"/></svg></a>
+      </div>
     </div>
     <nav aria-label="Product"><h4>Product</h4>
-      <a href="#work">How it works</a><a href="#measured">Accuracy</a><a href="#pricing">Pricing</a>
+      <a href="#features">Features</a><a href="#measured">Accuracy</a><a href="#pricing">Pricing</a>
       <a href="https://app.klorn.ai/login">Log in</a></nav>
     <nav aria-label="Open source"><h4>Open source</h4>
       <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub repository</a>
