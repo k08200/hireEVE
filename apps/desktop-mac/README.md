@@ -144,13 +144,32 @@ Everything below is done by whoever owns the Apple Developer account (Team
    ```
    The workflow detects the cert, signs + notarizes + staples, and publishes the
    release. It becomes "Latest", so the landing "Download for Mac" button —
-   which points at `releases/latest/download/Klorn-macos.zip` — serves it with no
+   which points at `releases/latest/download/Klorn.dmg` — serves it with no
    further change, and the download now opens on a plain double-click.
 
-The landing button already links directly to
-`https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip`
-(a direct download, not the release page). Keep the release asset named
-`Klorn-macos.zip` so that URL keeps resolving.
+## Release assets — both are load-bearing
+
+| Asset | Purpose |
+|---|---|
+| `Klorn.dmg` | The human install path. The landing links straight to it. |
+| `Klorn-macos.zip` | The in-app update channel, nothing else. |
+
+`SelfUpdate.releaseZipURL()` builds
+`releases/download/desktop-v<version>/Klorn-macos.zip` from the version string,
+and `--self-check` asserts that exact URL. **Renaming or dropping the zip
+silently breaks in-app updates for every already-installed copy** — they fall
+back to opening the release page. Keep both assets, with these names.
+
+The DMG is not cosmetic. A quarantined app launched from wherever it was
+downloaded runs from a read-only `AppTranslocation` mount, so
+`SelfUpdate.installTarget()` finds neither `~/Applications/Klorn.app` nor
+`/Applications/Klorn.app` and returns `nil` — updates then fail permanently for
+that user. The Applications symlink in the DMG window is what gets people to
+move the app first, which is the only thing that ends translocation.
+
+Builds are universal (`arm64` + `x86_64`) via `KLORN_ARCHS`, so they run on Intel
+Macs too; the workflow asserts both slices are present before publishing. Local
+builds stay host-arch unless you set `KLORN_ARCHS="arm64 x86_64"` yourself.
 
 ## Tests
 

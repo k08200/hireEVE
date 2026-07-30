@@ -139,6 +139,25 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .btn-dl{padding-left:22px}
 .btn-dl svg{width:17px;height:17px;transition:transform .6s var(--ease)}
 .btn-dl:hover svg{transform:translateY(2px)}
+/* Two platform cards instead of one Download button. Both render without JS —
+   OS detection only promotes the matching one, so a Windows visitor with
+   scripting off still sees their entry rather than a Mac-only page. */
+.dl-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:20px auto 0;max-width:660px}
+.dl{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 18px 12px 15px;border-radius:16px;
+  background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 10px 30px -18px rgba(10,50,90,.5);backdrop-filter:blur(12px);
+  transition:transform .6s var(--ease),box-shadow .6s var(--ease),background .6s var(--ease)}
+.dl:hover{background:#fff;transform:translateY(-2px);box-shadow:0 18px 40px -20px rgba(10,50,90,.55)}
+.dl:active{transform:scale(.985)}
+.dl svg{width:22px;height:22px;flex:0 0 22px;color:var(--ink-2)}
+.dl .t{display:block}
+.dl b{display:block;font-size:14px;font-weight:650;letter-spacing:-.01em;color:var(--ink)}
+.dl .t span{display:block;font-size:11.5px;color:var(--ink-3);margin-top:1px}
+.dl.is-yours{background:var(--ink);border-color:var(--ink);box-shadow:0 20px 44px -22px rgba(10,14,20,.85)}
+.dl.is-yours b{color:#fff}
+.dl.is-yours .t span{color:rgba(255,255,255,.66)}
+.dl.is-yours svg{color:#fff}
+.dl.is-yours:hover{background:#11161f}
 .actions-note{max-width:560px;margin:18px auto 0;font-size:12.5px;line-height:1.6;color:var(--ink-3)}
 .actions-note a{color:#0b5f8a;font-weight:600;border-bottom:1px solid rgba(11,95,138,.28)}
 .actions-note a:hover{border-bottom-color:#0b5f8a}
@@ -552,7 +571,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <span class="nav-lang">
     <a href="/" data-lang-pick="en">EN</a><a href="/ko/" data-lang-pick="ko" aria-current="true">한국어</a>
   </span>
-  <a class="nav-cta" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">다운로드 <i>↓</i></a>
+  <a class="nav-cta" href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
+     data-mac-dl data-win-href="https://app.klorn.ai/login" data-win-label="Klorn 열기">다운로드 <i>↓</i></a>
 </div></nav>
 
 <header class="hero" id="top">
@@ -603,13 +623,18 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       Klorn은 무엇이 당신의 주의를 받을 자격이 있는지만 판단하고, 행동은 당신에게 남깁니다.</p>
     <div class="actions rv">
       <a class="btn btn-1" href="https://app.klorn.ai/early-access">베타 신청하기 <i>↗</i></a>
-      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
-        맥용 다운로드</a>
+    </div>
+    <div class="dl-row rv" id="dl-row">
+      <a class="dl" data-os="mac" href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c.02-2.3 1.87-3.4 1.95-3.45-1.06-1.56-2.71-1.77-3.3-1.8-1.4-.11-2.58.78-3.25.78-.68 0-1.72-.76-2.83-.74-1.46.02-2.8.85-3.55 2.15-1.51 2.63-.39 6.52 1.09 8.66.72 1.04 1.58 2.21 2.71 2.17 1.09-.04 1.5-.7 2.82-.7 1.31 0 1.68.7 2.83.681.17-.02 1.92-1.06 2.64-2.11.83-1.2 1.17-2.37 1.19-2.43-.03-.01-2.28-.88-2.3-3.48zM14.9 5.6c.6-.72 1-1.72.89-2.72-.86.04-1.9.57-2.52 1.29-.55.63-1.02 1.65-.89 2.63.96.07 1.92-.49 2.52-1.2z"/></svg>
+        <span class="t"><b>맥용 다운로드</b><span>유니버설 · macOS 14+ · 공증 완료</span></span></a>
+      <a class="dl" data-os="win" href="https://app.klorn.ai/login">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.2-1v7.1H3V5.6zm0 12.8l7.2 1v-7H3v6zM11.2 4.4L21 3v8.7h-9.8V4.4zm0 15.2L21 21v-8.6h-9.8v7.2z"/></svg>
+        <span class="t"><b>윈도우용 Klorn</b><span>브라우저에서 실행 · 데스크탑 빌드 준비 중</span></span></a>
     </div>
     <!-- The app needs an approved account, so the download alone is a dead end.
          Say so next to the button rather than after the click. -->
-    <p class="actions-note rv">무료, AGPLv3, macOS 14+. 앱은 Klorn 계정으로 로그인하며,
+    <p class="actions-note rv">무료, AGPLv3. 앱은 Klorn 계정으로 로그인하며,
       구글 검수가 끝날 때까지 베타는 초대제입니다.
       <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
   </div>
@@ -918,12 +943,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <p class="final-p">초대제 베타 — 승인은 몇 분 안에, 구글 검수가 끝날 때까지 테스터 100명.</p>
     <div class="actions">
       <a class="btn btn-1" href="https://app.klorn.ai/early-access">베타 신청하기 <i>↗</i></a>
-      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">
+      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
+         data-mac-dl data-win-href="https://app.klorn.ai/login" data-win-label="윈도우에서 Klorn 열기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
         맥용 다운로드</a>
     </div>
     <p class="actions-note">이미 승인받으셨나요? <a href="https://app.klorn.ai/login">로그인</a> ·
-      macOS 14+ · AGPLv3</p>
+      macOS 14+ 유니버설 · 윈도우는 브라우저 · AGPLv3</p>
   </div>
 </section>
 
@@ -939,7 +965,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       </div>
     </div>
     <nav aria-label="제품"><h4>제품</h4>
-      <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">맥용 다운로드</a>
+      <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
+         data-mac-dl data-win-href="https://app.klorn.ai/login" data-win-label="윈도우용 Klorn">맥용 다운로드</a>
       <a href="#features">기능</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
       <a href="https://app.klorn.ai/login">로그인</a></nav>
     <nav aria-label="오픈소스"><h4>오픈소스</h4>
@@ -998,6 +1025,48 @@ if (shell && fine) {
   }, { passive: true });
   shell.style.transition = 'transform .9s cubic-bezier(.32,.72,0,1)';
 }
+
+// Which platform is this? The download row renders both entries either way —
+// this only promotes the matching one and retargets the Mac-specific buttons, so
+// a Windows visitor with scripting off still sees a Windows entry rather than a
+// page that only offers a .dmg.
+//
+// navigator.platform is deprecated but still the most reliable macOS/Windows
+// signal across current browsers; userAgentData is preferred where present and
+// its synchronous `platform` field is enough — no need for the async hints.
+(function () {
+  var uaData = navigator.userAgentData;
+  var raw = String((uaData && uaData.platform) || navigator.platform ||
+                   navigator.userAgent || '');
+  var os = /mac|iphone|ipad|ipod/i.test(raw) ? 'mac'
+         : /win/i.test(raw) ? 'win'
+         : null;
+  if (!os) return;                       // Linux and anything unknown: leave both neutral
+
+  var mine = document.querySelector('.dl[data-os=' + os + ']');
+  if (mine) {
+    mine.classList.add('is-yours');
+    // Put the visitor's platform first without touching source order for
+    // everyone else — a plain flex reorder, not a DOM move.
+    mine.style.order = '-1';
+  }
+
+  if (os !== 'win') return;
+  document.querySelectorAll('[data-mac-dl]').forEach(function (a) {
+    var href = a.getAttribute('data-win-href');
+    var label = a.getAttribute('data-win-label');
+    if (href) { a.setAttribute('href', href); a.removeAttribute('rel'); }
+    if (!label) return;
+    // Replace only the text node, so the arrow/icon markup survives — and keep
+    // its surrounding whitespace, or "Download <i>↓</i>" relabels to the
+    // spaceless "Open Klorn↓".
+    Array.prototype.forEach.call(a.childNodes, function (n) {
+      if (n.nodeType !== 3 || !n.textContent.trim()) return;
+      var pad = n.textContent.match(/^(\s*)[\s\S]*?(\s*)$/);
+      n.textContent = pad[1] + label + pad[2];
+    });
+  });
+})();
 
 // The wordmark returns to the top. href="#top" is the no-JS fallback; with JS we
 // scroll instead of jumping and drop the hash again, so a later reload still

@@ -16,8 +16,18 @@
 #   MACOS_NOTARY_TEAM_ID              your Team ID (P89M32649C)
 #   MACOS_NOTARY_APP_PASSWORD         an app-specific password for that Apple ID
 #
-# Note: the build is host-arch (arm64 on the macos-14 runner). A universal
-# (arm64 + x86_64) build would need `swift build --arch arm64 --arch x86_64`.
+# The build is universal (arm64 + x86_64) via KLORN_ARCHS, so it runs on Intel
+# Macs as well as Apple Silicon. A host-arch build shipped an arm64-only binary
+# that could not launch on Intel at all.
+#
+# Two assets ship, and both are load-bearing:
+#   • Klorn.dmg  — the human install path. Its Applications symlink is what gets
+#     people to move the app before first launch; without that the app runs
+#     translocated and SelfUpdate can never find an install target, so in-app
+#     updates fail permanently for that user.
+#   • Klorn-macos.zip — the update channel. SelfUpdate.releaseZipURL() downloads
+#     this exact asset by name, so renaming or dropping it silently breaks
+#     updates for every already-installed copy.
 
 name: Desktop Release
 
@@ -65,13 +75,27 @@ jobs:
             echo "::warning::No Developer ID secrets set — publishing an ad-hoc (non-notarized) build."
           fi
 
-      - name: Build Klorn.app
+      - name: Build Klorn.app (universal)
         working-directory: apps/desktop-mac
         # 3rd arg = bundle version from the tag, so the in-app update check
         # compares real versions (a hardcoded one would nag forever).
         run: scripts/make-app.sh release "https://klorn-api.onrender.com" "${TAG#desktop-v}"
         env:
           TAG: ${{ steps.meta.outputs.tag }}
+          KLORN_ARCHS: "arm64 x86_64"
+
+      - name: Verify both architectures shipped
+        working-directory: apps/desktop-mac
+        # make-app.sh already asserts this, but a named step puts the archs in the
+        # log and makes a dropped slice obvious in the checks UI rather than
+        # buried in build output.
+        run: |
+          ARCHS=$(lipo -archs Klorn.app/Contents/MacOS/KlornMac)
+          echo "architectures: $ARCHS"
+          for want in arm64 x86_64; do
+            tr ' ' '\n' <<< "$ARCHS" | grep -qx "$want" \
+              || { echo "::error::release binary is missing the $want slice"; exit 1; }
+          done
 
       - name: Import Developer ID certificate
         if: steps.signing.outputs.enabled == 'true'
@@ -137,9 +161,44 @@ jobs:
           spctl --assess --type execute -vvv Klorn.app
           stapler validate Klorn.app
 
-      - name: Zip for download
+      # Both packages are built from the app AFTER it has been signed, notarized
+      # and stapled, so each carries the ticket and opens offline.
+      - name: Zip for the in-app updater
         working-directory: apps/desktop-mac
         run: ditto -c -k --keepParent Klorn.app "$RUNNER_TEMP/Klorn-macos.zip"
+
+      - name: Build the DMG
+        working-directory: apps/desktop-mac
+        run: scripts/make-dmg.sh Klorn.app "$RUNNER_TEMP/Klorn.dmg" Klorn
+
+      - name: Sign, notarize & staple the DMG
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.MACOS_NOTARY_APP_PASSWORD }}
+        run: |
+          # The container needs its own signature and ticket. A notarized app
+          # inside an unnotarized DMG still trips Gatekeeper on the DMG itself,
+          # before the user ever reaches the app.
+          codesign --force --timestamp --sign "$SIGN_IDENTITY" "$RUNNER_TEMP/Klorn.dmg"
+          xcrun notarytool submit "$RUNNER_TEMP/Klorn.dmg" \
+            --apple-id "$NOTARY_APPLE_ID" \
+            --team-id "$NOTARY_TEAM_ID" \
+            --password "$NOTARY_PASSWORD" \
+            --wait
+          xcrun stapler staple "$RUNNER_TEMP/Klorn.dmg"
+
+      - name: Verify the DMG passes Gatekeeper
+        if: steps.signing.outputs.enabled == 'true'
+        run: |
+          # A disk image is assessed as "open", not "execute", and needs the
+          # primary-signature context — `--type execute` on a .dmg reports a
+          # misleading pass.
+          spctl --assess --type open \
+            --context context:primary-signature -vvv "$RUNNER_TEMP/Klorn.dmg"
+          stapler validate "$RUNNER_TEMP/Klorn.dmg"
 
       - name: Publish GitHub Release
         env:
@@ -152,24 +211,30 @@ jobs:
             echo "Native macOS app — the always-on top-bar firewall (a slim pill at the top of your screen that expands with \`⌥⌘K\`)."
             echo
             echo "## Install"
-            echo "1. Download \`Klorn-macos.zip\` and unzip it."
-            echo "2. Move \`Klorn.app\` to \`/Applications\`."
+            echo "1. Download \`Klorn.dmg\` and open it."
+            echo "2. **Drag \`Klorn.app\` onto Applications.** Running it straight from the disk image"
+            echo "   leaves it translocated, and in-app updates cannot find an install location."
             if [ "$SIGNED" = "true" ]; then
-              echo "3. Launch it — signed with a Developer ID and notarized by Apple, so a plain double-click just works."
+              echo "3. Launch it — Developer ID signed and notarized by Apple, so a plain double-click just works."
             else
               echo "3. This build is **ad-hoc signed (not notarized)**, so macOS quarantines a web download and shows \"Klorn.app is damaged.\" Clear the quarantine once:"
               echo '   ```'
               echo "   xattr -dr com.apple.quarantine /Applications/Klorn.app"
               echo '   ```'
               echo "4. Launch \`Klorn.app\`."
+              echo
+              echo "> A notarized build opens with a plain double-click (no \`xattr\`) — configure the Developer-ID/notary secrets and re-tag (see \`apps/desktop-mac/README.md\`)."
             fi
             echo
-            echo "> A notarized build opens with a plain double-click (no \`xattr\`) — configure the Developer-ID/notary secrets and re-tag (see \`apps/desktop-mac/README.md\`)."
+            echo "Universal binary — Apple Silicon and Intel. Requires macOS 14+."
+            echo "Points at the prod API by default (\`KLORN_API_URL\` overrides)."
             echo
-            echo "Requires macOS 14+, Apple Silicon. Points at the prod API by default (\`KLORN_API_URL\` overrides)."
+            echo "<sub>\`Klorn-macos.zip\` is the same build, kept as the channel the in-app updater"
+            echo "downloads. Install from the DMG.</sub>"
           } > "$NOTES"
           gh release create "$TAG" \
-            "$RUNNER_TEMP/Klorn-macos.zip#Klorn.app (macOS 14+, Apple Silicon)" \
+            "$RUNNER_TEMP/Klorn.dmg#Klorn.app (macOS 14+, universal)" \
+            "$RUNNER_TEMP/Klorn-macos.zip#Same build, zipped (in-app updater channel)" \
             --repo "$GITHUB_REPOSITORY" \
             --title "Klorn Desktop $TAG" \
             --notes-file "$NOTES"
