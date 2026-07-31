@@ -28,10 +28,18 @@
 <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
 <style>
 :root{
-  --ink:#0a0e14; --ink-2:#39424e; --ink-3:#6a7480;
+  --ink:#0a0e14; --ink-2:#39424e;
+  /* #6a7480 measured 4.17:1 on the band wash and 3.71:1 over the sky bands —
+     under AA for the small text it is used for. This clears 4.5:1 on every
+     surface it lands on, white cards through photograph. */
+  --ink-3:#5c656f;
   --paper:#fbfaf6;            /* warm, not clinical white (ref: Trajectory) */
   --line:rgba(10,14,20,.09);
   --sky-600:#0284c7;
+  /* --sky-600 is the accent for fills, borders and large display type. As a
+     TEXT colour it fails AA at small sizes on every surface here — 4.10:1
+     even on a white card, 3.46:1 over the sky. Small text uses this instead. */
+  --sky-ink:#0369a1;
   --ease:cubic-bezier(.32,.72,0,1);
 }
 *{box-sizing:border-box}
@@ -51,12 +59,6 @@ a{color:inherit;text-decoration:none}
 .grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.30;mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.42'/></svg>")}
 
-/* Blueprint grid — structure you feel before you notice (ref: NeoNet). */
-.grid-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
-  background-size:112px 112px;
-  -webkit-mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%);
-          mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%)}
 
 /* Page-wide atmosphere. The sky used to end at the fold and everything below
    it was flat paper — the page looked like it ran out of design halfway down.
@@ -64,15 +66,12 @@ a{color:inherit;text-decoration:none}
    soft blooms so the background keeps changing as you pass it. */
 .field{position:absolute;top:0;left:0;right:0;height:100%;z-index:0;pointer-events:none;
   background-image:
-    radial-gradient(46% 16% at 80% 15%, rgba(120,186,232,.34), transparent 68%),
-    radial-gradient(42% 13% at 12% 30%, rgba(150,196,168,.26), transparent 70%),
-    radial-gradient(48% 14% at 88% 48%, rgba(240,203,142,.26), transparent 70%),
-    radial-gradient(44% 13% at 8% 64%, rgba(132,180,224,.30), transparent 70%),
-    radial-gradient(46% 14% at 76% 80%, rgba(190,210,178,.26), transparent 72%),
-    radial-gradient(40% 12% at 22% 93%, rgba(126,188,230,.24), transparent 72%),
-    linear-gradient(rgba(10,14,20,.055) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(10,14,20,.055) 1px,transparent 1px);
-  background-size:auto,auto,auto,auto,auto,auto,112px 112px,112px 112px;
+    radial-gradient(54% 18% at 82% 14%, rgba(120,186,232,.38), transparent 70%),
+    radial-gradient(50% 16% at 10% 29%, rgba(198,178,196,.32), transparent 72%),
+    radial-gradient(56% 17% at 90% 47%, rgba(240,203,142,.30), transparent 72%),
+    radial-gradient(52% 16% at 6% 63%, rgba(132,180,224,.34), transparent 72%),
+    radial-gradient(46% 14% at 76% 80%, rgba(190,210,178,.30), transparent 72%),
+    radial-gradient(40% 12% at 22% 93%, rgba(126,188,230,.28), transparent 72%);
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%);
           mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%)}
 
@@ -189,7 +188,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .stage-cap{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;
   margin:0 0 14px;font-size:12.5px;color:var(--ink-2)}
 .stage-cap b{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;
-  letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--sky-600);
+  letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--sky-ink);
   border-radius:999px;padding:4px 10px}
 .stage-cap b::before{content:'';width:5px;height:5px;border-radius:50%;background:#fff}
 .shell{position:relative;border-radius:30px;padding:10px;
@@ -246,12 +245,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 /* ── Shared section furniture ─────────────────────── */
 .wrapl{max-width:1180px;margin:0 auto;padding:0 24px}
-.band{background:rgba(238,236,227,.44);border-block:1px solid var(--line)}
+/* Sections separate by tone, never by a rule drawn across the page. The wash
+   is a masked pseudo-element so its top and bottom edges dissolve instead of
+   landing as a hairline. */
+/* A third pass of the same sky, hazed right back, so the middle of the page has
+   weather in it too instead of flat tone. Same cached file as the hero — no
+   extra request — cropped elsewhere in the frame and not mirrored, so it reads
+   as a different part of the sky rather than a repeat of the closing band. */
+.sec-sky{position:absolute;inset:0;z-index:-1;pointer-events:none;display:block}
+.sec-sky img{width:100%;height:100%;object-fit:cover;object-position:center 12%;display:block;
+  opacity:.55;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%)}
+.band::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:rgba(238,236,227,.62);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%)}
 .sec.band{padding-block:96px}
 
 .stmt{max-width:780px}
 .stmt-h{font-size:clamp(30px,4.4vw,54px);line-height:1.06;letter-spacing:-.035em;font-weight:700;margin:0 0 22px}
-.stmt-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-600)}
+.stmt-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-ink)}
 .stmt-p{font-size:18px;color:var(--ink-2);margin:0 0 30px;max-width:640px}
 .pips{display:flex;gap:10px;flex-wrap:wrap}
 .pip{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:9999px;background:#fff;
@@ -261,7 +275,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .steps{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .step{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
 .step>*{margin:0}
-.step .sn{display:block;font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--sky-600);padding:22px 24px 0}
+.step .sn{display:block;font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--sky-ink);padding:22px 24px 0}
 .step h3{font-size:20px;letter-spacing:-.02em;padding:10px 24px 0}
 .step p{color:var(--ink-3);font-size:14px;padding:8px 24px 22px}
 @media(max-width:860px){.steps{grid-template-columns:1fr}}
@@ -274,7 +288,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .stat p{margin:12px 0 0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
 @media(max-width:860px){.stats{grid-template-columns:1fr}}
 .foot{max-width:1180px;margin:34px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
-.foot a{color:var(--sky-600);font-weight:600}
+.foot a{color:var(--sky-ink);font-weight:600}
 
 .os{border-radius:30px;padding:10px;background:rgba(10,14,20,.04);border:1px solid var(--line)}
 .os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:38px 38px;
@@ -308,13 +322,25 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .btn.full{width:100%;justify-content:center;margin-top:auto;padding-inline:26px}
 @media(max-width:820px){.prices{grid-template-columns:1fr}}
 
-.final{padding:112px 0 28px;text-align:center}
+/* The closing section bookends the hero with the same sky. It reuses the hero's
+   file — mirrored and cropped to a different part of the frame — so it reads as
+   the same weather from another angle and costs no extra bytes: the browser
+   already has it. Lazy, because it sits far below the fold. */
+.final{position:relative;overflow:hidden;padding:112px 0 28px;text-align:center}
+.final-sky{position:absolute;inset:0;z-index:0;pointer-events:none;display:block}
+.final-sky img{width:100%;height:100%;object-fit:cover;object-position:center 78%;display:block;
+  transform:scaleX(-1);opacity:.82;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%)}
+.final>.wrapl{position:relative;z-index:1}
 .final-h{font-size:clamp(34px,5.4vw,68px);line-height:1.02;letter-spacing:-.04em;font-weight:700;margin:0 0 18px}
-.final-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-600)}
+/* Now sits on the closing photograph too: --sky-600 measures 2.93:1 there,
+   under the 3:1 floor. Same shade as the hero accent. */
+.final-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:#0277b3}
 .final-p{color:var(--ink-2);margin:0 auto 30px;max-width:520px}
 .final .actions{justify-content:center}
 
-.foot-nav{position:relative;z-index:1;border-top:1px solid var(--line);padding:56px 0 28px;margin-top:76px}
+.foot-nav{position:relative;z-index:1;padding:56px 0 28px;margin-top:76px}
 .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px}
 .foot-brand{display:inline-block;font-size:19px;font-weight:700;letter-spacing:-.02em;
   transition:opacity .5s var(--ease)}
@@ -325,7 +351,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   transition:color .4s var(--ease)}
 .foot-nav nav a:hover{color:var(--ink)}
 .foot-base{display:flex;justify-content:space-between;align-items:center;margin-top:54px;padding-top:24px;
-  border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+  font-size:12.5px;color:var(--ink-3)}
 .langsw{display:inline-flex;gap:9px;align-items:center}
 .langsw a{font-weight:650}
 .langsw a[aria-current]{color:var(--ink)}
@@ -333,23 +359,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 @media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr;gap:30px}}
 
 .proof{max-width:1180px;margin:26px auto 0;padding:0 24px;font-size:13.5px;color:var(--ink-3);max-width:720px}
-.proof a{color:var(--sky-600);font-weight:600}
+.proof a{color:var(--sky-ink);font-weight:600}
 
 
 /* ── Opinionated stance rows ──────────────────────── */
-.stance{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;gap:0}
-.srow{display:grid;grid-template-columns:34px 1fr 1fr;gap:32px;align-items:start;
-  padding:30px 0;border-top:1px solid var(--line)}
-.srow:last-child{border-bottom:1px solid var(--line)}
-.srow .n{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--sky-600);padding-top:5px}
-.srow h3{margin:0;font-size:clamp(19px,2.1vw,25px);line-height:1.2;letter-spacing:-.025em;font-weight:650}
-.srow .body{display:grid;gap:12px}
-.srow p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.6}
-.srow .vs{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-3);
-  padding:7px 13px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
-  align-self:flex-start}
-.srow .vs b{color:var(--ink);font-weight:650}
-@media(max-width:860px){.srow{grid-template-columns:1fr;gap:14px;padding:24px 0}.srow .n{padding-top:0}}
 
 
 /* ── Stance: bento, not a list ────────────────────── */
@@ -360,14 +373,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bcard-in{border-radius:21px;background:#fff;border:1px solid var(--line);height:100%;
   padding:30px 30px 26px;display:flex;flex-direction:column;gap:14px;
   box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
-.bcard .n{font-size:10.5px;font-weight:700;letter-spacing:.18em;color:var(--sky-600)}
+.bcard .n{font-size:10.5px;font-weight:700;letter-spacing:.18em;color:var(--sky-ink)}
 .bcard h3{margin:0;font-size:clamp(20px,2.2vw,27px);line-height:1.16;letter-spacing:-.028em;font-weight:650}
 .bcard p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.62}
 .bcard .vs{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3);
   padding:9px 14px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
   align-self:flex-start;flex-wrap:wrap}
 .bcard .vs b{color:var(--ink);font-weight:650}
-.bcard .vs a{color:var(--sky-600);font-weight:650}
+.bcard .vs a{color:var(--sky-ink);font-weight:650}
 .bcard.dark{background:var(--ink);border-color:var(--ink)}
 .bcard.dark .bcard-in{background:var(--ink);border-color:rgba(255,255,255,.10);box-shadow:none}
 .bcard.dark h3{color:#fff}.bcard.dark p{color:rgba(255,255,255,.72)}
@@ -379,10 +392,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 /* ── Feature list: what only this does ────────────── */
 .feats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 40px}
-.feat-i{padding:24px 0;border-top:1px solid var(--line);display:grid;gap:6px;align-content:start}
+.feat-i{padding:24px 0;display:grid;gap:6px;align-content:start}
 .feat-i h4{margin:0;font-size:15.5px;font-weight:650;letter-spacing:-.015em;display:flex;align-items:center;gap:9px}
 .feat-i h4 em{font-style:normal;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
-  color:var(--sky-600);background:rgba(2,132,199,.10);padding:3px 8px;border-radius:9999px}
+  color:var(--sky-ink);background:rgba(2,132,199,.10);padding:3px 8px;border-radius:9999px}
 .feat-i p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
 @media(max-width:900px){.feats{grid-template-columns:1fr}}
 
@@ -413,13 +426,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   color:var(--ink-3);margin-bottom:8px}
 .vscell p{margin:0;font-size:14.5px;line-height:1.6}
 .vscell.ours p{color:var(--ink);font-weight:500}
-.vscell.ours p b{color:var(--sky-600);font-weight:650}
+.vscell.ours p b{color:var(--sky-ink);font-weight:650}
 @media(max-width:820px){
   .vshead{display:none}
   .vsrow{grid-template-columns:1fr;gap:0;padding-bottom:18px}
   .vscell{border-radius:16px!important;margin-bottom:8px}
   .vscell::before{content:attr(data-who);display:block;font-size:10.5px;letter-spacing:.16em;
-    text-transform:uppercase;font-weight:700;color:var(--sky-600);margin-bottom:8px}
+    text-transform:uppercase;font-weight:700;color:var(--sky-ink);margin-bottom:8px}
   .vscell.them::before{color:var(--ink-3)}
 }
 
@@ -528,8 +541,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .pl-b{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:inherit;
   font-size:12px;cursor:pointer;transition:background .35s var(--ease),border-color .35s var(--ease)}
 .pl-b:hover{background:rgba(10,14,20,.04)}
-.pl-b.on{background:var(--sky-600);border-color:var(--sky-600);color:#fff}
-.pl-b.on:hover{background:#0369a1}
+/* White on --sky-600 is 4.10:1 — under AA. --sky-ink carries the same accent
+   at 5.93:1. */
+.pl-b.on{background:var(--sky-ink);border-color:var(--sky-ink);color:#fff}
+.pl-b.on:hover{background:#025683}
 .pl-why{padding:12px 18px;background:rgba(10,14,20,.028);border-bottom:1px solid var(--line);font-size:12px}
 .pl-why .w{color:var(--ink-3)}
 .pl-why .sm{margin-top:6px;color:var(--ink);line-height:1.5}
@@ -542,7 +557,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .pl-opt:hover{border-color:var(--sky-600);background:rgba(2,132,199,.04)}
 .pl-opt kbd{flex:0 0 18px;height:18px;border-radius:5px;background:rgba(10,14,20,.07);display:grid;
   place-items:center;font:inherit;font-size:10px;font-weight:700}
-.pl-opt b{display:block;font-size:11px;color:var(--sky-600);margin-bottom:1px}
+.pl-opt b{display:block;font-size:11px;color:var(--sky-ink);margin-bottom:1px}
 .pl-hint{margin:0;padding:11px 18px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink-3);
   background:rgba(10,14,20,.02)}
 .pl-hint b{color:var(--ink-2);font-weight:650}
@@ -603,7 +618,6 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
          srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
          alt="" aria-hidden="true" fetchpriority="high" decoding="async" width="2560" height="1709">
   </picture>
-  <div class="grid-bg"></div>
 
   <div class="wrap">
     <span class="eyebrow rv">Measured on real mail <b>94.3%</b></span>
@@ -839,6 +853,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <!-- ══ MEASURED ═════════════════════════════════════ -->
 <section class="sec band" id="measured">
+  <picture class="sec-sky" aria-hidden="true">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" loading="lazy" decoding="async" width="2560" height="1709">
+  </picture>
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">Measured, not promised</span>
@@ -929,6 +950,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <!-- ══ FINAL ════════════════════════════════════════ -->
 <section class="sec final">
+  <picture class="final-sky" aria-hidden="true">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" loading="lazy" decoding="async" width="2560" height="1709">
+  </picture>
   <div class="wrapl rv">
     <h2 class="final-h">The next inbox is<br>a <span class="ser">decision queue.</span></h2>
     <p class="final-p">Invite-only beta — approved within minutes, 100 testers until Google's review clears.</p>
