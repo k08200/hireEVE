@@ -363,6 +363,20 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .os-h{font-size:clamp(26px,3.2vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:700}
 .os-p{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:520px}
 .os-cta{display:flex;gap:12px;flex-wrap:wrap}
+/* Recently shipped. On the landings measured, developer-facing tools surface
+   shipping velocity on the page itself (linear, warp, cursor, resend, vercel);
+   for an AGPL project the release feed is the one trust signal that cannot be
+   faked. Hidden until the GitHub fetch succeeds, so a failure costs nothing —
+   the footer's Releases link already covers it. */
+.ship{margin-top:26px}
+.ship h3{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:700}
+.ship ol{list-style:none;margin:0 0 10px;padding:0;display:flex;gap:8px;flex-wrap:wrap}
+.ship li{display:inline-flex;align-items:baseline;gap:8px;padding:7px 12px;border-radius:9999px;
+  background:rgba(10,14,20,.045);font-size:12.5px}
+.ship li a{font-weight:650;color:var(--ink)}
+.ship li span{color:var(--ink-3);font-size:11.5px}
+.ship>a{font-size:12.5px;color:var(--sky-ink);font-weight:600}
 @media(max-width:900px){.os-in{grid-template-columns:1fr;gap:34px;padding:32px 26px}}
 
 .prices{max-width:1000px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -918,6 +932,11 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
             <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">저장소 보기 <i>↗</i></a>
             <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">평가셋 보기</a>
           </div>
+          <div class="ship" id="ship" hidden>
+            <h3>최근 배포</h3>
+            <ol></ol>
+            <a href="https://github.com/k08200/klorn/releases" rel="noreferrer noopener">모든 릴리스 →</a>
+          </div>
         </div>
       </div>
     </div>
@@ -1166,6 +1185,61 @@ if (shell && fine) {
     select((next + tabs.length) % tabs.length, true);
   });
   select(0);
+})();
+
+// Recently shipped — populated from the public GitHub releases feed, because a
+// hand-maintained list would rot. The block stays hidden unless the fetch
+// succeeds, so offline/rate-limited visitors simply never see it.
+(function () {
+  var box = document.getElementById('ship');
+  if (!box || !window.fetch) return;
+  fetch('https://api.github.com/repos/k08200/klorn/releases?per_page=3')
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (rel) {
+      if (!rel || !rel.length) return;
+      var list = box.querySelector('ol');
+      var loc = document.documentElement.lang === 'ko' ? 'ko-KR' : 'en-US';
+      rel.slice(0, 3).forEach(function (r) {
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.href = r.html_url; a.rel = 'noreferrer noopener';
+        a.textContent = r.tag_name;
+        var s = document.createElement('span');
+        s.textContent = new Date(r.published_at)
+          .toLocaleDateString(loc, { month: 'short', day: 'numeric' });
+        li.appendChild(a); li.appendChild(s); list.appendChild(li);
+      });
+      box.hidden = false;
+    })
+    .catch(function () { /* stays hidden — the footer Releases link covers it */ });
+})();
+
+// The measured numbers count up the first time they scroll into view. Motion
+// only — the markup already holds the final values, so no JS, reduced motion,
+// or a missed observer all land on the true numbers.
+(function () {
+  var els = document.querySelectorAll('#measured .sv');
+  if (!els.length || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+      var el = e.target, txt = el.textContent.trim();
+      var m = txt.match(/^([0-9.]+)(.*)$/);
+      if (!m) return;
+      var target = parseFloat(m[1]), suffix = m[2];
+      var dec = (m[1].split('.')[1] || '').length, t0 = null;
+      function step(ts) {
+        if (t0 === null) t0 = ts;
+        var p = Math.min(1, (ts - t0) / 800);
+        el.textContent = (target * (1 - Math.pow(1 - p, 3))).toFixed(dec) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = txt;          // land on the exact original string
+      }
+      requestAnimationFrame(step);
+    });
+  }, { threshold: .6 });
+  els.forEach(function (el) { io.observe(el); });
 })();
 
 // The wordmark returns to the top. href="#top" is the no-JS fallback; with JS we
