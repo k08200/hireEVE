@@ -110,13 +110,13 @@ enum PreviewRender {
         // ImageRenderer draws nothing inside a ScrollView, so the mail rows —
         // the densest and most design-critical surface in the app — are composed
         // directly here instead of being lost inside the list's scroller.
-        // The landing page shows these four surfaces in one fixed frame, switched
-        // by tabs, so they are all rendered at the SAME aspect. Four different
-        // shapes in one frame means either letterboxing or a ragged grid — the
-        // shape is a layout decision, so it is made here rather than by cropping
-        // afterwards. 520x330pt lands at ~150% on the page: comfortably readable.
-        let tour = CGSize(width: 520, height: 330)
-        shot("rows", size: tour, align: .top) {
+        // The landing shows these four surfaces in one frame, so they share a
+        // width — but each is rendered at the height its own content needs and
+        // trimmed to the frame afterwards. Rendering straight into a short frame
+        // COMPRESSES the layout instead of overflowing it: at 330pt the option
+        // rows in Preferences squeezed until their text sat outside the cards.
+        let tourW: CGFloat = 520
+        shot("rows", size: CGSize(width: tourW, height: 430), align: .top) {
             VStack(spacing: 0) {
                 ForEach(model.queue?.items(for: .push) ?? []) { item in
                     FullRow(item: item, actions: actions)
@@ -128,13 +128,13 @@ enum PreviewRender {
         // The reading pane on its own. Shrinking the whole 1400pt window into a
         // landing-page card renders the app's body text at under 7px; this fits
         // the same card at over 100%, so it can actually be read.
-        shot("reading", size: tour, align: .top) {
+        shot("reading", size: CGSize(width: tourW, height: 430), align: .top) {
             ReadingPane(actions: actions)
         }
         // PreferencesView puts its body in a ScrollView, which ImageRenderer
         // draws as nothing — the shot was a title bar over a blank sheet. Render
         // the behaviour settings themselves, which is the part worth showing.
-        shot("preferences", size: tour, align: .top) {
+        shot("preferences", size: CGSize(width: tourW, height: 900), align: .top) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text(L("prefs.title")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
@@ -149,7 +149,7 @@ enum PreviewRender {
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
             .padding(14)
         }
-        shot("tier-guide", size: tour) {
+        shot("tier-guide", size: CGSize(width: tourW, height: 520)) {
             TierGuide {}
         }
         return ok
