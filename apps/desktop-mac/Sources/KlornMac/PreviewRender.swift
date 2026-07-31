@@ -34,7 +34,7 @@ enum PreviewRender {
        "tier":"PUSH","tierReason":"Calendar conflict","priority":7,
        "surfacedAt":"2026-07-29T07:05:00Z",
        "email":{"emailDbId":"d3","subject":"Standup moved to 10:30",
-                "from":"이준호 <junho@team.co.kr>","snippet":"오늘 스탠드업 10시 30분으로 옮겼습니다."},"hashStale":false}],
+                "from":"Alex Carter <alex@team.co>","snippet":"Moved tomorrow's standup to 10:30 — still work for you?"},"hashStale":false}],
       "QUEUE":[],"SILENT":[],"AUTO":[]},
      "summary":{"PUSH":3,"QUEUE":12,"SILENT":41,"AUTO":8,"total":64}}
     """
