@@ -1211,6 +1211,19 @@ private struct FullList: View {
                 Spacer()
                 EmptyState(icon: tier.emptyIcon, title: tier.emptyTitle, hint: tier.blurb)
                 Spacer()
+            } else if Theme.isRenderingOffscreen {
+                // ImageRenderer draws nothing inside a ScrollView, so the full
+                // view rendered its mail column empty — a screenshot of the app
+                // looking broken, which is what shipped to the landing page.
+                // Same workaround already used for the rows and preferences
+                // shots: lay the rows out directly when rendering offscreen.
+                VStack(spacing: 0) {
+                    ForEach(items) { item in
+                        FullRow(item: item, actions: actions)
+                        Divider().overlay(Theme.line).padding(.leading, 24)
+                    }
+                    Spacer(minLength: 0)
+                }
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {

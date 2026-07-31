@@ -243,17 +243,17 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .card:hover{transform:translateY(-5px);box-shadow:0 40px 80px -46px rgba(8,42,80,.5)}
 .card-in{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line);height:100%;
   box-shadow:inset 0 1px 1px rgba(255,255,255,.9);display:flex;flex-direction:column}
-/* These are UI screenshots, so cropping them removes the thing the card is
-   about. object-fit:cover in a frame that did not match the source was cutting
-   71% off Preferences (a 940x1800 portrait in a 16:9 box), 42% off the tier
-   guide and 30% off the full view. Every frame now sits near its own source
-   ratio and contains rather than covers, so all four are whole. */
+/* Each frame is the ratio of the screenshot it holds, to within about 1%, so
+   cover fills it edge to edge: no letterbox, and nothing cropped away. That is
+   only possible because the sources were re-rendered and trimmed to these
+   shapes — fitting a 940x1800 portrait into a 16:9 box costs you either 71% of
+   the image or half the card in empty blue. */
 .card-shot{background:linear-gradient(180deg,#eef4fa,#fdfefe);overflow:hidden;position:relative;
-  aspect-ratio:16/10;padding:16px 16px 0}
+  aspect-ratio:21/8}
 .c4 .card-shot{aspect-ratio:7/5}
-.c6 .card-shot{aspect-ratio:1/1}
-.card-shot.tall{aspect-ratio:5/7}
-.card-shot img{display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center;
+.c6 .card-shot{aspect-ratio:5/4}
+.card-shot.tall{aspect-ratio:5/6}
+.card-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:center top;
   transition:transform 1.1s var(--ease)}
 .card:hover .card-shot img{transform:scale(1.025)}
 .card-txt{padding:20px 22px 24px}
