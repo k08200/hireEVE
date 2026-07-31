@@ -301,6 +301,30 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .step p{color:var(--ink-3);font-size:14px;padding:8px 24px 22px}
 @media(max-width:860px){.steps{grid-template-columns:1fr}}
 
+/* Compatibility. Every comparable landing puts this somewhere a visitor reaches
+   before installing; without it the only mention of a mail provider on this page
+   was one word inside a pricing bullet. */
+.works{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:18px}
+.work{border-radius:20px;padding:22px 22px;background:#fff;border:1px solid var(--line);
+  display:grid;gap:5px;align-content:start}
+.work b{font-size:15px;font-weight:650;letter-spacing:-.015em}
+.work span{font-size:13px;color:var(--ink-3);line-height:1.5}
+.works-note{max-width:1180px;margin:20px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
+.works-note b{color:var(--ink-2);font-weight:650}
+@media(max-width:900px){.works{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.works{grid-template-columns:1fr}}
+
+/* Questions a beta actually gets asked. No accordion — five answers are quicker
+   to read than to click through. */
+.faq{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:repeat(2,1fr);gap:18px 44px}
+.faq-i{display:grid;gap:7px;align-content:start;padding:20px 0}
+.faq-i h3{margin:0;font-size:16px;font-weight:650;letter-spacing:-.015em}
+.faq-i p{margin:0;font-size:14px;color:var(--ink-2);line-height:1.62}
+.faq-i a{color:var(--sky-ink);font-weight:600}
+@media(max-width:820px){.faq{grid-template-columns:1fr;gap:0}}
+
 .stats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .stat{border-radius:26px;padding:26px 26px;background:#fff;border:1px solid var(--line);
   box-shadow:0 22px 50px -38px rgba(8,42,80,.45)}
@@ -613,7 +637,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <nav class="nav"><div class="nav-pill">
   <a class="nav-brand" href="#top" data-top>Klorn</a>
-  <span class="nav-links"><a href="#cards">Product</a><a href="#compare">Why Klorn</a><a href="#pricing">Pricing</a><a href="#open">Open source</a></span>
+  <span class="nav-links"><a href="#cards">Product</a><a href="#day">How it works</a><a href="#compare">Why Klorn</a><a href="#pricing">Pricing</a><a href="#open">Open source</a></span>
   <span class="nav-lang">
     <a href="/" data-lang-pick="en" aria-current="true">EN</a><a href="/ko/" data-lang-pick="ko">한국어</a>
   </span>
@@ -748,6 +772,32 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 
 
+<!-- ══ A DAY WITH IT ════════════════════════════════ -->
+<section class="sec band" id="day">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">A day with it</span>
+      <h2 class="rv">Three moments,<br>and only one needs you.</h2>
+    </div>
+    <p class="rv">Klorn is not something you open. It runs against your inbox all day and asks for you
+      exactly once — when a message genuinely cannot be answered without you.</p>
+  </div>
+  <div class="steps">
+    <article class="step rv"><span class="sn">Morning</span>
+      <h3>Already sorted</h3>
+      <p>Overnight mail is in its tier before you sit down, each one carrying the reason it landed there.
+        Sixty-four messages, three that were yours.</p></article>
+    <article class="step rv"><span class="sn">While you work</span>
+      <h3>One line, no banners</h3>
+      <p>Klorn stays a single native line at the top of the screen. Queue, Silent and Auto never
+        interrupt — only a real Push does, and you set what counts.</p></article>
+    <article class="step rv"><span class="sn">When you reply</span>
+      <h3>Three drafts, your call</h3>
+      <p>Accept, decline or ask — one key each, in your tone and the sender's language. Nothing sends
+        itself; every send mints a receipt.</p></article>
+  </div>
+</section>
+
 <!-- ══ COMPARISON ═══════════════════════════════════ -->
 <section class="sec" id="compare">
   <div class="sec-head">
@@ -821,6 +871,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Methodology and eval set →</a></p>
 </section>
 
+<!-- ══ WORKS WITH ═══════════════════════════════════ -->
+<section class="sec" id="works">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Works with</span>
+      <h2 class="rv">Check this before<br>you download.</h2>
+    </div>
+    <p class="rv">Klorn reads your mail, so what it connects to is the first thing worth knowing —
+      including what it does not connect to yet.</p>
+  </div>
+  <div class="works rv">
+    <div class="work"><b>Gmail</b><span>Google sign-in. Multiple inboxes on Pro.</span></div>
+    <div class="work"><b>Naver Mail</b><span>Connected over IMAP from Settings.</span></div>
+    <div class="work"><b>Google Calendar</b><span>Read, and create events on your say-so.</span></div>
+    <div class="work"><b>macOS 14+</b><span>Universal — Apple Silicon and Intel.</span></div>
+  </div>
+  <p class="works-note rv"><b>Not supported yet:</b> Outlook and Microsoft 365, iCloud Mail, and IMAP
+    hosts other than Naver. On Windows and Linux, Klorn runs in the browser — the desktop build is in
+    progress. Self-hosting works against your own database and model keys.</p>
+</section>
+
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
 <section class="sec" id="open">
   <div class="wrapl">
@@ -881,6 +952,37 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </div>
 </section>
 
+<!-- ══ FAQ ══════════════════════════════════════════ -->
+<section class="sec band" id="faq">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Before you ask</span>
+      <h2 class="rv">The ones we<br>actually get.</h2>
+    </div>
+  </div>
+  <div class="faq">
+    <div class="faq-i rv"><h3>Why is it invite-only?</h3>
+      <p>Reading your mail needs Google's restricted scopes, and those need a security review before
+        the app can be published. Until it clears, Google caps testers at 100.</p></div>
+    <div class="faq-i rv"><h3>Can it send something without me?</h3>
+      <p>No. Send, delete and forward always wait for an explicit approval and each one writes a signed
+        receipt with a hash of exactly what went out.</p></div>
+    <div class="faq-i rv"><h3>Where does my mail actually go?</h3>
+      <p>To the classifier and back. Your OAuth tokens are encrypted at rest, and because the whole
+        thing is AGPLv3 you can read the code that touches them —
+        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">or run it yourself</a>.</p></div>
+    <div class="faq-i rv"><h3>What if it files something wrong?</h3>
+      <p>Move it. Every message shows why it landed where it did, and the correction is what the
+        classifier learns from — that is the difference between 81.1% cold and 94.3% warm.</p></div>
+    <div class="faq-i rv"><h3>When is the Windows app?</h3>
+      <p>In progress. The web app already works in any browser today, with the same account and the
+        same four tiers.</p></div>
+    <div class="faq-i rv"><h3>Can the AI run up a bill?</h3>
+      <p>No. Klorn caps its own spend per day, and stops rather than overspending — a runaway loop
+        costs you nothing. That cap is why sorting stays free.</p></div>
+  </div>
+</section>
+
 <!-- ══ FINAL ════════════════════════════════════════ -->
 <section class="sec final">
   <picture class="final-sky" aria-hidden="true">
@@ -919,7 +1021,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <nav aria-label="Product"><h4>Product</h4>
       <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
          data-mac-dl data-win-href="https://app.klorn.ai/login" data-win-label="Klorn for Windows">Download for Mac</a>
-      <a href="#compare">Why Klorn</a><a href="#measured">Accuracy</a><a href="#pricing">Pricing</a>
+      <a href="#compare">Why Klorn</a><a href="#works">Works with</a><a href="#measured">Accuracy</a><a href="#pricing">Pricing</a>
       <a href="https://app.klorn.ai/login">Log in</a></nav>
     <nav aria-label="Open source"><h4>Open source</h4>
       <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub repository</a>

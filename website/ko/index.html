@@ -301,6 +301,30 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .step p{color:var(--ink-3);font-size:14px;padding:8px 24px 22px}
 @media(max-width:860px){.steps{grid-template-columns:1fr}}
 
+/* Compatibility. Every comparable landing puts this somewhere a visitor reaches
+   before installing; without it the only mention of a mail provider on this page
+   was one word inside a pricing bullet. */
+.works{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:18px}
+.work{border-radius:20px;padding:22px 22px;background:#fff;border:1px solid var(--line);
+  display:grid;gap:5px;align-content:start}
+.work b{font-size:15px;font-weight:650;letter-spacing:-.015em}
+.work span{font-size:13px;color:var(--ink-3);line-height:1.5}
+.works-note{max-width:1180px;margin:20px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
+.works-note b{color:var(--ink-2);font-weight:650}
+@media(max-width:900px){.works{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.works{grid-template-columns:1fr}}
+
+/* Questions a beta actually gets asked. No accordion — five answers are quicker
+   to read than to click through. */
+.faq{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:repeat(2,1fr);gap:18px 44px}
+.faq-i{display:grid;gap:7px;align-content:start;padding:20px 0}
+.faq-i h3{margin:0;font-size:16px;font-weight:650;letter-spacing:-.015em}
+.faq-i p{margin:0;font-size:14px;color:var(--ink-2);line-height:1.62}
+.faq-i a{color:var(--sky-ink);font-weight:600}
+@media(max-width:820px){.faq{grid-template-columns:1fr;gap:0}}
+
 .stats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .stat{border-radius:26px;padding:26px 26px;background:#fff;border:1px solid var(--line);
   box-shadow:0 22px 50px -38px rgba(8,42,80,.45)}
@@ -613,7 +637,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <nav class="nav"><div class="nav-pill">
   <a class="nav-brand" href="#top" data-top>Klorn</a>
-  <span class="nav-links"><a href="#cards">제품</a><a href="#compare">왜 Klorn인가</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
+  <span class="nav-links"><a href="#cards">제품</a><a href="#day">동작 방식</a><a href="#compare">왜 Klorn인가</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
   <span class="nav-lang">
     <a href="/" data-lang-pick="en">EN</a><a href="/ko/" data-lang-pick="ko" aria-current="true">한국어</a>
   </span>
@@ -748,6 +772,32 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 
 
+<!-- ══ A DAY WITH IT ════════════════════════════════ -->
+<section class="sec band" id="day">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Klorn과 함께하는 하루</span>
+      <h2 class="rv">세 순간, 그중<br>당신이 필요한 건 하나.</h2>
+    </div>
+    <p class="rv">Klorn은 열어보는 앱이 아닙니다. 하루 종일 받은편지함을 지키다가 딱 한 번 당신을 찾습니다 —
+      당신 없이는 정말로 답할 수 없는 메일이 왔을 때.</p>
+  </div>
+  <div class="steps">
+    <article class="step rv"><span class="sn">아침</span>
+      <h3>이미 분류돼 있음</h3>
+      <p>밤새 온 메일은 당신이 앉기 전에 각자의 단계에 들어가 있고, 거기 간 이유를 달고 있습니다.
+        64통 중 당신 몫은 3통이었습니다.</p></article>
+    <article class="step rv"><span class="sn">일하는 중</span>
+      <h3>한 줄, 배너 없음</h3>
+      <p>Klorn은 화면 맨 위 네이티브 한 줄로 머뭅니다. QUEUE·SILENT·AUTO는 절대 끊지 않고,
+        진짜 PUSH만 끊습니다 — 무엇이 PUSH인지는 당신이 정합니다.</p></article>
+    <article class="step rv"><span class="sn">답장할 때</span>
+      <h3>초안 셋, 결정은 당신</h3>
+      <p>수락·거절·질문 각각 한 키로. 당신 어투로, 발신자가 쓴 언어로. 저절로 나가는 건 없고,
+        전송할 때마다 영수증이 남습니다.</p></article>
+  </div>
+</section>
+
 <!-- ══ COMPARISON ═══════════════════════════════════ -->
 <section class="sec" id="compare">
   <div class="sec-head">
@@ -821,6 +871,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">측정 방법과 평가셋 →</a></p>
 </section>
 
+<!-- ══ WORKS WITH ═══════════════════════════════════ -->
+<section class="sec" id="works">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">연동 범위</span>
+      <h2 class="rv">받기 전에<br>이것부터 확인하세요.</h2>
+    </div>
+    <p class="rv">Klorn은 당신의 메일을 읽습니다. 그래서 무엇에 연결되는지가 가장 먼저 알아야 할 것입니다 —
+      아직 연결되지 않는 것까지 포함해서.</p>
+  </div>
+  <div class="works rv">
+    <div class="work"><b>Gmail</b><span>구글 로그인. Pro에서는 여러 개.</span></div>
+    <div class="work"><b>네이버 메일</b><span>설정에서 IMAP으로 연결.</span></div>
+    <div class="work"><b>Google 캘린더</b><span>읽고, 당신 승인으로 일정 생성.</span></div>
+    <div class="work"><b>macOS 14+</b><span>유니버설 — 애플 실리콘과 인텔.</span></div>
+  </div>
+  <p class="works-note rv"><b>아직 지원하지 않는 것:</b> Outlook·Microsoft 365, iCloud 메일, 그리고
+    네이버 외의 IMAP 호스트. 윈도우와 리눅스에서는 브라우저로 실행되며 데스크탑 빌드는 준비 중입니다.
+    셀프호스팅은 당신의 DB와 모델 키로 동작합니다.</p>
+</section>
+
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
 <section class="sec" id="open">
   <div class="wrapl">
@@ -881,6 +952,36 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </div>
 </section>
 
+<!-- ══ FAQ ══════════════════════════════════════════ -->
+<section class="sec band" id="faq">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">묻기 전에</span>
+      <h2 class="rv">실제로 가장<br>많이 받는 질문들.</h2>
+    </div>
+  </div>
+  <div class="faq">
+    <div class="faq-i rv"><h3>왜 초대제인가요?</h3>
+      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱 공개 전에 보안 검수를 받아야 합니다.
+        검수가 끝날 때까지 구글이 테스터를 100명으로 제한합니다.</p></div>
+    <div class="faq-i rv"><h3>저 없이 뭔가 보낼 수 있나요?</h3>
+      <p>아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴
+        서명된 영수증을 남깁니다.</p></div>
+    <div class="faq-i rv"><h3>제 메일은 어디로 가나요?</h3>
+      <p>분류기로 갔다가 돌아옵니다. OAuth 토큰은 저장 시 암호화되고, 전체가 AGPLv3이라
+        그 토큰을 다루는 코드를 직접 읽을 수 있습니다 —
+        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">직접 돌려도 됩니다</a>.</p></div>
+    <div class="faq-i rv"><h3>잘못 분류하면요?</h3>
+      <p>옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 —
+        콜드 81.1%와 웜 94.3%의 차이가 그겁니다.</p></div>
+    <div class="faq-i rv"><h3>윈도우 앱은 언제인가요?</h3>
+      <p>준비 중입니다. 웹앱은 지금도 어떤 브라우저에서든 동작하고, 같은 계정과 같은 4단계를 씁니다.</p></div>
+    <div class="faq-i rv"><h3>AI가 요금을 폭주시킬 수 있나요?</h3>
+      <p>아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가
+        당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다.</p></div>
+  </div>
+</section>
+
 <!-- ══ FINAL ════════════════════════════════════════ -->
 <section class="sec final">
   <picture class="final-sky" aria-hidden="true">
@@ -919,7 +1020,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <nav aria-label="제품"><h4>제품</h4>
       <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
          data-mac-dl data-win-href="https://app.klorn.ai/login" data-win-label="윈도우용 Klorn">맥용 다운로드</a>
-      <a href="#compare">왜 Klorn인가</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
+      <a href="#compare">왜 Klorn인가</a><a href="#works">연동 범위</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
       <a href="https://app.klorn.ai/login">로그인</a></nav>
     <nav aria-label="오픈소스"><h4>오픈소스</h4>
       <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub 저장소</a>
