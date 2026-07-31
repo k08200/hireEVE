@@ -233,18 +233,29 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .tag{display:inline-block;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);
   font-weight:600;margin-bottom:18px}
 
-.cards{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+/* The four screenshots have ratios from 1.63 to 0.52, so forcing the cards to a
+   shared height opens a void under whichever one is shorter. Each card ends
+   where its own content ends instead. */
+.cards{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);
+  gap:18px;align-items:start}
 .card{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
   transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
 .card:hover{transform:translateY(-5px);box-shadow:0 40px 80px -46px rgba(8,42,80,.5)}
 .card-in{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line);height:100%;
   box-shadow:inset 0 1px 1px rgba(255,255,255,.9);display:flex;flex-direction:column}
-.card-shot{background:linear-gradient(180deg,#eef4fa,#fdfefe);overflow:hidden;position:relative;aspect-ratio:21/9}
-.c4 .card-shot{aspect-ratio:4/3}
-.c6 .card-shot{aspect-ratio:16/9}
-.card-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:left top;
-  transform:scale(1.02);transition:transform 1.1s var(--ease)}
-.card:hover .card-shot img{transform:scale(1.06)}
+/* These are UI screenshots, so cropping them removes the thing the card is
+   about. object-fit:cover in a frame that did not match the source was cutting
+   71% off Preferences (a 940x1800 portrait in a 16:9 box), 42% off the tier
+   guide and 30% off the full view. Every frame now sits near its own source
+   ratio and contains rather than covers, so all four are whole. */
+.card-shot{background:linear-gradient(180deg,#eef4fa,#fdfefe);overflow:hidden;position:relative;
+  aspect-ratio:16/10;padding:16px 16px 0}
+.c4 .card-shot{aspect-ratio:7/5}
+.c6 .card-shot{aspect-ratio:1/1}
+.card-shot.tall{aspect-ratio:5/7}
+.card-shot img{display:block;width:100%;height:100%;object-fit:contain;object-position:bottom center;
+  transition:transform 1.1s var(--ease)}
+.card:hover .card-shot img{transform:scale(1.025)}
 .card-txt{padding:20px 22px 24px}
 .card-txt h3{margin:0 0 6px;font-size:17px;font-weight:650;letter-spacing:-.015em}
 .card-txt p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
@@ -721,7 +732,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </article>
     <article class="card c6 rv">
       <div class="card-in">
-        <div class="card-shot"><img src="/media/app/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" loading="lazy"></div>
+        <div class="card-shot tall"><img src="/media/app/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" loading="lazy"></div>
         <div class="card-txt"><h3>설정은 당신 몫</h3>
           <p>Klorn이 혼자 어디까지 할지, 무엇이 당신을 끊어도 되는지. 답장 어투는 한 번만 설정하면 — 격식, 친근, 캐주얼, 아니면 당신이 보낸 메일에서 학습 — 초안 세 개가 모두 그 어투를 따르고, 발신자가 쓴 언어 그대로 씁니다.</p></div>
       </div>
