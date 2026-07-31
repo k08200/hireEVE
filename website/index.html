@@ -243,15 +243,16 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .card:hover{transform:translateY(-5px);box-shadow:0 40px 80px -46px rgba(8,42,80,.5)}
 .card-in{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line);height:100%;
   box-shadow:inset 0 1px 1px rgba(255,255,255,.9);display:flex;flex-direction:column}
-/* Each frame is the ratio of the screenshot it holds, to within about 1%, so
-   cover fills it edge to edge: no letterbox, and nothing cropped away. That is
-   only possible because the sources were re-rendered and trimmed to these
-   shapes — fitting a 940x1800 portrait into a 16:9 box costs you either 71% of
-   the image or half the card in empty blue. */
+/* Every card is half the row, and every frame matches its screenshot's ratio to
+   within ~1%, so cover fills it with nothing cropped. The sizes are chosen for
+   legibility, not composition: the app renders 13pt body text, and at these
+   widths it lands between 13.4px and 16.6px on screen. The whole 1400pt window
+   cannot: even filling the 1180px container it would sit at 6.8px. */
 .card-shot{background:linear-gradient(180deg,#eef4fa,#fdfefe);overflow:hidden;position:relative;
-  aspect-ratio:21/8}
-.c4 .card-shot{aspect-ratio:7/5}
-.c6 .card-shot{aspect-ratio:5/4}
+  aspect-ratio:16/9}
+.c6 .card-shot{aspect-ratio:16/9}
+.card-shot.rows{aspect-ratio:7/5}
+.card-shot.guide{aspect-ratio:5/4}
 .card-shot.tall{aspect-ratio:5/6}
 .card-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:center top;
   transition:transform 1.1s var(--ease)}
@@ -702,30 +703,30 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">The actual app</span>
-      <h2 class="rv">This is the<br>whole app.</h2>
+      <h2 class="rv">Close enough<br>to read.</h2>
     </div>
-    <p class="rv">Four screens: the window, the reason behind every message, what the four words actually
-      mean, and everything you are allowed to change.</p>
+    <p class="rv">Klorn sits in one native line at the top of your screen. Expanded, this is what it shows
+      you — and everything you are allowed to change about it.</p>
   </div>
 
   <div class="cards">
-    <article class="card c8 rv">
+    <article class="card c6 rv">
       <div class="card-in">
-        <div class="card-shot"><img src="/media/app/full.jpg" alt="The full view: tier sidebar, the mail list, and Klorn's reasoning beside the message" loading="lazy"></div>
-        <div class="card-txt"><h3>One window, one decision</h3>
-          <p>Tiers on the left, the queue in the middle, and why it matters on the right. At rest it collapses to one native line at the top of your screen — it never steals focus, and there is no fifth window to check.</p></div>
-      </div>
-    </article>
-    <article class="card c4 rv">
-      <div class="card-in">
-        <div class="card-shot"><img src="/media/app/rows.jpg" alt="Mail rows showing sender, subject and why each landed in its tier" loading="lazy"></div>
-        <div class="card-txt"><h3>Why, on every row</h3>
-          <p>Each message says what put it there — so a wrong call is one click to correct.</p></div>
+        <div class="card-shot"><img src="/media/app/reading.jpg" alt="A push message with its evidence: why it was ranked, the deadline, and the one-key reply actions" loading="lazy"></div>
+        <div class="card-txt"><h3>Why this one interrupted you</h3>
+          <p>Every push carries its evidence — what is at stake, and what Klorn has learned about the sender. The three one-key replies sit right there.</p></div>
       </div>
     </article>
     <article class="card c6 rv">
       <div class="card-in">
-        <div class="card-shot"><img src="/media/app/tier-guide.jpg" alt="The first-run guide explaining Push, Queue, Silent and Auto" loading="lazy"></div>
+        <div class="card-shot rows"><img src="/media/app/rows.jpg" alt="Mail rows showing sender, subject and why each landed in its tier" loading="lazy"></div>
+        <div class="card-txt"><h3>The queue, with reasons</h3>
+          <p>Each row says what put it there — so a wrong call is one click to correct, and the classifier learns from it.</p></div>
+      </div>
+    </article>
+    <article class="card c6 rv">
+      <div class="card-in">
+        <div class="card-shot guide"><img src="/media/app/tier-guide.jpg" alt="The first-run guide explaining Push, Queue, Silent and Auto" loading="lazy"></div>
         <div class="card-txt"><h3>Four words, explained</h3>
           <p>Silent isn't deleted. Auto isn't replied. The app says so on first run, and any time after.</p></div>
       </div>

@@ -115,6 +115,12 @@ enum PreviewRender {
                 Spacer(minLength: 0)
             }
         }
+        // The reading pane on its own. Shrinking the whole 1400pt window into a
+        // landing-page card renders the app's body text at under 7px; this fits
+        // the same card at over 100%, so it can actually be read.
+        shot("reading", size: CGSize(width: 520, height: 430)) {
+            ReadingPane(actions: actions)
+        }
         // PreferencesView puts its body in a ScrollView, which ImageRenderer
         // draws as nothing — the shot was a title bar over a blank sheet. Render
         // the behaviour settings themselves, which is the part worth showing.
