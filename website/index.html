@@ -243,24 +243,36 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .card:hover{transform:translateY(-5px);box-shadow:0 40px 80px -46px rgba(8,42,80,.5)}
 .card-in{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line);height:100%;
   box-shadow:inset 0 1px 1px rgba(255,255,255,.9);display:flex;flex-direction:column}
-/* Every card is half the row, and every frame matches its screenshot's ratio to
-   within ~1%, so cover fills it with nothing cropped. The sizes are chosen for
-   legibility, not composition: the app renders 13pt body text, and at these
-   widths it lands between 13.4px and 16.6px on screen. The whole 1400pt window
-   cannot: even filling the 1180px container it would sit at 6.8px. */
-.card-shot{background:linear-gradient(180deg,#eef4fa,#fdfefe);overflow:hidden;position:relative;
-  aspect-ratio:16/9}
-.c6 .card-shot{aspect-ratio:16/9}
-.card-shot.rows{aspect-ratio:7/5}
-.card-shot.guide{aspect-ratio:5/4}
-.card-shot.tall{aspect-ratio:5/6}
-.card-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:center top;
-  transition:transform 1.1s var(--ease)}
-.card:hover .card-shot img{transform:scale(1.025)}
-.card-txt{padding:20px 22px 24px}
-.card-txt h3{margin:0 0 6px;font-size:17px;font-weight:650;letter-spacing:-.015em}
-.card-txt p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
-.c8{grid-column:span 8}.c4{grid-column:span 4}.c6{grid-column:span 6}
+/* Product tour. Four surfaces, one frame, switched by tabs.
+   A grid of screenshots cannot be made tidy here: the four have ratios from 1.79
+   to 0.84, so a shared row height opens voids and a natural height leaves ragged
+   bottoms. One frame removes the problem instead of balancing it — and the tabs
+   are the interaction the page was missing below the fold.
+   Every shot is rendered at the same 520x330pt, so the frame never letterboxes. */
+.tour{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:352px 1fr;gap:28px;align-items:start}
+.tour-nav{display:grid;gap:8px;align-content:start}
+.tour-t{display:grid;gap:3px;text-align:left;padding:15px 17px;border-radius:15px;border:1px solid transparent;
+  background:transparent;font:inherit;color:var(--ink);cursor:pointer;
+  transition:background .5s var(--ease),border-color .5s var(--ease),transform .5s var(--ease)}
+.tour-t:hover{background:rgba(255,255,255,.55)}
+.tour-t b{font-size:15.5px;font-weight:650;letter-spacing:-.015em}
+.tour-t span{font-size:13px;color:var(--ink-3);line-height:1.5}
+.tour-t[aria-selected=true]{background:#fff;border-color:var(--line);
+  box-shadow:0 18px 40px -28px rgba(10,50,90,.42)}
+.tour-t[aria-selected=true] span{color:var(--ink-2)}
+.tour-stage{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.tour-panel{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line)}
+.tour-panel img{display:block;width:100%;height:auto;aspect-ratio:1040/660;object-fit:cover}
+/* Opt-IN single-panel mode: without JS every panel stays in the document, so the
+   section degrades to a plain stack instead of one visible tab. */
+.js .tour-panel[hidden]{display:none}
+.js .tour-panel+.tour-panel{margin-top:0}
+.tour-panel+.tour-panel{margin-top:10px}
+@media(max-width:900px){
+  .tour{grid-template-columns:1fr;gap:18px}
+  .tour-nav{grid-template-columns:repeat(2,1fr);gap:8px}
+}
 @media(max-width:900px){.c8,.c4,.c6{grid-column:span 12}}
 
 
@@ -733,35 +745,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       you — and everything you are allowed to change about it.</p>
   </div>
 
-  <div class="cards">
-    <article class="card c6 rv">
-      <div class="card-in">
-        <div class="card-shot"><img src="/media/app/reading.jpg" alt="A push message with its evidence: why it was ranked, the deadline, and the one-key reply actions" loading="lazy"></div>
-        <div class="card-txt"><h3>Why this one interrupted you</h3>
-          <p>Every push carries its evidence — what is at stake, and what Klorn has learned about the sender. The three one-key replies sit right there.</p></div>
-      </div>
-    </article>
-    <article class="card c6 rv">
-      <div class="card-in">
-        <div class="card-shot rows"><img src="/media/app/rows.jpg" alt="Mail rows showing sender, subject and why each landed in its tier" loading="lazy"></div>
-        <div class="card-txt"><h3>The queue, with reasons</h3>
-          <p>Each row says what put it there — so a wrong call is one click to correct, and the classifier learns from it.</p></div>
-      </div>
-    </article>
-    <article class="card c6 rv">
-      <div class="card-in">
-        <div class="card-shot guide"><img src="/media/app/tier-guide.jpg" alt="The first-run guide explaining Push, Queue, Silent and Auto" loading="lazy"></div>
-        <div class="card-txt"><h3>Four words, explained</h3>
-          <p>Silent isn't deleted. Auto isn't replied. The app says so on first run, and any time after.</p></div>
-      </div>
-    </article>
-    <article class="card c6 rv">
-      <div class="card-in">
-        <div class="card-shot tall"><img src="/media/app/preferences.jpg" alt="Preferences: agent mode, reply tone, alert categories and quiet hours" loading="lazy"></div>
-        <div class="card-txt"><h3>Yours to set</h3>
-          <p>How much Klorn does alone, and what is allowed to interrupt you. Set the reply tone once — formal, friendly, casual, or learned from your own sent mail — and all three drafts follow it, in whatever language the sender wrote in.</p></div>
-      </div>
-    </article>
+  <div class="tour rv">
+    <div class="tour-nav" role="tablist" aria-label="Product tour">
+      <button class="tour-t" role="tab" aria-selected="true" aria-controls="tp-1" id="tt-1">
+        <b>Why this one interrupted you</b><span>The evidence behind a push, and the three one-key replies.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
+        <b>The queue, with reasons</b><span>Every row says what put it there — correct it in one click.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
+        <b>Four words, explained</b><span>Silent isn't deleted. Auto isn't replied. The app says so.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
+        <b>Yours to set</b><span>How much it does alone, and what may interrupt you.</span></button>
+    </div>
+    <div class="tour-stage">
+      <div class="tour-panel" role="tabpanel" id="tp-1" aria-labelledby="tt-1">
+        <img src="/media/app/reading.jpg" alt="A push message with its evidence: why it was ranked, the deadline, and the one-key reply actions" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-2" aria-labelledby="tt-2" hidden>
+        <img src="/media/app/rows.jpg" alt="Mail rows showing sender, subject and why each landed in its tier" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-3" aria-labelledby="tt-3" hidden>
+        <img src="/media/app/tier-guide.jpg" alt="The first-run guide explaining Push, Queue, Silent and Auto" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-4" aria-labelledby="tt-4" hidden>
+        <img src="/media/app/preferences.jpg" alt="Preferences: agent mode, reply tone, alert categories and quiet hours" width="1040" height="660" loading="lazy" decoding="async"></div>
+    </div>
   </div>
   <p class="proof rv">Each shot is produced by <code>KlornMac --render-previews</code>, which draws the
     shipping SwiftUI views straight to disk. If a screen changes, the picture changes with it —
@@ -1120,6 +1124,41 @@ if (shell && fine) {
       n.textContent = pad[1] + label + pad[2];
     });
   });
+})();
+
+// Product tour: one frame, four surfaces. Progressive enhancement — the panels
+// are all in the document, and this is what collapses them to one at a time, so
+// without JS the section is a readable stack rather than a single stuck tab.
+(function () {
+  var nav = document.querySelector('.tour-nav');
+  if (!nav) return;
+  var tabs = Array.prototype.slice.call(nav.querySelectorAll('[role=tab]'));
+  var panels = tabs.map(function (t) { return document.getElementById(t.getAttribute('aria-controls')); });
+
+  function select(i, focus) {
+    tabs.forEach(function (t, n) {
+      t.setAttribute('aria-selected', String(n === i));
+      t.tabIndex = n === i ? 0 : -1;
+      if (panels[n]) panels[n].hidden = n !== i;
+    });
+    if (focus) tabs[i].focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { select(i); });
+  });
+  // Arrow keys move between tabs — the pattern a tablist is expected to follow.
+  nav.addEventListener('keydown', function (ev) {
+    var i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    var next = ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? i + 1
+             : ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? i - 1
+             : ev.key === 'Home' ? 0
+             : ev.key === 'End' ? tabs.length - 1 : null;
+    if (next === null) return;
+    ev.preventDefault();
+    select((next + tabs.length) % tabs.length, true);
+  });
+  select(0);
 })();
 
 // The wordmark returns to the top. href="#top" is the no-JS fallback; with JS we
