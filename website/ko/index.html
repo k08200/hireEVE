@@ -19,6 +19,11 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<!-- The hero photograph is the LCP element; preloading it with the same srcset
+     the <picture> uses lets the fetch start before the CSS resolves. -->
+<link rel="preload" as="image" type="image/webp"
+      imagesrcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w"
+      imagesizes="100vw" fetchpriority="high">
 <link rel="icon" href="/brand/favicon.svg?v=matte2" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
 <style>
@@ -96,7 +101,16 @@ a{color:inherit;text-decoration:none}
 
 /* ── Hero ─────────────────────────────────────────── */
 .hero{position:relative;overflow:hidden;padding:196px 0 0;text-align:center}
-.hero-sky{position:absolute;top:0;left:0;width:100%;height:1120px;z-index:0}
+/* Hero sky. The gradient is the photograph's own measured band averages, so it
+   stands in with the right colour while the file loads instead of flashing a
+   different hue. The image fades out at the bottom into --paper, which is what
+   the drawn SVG this replaced used to do with a gradient stop. */
+.hero-sky{position:absolute;top:0;left:0;width:100%;height:1120px;z-index:0;overflow:hidden;
+  background:linear-gradient(180deg,#f3f3ec 0%,#ede8e5 25%,#ecd5cd 45%,
+    #e5c7c2 65%,#d7c1c6 85%,#cdc1cc 100%)}
+.hero-sky img{width:100%;height:100%;object-fit:cover;object-position:center 42%;display:block;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 68%,transparent 97%);
+          mask-image:linear-gradient(180deg,#000 0%,#000 68%,transparent 97%)}
 .wrap{position:relative;z-index:3;max-width:1180px;margin:0 auto;padding:0 24px}
 
 .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 8px 7px 15px;border-radius:9999px;
@@ -108,8 +122,11 @@ a{color:inherit;text-decoration:none}
   background:#fff;padding:3px 10px;border-radius:9999px}
 
 h1{font-size:clamp(46px,7.2vw,88px);line-height:.98;letter-spacing:-.042em;font-weight:700;margin:26px 0 20px}
+/* Measured against the photograph's bands: --sky-600 lands at 2.69:1, under the
+   3:1 floor for large text. This shade clears it (3.23:1) and still reads as the
+   same accent; the paper sections keep --sky-600 unchanged. */
 h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;
-  color:var(--sky-600);padding-right:.06em}
+  color:#0277b3;padding-right:.06em}
 .lead{font-size:19px;color:var(--ink-2);max-width:600px;margin:0 auto 34px}
 /* The serif accent is a Latin display face. Korean has no glyphs in it, so the
    browser substitutes whatever Hangul serif it finds — on macOS a cursive one
@@ -158,9 +175,12 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .dl.is-yours .t span{color:rgba(255,255,255,.66)}
 .dl.is-yours svg{color:#fff}
 .dl.is-yours:hover{background:#11161f}
-.actions-note{max-width:560px;margin:18px auto 0;font-size:12.5px;line-height:1.6;color:var(--ink-3)}
-.actions-note a{color:#0b5f8a;font-weight:600;border-bottom:1px solid rgba(11,95,138,.28)}
-.actions-note a:hover{border-bottom-color:#0b5f8a}
+/* --ink-3 measured 2.75-4.28:1 against the photograph's bands — under the 4.5
+   AA floor for body-size text. --ink-2 clears it everywhere (5.89-9.18:1). */
+.actions-note{max-width:560px;margin:18px auto 0;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+/* 12.5px on the photograph needs 4.5:1; #0b5f8a gives 3.44:1 there. */
+.actions-note a{color:#084869;font-weight:600;border-bottom:1px solid rgba(8,72,105,.32)}
+.actions-note a:hover{border-bottom-color:#084869}
 
 /* ── The real app, floating ───────────────────────── */
 .stage{position:relative;z-index:3;margin:56px auto 0;max-width:1160px;padding:0 24px 96px}
@@ -576,43 +596,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 </div></nav>
 
 <header class="hero" id="top">
-  <svg class="hero-sky" viewBox="0 0 1440 1220" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-    <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#3d8fcd"/><stop offset=".26" stop-color="#79b6e2"/>
-        <stop offset=".52" stop-color="#b5daf0"/><stop offset=".74" stop-color="#e4f1f8"/>
-        <stop offset=".9" stop-color="#f7f6ef"/><stop offset="1" stop-color="#fbfaf6"/>
-      </linearGradient>
-      <radialGradient id="sun" cx=".5" cy=".5" r=".5">
-        <stop offset="0" stop-color="#fff7e2" stop-opacity=".92"/>
-        <stop offset=".55" stop-color="#ffe9bd" stop-opacity=".34"/>
-        <stop offset="1" stop-color="#ffe9bd" stop-opacity="0"/>
-      </radialGradient>
-      <linearGradient id="ct" x1="0" y1="0" x2=".18" y2="1">
-        <stop offset="0" stop-color="#fff"/><stop offset=".58" stop-color="#f8fcff"/><stop offset="1" stop-color="#dbeaf5"/>
-      </linearGradient>
-      <linearGradient id="cu" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#c3d9e9"/><stop offset="1" stop-color="#b0cbe0"/>
-      </linearGradient>
-      <filter id="sf" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
-      <g id="cl">
-        <ellipse cx="150" cy="112" rx="140" ry="25" fill="url(#cu)"/>
-        <circle cx="66" cy="92" r="46" fill="url(#ct)"/><circle cx="132" cy="66" r="64" fill="url(#ct)"/>
-        <circle cx="204" cy="84" r="52" fill="url(#ct)"/><circle cx="248" cy="102" r="38" fill="url(#ct)"/>
-        <ellipse cx="140" cy="58" rx="68" ry="24" fill="#fff" opacity=".9"/>
-      </g>
-    </defs>
-    <rect width="1440" height="1220" fill="url(#sky)"/>
-    <ellipse cx="880" cy="880" rx="760" ry="330" fill="url(#sun)"/>
-    <g opacity=".34" filter="url(#sf)">
-      <use href="#cl" x="96" y="150" width="196" height="98"/>
-      <use href="#cl" x="1168" y="112" width="228" height="114"/>
-    </g>
-    <g opacity=".52" filter="url(#sf)">
-      <use href="#cl" x="-140" y="512" width="430" height="215"/>
-      <use href="#cl" x="1190" y="548" width="440" height="220"/>
-    </g>
-  </svg>
+  <picture class="hero-sky">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" aria-hidden="true" fetchpriority="high" decoding="async" width="2560" height="1709">
+  </picture>
   <div class="grid-bg"></div>
 
   <div class="wrap">
