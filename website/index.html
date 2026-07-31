@@ -60,20 +60,24 @@ a{color:inherit;text-decoration:none}
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.42'/></svg>")}
 
 
-/* Page-wide atmosphere. The sky used to end at the fold and everything below
-   it was flat paper — the page looked like it ran out of design halfway down.
-   One document-height layer, drawn once, carrying the same grid and a few very
-   soft blooms so the background keeps changing as you pass it. */
+/* Page-wide atmosphere. The middle of the page measured flat — 4,500px where the
+   background moved less than 6% in luminance — so instead of scattered blooms it
+   now descends continuously through the photograph's own palette: cream, blush,
+   lavender, the pale blue at the top of the frame, back to cream at the footer.
+   Three soft lateral washes keep that descent from reading as a flat ramp.
+   Every stop stays lighter than #e1e1e1, the point where --ink-3 would drop
+   under 4.5:1. */
 .field{position:absolute;top:0;left:0;right:0;height:100%;z-index:0;pointer-events:none;
   background-image:
-    radial-gradient(54% 18% at 82% 14%, rgba(120,186,232,.38), transparent 70%),
-    radial-gradient(50% 16% at 10% 29%, rgba(198,178,196,.32), transparent 72%),
-    radial-gradient(56% 17% at 90% 47%, rgba(240,203,142,.30), transparent 72%),
-    radial-gradient(52% 16% at 6% 63%, rgba(132,180,224,.34), transparent 72%),
-    radial-gradient(46% 14% at 76% 80%, rgba(190,210,178,.30), transparent 72%),
-    radial-gradient(40% 12% at 22% 93%, rgba(126,188,230,.28), transparent 72%);
-  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%);
-          mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%)}
+    radial-gradient(62% 13% at 88% 24%, rgba(212,226,240,.50), transparent 72%),
+    radial-gradient(58% 12% at 5% 45%, rgba(240,222,226,.52), transparent 72%),
+    radial-gradient(64% 14% at 94% 67%, rgba(230,222,240,.46), transparent 72%),
+    radial-gradient(56% 12% at 8% 84%, rgba(216,230,240,.44), transparent 74%),
+    linear-gradient(180deg,
+      #f8f6f1 0%, #f7efeb 17%, #f4ecef 32%, #f2ebf1 46%,
+      #edf1f6 62%, #eff3f7 76%, #f5f3f1 90%, #f8f6f1 100%);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 5%,#000 97%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 5%,#000 97%,transparent 100%)}
 
 /* ── Fluid island nav ─────────────────────────────── */
 .nav{position:fixed;top:22px;left:0;right:0;z-index:50;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
@@ -335,6 +339,31 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%);
           mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%)}
 .final>.wrapl{position:relative;z-index:1}
+
+/* Scroll-linked sky pan. All three bands are the same photograph; panning each
+   one as it crosses the viewport makes them read as one sky being moved through
+   rather than three copies of a still. Transform only, so it composites on the
+   GPU and never triggers layout.
+
+   Progressive enhancement on purpose: scroll-driven animation is not universal
+   yet, and without it the images simply sit still — which is the design that
+   was measured. The taller img is scoped to the same guard so unsupported
+   browsers keep the crop that was verified. */
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:view()){
+    /* 124% left only 6px of cover at the end of the pan — one rounding away
+       from a sliver of background. 130% keeps ~5% of the container in hand. */
+    .hero-sky img,.sec-sky img,.final-sky img{height:130%}
+    .hero-sky img,.sec-sky img{animation:sky-pan linear both;
+      animation-timeline:view();animation-range:cover 0% cover 100%}
+    /* keeps the mirror: an animation on transform would otherwise drop it */
+    .final-sky img{animation:sky-pan-flip linear both;
+      animation-timeline:view();animation-range:cover 0% cover 100%}
+  }
+}
+@keyframes sky-pan{from{transform:translateY(0)}to{transform:translateY(-19%)}}
+@keyframes sky-pan-flip{from{transform:scaleX(-1) translateY(0)}
+                          to{transform:scaleX(-1) translateY(-19%)}}
 .final-h{font-size:clamp(34px,5.4vw,68px);line-height:1.02;letter-spacing:-.04em;font-weight:700;margin:0 0 18px}
 /* Now sits on the closing photograph too: --sky-600 measures 2.93:1 there,
    under the 3:1 floor. Same shade as the hero accent. */
