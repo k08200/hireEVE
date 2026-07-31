@@ -300,16 +300,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .foot a{color:var(--sky-ink);font-weight:600}
 
 .os{border-radius:30px;padding:10px;background:rgba(10,14,20,.04);border:1px solid var(--line)}
-.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:38px 38px;
-  display:grid;grid-template-columns:1.15fr .85fr;gap:52px;align-items:start}
+/* The right-hand column held four bullets the page had already made three times
+   over, so the card is a single column now: the claim and the two links. */
+.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:34px 38px;
+  display:grid;gap:0;align-items:start}
 .os-h{font-size:clamp(26px,3.2vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:700}
 .os-p{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:520px}
 .os-cta{display:flex;gap:12px;flex-wrap:wrap}
-.os-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
-.os-list li{display:grid;gap:3px;padding:16px 0;border-top:1px solid var(--line)}
-.os-list li:first-child{border-top:0;padding-top:0}
-.os-list b{font-size:14px;font-weight:650}
-.os-list span{font-size:13px;color:var(--ink-3)}
 @media(max-width:900px){.os-in{grid-template-columns:1fr;gap:34px;padding:32px 26px}}
 
 .prices{max-width:1000px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -399,39 +396,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 /* ── Opinionated stance rows ──────────────────────── */
 
 
-/* ── Stance: bento, not a list ────────────────────── */
-.bento{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
-.bcard{border-radius:28px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
-  transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
-.bcard:hover{transform:translateY(-4px);box-shadow:0 40px 80px -46px rgba(8,42,80,.45)}
-.bcard-in{border-radius:21px;background:#fff;border:1px solid var(--line);height:100%;
-  padding:30px 30px 26px;display:flex;flex-direction:column;gap:14px;
-  box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
-.bcard .n{font-size:10.5px;font-weight:700;letter-spacing:.18em;color:var(--sky-ink)}
-.bcard h3{margin:0;font-size:clamp(20px,2.2vw,27px);line-height:1.16;letter-spacing:-.028em;font-weight:650}
-.bcard p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.62}
-.bcard .vs{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3);
-  padding:9px 14px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
-  align-self:flex-start;flex-wrap:wrap}
-.bcard .vs b{color:var(--ink);font-weight:650}
-.bcard .vs a{color:var(--sky-ink);font-weight:650}
-.bcard.dark{background:var(--ink);border-color:var(--ink)}
-.bcard.dark .bcard-in{background:var(--ink);border-color:rgba(255,255,255,.10);box-shadow:none}
-.bcard.dark h3{color:#fff}.bcard.dark p{color:rgba(255,255,255,.72)}
-.bcard.dark .n{color:#8fd0ff}
-.bcard.dark .vs{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.66)}
-.bcard.dark .vs b{color:#fff}.bcard.dark .vs a{color:#8fd0ff}
-.b7{grid-column:span 7}.b5{grid-column:span 5}.b6{grid-column:span 6}
-@media(max-width:900px){.b7,.b5,.b6{grid-column:span 12}}
 
-/* ── Feature list: what only this does ────────────── */
-.feats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 40px}
-.feat-i{padding:24px 0;display:grid;gap:6px;align-content:start}
-.feat-i h4{margin:0;font-size:15.5px;font-weight:650;letter-spacing:-.015em;display:flex;align-items:center;gap:9px}
-.feat-i h4 em{font-style:normal;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
-  color:var(--sky-ink);background:rgba(2,132,199,.10);padding:3px 8px;border-radius:9999px}
-.feat-i p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
-@media(max-width:900px){.feats{grid-template-columns:1fr}}
 
 .socials{display:flex;gap:8px;margin-top:18px}
 .socials a{width:36px;height:36px;border-radius:9999px;display:grid;place-items:center;
@@ -636,7 +601,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <nav class="nav"><div class="nav-pill">
   <a class="nav-brand" href="#top" data-top>Klorn</a>
-  <span class="nav-links"><a href="#features">기능</a><a href="#cards">제품</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
+  <span class="nav-links"><a href="#cards">제품</a><a href="#compare">왜 Klorn인가</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
   <span class="nav-lang">
     <a href="/" data-lang-pick="en">EN</a><a href="/ko/" data-lang-pick="ko" aria-current="true">한국어</a>
   </span>
@@ -726,10 +691,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">실제 앱</span>
-      <h2 class="rv">여기 있는 모든 화면은<br>실물입니다.</h2>
+      <h2 class="rv">이게 앱<br>전부입니다.</h2>
     </div>
-    <p class="rv">목업이 아닙니다. 출시 중인 macOS 빌드에서 그대로 렌더링했기 때문에,
-      보이는 것이 설치되는 것입니다.</p>
+    <p class="rv">네 개의 화면: 창, 메일마다 붙는 판정 이유, 네 단어가 실제로 뜻하는 것,
+      그리고 당신이 바꿀 수 있는 전부.</p>
   </div>
 
   <div class="cards">
@@ -737,7 +702,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="card-in">
         <div class="card-shot"><img src="/media/app/full.jpg" alt="전체 화면: 단계 사이드바, 메일 목록, 그리고 메일 옆의 Klorn 판정 근거" loading="lazy"></div>
         <div class="card-txt"><h3>한 창, 한 번의 결정</h3>
-          <p>왼쪽에 단계, 가운데에 대기열, 오른쪽에 그게 왜 중요한지. 쓰지 않을 때는 화면 맨 위 한 줄로 접힙니다.</p></div>
+          <p>왼쪽에 단계, 가운데에 대기열, 오른쪽에 그게 왜 중요한지. 쓰지 않을 때는 화면 맨 위 네이티브 한 줄로 접힙니다 — 작업 중 포커스를 뺏지 않고, 확인해야 할 다섯 번째 창도 없습니다.</p></div>
       </div>
     </article>
     <article class="card c4 rv">
@@ -758,7 +723,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="card-in">
         <div class="card-shot"><img src="/media/app/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" loading="lazy"></div>
         <div class="card-txt"><h3>설정은 당신 몫</h3>
-          <p>Klorn이 혼자 어디까지 할지, 답장 어투는 어떨지, 무엇이 당신을 끊어도 되는지.</p></div>
+          <p>Klorn이 혼자 어디까지 할지, 무엇이 당신을 끊어도 되는지. 답장 어투는 한 번만 설정하면 — 격식, 친근, 캐주얼, 아니면 당신이 보낸 메일에서 학습 — 초안 세 개가 모두 그 어투를 따르고, 발신자가 쓴 언어 그대로 씁니다.</p></div>
       </div>
     </article>
   </div>
@@ -767,88 +732,19 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     따로 관리하다 낡아버릴 마케팅 에셋이 없습니다.
     <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">앱 소스 보기 →</a></p>
 </section>
-<!-- ══ THE STANCE ═══════════════════════════════════ -->
-<section class="sec" id="stance">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">우리가 동의하지 않는 지점</span>
-      <h2 class="rv">대부분의 이메일 AI가<br>갖지 않는 네 가지 입장.</h2>
-    </div>
-    <p class="rv">기능이 아니라 선택입니다. 각각은 Klorn에게 대가를 치르게 하고,
-      동시에 이미 메일에 딸려 오는 어시스턴트 대신 Klorn을 쓸 이유입니다.</p>
-  </div>
-  <div class="bento">
-    <article class="bcard b7 dark rv"><div class="bcard-in">
-      <span class="n">01 · 자율성</span>
-      <h3>당신을 대신해 행동하는 에이전트는 잘못된 제품입니다.</h3>
-      <p>다들 자율성을 출시합니다. 희소한 건 노동이 아니라 판단입니다 — 답장은 90초면 씁니다.
-        마흔 통 중 어느 것이 그 90초를 받을 자격이 있는지 정하는 일이 아침을 잡아먹습니다.
-        Klorn은 그 판단을 하고, 행동은 당신에게 남깁니다.</p>
-      <span class="vs">전송·삭제·전달 전부 당신을 기다립니다 · <b>미승인 실행 0건</b></span>
-    </div></article>
-    <article class="bcard b5 rv"><div class="bcard-in">
-      <span class="n">02 · 모델</span>
-      <h3>네 단계. 폴더도, 라벨도, 점수도 아닙니다.</h3>
-      <p>신뢰도 퍼센트로는 아무것도 할 수 없고, 무제한 라벨은 두 번째 받은편지함이 됩니다.
-        메일은 당신을 끊거나, 기다리거나, 보관되거나, 이미 처리됐거나 넷 중 하나입니다. 다섯 번째 단계는 없습니다.</p>
-      <span class="vs">모든 메일이 거기 간 <b>이유를</b> 표시합니다</span>
-    </div></article>
-    <article class="bcard b5 rv"><div class="bcard-in">
-      <span class="n">03 · 근거</span>
-      <h3>확인할 수 있는 숫자가 약속을 이깁니다.</h3>
-      <p>"AI 기반"은 주장이 아닙니다. Klorn은 릴리스마다 직접 라벨링한 실제 메일로 채점하고,
-        콜드/웜 스타트를 따로 보고하며, 그 데이터셋은 저장소에 있어서 우리 라벨에 반박할 수 있습니다.</p>
-      <span class="vs">웜 <b>94.3%</b> · 콜드 81.1% ·
-        <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">데이터셋 →</a></span>
-    </div></article>
-    <article class="bcard b7 rv"><div class="bcard-in">
-      <span class="n">04 · 이탈</span>
-      <h3>떠날 수 있어야 하고, 그 전에 안을 들여다볼 수 있어야 합니다.</h3>
-      <p>이메일 에이전트는 당신이 받는 모든 것을 읽습니다. 열어볼 수도, 빠져나올 수도 없는 상자에
-        넘기기엔 너무 큰 권한입니다. Klorn은 AGPLv3이고, 당신의 DB와 모델 키로 셀프호스팅되며,
-        폭주한 루프가 청구서를 만들지 못하도록 하루 지출에 상한을 겁니다.</p>
-      <span class="vs">AGPLv3 · 셀프호스팅 · 비용 상한 ·
-        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">소스 →</a></span>
-    </div></article>
-  </div>
-</section>
 
 
-<!-- ══ WHAT ONLY KLORN DOES ═════════════════════════ -->
-<section class="sec band" id="features">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">계획이 아니라 구현됨</span>
-      <h2 class="rv">다른 어디에도<br>없는 네 가지.</h2>
-    </div>
-    <p class="rv">사양표가 아닙니다 — 옮겨올 이유 네 가지이고, 넷 다 현재 macOS 빌드에 들어 있습니다.</p>
-  </div>
-  <div class="feats">
-    <div class="feat-i rv"><h4>또 하나의 받은편지함이 아니라, 한 줄의 바 <em>여기에만</em></h4>
-      <p>Klorn은 화면 맨 위 네이티브 한 줄로 존재합니다. 작업 중에 포커스를 뺏지 않고,
-        확인해야 할 다섯 번째 창도 없습니다.</p></div>
-    <div class="feat-i rv"><h4>메일마다 붙는 판정 이유 <em>여기에만</em></h4>
-      <p>"이 발신자에게 6번 답장했습니다." 왜 그렇게 매겨졌는지 보이고, 클릭 한 번으로 반박하면,
-        분류기가 그 정정에서 배웁니다.</p></div>
-    <div class="feat-i rv"><h4>어투는 한 번만 설정 <em>여기에만</em></h4>
-      <p>격식, 친근, 캐주얼 — 아니면 당신이 보낸 메일에서 학습. 세 개의 답장 초안이 말하는 내용은
-        그대로 두고 어투만 바꾸며, 발신자가 쓴 언어 그대로 씁니다.</p></div>
-    <div class="feat-i rv"><h4>모든 실행에 영수증 <em>여기에만</em></h4>
-      <p>전송·삭제·전달은 각각 페이로드 해시가 담긴 서명된 영수증을 남깁니다.
-        당신이 승인한 것이 실제로 나간 것임을 증명할 수 있습니다.</p></div>
-  </div>
-</section>
 
 
 <!-- ══ COMPARISON ═══════════════════════════════════ -->
 <section class="sec" id="compare">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">나란히 놓고</span>
-      <h2 class="rv">같은 받은편지함,<br>다른 두 개의 베팅.</h2>
+      <span class="tag rv">우리가 동의하지 않는 지점</span>
+      <h2 class="rv">대부분의 이메일 AI가<br>갖지 않는 네 가지 입장.</h2>
     </div>
-    <p class="rv">기능 개수 싸움이 아닙니다. Klorn과 이미 메일에 딸려 온 어시스턴트가
-      정반대로 결정하는 네 지점입니다.</p>
+    <p class="rv">기능이 아니라 선택입니다 — 각각은 Klorn에게 대가를 치르게 합니다. 이미 메일에 딸려 온
+      어시스턴트가 대신 무엇을 결정하는지와 나란히 놓았습니다.</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
@@ -857,27 +753,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">누가 결정하나</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 · 누가 결정하나</span>
         <p>분류하고 초안까지 쓴 뒤 <b>멈춥니다</b>. 전송·삭제·전달은 전부 당신을 기다리고 영수증을 남깁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">누가 결정하나</span>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">01 · 누가 결정하나</span>
         <p>당신을 대신해 실행하고 나중에 알려줍니다. 안전장치는 실행 취소뿐입니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">무엇이 보이나</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 · 무엇이 보이나</span>
         <p>고정된 네 단계, 그리고 <b>메일마다 붙는 이유</b>. 하나 옮기면 분류기가 배웁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">무엇이 보이나</span>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">02 · 무엇이 보이나</span>
         <p>중요 표시와 무제한 라벨. 이유는 없고, 고칠 것도 없습니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">무엇을 주장하나</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 · 무엇을 주장하나</span>
         <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b>, 콜드/웜 별도 보고.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">무엇을 주장하나</span>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">03 · 무엇을 주장하나</span>
         <p>"AI 기반." 숫자도, 평가셋도, 직접 확인할 방법도 없습니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">나가고 싶다면</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 · 나가고 싶다면</span>
         <p><b>AGPLv3</b>. 읽고, 당신 키로 셀프호스팅하고, 포크해서 떠나면 됩니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">나가고 싶다면</span>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">04 · 나가고 싶다면</span>
         <p>닫혀 있습니다. 당신의 메일이 학습 표면이고, 내보내기가 유일한 출구입니다.</p></div>
     </div>
   </div>
@@ -922,19 +818,12 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
           <span class="tag">오픈소스</span>
           <h2 class="os-h">읽어보고, 직접 돌리고,<br>언제든 떠나세요.</h2>
           <p class="os-p">이메일 에이전트는 당신이 받는 모든 것을 봅니다. "믿어달라"는 답이 될 수 없습니다.
-            Klorn은 AGPLv3이고 — 분류기, 프롬프트, 평가셋이 전부 저장소에 있으며,
-            당신의 키로 셀프호스팅됩니다.</p>
+            분류기, 프롬프트, 평가셋이 전부 저장소에 있습니다.</p>
           <div class="os-cta">
             <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">저장소 보기 <i>↗</i></a>
             <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">평가셋 보기</a>
           </div>
         </div>
-        <ul class="os-list">
-          <li><b>AGPLv3</b><span>포크하고, 감사하고, 직접 출시하세요.</span></li>
-          <li><b>셀프호스팅</b><span>당신의 DB, 당신의 모델 키, 당신의 머신.</span></li>
-          <li><b>몰래 보내지 않음</b><span>실제 실행마다 페이로드 해시가 담긴 영수증을 남깁니다.</span></li>
-          <li><b>비용 상한</b><span>하루 AI 예산이 있어서 폭주한 루프가 청구서를 만들 수 없습니다.</span></li>
-        </ul>
       </div>
     </div>
   </div>
@@ -1018,7 +907,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <nav aria-label="제품"><h4>제품</h4>
       <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
          data-mac-dl data-win-href="https://app.klorn.ai/login" data-win-label="윈도우용 Klorn">맥용 다운로드</a>
-      <a href="#features">기능</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
+      <a href="#compare">왜 Klorn인가</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
       <a href="https://app.klorn.ai/login">로그인</a></nav>
     <nav aria-label="오픈소스"><h4>오픈소스</h4>
       <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub 저장소</a>

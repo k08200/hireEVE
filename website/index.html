@@ -300,16 +300,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .foot a{color:var(--sky-ink);font-weight:600}
 
 .os{border-radius:30px;padding:10px;background:rgba(10,14,20,.04);border:1px solid var(--line)}
-.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:38px 38px;
-  display:grid;grid-template-columns:1.15fr .85fr;gap:52px;align-items:start}
+/* The right-hand column held four bullets the page had already made three times
+   over, so the card is a single column now: the claim and the two links. */
+.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:34px 38px;
+  display:grid;gap:0;align-items:start}
 .os-h{font-size:clamp(26px,3.2vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:700}
 .os-p{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:520px}
 .os-cta{display:flex;gap:12px;flex-wrap:wrap}
-.os-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
-.os-list li{display:grid;gap:3px;padding:16px 0;border-top:1px solid var(--line)}
-.os-list li:first-child{border-top:0;padding-top:0}
-.os-list b{font-size:14px;font-weight:650}
-.os-list span{font-size:13px;color:var(--ink-3)}
 @media(max-width:900px){.os-in{grid-template-columns:1fr;gap:34px;padding:32px 26px}}
 
 .prices{max-width:1000px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -399,39 +396,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 /* ── Opinionated stance rows ──────────────────────── */
 
 
-/* ── Stance: bento, not a list ────────────────────── */
-.bento{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
-.bcard{border-radius:28px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
-  transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
-.bcard:hover{transform:translateY(-4px);box-shadow:0 40px 80px -46px rgba(8,42,80,.45)}
-.bcard-in{border-radius:21px;background:#fff;border:1px solid var(--line);height:100%;
-  padding:30px 30px 26px;display:flex;flex-direction:column;gap:14px;
-  box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
-.bcard .n{font-size:10.5px;font-weight:700;letter-spacing:.18em;color:var(--sky-ink)}
-.bcard h3{margin:0;font-size:clamp(20px,2.2vw,27px);line-height:1.16;letter-spacing:-.028em;font-weight:650}
-.bcard p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.62}
-.bcard .vs{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3);
-  padding:9px 14px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
-  align-self:flex-start;flex-wrap:wrap}
-.bcard .vs b{color:var(--ink);font-weight:650}
-.bcard .vs a{color:var(--sky-ink);font-weight:650}
-.bcard.dark{background:var(--ink);border-color:var(--ink)}
-.bcard.dark .bcard-in{background:var(--ink);border-color:rgba(255,255,255,.10);box-shadow:none}
-.bcard.dark h3{color:#fff}.bcard.dark p{color:rgba(255,255,255,.72)}
-.bcard.dark .n{color:#8fd0ff}
-.bcard.dark .vs{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.66)}
-.bcard.dark .vs b{color:#fff}.bcard.dark .vs a{color:#8fd0ff}
-.b7{grid-column:span 7}.b5{grid-column:span 5}.b6{grid-column:span 6}
-@media(max-width:900px){.b7,.b5,.b6{grid-column:span 12}}
 
-/* ── Feature list: what only this does ────────────── */
-.feats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 40px}
-.feat-i{padding:24px 0;display:grid;gap:6px;align-content:start}
-.feat-i h4{margin:0;font-size:15.5px;font-weight:650;letter-spacing:-.015em;display:flex;align-items:center;gap:9px}
-.feat-i h4 em{font-style:normal;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
-  color:var(--sky-ink);background:rgba(2,132,199,.10);padding:3px 8px;border-radius:9999px}
-.feat-i p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
-@media(max-width:900px){.feats{grid-template-columns:1fr}}
 
 .socials{display:flex;gap:8px;margin-top:18px}
 .socials a{width:36px;height:36px;border-radius:9999px;display:grid;place-items:center;
@@ -636,7 +601,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <nav class="nav"><div class="nav-pill">
   <a class="nav-brand" href="#top" data-top>Klorn</a>
-  <span class="nav-links"><a href="#features">Features</a><a href="#cards">Product</a><a href="#pricing">Pricing</a><a href="#open">Open source</a></span>
+  <span class="nav-links"><a href="#cards">Product</a><a href="#compare">Why Klorn</a><a href="#pricing">Pricing</a><a href="#open">Open source</a></span>
   <span class="nav-lang">
     <a href="/" data-lang-pick="en" aria-current="true">EN</a><a href="/ko/" data-lang-pick="ko">한국어</a>
   </span>
@@ -726,10 +691,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">The actual app</span>
-      <h2 class="rv">Every screen here is<br>the real thing.</h2>
+      <h2 class="rv">This is the<br>whole app.</h2>
     </div>
-    <p class="rv">No mock-ups. These are rendered straight from the shipping macOS build, so what you
-      see is what installs.</p>
+    <p class="rv">Four screens: the window, the reason behind every message, what the four words actually
+      mean, and everything you are allowed to change.</p>
   </div>
 
   <div class="cards">
@@ -737,7 +702,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="card-in">
         <div class="card-shot"><img src="/media/app/full.jpg" alt="The full view: tier sidebar, the mail list, and Klorn's reasoning beside the message" loading="lazy"></div>
         <div class="card-txt"><h3>One window, one decision</h3>
-          <p>Tiers on the left, the queue in the middle, and why it matters on the right. At rest this collapses to a single line at the top of your screen.</p></div>
+          <p>Tiers on the left, the queue in the middle, and why it matters on the right. At rest it collapses to one native line at the top of your screen — it never steals focus, and there is no fifth window to check.</p></div>
       </div>
     </article>
     <article class="card c4 rv">
@@ -758,7 +723,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="card-in">
         <div class="card-shot"><img src="/media/app/preferences.jpg" alt="Preferences: agent mode, reply tone, alert categories and quiet hours" loading="lazy"></div>
         <div class="card-txt"><h3>Yours to set</h3>
-          <p>How much Klorn does alone, how its replies sound, and what is allowed to interrupt you.</p></div>
+          <p>How much Klorn does alone, and what is allowed to interrupt you. Set the reply tone once — formal, friendly, casual, or learned from your own sent mail — and all three drafts follow it, in whatever language the sender wrote in.</p></div>
       </div>
     </article>
   </div>
@@ -767,89 +732,19 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     there is no separate marketing asset to fall out of date.
     <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">Read the app source →</a></p>
 </section>
-<!-- ══ THE STANCE ═══════════════════════════════════ -->
-<section class="sec" id="stance">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">Where we disagree</span>
-      <h2 class="rv">Four opinions most<br>email AI doesn't hold.</h2>
-    </div>
-    <p class="rv">These are choices, not features. Each one costs Klorn something, and each one is the
-      reason to use it instead of the assistant already bundled with your mail.</p>
-  </div>
-  <div class="bento">
-    <article class="bcard b7 dark rv"><div class="bcard-in">
-      <span class="n">01 · Autonomy</span>
-      <h3>An agent that acts for you is the wrong product.</h3>
-      <p>Everyone is shipping autonomy. The scarce thing is judgement, not labour — you can write the
-        reply in ninety seconds, but deciding which of forty messages deserves it is what eats the
-        morning. Klorn does the deciding and leaves the acting to you.</p>
-      <span class="vs">Send, delete and forward all wait for you · <b>0 unapproved actions</b></span>
-    </div></article>
-    <article class="bcard b5 rv"><div class="bcard-in">
-      <span class="n">02 · Model</span>
-      <h3>Four tiers. Not folders, labels or scores.</h3>
-      <p>A confidence percentage tells you nothing you can act on, and unlimited labels become a second
-        inbox. A message either interrupts you, waits, is filed, or was handled. There is no fifth tier.</p>
-      <span class="vs">Every message shows <b>why</b> it landed there</span>
-    </div></article>
-    <article class="bcard b5 rv"><div class="bcard-in">
-      <span class="n">03 · Evidence</span>
-      <h3>A number you can check beats a promise.</h3>
-      <p>"AI-powered" is not a claim. Klorn is scored against hand-labeled real mail before every
-        release, cold and warm reported separately, and the set is in the repo so you can disagree
-        with our labels.</p>
-      <span class="vs"><b>94.3%</b> warm · 81.1% cold ·
-        <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">the set →</a></span>
-    </div></article>
-    <article class="bcard b7 rv"><div class="bcard-in">
-      <span class="n">04 · Exit</span>
-      <h3>You should be able to leave, and to look inside first.</h3>
-      <p>An email agent reads everything you receive. That is too much power to hand to a box you can
-        neither inspect nor exit. Klorn is AGPLv3, self-hosts against your own database and model keys,
-        and caps its own daily spend so a runaway loop can't bill you.</p>
-      <span class="vs">AGPLv3 · self-hosted · cost-capped ·
-        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">the source →</a></span>
-    </div></article>
-  </div>
-</section>
 
 
-<!-- ══ WHAT ONLY KLORN DOES ═════════════════════════ -->
-<section class="sec band" id="features">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">Built, not planned</span>
-      <h2 class="rv">Four things that exist<br>nowhere else.</h2>
-    </div>
-    <p class="rv">Not a spec sheet — these are the four reasons to move, and all four ship in the current macOS build.</p>
-  </div>
-  <div class="feats">
-    <div class="feat-i rv"><h4>A bar, not another inbox <em>only here</em></h4>
-      <p>Klorn lives in one native line at the top of the screen. It never steals focus while you work,
-        and there is no fifth window to check.</p></div>
-    <div class="feat-i rv"><h4>The reason, on every message <em>only here</em></h4>
-      <p>"You replied to this sender 6 times." You can see why it was ranked, disagree in one click,
-        and the classifier learns from the correction.</p></div>
-    <div class="feat-i rv"><h4>Set the tone once <em>only here</em></h4>
-      <p>Formal, friendly, casual — or learned from your own sent mail. It shapes all three reply drafts
-        without changing what they say, in whatever language the sender wrote in.</p></div>
-    <div class="feat-i rv"><h4>A receipt for every action <em>only here</em></h4>
-      <p>Send, delete and forward each mint a signed receipt with a payload hash, so what you approved
-        is provably what went out.</p></div>
-  </div>
-</section>
 
 
 <!-- ══ COMPARISON ═══════════════════════════════════ -->
 <section class="sec" id="compare">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">Side by side</span>
-      <h2 class="rv">The same inbox,<br>two different bets.</h2>
+      <span class="tag rv">Where we disagree</span>
+      <h2 class="rv">Four opinions most<br>email AI doesn't hold.</h2>
     </div>
-    <p class="rv">Not a feature-count. These are the four places where Klorn and the assistant already
-      bundled with your mail decide to do the opposite thing.</p>
+    <p class="rv">These are choices, not features — each one costs Klorn something. Set against what the
+      assistant already bundled with your mail decides to do instead.</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
@@ -858,27 +753,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">Who decides</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 · Who decides</span>
         <p>Sorts and drafts, then <b>stops</b>. Every send, delete and forward waits for you and mints a receipt.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">Who decides</span>
+      <div class="vscell them" data-who="Everyone else"><span class="k">01 · Who decides</span>
         <p>Acts on your behalf and tells you afterwards. Undo is the safety net.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">What you see</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 · What you see</span>
         <p>Four fixed tiers, and <b>the reason on every message</b>. Move one and the classifier learns.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">What you see</span>
+      <div class="vscell them" data-who="Everyone else"><span class="k">02 · What you see</span>
         <p>Priority flags and unlimited labels. No reason given, and nothing to correct.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">What it claims</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 · What it claims</span>
         <p><b>94.3%</b> on a hand-labeled set that ships in the repo, cold and warm reported separately.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">What it claims</span>
+      <div class="vscell them" data-who="Everyone else"><span class="k">03 · What it claims</span>
         <p>"AI-powered." No number, no eval set, no way to check it yourself.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">If you want out</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 · If you want out</span>
         <p><b>AGPLv3</b>. Read it, self-host it against your own keys, or fork it and leave.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">If you want out</span>
+      <div class="vscell them" data-who="Everyone else"><span class="k">04 · If you want out</span>
         <p>Closed. Your mail is the training surface, and export is the only exit.</p></div>
     </div>
   </div>
@@ -923,19 +818,12 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
           <span class="tag">Open source</span>
           <h2 class="os-h">Read it. Run it yourself.<br>Leave whenever you like.</h2>
           <p class="os-p">An email agent sees everything you receive, so "trust us" is not an answer.
-            Klorn is AGPLv3 — the classifier, the prompts and the eval set are all in the repo,
-            and it self-hosts against your own keys.</p>
+            The classifier, the prompts and the eval set are all in the repo.</p>
           <div class="os-cta">
             <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">View the repository <i>↗</i></a>
             <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">See the eval set</a>
           </div>
         </div>
-        <ul class="os-list">
-          <li><b>AGPLv3</b><span>Fork it, audit it, ship your own.</span></li>
-          <li><b>Self-hostable</b><span>Your database, your model keys, your machine.</span></li>
-          <li><b>No silent sends</b><span>Every real-world action logs a receipt with a payload hash.</span></li>
-          <li><b>Cost-capped</b><span>A daily AI budget, so a runaway loop can't bill you.</span></li>
-        </ul>
       </div>
     </div>
   </div>
@@ -1019,7 +907,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <nav aria-label="Product"><h4>Product</h4>
       <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
          data-mac-dl data-win-href="https://app.klorn.ai/login" data-win-label="Klorn for Windows">Download for Mac</a>
-      <a href="#features">Features</a><a href="#measured">Accuracy</a><a href="#pricing">Pricing</a>
+      <a href="#compare">Why Klorn</a><a href="#measured">Accuracy</a><a href="#pricing">Pricing</a>
       <a href="https://app.klorn.ai/login">Log in</a></nav>
     <nav aria-label="Open source"><h4>Open source</h4>
       <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub repository</a>
