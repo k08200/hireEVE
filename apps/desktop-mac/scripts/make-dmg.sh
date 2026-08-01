@@ -36,7 +36,10 @@ echo "▸ Staging $(basename "$APP")…"
 ditto "$APP" "$STAGE/$(basename "$APP")"
 ln -s /Applications "$STAGE/Applications"
 
-echo "▸ Creating $OUT…"
+# ${OUT} braced: the runner's /bin/bash is 3.2, which swallowed the U+2026
+# ellipsis into the variable name ("OUT…: unbound variable") and killed the
+# release. Newer local bash parses it fine, which is why it passed here.
+echo "▸ Creating ${OUT}…"
 rm -f "$OUT"
 hdiutil create \
   -volname "$VOLNAME" \
