@@ -22,10 +22,10 @@ cargo tauri build    # NSIS installer, Windows only
 
 `icons/icon.ico` is still the placeholder question: bundling on Windows needs a
 real multi-size .ico generated from the brand mark (`cargo tauri icon`), which
-is not yet committed. `cargo check` does not require it.
+is committed (PNG-embedded multi-size .ico built from the brand mark).
 
 ## Not yet wired
 
-- Windows release workflow (NSIS installer published to GitHub Releases)
+- ~~Windows release workflow~~ → `.github/workflows/desktop-win-release.yml`, tag `desktop-win-v*`
 - The landing's Windows card still points at the web app until an installer
   exists — flip `data-win-href` only after the first release is live.
