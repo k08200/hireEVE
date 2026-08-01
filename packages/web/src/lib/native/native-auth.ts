@@ -116,7 +116,6 @@ async function exchangeCode(code: string): Promise<string> {
 // ─── POLL (PKCE fallback) ────────────────────────────────────────────────────
 
 async function startPollLogin(): Promise<void> {
-
   // PKCE: the verifier stays on-device and is presented (as a header) only when
   // polling for the token. The nonce leaks into the system browser's URL/history,
   // but without the verifier an observer of the nonce cannot retrieve the JWT.

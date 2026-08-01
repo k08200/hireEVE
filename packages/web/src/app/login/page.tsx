@@ -10,8 +10,8 @@ import { Input } from "../../components/ui/input";
 import { API_BASE, apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useT } from "../../lib/i18n";
-import { isNativeShell } from "../../lib/native/shell";
 import { startNativeGoogleLogin } from "../../lib/native/native-auth";
+import { isNativeShell } from "../../lib/native/shell";
 
 const MIN_PASSWORD_LENGTH = 8;
 
