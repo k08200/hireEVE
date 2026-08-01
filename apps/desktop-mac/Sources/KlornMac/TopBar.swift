@@ -1211,6 +1211,19 @@ private struct FullList: View {
                 Spacer()
                 EmptyState(icon: tier.emptyIcon, title: tier.emptyTitle, hint: tier.blurb)
                 Spacer()
+            } else if Theme.isRenderingOffscreen {
+                // ImageRenderer draws nothing inside a ScrollView, so the full
+                // view rendered its mail column empty — a screenshot of the app
+                // looking broken, which is what shipped to the landing page.
+                // Same workaround already used for the rows and preferences
+                // shots: lay the rows out directly when rendering offscreen.
+                VStack(spacing: 0) {
+                    ForEach(items) { item in
+                        FullRow(item: item, actions: actions)
+                        Divider().overlay(Theme.line).padding(.leading, 24)
+                    }
+                    Spacer(minLength: 0)
+                }
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -1673,7 +1686,11 @@ struct FullRow: View {
 /// The reading pane: the selected email's content, loaded from GET /api/email/:id.
 /// Clicking a row (a plain mouse click, delivered even to the non-focus-stealing
 /// panel) loads it here — no need to leave the app for the browser.
-private struct ReadingPane: View {
+/// Internal rather than private so --render-previews can shoot it on its own.
+/// The full window is 1400pt wide; on the landing page's 1180px container that
+/// scales the app's 13pt body text down to under 7px, which is unreadable. The
+/// reading pane alone fits at over 100%.
+struct ReadingPane: View {
     @Environment(AppModel.self) private var model
     let actions: TopBarActions
     @State private var replying = false
@@ -2011,7 +2028,12 @@ private struct ReadingPane: View {
         let iso1 = ISO8601DateFormatter(); iso1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let iso2 = ISO8601DateFormatter(); iso2.formatOptions = [.withInternetDateTime]
         guard let date = iso1.date(from: iso) ?? iso2.date(from: iso) else { return "" }
-        let out = DateFormatter(); out.dateFormat = "MMM d · h:mm a"
+        let out = DateFormatter()
+        // Without this the formatter follows the SYSTEM locale, so a user who set
+        // the app to English on a Korean Mac still read "7월 29 · 5:12 오후".
+        // Follow the app's own resolved language instead.
+        out.locale = Locale(identifier: L10n.resolvedCode(override: L10n.override))
+        out.dateFormat = "MMM d · h:mm a"
         return out.string(from: date)
     }
 }

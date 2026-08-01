@@ -34,7 +34,7 @@ enum PreviewRender {
        "tier":"PUSH","tierReason":"Calendar conflict","priority":7,
        "surfacedAt":"2026-07-29T07:05:00Z",
        "email":{"emailDbId":"d3","subject":"Standup moved to 10:30",
-                "from":"이준호 <junho@team.co.kr>","snippet":"오늘 스탠드업 10시 30분으로 옮겼습니다."},"hashStale":false}],
+                "from":"Alex Carter <alex@team.co>","snippet":"Moved tomorrow's standup to 10:30 — still work for you?"},"hashStale":false}],
       "QUEUE":[],"SILENT":[],"AUTO":[]},
      "summary":{"PUSH":3,"QUEUE":12,"SILENT":41,"AUTO":8,"total":64}}
     """
@@ -62,10 +62,14 @@ enum PreviewRender {
         GuideSeen.value = true
 
         var ok = true
-        func shot(_ name: String, size: CGSize, @ViewBuilder _ content: () -> some View) {
+        // A view taller than the frame is centred by default, which silently cuts
+        // the title off the top. Surfaces that read top-down pass .top.
+        func shot(_ name: String, size: CGSize, align: Alignment = .center,
+                  @ViewBuilder _ content: () -> some View) {
             let view = content()
                 .environment(model)
-                .frame(width: size.width, height: size.height)
+                .frame(width: size.width, height: size.height, alignment: align)
+                .clipped()
                 .background(Theme.bg)
             let renderer = ImageRenderer(content: view)
             // 2x so type rendering is judged at the density a Mac actually shows.
@@ -106,7 +110,13 @@ enum PreviewRender {
         // ImageRenderer draws nothing inside a ScrollView, so the mail rows —
         // the densest and most design-critical surface in the app — are composed
         // directly here instead of being lost inside the list's scroller.
-        shot("rows", size: CGSize(width: 420, height: 300)) {
+        // The landing shows these four surfaces in one frame, so they share a
+        // width — but each is rendered at the height its own content needs and
+        // trimmed to the frame afterwards. Rendering straight into a short frame
+        // COMPRESSES the layout instead of overflowing it: at 330pt the option
+        // rows in Preferences squeezed until their text sat outside the cards.
+        let tourW: CGFloat = 520
+        shot("rows", size: CGSize(width: tourW, height: 430), align: .top) {
             VStack(spacing: 0) {
                 ForEach(model.queue?.items(for: .push) ?? []) { item in
                     FullRow(item: item, actions: actions)
@@ -115,10 +125,16 @@ enum PreviewRender {
                 Spacer(minLength: 0)
             }
         }
+        // The reading pane on its own. Shrinking the whole 1400pt window into a
+        // landing-page card renders the app's body text at under 7px; this fits
+        // the same card at over 100%, so it can actually be read.
+        shot("reading", size: CGSize(width: tourW, height: 430), align: .top) {
+            ReadingPane(actions: actions)
+        }
         // PreferencesView puts its body in a ScrollView, which ImageRenderer
         // draws as nothing — the shot was a title bar over a blank sheet. Render
         // the behaviour settings themselves, which is the part worth showing.
-        shot("preferences", size: CGSize(width: 470, height: 900)) {
+        shot("preferences", size: CGSize(width: tourW, height: 900), align: .top) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text(L("prefs.title")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
@@ -133,7 +149,7 @@ enum PreviewRender {
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
             .padding(14)
         }
-        shot("tier-guide", size: CGSize(width: 540, height: 520)) {
+        shot("tier-guide", size: CGSize(width: tourW, height: 520)) {
             TierGuide {}
         }
         return ok
