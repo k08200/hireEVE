@@ -1,0 +1,19 @@
+[package]
+name = "klorn-desktop-win"
+version = "0.1.0"
+description = "Klorn for Windows — a thin shell around the hosted web app"
+edition = "2021"
+license = "AGPL-3.0-only"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+# One running copy. A second launch focuses the existing window instead of
+# opening a second inbox that fights the first over notifications.
+tauri-plugin-single-instance = "2"
+# System-browser handoff for Google OAuth (RFC 8252: Google rejects OAuth in
+# embedded webviews). The web app calls this through the injected IPC global —
+# see packages/web/src/lib/native/shell.ts.
+tauri-plugin-opener = "2"
