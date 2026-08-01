@@ -21,12 +21,25 @@
 <meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
 <!-- The hero photograph is the LCP element; preloading it with the same srcset
      the <picture> uses lets the fetch start before the CSS resolves. -->
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/instrument-serif-italic.woff2" crossorigin>
 <link rel="preload" as="image" type="image/webp"
       imagesrcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w"
       imagesizes="100vw" fetchpriority="high">
 <link rel="icon" href="/brand/favicon.svg?v=matte2" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
 <style>
+/* Self-hosted webfonts (fonts/SOURCE.md). The stacks below referenced Geist and
+   a commercial serif that were never actually loaded, so every visitor rendered
+   the system-font fallback. Geist is the intended sans; the serif accent loads
+   Instrument Serif (OFL) in place of the unlicensed face the stack named.
+   font-display swap: text renders immediately in the fallback, then upgrades. */
+@font-face{font-family:'Geist';src:url('/fonts/geist-var.woff2') format('woff2');
+  font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif-italic.woff2') format('woff2');
+  font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:swap}
 :root{
   --ink:#0a0e14; --ink-2:#39424e;
   /* #6a7480 measured 4.17:1 on the band wash and 3.71:1 over the sky bands —
@@ -132,7 +145,7 @@ h1{font-size:clamp(46px,7.2vw,88px);line-height:.98;letter-spacing:-.042em;font-
 /* Measured against the photograph's bands: --sky-600 lands at 2.69:1, under the
    3:1 floor for large text. This shade clears it (3.23:1) and still reads as the
    same accent; the paper sections keep --sky-600 unchanged. */
-h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;
+h1 .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;
   color:#0277b3;padding-right:.06em}
 .lead{font-size:19px;color:var(--ink-2);max-width:600px;margin:0 auto 34px}
 /* The serif accent is a Latin display face. Korean has no glyphs in it, so the
@@ -298,7 +311,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 .stmt{max-width:780px}
 .stmt-h{font-size:clamp(30px,4.4vw,54px);line-height:1.06;letter-spacing:-.035em;font-weight:700;margin:0 0 22px}
-.stmt-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-ink)}
+.stmt-h .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-ink)}
 .stmt-p{font-size:18px;color:var(--ink-2);margin:0 0 30px;max-width:640px}
 .pips{display:flex;gap:10px;flex-wrap:wrap}
 .pip{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:9999px;background:#fff;
@@ -437,7 +450,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .final-h{font-size:clamp(34px,5.4vw,68px);line-height:1.02;letter-spacing:-.04em;font-weight:700;margin:0 0 18px}
 /* Now sits on the closing photograph too: --sky-600 measures 2.93:1 there,
    under the 3:1 floor. Same shade as the hero accent. */
-.final-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:#0277b3}
+.final-h .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:#0277b3}
 .final-p{color:var(--ink-2);margin:0 auto 30px;max-width:520px}
 .final .actions{justify-content:center}
 
