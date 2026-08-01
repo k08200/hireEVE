@@ -203,7 +203,9 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .actions-note a:hover{border-bottom-color:#084869}
 
 /* ── The real app, floating ───────────────────────── */
-.stage{position:relative;z-index:3;margin:56px auto 0;max-width:1160px;padding:0 24px 96px}
+/* 56px sat the replica right under the sorting demo — two dense panels with no
+   air between them. */
+.stage{position:relative;z-index:3;margin:120px auto 0;max-width:1160px;padding:0 24px 96px}
 /* Caption above the frame. Below it the stage fade washes it out, and this one
    has to stay readable — it is the honesty label on a fake inbox. */
 .stage-cap{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;
@@ -1360,7 +1362,17 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       c.num.textContent = c.n;
       shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
       doneEl.textContent = shown;
-      if (shown >= 64) { stateEl.textContent = '분류 완료'; }
+      if (shown >= 64) {
+        stateEl.textContent = '분류 완료';
+        // Hold the finished board, then run the morning again. A demo that
+        // stops dead reads as broken to anyone who scrolls back to it.
+        setTimeout(function () {
+          Object.keys(cells).forEach(function (k) { cells[k].n = 0; cells[k].num.textContent = 0; });
+          shown = 0; doneEl.textContent = 0;
+          stateEl.textContent = '분류 중';
+          setTimeout(step, 700);
+        }, 2600);
+      }
     }, 560);
 
     i++;
