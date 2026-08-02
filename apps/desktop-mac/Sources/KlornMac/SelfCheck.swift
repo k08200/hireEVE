@@ -167,6 +167,33 @@ func runSelfChecks() async -> Bool {
                                      pushItems: [push("a"), push("b")])
     check("no new PUSH = no notifications", none.toNotify.isEmpty)
 
+    // Notification identity round-trips, so a banner tap can find its item.
+    // Without this the OS banner is a dead end: it interrupts you and then has
+    // nowhere to take you (dogfood: "the notification does nothing").
+    check("notification id encodes the item id",
+          PushNotifier.notificationIdentifier(for: "item-42") == "klorn-push-item-42")
+    check("notification id round-trips back to the item id",
+          PushNotifier.itemID(fromNotificationIdentifier: "klorn-push-item-42") == "item-42")
+    check("item ids containing the prefix survive the round trip",
+          PushNotifier.itemID(
+              fromNotificationIdentifier: PushNotifier.notificationIdentifier(
+                  for: "klorn-push-nested")) == "klorn-push-nested")
+    check("a foreign notification id is not claimed",
+          PushNotifier.itemID(fromNotificationIdentifier: "other-app-1") == nil)
+
+    // Tap routing: a known item opens in the reading pane; one that has since
+    // left the queue still shows the bar (a tap must never be a no-op); a
+    // foreign banner is left alone.
+    check("tapping a live item opens it",
+          PushNotifier.tapAction(identifier: "klorn-push-i1", isKnownItem: { $0 == "i1" })
+              == .open(itemID: "i1"))
+    check("tapping a vanished item falls back to expanding the bar",
+          PushNotifier.tapAction(identifier: "klorn-push-gone", isKnownItem: { _ in false })
+              == .expand)
+    check("tapping another app's notification is ignored",
+          PushNotifier.tapAction(identifier: "someone-else", isKnownItem: { _ in true })
+              == .ignore)
+
     print("PushCard:")
     // Keymap — only an explicit arm gives the card the keyboard, and these are
     // the only keys it may consume (1/2/3 send, Return open, Esc dismiss).
