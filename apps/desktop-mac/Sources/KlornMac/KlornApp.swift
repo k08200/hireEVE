@@ -109,14 +109,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// in that case fall back to expanding the bar rather than doing nothing, so
     /// a tap always produces a visible response.
     func openFromNotification(identifier: String) {
+        // One lookup, reused: `queue` is an immutable Sendable snapshot, so the
+        // item found while routing is the item we open.
         let queue = model.queue
-        switch PushNotifier.tapAction(
-            identifier: identifier, isKnownItem: { queue?.item(id: $0) != nil }
-        ) {
+        var found: FirewallItem?
+        let action = PushNotifier.tapAction(identifier: identifier) { id in
+            found = queue?.item(id: id)
+            return found != nil
+        }
+        switch action {
         case .ignore:
             return  // not ours — never claim another app's notification
-        case .open(let itemID):
-            guard let item = queue?.item(id: itemID) else { return topBar?.expand() ?? () }
+        case .open:
+            guard let item = found else {
+                topBar?.expand()
+                return
+            }
             topBar?.openInApp(item)
         case .expand:
             topBar?.expand()
