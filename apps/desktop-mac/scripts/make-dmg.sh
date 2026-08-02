@@ -17,6 +17,30 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."   # → apps/desktop-mac
 
+# ── Window geometry, single source of truth ──────────────────────────────────
+# Finder counts the title bar inside the window rect it restores, and the icon
+# label hangs below the icon. Guessing this once shipped a build whose labels
+# sat 7px from the cut. The numbers below are asserted, not eyeballed:
+#
+#   content_h  = WIN_H - TITLEBAR
+#   label_bot  = ICON_Y + ICON/2 + LABEL_GAP + LABEL_H
+#   slack      = content_h - label_bot     (must clear MIN_SLACK)
+WIN_W=660
+WIN_H=520
+TITLEBAR=28
+ICON=128
+ICON_Y=330
+LABEL_GAP=6
+LABEL_H=18
+MIN_SLACK=60
+
+CONTENT_H=$(( WIN_H - TITLEBAR ))
+LABEL_BOT=$(( ICON_Y + ICON / 2 + LABEL_GAP + LABEL_H ))
+SLACK=$(( CONTENT_H - LABEL_BOT ))
+if [ "$SLACK" -lt "$MIN_SLACK" ]; then
+  echo "✗ labels would sit ${SLACK}px from the window cut (need ${MIN_SLACK}px)"; exit 1
+fi
+
 APP="${1:?usage: make-dmg.sh <Klorn.app> <out.dmg> [volume-name]}"
 OUT="${2:?usage: make-dmg.sh <Klorn.app> <out.dmg> [volume-name]}"
 VOLNAME="${3:-Klorn}"
@@ -34,7 +58,7 @@ python3 -m venv "$WORK/venv"
 
 echo "▸ Rendering window background"
 swiftc -O scripts/render-dmg-background.swift -o "$WORK/render-bg"
-"$WORK/render-bg" "$WORK/bg" "../../website/brand/mark.png" >/dev/null
+"$WORK/render-bg" "$WORK/bg" "../../website/brand/mark.png" "$WIN_W" "$WIN_H" "$ICON_Y" >/dev/null
 tiffutil -cathidpicheck "$WORK/bg.png" "$WORK/bg@2x.png" -out "$WORK/bg.tiff" 2>/dev/null
 
 # dmgbuild settings. Icon rows sit at y=205 (top-origin) to line up with the
@@ -45,6 +69,7 @@ tiffutil -cathidpicheck "$WORK/bg.png" "$WORK/bg@2x.png" -out "$WORK/bg.tiff" 2>
 # is 3.2 (\${var@Q} does not exist there; that trap killed the first release).
 export KLORN_DMG_APP="$(cd "$(dirname "$APP")" && pwd)/$(basename "$APP")"
 export KLORN_DMG_BG="$WORK/bg.tiff"
+export KLORN_WIN_W="$WIN_W" KLORN_WIN_H="$WIN_H" KLORN_ICON_Y="$ICON_Y"
 cat > "$WORK/settings.py" <<'PYEOF'
 import os
 import os.path
@@ -52,16 +77,17 @@ app = os.environ["KLORN_DMG_APP"]
 files = [app]
 symlinks = {"Applications": "/Applications"}
 background = os.environ["KLORN_DMG_BG"]
-window_rect = ((200, 140), (660, 480))
+window_rect = ((200, 120), (int(os.environ["KLORN_WIN_W"]), int(os.environ["KLORN_WIN_H"])))
 icon_size = 128
 text_size = 13
 icon_locations = {
-    os.path.basename(app): (180, 330),
-    "Applications": (480, 330),
+    os.path.basename(app): (180, int(os.environ["KLORN_ICON_Y"])),
+    "Applications": (480, int(os.environ["KLORN_ICON_Y"])),
 }
 format = "UDZO"
 PYEOF
 
+echo "▸ Window ${WIN_W}x${WIN_H}, icons y=${ICON_Y}, label clears the cut by ${SLACK}px"
 echo "▸ Creating ${OUT}"
 rm -f "$OUT"
 "$WORK/venv/bin/python" -m dmgbuild -s "$WORK/settings.py" "$VOLNAME" "$OUT"
