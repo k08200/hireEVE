@@ -1,7 +1,11 @@
 import AppKit
 import Foundation
 import SwiftUI
-import UserNotifications
+// @preconcurrency: the UNUserNotificationCenterDelegate completion handlers are
+// annotated @Sendable in the macOS 26 SDK but not in the macOS 15 SDK the CI
+// runner builds against, so a signature that satisfies one rejects the other.
+// Importing preconcurrency lets one signature compile on both.
+@preconcurrency import UserNotifications
 
 /// Entry point. `--self-check` runs the verification harness and exits (so tests
 /// work on a Command Line Tools toolchain with no XCTest); otherwise the app
@@ -83,13 +87,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping @Sendable () -> Void
+        withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let identifier = response.notification.request.identifier
+        // Hop the (main-actor) UI work off, then tell the system we're done.
+        // The handler is called here rather than inside the Task because it is
+        // not Sendable under every SDK we build against, and it only signals
+        // "delivery handled" — opening the pane does not need to precede it.
         Task { @MainActor [weak self] in
             self?.openFromNotification(identifier: identifier)
-            completionHandler()
         }
+        completionHandler()
     }
 
     /// Banners posted while Klorn is frontmost still show: the app is an
@@ -99,7 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler:
-            @escaping @Sendable (UNNotificationPresentationOptions) -> Void
+            @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         completionHandler([.banner, .sound])
     }
