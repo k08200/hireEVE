@@ -36,8 +36,9 @@
  *     dedup is the prerequisite to wire BEFORE enabling autonomous execution.
  *   - This PR does NOT enable AUTO execution. It only routes the existing
  *     human-approve path through the outbox (durability + retry). AUTO stays
- *     classify-only per POC.md; an autonomous caller would enqueue without
- *     the inline attempt and let the worker run it.
+ *     classify-only (CLAUDE.md doctrine), gated OFF by default behind
+ *     AUTO_TIER_EXECUTION in email-action-trigger.ts; an autonomous caller
+ *     would enqueue without the inline attempt and let the worker run it.
  */
 
 import { createHash } from "node:crypto";

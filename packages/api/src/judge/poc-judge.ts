@@ -1,18 +1,18 @@
 /**
  * POC judge — single-email 4-tier classifier.
  *
- * Per POC.md (locked 2026-05-26): "분류기 — `poc-judge.ts` 기반.
- * 4-feature scorer (confidence + sender trust + reversibility + urgency)
- * → 4-tier output. 기존 코드 위에서 정제."
+ * Design locked 2026-05-26: a 4-feature scorer (confidence + senderTrust +
+ * reversibility + urgency) whose output is mapped to a tier by a deterministic
+ * rule, not by the model — see tier-policy.ts for the rule itself.
  *
- * Day 7 Technical POC HARD GATE: ≥80% agreement with founder hand-labels
- * on 50 real emails. Used by:
+ * Accuracy bar: ≥80% agreement with founder hand-labels on 50 real emails.
+ * Used by:
  *   - scripts/poc-label-emails.ts (extracts 50 emails to label)
  *   - scripts/poc-accuracy.ts     (measures labels vs judgeEmail output)
  *
- * Side effects: none. This file does not persist anything. Integration
- * with EmailMessage/AttentionItem is a follow-up PR — keeping the judge
- * pure makes Day 7 GATE measurement and Day 6 prompt iteration cheap.
+ * Side effects: none. This file does not persist anything — the
+ * EmailMessage/AttentionItem integration lives elsewhere. Keeping the judge
+ * pure is what makes accuracy measurement and prompt iteration cheap.
  */
 
 import { type LearnedRule, matchLearnedRules } from "../learning/learned-rules.js";

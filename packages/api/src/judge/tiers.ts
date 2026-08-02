@@ -1,7 +1,8 @@
 /**
  * The canonical attention tier vocabulary. SINGLE SOURCE OF TRUTH.
  *
- * Klorn is a 4-tier firewall (POC.md, LOCKED): SILENT / QUEUE / PUSH / AUTO.
+ * Klorn is a 4-tier firewall (CLAUDE.md doctrine — never invent a 5th tier):
+ * SILENT / QUEUE / PUSH / AUTO.
  * There is no CALL tier. An earlier iteration added CALL as a "phone-call
  * interrupt" above PUSH, but it was never shipped end-to-end (delivery always
  * rendered it as PUSH) and it forked the domain model — calibration and the

@@ -1,11 +1,11 @@
 /**
- * POC accuracy measurement (Day 6–7 of POC.md sprint).
+ * Judge accuracy measurement against a hand-labelled ground-truth set.
  *
  * Reads a ground-truth JSON written by scripts/poc-label-emails.ts, runs
  * judgeEmail against each labelled item, and prints:
- *   - overall accuracy (Day 7 HARD GATE bar: ≥80%)
+ *   - overall accuracy (gate bar: ≥80%)
  *   - per-tier confusion matrix
- *   - top disagreements (founder label vs model tier) for Day 6 prompt tuning
+ *   - top disagreements (founder label vs model tier) for prompt tuning
  *
  * Usage:
  *   DATABASE_URL=... OPENROUTER_API_KEY=... npx tsx scripts/poc-accuracy.ts \
