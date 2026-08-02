@@ -23,11 +23,14 @@ VOLNAME="${3:-Klorn}"
 
 [ -d "$APP" ] || { echo "✗ not an app bundle: $APP"; exit 1; }
 
-python3 -c "import dmgbuild" 2>/dev/null \
-  || python3 -m pip install --user -q dmgbuild
-
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+
+# dmgbuild lives in a throwaway venv: the runner's python3 is Homebrew-managed
+# and PEP 668 refuses `pip install --user` outright (that refusal killed the
+# 80025 release). A venv is allowed everywhere and costs a few seconds.
+python3 -m venv "$WORK/venv"
+"$WORK/venv/bin/pip" install -q dmgbuild
 
 echo "▸ Rendering window background"
 swiftc -O scripts/render-dmg-background.swift -o "$WORK/render-bg"
@@ -61,6 +64,6 @@ PYEOF
 
 echo "▸ Creating ${OUT}"
 rm -f "$OUT"
-python3 -m dmgbuild -s "$WORK/settings.py" "$VOLNAME" "$OUT"
+"$WORK/venv/bin/python" -m dmgbuild -s "$WORK/settings.py" "$VOLNAME" "$OUT"
 
 echo "✓ Built $OUT ($(du -h "$OUT" | cut -f1))"
