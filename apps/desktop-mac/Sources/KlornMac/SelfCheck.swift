@@ -167,6 +167,33 @@ func runSelfChecks() async -> Bool {
                                      pushItems: [push("a"), push("b")])
     check("no new PUSH = no notifications", none.toNotify.isEmpty)
 
+    // Notification identity round-trips, so a banner tap can find its item.
+    // Without this the OS banner is a dead end: it interrupts you and then has
+    // nowhere to take you (dogfood: "the notification does nothing").
+    check("notification id encodes the item id",
+          PushNotifier.notificationIdentifier(for: "item-42") == "klorn-push-item-42")
+    check("notification id round-trips back to the item id",
+          PushNotifier.itemID(fromNotificationIdentifier: "klorn-push-item-42") == "item-42")
+    check("item ids containing the prefix survive the round trip",
+          PushNotifier.itemID(
+              fromNotificationIdentifier: PushNotifier.notificationIdentifier(
+                  for: "klorn-push-nested")) == "klorn-push-nested")
+    check("a foreign notification id is not claimed",
+          PushNotifier.itemID(fromNotificationIdentifier: "other-app-1") == nil)
+
+    // Tap routing: a known item opens in the reading pane; one that has since
+    // left the queue still shows the bar (a tap must never be a no-op); a
+    // foreign banner is left alone.
+    check("tapping a live item opens it",
+          PushNotifier.tapAction(identifier: "klorn-push-i1", isKnownItem: { $0 == "i1" })
+              == .open(itemID: "i1"))
+    check("tapping a vanished item falls back to expanding the bar",
+          PushNotifier.tapAction(identifier: "klorn-push-gone", isKnownItem: { _ in false })
+              == .expand)
+    check("tapping another app's notification is ignored",
+          PushNotifier.tapAction(identifier: "someone-else", isKnownItem: { _ in true })
+              == .ignore)
+
     print("PushCard:")
     // Keymap — only an explicit arm gives the card the keyboard, and these are
     // the only keys it may consume (1/2/3 send, Return open, Esc dismiss).
@@ -966,6 +993,37 @@ func runSelfChecks() async -> Bool {
     } else {
         check("AutomationSettings tolerates unknown enum values", false)
     }
+
+    // The six notify toggles were decoded and PATCHed but never consulted before
+    // presenting anything, so switching a category off changed nothing on this
+    // Mac (dogfood: "I turned meetings off and still got the card").
+    let allOn = AutomationSettings()
+    check("urgent-mail interrupts are allowed when the category is on",
+          allOn.allowsInterrupt(for: .emailUrgent))
+    check("meeting interrupts are allowed when the category is on",
+          allOn.allowsInterrupt(for: .meeting))
+    let essentialsOnly = AutomationSettings().applyingEssentialsOnly()
+    check("essentials-only still allows urgent mail and meetings",
+          essentialsOnly.allowsInterrupt(for: .emailUrgent)
+          && essentialsOnly.allowsInterrupt(for: .meeting))
+    let mutedMail = AutomationSettings(notifyEmailUrgent: false)
+    check("urgent mail off suppresses the mail interrupt",
+          !mutedMail.allowsInterrupt(for: .emailUrgent))
+    check("urgent mail off leaves meetings alone",
+          mutedMail.allowsInterrupt(for: .meeting))
+    let mutedMeeting = AutomationSettings(notifyMeeting: false)
+    check("meetings off suppresses the meeting card",
+          !mutedMeeting.allowsInterrupt(for: .meeting))
+    check("meetings off leaves urgent mail alone",
+          mutedMeeting.allowsInterrupt(for: .emailUrgent))
+
+    // Before the server's settings arrive the model holds AutomationSettings(),
+    // so the defaults decide what happens on a cold start. They must fail OPEN:
+    // dropping an urgent interrupt because a fetch was slow is the one failure
+    // a firewall cannot make.
+    check("a cold start (no settings loaded yet) still interrupts",
+          AutomationSettings().allowsInterrupt(for: .emailUrgent)
+          && AutomationSettings().allowsInterrupt(for: .meeting))
 
     let essentials = AutomationSettings().applyingEssentialsOnly()
     check("essentials keeps urgent mail + meetings",

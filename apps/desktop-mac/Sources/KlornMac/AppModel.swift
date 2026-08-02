@@ -650,7 +650,10 @@ final class AppModel {
         }
         // Replan on every refresh tick (poll + WS wake — the same cadence that
         // keeps the TODAY column fresh keeps the lead window honest).
-        if let upcoming = today?.upcoming,
+        // Gated on the user's "Meetings" category: this card is an interrupt,
+        // and turning the category off used to change nothing here.
+        if automation.allowsInterrupt(for: .meeting),
+           let upcoming = today?.upcoming,
            let due = meetingCardPlan(
                now: Date(), events: upcoming,
                leadMinutes: Self.meetingLeadMinutes, shown: shownMeetingIds),
@@ -846,7 +849,12 @@ final class AppModel {
             seen: seenPush,
             baselineEstablished: baselineEstablished,
             pushItems: queue.items(for: .push))
-        if !plan.toNotify.isEmpty { onNewPush?(plan.toNotify) }
+        // Respect the user's "Urgent mail" category. Seen-tracking still runs on
+        // the muted path so re-enabling the category doesn't dump a backlog of
+        // interrupts for mail that arrived while it was off.
+        if !plan.toNotify.isEmpty, automation.allowsInterrupt(for: .emailUrgent) {
+            onNewPush?(plan.toNotify)
+        }
         seenPush = plan.seen
         baselineEstablished = true
     }

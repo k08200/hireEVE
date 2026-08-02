@@ -30,12 +30,52 @@ func planPushNotifications(
 /// skip cleanly (the app still works) — a packaged `.app` gets real banners.
 @MainActor
 enum PushNotifier {
+    /// Namespace for our request identifiers. The item id is appended verbatim,
+    /// so a tap can recover it — see `itemID(fromNotificationIdentifier:)`.
+    nonisolated static let identifierPrefix = "klorn-push-"
+
     static var isAvailable: Bool { Bundle.main.bundleIdentifier != nil }
 
     static func requestAuthorization() async {
         guard isAvailable else { return }
         _ = try? await UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound])
+    }
+
+    /// Pure, testable identity for a posted banner.
+    nonisolated static func notificationIdentifier(for itemID: String) -> String {
+        identifierPrefix + itemID
+    }
+
+    /// Recover the item id a banner was posted for. Returns nil for anything we
+    /// did not post, so a foreign notification can never be mistaken for ours.
+    /// Uses a single leading-prefix strip (not a replace) so an item id that
+    /// itself contains the prefix survives the round trip.
+    nonisolated static func itemID(fromNotificationIdentifier identifier: String) -> String? {
+        guard identifier.hasPrefix(identifierPrefix) else { return nil }
+        return String(identifier.dropFirst(identifierPrefix.count))
+    }
+}
+
+/// What a tapped banner should do. Pure so the routing is verifiable without
+/// a notification centre, a window server, or a running app.
+enum NotificationTapAction: Equatable {
+    /// Not our notification — leave it alone.
+    case ignore
+    /// Open this item in the reading pane.
+    case open(itemID: String)
+    /// Ours, but the item is no longer in the queue (handled elsewhere, or the
+    /// queue refreshed). Show the bar anyway: a tap must never do nothing.
+    case expand
+}
+
+extension PushNotifier {
+    nonisolated static func tapAction(
+        identifier: String,
+        isKnownItem: (String) -> Bool
+    ) -> NotificationTapAction {
+        guard let id = itemID(fromNotificationIdentifier: identifier) else { return .ignore }
+        return isKnownItem(id) ? .open(itemID: id) : .expand
     }
 
     static func post(_ item: FirewallItem) {
@@ -49,7 +89,7 @@ enum PushNotifier {
         if let snippet = item.email?.snippet, !snippet.isEmpty { content.body = snippet }
         content.sound = .default
         let request = UNNotificationRequest(
-            identifier: "klorn-push-\(item.id)", content: content, trigger: nil)
+            identifier: notificationIdentifier(for: item.id), content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
     }
 }
