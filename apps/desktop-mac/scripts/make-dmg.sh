@@ -34,7 +34,7 @@ python3 -m venv "$WORK/venv"
 
 echo "▸ Rendering window background"
 swiftc -O scripts/render-dmg-background.swift -o "$WORK/render-bg"
-"$WORK/render-bg" "$WORK/bg" >/dev/null
+"$WORK/render-bg" "$WORK/bg" "../../website/brand/mark.png" >/dev/null
 tiffutil -cathidpicheck "$WORK/bg.png" "$WORK/bg@2x.png" -out "$WORK/bg.tiff" 2>/dev/null
 
 # dmgbuild settings. Icon rows sit at y=205 (top-origin) to line up with the
@@ -52,12 +52,12 @@ app = os.environ["KLORN_DMG_APP"]
 files = [app]
 symlinks = {"Applications": "/Applications"}
 background = os.environ["KLORN_DMG_BG"]
-window_rect = ((200, 200), (660, 400))
+window_rect = ((200, 140), (660, 480))
 icon_size = 128
 text_size = 13
 icon_locations = {
-    os.path.basename(app): (180, 205),
-    "Applications": (480, 205),
+    os.path.basename(app): (180, 360),
+    "Applications": (480, 360),
 }
 format = "UDZO"
 PYEOF
