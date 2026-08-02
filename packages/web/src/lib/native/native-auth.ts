@@ -20,6 +20,7 @@
 // passed through a URL query.
 
 import { API_BASE, setStoredAuthToken } from "../api";
+import { closeExternal, openExternal, shellKind } from "./shell";
 
 const POLL_INTERVAL_MS = 1500;
 const MAX_POLLS = 120; // 3 min, well within the server's 10-min nonce window
@@ -34,7 +35,9 @@ export async function startNativeGoogleLogin(): Promise<void> {
   if (loginInFlight) return;
   loginInFlight = true;
   try {
-    if (NATIVE_OAUTH_SCHEME) {
+    // The relay flow rides Capacitor's appUrlOpen deep-link listener, which the
+    // Tauri wrapper does not have — there the poll flow is the working path.
+    if (NATIVE_OAUTH_SCHEME && shellKind() === "capacitor") {
       await startRelayLogin(NATIVE_OAUTH_SCHEME);
     } else {
       await startPollLogin();
@@ -113,8 +116,6 @@ async function exchangeCode(code: string): Promise<string> {
 // ─── POLL (PKCE fallback) ────────────────────────────────────────────────────
 
 async function startPollLogin(): Promise<void> {
-  const { Browser } = await import("@capacitor/browser");
-
   // PKCE: the verifier stays on-device and is presented (as a header) only when
   // polling for the token. The nonce leaks into the system browser's URL/history,
   // but without the verifier an observer of the nonce cannot retrieve the JWT.
@@ -122,15 +123,15 @@ async function startPollLogin(): Promise<void> {
   const challenge = await sha256Base64Url(verifier);
   const nonce = await fetchNonce(challenge);
   const loginUrl = `${API_BASE}/api/auth/google/login?source=desktop&nonce=${encodeURIComponent(nonce)}`;
-  await Browser.open({ url: loginUrl });
+  await openExternal(loginUrl);
 
   try {
     const token = await pollForToken(nonce, verifier);
     setStoredAuthToken(token);
     window.location.href = "/inbox";
   } finally {
-    await Browser.close().catch((err) => {
-      console.warn("[AUTH] Browser.close() failed (harmless):", err);
+    await closeExternal().catch((err) => {
+      console.warn("[AUTH] closeExternal() failed (harmless):", err);
     });
   }
 }

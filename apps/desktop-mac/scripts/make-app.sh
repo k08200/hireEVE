@@ -8,7 +8,11 @@
 # The prod API URL is baked into Info.plist (KlornAPIURL) so the app points at
 # prod on a plain double-click; a KLORN_API_URL env var still overrides it.
 #
-# Usage:  scripts/make-app.sh [debug|release] [api-url]
+# Usage:  scripts/make-app.sh [debug|release] [api-url] [version]
+#
+# KLORN_ARCHS="arm64 x86_64" builds a universal binary. Unset (the default)
+# builds for the host arch only, which keeps local iteration fast — the release
+# workflow sets it so shipped builds run on Intel Macs too.
 set -euo pipefail
 cd "$(dirname "$0")/.."   # → apps/desktop-mac
 
@@ -22,10 +26,33 @@ VERSION="${3:-$(git describe --tags --match 'desktop-v*' --abbrev=0 2>/dev/null 
 VERSION="${VERSION:-dev}"
 APP="Klorn.app"
 
-echo "▸ Building KlornMac ($CONFIG)…"
-swift build -c "$CONFIG"
-BIN=".build/$CONFIG/KlornMac"
+ARCHS="${KLORN_ARCHS:-}"
+BUILD_ARGS=(-c "$CONFIG")
+for arch in $ARCHS; do BUILD_ARGS+=(--arch "$arch"); done
+
+echo "▸ Building KlornMac ($CONFIG${ARCHS:+, archs:$ARCHS})…"
+swift build "${BUILD_ARGS[@]}"
+
+if [ -n "$ARCHS" ]; then
+  # Passing --arch switches SwiftPM to the Xcode-style layout: the product lands
+  # in .build/apple/Products/<Config>/ with the config CAPITALISED, and the usual
+  # .build/<config>/ path is never created. Reading the old path here silently
+  # bundled nothing at all.
+  CONFIG_DIR="$(tr '[:lower:]' '[:upper:]' <<< "${CONFIG:0:1}")${CONFIG:1}"
+  BIN=".build/apple/Products/$CONFIG_DIR/KlornMac"
+else
+  BIN=".build/$CONFIG/KlornMac"
+fi
 [ -f "$BIN" ] || { echo "✗ build did not produce $BIN"; exit 1; }
+
+# Assert every requested arch is really in there. A cross-compile that quietly
+# drops a slice would ship a build that cannot launch on that hardware, and the
+# only symptom is a user telling you the app does nothing.
+for arch in $ARCHS; do
+  lipo -archs "$BIN" | tr ' ' '\n' | grep -qx "$arch" \
+    || { echo "✗ $BIN is missing the $arch slice (has: $(lipo -archs "$BIN"))"; exit 1; }
+done
+[ -z "$ARCHS" ] || echo "▸ universal: $(lipo -archs "$BIN")"
 
 echo "▸ Assembling $APP (API: $API_URL)…"
 rm -rf "$APP"

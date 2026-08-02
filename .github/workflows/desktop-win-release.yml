@@ -1,0 +1,85 @@
+# Build the Windows shell and publish its NSIS installer as a GitHub Release.
+#
+# Trigger: push a tag like `desktop-win-v0.1.0` (or run manually).
+#
+# The installer is renamed to the stable name `Klorn-windows-setup.exe` so the
+# landing can link `releases/download/<tag>/Klorn-windows-setup.exe` (and later
+# `latest/download/...` once win tags own "latest") without chasing versioned
+# NSIS filenames.
+#
+# Unsigned on purpose for now: a Windows code-signing certificate is a separate
+# paid decision. SmartScreen will warn on first run; the release notes say so
+# rather than hiding it.
+
+name: Desktop Windows Release
+
+on:
+  push:
+    tags:
+      - "desktop-win-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create (e.g. desktop-win-v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & publish Klorn for Windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: meta
+        run: echo "tag=${{ github.event.inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop-win/src-tauri
+
+      - name: Install tauri-cli
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Build NSIS installer
+        working-directory: apps/desktop-win/src-tauri
+        run: cargo tauri build --bundles nsis
+
+      - name: Stage installer under its stable name
+        working-directory: apps/desktop-win/src-tauri
+        run: |
+          exe=$(ls target/release/bundle/nsis/*-setup.exe | head -1)
+          [ -f "$exe" ] || { echo "::error::no NSIS installer produced"; exit 1; }
+          cp "$exe" "$RUNNER_TEMP/Klorn-windows-setup.exe"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          NOTES="$RUNNER_TEMP/notes.md"
+          {
+            echo "Klorn for Windows — a thin desktop shell around app.klorn.ai."
+            echo
+            echo "## Install"
+            echo "1. Download \`Klorn-windows-setup.exe\` and run it."
+            echo "2. **This build is not code-signed**, so SmartScreen warns on first run:"
+            echo "   choose *More info → Run anyway*. A signing certificate is a planned,"
+            echo "   separate purchase — until then this warning is expected."
+            echo "3. Sign in — Google login opens in your system browser and returns here."
+            echo
+            echo "Requires Windows 10+ (WebView2, preinstalled on 10/11)."
+          } > "$NOTES"
+          gh release create "$TAG" \
+            "$RUNNER_TEMP/Klorn-windows-setup.exe#Klorn for Windows (unsigned NSIS installer)" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Klorn for Windows $TAG" \
+            --notes-file "$NOTES"

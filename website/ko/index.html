@@ -19,14 +19,40 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<!-- The hero photograph is the LCP element; preloading it with the same srcset
+     the <picture> uses lets the fetch start before the CSS resolves. -->
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/instrument-serif-italic.woff2" crossorigin>
+<link rel="preload" as="image" type="image/webp"
+      imagesrcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w"
+      imagesizes="100vw" fetchpriority="high">
 <link rel="icon" href="/brand/favicon.svg?v=matte2" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
 <style>
+/* Self-hosted webfonts (fonts/SOURCE.md). The stacks below referenced Geist and
+   a commercial serif that were never actually loaded, so every visitor rendered
+   the system-font fallback. Geist is the intended sans; the serif accent loads
+   Instrument Serif (OFL) in place of the unlicensed face the stack named.
+   font-display swap: text renders immediately in the fallback, then upgrades. */
+@font-face{font-family:'Geist';src:url('/fonts/geist-var.woff2') format('woff2');
+  font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif-italic.woff2') format('woff2');
+  font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:swap}
 :root{
-  --ink:#0a0e14; --ink-2:#39424e; --ink-3:#6a7480;
+  --ink:#0a0e14; --ink-2:#39424e;
+  /* #6a7480 measured 4.17:1 on the band wash and 3.71:1 over the sky bands —
+     under AA for the small text it is used for. This clears 4.5:1 on every
+     surface it lands on, white cards through photograph. */
+  --ink-3:#5c656f;
   --paper:#fbfaf6;            /* warm, not clinical white (ref: Trajectory) */
   --line:rgba(10,14,20,.09);
   --sky-600:#0284c7;
+  /* --sky-600 is the accent for fills, borders and large display type. As a
+     TEXT colour it fails AA at small sizes on every surface here — 4.10:1
+     even on a white card, 3.46:1 over the sky. Small text uses this instead. */
+  --sky-ink:#0369a1;
   --ease:cubic-bezier(.32,.72,0,1);
 }
 *{box-sizing:border-box}
@@ -46,30 +72,25 @@ a{color:inherit;text-decoration:none}
 .grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.30;mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.42'/></svg>")}
 
-/* Blueprint grid — structure you feel before you notice (ref: NeoNet). */
-.grid-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
-  background-size:112px 112px;
-  -webkit-mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%);
-          mask-image:radial-gradient(72% 60% at 50% 34%,#000 30%,transparent 78%)}
 
-/* Page-wide atmosphere. The sky used to end at the fold and everything below
-   it was flat paper — the page looked like it ran out of design halfway down.
-   One document-height layer, drawn once, carrying the same grid and a few very
-   soft blooms so the background keeps changing as you pass it. */
+/* Page-wide atmosphere. The middle of the page measured flat — 4,500px where the
+   background moved less than 6% in luminance — so instead of scattered blooms it
+   now descends continuously through the photograph's own palette: cream, blush,
+   lavender, the pale blue at the top of the frame, back to cream at the footer.
+   Three soft lateral washes keep that descent from reading as a flat ramp.
+   Every stop stays lighter than #e1e1e1, the point where --ink-3 would drop
+   under 4.5:1. */
 .field{position:absolute;top:0;left:0;right:0;height:100%;z-index:0;pointer-events:none;
   background-image:
-    radial-gradient(46% 16% at 80% 15%, rgba(120,186,232,.34), transparent 68%),
-    radial-gradient(42% 13% at 12% 30%, rgba(150,196,168,.26), transparent 70%),
-    radial-gradient(48% 14% at 88% 48%, rgba(240,203,142,.26), transparent 70%),
-    radial-gradient(44% 13% at 8% 64%, rgba(132,180,224,.30), transparent 70%),
-    radial-gradient(46% 14% at 76% 80%, rgba(190,210,178,.26), transparent 72%),
-    radial-gradient(40% 12% at 22% 93%, rgba(126,188,230,.24), transparent 72%),
-    linear-gradient(rgba(10,14,20,.055) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(10,14,20,.055) 1px,transparent 1px);
-  background-size:auto,auto,auto,auto,auto,auto,112px 112px,112px 112px;
-  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%);
-          mask-image:linear-gradient(180deg,transparent 0,#000 6%,#000 94%,transparent 100%)}
+    radial-gradient(62% 13% at 88% 24%, rgba(212,226,240,.50), transparent 72%),
+    radial-gradient(58% 12% at 5% 45%, rgba(240,222,226,.52), transparent 72%),
+    radial-gradient(64% 14% at 94% 67%, rgba(230,222,240,.46), transparent 72%),
+    radial-gradient(56% 12% at 8% 84%, rgba(216,230,240,.44), transparent 74%),
+    linear-gradient(180deg,
+      #f8f6f1 0%, #f7efeb 17%, #f4ecef 32%, #f2ebf1 46%,
+      #edf1f6 62%, #eff3f7 76%, #f5f3f1 90%, #f8f6f1 100%);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 5%,#000 97%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 5%,#000 97%,transparent 100%)}
 
 /* ── Fluid island nav ─────────────────────────────── */
 .nav{position:fixed;top:22px;left:0;right:0;z-index:50;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
@@ -96,7 +117,20 @@ a{color:inherit;text-decoration:none}
 
 /* ── Hero ─────────────────────────────────────────── */
 .hero{position:relative;overflow:hidden;padding:196px 0 0;text-align:center}
-.hero-sky{position:absolute;top:0;left:0;width:100%;height:1120px;z-index:0}
+/* Hero sky. The gradient is the photograph's own measured band averages, so it
+   stands in with the right colour while the file loads instead of flashing a
+   different hue. The image fades out at the bottom into --paper, which is what
+   the drawn SVG this replaced used to do with a gradient stop. */
+.hero-sky{position:absolute;top:0;left:0;width:100%;height:1400px;z-index:0;overflow:hidden;
+  background:linear-gradient(180deg,#f3f3ec 0%,#ede8e5 22%,#ecd5cd 40%,
+    #e5c7c2 58%,#d7c1c6 74%,#cdc1cc 88%,#cdc1cc 100%);
+  /* The mask has to sit on the picture, not on the img. It was on the img alone,
+     so the placeholder gradient underneath stayed at full strength and cut off
+     square at the element's edge — that hard line was the background, not the
+     photograph. Masking the container fades both together. */
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);
+          mask-image:linear-gradient(180deg,#000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%)}
+.hero-sky img{width:100%;height:100%;object-fit:cover;object-position:center 42%;display:block}
 .wrap{position:relative;z-index:3;max-width:1180px;margin:0 auto;padding:0 24px}
 
 .eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 8px 7px 15px;border-radius:9999px;
@@ -108,8 +142,11 @@ a{color:inherit;text-decoration:none}
   background:#fff;padding:3px 10px;border-radius:9999px}
 
 h1{font-size:clamp(46px,7.2vw,88px);line-height:.98;letter-spacing:-.042em;font-weight:700;margin:26px 0 20px}
-h1 .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;
-  color:var(--sky-600);padding-right:.06em}
+/* Measured against the photograph's bands: --sky-600 lands at 2.69:1, under the
+   3:1 floor for large text. This shade clears it (3.23:1) and still reads as the
+   same accent; the paper sections keep --sky-600 unchanged. */
+h1 .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;
+  color:#0277b3;padding-right:.06em}
 .lead{font-size:19px;color:var(--ink-2);max-width:600px;margin:0 auto 34px}
 /* The serif accent is a Latin display face. Korean has no glyphs in it, so the
    browser substitutes whatever Hangul serif it finds — on macOS a cursive one
@@ -139,30 +176,55 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .btn-dl{padding-left:22px}
 .btn-dl svg{width:17px;height:17px;transition:transform .6s var(--ease)}
 .btn-dl:hover svg{transform:translateY(2px)}
-.actions-note{max-width:560px;margin:18px auto 0;font-size:12.5px;line-height:1.6;color:var(--ink-3)}
-.actions-note a{color:#0b5f8a;font-weight:600;border-bottom:1px solid rgba(11,95,138,.28)}
-.actions-note a:hover{border-bottom-color:#0b5f8a}
+/* Two platform cards instead of one Download button. Both render without JS —
+   OS detection only promotes the matching one, so a Windows visitor with
+   scripting off still sees their entry rather than a Mac-only page. */
+.dl-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:20px auto 0;max-width:660px}
+.dl{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 18px 12px 15px;border-radius:16px;
+  background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 10px 30px -18px rgba(10,50,90,.5);backdrop-filter:blur(12px);
+  transition:transform .6s var(--ease),box-shadow .6s var(--ease),background .6s var(--ease)}
+.dl:hover{background:#fff;transform:translateY(-2px);box-shadow:0 18px 40px -20px rgba(10,50,90,.55)}
+.dl:active{transform:scale(.985)}
+.dl svg{width:22px;height:22px;flex:0 0 22px;color:var(--ink-2)}
+.dl .t{display:block}
+.dl b{display:block;font-size:14px;font-weight:650;letter-spacing:-.01em;color:var(--ink)}
+.dl .t span{display:block;font-size:11.5px;color:var(--ink-3);margin-top:1px}
+.dl.is-yours{background:var(--ink);border-color:var(--ink);box-shadow:0 20px 44px -22px rgba(10,14,20,.85)}
+.dl.is-yours b{color:#fff}
+.dl.is-yours .t span{color:rgba(255,255,255,.66)}
+.dl.is-yours svg{color:#fff}
+.dl.is-yours:hover{background:#11161f}
+/* --ink-3 measured 2.75-4.28:1 against the photograph's bands — under the 4.5
+   AA floor for body-size text. --ink-2 clears it everywhere (5.89-9.18:1). */
+.actions-note{max-width:560px;margin:18px auto 0;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+/* 12.5px on the photograph needs 4.5:1; #0b5f8a gives 3.44:1 there. */
+.actions-note a{color:#084869;font-weight:600;border-bottom:1px solid rgba(8,72,105,.32)}
+.actions-note a:hover{border-bottom-color:#084869}
 
 /* ── The real app, floating ───────────────────────── */
-.stage{position:relative;z-index:3;margin:56px auto 0;max-width:1160px;padding:0 24px 96px}
+/* 56px sat the replica right under the sorting demo — two dense panels with no
+   air between them. */
+.stage{position:relative;z-index:3;margin:120px auto 0;max-width:1160px;padding:0 24px 96px}
 /* Caption above the frame. Below it the stage fade washes it out, and this one
    has to stay readable — it is the honesty label on a fake inbox. */
 .stage-cap{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;
   margin:0 0 14px;font-size:12.5px;color:var(--ink-2)}
 .stage-cap b{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;
-  letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--sky-600);
+  letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--sky-ink);
   border-radius:999px;padding:4px 10px}
 .stage-cap b::before{content:'';width:5px;height:5px;border-radius:50%;background:#fff}
 .shell{position:relative;border-radius:30px;padding:10px;
   background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.34));
   border:1px solid rgba(255,255,255,.8);
-  box-shadow:0 70px 130px -50px rgba(8,42,80,.55),0 18px 44px -26px rgba(8,42,80,.35);
+  /* Was 0.55 alpha of a navy at 130px blur — over the pale sky that pooled
+     under the panel as a grey smudge rather than reading as lift. Lighter,
+     tighter, and tinted to the background it falls on. */
+  box-shadow:0 34px 70px -34px rgba(90,80,96,.20),0 10px 26px -18px rgba(90,80,96,.16);
   backdrop-filter:blur(10px)}
 .core{border-radius:22px;overflow:hidden;background:#fff;border:1px solid var(--line);
   box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
 .core img{display:block;width:100%;height:auto}
-.stage-fade{position:absolute;left:0;right:0;bottom:-1px;height:150px;z-index:4;pointer-events:none;
-  background:linear-gradient(180deg,rgba(251,250,246,0),var(--paper) 88%)}
 
 /* Floating signal cards pinned to the app (ref: Screenote) */
 .chip{position:absolute;z-index:5;display:flex;gap:11px;align-items:flex-start;width:238px;padding:13px 15px;
@@ -186,33 +248,72 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .tag{display:inline-block;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);
   font-weight:600;margin-bottom:18px}
 
-.cards{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+/* The four screenshots have ratios from 1.63 to 0.52, so forcing the cards to a
+   shared height opens a void under whichever one is shorter. Each card ends
+   where its own content ends instead. */
+.cards{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);
+  gap:18px;align-items:start}
 .card{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
   transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
 .card:hover{transform:translateY(-5px);box-shadow:0 40px 80px -46px rgba(8,42,80,.5)}
 .card-in{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line);height:100%;
   box-shadow:inset 0 1px 1px rgba(255,255,255,.9);display:flex;flex-direction:column}
-.card-shot{background:linear-gradient(180deg,#eef4fa,#fdfefe);overflow:hidden;position:relative;aspect-ratio:21/9}
-.c4 .card-shot{aspect-ratio:4/3}
-.c6 .card-shot{aspect-ratio:16/9}
-.card-shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:left top;
-  transform:scale(1.02);transition:transform 1.1s var(--ease)}
-.card:hover .card-shot img{transform:scale(1.06)}
-.card-txt{padding:20px 22px 24px}
-.card-txt h3{margin:0 0 6px;font-size:17px;font-weight:650;letter-spacing:-.015em}
-.card-txt p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
-.c8{grid-column:span 8}.c4{grid-column:span 4}.c6{grid-column:span 6}
+/* Product tour. Four surfaces, one frame, switched by tabs.
+   A grid of screenshots cannot be made tidy here: the four have ratios from 1.79
+   to 0.84, so a shared row height opens voids and a natural height leaves ragged
+   bottoms. One frame removes the problem instead of balancing it — and the tabs
+   are the interaction the page was missing below the fold.
+   Every shot is rendered at the same 520x330pt, so the frame never letterboxes. */
+.tour{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:352px 1fr;gap:28px;align-items:start}
+.tour-nav{display:grid;gap:8px;align-content:start}
+.tour-t{display:grid;gap:3px;text-align:left;padding:15px 17px;border-radius:15px;border:1px solid transparent;
+  background:transparent;font:inherit;color:var(--ink);cursor:pointer;
+  transition:background .5s var(--ease),border-color .5s var(--ease),transform .5s var(--ease)}
+.tour-t:hover{background:rgba(255,255,255,.55)}
+.tour-t b{font-size:15.5px;font-weight:650;letter-spacing:-.015em}
+.tour-t span{font-size:13px;color:var(--ink-3);line-height:1.5}
+.tour-t[aria-selected=true]{background:#fff;border-color:var(--line);
+  box-shadow:0 18px 40px -28px rgba(10,50,90,.42)}
+.tour-t[aria-selected=true] span{color:var(--ink-2)}
+.tour-stage{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.tour-panel{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line)}
+.tour-panel img{display:block;width:100%;height:auto;aspect-ratio:1040/660;object-fit:cover}
+/* Opt-IN single-panel mode: without JS every panel stays in the document, so the
+   section degrades to a plain stack instead of one visible tab. */
+.js .tour-panel[hidden]{display:none}
+.js .tour-panel+.tour-panel{margin-top:0}
+.tour-panel+.tour-panel{margin-top:10px}
+@media(max-width:900px){
+  .tour{grid-template-columns:1fr;gap:18px}
+  .tour-nav{grid-template-columns:repeat(2,1fr);gap:8px}
+}
 @media(max-width:900px){.c8,.c4,.c6{grid-column:span 12}}
 
 
 /* ── Shared section furniture ─────────────────────── */
 .wrapl{max-width:1180px;margin:0 auto;padding:0 24px}
-.band{background:rgba(238,236,227,.44);border-block:1px solid var(--line)}
+/* Sections separate by tone, never by a rule drawn across the page. The wash
+   is a masked pseudo-element so its top and bottom edges dissolve instead of
+   landing as a hairline. */
+/* A third pass of the same sky, hazed right back, so the middle of the page has
+   weather in it too instead of flat tone. Same cached file as the hero — no
+   extra request — cropped elsewhere in the frame and not mirrored, so it reads
+   as a different part of the sky rather than a repeat of the closing band. */
+.sec-sky{position:absolute;inset:0;z-index:-1;pointer-events:none;display:block}
+.sec-sky img{width:100%;height:100%;object-fit:cover;object-position:center 12%;display:block;
+  opacity:.55;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%)}
+.band::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:rgba(238,236,227,.62);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%)}
 .sec.band{padding-block:96px}
 
 .stmt{max-width:780px}
 .stmt-h{font-size:clamp(30px,4.4vw,54px);line-height:1.06;letter-spacing:-.035em;font-weight:700;margin:0 0 22px}
-.stmt-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-600)}
+.stmt-h .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-ink)}
 .stmt-p{font-size:18px;color:var(--ink-2);margin:0 0 30px;max-width:640px}
 .pips{display:flex;gap:10px;flex-wrap:wrap}
 .pip{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:9999px;background:#fff;
@@ -222,10 +323,42 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .steps{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .step{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
 .step>*{margin:0}
-.step .sn{display:block;font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--sky-600);padding:22px 24px 0}
+.step .sn{display:block;font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--sky-ink);padding:22px 24px 0}
 .step h3{font-size:20px;letter-spacing:-.02em;padding:10px 24px 0}
 .step p{color:var(--ink-3);font-size:14px;padding:8px 24px 22px}
 @media(max-width:860px){.steps{grid-template-columns:1fr}}
+
+/* Compatibility. Every comparable landing puts this somewhere a visitor reaches
+   before installing; without it the only mention of a mail provider on this page
+   was one word inside a pricing bullet. */
+.works{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:18px}
+.work{border-radius:20px;padding:22px 22px;background:#fff;border:1px solid var(--line);
+  display:grid;gap:5px;align-content:start}
+.work b{font-size:15px;font-weight:650;letter-spacing:-.015em}
+.work span{font-size:13px;color:var(--ink-3);line-height:1.5}
+.works-note{max-width:1180px;margin:20px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
+.works-note b{color:var(--ink-2);font-weight:650}
+@media(max-width:900px){.works{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.works{grid-template-columns:1fr}}
+
+/* Questions a beta actually gets asked, as a native <details> accordion: three
+   of the four landings measured against use one here, and it works with no
+   script at all — the disclosure, the keyboard and the focus ring are the
+   browser's. Six open answers made this the longest section on the page. */
+.faq{max-width:820px;margin:0 auto;padding:0 24px;display:grid;gap:0}
+.faq-i{border-top:1px solid var(--line)}
+.faq-i:last-child{border-bottom:1px solid var(--line)}
+.faq-i summary{list-style:none;cursor:pointer;display:flex;align-items:flex-start;gap:16px;
+  padding:20px 2px;font-size:16.5px;font-weight:650;letter-spacing:-.015em;
+  transition:color .4s var(--ease)}
+.faq-i summary::-webkit-details-marker{display:none}
+.faq-i summary:hover{color:var(--sky-ink)}
+.faq-i summary::after{content:"+";margin-left:auto;font-size:20px;font-weight:400;line-height:1;
+  color:var(--ink-3);transition:transform .5s var(--ease);flex:0 0 auto}
+.faq-i[open] summary::after{transform:rotate(45deg)}
+.faq-i p{margin:0;padding:0 40px 22px 2px;font-size:14.5px;color:var(--ink-2);line-height:1.65}
+.faq-i a{color:var(--sky-ink);font-weight:600}
 
 .stats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .stat{border-radius:26px;padding:26px 26px;background:#fff;border:1px solid var(--line);
@@ -235,19 +368,30 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .stat p{margin:12px 0 0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
 @media(max-width:860px){.stats{grid-template-columns:1fr}}
 .foot{max-width:1180px;margin:34px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
-.foot a{color:var(--sky-600);font-weight:600}
+.foot a{color:var(--sky-ink);font-weight:600}
 
 .os{border-radius:30px;padding:10px;background:rgba(10,14,20,.04);border:1px solid var(--line)}
-.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:38px 38px;
-  display:grid;grid-template-columns:1.15fr .85fr;gap:52px;align-items:start}
+/* The right-hand column held four bullets the page had already made three times
+   over, so the card is a single column now: the claim and the two links. */
+.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:34px 38px;
+  display:grid;gap:0;align-items:start}
 .os-h{font-size:clamp(26px,3.2vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:700}
 .os-p{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:520px}
 .os-cta{display:flex;gap:12px;flex-wrap:wrap}
-.os-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
-.os-list li{display:grid;gap:3px;padding:16px 0;border-top:1px solid var(--line)}
-.os-list li:first-child{border-top:0;padding-top:0}
-.os-list b{font-size:14px;font-weight:650}
-.os-list span{font-size:13px;color:var(--ink-3)}
+/* Recently shipped. On the landings measured, developer-facing tools surface
+   shipping velocity on the page itself (linear, warp, cursor, resend, vercel);
+   for an AGPL project the release feed is the one trust signal that cannot be
+   faked. Hidden until the GitHub fetch succeeds, so a failure costs nothing —
+   the footer's Releases link already covers it. */
+.ship{margin-top:26px}
+.ship h3{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:700}
+.ship ol{list-style:none;margin:0 0 10px;padding:0;display:flex;gap:8px;flex-wrap:wrap}
+.ship li{display:inline-flex;align-items:baseline;gap:8px;padding:7px 12px;border-radius:9999px;
+  background:rgba(10,14,20,.045);font-size:12.5px}
+.ship li a{font-weight:650;color:var(--ink)}
+.ship li span{color:var(--ink-3);font-size:11.5px}
+.ship>a{font-size:12.5px;color:var(--sky-ink);font-weight:600}
 @media(max-width:900px){.os-in{grid-template-columns:1fr;gap:34px;padding:32px 26px}}
 
 .prices{max-width:1000px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
@@ -269,13 +413,50 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .btn.full{width:100%;justify-content:center;margin-top:auto;padding-inline:26px}
 @media(max-width:820px){.prices{grid-template-columns:1fr}}
 
-.final{padding:112px 0 28px;text-align:center}
+/* The closing section bookends the hero with the same sky. It reuses the hero's
+   file — mirrored and cropped to a different part of the frame — so it reads as
+   the same weather from another angle and costs no extra bytes: the browser
+   already has it. Lazy, because it sits far below the fold. */
+.final{position:relative;overflow:hidden;padding:112px 0 28px;text-align:center}
+.final-sky{position:absolute;inset:0;z-index:0;pointer-events:none;display:block}
+.final-sky img{width:100%;height:100%;object-fit:cover;object-position:center 78%;display:block;
+  transform:scaleX(-1);opacity:.82;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%)}
+.final>.wrapl{position:relative;z-index:1}
+
+/* Scroll-linked sky pan. All three bands are the same photograph; panning each
+   one as it crosses the viewport makes them read as one sky being moved through
+   rather than three copies of a still. Transform only, so it composites on the
+   GPU and never triggers layout.
+
+   Progressive enhancement on purpose: scroll-driven animation is not universal
+   yet, and without it the images simply sit still — which is the design that
+   was measured. The taller img is scoped to the same guard so unsupported
+   browsers keep the crop that was verified. */
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:view()){
+    /* 124% left only 6px of cover at the end of the pan — one rounding away
+       from a sliver of background. 130% keeps ~5% of the container in hand. */
+    .hero-sky img,.sec-sky img,.final-sky img{height:130%}
+    .hero-sky img,.sec-sky img{animation:sky-pan linear both;
+      animation-timeline:view();animation-range:cover 0% cover 100%}
+    /* keeps the mirror: an animation on transform would otherwise drop it */
+    .final-sky img{animation:sky-pan-flip linear both;
+      animation-timeline:view();animation-range:cover 0% cover 100%}
+  }
+}
+@keyframes sky-pan{from{transform:translateY(0)}to{transform:translateY(-19%)}}
+@keyframes sky-pan-flip{from{transform:scaleX(-1) translateY(0)}
+                          to{transform:scaleX(-1) translateY(-19%)}}
 .final-h{font-size:clamp(34px,5.4vw,68px);line-height:1.02;letter-spacing:-.04em;font-weight:700;margin:0 0 18px}
-.final-h .ser{font-family:'PP Editorial New','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-600)}
+/* Now sits on the closing photograph too: --sky-600 measures 2.93:1 there,
+   under the 3:1 floor. Same shade as the hero accent. */
+.final-h .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:#0277b3}
 .final-p{color:var(--ink-2);margin:0 auto 30px;max-width:520px}
 .final .actions{justify-content:center}
 
-.foot-nav{position:relative;z-index:1;border-top:1px solid var(--line);padding:56px 0 28px;margin-top:76px}
+.foot-nav{position:relative;z-index:1;padding:56px 0 28px;margin-top:76px}
 .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px}
 .foot-brand{display:inline-block;font-size:19px;font-weight:700;letter-spacing:-.02em;
   transition:opacity .5s var(--ease)}
@@ -286,7 +467,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   transition:color .4s var(--ease)}
 .foot-nav nav a:hover{color:var(--ink)}
 .foot-base{display:flex;justify-content:space-between;align-items:center;margin-top:54px;padding-top:24px;
-  border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+  font-size:12.5px;color:var(--ink-3)}
 .langsw{display:inline-flex;gap:9px;align-items:center}
 .langsw a{font-weight:650}
 .langsw a[aria-current]{color:var(--ink)}
@@ -294,58 +475,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 @media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr;gap:30px}}
 
 .proof{max-width:1180px;margin:26px auto 0;padding:0 24px;font-size:13.5px;color:var(--ink-3);max-width:720px}
-.proof a{color:var(--sky-600);font-weight:600}
+.proof a{color:var(--sky-ink);font-weight:600}
 
 
 /* ── Opinionated stance rows ──────────────────────── */
-.stance{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;gap:0}
-.srow{display:grid;grid-template-columns:34px 1fr 1fr;gap:32px;align-items:start;
-  padding:30px 0;border-top:1px solid var(--line)}
-.srow:last-child{border-bottom:1px solid var(--line)}
-.srow .n{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--sky-600);padding-top:5px}
-.srow h3{margin:0;font-size:clamp(19px,2.1vw,25px);line-height:1.2;letter-spacing:-.025em;font-weight:650}
-.srow .body{display:grid;gap:12px}
-.srow p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.6}
-.srow .vs{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-3);
-  padding:7px 13px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
-  align-self:flex-start}
-.srow .vs b{color:var(--ink);font-weight:650}
-@media(max-width:860px){.srow{grid-template-columns:1fr;gap:14px;padding:24px 0}.srow .n{padding-top:0}}
 
 
-/* ── Stance: bento, not a list ────────────────────── */
-.bento{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
-.bcard{border-radius:28px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
-  transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
-.bcard:hover{transform:translateY(-4px);box-shadow:0 40px 80px -46px rgba(8,42,80,.45)}
-.bcard-in{border-radius:21px;background:#fff;border:1px solid var(--line);height:100%;
-  padding:30px 30px 26px;display:flex;flex-direction:column;gap:14px;
-  box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
-.bcard .n{font-size:10.5px;font-weight:700;letter-spacing:.18em;color:var(--sky-600)}
-.bcard h3{margin:0;font-size:clamp(20px,2.2vw,27px);line-height:1.16;letter-spacing:-.028em;font-weight:650}
-.bcard p{margin:0;font-size:14.5px;color:var(--ink-2);line-height:1.62}
-.bcard .vs{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3);
-  padding:9px 14px;border-radius:9999px;background:rgba(10,14,20,.04);border:1px solid var(--line);
-  align-self:flex-start;flex-wrap:wrap}
-.bcard .vs b{color:var(--ink);font-weight:650}
-.bcard .vs a{color:var(--sky-600);font-weight:650}
-.bcard.dark{background:var(--ink);border-color:var(--ink)}
-.bcard.dark .bcard-in{background:var(--ink);border-color:rgba(255,255,255,.10);box-shadow:none}
-.bcard.dark h3{color:#fff}.bcard.dark p{color:rgba(255,255,255,.72)}
-.bcard.dark .n{color:#8fd0ff}
-.bcard.dark .vs{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:rgba(255,255,255,.66)}
-.bcard.dark .vs b{color:#fff}.bcard.dark .vs a{color:#8fd0ff}
-.b7{grid-column:span 7}.b5{grid-column:span 5}.b6{grid-column:span 6}
-@media(max-width:900px){.b7,.b5,.b6{grid-column:span 12}}
 
-/* ── Feature list: what only this does ────────────── */
-.feats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 40px}
-.feat-i{padding:24px 0;border-top:1px solid var(--line);display:grid;gap:6px;align-content:start}
-.feat-i h4{margin:0;font-size:15.5px;font-weight:650;letter-spacing:-.015em;display:flex;align-items:center;gap:9px}
-.feat-i h4 em{font-style:normal;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
-  color:var(--sky-600);background:rgba(2,132,199,.10);padding:3px 8px;border-radius:9999px}
-.feat-i p{margin:0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
-@media(max-width:900px){.feats{grid-template-columns:1fr}}
 
 .socials{display:flex;gap:8px;margin-top:18px}
 .socials a{width:36px;height:36px;border-radius:9999px;display:grid;place-items:center;
@@ -374,13 +510,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   color:var(--ink-3);margin-bottom:8px}
 .vscell p{margin:0;font-size:14.5px;line-height:1.6}
 .vscell.ours p{color:var(--ink);font-weight:500}
-.vscell.ours p b{color:var(--sky-600);font-weight:650}
+.vscell.ours p b{color:var(--sky-ink);font-weight:650}
 @media(max-width:820px){
   .vshead{display:none}
   .vsrow{grid-template-columns:1fr;gap:0;padding-bottom:18px}
   .vscell{border-radius:16px!important;margin-bottom:8px}
   .vscell::before{content:attr(data-who);display:block;font-size:10.5px;letter-spacing:.16em;
-    text-transform:uppercase;font-weight:700;color:var(--sky-600);margin-bottom:8px}
+    text-transform:uppercase;font-weight:700;color:var(--sky-ink);margin-bottom:8px}
   .vscell.them::before{color:var(--ink-3)}
 }
 
@@ -489,8 +625,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .pl-b{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:inherit;
   font-size:12px;cursor:pointer;transition:background .35s var(--ease),border-color .35s var(--ease)}
 .pl-b:hover{background:rgba(10,14,20,.04)}
-.pl-b.on{background:var(--sky-600);border-color:var(--sky-600);color:#fff}
-.pl-b.on:hover{background:#0369a1}
+/* White on --sky-600 is 4.10:1 — under AA. --sky-ink carries the same accent
+   at 5.93:1. */
+.pl-b.on{background:var(--sky-ink);border-color:var(--sky-ink);color:#fff}
+.pl-b.on:hover{background:#025683}
 .pl-why{padding:12px 18px;background:rgba(10,14,20,.028);border-bottom:1px solid var(--line);font-size:12px}
 .pl-why .w{color:var(--ink-3)}
 .pl-why .sm{margin-top:6px;color:var(--ink);line-height:1.5}
@@ -503,7 +641,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .pl-opt:hover{border-color:var(--sky-600);background:rgba(2,132,199,.04)}
 .pl-opt kbd{flex:0 0 18px;height:18px;border-radius:5px;background:rgba(10,14,20,.07);display:grid;
   place-items:center;font:inherit;font-size:10px;font-weight:700}
-.pl-opt b{display:block;font-size:11px;color:var(--sky-600);margin-bottom:1px}
+.pl-opt b{display:block;font-size:11px;color:var(--sky-ink);margin-bottom:1px}
 .pl-hint{margin:0;padding:11px 18px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink-3);
   background:rgba(10,14,20,.02)}
 .pl-hint b{color:var(--ink-2);font-weight:650}
@@ -548,52 +686,22 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <nav class="nav"><div class="nav-pill">
   <a class="nav-brand" href="#top" data-top>Klorn</a>
-  <span class="nav-links"><a href="#features">기능</a><a href="#cards">제품</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
+  <span class="nav-links"><a href="#cards">제품</a><a href="#day">동작 방식</a><a href="#compare">왜 Klorn인가</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
   <span class="nav-lang">
     <a href="/" data-lang-pick="en">EN</a><a href="/ko/" data-lang-pick="ko" aria-current="true">한국어</a>
   </span>
-  <a class="nav-cta" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">다운로드 <i>↓</i></a>
+  <a class="nav-cta" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80027/Klorn.dmg" rel="noreferrer noopener"
+     data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="다운로드">다운로드 <i>↓</i></a>
 </div></nav>
 
 <header class="hero" id="top">
-  <svg class="hero-sky" viewBox="0 0 1440 1220" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
-    <defs>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#3d8fcd"/><stop offset=".26" stop-color="#79b6e2"/>
-        <stop offset=".52" stop-color="#b5daf0"/><stop offset=".74" stop-color="#e4f1f8"/>
-        <stop offset=".9" stop-color="#f7f6ef"/><stop offset="1" stop-color="#fbfaf6"/>
-      </linearGradient>
-      <radialGradient id="sun" cx=".5" cy=".5" r=".5">
-        <stop offset="0" stop-color="#fff7e2" stop-opacity=".92"/>
-        <stop offset=".55" stop-color="#ffe9bd" stop-opacity=".34"/>
-        <stop offset="1" stop-color="#ffe9bd" stop-opacity="0"/>
-      </radialGradient>
-      <linearGradient id="ct" x1="0" y1="0" x2=".18" y2="1">
-        <stop offset="0" stop-color="#fff"/><stop offset=".58" stop-color="#f8fcff"/><stop offset="1" stop-color="#dbeaf5"/>
-      </linearGradient>
-      <linearGradient id="cu" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#c3d9e9"/><stop offset="1" stop-color="#b0cbe0"/>
-      </linearGradient>
-      <filter id="sf" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
-      <g id="cl">
-        <ellipse cx="150" cy="112" rx="140" ry="25" fill="url(#cu)"/>
-        <circle cx="66" cy="92" r="46" fill="url(#ct)"/><circle cx="132" cy="66" r="64" fill="url(#ct)"/>
-        <circle cx="204" cy="84" r="52" fill="url(#ct)"/><circle cx="248" cy="102" r="38" fill="url(#ct)"/>
-        <ellipse cx="140" cy="58" rx="68" ry="24" fill="#fff" opacity=".9"/>
-      </g>
-    </defs>
-    <rect width="1440" height="1220" fill="url(#sky)"/>
-    <ellipse cx="880" cy="880" rx="760" ry="330" fill="url(#sun)"/>
-    <g opacity=".34" filter="url(#sf)">
-      <use href="#cl" x="96" y="150" width="196" height="98"/>
-      <use href="#cl" x="1168" y="112" width="228" height="114"/>
-    </g>
-    <g opacity=".52" filter="url(#sf)">
-      <use href="#cl" x="-140" y="512" width="430" height="215"/>
-      <use href="#cl" x="1190" y="548" width="440" height="220"/>
-    </g>
-  </svg>
-  <div class="grid-bg"></div>
+  <picture class="hero-sky">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" aria-hidden="true" fetchpriority="high" decoding="async" width="2560" height="1709">
+  </picture>
 
   <div class="wrap">
     <span class="eyebrow rv">실제 메일로 측정 <b>94.3%</b></span>
@@ -603,15 +711,20 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       Klorn은 무엇이 당신의 주의를 받을 자격이 있는지만 판단하고, 행동은 당신에게 남깁니다.</p>
     <div class="actions rv">
       <a class="btn btn-1" href="https://app.klorn.ai/early-access">베타 신청하기 <i>↗</i></a>
-      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
-        맥용 다운로드</a>
+    </div>
+    <div class="dl-row rv" id="dl-row">
+      <a class="dl" data-os="mac" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80027/Klorn.dmg" rel="noreferrer noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c.02-2.3 1.87-3.4 1.95-3.45-1.06-1.56-2.71-1.77-3.3-1.8-1.4-.11-2.58.78-3.25.78-.68 0-1.72-.76-2.83-.74-1.46.02-2.8.85-3.55 2.15-1.51 2.63-.39 6.52 1.09 8.66.72 1.04 1.58 2.21 2.71 2.17 1.09-.04 1.5-.7 2.82-.7 1.31 0 1.68.7 2.83.681.17-.02 1.92-1.06 2.64-2.11.83-1.2 1.17-2.37 1.19-2.43-.03-.01-2.28-.88-2.3-3.48zM14.9 5.6c.6-.72 1-1.72.89-2.72-.86.04-1.9.57-2.52 1.29-.55.63-1.02 1.65-.89 2.63.96.07 1.92-.49 2.52-1.2z"/></svg>
+        <span class="t"><b>맥용 다운로드</b><span>유니버설 · macOS 14+ · 공증 완료</span></span></a>
+      <a class="dl" data-os="win" href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" rel="noreferrer noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.2-1v7.1H3V5.6zm0 12.8l7.2 1v-7H3v6zM11.2 4.4L21 3v8.7h-9.8V4.4zm0 15.2L21 21v-8.6h-9.8v7.2z"/></svg>
+        <span class="t"><b>윈도우용 다운로드</b><span>Windows 10+ · 서명 전 베타, SmartScreen 경고 1회</span></span></a>
     </div>
     <!-- The app needs an approved account, so the download alone is a dead end.
          Say so next to the button rather than after the click. -->
-    <p class="actions-note rv">무료, AGPLv3, macOS 14+. 앱은 Klorn 계정으로 로그인하며,
+    <p class="actions-note rv">무료, AGPLv3. 앱은 Klorn 계정으로 로그인하며,
       구글 검수가 끝날 때까지 베타는 초대제입니다.
-      <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
+      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80027" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
   </div>
 
 
@@ -655,7 +768,6 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         </div>
       </div>
     </div>
-    <div class="stage-fade"></div>
   </div>
 
 </header>
@@ -664,129 +776,78 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">실제 앱</span>
-      <h2 class="rv">여기 있는 모든 화면은<br>실물입니다.</h2>
+      <h2 class="rv">읽힐 만큼<br>가까이.</h2>
     </div>
-    <p class="rv">목업이 아닙니다. 출시 중인 macOS 빌드에서 그대로 렌더링했기 때문에,
-      보이는 것이 설치되는 것입니다.</p>
+    <p class="rv">Klorn은 화면 맨 위 네이티브 한 줄에 있습니다. 펼치면 이런 것들을 보여주고 —
+      그중 당신이 바꿀 수 있는 것도 전부 여기 있습니다.</p>
   </div>
 
-  <div class="cards">
-    <article class="card c8 rv">
-      <div class="card-in">
-        <div class="card-shot"><img src="/media/app/full.jpg" alt="전체 화면: 단계 사이드바, 메일 목록, 그리고 메일 옆의 Klorn 판정 근거" loading="lazy"></div>
-        <div class="card-txt"><h3>한 창, 한 번의 결정</h3>
-          <p>왼쪽에 단계, 가운데에 대기열, 오른쪽에 그게 왜 중요한지. 쓰지 않을 때는 화면 맨 위 한 줄로 접힙니다.</p></div>
-      </div>
-    </article>
-    <article class="card c4 rv">
-      <div class="card-in">
-        <div class="card-shot"><img src="/media/app/rows.jpg" alt="발신자, 제목, 그리고 각 메일이 그 단계로 간 이유를 보여주는 메일 행" loading="lazy"></div>
-        <div class="card-txt"><h3>모든 줄에 이유</h3>
-          <p>메일마다 무엇 때문에 거기 갔는지 적혀 있습니다 — 틀린 판정은 클릭 한 번으로 고칩니다.</p></div>
-      </div>
-    </article>
-    <article class="card c6 rv">
-      <div class="card-in">
-        <div class="card-shot"><img src="/media/app/tier-guide.jpg" alt="Push, Queue, Silent, Auto를 설명하는 첫 실행 안내" loading="lazy"></div>
-        <div class="card-txt"><h3>네 단어, 설명까지</h3>
-          <p>Silent는 삭제가 아닙니다. Auto는 답장이 아닙니다. 앱이 첫 실행에서, 그리고 언제든 다시 알려줍니다.</p></div>
-      </div>
-    </article>
-    <article class="card c6 rv">
-      <div class="card-in">
-        <div class="card-shot"><img src="/media/app/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" loading="lazy"></div>
-        <div class="card-txt"><h3>설정은 당신 몫</h3>
-          <p>Klorn이 혼자 어디까지 할지, 답장 어투는 어떨지, 무엇이 당신을 끊어도 되는지.</p></div>
-      </div>
-    </article>
+  <div class="tour rv">
+    <div class="tour-nav" role="tablist" aria-label="제품 투어">
+      <button class="tour-t" role="tab" aria-selected="true" aria-controls="tp-1" id="tt-1">
+        <b>왜 이 메일이 당신을 끊었나</b><span>PUSH 판정의 근거, 그리고 한 키 답장 세 개.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
+        <b>이유가 붙은 대기열</b><span>모든 줄이 거기 간 이유를 말합니다 — 클릭 한 번으로 정정.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
+        <b>네 단어, 설명까지</b><span>Silent는 삭제가 아니고 Auto는 답장이 아닙니다.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
+        <b>설정은 당신 몫</b><span>혼자 어디까지 할지, 무엇이 당신을 끊어도 되는지.</span></button>
+    </div>
+    <div class="tour-stage">
+      <div class="tour-panel" role="tabpanel" id="tp-1" aria-labelledby="tt-1">
+        <img src="/media/app/reading.jpg" alt="근거가 붙은 PUSH 메일: 왜 그렇게 매겨졌는지, 기한, 그리고 한 키 답장 버튼" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-2" aria-labelledby="tt-2" hidden>
+        <img src="/media/app/rows.jpg" alt="발신자, 제목, 그리고 각 메일이 그 단계로 간 이유를 보여주는 메일 행" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-3" aria-labelledby="tt-3" hidden>
+        <img src="/media/app/tier-guide.jpg" alt="Push, Queue, Silent, Auto를 설명하는 첫 실행 안내" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-4" aria-labelledby="tt-4" hidden>
+        <img src="/media/app/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" width="1040" height="660" loading="lazy" decoding="async"></div>
+    </div>
   </div>
   <p class="proof rv">모든 스크린샷은 <code>KlornMac --render-previews</code>가 출시 중인 SwiftUI 뷰를
     그대로 디스크에 그려서 만듭니다. 화면이 바뀌면 사진도 같이 바뀝니다 —
     따로 관리하다 낡아버릴 마케팅 에셋이 없습니다.
     <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">앱 소스 보기 →</a></p>
 </section>
-<!-- ══ THE STANCE ═══════════════════════════════════ -->
-<section class="sec" id="stance">
+
+
+
+
+<!-- ══ A DAY WITH IT ════════════════════════════════ -->
+<section class="sec band" id="day">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">우리가 동의하지 않는 지점</span>
-      <h2 class="rv">대부분의 이메일 AI가<br>갖지 않는 네 가지 입장.</h2>
+      <span class="tag rv">Klorn과 함께하는 하루</span>
+      <h2 class="rv">세 순간, 그중<br>당신이 필요한 건 하나.</h2>
     </div>
-    <p class="rv">기능이 아니라 선택입니다. 각각은 Klorn에게 대가를 치르게 하고,
-      동시에 이미 메일에 딸려 오는 어시스턴트 대신 Klorn을 쓸 이유입니다.</p>
+    <p class="rv">Klorn은 열어보는 앱이 아닙니다. 하루 종일 받은편지함을 지키다가 딱 한 번 당신을 찾습니다 —
+      당신 없이는 정말로 답할 수 없는 메일이 왔을 때.</p>
   </div>
-  <div class="bento">
-    <article class="bcard b7 dark rv"><div class="bcard-in">
-      <span class="n">01 · 자율성</span>
-      <h3>당신을 대신해 행동하는 에이전트는 잘못된 제품입니다.</h3>
-      <p>다들 자율성을 출시합니다. 희소한 건 노동이 아니라 판단입니다 — 답장은 90초면 씁니다.
-        마흔 통 중 어느 것이 그 90초를 받을 자격이 있는지 정하는 일이 아침을 잡아먹습니다.
-        Klorn은 그 판단을 하고, 행동은 당신에게 남깁니다.</p>
-      <span class="vs">전송·삭제·전달 전부 당신을 기다립니다 · <b>미승인 실행 0건</b></span>
-    </div></article>
-    <article class="bcard b5 rv"><div class="bcard-in">
-      <span class="n">02 · 모델</span>
-      <h3>네 단계. 폴더도, 라벨도, 점수도 아닙니다.</h3>
-      <p>신뢰도 퍼센트로는 아무것도 할 수 없고, 무제한 라벨은 두 번째 받은편지함이 됩니다.
-        메일은 당신을 끊거나, 기다리거나, 보관되거나, 이미 처리됐거나 넷 중 하나입니다. 다섯 번째 단계는 없습니다.</p>
-      <span class="vs">모든 메일이 거기 간 <b>이유를</b> 표시합니다</span>
-    </div></article>
-    <article class="bcard b5 rv"><div class="bcard-in">
-      <span class="n">03 · 근거</span>
-      <h3>확인할 수 있는 숫자가 약속을 이깁니다.</h3>
-      <p>"AI 기반"은 주장이 아닙니다. Klorn은 릴리스마다 직접 라벨링한 실제 메일로 채점하고,
-        콜드/웜 스타트를 따로 보고하며, 그 데이터셋은 저장소에 있어서 우리 라벨에 반박할 수 있습니다.</p>
-      <span class="vs">웜 <b>94.3%</b> · 콜드 81.1% ·
-        <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">데이터셋 →</a></span>
-    </div></article>
-    <article class="bcard b7 rv"><div class="bcard-in">
-      <span class="n">04 · 이탈</span>
-      <h3>떠날 수 있어야 하고, 그 전에 안을 들여다볼 수 있어야 합니다.</h3>
-      <p>이메일 에이전트는 당신이 받는 모든 것을 읽습니다. 열어볼 수도, 빠져나올 수도 없는 상자에
-        넘기기엔 너무 큰 권한입니다. Klorn은 AGPLv3이고, 당신의 DB와 모델 키로 셀프호스팅되며,
-        폭주한 루프가 청구서를 만들지 못하도록 하루 지출에 상한을 겁니다.</p>
-      <span class="vs">AGPLv3 · 셀프호스팅 · 비용 상한 ·
-        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">소스 →</a></span>
-    </div></article>
+  <div class="steps">
+    <article class="step rv"><span class="sn">아침</span>
+      <h3>이미 분류돼 있음</h3>
+      <p>밤새 온 메일은 당신이 앉기 전에 각자의 단계에 들어가 있고, 거기 간 이유를 달고 있습니다.
+        64통 중 당신 몫은 3통이었습니다.</p></article>
+    <article class="step rv"><span class="sn">일하는 중</span>
+      <h3>한 줄, 배너 없음</h3>
+      <p>Klorn은 화면 맨 위 네이티브 한 줄로 머뭅니다. QUEUE·SILENT·AUTO는 절대 끊지 않고,
+        진짜 PUSH만 끊습니다 — 무엇이 PUSH인지는 당신이 정합니다.</p></article>
+    <article class="step rv"><span class="sn">답장할 때</span>
+      <h3>초안 셋, 결정은 당신</h3>
+      <p>수락·거절·질문 각각 한 키로. 당신 어투로, 발신자가 쓴 언어로. 저절로 나가는 건 없고,
+        전송할 때마다 영수증이 남습니다.</p></article>
   </div>
 </section>
-
-
-<!-- ══ WHAT ONLY KLORN DOES ═════════════════════════ -->
-<section class="sec band" id="features">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">계획이 아니라 구현됨</span>
-      <h2 class="rv">다른 어디에도<br>없는 네 가지.</h2>
-    </div>
-    <p class="rv">사양표가 아닙니다 — 옮겨올 이유 네 가지이고, 넷 다 현재 macOS 빌드에 들어 있습니다.</p>
-  </div>
-  <div class="feats">
-    <div class="feat-i rv"><h4>또 하나의 받은편지함이 아니라, 한 줄의 바 <em>여기에만</em></h4>
-      <p>Klorn은 화면 맨 위 네이티브 한 줄로 존재합니다. 작업 중에 포커스를 뺏지 않고,
-        확인해야 할 다섯 번째 창도 없습니다.</p></div>
-    <div class="feat-i rv"><h4>메일마다 붙는 판정 이유 <em>여기에만</em></h4>
-      <p>"이 발신자에게 6번 답장했습니다." 왜 그렇게 매겨졌는지 보이고, 클릭 한 번으로 반박하면,
-        분류기가 그 정정에서 배웁니다.</p></div>
-    <div class="feat-i rv"><h4>어투는 한 번만 설정 <em>여기에만</em></h4>
-      <p>격식, 친근, 캐주얼 — 아니면 당신이 보낸 메일에서 학습. 세 개의 답장 초안이 말하는 내용은
-        그대로 두고 어투만 바꾸며, 발신자가 쓴 언어 그대로 씁니다.</p></div>
-    <div class="feat-i rv"><h4>모든 실행에 영수증 <em>여기에만</em></h4>
-      <p>전송·삭제·전달은 각각 페이로드 해시가 담긴 서명된 영수증을 남깁니다.
-        당신이 승인한 것이 실제로 나간 것임을 증명할 수 있습니다.</p></div>
-  </div>
-</section>
-
 
 <!-- ══ COMPARISON ═══════════════════════════════════ -->
 <section class="sec" id="compare">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">나란히 놓고</span>
-      <h2 class="rv">같은 받은편지함,<br>다른 두 개의 베팅.</h2>
+      <span class="tag rv">우리가 동의하지 않는 지점</span>
+      <h2 class="rv">대부분의 이메일 AI가<br>갖지 않는 네 가지 입장.</h2>
     </div>
-    <p class="rv">기능 개수 싸움이 아닙니다. Klorn과 이미 메일에 딸려 온 어시스턴트가
-      정반대로 결정하는 네 지점입니다.</p>
+    <p class="rv">기능이 아니라 선택입니다 — 각각은 Klorn에게 대가를 치르게 합니다. 이미 메일에 딸려 온
+      어시스턴트가 대신 무엇을 결정하는지와 나란히 놓았습니다.</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
@@ -795,27 +856,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">누가 결정하나</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 · 누가 결정하나</span>
         <p>분류하고 초안까지 쓴 뒤 <b>멈춥니다</b>. 전송·삭제·전달은 전부 당신을 기다리고 영수증을 남깁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">누가 결정하나</span>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">01 · 누가 결정하나</span>
         <p>당신을 대신해 실행하고 나중에 알려줍니다. 안전장치는 실행 취소뿐입니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">무엇이 보이나</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 · 무엇이 보이나</span>
         <p>고정된 네 단계, 그리고 <b>메일마다 붙는 이유</b>. 하나 옮기면 분류기가 배웁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">무엇이 보이나</span>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">02 · 무엇이 보이나</span>
         <p>중요 표시와 무제한 라벨. 이유는 없고, 고칠 것도 없습니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">무엇을 주장하나</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 · 무엇을 주장하나</span>
         <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b>, 콜드/웜 별도 보고.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">무엇을 주장하나</span>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">03 · 무엇을 주장하나</span>
         <p>"AI 기반." 숫자도, 평가셋도, 직접 확인할 방법도 없습니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">나가고 싶다면</span>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 · 나가고 싶다면</span>
         <p><b>AGPLv3</b>. 읽고, 당신 키로 셀프호스팅하고, 포크해서 떠나면 됩니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">나가고 싶다면</span>
+      <div class="vscell them" data-who="나머지 전부"><span class="k">04 · 나가고 싶다면</span>
         <p>닫혀 있습니다. 당신의 메일이 학습 표면이고, 내보내기가 유일한 출구입니다.</p></div>
     </div>
   </div>
@@ -823,6 +884,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <!-- ══ MEASURED ═════════════════════════════════════ -->
 <section class="sec band" id="measured">
+  <picture class="sec-sky" aria-hidden="true">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" loading="lazy" decoding="async" width="2560" height="1709">
+  </picture>
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">약속이 아니라 측정</span>
@@ -844,6 +912,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">측정 방법과 평가셋 →</a></p>
 </section>
 
+<!-- ══ WORKS WITH ═══════════════════════════════════ -->
+<section class="sec" id="works">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">연동 범위</span>
+      <h2 class="rv">받기 전에<br>이것부터 확인하세요.</h2>
+    </div>
+    <p class="rv">Klorn은 당신의 메일을 읽습니다. 그래서 무엇에 연결되는지가 가장 먼저 알아야 할 것입니다 —
+      아직 연결되지 않는 것까지 포함해서.</p>
+  </div>
+  <div class="works rv">
+    <div class="work"><b>Gmail</b><span>구글 로그인. Pro에서는 여러 개.</span></div>
+    <div class="work"><b>네이버 메일</b><span>설정에서 IMAP으로 연결.</span></div>
+    <div class="work"><b>Google 캘린더</b><span>읽고, 당신 승인으로 일정 생성.</span></div>
+    <div class="work"><b>macOS 14+</b><span>유니버설 — 애플 실리콘과 인텔.</span></div>
+  </div>
+  <p class="works-note rv"><b>아직 지원하지 않는 것:</b> Outlook·Microsoft 365, iCloud 메일, 그리고
+    네이버 외의 IMAP 호스트. 윈도우 데스크탑 앱은 서명 전 베타입니다(SmartScreen 경고 1회) — 리눅스는 브라우저로 실행됩니다.
+    셀프호스팅은 당신의 DB와 모델 키로 동작합니다.</p>
+</section>
+
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
 <section class="sec" id="open">
   <div class="wrapl">
@@ -853,19 +942,17 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
           <span class="tag">오픈소스</span>
           <h2 class="os-h">읽어보고, 직접 돌리고,<br>언제든 떠나세요.</h2>
           <p class="os-p">이메일 에이전트는 당신이 받는 모든 것을 봅니다. "믿어달라"는 답이 될 수 없습니다.
-            Klorn은 AGPLv3이고 — 분류기, 프롬프트, 평가셋이 전부 저장소에 있으며,
-            당신의 키로 셀프호스팅됩니다.</p>
+            분류기, 프롬프트, 평가셋이 전부 저장소에 있습니다.</p>
           <div class="os-cta">
             <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">저장소 보기 <i>↗</i></a>
             <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">평가셋 보기</a>
           </div>
+          <div class="ship" id="ship" hidden>
+            <h3>최근 배포</h3>
+            <ol></ol>
+            <a href="https://github.com/k08200/klorn/releases" rel="noreferrer noopener">모든 릴리스 →</a>
+          </div>
         </div>
-        <ul class="os-list">
-          <li><b>AGPLv3</b><span>포크하고, 감사하고, 직접 출시하세요.</span></li>
-          <li><b>셀프호스팅</b><span>당신의 DB, 당신의 모델 키, 당신의 머신.</span></li>
-          <li><b>몰래 보내지 않음</b><span>실제 실행마다 페이로드 해시가 담긴 영수증을 남깁니다.</span></li>
-          <li><b>비용 상한</b><span>하루 AI 예산이 있어서 폭주한 루프가 청구서를 만들 수 없습니다.</span></li>
-        </ul>
       </div>
     </div>
   </div>
@@ -911,19 +998,57 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </div>
 </section>
 
+<!-- ══ FAQ ══════════════════════════════════════════ -->
+<section class="sec band" id="faq">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">묻기 전에</span>
+      <h2 class="rv">실제로 가장<br>많이 받는 질문들.</h2>
+    </div>
+  </div>
+  <div class="faq">
+    <details class="faq-i rv"><summary>왜 초대제인가요?</summary>
+      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱 공개 전에 보안 검수를 받아야 합니다.
+        검수가 끝날 때까지 구글이 테스터를 100명으로 제한합니다.</p></details>
+    <details class="faq-i rv"><summary>저 없이 뭔가 보낼 수 있나요?</summary>
+      <p>아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴
+        서명된 영수증을 남깁니다.</p></details>
+    <details class="faq-i rv"><summary>제 메일은 어디로 가나요?</summary>
+      <p>분류기로 갔다가 돌아옵니다. OAuth 토큰은 저장 시 암호화되고, 전체가 AGPLv3이라
+        그 토큰을 다루는 코드를 직접 읽을 수 있습니다 —
+        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">직접 돌려도 됩니다</a>.</p></details>
+    <details class="faq-i rv"><summary>잘못 분류하면요?</summary>
+      <p>옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 —
+        콜드 81.1%와 웜 94.3%의 차이가 그겁니다.</p></details>
+    <details class="faq-i rv"><summary>윈도우 앱은 언제인가요?</summary>
+      <p>나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 4단계로 계속 쓸 수 있습니다.</p></details>
+    <details class="faq-i rv"><summary>AI가 요금을 폭주시킬 수 있나요?</summary>
+      <p>아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가
+        당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다.</p></details>
+  </div>
+</section>
+
 <!-- ══ FINAL ════════════════════════════════════════ -->
 <section class="sec final">
+  <picture class="final-sky" aria-hidden="true">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" loading="lazy" decoding="async" width="2560" height="1709">
+  </picture>
   <div class="wrapl rv">
     <h2 class="final-h">다음 세대의 받은편지함은<br><span class="ser">결정 대기열</span>입니다.</h2>
     <p class="final-p">초대제 베타 — 승인은 몇 분 안에, 구글 검수가 끝날 때까지 테스터 100명.</p>
     <div class="actions">
       <a class="btn btn-1" href="https://app.klorn.ai/early-access">베타 신청하기 <i>↗</i></a>
-      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">
+      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80027/Klorn.dmg" rel="noreferrer noopener"
+         data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="윈도우용 다운로드">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
         맥용 다운로드</a>
     </div>
     <p class="actions-note">이미 승인받으셨나요? <a href="https://app.klorn.ai/login">로그인</a> ·
-      macOS 14+ · AGPLv3</p>
+      macOS 14+ 유니버설 · 윈도우는 브라우저 · AGPLv3</p>
   </div>
 </section>
 
@@ -939,13 +1064,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       </div>
     </div>
     <nav aria-label="제품"><h4>제품</h4>
-      <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener">맥용 다운로드</a>
-      <a href="#features">기능</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
+      <a href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80027/Klorn.dmg" rel="noreferrer noopener"
+         data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="윈도우용 다운로드">맥용 다운로드</a>
+      <a href="#compare">왜 Klorn인가</a><a href="#works">연동 범위</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
       <a href="https://app.klorn.ai/login">로그인</a></nav>
     <nav aria-label="오픈소스"><h4>오픈소스</h4>
       <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub 저장소</a>
       <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">평가셋</a>
-      <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">릴리스</a>
+      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80027" rel="noreferrer noopener">릴리스</a>
       <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">AGPLv3 라이선스</a></nav>
     <nav aria-label="법적 고지"><h4>법적 고지</h4>
       <a href="https://app.klorn.ai/privacy">개인정보처리방침</a><a href="https://app.klorn.ai/terms">이용약관</a>
@@ -998,6 +1124,138 @@ if (shell && fine) {
   }, { passive: true });
   shell.style.transition = 'transform .9s cubic-bezier(.32,.72,0,1)';
 }
+
+// Which platform is this? The download row renders both entries either way —
+// this only promotes the matching one and retargets the Mac-specific buttons, so
+// a Windows visitor with scripting off still sees a Windows entry rather than a
+// page that only offers a .dmg.
+//
+// navigator.platform is deprecated but still the most reliable macOS/Windows
+// signal across current browsers; userAgentData is preferred where present and
+// its synchronous `platform` field is enough — no need for the async hints.
+(function () {
+  var uaData = navigator.userAgentData;
+  var raw = String((uaData && uaData.platform) || navigator.platform ||
+                   navigator.userAgent || '');
+  var os = /mac|iphone|ipad|ipod/i.test(raw) ? 'mac'
+         : /win/i.test(raw) ? 'win'
+         : null;
+  if (!os) return;                       // Linux and anything unknown: leave both neutral
+
+  var mine = document.querySelector('.dl[data-os=' + os + ']');
+  if (mine) {
+    mine.classList.add('is-yours');
+    // Put the visitor's platform first without touching source order for
+    // everyone else — a plain flex reorder, not a DOM move.
+    mine.style.order = '-1';
+  }
+
+  if (os !== 'win') return;
+  document.querySelectorAll('[data-mac-dl]').forEach(function (a) {
+    var href = a.getAttribute('data-win-href');
+    var label = a.getAttribute('data-win-label');
+    if (href) { a.setAttribute('href', href); a.removeAttribute('rel'); }
+    if (!label) return;
+    // Replace only the text node, so the arrow/icon markup survives — and keep
+    // its surrounding whitespace, or "Download <i>↓</i>" relabels to the
+    // spaceless "Open Klorn↓".
+    Array.prototype.forEach.call(a.childNodes, function (n) {
+      if (n.nodeType !== 3 || !n.textContent.trim()) return;
+      var pad = n.textContent.match(/^(\s*)[\s\S]*?(\s*)$/);
+      n.textContent = pad[1] + label + pad[2];
+    });
+  });
+})();
+
+// Product tour: one frame, four surfaces. Progressive enhancement — the panels
+// are all in the document, and this is what collapses them to one at a time, so
+// without JS the section is a readable stack rather than a single stuck tab.
+(function () {
+  var nav = document.querySelector('.tour-nav');
+  if (!nav) return;
+  var tabs = Array.prototype.slice.call(nav.querySelectorAll('[role=tab]'));
+  var panels = tabs.map(function (t) { return document.getElementById(t.getAttribute('aria-controls')); });
+
+  function select(i, focus) {
+    tabs.forEach(function (t, n) {
+      t.setAttribute('aria-selected', String(n === i));
+      t.tabIndex = n === i ? 0 : -1;
+      if (panels[n]) panels[n].hidden = n !== i;
+    });
+    if (focus) tabs[i].focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { select(i); });
+  });
+  // Arrow keys move between tabs — the pattern a tablist is expected to follow.
+  nav.addEventListener('keydown', function (ev) {
+    var i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    var next = ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? i + 1
+             : ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? i - 1
+             : ev.key === 'Home' ? 0
+             : ev.key === 'End' ? tabs.length - 1 : null;
+    if (next === null) return;
+    ev.preventDefault();
+    select((next + tabs.length) % tabs.length, true);
+  });
+  select(0);
+})();
+
+// Recently shipped — populated from the public GitHub releases feed, because a
+// hand-maintained list would rot. The block stays hidden unless the fetch
+// succeeds, so offline/rate-limited visitors simply never see it.
+(function () {
+  var box = document.getElementById('ship');
+  if (!box || !window.fetch) return;
+  fetch('https://api.github.com/repos/k08200/klorn/releases?per_page=3')
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (rel) {
+      if (!rel || !rel.length) return;
+      var list = box.querySelector('ol');
+      var loc = document.documentElement.lang === 'ko' ? 'ko-KR' : 'en-US';
+      rel.slice(0, 3).forEach(function (r) {
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.href = r.html_url; a.rel = 'noreferrer noopener';
+        a.textContent = r.tag_name;
+        var s = document.createElement('span');
+        s.textContent = new Date(r.published_at)
+          .toLocaleDateString(loc, { month: 'short', day: 'numeric' });
+        li.appendChild(a); li.appendChild(s); list.appendChild(li);
+      });
+      box.hidden = false;
+    })
+    .catch(function () { /* stays hidden — the footer Releases link covers it */ });
+})();
+
+// The measured numbers count up the first time they scroll into view. Motion
+// only — the markup already holds the final values, so no JS, reduced motion,
+// or a missed observer all land on the true numbers.
+(function () {
+  var els = document.querySelectorAll('#measured .sv');
+  if (!els.length || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+      var el = e.target, txt = el.textContent.trim();
+      var m = txt.match(/^([0-9.]+)(.*)$/);
+      if (!m) return;
+      var target = parseFloat(m[1]), suffix = m[2];
+      var dec = (m[1].split('.')[1] || '').length, t0 = null;
+      function step(ts) {
+        if (t0 === null) t0 = ts;
+        var p = Math.min(1, (ts - t0) / 800);
+        el.textContent = (target * (1 - Math.pow(1 - p, 3))).toFixed(dec) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = txt;          // land on the exact original string
+      }
+      requestAnimationFrame(step);
+    });
+  }, { threshold: .6 });
+  els.forEach(function (el) { io.observe(el); });
+})();
 
 // The wordmark returns to the top. href="#top" is the no-JS fallback; with JS we
 // scroll instead of jumping and drop the hash again, so a later reload still
@@ -1104,7 +1362,17 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       c.num.textContent = c.n;
       shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
       doneEl.textContent = shown;
-      if (shown >= 64) { stateEl.textContent = '분류 완료'; }
+      if (shown >= 64) {
+        stateEl.textContent = '분류 완료';
+        // Hold the finished board, then run the morning again. A demo that
+        // stops dead reads as broken to anyone who scrolls back to it.
+        setTimeout(function () {
+          Object.keys(cells).forEach(function (k) { cells[k].n = 0; cells[k].num.textContent = 0; });
+          shown = 0; doneEl.textContent = 0;
+          stateEl.textContent = '분류 중';
+          setTimeout(step, 700);
+        }, 2600);
+      }
     }, 560);
 
     i++;
