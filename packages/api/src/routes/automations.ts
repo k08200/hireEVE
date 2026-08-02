@@ -4,6 +4,10 @@ import { runAgentForUser } from "../agentcore/autonomous-agent.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { db, prisma } from "../db.js";
 import { listReplyTonePolicies, normalizeReplyTone } from "../learning/reply-tone.js";
+import {
+  NOTIFICATION_LANGUAGES,
+  resolveNotificationLanguage,
+} from "../notify/notification-strings.js";
 import { normalizeTimeZone } from "../time-zone.js";
 
 // MEDIUM-risk tools that users may pre-approve for AUTO mode.
@@ -57,6 +61,8 @@ export async function automationRoutes(app: FastifyInstance) {
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
       replyTone: normalizeReplyTone(configAny.replyTone),
       replyTones: listReplyTonePolicies(),
+      notificationLanguage: resolveNotificationLanguage(configAny.notificationLanguage as string | null),
+      notificationLanguages: Array.from(NOTIFICATION_LANGUAGES),
       notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
       notifyMeeting: configAny.notifyMeeting ?? true,
       notifyTaskDue: configAny.notifyTaskDue ?? true,
@@ -91,6 +97,7 @@ export async function automationRoutes(app: FastifyInstance) {
       "agentIntervalMin",
       "alwaysAllowedTools",
       "replyTone",
+      "notificationLanguage",
       "notifyEmailUrgent",
       "notifyMeeting",
       "notifyTaskDue",
@@ -117,6 +124,14 @@ export async function automationRoutes(app: FastifyInstance) {
     // and then silently ignored by the prompt builder.
     if ("replyTone" in data) {
       data.replyTone = normalizeReplyTone(data.replyTone);
+    }
+
+    // Validate notificationLanguage — an unshipped language would be persisted
+    // and then silently fall back to English on every notification.
+    if ("notificationLanguage" in data) {
+      data.notificationLanguage = resolveNotificationLanguage(
+        data.notificationLanguage as string | null,
+      );
     }
 
     if ("timezone" in data) {
@@ -153,6 +168,8 @@ export async function automationRoutes(app: FastifyInstance) {
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
       replyTone: normalizeReplyTone(configAny.replyTone),
       replyTones: listReplyTonePolicies(),
+      notificationLanguage: resolveNotificationLanguage(configAny.notificationLanguage as string | null),
+      notificationLanguages: Array.from(NOTIFICATION_LANGUAGES),
       notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
       notifyMeeting: configAny.notifyMeeting ?? true,
       notifyTaskDue: configAny.notifyTaskDue ?? true,
