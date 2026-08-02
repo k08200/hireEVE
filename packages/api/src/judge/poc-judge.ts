@@ -29,6 +29,7 @@ import type { SenderTraitKind } from "../learning/sender-trait-policy.js";
 import type { SenderTraitFact } from "../learning/sender-trait-store.js";
 import { asString, asUnitInterval, isNonFinitePresent } from "../llm/llm-coerce.js";
 import { parseLlmJson } from "../llm/llm-json.js";
+import { describeErrorChain } from "../llm/model-fallback.js";
 import { createCompletion, JUDGE_MODEL } from "../llm/openai.js";
 import type { ProviderCredentials } from "../providers/index.js";
 import { captureError } from "../sentry.js";
@@ -443,7 +444,11 @@ async function extractFeaturesWithLlm(
     } catch (err) {
       // Surface WHY in plain logs — captureError is a no-op without a
       // Sentry DSN (e.g. CI), which made eval fallbacks undiagnosable.
-      const message = err instanceof Error ? err.message : String(err);
+      // Include the cause chain: a quota failure arrives as the generic
+      // AllProvidersExhaustedError and the provider's actual words (429 body,
+      // rate-limit window) live on `cause`. Logging only `.message` is what
+      // left the 2026-08-02 eval outage unexplained.
+      const message = describeErrorChain(err);
       console.warn(
         `[JUDGE] LLM feature extraction attempt ${attempt}/${JUDGE_LLM_ATTEMPTS} failed: ${message}`,
       );
