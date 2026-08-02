@@ -967,6 +967,37 @@ func runSelfChecks() async -> Bool {
         check("AutomationSettings tolerates unknown enum values", false)
     }
 
+    // The six notify toggles were decoded and PATCHed but never consulted before
+    // presenting anything, so switching a category off changed nothing on this
+    // Mac (dogfood: "I turned meetings off and still got the card").
+    let allOn = AutomationSettings()
+    check("urgent-mail interrupts are allowed when the category is on",
+          allOn.allowsInterrupt(for: .emailUrgent))
+    check("meeting interrupts are allowed when the category is on",
+          allOn.allowsInterrupt(for: .meeting))
+    let essentialsOnly = AutomationSettings().applyingEssentialsOnly()
+    check("essentials-only still allows urgent mail and meetings",
+          essentialsOnly.allowsInterrupt(for: .emailUrgent)
+          && essentialsOnly.allowsInterrupt(for: .meeting))
+    let mutedMail = AutomationSettings(notifyEmailUrgent: false)
+    check("urgent mail off suppresses the mail interrupt",
+          !mutedMail.allowsInterrupt(for: .emailUrgent))
+    check("urgent mail off leaves meetings alone",
+          mutedMail.allowsInterrupt(for: .meeting))
+    let mutedMeeting = AutomationSettings(notifyMeeting: false)
+    check("meetings off suppresses the meeting card",
+          !mutedMeeting.allowsInterrupt(for: .meeting))
+    check("meetings off leaves urgent mail alone",
+          mutedMeeting.allowsInterrupt(for: .emailUrgent))
+
+    // Before the server's settings arrive the model holds AutomationSettings(),
+    // so the defaults decide what happens on a cold start. They must fail OPEN:
+    // dropping an urgent interrupt because a fetch was slow is the one failure
+    // a firewall cannot make.
+    check("a cold start (no settings loaded yet) still interrupts",
+          AutomationSettings().allowsInterrupt(for: .emailUrgent)
+          && AutomationSettings().allowsInterrupt(for: .meeting))
+
     let essentials = AutomationSettings().applyingEssentialsOnly()
     check("essentials keeps urgent mail + meetings",
           essentials.notifyEmailUrgent && essentials.notifyMeeting)
