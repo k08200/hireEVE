@@ -12,7 +12,10 @@ guard args.count == 3, let mark = NSImage(contentsOfFile: args[2]) else {
     exit(2)
 }
 let W = 660.0, H = 480.0
-let ICON_Y_TOP = 360.0          // must match icon_locations in make-dmg.sh
+// Finder counts the title bar (~30px) inside the window rect, so the visible
+// content area is ~450 of the 480 the background paints. Everything that
+// matters stays above y=440 or the labels get clipped — which shipped once.
+let ICON_Y_TOP = 330.0          // must match icon_locations in make-dmg.sh
 
 func render(scale: CGFloat, to url: URL) {
     let w = Int(W * scale), h = Int(H * scale)

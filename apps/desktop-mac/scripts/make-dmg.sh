@@ -56,8 +56,8 @@ window_rect = ((200, 140), (660, 480))
 icon_size = 128
 text_size = 13
 icon_locations = {
-    os.path.basename(app): (180, 360),
-    "Applications": (480, 360),
+    os.path.basename(app): (180, 330),
+    "Applications": (480, 330),
 }
 format = "UDZO"
 PYEOF
