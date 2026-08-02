@@ -1,6 +1,11 @@
 import AppKit
 import Foundation
 import SwiftUI
+// @preconcurrency: the UNUserNotificationCenterDelegate completion handlers are
+// annotated @Sendable in the macOS 26 SDK but not in the macOS 15 SDK the CI
+// runner builds against, so a signature that satisfies one rejects the other.
+// Importing preconcurrency lets one signature compile on both.
+@preconcurrency import UserNotifications
 
 /// Entry point. `--self-check` runs the verification harness and exits (so tests
 /// work on a Command Line Tools toolchain with no XCTest); otherwise the app
@@ -55,7 +60,7 @@ enum Entry {
 /// (not in the SwiftUI `App`) so the poll loop and the bar exist on launch with no
 /// window and no system-menu-bar item.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     let model = AppModel()
     private var topBar: TopBarController?
     private var pushCard: PushCardController?
@@ -75,9 +80,72 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// A tapped banner must land on the mail it interrupted you for. Without
+    /// this delegate the OS banner was a dead end — it took the interruption
+    /// and gave nothing back (dogfood: "the notification does nothing").
+    /// Set before any banner can be posted so no tap is dropped.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let identifier = response.notification.request.identifier
+        // Hop the (main-actor) UI work off, then tell the system we're done.
+        // The handler is called here rather than inside the Task because it is
+        // not Sendable under every SDK we build against, and it only signals
+        // "delivery handled" — opening the pane does not need to precede it.
+        Task { @MainActor [weak self] in
+            self?.openFromNotification(identifier: identifier)
+        }
+        completionHandler()
+    }
+
+    /// Banners posted while Klorn is frontmost still show: the app is an
+    /// accessory whose window is usually hidden, so suppressing them would
+    /// silently drop the interrupt the firewall exists to deliver.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler:
+            @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+
+    /// Resolve a banner identifier to its item and open it in the reading pane.
+    /// The item may be gone (already handled elsewhere, or the queue refreshed);
+    /// in that case fall back to expanding the bar rather than doing nothing, so
+    /// a tap always produces a visible response.
+    func openFromNotification(identifier: String) {
+        // One lookup, reused: `queue` is an immutable Sendable snapshot, so the
+        // item found while routing is the item we open.
+        let queue = model.queue
+        var found: FirewallItem?
+        let action = PushNotifier.tapAction(identifier: identifier) { id in
+            found = queue?.item(id: id)
+            return found != nil
+        }
+        switch action {
+        case .ignore:
+            return  // not ours — never claim another app's notification
+        case .open:
+            guard let item = found else {
+                topBar?.expand()
+                return
+            }
+            topBar?.openInApp(item)
+        case .expand:
+            topBar?.expand()
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Reassert accessory policy post-launch; do NOT activate or foreground.
         NSApp.setActivationPolicy(.accessory)
+        // Claim notification taps before the first banner can be posted.
+        if PushNotifier.isAvailable {
+            UNUserNotificationCenter.current().delegate = self
+        }
         let bar = TopBarController(model: model)
         let card = PushCardController(model: model)
         // Menu-bar anchor while the pill is hidden (one-anchor rule): appears
