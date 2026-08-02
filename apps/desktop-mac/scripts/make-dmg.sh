@@ -1,24 +1,21 @@
 #!/usr/bin/env bash
-# Wrap Klorn.app in a compressed disk image with a drag-to-Applications window.
+# Wrap Klorn.app in a drag-to-install DMG whose window actually looks installed:
+# branded background, app on the left, Applications on the right, an arrow
+# between them.
 #
-# Why a DMG when the .zip already works: a quarantined app launched from where it
-# was downloaded runs from a read-only AppTranslocation mount, so it never lives
-# at a real path. SelfUpdate.installTarget() then finds neither
-# ~/Applications/Klorn.app nor /Applications/Klorn.app and every in-app update
-# falls back to opening the release page — permanently, for that user. The
-# Applications symlink in this window is what makes people move the app before
-# first launch, which is the only thing that ends translocation.
+# Layout comes from dmgbuild (pure Python: it writes the .DS_Store directly),
+# NOT from scripting Finder — Finder automation needs GUI consent and is the
+# flakiest thing you can put in CI. The background is rendered from Swift
+# source at build time, so there is no binary design asset to rot in the repo.
 #
-# The .zip is NOT replaced. SelfUpdate downloads that exact asset by name, so it
-# stays the update channel; this DMG is the human install path.
-#
-# Deliberately no AppleScript: setting a background image and icon coordinates
-# means driving Finder, which needs GUI automation consent and is the flakiest
-# thing you can put in CI. The default icon view already shows the app beside the
-# Applications alias, which is the part that changes behaviour.
+# Why a DMG at all: an app launched from where it was downloaded runs
+# translocated, SelfUpdate.installTarget() then finds no install path, and
+# in-app updates fail permanently for that user. The drag is the cure.
+# Klorn-macos.zip stays the in-app updater channel; this is the human path.
 #
 # Usage:  scripts/make-dmg.sh <Klorn.app> <out.dmg> [volume-name]
 set -euo pipefail
+cd "$(dirname "$0")/.."   # → apps/desktop-mac
 
 APP="${1:?usage: make-dmg.sh <Klorn.app> <out.dmg> [volume-name]}"
 OUT="${2:?usage: make-dmg.sh <Klorn.app> <out.dmg> [volume-name]}"
@@ -26,28 +23,44 @@ VOLNAME="${3:-Klorn}"
 
 [ -d "$APP" ] || { echo "✗ not an app bundle: $APP"; exit 1; }
 
-STAGE="$(mktemp -d)"
-trap 'rm -rf "$STAGE"' EXIT
+python3 -c "import dmgbuild" 2>/dev/null \
+  || python3 -m pip install --user -q dmgbuild
 
-echo "▸ Staging $(basename "$APP")…"
-# ditto, not cp: it preserves the bundle's extended attributes and — critically —
-# the stapled notarization ticket. cp -R drops xattrs on some configurations and
-# the app inside would then need a network round-trip to validate.
-ditto "$APP" "$STAGE/$(basename "$APP")"
-ln -s /Applications "$STAGE/Applications"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
 
-# ${OUT} braced: the runner's /bin/bash is 3.2, which swallowed the U+2026
-# ellipsis into the variable name ("OUT…: unbound variable") and killed the
-# release. Newer local bash parses it fine, which is why it passed here.
-echo "▸ Creating ${OUT}…"
+echo "▸ Rendering window background"
+swiftc -O scripts/render-dmg-background.swift -o "$WORK/render-bg"
+"$WORK/render-bg" "$WORK/bg" >/dev/null
+tiffutil -cathidpicheck "$WORK/bg.png" "$WORK/bg@2x.png" -out "$WORK/bg.tiff" 2>/dev/null
+
+# dmgbuild settings. Icon rows sit at y=205 (top-origin) to line up with the
+# arrow the background draws; app left, Applications right — the direction you
+# read, and the direction you drag.
+# Paths reach Python via the environment, not string interpolation — shell
+# quoting rules and Python literal rules disagree, and the runner's /bin/bash
+# is 3.2 (\${var@Q} does not exist there; that trap killed the first release).
+export KLORN_DMG_APP="$(cd "$(dirname "$APP")" && pwd)/$(basename "$APP")"
+export KLORN_DMG_BG="$WORK/bg.tiff"
+cat > "$WORK/settings.py" <<'PYEOF'
+import os
+import os.path
+app = os.environ["KLORN_DMG_APP"]
+files = [app]
+symlinks = {"Applications": "/Applications"}
+background = os.environ["KLORN_DMG_BG"]
+window_rect = ((200, 200), (660, 400))
+icon_size = 128
+text_size = 13
+icon_locations = {
+    os.path.basename(app): (180, 205),
+    "Applications": (480, 205),
+}
+format = "UDZO"
+PYEOF
+
+echo "▸ Creating ${OUT}"
 rm -f "$OUT"
-hdiutil create \
-  -volname "$VOLNAME" \
-  -srcfolder "$STAGE" \
-  -fs HFS+ \
-  -format UDZO \
-  -imagekey zlib-level=9 \
-  -quiet \
-  "$OUT"
+python3 -m dmgbuild -s "$WORK/settings.py" "$VOLNAME" "$OUT"
 
 echo "✓ Built $OUT ($(du -h "$OUT" | cut -f1))"
