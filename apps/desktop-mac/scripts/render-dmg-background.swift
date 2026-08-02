@@ -7,15 +7,16 @@ import AppKit
 import Foundation
 
 let args = CommandLine.arguments
-guard args.count == 3, let mark = NSImage(contentsOfFile: args[2]) else {
-    FileHandle.standardError.write(Data("usage: render-dmg-background <out-base> <mark.png>\n".utf8))
+guard args.count == 6, let mark = NSImage(contentsOfFile: args[2]),
+      let w = Double(args[3]), let h = Double(args[4]), let iconY = Double(args[5]) else {
+    FileHandle.standardError.write(
+        Data("usage: render-dmg-background <out-base> <mark.png> <w> <h> <icon-y>\n".utf8))
     exit(2)
 }
-let W = 660.0, H = 480.0
-// Finder counts the title bar (~30px) inside the window rect, so the visible
-// content area is ~450 of the 480 the background paints. Everything that
-// matters stays above y=440 or the labels get clipped — which shipped once.
-let ICON_Y_TOP = 330.0          // must match icon_locations in make-dmg.sh
+// Geometry arrives from make-dmg.sh so the background and the .DS_Store icon
+// positions cannot drift apart — they are the same numbers by construction.
+let W = w, H = h
+let ICON_Y_TOP = iconY
 
 func render(scale: CGFloat, to url: URL) {
     let w = Int(W * scale), h = Int(H * scale)
@@ -48,7 +49,7 @@ func render(scale: CGFloat, to url: URL) {
     let textSize = word.size()
     let total = markSize + gap + textSize.width
     let x0 = (W - total) / 2
-    let lockupCenterY = H - 150.0        // top-origin 150
+    let lockupCenterY = H - (ICON_Y_TOP * 0.42)   // sits in the upper third, follows the icons
     mark.draw(in: CGRect(x: x0, y: lockupCenterY - markSize / 2,
                          width: markSize, height: markSize))
     word.draw(at: CGPoint(x: x0 + markSize + gap,
