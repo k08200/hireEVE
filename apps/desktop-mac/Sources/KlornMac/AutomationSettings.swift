@@ -180,7 +180,29 @@ struct NotifyCategory: Identifiable, Sendable {
     ] }
 }
 
+/// The interrupt surfaces this Mac can raise, keyed to the notify category that
+/// governs each. Separate from `NotifyCategory` (a settings-row descriptor) so
+/// the presentation code names what it is about to do, not a settings key.
+enum InterruptKind: Sendable {
+    /// The urgent-mail push card and its OS banner fallback.
+    case emailUrgent
+    /// The pre-meeting prep card.
+    case meeting
+}
+
 extension AutomationSettings {
+    /// Whether this Mac may raise `kind` right now.
+    ///
+    /// The six category toggles were decoded and PATCHed but never read before
+    /// presenting anything, so turning "Meetings" off changed nothing locally
+    /// (dogfood 2026-08-02). Every interrupt now asks here first.
+    func allowsInterrupt(for kind: InterruptKind) -> Bool {
+        switch kind {
+        case .emailUrgent: notifyEmailUrgent
+        case .meeting: notifyMeeting
+        }
+    }
+
     /// True when exactly the essential categories are on — i.e. the state the
     /// "Essentials only" preset produces. Drives the preset's selected look.
     var isEssentialsOnly: Bool {

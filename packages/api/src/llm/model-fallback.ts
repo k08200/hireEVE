@@ -149,15 +149,87 @@ export function classifyKeyLimitError(error: unknown): CooldownKind {
   return "ambiguous";
 }
 
+/** Max chars of an upstream provider body kept in an operator log line. */
+const PROVIDER_MESSAGE_LOG_CAP = 200;
+
+/**
+ * Operator-safe rendering of an upstream provider error.
+ *
+ * The 2026-07/08 judge outage was undiagnosable precisely because this text was
+ * thrown away: the log recorded our own classification ("ambiguous quota
+ * error") while the provider's actual wording — the only thing that says
+ * WHETHER it was an RPM trip, a per-key spend cap, or an account limit — never
+ * reached anyone. Keep the provider's wording verbatim, minus anything shaped
+ * like a credential, capped so a giant HTML error page can't flood the log.
+ */
+export function redactProviderMessage(error: unknown): string | null {
+  const raw =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "message" in error
+        ? String((error as { message: unknown }).message)
+        : typeof error === "string"
+          ? error
+          : "";
+  const cleaned = raw
+    .trim()
+    .replace(/sk-[A-Za-z0-9_-]{8,}/g, "sk-***")
+    .replace(/(bearer\s+)[A-Za-z0-9._-]{8,}/gi, "$1***");
+  if (!cleaned) return null;
+  return cleaned.length > PROVIDER_MESSAGE_LOG_CAP
+    ? `${cleaned.slice(0, PROVIDER_MESSAGE_LOG_CAP)}…`
+    : cleaned;
+}
+
+/**
+ * Render an error for an operator log INCLUDING its cause chain.
+ *
+ * `AllProvidersExhaustedError` deliberately carries a generic, user-safe
+ * message; the provider's real failure rides on `cause`. A caller that logs
+ * only `err.message` (poc-judge did) therefore records "All AI providers are
+ * unavailable" and nothing about why — the exact hole that made the 2026-08-02
+ * 429 un-root-causable while the 401 was trivially readable.
+ */
+export function describeErrorChain(error: unknown, depth = 2): string {
+  const head = redactProviderMessage(error) ?? String(error);
+  const cause = error instanceof Error ? error.cause : undefined;
+  if (depth <= 0 || cause === undefined || cause === null) return head;
+  const tail = describeErrorChain(cause, depth - 1);
+  return tail && tail !== head ? `${head} (cause: ${tail})` : head;
+}
+
+/** Extra context the caller knows and the fallback state does not. */
+export interface KeyLimitOptions {
+  /**
+   * Whether the chain still holds another provider that could serve this
+   * request. Defaults to true (the historical assumption: OpenRouter → Gemini).
+   */
+  hasFailover?: boolean;
+}
+
 /**
  * Mark a provider as quota/rate-limited. Pass the original error so the
  * classifier can pick a cooldown that matches the actual quota window —
  * RPM trips get 5 minutes; per-day quotas get held until next UTC midnight;
  * anything ambiguous gets 1 hour.
+ *
+ * Single-provider deployments (one OpenRouter key, no Gemini failover) get the
+ * ambiguous case shortened to the RPM window. With a failover provider the 1h
+ * lockout is just routing — traffic keeps flowing on the other key. With none,
+ * it converts one unexplained 429 into an hour with NO LLM at all: the judge
+ * drops to the keyword fallback, which caps confidence at 0.55 and therefore
+ * cannot reach the PUSH floor (tier-policy.ts push.confidence 0.7). An explicit
+ * per-day signal is still honoured — retrying before the UTC reset only burns
+ * failed calls.
  */
-export function markKeyLimited(provider: string, error?: unknown): void {
+export function markKeyLimited(
+  provider: string,
+  error?: unknown,
+  options: KeyLimitOptions = {},
+): void {
   const s = providerState(provider);
   const kind: CooldownKind = error === undefined ? "ambiguous" : classifyKeyLimitError(error);
+  const hasFailover = options.hasFailover !== false;
   let until: number;
   let label: string;
   switch (kind) {
@@ -170,13 +242,18 @@ export function markKeyLimited(provider: string, error?: unknown): void {
       label = "daily quota";
       break;
     default:
-      until = Date.now() + AMBIGUOUS_COOLDOWN_MS;
-      label = "ambiguous quota error";
+      until = Date.now() + (hasFailover ? AMBIGUOUS_COOLDOWN_MS : MINUTE_COOLDOWN_MS);
+      label = hasFailover
+        ? "ambiguous quota error"
+        : "ambiguous quota error (sole provider — short cooldown)";
       break;
   }
   s.keyLimitedUntil = until;
+  const upstream = redactProviderMessage(error);
   console.warn(
-    `[MODEL-FALLBACK] ${safeLogToken(provider)} hit ${label} — locked out until ${new Date(until).toISOString()}`,
+    `[MODEL-FALLBACK] ${safeLogToken(provider)} hit ${label} — locked out until ${new Date(until).toISOString()}${
+      upstream ? ` — upstream said: ${upstream}` : ""
+    }`,
   );
 }
 
