@@ -44,7 +44,7 @@ struct MeetingCard: View {
                alignment: .top)
         .glassPanel(cornerRadius: PushCardMetrics.corner)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Upcoming meeting card")
+        .accessibilityLabel(L("calendar.card.a11y"))
     }
 
     private var header: some View {
@@ -77,7 +77,7 @@ struct MeetingCard: View {
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Dismiss meeting card")
+            .accessibilityLabel(L("calendar.dismiss.a11y"))
         }
     }
 
@@ -98,7 +98,7 @@ struct MeetingCard: View {
         } else {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Building your prep pack…").font(.caption).foregroundStyle(Theme.textDim)
+                Text(L("calendar.prepPack")).font(.caption).foregroundStyle(Theme.textDim)
             }
             .frame(maxWidth: .infinity, minHeight: 120)
         }
@@ -106,10 +106,10 @@ struct MeetingCard: View {
 
     private var footer: some View {
         HStack {
-            Text("Starting soon").font(.caption2).foregroundStyle(Theme.textDim)
+            Text(L("calendar.startingSoon")).font(.caption2).foregroundStyle(Theme.textDim)
             Spacer()
             if state.event?.meetingLink != nil {
-                Button("Join", action: actions.onJoin)
+                Button(L("calendar.join"), action: actions.onJoin)
                     .buttonStyle(PrimaryButtonStyle())
             }
         }

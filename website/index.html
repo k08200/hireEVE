@@ -1,1178 +1,1550 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="alternate" hreflang="en" href="https://klorn.ai/">
-  <link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/">
-  <link rel="canonical" href="https://klorn.ai/">
-  <!-- English is always the default at klorn.ai. Korean is reached only via the KO toggle in the floating dock. -->
-  <title>Klorn — The clear signal worth acting on</title>
-  <meta name="description" content="Klorn filters mail, calendar, and AI signals into one clear decision queue — with evidence and approval before anything leaves your hands.">
-  <meta property="og:title" content="Klorn — The clear signal worth acting on">
-  <meta property="og:description" content="Mail, calendar, and AI signals filtered into one clear decision queue — with evidence and approval before any action.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://klorn.ai/">
-  <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
-  <link rel="icon" href="/brand/favicon.svg?v=matte2" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
-  <noscript><style>.reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
-  <style>
-    /* ── Reset ─────────────────────────────────── */
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="alternate" hreflang="en" href="https://klorn.ai/">
+<link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/">
+<link rel="canonical" href="https://klorn.ai/">
+<!-- English is always the default at klorn.ai. Korean is reached via the language
+     toggle in the nav, which also auto-redirects a Korean-locale first visit. -->
+<title>Klorn — Noise in. Signal out.</title>
+<meta name="description" content="A Mac app that sorts your mail into four tiers — PUSH, QUEUE, SILENT, AUTO — and tells you why. Open source, self-hostable, and it never sends anything without you.">
+<meta property="og:title" content="Klorn — Noise in. Signal out.">
+<meta property="og:description" content="A Mac app that sorts your mail into four tiers and tells you why. Other AI agents act on your behalf; Klorn decides what deserves your attention and leaves the acting to you.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://klorn.ai/">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<!-- The hero photograph is the LCP element; preloading it with the same srcset
+     the <picture> uses lets the fetch start before the CSS resolves. -->
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/fonts/instrument-serif-italic.woff2" crossorigin>
+<link rel="preload" as="image" type="image/webp"
+      imagesrcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w"
+      imagesizes="100vw" fetchpriority="high">
+<link rel="icon" href="/brand/favicon.svg?v=matte2" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png?v=matte2">
+<style>
+/* Self-hosted webfonts (fonts/SOURCE.md). The stacks below referenced Geist and
+   a commercial serif that were never actually loaded, so every visitor rendered
+   the system-font fallback. Geist is the intended sans; the serif accent loads
+   Instrument Serif (OFL) in place of the unlicensed face the stack named.
+   font-display swap: text renders immediately in the fallback, then upgrades. */
+@font-face{font-family:'Geist';src:url('/fonts/geist-var.woff2') format('woff2');
+  font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif-italic.woff2') format('woff2');
+  font-weight:400;font-style:italic;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:swap}
+:root{
+  --ink:#0a0e14; --ink-2:#39424e;
+  /* #6a7480 measured 4.17:1 on the band wash and 3.71:1 over the sky bands —
+     under AA for the small text it is used for. This clears 4.5:1 on every
+     surface it lands on, white cards through photograph. */
+  --ink-3:#5c656f;
+  --paper:#fbfaf6;            /* warm, not clinical white (ref: Trajectory) */
+  --line:rgba(10,14,20,.09);
+  --sky-600:#0284c7;
+  /* --sky-600 is the accent for fills, borders and large display type. As a
+     TEXT colour it fails AA at small sizes on every surface here — 4.10:1
+     even on a white card, 3.46:1 over the sky. Small text uses this instead. */
+  --sky-ink:#0369a1;
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{position:relative;margin:0;background:var(--paper);color:var(--ink);
+  font-family:'Geist','Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+/* One visible focus ring for everything. Two rings — a white halo under a dark
+   one — so it survives both the dark nav pill and the pale paper. */
+:focus-visible{outline:2px solid var(--sky-600);outline-offset:3px;border-radius:6px;
+  box-shadow:0 0 0 6px rgba(255,255,255,.85)}
+.nav-pill :focus-visible{outline-color:#fff;box-shadow:0 0 0 6px rgba(4,12,26,.6)}
 
-    :root {
-      /* Light + sky design system */
-      --canvas:#ffffff;
-      --paper:#f6f9fc;
-      --ink:#0a0e14;
-      --ink-soft:#39424e;
-      --ink-mute:#6a7480;
-      --line:rgba(10,14,20,0.08);
-      --line-strong:rgba(10,14,20,0.14);
+/* Film grain — fixed, never on a scroller (perf). */
+.grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.30;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/></filter><rect width='180' height='180' filter='url(%23n)' opacity='.42'/></svg>")}
 
-      --sky-50:#f0f9ff;
-      --sky-100:#e0f2fe;
-      --sky-200:#bae6fd;
-      --sky-300:#7dd3fc;
-      --sky-400:#38bdf8;
-      --sky-500:#0ea5e9;
-      --sky-600:#0284c7;
-      --sky-700:#0369a1;
 
-      --slate-400:#94a3b8;
-      --slate-500:#64748b;
+/* Page-wide atmosphere. The middle of the page measured flat — 4,500px where the
+   background moved less than 6% in luminance — so instead of scattered blooms it
+   now descends continuously through the photograph's own palette: cream, blush,
+   lavender, the pale blue at the top of the frame, back to cream at the footer.
+   Three soft lateral washes keep that descent from reading as a flat ramp.
+   Every stop stays lighter than #e1e1e1, the point where --ink-3 would drop
+   under 4.5:1. */
+.field{position:absolute;top:0;left:0;right:0;height:100%;z-index:0;pointer-events:none;
+  background-image:
+    radial-gradient(62% 13% at 88% 24%, rgba(212,226,240,.50), transparent 72%),
+    radial-gradient(58% 12% at 5% 45%, rgba(240,222,226,.52), transparent 72%),
+    radial-gradient(64% 14% at 94% 67%, rgba(230,222,240,.46), transparent 72%),
+    radial-gradient(56% 12% at 8% 84%, rgba(216,230,240,.44), transparent 74%),
+    linear-gradient(180deg,
+      #f8f6f1 0%, #f7efeb 17%, #f4ecef 32%, #f2ebf1 46%,
+      #edf1f6 62%, #eff3f7 76%, #f5f3f1 90%, #f8f6f1 100%);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 5%,#000 97%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 5%,#000 97%,transparent 100%)}
 
-      --max-w:1200px;
-      --max-w-narrow:960px;
-      --ease:cubic-bezier(.2,.7,.2,1);
-    }
+/* ── Fluid island nav ─────────────────────────────── */
+.nav{position:fixed;top:22px;left:0;right:0;z-index:50;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
+.nav-pill{pointer-events:auto;display:flex;align-items:center;gap:2px;padding:7px 7px 7px 18px;border-radius:9999px;
+  background:rgba(12,16,22,.66);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.13);box-shadow:0 18px 44px -20px rgba(4,12,26,.7),inset 0 1px 0 rgba(255,255,255,.10);
+  transition:transform .7s var(--ease),box-shadow .7s var(--ease)}
+.nav-pill:hover{transform:translateY(-1px);box-shadow:0 24px 56px -22px rgba(4,12,26,.78),inset 0 1px 0 rgba(255,255,255,.14)}
+.nav-brand{color:#fff;font-weight:700;letter-spacing:-.015em;font-size:15px;margin-right:14px;
+  padding:6px 2px;border-radius:8px;transition:opacity .5s var(--ease)}
+.nav-brand:hover{opacity:.72}
+.nav-links{display:flex;gap:2px}
+.nav-links a{color:rgba(255,255,255,.72);font-size:13.5px;padding:9px 14px;border-radius:9999px;
+  transition:color .5s var(--ease),background .5s var(--ease)}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.10)}
+.nav-cta{display:inline-flex;align-items:center;gap:9px;height:38px;padding:0 6px 0 17px;border-radius:9999px;
+  background:#fff;color:var(--ink);font-size:13.5px;font-weight:650;margin-left:8px;
+  transition:transform .6s var(--ease)}
+.nav-cta:active{transform:scale(.97)}
+.nav-cta i{width:26px;height:26px;border-radius:9999px;background:rgba(10,14,20,.07);display:grid;place-items:center;
+  font-style:normal;font-size:12px;transition:transform .6s var(--ease),background .6s var(--ease)}
+.nav-cta:hover i{transform:translate(2px,-1px) scale(1.06);background:rgba(10,14,20,.12)}
+@media(max-width:880px){.nav-links{display:none}}
 
-    html { scroll-behavior: smooth; overflow-x: hidden; -webkit-text-size-adjust:100%; }
-    body {
-      position: relative;
-      font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',system-ui,sans-serif;
-      background: #fff;
-      color: var(--ink);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-      word-break: keep-all;
-      overflow-wrap: anywhere;
-    }
-    /* Page-wide background presence: layered sky glows + faint dot grid, fixed
-       so transparent sections reveal depth as you scroll. */
-    body::before {
-      content:""; position:fixed; inset:0; z-index:-2; pointer-events:none;
-      background:
-        radial-gradient(55% 45% at 84% 4%, rgba(56,189,248,.20), transparent 60%),
-        radial-gradient(48% 42% at 8% 34%, rgba(125,211,252,.20), transparent 62%),
-        radial-gradient(60% 45% at 92% 62%, rgba(186,230,253,.28), transparent 60%),
-        radial-gradient(80% 55% at 48% 106%, rgba(56,189,248,.20), transparent 60%),
-        #ffffff;
-    }
-    body::after {
-      content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
-      background-image: radial-gradient(circle, rgba(14,116,180,.09) 1px, transparent 1.5px);
-      background-size: 30px 30px;
-      -webkit-mask-image: radial-gradient(130% 100% at 50% 40%, #000 55%, transparent 88%);
-      mask-image: radial-gradient(130% 100% at 50% 40%, #000 55%, transparent 88%);
-    }
-    a { color: inherit; text-decoration: none; }
-    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
-    img, video { max-width: 100%; display: block; }
-    ::selection { background: var(--sky-200); color: var(--ink); }
+/* ── Hero ─────────────────────────────────────────── */
+.hero{position:relative;overflow:hidden;padding:196px 0 0;text-align:center}
+/* Hero sky. The gradient is the photograph's own measured band averages, so it
+   stands in with the right colour while the file loads instead of flashing a
+   different hue. The image fades out at the bottom into --paper, which is what
+   the drawn SVG this replaced used to do with a gradient stop. */
+.hero-sky{position:absolute;top:0;left:0;width:100%;height:1400px;z-index:0;overflow:hidden;
+  background:linear-gradient(180deg,#f3f3ec 0%,#ede8e5 22%,#ecd5cd 40%,
+    #e5c7c2 58%,#d7c1c6 74%,#cdc1cc 88%,#cdc1cc 100%);
+  /* The mask has to sit on the picture, not on the img. It was on the img alone,
+     so the placeholder gradient underneath stayed at full strength and cut off
+     square at the element's edge — that hard line was the background, not the
+     photograph. Masking the container fades both together. */
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);
+          mask-image:linear-gradient(180deg,#000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%)}
+.hero-sky img{width:100%;height:100%;object-fit:cover;object-position:center 42%;display:block}
+.wrap{position:relative;z-index:3;max-width:1180px;margin:0 auto;padding:0 24px}
 
-    .serif { font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Times New Roman',serif; }
-    .mono {
-      font-family: ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;
-      font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
-    }
-    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
-    .container.narrow { max-width: var(--max-w-narrow); }
+.eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 8px 7px 15px;border-radius:9999px;
+  background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.85);
+  box-shadow:0 8px 26px -14px rgba(10,50,90,.5);
+  font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#0b5f8a;
+  backdrop-filter:blur(12px)}
+.eyebrow b{font-weight:700;letter-spacing:0;text-transform:none;font-size:12.5px;color:var(--ink);
+  background:#fff;padding:3px 10px;border-radius:9999px}
 
-    /* ── Reveal on scroll (scale-in / zoom feel) ── */
-    .reveal { opacity: 0; transform: translateY(30px) scale(.955); transition: opacity .85s var(--ease), transform .85s var(--ease); will-change: opacity, transform; }
-    .reveal.in { opacity: 1; transform: none; }
-    /* stronger pop for hero-anchor blocks (product window, flow, big cards) */
-    .reveal-pop { opacity: 0; transform: translateY(46px) scale(.9); transition: opacity 1s var(--ease), transform 1s var(--ease); will-change: opacity, transform; }
-    .reveal-pop.in { opacity: 1; transform: none; }
-    /* staggered children — each row/card eases in after its parent */
-    .stagger > * { opacity: 0; transform: translateY(24px) scale(.96); transition: opacity .7s var(--ease), transform .7s var(--ease); }
-    .stagger.in > * { opacity: 1; transform: none; }
-    .stagger.in > *:nth-child(2){ transition-delay:.08s } .stagger.in > *:nth-child(3){ transition-delay:.16s }
-    .stagger.in > *:nth-child(4){ transition-delay:.24s } .stagger.in > *:nth-child(5){ transition-delay:.32s }
-    @media (prefers-reduced-motion: reduce) {
-      .reveal, .reveal-pop, .stagger > * { opacity: 1 !important; transform: none !important; transition: none !important; }
-      .product .win { transform: none !important; }
-    }
+h1{font-size:clamp(46px,7.2vw,88px);line-height:.98;letter-spacing:-.042em;font-weight:700;margin:26px 0 20px}
+/* Measured against the photograph's bands: --sky-600 lands at 2.69:1, under the
+   3:1 floor for large text. This shade clears it (3.23:1) and still reads as the
+   same accent; the paper sections keep --sky-600 unchanged. */
+h1 .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;
+  color:#0277b3;padding-right:.06em}
+.lead{font-size:19px;color:var(--ink-2);max-width:600px;margin:0 auto 34px}
+/* The serif accent is a Latin display face. Korean has no glyphs in it, so the
+   browser substitutes whatever Hangul serif it finds — on macOS a cursive one
+   that reads as a different, wrong voice next to the sans headline. Give Hangul
+   an explicit Myeongjo stack and drop the italic, which Hangul does not have. */
+/* Hangul has no spaces inside a word but CSS will happily break between any two
+   syllables, so "당신에게" wraps as "당신에 / 게". keep-all breaks on spaces only. */
+html[lang=ko] body{word-break:keep-all;overflow-wrap:break-word}
+html[lang=ko] h1 .ser,
+html[lang=ko] .stmt-h .ser,
+html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','AppleMyungjo',serif;
+  font-style:normal;font-weight:600;padding-right:0}
 
-    /* ── Buttons (pill) ────────────────────────── */
-    .btn {
-      display:inline-flex; align-items:center; justify-content:center; gap:9px;
-      height:52px; padding:0 28px; border-radius:9999px;
-      font-size:15px; font-weight:600; white-space:nowrap;
-      transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease);
-    }
-    .btn-primary { background: var(--ink); color:#fff; }
-    .btn-primary:hover { background: var(--sky-600); transform: translateY(-1px); box-shadow:0 10px 26px -12px rgba(2,132,199,.6); }
-    .btn-ghost { background: rgba(255,255,255,.7); border:1px solid var(--line-strong); color: var(--ink); }
-    .btn-ghost:hover { border-color: var(--sky-300); background:#fff; color: var(--sky-700); }
-    .btn-sky { background: var(--sky-500); color:#fff; }
-    .btn-sky:hover { background: var(--sky-600); transform: translateY(-1px); }
-    .btn .star-count { padding:2px 9px; border-radius:9999px; background:rgba(10,14,20,.06); font-size:12px; font-weight:700; color: var(--sky-700); }
-    .btn .star-count:empty { display:none; }
-    .btn svg { flex-shrink:0; }
+.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;height:54px;padding:0 8px 0 26px;border-radius:9999px;
+  font-size:15px;font-weight:650;transition:transform .6s var(--ease),box-shadow .6s var(--ease)}
+.btn:active{transform:scale(.98)}
+.btn i{width:34px;height:34px;border-radius:9999px;display:grid;place-items:center;font-style:normal;font-size:14px;
+  transition:transform .6s var(--ease),background .6s var(--ease)}
+.btn-1{background:var(--ink);color:#fff;box-shadow:0 20px 44px -22px rgba(10,14,20,.85)}
+.btn-1 i{background:rgba(255,255,255,.14)}
+.btn-1:hover{box-shadow:0 26px 54px -22px rgba(10,14,20,.9)}
+.btn-1:hover i{transform:translate(3px,-2px) scale(1.07);background:rgba(255,255,255,.22)}
+.btn-2{background:rgba(255,255,255,.78);color:var(--ink);border:1px solid rgba(255,255,255,.9);padding-right:26px;
+  backdrop-filter:blur(12px);box-shadow:0 10px 30px -18px rgba(10,50,90,.5)}
+.btn-2:hover{background:#fff}
+.btn-dl{padding-left:22px}
+.btn-dl svg{width:17px;height:17px;transition:transform .6s var(--ease)}
+.btn-dl:hover svg{transform:translateY(2px)}
+/* Two platform cards instead of one Download button. Both render without JS —
+   OS detection only promotes the matching one, so a Windows visitor with
+   scripting off still sees their entry rather than a Mac-only page. */
+.dl-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:20px auto 0;max-width:660px}
+.dl{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 18px 12px 15px;border-radius:16px;
+  background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 10px 30px -18px rgba(10,50,90,.5);backdrop-filter:blur(12px);
+  transition:transform .6s var(--ease),box-shadow .6s var(--ease),background .6s var(--ease)}
+.dl:hover{background:#fff;transform:translateY(-2px);box-shadow:0 18px 40px -20px rgba(10,50,90,.55)}
+.dl:active{transform:scale(.985)}
+.dl svg{width:22px;height:22px;flex:0 0 22px;color:var(--ink-2)}
+.dl .t{display:block}
+.dl b{display:block;font-size:14px;font-weight:650;letter-spacing:-.01em;color:var(--ink)}
+.dl .t span{display:block;font-size:11.5px;color:var(--ink-3);margin-top:1px}
+.dl.is-yours{background:var(--ink);border-color:var(--ink);box-shadow:0 20px 44px -22px rgba(10,14,20,.85)}
+.dl.is-yours b{color:#fff}
+.dl.is-yours .t span{color:rgba(255,255,255,.66)}
+.dl.is-yours svg{color:#fff}
+.dl.is-yours:hover{background:#11161f}
+/* --ink-3 measured 2.75-4.28:1 against the photograph's bands — under the 4.5
+   AA floor for body-size text. --ink-2 clears it everywhere (5.89-9.18:1). */
+.actions-note{max-width:560px;margin:18px auto 0;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+/* 12.5px on the photograph needs 4.5:1; #0b5f8a gives 3.44:1 there. */
+.actions-note a{color:#084869;font-weight:600;border-bottom:1px solid rgba(8,72,105,.32)}
+.actions-note a:hover{border-bottom-color:#084869}
 
-    /* ── Floating glass pill nav ───────────────── */
-    .nav { position:fixed; top:16px; left:0; right:0; z-index:60; display:flex; justify-content:center; padding:0 16px; pointer-events:none; }
-    .nav-pill {
-      pointer-events:auto; display:flex; align-items:center; gap:4px;
-      padding:8px 8px 8px 14px; border-radius:9999px;
-      background:rgba(255,255,255,.72); backdrop-filter:blur(18px) saturate(1.4); -webkit-backdrop-filter:blur(18px) saturate(1.4);
-      border:1px solid rgba(255,255,255,.6);
-      box-shadow:0 8px 30px -12px rgba(10,50,90,.28), 0 1px 0 rgba(255,255,255,.7) inset;
-      max-width:100%;
-    }
-    .nav-brand { display:flex; align-items:center; gap:9px; padding-right:6px; font-weight:700; letter-spacing:-.01em; font-size:16px; }
-    .nav-mark { width:26px; height:26px; border-radius:7px; box-shadow:0 1px 3px rgba(10,20,40,.18); }
-    .nav-links { display:flex; align-items:center; gap:2px; margin:0 4px; }
-    .nav-links a { padding:8px 14px; border-radius:9999px; font-size:14px; font-weight:500; color: var(--ink-soft); transition:.18s var(--ease); }
-    .nav-links a:hover { background:rgba(10,14,20,.05); color: var(--ink); }
-    .nav-cta { display:inline-flex; align-items:center; gap:7px; height:40px; padding:0 18px; border-radius:9999px; background: var(--ink); color:#fff; font-size:14px; font-weight:600; transition:.18s var(--ease); }
-    .nav-cta:hover { background: var(--sky-600); }
-    @media (max-width:900px){ .nav-links { display:none; } }
+/* ── The real app, floating ───────────────────────── */
+/* 56px sat the replica right under the sorting demo — two dense panels with no
+   air between them. */
+.stage{position:relative;z-index:3;margin:120px auto 0;max-width:1160px;padding:0 24px 96px}
+/* Caption above the frame. Below it the stage fade washes it out, and this one
+   has to stay readable — it is the honesty label on a fake inbox. */
+.stage-cap{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;
+  margin:0 0 14px;font-size:12.5px;color:var(--ink-2)}
+.stage-cap b{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--sky-ink);
+  border-radius:999px;padding:4px 10px}
+.stage-cap b::before{content:'';width:5px;height:5px;border-radius:50%;background:#fff}
+.shell{position:relative;border-radius:30px;padding:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(255,255,255,.34));
+  border:1px solid rgba(255,255,255,.8);
+  /* Was 0.55 alpha of a navy at 130px blur — over the pale sky that pooled
+     under the panel as a grey smudge rather than reading as lift. Lighter,
+     tighter, and tinted to the background it falls on. */
+  box-shadow:0 34px 70px -34px rgba(90,80,96,.20),0 10px 26px -18px rgba(90,80,96,.16);
+  backdrop-filter:blur(10px)}
+.core{border-radius:22px;overflow:hidden;background:#fff;border:1px solid var(--line);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9)}
+.core img{display:block;width:100%;height:auto}
 
-    /* ── Hero ──────────────────────────────────── */
-    .hero { position:relative; overflow:hidden; padding-top:150px; padding-bottom:80px; }
-    /* Full-bleed illustrated sky scene (self-contained SVG, animated drift) */
-    .hero-scene { position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; }
-    .hero-scene .drift { will-change: transform; }
-    .drift-far  { animation: drift 68s ease-in-out infinite alternate; }
-    .drift-mid  { animation: drift 46s ease-in-out infinite alternate; }
-    .drift-near { animation: drift 34s ease-in-out infinite alternate; }
-    @keyframes drift { from { transform: translateX(-26px); } to { transform: translateX(26px); } }
-    /* soft white veil so the headline stays legible over the sky */
-    .hero-veil { position:absolute; inset:0; z-index:1; pointer-events:none;
-      background: linear-gradient(180deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,.08) 24%, rgba(255,255,255,.34) 62%, #fff 100%); }
-    @media (prefers-reduced-motion: reduce) { .hero-scene .drift { animation: none; } }
+/* Floating signal cards pinned to the app (ref: Screenote) */
+.chip{position:absolute;z-index:5;display:flex;gap:11px;align-items:flex-start;width:238px;padding:13px 15px;
+  border-radius:17px;background:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.94);
+  box-shadow:0 26px 54px -26px rgba(8,42,80,.5);backdrop-filter:blur(16px) saturate(1.3);
+  text-align:left;animation:float 7s var(--ease) infinite alternate}
+.chip .d{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:0 0 8px}
+.chip h4{margin:0;font-size:13px;font-weight:650;letter-spacing:-.01em}
+.chip p{margin:2px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-3)}
+.chip-a{left:-14px;top:120px;animation-delay:-1.4s}
+.chip-b{right:-18px;top:238px;animation-delay:-3.2s}
+.chip-c{left:34px;bottom:150px;animation-delay:-5s}
+@keyframes float{from{transform:translateY(-7px)}to{transform:translateY(7px)}}
+@media(max-width:1080px){.chip{display:none}}
 
-    .hero-inner { position:relative; z-index:2; text-align:center; max-width:880px; margin:0 auto; }
-    .hero-eyebrow {
-      display:inline-flex; align-items:center; gap:8px; padding:6px 15px; border-radius:9999px;
-      background:rgba(255,255,255,.72); border:1px solid var(--sky-200); color: var(--sky-700);
-      font-size:12.5px; font-weight:600; margin-bottom:26px; box-shadow:0 2px 12px -4px rgba(14,165,233,.28);
-    }
-    .hero-eyebrow:hover { color: var(--sky-700); }
-    .hero-eyebrow .dot { width:7px; height:7px; border-radius:50%; background: var(--sky-500); box-shadow:0 0 0 3px rgba(14,165,233,.2); }
-    h1.hero-h { font-size:clamp(42px,6.8vw,80px); line-height:1.0; letter-spacing:-.035em; font-weight:700; margin-bottom:22px; }
-    h1.hero-h .accent { position:relative; font-style:italic; font-weight:500; color: var(--sky-600); }
-    h1.hero-h .accent::before {
-      content:""; position:absolute; left:-8%; right:-8%; top:4%; bottom:2%; z-index:-1;
-      background: radial-gradient(58% 68% at 50% 55%, rgba(56,189,248,.38), transparent 72%);
-      filter: blur(7px);
-    }
-    .hero-lead { font-size:clamp(17px,2vw,21px); color: var(--ink-mute); max-width:620px; margin:0 auto 20px; line-height:1.55; }
+/* ── Cards ────────────────────────────────────────── */
+.sec{position:relative;z-index:1;padding:104px 0 28px}
+.sec-head{max-width:1180px;margin:0 auto 40px;padding:0 24px;display:flex;gap:48px;align-items:flex-end;flex-wrap:wrap}
+.sec-head h2{flex:1 1 420px;margin:0;font-size:clamp(32px,4.2vw,52px);line-height:1.04;letter-spacing:-.035em;font-weight:700}
+.sec-head p{flex:1 1 300px;margin:0;color:var(--ink-2);font-size:16px;max-width:420px}
+.tag{display:inline-block;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:600;margin-bottom:18px}
 
-    /* compact invite-only pill */
-    .hero-invite {
-      display:inline-flex; align-items:center; gap:10px; max-width:100%;
-      margin:0 auto 28px; padding:9px 16px; border-radius:9999px;
-      background:rgba(255,255,255,.7); border:1px solid var(--sky-200);
-      box-shadow:0 6px 22px -12px rgba(2,132,199,.4); color:var(--ink-soft);
-      font-size:13.5px; line-height:1.35; transition:.18s var(--ease); text-align:left;
-    }
-    .hero-invite:hover { border-color:var(--sky-300); background:#fff; }
-    .hero-invite svg { width:15px; height:15px; color:var(--sky-600); flex-shrink:0; }
-    .hero-invite b { color:var(--sky-700); font-weight:700; }
-    .hero-invite-arrow { color:var(--sky-700); font-weight:600; white-space:nowrap; flex-shrink:0; }
-    @media (max-width:640px){ .hero-invite { flex-wrap:wrap; border-radius:16px; justify-content:center; text-align:center; } }
+/* The four screenshots have ratios from 1.63 to 0.52, so forcing the cards to a
+   shared height opens a void under whichever one is shorter. Each card ends
+   where its own content ends instead. */
+.cards{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(12,1fr);
+  gap:18px;align-items:start}
+.card{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line);
+  transition:transform .8s var(--ease),box-shadow .8s var(--ease)}
+.card:hover{transform:translateY(-5px);box-shadow:0 40px 80px -46px rgba(8,42,80,.5)}
+.card-in{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line);height:100%;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9);display:flex;flex-direction:column}
+/* Product tour. Four surfaces, one frame, switched by tabs.
+   A grid of screenshots cannot be made tidy here: the four have ratios from 1.79
+   to 0.84, so a shared row height opens voids and a natural height leaves ragged
+   bottoms. One frame removes the problem instead of balancing it — and the tabs
+   are the interaction the page was missing below the fold.
+   Every shot is rendered at the same 520x330pt, so the frame never letterboxes. */
+.tour{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:352px 1fr;gap:28px;align-items:start}
+.tour-nav{display:grid;gap:8px;align-content:start}
+.tour-t{display:grid;gap:3px;text-align:left;padding:15px 17px;border-radius:15px;border:1px solid transparent;
+  background:transparent;font:inherit;color:var(--ink);cursor:pointer;
+  transition:background .5s var(--ease),border-color .5s var(--ease),transform .5s var(--ease)}
+.tour-t:hover{background:rgba(255,255,255,.55)}
+.tour-t b{font-size:15.5px;font-weight:650;letter-spacing:-.015em}
+.tour-t span{font-size:13px;color:var(--ink-3);line-height:1.5}
+.tour-t[aria-selected=true]{background:#fff;border-color:var(--line);
+  box-shadow:0 18px 40px -28px rgba(10,50,90,.42)}
+.tour-t[aria-selected=true] span{color:var(--ink-2)}
+.tour-stage{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.tour-panel{border-radius:19px;overflow:hidden;background:#fff;border:1px solid var(--line)}
+.tour-panel img{display:block;width:100%;height:auto;aspect-ratio:1040/660;object-fit:cover}
+/* Opt-IN single-panel mode: without JS every panel stays in the document, so the
+   section degrades to a plain stack instead of one visible tab. */
+.js .tour-panel[hidden]{display:none}
+.js .tour-panel+.tour-panel{margin-top:0}
+.tour-panel+.tour-panel{margin-top:10px}
+@media(max-width:900px){
+  .tour{grid-template-columns:1fr;gap:18px}
+  .tour-nav{grid-template-columns:repeat(2,1fr);gap:8px}
+}
+@media(max-width:900px){.c8,.c4,.c6{grid-column:span 12}}
 
-    .hero-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-    .hero-secondary { margin-top:16px; font-size:14px; }
-    .hero-secondary a { color: var(--sky-700); font-weight:600; }
-    .hero-secondary a:hover { text-decoration:underline; }
 
-    .hero-badges { margin-top:22px; display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
-    .hero-badge { display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border:1px solid var(--line); border-radius:9999px; background:rgba(255,255,255,.6); font-size:12.5px; font-weight:500; color: var(--ink-soft); }
-    .hero-badge .dot { width:6px; height:6px; border-radius:50%; background: var(--sky-500); }
+/* ── Shared section furniture ─────────────────────── */
+.wrapl{max-width:1180px;margin:0 auto;padding:0 24px}
+/* Sections separate by tone, never by a rule drawn across the page. The wash
+   is a masked pseudo-element so its top and bottom edges dissolve instead of
+   landing as a hairline. */
+/* A third pass of the same sky, hazed right back, so the middle of the page has
+   weather in it too instead of flat tone. Same cached file as the hero — no
+   extra request — cropped elsewhere in the frame and not mirrored, so it reads
+   as a different part of the sky rather than a repeat of the closing band. */
+.sec-sky{position:absolute;inset:0;z-index:-1;pointer-events:none;display:block}
+.sec-sky img{width:100%;height:100%;object-fit:cover;object-position:center 12%;display:block;
+  opacity:.55;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 30%,#000 70%,transparent 100%)}
+.band::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:rgba(238,236,227,.62);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 86%,transparent 100%)}
+.sec.band{padding-block:96px}
 
-    /* ── Floating product window (the brief) ───── */
-    .product { position:relative; z-index:2; margin:52px auto 0; max-width:940px; }
-    .product::before {
-      content:""; position:absolute; left:4%; right:4%; top:8%; bottom:-6%; z-index:0; pointer-events:none;
-      background: radial-gradient(58% 62% at 50% 42%, rgba(56,189,248,.34), rgba(125,211,252,.12) 55%, transparent 72%);
-      filter: blur(44px);
-    }
-    .win { position:relative; z-index:1; border-radius:18px; overflow:hidden; background:#fff; border:1px solid var(--line);
-      box-shadow:0 44px 90px -34px rgba(12,60,110,.36), 0 10px 28px -14px rgba(12,40,80,.2); }
-    .win-bar { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); background:linear-gradient(#fff,#fbfdff); }
-    .win-dot { width:11px; height:11px; border-radius:50%; }
-    .win-dot.r{background:#ff5f57}.win-dot.y{background:#febc2e}.win-dot.g{background:#28c840}
-    .win-title { margin-left:8px; font-size:12px; color: var(--ink-mute); font-weight:500; }
-    .brief { display:grid; grid-template-columns:210px 1fr; }
-    .brief-side { border-right:1px solid var(--line); padding:16px 12px; background:#fbfdff; }
-    .brief-who { display:flex; align-items:center; gap:9px; padding:6px 8px; margin-bottom:14px; }
-    .avatar { width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,var(--sky-400),var(--sky-600)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
-    .brief-who .nm { font-size:13px; font-weight:650; }
-    .brief-who .em { font-size:11px; color: var(--ink-mute); }
-    .brief-item { display:flex; align-items:center; gap:10px; padding:8px 11px; border-radius:9px; font-size:13px; color: var(--ink-soft); font-weight:500; }
-    .brief-item .g { width:14px; text-align:center; opacity:.75; }
-    .brief-item.on { background: var(--sky-50); color: var(--sky-700); }
-    .brief-main { padding:22px 26px; }
-    .brief-greet { font-size:19px; font-weight:650; letter-spacing:-.01em; margin-bottom:3px; }
-    .brief-greet .serif { font-style:italic; font-weight:500; }
-    .brief-sub { font-size:12.5px; color: var(--ink-mute); margin-bottom:20px; }
-    .tier { margin-bottom:18px; }
-    .tier-label { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px; }
-    .tier-label .pip { width:8px; height:8px; border-radius:50%; }
-    .tier.push .pip{background:var(--sky-500)} .tier.push .tier-label{color:var(--sky-700)}
-    .tier.queue .pip{background:var(--slate-400)} .tier.queue .tier-label{color:var(--slate-500)}
-    .brow { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:11px; border:1px solid transparent; transition:.15s var(--ease); }
-    .brow:hover { background: var(--sky-50); border-color: var(--sky-100); }
-    .brow .txt { flex:1; font-size:13.5px; color: var(--ink); }
-    .brow .txt .from { color: var(--ink-mute); font-size:12px; }
-    .brow .chip { font-size:11px; font-weight:600; color: var(--sky-700); background: var(--sky-50); border:1px solid var(--sky-100); padding:3px 10px; border-radius:9999px; white-space:nowrap; }
-    .brow .check { width:18px; height:18px; border-radius:50%; border:1.5px solid var(--line-strong); flex-shrink:0; }
-    @media (max-width:640px){ .brief { grid-template-columns:1fr; } .brief-side { display:none; } }
+.stmt{max-width:780px}
+.stmt-h{font-size:clamp(30px,4.4vw,54px);line-height:1.06;letter-spacing:-.035em;font-weight:700;margin:0 0 22px}
+.stmt-h .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:var(--sky-ink)}
+.stmt-p{font-size:18px;color:var(--ink-2);margin:0 0 30px;max-width:640px}
+.pips{display:flex;gap:10px;flex-wrap:wrap}
+.pip{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:9999px;background:#fff;
+  border:1px solid var(--line);font-size:13px;font-weight:550;color:var(--ink-2)}
+.pip i{width:6px;height:6px;border-radius:50%;background:var(--sky-600)}
 
-    /* ── Trust / stat strip ────────────────────── */
-    .trust { position:relative; z-index:2; margin-top:56px; text-align:center; }
-    .trust > p { font-size:11px; letter-spacing:.16em; text-transform:uppercase; color: var(--ink-mute); margin-bottom:20px; }
-    .trust-row { display:flex; gap:40px; justify-content:center; flex-wrap:wrap; }
-    .stat { display:inline-flex; flex-direction:column; align-items:center; }
-    .stat b { font-size:34px; letter-spacing:-.03em; line-height:1; font-weight:760;
-      background:linear-gradient(180deg,var(--sky-500),var(--sky-700)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-    .stat small { margin-top:8px; font-size:10.5px; color: var(--ink-mute); text-transform:uppercase; letter-spacing:.1em; }
+.steps{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.step{border-radius:26px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.step>*{margin:0}
+.step .sn{display:block;font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--sky-ink);padding:22px 24px 0}
+.step h3{font-size:20px;letter-spacing:-.02em;padding:10px 24px 0}
+.step p{color:var(--ink-3);font-size:14px;padding:8px 24px 22px}
+@media(max-width:860px){.steps{grid-template-columns:1fr}}
 
-    /* ── Generic section ───────────────────────── */
-    .section { padding:96px 0; position:relative; }
-    .section-eyebrow { color: var(--sky-600); margin-bottom:16px; }
-    .section-h { font-size:clamp(28px,3.6vw,44px); line-height:1.08; letter-spacing:-.025em; font-weight:660; }
-    .section-lead { font-size:17px; color: var(--ink-mute); max-width:620px; margin-top:16px; line-height:1.55; }
-    .section-head-center { text-align:center; }
-    .section-head-center .section-lead { margin-left:auto; margin-right:auto; }
-    .section-bg-tint { background: linear-gradient(180deg,#fff, var(--sky-50) 50%, #fff); }
+/* Compatibility. Every comparable landing puts this somewhere a visitor reaches
+   before installing; without it the only mention of a mail provider on this page
+   was one word inside a pricing bullet. */
+.works{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:18px}
+.work{border-radius:20px;padding:22px 22px;background:#fff;border:1px solid var(--line);
+  display:grid;gap:5px;align-content:start}
+.work b{font-size:15px;font-weight:650;letter-spacing:-.015em}
+.work span{font-size:13px;color:var(--ink-3);line-height:1.5}
+.works-note{max-width:1180px;margin:20px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
+.works-note b{color:var(--ink-2);font-weight:650}
+@media(max-width:900px){.works{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.works{grid-template-columns:1fr}}
 
-    /* ── Full-bleed statement band (poster rhythm break) ── */
-    .statement { position:relative; overflow:hidden; padding:130px 0; text-align:center;
-      background: linear-gradient(155deg, var(--sky-500) 0%, var(--sky-700) 55%, #075985 100%); color:#fff; }
-    .statement::before { content:""; position:absolute; inset:0; pointer-events:none;
-      background: radial-gradient(120% 90% at 18% -10%, rgba(255,255,255,.28), transparent 55%),
-                  radial-gradient(90% 70% at 100% 120%, rgba(3,105,161,.6), transparent 60%); }
-    .statement .container { position:relative; z-index:1; }
-    .statement-eyebrow { color: var(--sky-200); margin-bottom:20px; }
-    .statement-h { font-size:clamp(30px,4.8vw,56px); line-height:1.08; letter-spacing:-.025em; font-weight:640; }
-    .statement-h .serif { font-style:italic; font-weight:500; color: var(--sky-200); }
-    .statement-sub { margin:22px auto 0; max-width:540px; color:rgba(255,255,255,.82); font-size:clamp(16px,1.7vw,19px); line-height:1.55; }
-    .statement-tags { margin-top:30px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-    .statement-tag { display:inline-flex; align-items:center; gap:7px; padding:7px 15px; border-radius:9999px;
-      background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22); font-size:13px; font-weight:600; color:#fff; }
-    .statement-tag .pip { width:7px; height:7px; border-radius:50%; background:var(--sky-200); }
+/* Questions a beta actually gets asked, as a native <details> accordion: three
+   of the four landings measured against use one here, and it works with no
+   script at all — the disclosure, the keyboard and the focus ring are the
+   browser's. Six open answers made this the longest section on the page. */
+.faq{max-width:820px;margin:0 auto;padding:0 24px;display:grid;gap:0}
+.faq-i{border-top:1px solid var(--line)}
+.faq-i:last-child{border-bottom:1px solid var(--line)}
+.faq-i summary{list-style:none;cursor:pointer;display:flex;align-items:flex-start;gap:16px;
+  padding:20px 2px;font-size:16.5px;font-weight:650;letter-spacing:-.015em;
+  transition:color .4s var(--ease)}
+.faq-i summary::-webkit-details-marker{display:none}
+.faq-i summary:hover{color:var(--sky-ink)}
+.faq-i summary::after{content:"+";margin-left:auto;font-size:20px;font-weight:400;line-height:1;
+  color:var(--ink-3);transition:transform .5s var(--ease);flex:0 0 auto}
+.faq-i[open] summary::after{transform:rotate(45deg)}
+.faq-i p{margin:0;padding:0 40px 22px 2px;font-size:14.5px;color:var(--ink-2);line-height:1.65}
+.faq-i a{color:var(--sky-ink);font-weight:600}
 
-    /* video frames */
-    .media-frame { margin-top:44px; border-radius:18px; overflow:hidden; border:1px solid var(--line); background:#000; box-shadow:0 40px 80px -34px rgba(12,60,110,.34); }
-    .media-frame video { width:100%; display:block; }
+.stats{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.stat{border-radius:26px;padding:26px 26px;background:#fff;border:1px solid var(--line);
+  box-shadow:0 22px 50px -38px rgba(8,42,80,.45)}
+.stat .sv{font-size:clamp(38px,4.6vw,54px);line-height:1;letter-spacing:-.04em;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .sl{margin-top:10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:650}
+.stat p{margin:12px 0 0;font-size:13.5px;color:var(--ink-3);line-height:1.55}
+@media(max-width:860px){.stats{grid-template-columns:1fr}}
+.foot{max-width:1180px;margin:34px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
+.foot a{color:var(--sky-ink);font-weight:600}
 
-    /* 4-tier legend */
-    .tier-legend { margin-top:36px; display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-    @media (max-width:820px){ .tier-legend { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:460px){ .tier-legend { grid-template-columns:1fr; } }
-    .legend-card { padding:20px; border:1px solid var(--line); border-radius:14px; background:#fff; }
-    .legend-card .lg-label { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:9px; }
-    .legend-card .lg-label .pip { width:9px; height:9px; border-radius:50%; }
-    .legend-card p { font-size:13.5px; color: var(--ink-mute); line-height:1.5; }
-    .lg-push .pip{background:var(--sky-500)} .lg-push .lg-label{color:var(--sky-700)}
-    .lg-queue .pip{background:var(--slate-400)} .lg-queue .lg-label{color:var(--slate-500)}
-    .lg-silent .pip{background:#cbd5e1} .lg-silent .lg-label{color:#94a3b8}
-    .lg-auto .pip{background:var(--sky-300)} .lg-auto .lg-label{color:var(--sky-600)}
+.os{border-radius:30px;padding:10px;background:rgba(10,14,20,.04);border:1px solid var(--line)}
+/* The right-hand column held four bullets the page had already made three times
+   over, so the card is a single column now: the claim and the two links. */
+.os-in{border-radius:22px;background:#fff;border:1px solid var(--line);padding:34px 38px;
+  display:grid;gap:0;align-items:start}
+.os-h{font-size:clamp(26px,3.2vw,40px);line-height:1.08;letter-spacing:-.03em;margin:0 0 16px;font-weight:700}
+.os-p{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:520px}
+.os-cta{display:flex;gap:12px;flex-wrap:wrap}
+/* Recently shipped. On the landings measured, developer-facing tools surface
+   shipping velocity on the page itself (linear, warp, cursor, resend, vercel);
+   for an AGPL project the release feed is the one trust signal that cannot be
+   faked. Hidden until the GitHub fetch succeeds, so a failure costs nothing —
+   the footer's Releases link already covers it. */
+.ship{margin-top:26px}
+.ship h3{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:700}
+.ship ol{list-style:none;margin:0 0 10px;padding:0;display:flex;gap:8px;flex-wrap:wrap}
+.ship li{display:inline-flex;align-items:baseline;gap:8px;padding:7px 12px;border-radius:9999px;
+  background:rgba(10,14,20,.045);font-size:12.5px}
+.ship li a{font-weight:650;color:var(--ink)}
+.ship li span{color:var(--ink-3);font-size:11.5px}
+.ship>a{font-size:12.5px;color:var(--sky-ink);font-weight:600}
+@media(max-width:900px){.os-in{grid-template-columns:1fr;gap:34px;padding:32px 26px}}
 
-    /* ── How-it-works product flow (replaces demo video) ── */
-    .flow { margin-top:44px; display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:14px; align-items:stretch; }
-    @media (max-width:860px){ .flow { grid-template-columns:1fr; gap:12px; } .flow-arrow { transform:rotate(90deg); justify-self:center; padding:2px 0; } }
-    .flow-card { border:1px solid var(--line); border-radius:16px; background:#fff; box-shadow:0 24px 54px -32px rgba(12,60,110,.3); overflow:hidden; display:flex; flex-direction:column; }
-    .fc-head { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line); background:#fbfdff; font-size:12.5px; font-weight:650; color:var(--ink-soft); }
-    .fc-step { display:flex; align-items:center; gap:8px; }
-    .fc-step .n { width:20px; height:20px; border-radius:50%; background:var(--sky-100); color:var(--sky-700); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; }
-    .fc-tag { font-size:11px; font-weight:600; padding:3px 9px; border-radius:9999px; background:var(--paper); color:var(--ink-mute); }
-    .fc-tag.sky { background:var(--sky-50); color:var(--sky-700); }
-    .fc-body { padding:14px 16px; flex:1; }
-    .flow-arrow { align-self:center; color:var(--sky-400); }
-    .flow-arrow svg { width:22px; height:22px; }
-    /* card 1 — inbox */
-    .fi-row { display:flex; align-items:center; gap:9px; padding:7px 0; font-size:12.5px; color:var(--ink); border-bottom:1px dashed var(--line); }
-    .fi-row:last-of-type { border-bottom:none; }
-    .fi-row.muted { color:var(--ink-mute); }
-    .fi-dot { width:6px; height:6px; border-radius:50%; background:var(--slate-400); flex-shrink:0; }
-    .fi-more { margin-top:8px; font-size:11.5px; color:var(--ink-mute); font-style:italic; }
-    /* card 2 — tiers */
-    .ft-row { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:9px; font-size:13px; font-weight:600; margin-bottom:6px; }
-    .ft-row .pip { width:9px; height:9px; border-radius:50%; }
-    .ft-row .ft-n { margin-left:auto; font-variant-numeric:tabular-nums; font-weight:700; }
-    .ft-row.push { background:var(--sky-50); color:var(--sky-700); } .ft-row.push .pip{background:var(--sky-500)}
-    .ft-row.queue { color:var(--slate-500); } .ft-row.queue .pip{background:var(--slate-400)}
-    .ft-row.silent { color:#94a3b8; } .ft-row.silent .pip{background:#cbd5e1}
-    .ft-row.auto { color:var(--sky-600); } .ft-row.auto .pip{background:var(--sky-300)}
-    /* card 3 — decision */
-    .fd-title { font-size:15px; font-weight:660; letter-spacing:-.01em; }
-    .fd-sub { font-size:12.5px; color:var(--ink-mute); margin:5px 0 16px; }
-    .fd-evidence { display:grid; gap:7px; margin-bottom:16px; }
-    .fd-ev { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-soft); }
-    .fd-ev svg { width:14px; height:14px; color:var(--sky-500); flex-shrink:0; }
-    .fd-actions { display:flex; gap:8px; }
-    .fd-approve { flex:1; text-align:center; padding:9px; border-radius:10px; background:var(--ink); color:#fff; font-size:13px; font-weight:600; }
-    .fd-edit { padding:9px 16px; border-radius:10px; border:1px solid var(--line-strong); color:var(--ink-soft); font-size:13px; font-weight:600; }
+.prices{max-width:1000px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.price{border-radius:28px;padding:8px;background:rgba(10,14,20,.035);border:1px solid var(--line)}
+.price.feat{background:var(--ink);border-color:var(--ink)}
+.price-in{border-radius:21px;background:#fff;border:1px solid var(--line);padding:28px 28px;height:100%;
+  display:flex;flex-direction:column}
+.chip-s{align-self:flex-start;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;
+  padding:6px 12px;border-radius:9999px;background:rgba(10,14,20,.06);color:var(--ink-2)}
+.chip-s.dark{background:var(--ink);color:#fff}
+.price h3{margin:16px 0 4px;font-size:19px;letter-spacing:-.02em}
+.amt{font-size:44px;letter-spacing:-.04em;font-weight:700;line-height:1.1}
+.amt span{font-size:15px;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.note{margin:8px 0 22px;font-size:13px;color:var(--ink-3)}
+.price ul{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:11px}
+.price li{position:relative;padding-left:24px;font-size:14px;color:var(--ink-2);line-height:1.5}
+.price li::before{content:"";position:absolute;left:2px;top:8px;width:9px;height:9px;border-radius:50%;
+  background:var(--sky-600);opacity:.85}
+.btn.full{width:100%;justify-content:center;margin-top:auto;padding-inline:26px}
+@media(max-width:820px){.prices{grid-template-columns:1fr}}
 
-    /* ── Live classifier ──────────────────────── */
-    .klassify-wrap { margin-top:44px; border:1px solid var(--line); border-radius:20px; overflow:hidden; background:#fff; box-shadow:0 40px 80px -40px rgba(12,60,110,.3); }
-    .klassify-titlebar { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--line); background:#fbfdff; }
-    .klassify-titlebar .dot { width:11px; height:11px; border-radius:50%; background:#dbe4ee; }
-    .klassify-titlebar .crumb { margin-left:8px; font-size:12px; color: var(--ink-mute); font-weight:500; }
-    .klassify-titlebar .hero-live { margin-left:auto; display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color: var(--sky-700); }
-    .klassify-titlebar .hero-live-dot { width:7px; height:7px; border-radius:50%; background: var(--sky-500); box-shadow:0 0 0 3px rgba(14,165,233,.2); }
-    .klassify { display:grid; grid-template-columns:1fr 1fr; }
-    @media (max-width:820px){ .klassify { grid-template-columns:1fr; } }
-    .klassify-input { padding:24px; border-right:1px solid var(--line); }
-    @media (max-width:820px){ .klassify-input { border-right:none; border-bottom:1px solid var(--line); } }
-    .klassify-eyebrow { color: var(--sky-600); margin-bottom:14px; }
-    .kf-field {
-      width:100%; height:44px; padding:0 14px; margin-bottom:10px;
-      border:1px solid var(--line-strong); border-radius:10px; background:#fff;
-      font-family:inherit; font-size:14px; color: var(--ink); transition:.15s var(--ease);
-    }
-    textarea.kf-field { height:76px; padding:12px 14px; resize:vertical; line-height:1.5; }
-    .kf-field:focus { outline:none; border-color: var(--sky-400); box-shadow:0 0 0 3px rgba(14,165,233,.15); }
-    .kf-field::placeholder { color:#9aa4b0; }
-    .klassify-keyrow { display:grid; grid-template-columns:130px 1fr; gap:10px; }
-    .klassify-keyrow .kf-field { margin-bottom:10px; }
-    .klassify-presets { display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 14px; }
-    .klassify-preset { padding:6px 12px; border:1px solid var(--line-strong); border-radius:9999px; background:#fff; font-size:12.5px; font-weight:500; color: var(--ink-soft); transition:.15s var(--ease); }
-    .klassify-preset:hover { border-color: var(--sky-300); color: var(--sky-700); background: var(--sky-50); }
-    .klassify-run { width:100%; height:48px; }
-    .klassify-run[disabled] { opacity:.6; cursor:default; }
-    .klassify-note { margin-top:12px; font-size:12px; color: var(--ink-mute); line-height:1.5; }
-    .klassify-note a { color: var(--sky-700); font-weight:600; }
-    .klassify-result { padding:24px; background:#fbfdff; }
-    .klassify-tier { display:flex; align-items:flex-start; gap:14px; }
-    .klassify-tier-badge {
-      flex-shrink:0; min-width:78px; text-align:center; padding:10px 14px; border-radius:12px;
-      font-size:13px; font-weight:700; letter-spacing:.08em; background:#eef3f8; color: var(--ink-soft);
-    }
-    .klassify-tier-badge[data-tier="PUSH"] { background: var(--sky-500); color:#fff; }
-    .klassify-tier-badge[data-tier="QUEUE"] { background: var(--sky-100); color: var(--sky-700); }
-    .klassify-tier-badge[data-tier="SILENT"] { background:#e2e8f0; color: var(--slate-500); }
-    .klassify-tier-badge[data-tier="AUTO"] { background: var(--sky-200); color: var(--sky-700); }
-    .klassify-tier-desc { font-size:13.5px; color: var(--ink-soft); line-height:1.5; padding-top:4px; }
-    .klassify-reason { margin-top:16px; font-size:13px; color: var(--ink-mute); line-height:1.55; font-style:italic; }
-    .klassify-error { color:#dc2626; font-weight:500; }
-    .klassify-features { margin-top:18px; display:grid; gap:10px; }
-    .klassify-feature { display:grid; grid-template-columns:88px 1fr 40px; align-items:center; gap:10px; }
-    .kf-label { font-size:11px; text-transform:capitalize; color: var(--ink-mute); letter-spacing:.02em; }
-    .kf-bar { height:6px; border-radius:9999px; background:#e6edf4; overflow:hidden; }
-    .kf-bar > span { display:block; height:100%; border-radius:9999px; background:linear-gradient(90deg,var(--sky-400),var(--sky-600)); }
-    .kf-val { font-size:12px; font-weight:600; color: var(--sky-700); text-align:right; font-variant-numeric:tabular-nums; }
+/* The closing section bookends the hero with the same sky. It reuses the hero's
+   file — mirrored and cropped to a different part of the frame — so it reads as
+   the same weather from another angle and costs no extra bytes: the browser
+   already has it. Lazy, because it sits far below the fold. */
+.final{position:relative;overflow:hidden;padding:112px 0 28px;text-align:center}
+.final-sky{position:absolute;inset:0;z-index:0;pointer-events:none;display:block}
+.final-sky img{width:100%;height:100%;object-fit:cover;object-position:center 78%;display:block;
+  transform:scaleX(-1);opacity:.82;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%);
+          mask-image:linear-gradient(180deg,transparent 0,#000 26%,#000 74%,transparent 100%)}
+.final>.wrapl{position:relative;z-index:1}
 
-    /* ── Stats / measured ──────────────────────── */
-    .stats-grid { margin-top:44px; display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
-    @media (max-width:820px){ .stats-grid { grid-template-columns:1fr; } }
-    .stat-tile { padding:28px; border:1px solid var(--line); border-radius:18px; background:#fff; }
-    .stat-tile.featured { background:linear-gradient(160deg,var(--sky-500),var(--sky-700)); border-color:transparent; color:#fff; box-shadow:0 24px 50px -24px rgba(2,132,199,.5); }
-    .stat-tile .big { font-size:44px; font-weight:700; letter-spacing:-.03em; line-height:1; }
-    .stat-tile .lab { margin-top:10px; font-size:14px; font-weight:650; }
-    .stat-tile .desc { margin-top:8px; font-size:13px; color: var(--ink-mute); line-height:1.5; }
-    .stat-tile.featured .desc { color:rgba(255,255,255,.85); }
-    .stats-foot { margin-top:22px; font-size:12.5px; color: var(--ink-mute); text-align:center; line-height:1.55; }
-    .stats-foot a { color: var(--sky-700); font-weight:600; }
+/* Scroll-linked sky pan. All three bands are the same photograph; panning each
+   one as it crosses the viewport makes them read as one sky being moved through
+   rather than three copies of a still. Transform only, so it composites on the
+   GPU and never triggers layout.
 
-    /* ── Decision card ─────────────────────────── */
-    .decision-grid { display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
-    @media (max-width:900px){ .decision-grid { grid-template-columns:1fr; gap:36px; } }
-    .decision-card { border:1px solid var(--line); border-radius:20px; background:#fff; padding:24px; box-shadow:0 30px 70px -34px rgba(12,60,110,.3); }
-    .dc-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
-    .dc-eyebrow { color: var(--sky-600); }
-    .approval-pill { font-size:12px; font-weight:600; padding:5px 12px; border-radius:9999px; background: var(--sky-50); color: var(--sky-700); border:1px solid var(--sky-200); transition:.2s var(--ease); }
-    .approval-pill.is-approved { background:#dcfce7; color:#15803d; border-color:#bbf7d0; }
-    .dc-title { font-size:20px; font-weight:660; letter-spacing:-.01em; margin:8px 0 18px; }
-    .dc-row { display:grid; grid-template-columns:78px 1fr; gap:14px; padding:14px 0; border-top:1px solid var(--line); }
-    .dc-row .k { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color: var(--sky-600); padding-top:2px; }
-    .dc-row .v { font-size:14px; color: var(--ink); }
-    .dc-row .v small { display:block; margin-top:3px; font-size:12.5px; color: var(--ink-mute); line-height:1.5; }
-    .decision-actions { display:flex; gap:10px; margin-top:20px; }
-    .act-btn { flex:1; height:44px; border-radius:11px; font-size:14px; font-weight:600; transition:.15s var(--ease); }
-    .act-btn.primary { background: var(--ink); color:#fff; }
-    .act-btn.primary:hover, .act-btn.primary.is-selected { background: var(--sky-600); }
-    .act-btn.ghost { border:1px solid var(--line-strong); color: var(--ink-soft); }
-    .act-btn.ghost:hover, .act-btn.ghost.is-selected { border-color: var(--sky-300); color: var(--sky-700); }
-    .act-btn.plain { color: var(--ink-mute); }
-    .act-btn.plain:hover, .act-btn.plain.is-selected { background: var(--paper); color: var(--ink); }
+   Progressive enhancement on purpose: scroll-driven animation is not universal
+   yet, and without it the images simply sit still — which is the design that
+   was measured. The taller img is scoped to the same guard so unsupported
+   browsers keep the crop that was verified. */
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:view()){
+    /* 124% left only 6px of cover at the end of the pan — one rounding away
+       from a sliver of background. 130% keeps ~5% of the container in hand. */
+    .hero-sky img,.sec-sky img,.final-sky img{height:130%}
+    .hero-sky img,.sec-sky img{animation:sky-pan linear both;
+      animation-timeline:view();animation-range:cover 0% cover 100%}
+    /* keeps the mirror: an animation on transform would otherwise drop it */
+    .final-sky img{animation:sky-pan-flip linear both;
+      animation-timeline:view();animation-range:cover 0% cover 100%}
+  }
+}
+@keyframes sky-pan{from{transform:translateY(0)}to{transform:translateY(-19%)}}
+@keyframes sky-pan-flip{from{transform:scaleX(-1) translateY(0)}
+                          to{transform:scaleX(-1) translateY(-19%)}}
+.final-h{font-size:clamp(34px,5.4vw,68px);line-height:1.02;letter-spacing:-.04em;font-weight:700;margin:0 0 18px}
+/* Now sits on the closing photograph too: --sky-600 measures 2.93:1 there,
+   under the 3:1 floor. Same shade as the hero accent. */
+.final-h .ser{font-family:'Instrument Serif','Iowan Old Style',Georgia,serif;font-style:italic;font-weight:400;color:#0277b3}
+.final-p{color:var(--ink-2);margin:0 auto 30px;max-width:520px}
+.final .actions{justify-content:center}
 
-    /* ── Pillars strip ─────────────────────────── */
-    .pillars { background: var(--sky-50); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
-    .pillars-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; }
-    @media (max-width:820px){ .pillars-grid { grid-template-columns:1fr; gap:22px; } }
-    .pillar .pn { font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color: var(--sky-600); margin-bottom:12px; }
-    .pillar h3 { font-size:19px; font-weight:640; letter-spacing:-.01em; margin-bottom:8px; }
-    .pillar p { font-size:14px; color: var(--ink-mute); line-height:1.55; }
+.foot-nav{position:relative;z-index:1;padding:56px 0 28px;margin-top:76px}
+.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px}
+.foot-brand{display:inline-block;font-size:19px;font-weight:700;letter-spacing:-.02em;
+  transition:opacity .5s var(--ease)}
+.foot-brand:hover{opacity:.6}
+.foot-note{margin:8px 0 0;font-size:13.5px;color:var(--ink-3);max-width:280px}
+.foot-nav h4{margin:0 0 14px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:650}
+.foot-nav nav a{display:block;font-size:14px;color:var(--ink-2);padding:5px 0;
+  transition:color .4s var(--ease)}
+.foot-nav nav a:hover{color:var(--ink)}
+.foot-base{display:flex;justify-content:space-between;align-items:center;margin-top:54px;padding-top:24px;
+  font-size:12.5px;color:var(--ink-3)}
+.langsw{display:inline-flex;gap:9px;align-items:center}
+.langsw a{font-weight:650}
+.langsw a[aria-current]{color:var(--ink)}
+.langsw i{opacity:.4;font-style:normal}
+@media(max-width:820px){.foot-grid{grid-template-columns:1fr 1fr;gap:30px}}
 
-    /* ── Principle steps ───────────────────────── */
-    .steps-grid { margin-top:44px; display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
-    @media (max-width:900px){ .steps-grid { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:520px){ .steps-grid { grid-template-columns:1fr; } }
-    .step { padding-top:20px; border-top:2px solid var(--sky-200); }
-    .step .num { font-size:12px; font-weight:700; color: var(--sky-600); letter-spacing:.08em; }
-    .step h3 { font-size:17px; font-weight:640; margin:8px 0 6px; }
-    .step p { font-size:13.5px; color: var(--ink-mute); line-height:1.5; }
+.proof{max-width:1180px;margin:26px auto 0;padding:0 24px;font-size:13.5px;color:var(--ink-3);max-width:720px}
+.proof a{color:var(--sky-ink);font-weight:600}
 
-    /* ── Pricing ───────────────────────────────── */
-    .pricing-grid { margin-top:44px; display:grid; grid-template-columns:1fr 1fr; gap:22px; max-width:840px; margin-left:auto; margin-right:auto; }
-    @media (max-width:760px){ .pricing-grid { grid-template-columns:1fr; } }
-    .price-card { border:1px solid var(--line); border-radius:20px; background:#fff; padding:30px; display:flex; flex-direction:column; }
-    .price-card.pro { border-color: var(--sky-300); box-shadow:0 30px 60px -30px rgba(2,132,199,.4); position:relative; }
-    .price-badge { align-self:flex-start; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:5px 11px; border-radius:9999px; background: var(--paper); color: var(--ink-soft); margin-bottom:14px; }
-    .price-card.pro .price-badge { background: var(--sky-500); color:#fff; }
-    .price-name { font-size:18px; font-weight:660; }
-    .price-amt { margin:12px 0 4px; font-size:40px; font-weight:720; letter-spacing:-.03em; }
-    .price-amt span { font-size:15px; font-weight:500; color: var(--ink-mute); letter-spacing:0; }
-    .price-note { font-size:12.5px; color: var(--ink-mute); margin-bottom:20px; line-height:1.5; }
-    .price-feats { list-style:none; display:grid; gap:11px; margin-bottom:24px; flex:1; }
-    .price-feats li { display:flex; gap:10px; font-size:13.5px; color: var(--ink-soft); line-height:1.45; }
-    .price-feats li svg { width:17px; height:17px; flex-shrink:0; color: var(--sky-500); margin-top:1px; }
-    .price-card .btn { width:100%; }
-    .pricing-foot { margin-top:22px; text-align:center; font-size:12.5px; color: var(--ink-mute); }
 
-    /* ── Final CTA ─────────────────────────────── */
-    .final-cta { padding:110px 0; text-align:center; position:relative; overflow:hidden; }
-    .final-cta .final-bg { position:absolute; inset:0; z-index:0; background:radial-gradient(120% 100% at 50% 120%, var(--sky-100), #fff 62%); }
-    .final-inner { position:relative; z-index:2; max-width:640px; margin:0 auto; }
-    .final-cta h2 { font-size:clamp(30px,4.4vw,50px); letter-spacing:-.03em; line-height:1.05; font-weight:680; }
-    .final-cta p { margin:18px auto 30px; font-size:17px; color: var(--ink-mute); max-width:480px; }
-    .final-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+/* ── Opinionated stance rows ──────────────────────── */
 
-    /* ── Footer ────────────────────────────────── */
-    footer { border-top:1px solid var(--line); padding:48px 0; background:#fbfdff; }
-    .footer-grid { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px; }
-    .footer-brand { display:flex; align-items:center; gap:11px; }
-    .footer-brand img { width:30px; height:30px; border-radius:8px; }
-    .footer-brand .fb-t { font-size:14px; color: var(--ink-soft); }
-    .footer-brand .fb-t b { color: var(--ink); font-weight:650; }
-    .footer-links { display:flex; align-items:center; gap:20px; font-size:13.5px; color: var(--ink-mute); }
-    .footer-links a { transition:.15s; }
-    .footer-links a:hover { color: var(--sky-700); }
-    .footer-social { display:flex; gap:14px; }
-    .footer-social a { color: var(--ink-mute); }
-    .footer-social a:hover { color: var(--sky-700); }
-    .footer-social svg { width:19px; height:19px; }
 
-    /* ── Floating download + language dock ─────── */
-    .dl-dock {
-      position:fixed; bottom:18px; left:50%; transform:translateX(-50%); z-index:55;
-      display:flex; align-items:center; gap:6px; padding:7px 8px 7px 10px; border-radius:9999px;
-      background:rgba(255,255,255,.82); backdrop-filter:blur(16px) saturate(1.4); -webkit-backdrop-filter:blur(16px) saturate(1.4);
-      border:1px solid rgba(255,255,255,.65); box-shadow:0 10px 34px -14px rgba(10,50,90,.34);
-    }
-    .dl-dock-btn { display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px; border-radius:9999px; background: var(--ink); color:#fff; font-size:13.5px; font-weight:600; transition:.18s var(--ease); }
-    .dl-dock-btn:hover { background: var(--sky-600); }
-    .dl-dock-btn svg { width:16px; height:16px; }
-    .dl-dock-help { width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color: var(--ink-mute); border:1px solid var(--line-strong); transition:.15s; }
-    .dl-dock-help:hover { color: var(--sky-700); border-color: var(--sky-300); }
-    .dl-dock-lang { display:flex; align-items:center; gap:6px; padding:0 8px 0 4px; font-size:13px; font-weight:600; }
-    .dl-dock-cur { color: var(--ink); }
-    .dl-dock-sep { color: var(--line-strong); }
-    .dl-dock-lang a { color: var(--ink-mute); }
-    .dl-dock-lang a:hover { color: var(--sky-700); }
-    @media (max-width:520px){ .dl-dock-btn span.lbl { display:none; } }
 
-    /* mobile hero preview (shown < product on small) */
-    .mobile-preview { display:none; }
-  </style>
+
+.socials{display:flex;gap:8px;margin-top:18px}
+.socials a{width:36px;height:36px;border-radius:9999px;display:grid;place-items:center;
+  border:1px solid var(--line);background:#fff;color:var(--ink-2);
+  transition:transform .5s var(--ease),color .5s var(--ease),border-color .5s var(--ease)}
+.socials a:hover{transform:translateY(-2px);color:var(--ink);border-color:var(--line-strong,rgba(10,14,20,.2))}
+.socials svg{width:16px;height:16px}
+
+
+/* ── Side-by-side comparison ──────────────────────── */
+.vsgrid{max-width:1180px;margin:0 auto;padding:0 24px}
+.vshead{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:6px}
+.vscol{display:flex;align-items:center;gap:10px;padding:16px 22px;border-radius:16px 16px 0 0}
+.vscol.ours{background:var(--ink);color:#fff}
+.vscol.them{background:rgba(10,14,20,.05);color:var(--ink-3);border:1px solid var(--line);border-bottom:0}
+.vscol b{font-size:15px;font-weight:650;letter-spacing:-.015em}
+.vscol .mk{width:20px;height:20px;border-radius:9999px;display:grid;place-items:center;font-size:11px;font-weight:700}
+.vscol.ours .mk{background:rgba(255,255,255,.16);color:#fff}
+.vscol.them .mk{background:rgba(10,14,20,.08);color:var(--ink-3)}
+.vsrow{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:0 0 12px}
+.vscell{padding:20px 22px;border:1px solid var(--line);background:#fff}
+.vscell.ours{border-color:rgba(10,14,20,.16);box-shadow:0 18px 40px -34px rgba(8,42,80,.5)}
+.vscell.them{background:rgba(10,14,20,.02);color:var(--ink-3)}
+.vsrow:last-of-type .vscell{border-radius:0 0 16px 16px}
+.vscell .k{display:block;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
+  color:var(--ink-3);margin-bottom:8px}
+.vscell p{margin:0;font-size:14.5px;line-height:1.6}
+.vscell.ours p{color:var(--ink);font-weight:500}
+.vscell.ours p b{color:var(--sky-ink);font-weight:650}
+@media(max-width:820px){
+  .vshead{display:none}
+  .vsrow{grid-template-columns:1fr;gap:0;padding-bottom:18px}
+  .vscell{border-radius:16px!important;margin-bottom:8px}
+  .vscell::before{content:attr(data-who);display:block;font-size:10.5px;letter-spacing:.16em;
+    text-transform:uppercase;font-weight:700;color:var(--sky-ink);margin-bottom:8px}
+  .vscell.them::before{color:var(--ink-3)}
+}
+
+/* Language switch, in the nav where it belongs */
+.nav-lang{display:inline-flex;align-items:center;gap:1px;margin-left:8px;padding:3px;border-radius:9999px;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12)}
+.nav-lang a{font-size:11.5px;font-weight:650;letter-spacing:.04em;color:rgba(255,255,255,.66);
+  padding:5px 10px;border-radius:9999px;transition:color .4s var(--ease),background .4s var(--ease)}
+.nav-lang a:hover{color:#fff}
+.nav-lang a[aria-current]{background:#fff;color:var(--ink)}
+@media(max-width:880px){.nav-lang{margin-left:4px}}
+
+
+@media (max-height: 900px){
+  .hero{padding-top:150px}
+  h1{font-size:clamp(40px,5.4vw,62px)}
+  .lead{font-size:17px;margin-bottom:24px}
+  .eyebrow{margin-bottom:0}
+  .btn{height:48px}
+  .demo{margin-top:26px}
+  .stage{margin-top:40px}
+}
+@media (max-height: 760px){
+  .hero{padding-top:132px}
+  h1{font-size:clamp(36px,4.6vw,52px);margin:18px 0 14px}
+  .lead{font-size:16px;margin-bottom:20px}
+  .demo-stage{height:44px}
+  .bk .v{font-size:22px}
+}
+
+/* ── Live sort: the product, demonstrated before it is described ── */
+.demo{position:relative;z-index:3;max-width:960px;margin:34px auto 0;padding:0 24px}
+.demo-in{border-radius:26px;padding:8px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 40px 80px -44px rgba(8,42,80,.45);backdrop-filter:blur(14px)}
+.demo-core{border-radius:19px;background:rgba(255,255,255,.94);border:1px solid var(--line);
+  padding:18px 20px 16px;text-align:left}
+.demo-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.demo-top .lab{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--ink-3)}
+.demo-top .cnt{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.demo-top .cnt b{color:var(--ink);font-weight:700}
+.demo-stage{position:relative;height:52px;overflow:hidden;border-radius:12px;background:rgba(10,14,20,.035);
+  border:1px solid var(--line);margin-bottom:14px}
+.mail{position:absolute;left:14px;top:9px;display:flex;align-items:center;gap:9px;max-width:calc(100% - 28px);
+  font-size:13px;opacity:0}
+.mail .from{font-weight:650;white-space:nowrap}
+.mail .subj{color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail.run{animation:sweep 1.05s var(--ease) forwards}
+@keyframes sweep{
+  0%{opacity:0;transform:translateY(9px)}
+  22%{opacity:1;transform:translateY(0)}
+  74%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(-9px)}
+}
+.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
+  transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
+.bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
+.bk .top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.bk .dot{width:8px;height:8px;border-radius:50%}
+.bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
+.bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
+.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
+.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
+.bk .dot{background:var(--c)}
+.bk.hit{border-color:var(--c)}
+.demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
+@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
+
+
+/* ── Playable replica ─────────────────────────────── */
+.play{display:grid;grid-template-columns:186px 300px 1fr;height:466px;
+  font-size:13px;text-align:left;background:#fff}
+.play *{min-width:0}
+.pl-side{border-right:1px solid var(--line);background:rgba(10,14,20,.018);padding:14px 10px;overflow:auto}
+.pl-lab{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:700;
+  padding:0 8px 8px}
+.pl-t{width:100%;display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:9px;border:0;
+  background:transparent;font:inherit;color:var(--ink);cursor:pointer;text-align:left;
+  transition:background .35s var(--ease)}
+.pl-t:hover{background:rgba(10,14,20,.05)}
+.pl-t[aria-pressed=true]{background:rgba(2,132,199,.11);font-weight:650;
+  box-shadow:inset 2px 0 0 var(--sky-600)}
+.pl-t .dt{width:7px;height:7px;border-radius:50%}
+.pl-t .cn{margin-left:auto;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.pl-list{border-right:1px solid var(--line);overflow:auto}
+.pl-h{padding:12px 14px;font-weight:650;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
+.pl-h .dt{width:8px;height:8px;border-radius:50%}
+.pl-h .cn{margin-left:auto;color:var(--ink-3);font-weight:500}
+.pl-r{width:100%;display:block;text-align:left;border:0;border-bottom:1px solid var(--line);
+  background:transparent;font:inherit;padding:11px 14px;cursor:pointer;
+  transition:background .35s var(--ease)}
+.pl-r:hover{background:rgba(10,14,20,.035)}
+.pl-r[aria-current=true]{background:rgba(2,132,199,.10);box-shadow:inset 2px 0 0 var(--sky-600)}
+.pl-r .fr{display:block;font-size:11px;color:var(--ink-3);font-weight:600}
+.pl-r .sj{display:block;font-size:13.5px;font-weight:550;margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl-r .rs{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px}
+.pl-read{overflow:auto;display:flex;flex-direction:column}
+.pl-top{padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.pl-sub{font-size:16px;font-weight:650;letter-spacing:-.015em;line-height:1.25}
+.pl-from{font-size:12px;color:var(--ink-3);margin-top:3px}
+.pl-acts{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+.pl-b{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:inherit;
+  font-size:12px;cursor:pointer;transition:background .35s var(--ease),border-color .35s var(--ease)}
+.pl-b:hover{background:rgba(10,14,20,.04)}
+/* White on --sky-600 is 4.10:1 — under AA. --sky-ink carries the same accent
+   at 5.93:1. */
+.pl-b.on{background:var(--sky-ink);border-color:var(--sky-ink);color:#fff}
+.pl-b.on:hover{background:#025683}
+.pl-why{padding:12px 18px;background:rgba(10,14,20,.028);border-bottom:1px solid var(--line);font-size:12px}
+.pl-why .w{color:var(--ink-3)}
+.pl-why .sm{margin-top:6px;color:var(--ink);line-height:1.5}
+.pl-body{padding:16px 18px;color:var(--ink-2);line-height:1.6;font-size:12.5px;white-space:pre-line;flex:1}
+.pl-opts{padding:12px 18px;border-bottom:1px solid var(--line);display:grid;gap:7px;
+  background:rgba(2,132,199,.035)}
+.pl-opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);background:#fff;
+  border-radius:10px;padding:9px 11px;font:inherit;font-size:12px;text-align:left;cursor:pointer;
+  transition:border-color .35s var(--ease),background .35s var(--ease)}
+.pl-opt:hover{border-color:var(--sky-600);background:rgba(2,132,199,.04)}
+.pl-opt kbd{flex:0 0 18px;height:18px;border-radius:5px;background:rgba(10,14,20,.07);display:grid;
+  place-items:center;font:inherit;font-size:10px;font-weight:700}
+.pl-opt b{display:block;font-size:11px;color:var(--sky-ink);margin-bottom:1px}
+.pl-hint{margin:0;padding:11px 18px;border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink-3);
+  background:rgba(10,14,20,.02)}
+.pl-hint b{color:var(--ink-2);font-weight:650}
+.pl-hint kbd{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;
+  background:rgba(10,14,20,.07);font:inherit;font-size:10px;font-weight:700;color:var(--ink-2);
+  vertical-align:baseline}
+.pl-comp{padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(2,132,199,.035)}
+.pl-comp textarea{width:100%;height:74px;border:1px solid var(--line);border-radius:9px;padding:9px 10px;
+  font:inherit;font-size:12.5px;resize:none;color:var(--ink);background:rgba(10,14,20,.02)}
+.pl-comp textarea:focus{outline:2px solid var(--sky-600);outline-offset:1px}
+.pl-comp .row{display:flex;gap:7px;justify-content:flex-end;margin-top:8px;align-items:center}
+.pl-sent{margin-right:auto;font-size:11.5px;color:#15803d;font-weight:600}
+.pl-empty{margin:auto;text-align:center;color:var(--ink-3);font-size:13px;padding:40px}
+@media(max-width:1000px){
+  .play{grid-template-columns:1fr;height:auto}
+  .pl-side,.pl-list{border-right:0;border-bottom:1px solid var(--line)}
+  .pl-side{padding:10px}
+  /* The buttons live inside .pl-tiers, so flexing .pl-side only laid out its one
+     child and the tiers stayed a tall vertical list on a phone. */
+  .pl-side .pl-tiers{display:flex;gap:6px;overflow-x:auto}
+  .pl-lab{display:none}
+  .pl-t{width:auto;white-space:nowrap}
+  .pl-list{max-height:260px}
+}
+
+/* Scroll reveal */
+/* Reveal is opt-IN: content is visible by default and JS arms the "from"
+   state only once it is running. The usual way round leaves anything waiting
+   on an observer permanently invisible when scripting is off — which is
+   exactly the bug this page's predecessor shipped. */
+.rv{transition:opacity .9s var(--ease),transform .9s var(--ease),filter .9s var(--ease)}
+.js .rv:not(.in){opacity:0;transform:translateY(46px);filter:blur(8px)}
+@media(prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none;filter:none;transition:none}
+  .chip{animation:none}
+}
+</style>
 </head>
 <body>
+<div class="grain"></div>
+<div class="field" aria-hidden="true"></div>
 
-  <!-- ══ NAV ══════════════════════════════════ -->
-  <nav class="nav">
-    <div class="nav-pill">
-      <a class="nav-brand" href="/"><img class="nav-mark" src="/brand/mark.svg?v=matte2" alt="Klorn">Klorn</a>
-      <span class="nav-links">
-        <a href="#measured">Product</a>
-        <a href="#how">How it works</a>
-        <a href="#pricing">Pricing</a>
-        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">Open source</a>
-      </span>
-      <a class="nav-cta" href="https://app.klorn.ai/early-access">Open Klorn →</a>
+<nav class="nav"><div class="nav-pill">
+  <a class="nav-brand" href="#top" data-top>Klorn</a>
+  <span class="nav-links"><a href="#cards">Product</a><a href="#day">How it works</a><a href="#compare">Why Klorn</a><a href="#pricing">Pricing</a><a href="#open">Open source</a></span>
+  <span class="nav-lang">
+    <a href="/" data-lang-pick="en" aria-current="true">EN</a><a href="/ko/" data-lang-pick="ko">한국어</a>
+  </span>
+  <a class="nav-cta" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80027/Klorn.dmg" rel="noreferrer noopener"
+     data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download">Download <i>↓</i></a>
+</div></nav>
+
+<header class="hero" id="top">
+  <picture class="hero-sky">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" aria-hidden="true" fetchpriority="high" decoding="async" width="2560" height="1709">
+  </picture>
+
+  <div class="wrap">
+    <span class="eyebrow rv">Measured on real mail <b>94.3%</b></span>
+    <h1 class="rv">Noise in.<br><span class="ser">Signal</span> out.</h1>
+    <p class="lead rv"><b style="color:var(--ink);font-weight:650">A Mac app that sorts your mail into
+      four tiers and tells you why.</b> Other AI agents act on your behalf. Klorn decides what deserves
+      your attention and leaves the acting to you.</p>
+    <div class="actions rv">
+      <a class="btn btn-1" href="https://app.klorn.ai/early-access">Request early access <i>↗</i></a>
     </div>
-  </nav>
-
-  <!-- ══ HERO ═════════════════════════════════ -->
-  <header class="hero">
-    <svg class="hero-scene" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true" role="presentation">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#3f9be0"/>
-          <stop offset="0.34" stop-color="#79c0ee"/>
-          <stop offset="0.62" stop-color="#b9e0f8"/>
-          <stop offset="0.84" stop-color="#e6f4fd"/>
-          <stop offset="1" stop-color="#fbf7ec"/>
-        </linearGradient>
-        <radialGradient id="sun" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#fff8e6" stop-opacity="0.95"/>
-          <stop offset="0.5" stop-color="#ffeec4" stop-opacity="0.45"/>
-          <stop offset="1" stop-color="#ffeec4" stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="cloudG" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#ffffff"/>
-          <stop offset="0.6" stop-color="#f4fbff"/>
-          <stop offset="1" stop-color="#cfe6f6"/>
-        </linearGradient>
-        <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
-        <symbol id="cl" viewBox="0 0 320 160">
-          <g fill="url(#cloudG)">
-            <ellipse cx="160" cy="132" rx="150" ry="30"/>
-            <circle cx="72" cy="104" r="52"/>
-            <circle cx="140" cy="74" r="72"/>
-            <circle cx="216" cy="88" r="62"/>
-            <circle cx="262" cy="112" r="46"/>
-            <circle cx="110" cy="112" r="48"/>
-          </g>
-        </symbol>
-      </defs>
-      <rect width="1440" height="900" fill="url(#sky)"/>
-      <ellipse cx="900" cy="760" rx="620" ry="360" fill="url(#sun)"/>
-      <!-- far layer (small, high, slow drift) -->
-      <g class="drift drift-far" filter="url(#soft)" opacity="0.8">
-        <use href="#cl" x="90" y="150" width="150" height="75"/>
-        <use href="#cl" x="470" y="120" width="112" height="56"/>
-        <use href="#cl" x="1100" y="165" width="164" height="82"/>
-        <use href="#cl" x="1300" y="115" width="126" height="63"/>
-      </g>
-      <!-- mid layer (framing the sides, mid height) -->
-      <g class="drift drift-mid" opacity="0.94">
-        <use href="#cl" x="-120" y="430" width="380" height="190"/>
-        <use href="#cl" x="1230" y="470" width="420" height="210"/>
-      </g>
-      <!-- near layer (big cumulus band across the bottom horizon) -->
-      <g class="drift drift-near">
-        <use href="#cl" x="-220" y="700" width="720" height="360"/>
-        <use href="#cl" x="900" y="720" width="820" height="410"/>
-        <use href="#cl" x="380" y="770" width="640" height="320"/>
-      </g>
-    </svg>
-    <div class="hero-veil"></div>
-
-    <div class="container hero-inner">
-      <a class="hero-eyebrow" href="#measured"><span class="dot"></span>94.3% measured on real mail</a>
-      <h1 class="hero-h">Noise in.<br><span class="accent serif">Signal</span> out.</h1>
-      <p class="hero-lead">Other AI agents act. Klorn helps you <em>decide</em> what's worth acting on — mail, calendar, and AI signals filtered into one clear decision queue, with evidence and approval before anything leaves your hands.</p>
-
-      <a class="hero-invite" href="https://app.klorn.ai/early-access">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-        <span><b>Invite-only beta</b> — approved within minutes, 100 testers until Google's review clears</span>
-        <span class="hero-invite-arrow">How it works →</span>
-      </a>
-
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="https://app.klorn.ai/early-access">Request early access →</a>
-        <a class="btn btn-ghost" href="#live-classifier">Try the live demo</a>
-        <a class="btn btn-ghost" href="https://github.com/k08200/klorn" rel="noreferrer noopener">
-          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          Star on GitHub <span class="star-count" data-gh-stars></span></a>
-      </div>
-      <p class="hero-secondary">Already approved? <a href="https://app.klorn.ai/login">Log in →</a></p>
-
-      <div class="hero-badges stagger">
-        <a class="hero-badge" href="#measured"><span class="dot"></span>94.3% measured on real mail</a>
-        <span class="hero-badge"><span class="dot"></span>Open source — AGPLv3</span>
-        <span class="hero-badge"><span class="dot"></span>Self-hostable</span>
-        <span class="hero-badge"><span class="dot"></span>Every action needs your approval</span>
-      </div>
+    <div class="dl-row rv" id="dl-row">
+      <a class="dl" data-os="mac" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80027/Klorn.dmg" rel="noreferrer noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c.02-2.3 1.87-3.4 1.95-3.45-1.06-1.56-2.71-1.77-3.3-1.8-1.4-.11-2.58.78-3.25.78-.68 0-1.72-.76-2.83-.74-1.46.02-2.8.85-3.55 2.15-1.51 2.63-.39 6.52 1.09 8.66.72 1.04 1.58 2.21 2.71 2.17 1.09-.04 1.5-.7 2.82-.7 1.31 0 1.68.7 2.83.681.17-.02 1.92-1.06 2.64-2.11.83-1.2 1.17-2.37 1.19-2.43-.03-.01-2.28-.88-2.3-3.48zM14.9 5.6c.6-.72 1-1.72.89-2.72-.86.04-1.9.57-2.52 1.29-.55.63-1.02 1.65-.89 2.63.96.07 1.92-.49 2.52-1.2z"/></svg>
+        <span class="t"><b>Download for Mac</b><span>Universal · macOS 14+ · notarized</span></span></a>
+      <a class="dl" data-os="win" href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" rel="noreferrer noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.2-1v7.1H3V5.6zm0 12.8l7.2 1v-7H3v6zM11.2 4.4L21 3v8.7h-9.8V4.4zm0 15.2L21 21v-8.6h-9.8v7.2z"/></svg>
+        <span class="t"><b>Download for Windows</b><span>Windows 10+ · unsigned beta, SmartScreen warns once</span></span></a>
     </div>
+    <!-- The app needs an approved account, so the download alone is a dead end.
+         Say so next to the button rather than after the click. -->
+    <p class="actions-note rv">Free, AGPLv3. The app signs in to your Klorn account —
+      beta access is invite-only while Google's review clears.
+      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80027" rel="noreferrer noopener">First-launch note ↗</a></p>
+  </div>
 
-    <!-- Floating product window: today's brief -->
-    <div class="container">
-      <div class="product reveal-pop">
-        <div class="win" data-scroll-zoom>
-          <div class="win-bar">
-            <span class="win-dot r"></span><span class="win-dot y"></span><span class="win-dot g"></span>
-            <span class="win-title">Klorn — Today's brief</span>
-          </div>
-          <div class="brief">
-            <aside class="brief-side">
-              <div class="brief-who"><span class="avatar">J</span><div><div class="nm">Jane Doe</div><div class="em">jane@company.com</div></div></div>
-              <div class="brief-item on"><span class="g">●</span>Brief</div>
-              <div class="brief-item"><span class="g">◇</span>Queue</div>
-              <div class="brief-item"><span class="g">○</span>Silent</div>
-              <div class="brief-item"><span class="g">▤</span>Calendar</div>
-              <div class="brief-item"><span class="g">⌘</span>Chat</div>
-            </aside>
-            <main class="brief-main">
-              <div class="brief-greet">Good evening — <span class="serif">Tuesday brief</span></div>
-              <div class="brief-sub">6 signals · 2 need you · everything else handled</div>
 
-              <div class="tier push">
-                <div class="tier-label"><span class="pip"></span>Push · needs you now</div>
-                <div class="brow"><div class="txt">Discuss Q4 roadmap timeline with Alex<div class="from">Alex Rivera · Re: Project update</div></div><span class="chip">Reply drafted</span></div>
-                <div class="brow"><div class="txt">Sign the vendor renewal before Friday<div class="from">DocuSign · Action required</div></div><span class="chip">1 action</span></div>
-              </div>
-
-              <div class="tier queue">
-                <div class="tier-label"><span class="pip"></span>Queue · when you have a moment</div>
-                <div class="brow"><div class="txt">Revised dashboard specs from Jordan<div class="from">Jordan Lee</div></div><span class="check"></span></div>
-                <div class="brow"><div class="txt">February invoice breakdown<div class="from">Automation</div></div><span class="check"></span></div>
-                <div class="brow"><div class="txt">Onboarding flow ideas from Support<div class="from">Casey Park</div></div><span class="check"></span></div>
-              </div>
-            </main>
-          </div>
-        </div>
+  <div class="demo rv">
+    <div class="demo-in"><div class="demo-core">
+      <div class="demo-top">
+        <span class="lab">Sorting this morning's inbox</span>
+        <span class="cnt"><b id="dm-done">0</b> of 64 · <span id="dm-state">running</span></span>
       </div>
+      <div class="demo-stage" id="dm-stage" aria-hidden="true"></div>
+      <div class="buckets" id="dm-buckets">
+        <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
+          <div class="v" data-v>0</div><p class="d">Interrupts you now</p></div>
+        <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
+          <div class="v" data-v>0</div><p class="d">Read it today</p></div>
+        <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
+          <div class="v" data-v>0</div><p class="d">Filed, not deleted</p></div>
+        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
+          <div class="v" data-v>0</div><p class="d">Handled without you</p></div>
+      </div>
+      <p class="demo-foot">Real classifier output on a hand-labeled inbox — 3 of 64 needed you.</p>
+    </div></div>
+  </div>
 
-      <!-- trust / measured strip -->
-      <div class="trust reveal">
-        <p>Measured on real inboxes — not promised</p>
-        <div class="trust-row stagger">
-          <span class="stat"><b>94.3%</b><small>Real-mail accuracy</small></span>
-          <span class="stat"><b>95.5%</b><small>Silent precision</small></span>
-          <span class="stat"><b>4</b><small>Attention tiers</small></span>
-          <span class="stat"><b>31s</b><small>Inbox → queue</small></span>
-          <span class="stat"><b>0</b><small>Unapproved actions</small></span>
+  <div class="stage rv">
+    <p class="stage-cap"><b>Live</b> A working replica — click the tiers, the rows, reply, re-file.
+      The screenshots further down are the shipping app itself.</p>
+    <div class="shell" data-tilt>
+      <div class="core">
+        <div class="play" id="play" role="application" aria-label="Interactive Klorn demo">
+          <div class="pl-side">
+            <div class="pl-lab">Inbox</div>
+            <div class="pl-tiers" id="pl-tiers"></div>
+          </div>
+          <div class="pl-list">
+            <div class="pl-h"><span class="dt" id="pl-hdot"></span><span id="pl-hname"></span>
+              <span class="cn" id="pl-hcount"></span></div>
+            <div id="pl-rows"></div>
+          </div>
+          <div class="pl-read" id="pl-read"></div>
         </div>
       </div>
     </div>
-  </header>
+  </div>
 
-  <!-- ══ DEMO ═════════════════════════════════ -->
-  <section class="section section-bg-tint" id="how" aria-label="Klorn walkthrough">
-    <div class="container">
-      <div class="section-head-center reveal">
-        <p class="mono section-eyebrow">How it works</p>
-        <h2 class="section-h">Inbox to one decision. In thirty-one seconds.</h2>
-        <p class="section-lead">Every signal sorts into one of four tiers, then the ones that matter become decision cards you approve with one click. Nothing leaves your hands without that approval, and a daily receipt logs every action.</p>
-      </div>
-      <div class="flow stagger">
-        <div class="flow-card">
-          <div class="fc-head"><span class="fc-step"><span class="n">1</span>Inbox</span><span class="fc-tag">47 today</span></div>
-          <div class="fc-body">
-            <div class="fi-row"><span class="fi-dot"></span>Investor — revised metrics</div>
-            <div class="fi-row"><span class="fi-dot"></span>Vendor renewal · sign</div>
-            <div class="fi-row muted"><span class="fi-dot"></span>Newsletter · Morning Brew</div>
-            <div class="fi-row muted"><span class="fi-dot"></span>Receipt · Stripe invoice</div>
-            <div class="fi-row muted"><span class="fi-dot"></span>Dashboard specs · Jordan</div>
-            <p class="fi-more">+ 42 more…</p>
-          </div>
-        </div>
-        <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-        <div class="flow-card">
-          <div class="fc-head"><span class="fc-step"><span class="n">2</span>Sorted into 4 tiers</span></div>
-          <div class="fc-body">
-            <div class="ft-row push"><span class="pip"></span>Push<span class="ft-n">2</span></div>
-            <div class="ft-row queue"><span class="pip"></span>Queue<span class="ft-n">6</span></div>
-            <div class="ft-row silent"><span class="pip"></span>Silent<span class="ft-n">31</span></div>
-            <div class="ft-row auto"><span class="pip"></span>Auto<span class="ft-n">8</span></div>
-          </div>
-        </div>
-        <div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-        <div class="flow-card">
-          <div class="fc-head"><span class="fc-step"><span class="n">3</span>Decision</span><span class="fc-tag sky">Approval needed</span></div>
-          <div class="fc-body">
-            <div class="fd-title">Investor follow-up</div>
-            <div class="fd-sub">Reply to Mina before tomorrow 3 PM</div>
-            <div class="fd-evidence">
-              <div class="fd-ev"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Draft reply ready</div>
-              <div class="fd-ev"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>ARR + burn attached</div>
-              <div class="fd-ev"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>3 PM hold suggested</div>
-            </div>
-            <div class="fd-actions"><span class="fd-approve">Approve</span><span class="fd-edit">Edit</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="tier-legend stagger">
-        <div class="legend-card lg-push"><div class="lg-label"><span class="pip"></span>Push</div><p>Time-sensitive and high-stakes. Surfaced the moment it lands.</p></div>
-        <div class="legend-card lg-queue"><div class="lg-label"><span class="pip"></span>Queue</div><p>Worth a look, not urgent. Batched into the decision queue.</p></div>
-        <div class="legend-card lg-silent"><div class="lg-label"><span class="pip"></span>Silent</div><p>Noise and FYIs. Filed quietly so they never interrupt.</p></div>
-        <div class="legend-card lg-auto"><div class="lg-label"><span class="pip"></span>Auto</div><p>Routine items pre-sorted for you — still staged, never sent on their own.</p></div>
-      </div>
+</header>
+
+<section class="sec" id="cards">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">The actual app</span>
+      <h2 class="rv">Close enough<br>to read.</h2>
     </div>
-  </section>
+    <p class="rv">Klorn sits in one native line at the top of your screen. Expanded, this is what it shows
+      you — and everything you are allowed to change about it.</p>
+  </div>
 
-  <!-- ══ STATEMENT (poster rhythm break) ══════ -->
-  <section class="statement" aria-label="Why Klorn">
-    <div class="container narrow reveal">
-      <p class="mono statement-eyebrow">The real problem</p>
-      <h2 class="statement-h">Your inbox isn't your to-do list.<br>It's <span class="serif">everyone else's.</span></h2>
-      <p class="statement-sub">Every notification is someone else deciding what deserves your attention. Klorn takes that decision back — you see only the few things that are genuinely yours to act on.</p>
-      <div class="statement-tags">
-        <span class="statement-tag"><span class="pip"></span>You stay in control</span>
-        <span class="statement-tag"><span class="pip"></span>Evidence on every card</span>
-        <span class="statement-tag"><span class="pip"></span>Nothing sent without you</span>
-      </div>
+  <div class="tour rv">
+    <div class="tour-nav" role="tablist" aria-label="Product tour">
+      <button class="tour-t" role="tab" aria-selected="true" aria-controls="tp-1" id="tt-1">
+        <b>Why this one interrupted you</b><span>The evidence behind a push, and the three one-key replies.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
+        <b>The queue, with reasons</b><span>Every row says what put it there — correct it in one click.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
+        <b>Four words, explained</b><span>Silent isn't deleted. Auto isn't replied. The app says so.</span></button>
+      <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
+        <b>Yours to set</b><span>How much it does alone, and what may interrupt you.</span></button>
     </div>
-  </section>
-
-  <!-- ══ LIVE CLASSIFIER ══════════════════════ -->
-  <section class="section" id="live-classifier" aria-label="Live classifier" style="scroll-margin-top:90px">
-    <div class="container">
-      <div class="section-head-center reveal">
-        <p class="mono section-eyebrow">Try it live · bring your own key</p>
-        <h2 class="section-h">Run the real 4-tier model on any email.</h2>
-        <p class="section-lead">Paste an email (or pick an example), add your own API key, and see the exact tier Klorn assigns — PUSH, QUEUE, SILENT, or AUTO — with the reasoning and the signals behind it.</p>
-      </div>
-
-      <div class="klassify-wrap reveal">
-        <div class="klassify-titlebar">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="crumb">Klorn / Playground</span>
-          <span class="hero-live"><span class="hero-live-dot"></span>Live</span>
-        </div>
-        <div class="klassify">
-          <div class="klassify-input">
-            <p class="mono klassify-eyebrow">Your email</p>
-            <div class="klassify-keyrow">
-              <select id="kf-provider" class="kf-field" aria-label="LLM provider">
-                <option value="openrouter">OpenRouter</option>
-                <option value="gemini">Gemini</option>
-                <option value="openai">OpenAI</option>
-              </select>
-              <input id="kf-key" class="kf-field" type="password" placeholder="Your API key" autocomplete="off" spellcheck="false">
-            </div>
-            <input id="kf-model" class="kf-field" placeholder="Model — optional (e.g. google/gemini-2.0-flash-001)" spellcheck="false">
-            <input id="kf-from" class="kf-field" placeholder="From — sender@example.com" spellcheck="false">
-            <input id="kf-subject" class="kf-field" placeholder="Subject line" spellcheck="false">
-            <textarea id="kf-snippet" class="kf-field" placeholder="Preview / first line (optional)"></textarea>
-            <div class="klassify-presets" id="kf-presets"></div>
-            <button type="button" id="kf-run" class="btn btn-sky klassify-run">Classify this email</button>
-            <p class="klassify-note">Runs the real 4-tier model. No key? Just press Classify — when the free demo is open it runs on Klorn's own model. With a key, it's sent once for this call and never stored on Klorn's servers. <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer noopener">Get an OpenRouter key</a>.</p>
-          </div>
-          <div class="klassify-result">
-            <div class="klassify-tier">
-              <span class="klassify-tier-badge" id="kf-badge" data-tier="">READY</span>
-              <span class="klassify-tier-desc" id="kf-desc">Pick an example (or paste an email), then Classify to see the exact tier Klorn's model assigns — PUSH, QUEUE, SILENT, or AUTO.</span>
-            </div>
-            <p class="klassify-reason" id="kf-reason"></p>
-            <div class="klassify-features" id="kf-features"></div>
-          </div>
-        </div>
-      </div>
+    <div class="tour-stage">
+      <div class="tour-panel" role="tabpanel" id="tp-1" aria-labelledby="tt-1">
+        <img src="/media/app/reading.jpg" alt="A push message with its evidence: why it was ranked, the deadline, and the one-key reply actions" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-2" aria-labelledby="tt-2" hidden>
+        <img src="/media/app/rows.jpg" alt="Mail rows showing sender, subject and why each landed in its tier" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-3" aria-labelledby="tt-3" hidden>
+        <img src="/media/app/tier-guide.jpg" alt="The first-run guide explaining Push, Queue, Silent and Auto" width="1040" height="660" loading="lazy" decoding="async"></div>
+      <div class="tour-panel" role="tabpanel" id="tp-4" aria-labelledby="tt-4" hidden>
+        <img src="/media/app/preferences.jpg" alt="Preferences: agent mode, reply tone, alert categories and quiet hours" width="1040" height="660" loading="lazy" decoding="async"></div>
     </div>
-  </section>
+  </div>
+  <p class="proof rv">Each shot is produced by <code>KlornMac --render-previews</code>, which draws the
+    shipping SwiftUI views straight to disk. If a screen changes, the picture changes with it —
+    there is no separate marketing asset to fall out of date.
+    <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">Read the app source →</a></p>
+</section>
 
-  <!-- ══ MEASURED / STATS ═════════════════════ -->
-  <section class="section section-bg-tint" id="measured" aria-label="Measured accuracy">
-    <div class="container narrow">
-      <div class="section-head-center reveal">
-        <p class="mono section-eyebrow">Measured, not promised</p>
-        <h2 class="section-h">Numbers from a real inbox.</h2>
-        <p class="section-lead">Every release is scored against a hand-labeled set of real emails before it ships. These are the latest numbers — and the methodology is in the open repo.</p>
-      </div>
-      <div class="stats-grid stagger">
-        <div class="stat-tile featured"><div class="big">94.3%</div><div class="lab">Real-mail accuracy</div><div class="desc">50 of 53 hand-labeled real emails sorted into the right tier.</div></div>
-        <div class="stat-tile"><div class="big">95.5%</div><div class="lab">Silent precision</div><div class="desc">When Klorn files mail as noise, it almost never buries a real signal.</div></div>
-        <div class="stat-tile"><div class="big">0</div><div class="lab">Unapproved actions</div><div class="desc">Every send, delete, and forward waits for your approval and logs a signed receipt.</div></div>
-      </div>
-      <p class="stats-foot reveal">Measured July 2026 on a 53-email hand-labeled set from a live inbox, warm-start with learned context (cold-start: 81.1%). <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Methodology and eval set →</a></p>
+
+
+
+<!-- ══ A DAY WITH IT ════════════════════════════════ -->
+<section class="sec band" id="day">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">A day with it</span>
+      <h2 class="rv">Three moments,<br>and only one needs you.</h2>
     </div>
-  </section>
+    <p class="rv">Klorn is not something you open. It runs against your inbox all day and asks for you
+      exactly once — when a message genuinely cannot be answered without you.</p>
+  </div>
+  <div class="steps">
+    <article class="step rv"><span class="sn">Morning</span>
+      <h3>Already sorted</h3>
+      <p>Overnight mail is in its tier before you sit down, each one carrying the reason it landed there.
+        Sixty-four messages, three that were yours.</p></article>
+    <article class="step rv"><span class="sn">While you work</span>
+      <h3>One line, no banners</h3>
+      <p>Klorn stays a single native line at the top of the screen. Queue, Silent and Auto never
+        interrupt — only a real Push does, and you set what counts.</p></article>
+    <article class="step rv"><span class="sn">When you reply</span>
+      <h3>Three drafts, your call</h3>
+      <p>Accept, decline or ask — one key each, in your tone and the sender's language. Nothing sends
+        itself; every send mints a receipt.</p></article>
+  </div>
+</section>
 
-  <!-- ══ DECISION CARD ════════════════════════ -->
-  <section class="section" aria-label="Decision queue">
-    <div class="container">
-      <div class="decision-grid">
-        <div class="reveal">
-          <p class="mono section-eyebrow">Decision queue</p>
-          <h2 class="section-h">The important work fits on one card.</h2>
-          <p class="section-lead">Not another inbox. Just the decisions that have enough context to move.</p>
-        </div>
-        <div class="decision-card reveal">
-          <div class="dc-top">
-            <p class="mono dc-eyebrow">Decision card</p>
-            <span class="approval-pill">Approval needed</span>
+<!-- ══ COMPARISON ═══════════════════════════════════ -->
+<section class="sec" id="compare">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Where we disagree</span>
+      <h2 class="rv">Four opinions most<br>email AI doesn't hold.</h2>
+    </div>
+    <p class="rv">These are choices, not features — each one costs Klorn something. Set against what the
+      assistant already bundled with your mail decides to do instead.</p>
+  </div>
+  <div class="vsgrid rv">
+    <div class="vshead">
+      <div class="vscol ours"><span class="mk">K</span><b>Klorn</b></div>
+      <div class="vscol them"><span class="mk">—</span><b>The assistant in your inbox</b></div>
+    </div>
+
+    <div class="vsrow">
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 · Who decides</span>
+        <p>Sorts and drafts, then <b>stops</b>. Every send, delete and forward waits for you and mints a receipt.</p></div>
+      <div class="vscell them" data-who="Everyone else"><span class="k">01 · Who decides</span>
+        <p>Acts on your behalf and tells you afterwards. Undo is the safety net.</p></div>
+    </div>
+    <div class="vsrow">
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 · What you see</span>
+        <p>Four fixed tiers, and <b>the reason on every message</b>. Move one and the classifier learns.</p></div>
+      <div class="vscell them" data-who="Everyone else"><span class="k">02 · What you see</span>
+        <p>Priority flags and unlimited labels. No reason given, and nothing to correct.</p></div>
+    </div>
+    <div class="vsrow">
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 · What it claims</span>
+        <p><b>94.3%</b> on a hand-labeled set that ships in the repo, cold and warm reported separately.</p></div>
+      <div class="vscell them" data-who="Everyone else"><span class="k">03 · What it claims</span>
+        <p>"AI-powered." No number, no eval set, no way to check it yourself.</p></div>
+    </div>
+    <div class="vsrow">
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 · If you want out</span>
+        <p><b>AGPLv3</b>. Read it, self-host it against your own keys, or fork it and leave.</p></div>
+      <div class="vscell them" data-who="Everyone else"><span class="k">04 · If you want out</span>
+        <p>Closed. Your mail is the training surface, and export is the only exit.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MEASURED ═════════════════════════════════════ -->
+<section class="sec band" id="measured">
+  <picture class="sec-sky" aria-hidden="true">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" loading="lazy" decoding="async" width="2560" height="1709">
+  </picture>
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Measured, not promised</span>
+      <h2 class="rv">Numbers from a real inbox.</h2>
+    </div>
+    <p class="rv">Every release is scored against a hand-labeled set of real emails before it ships.
+      These are the latest numbers, and the eval set is in the open repo.</p>
+  </div>
+  <div class="stats">
+    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">Real-mail accuracy</div>
+      <p>50 of 53 hand-labeled real emails sorted into the right tier.</p></div>
+    <div class="stat rv"><div class="sv">95.5%</div><div class="sl">Silent precision</div>
+      <p>When Klorn files mail as noise, it almost never buries a real signal.</p></div>
+    <div class="stat rv"><div class="sv">0</div><div class="sl">Unapproved actions</div>
+      <p>Every send, delete and forward waits for you and logs a signed receipt.</p></div>
+  </div>
+  <p class="foot rv">Measured July 2026 on a 53-email hand-labeled set from a live inbox, warm-start with
+    learned context (cold-start: 81.1%).
+    <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Methodology and eval set →</a></p>
+</section>
+
+<!-- ══ WORKS WITH ═══════════════════════════════════ -->
+<section class="sec" id="works">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Works with</span>
+      <h2 class="rv">Check this before<br>you download.</h2>
+    </div>
+    <p class="rv">Klorn reads your mail, so what it connects to is the first thing worth knowing —
+      including what it does not connect to yet.</p>
+  </div>
+  <div class="works rv">
+    <div class="work"><b>Gmail</b><span>Google sign-in. Multiple inboxes on Pro.</span></div>
+    <div class="work"><b>Naver Mail</b><span>Connected over IMAP from Settings.</span></div>
+    <div class="work"><b>Google Calendar</b><span>Read, and create events on your say-so.</span></div>
+    <div class="work"><b>macOS 14+</b><span>Universal — Apple Silicon and Intel.</span></div>
+  </div>
+  <p class="works-note rv"><b>Not supported yet:</b> Outlook and Microsoft 365, iCloud Mail, and IMAP
+    hosts other than Naver. On Windows the desktop app is an unsigned beta (SmartScreen warns once); on Linux, Klorn runs in
+    the browser. Self-hosting works against your own database and model keys.</p>
+</section>
+
+<!-- ══ OPEN SOURCE ══════════════════════════════════ -->
+<section class="sec" id="open">
+  <div class="wrapl">
+    <div class="os rv">
+      <div class="os-in">
+        <div>
+          <span class="tag">Open source</span>
+          <h2 class="os-h">Read it. Run it yourself.<br>Leave whenever you like.</h2>
+          <p class="os-p">An email agent sees everything you receive, so "trust us" is not an answer.
+            The classifier, the prompts and the eval set are all in the repo.</p>
+          <div class="os-cta">
+            <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">View the repository <i>↗</i></a>
+            <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">See the eval set</a>
           </div>
-          <div class="dc-title">Investor follow-up ready</div>
-          <div class="dc-row"><div class="k">Signal</div><div class="v">Investor asked for revised metrics<small>Email, tomorrow's meeting, and open deck work are grouped into one decision.</small></div></div>
-          <div class="dc-row"><div class="k">Context</div><div class="v">The pitch deck is still unfinished<small>Unanswered mail and open tasks point to the same meeting risk.</small></div></div>
-          <div class="dc-row"><div class="k">Action</div><div class="v">Hold 3–4 PM and prepare a reply draft<small>The next move is staged for approval before anything leaves your workspace.</small></div></div>
-          <div class="decision-actions">
-            <button type="button" class="act-btn primary">Approve</button>
-            <button type="button" class="act-btn ghost">Edit first</button>
-            <button type="button" class="act-btn plain">Hold</button>
+          <div class="ship" id="ship" hidden>
+            <h3>Recently shipped</h3>
+            <ol></ol>
+            <a href="https://github.com/k08200/klorn/releases" rel="noreferrer noopener">All releases →</a>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ══ PILLARS ══════════════════════════════ -->
-  <section class="section pillars" aria-label="How Klorn works">
-    <div class="container">
-      <div class="pillars-grid stagger">
-        <div class="pillar reveal"><div class="pn">Capture</div><h3>Read the work signals</h3><p>Mail, calendar, tasks, and memory are pulled into one view for today.</p></div>
-        <div class="pillar reveal"><div class="pn">Connect</div><h3>Turn noise into context</h3><p>People, deadlines, threads, and promises are linked by business impact.</p></div>
-        <div class="pillar reveal"><div class="pn">Approve</div><h3>Confirm before action</h3><p>Important execution carries evidence, risk, and an explicit approval path.</p></div>
-      </div>
+<!-- ══ PRICING ══════════════════════════════════════ -->
+<section class="sec band" id="pricing">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Pricing</span>
+      <h2 class="rv">Start free. Upgrade when<br>Klorn acts for you.</h2>
     </div>
-  </section>
+    <p class="rv">Sorting is free forever. You only pay once Klorn starts drafting and sending on your
+      say-so — the part that costs real money to run.</p>
+  </div>
+  <div class="prices">
+    <article class="price rv"><div class="price-in">
+      <span class="chip-s">Free</span>
+      <h3>The firewall</h3>
+      <div class="amt">$0<span>/month</span></div>
+      <p class="note">No card. A daily AI budget keeps it sustainable.</p>
+      <ul>
+        <li>4-tier mail firewall — only real signals interrupt you</li>
+        <li>Decision queue with evidence for every card</li>
+        <li>Morning briefing and calendar view</li>
+        <li>Assistant that answers from your own mail</li>
+      </ul>
+      <a class="btn btn-2 full" href="https://app.klorn.ai/early-access">Start free</a>
+    </div></article>
+    <article class="price feat rv"><div class="price-in">
+      <span class="chip-s dark">Founding price</span>
+      <h3>Klorn Pro</h3>
+      <div class="amt">$7.99<span>/month</span></div>
+      <p class="note">7-day Pro trial, then $7.99/mo on the web. Cancel anytime.</p>
+      <ul>
+        <li>Everything in Free, with a bigger AI budget</li>
+        <li>Reply drafts you approve and send from Klorn</li>
+        <li>Create calendar events by voice or chat</li>
+        <li>Multiple Gmail inboxes, auto-handled noise</li>
+      </ul>
+      <a class="btn btn-1 full" href="https://app.klorn.ai/early-access">Start 7-day Pro trial <i>↗</i></a>
+    </div></article>
+  </div>
+</section>
 
-  <!-- ══ PRICING ══════════════════════════════ -->
-  <section class="section" id="pricing" aria-label="Pricing">
-    <div class="container">
-      <div class="section-head-center reveal">
-        <p class="mono section-eyebrow" style="color:var(--sky-600)">Pricing</p>
-        <h2 class="section-h">Start free. Upgrade when Klorn acts for you.</h2>
-        <p class="section-lead">The firewall — reading, classifying, and briefing your mail — is free. Pro unlocks the actions: replies, calendar writes, and more inboxes.</p>
-      </div>
-      <div class="pricing-grid stagger">
-        <div class="price-card">
-          <span class="price-badge">Free</span>
-          <div class="price-name">The firewall</div>
-          <div class="price-amt">$0<span> /month</span></div>
-          <p class="price-note">No card. A daily AI budget keeps it sustainable.</p>
-          <ul class="price-feats">
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>4-tier mail firewall — only real signals interrupt you</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Decision queue with evidence for every card</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Morning briefing and calendar view</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Assistant that answers from your own mail</li>
-          </ul>
-          <a class="btn btn-ghost" href="https://app.klorn.ai/early-access">Start free</a>
-        </div>
-        <div class="price-card pro">
-          <span class="price-badge">Founding price</span>
-          <div class="price-name">Klorn Pro</div>
-          <div class="price-amt">$7.99<span> /month</span></div>
-          <p class="price-note">7-day Pro trial, then $7.99/mo on the web. Cancel anytime.</p>
-          <ul class="price-feats">
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Everything in Free, with a bigger AI budget</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Reply drafts you approve and send from Klorn</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Create calendar events by voice or chat</li>
-            <li><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10l4 4 8-9"/></svg>Multiple Gmail inboxes, auto-handled noise</li>
-          </ul>
-          <a class="btn btn-sky" href="https://app.klorn.ai/login">Start 7-day Pro trial</a>
-        </div>
-      </div>
-      <p class="pricing-foot reveal">On iPhone you subscribe in the app. Self-host everything free — Klorn is open source (AGPLv3).</p>
+<!-- ══ FAQ ══════════════════════════════════════════ -->
+<section class="sec band" id="faq">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Before you ask</span>
+      <h2 class="rv">The ones we<br>actually get.</h2>
     </div>
-  </section>
+  </div>
+  <div class="faq">
+    <details class="faq-i rv"><summary>Why is it invite-only?</summary>
+      <p>Reading your mail needs Google's restricted scopes, and those need a security review before
+        the app can be published. Until it clears, Google caps testers at 100.</p></details>
+    <details class="faq-i rv"><summary>Can it send something without me?</summary>
+      <p>No. Send, delete and forward always wait for an explicit approval and each one writes a signed
+        receipt with a hash of exactly what went out.</p></details>
+    <details class="faq-i rv"><summary>Where does my mail actually go?</summary>
+      <p>To the classifier and back. Your OAuth tokens are encrypted at rest, and because the whole
+        thing is AGPLv3 you can read the code that touches them —
+        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">or run it yourself</a>.</p></details>
+    <details class="faq-i rv"><summary>What if it files something wrong?</summary>
+      <p>Move it. Every message shows why it landed where it did, and the correction is what the
+        classifier learns from — that is the difference between 81.1% cold and 94.3% warm.</p></details>
+    <details class="faq-i rv"><summary>When is the Windows app?</summary>
+      <p>Shipped, as an unsigned beta — SmartScreen warns once until the app is code-signed. The web app
+        remains available in any browser with the same account and tiers.</p></details>
+    <details class="faq-i rv"><summary>Can the AI run up a bill?</summary>
+      <p>No. Klorn caps its own spend per day, and stops rather than overspending — a runaway loop
+        costs you nothing. That cap is why sorting stays free.</p></details>
+  </div>
+</section>
 
-  <!-- ══ FINAL CTA ════════════════════════════ -->
-  <section class="final-cta reveal" aria-label="Get started">
-    <div class="final-bg"></div>
-    <div class="final-inner">
-      <p class="mono section-eyebrow">Built for decisions</p>
-      <h2>The next inbox is a decision queue.</h2>
-      <p>Before the day gets noisy, align context, evidence, and action in one clean line.</p>
-      <div class="final-actions">
-        <a class="btn btn-primary" href="https://app.klorn.ai/early-access">Request early access →</a>
-        <a class="btn btn-ghost" href="https://github.com/k08200/klorn" rel="noreferrer noopener">
-          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          Self-host on GitHub <span class="star-count" data-gh-stars></span></a>
-      </div>
+<!-- ══ FINAL ════════════════════════════════════════ -->
+<section class="sec final">
+  <picture class="final-sky" aria-hidden="true">
+    <source type="image/webp" sizes="100vw"
+            srcset="/media/sky/dusk-1280.webp 1280w, /media/sky/dusk-1920.webp 1920w, /media/sky/dusk-2560.webp 2560w">
+    <img src="/media/sky/dusk-1920.jpg" sizes="100vw"
+         srcset="/media/sky/dusk-1280.jpg 1280w, /media/sky/dusk-1920.jpg 1920w, /media/sky/dusk-2560.jpg 2560w"
+         alt="" loading="lazy" decoding="async" width="2560" height="1709">
+  </picture>
+  <div class="wrapl rv">
+    <h2 class="final-h">The next inbox is<br>a <span class="ser">decision queue.</span></h2>
+    <p class="final-p">Invite-only beta — approved within minutes, 100 testers until Google's review clears.</p>
+    <div class="actions">
+      <a class="btn btn-1" href="https://app.klorn.ai/early-access">Request early access <i>↗</i></a>
+      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80027/Klorn.dmg" rel="noreferrer noopener"
+         data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download for Windows">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+        Download for Mac</a>
     </div>
-  </section>
+    <p class="actions-note">Already approved? <a href="https://app.klorn.ai/login">Log in</a> ·
+      macOS 14+ universal · Windows in the browser · AGPLv3</p>
+  </div>
+</section>
 
-  <!-- ══ FOOTER ═══════════════════════════════ -->
-  <footer>
-    <div class="container footer-grid">
-      <div class="footer-brand">
-        <img src="/brand/mark.svg?v=matte2" alt="Klorn">
-        <span class="fb-t"><b>Klorn</b> — the clear signal worth acting on.</span>
-      </div>
-      <div class="footer-links">
-        <a href="https://app.klorn.ai/privacy">Privacy</a>
-        <a href="https://app.klorn.ai/terms">Terms</a>
-        <a href="mailto:k0820086@gmail.com">Contact</a>
-      </div>
-      <div class="footer-social">
+<footer class="foot-nav">
+  <div class="wrapl foot-grid">
+    <div>
+      <a class="foot-brand" href="#top" data-top>Klorn</a>
+      <p class="foot-note">An email chief-of-staff that decides nothing on its own.</p>
+      <div class="socials">
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
         <a href="https://x.com/klornai" rel="noreferrer noopener" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a href="https://join.slack.com/t/klorn/shared_invite/zt-3zkj8lqxg-L4LK8dNPkzgupHEdmXgbIg" rel="noreferrer noopener" aria-label="Slack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523z"/></svg></a>
       </div>
     </div>
-  </footer>
-
-  <!-- ══ FLOATING DOWNLOAD + LANGUAGE DOCK ════ -->
-  <div class="dl-dock" id="dlDock">
-    <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn-macos.zip" rel="noreferrer noopener" class="dl-dock-btn" aria-label="Download Klorn.app for macOS (native top-bar firewall, .zip)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"></path><path d="M5 21h14"></path></svg>
-      <span class="lbl">Download for Mac</span>
-    </a>
-    <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener" class="dl-dock-help" aria-label="First-launch help — macOS blocks unsigned apps once; the release notes show the one-time fix" title="macOS blocks the first launch — one-time fix in the release notes">?</a>
-    <div class="dl-dock-lang" role="group" aria-label="Language">
-      <span class="dl-dock-cur" aria-current="page">EN</span>
-      <span class="dl-dock-sep" aria-hidden="true">·</span>
-      <a href="/ko/" data-lang-switch="ko" aria-label="한국어로 보기">KO</a>
-    </div>
+    <nav aria-label="Product"><h4>Product</h4>
+      <a href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80027/Klorn.dmg" rel="noreferrer noopener"
+         data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download for Windows">Download for Mac</a>
+      <a href="#compare">Why Klorn</a><a href="#works">Works with</a><a href="#measured">Accuracy</a><a href="#pricing">Pricing</a>
+      <a href="https://app.klorn.ai/login">Log in</a></nav>
+    <nav aria-label="Open source"><h4>Open source</h4>
+      <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub repository</a>
+      <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Eval set</a>
+      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80027" rel="noreferrer noopener">Releases</a>
+      <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">AGPLv3 licence</a></nav>
+    <nav aria-label="Legal"><h4>Legal</h4>
+      <a href="https://app.klorn.ai/privacy">Privacy</a><a href="https://app.klorn.ai/terms">Terms</a>
+      <a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">Security</a>
+      <a href="mailto:k0820086@gmail.com">Contact</a></nav>
   </div>
+  <div class="wrapl foot-base">
+    <span>© 2026 Klorn · AGPLv3</span>
+    <span class="langsw">
+      <a href="/" data-lang-pick="en" aria-current="true">EN</a><i>·</i><a href="/ko/" data-lang-pick="ko">KO</a>
+    </span>
+  </div>
+</footer>
 
-  <script>
-    // Fade-in + slide-up on scroll — plain IntersectionObserver.
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const REVEAL_SEL = '.reveal, .reveal-pop, .stagger';
-    if (reduceMotion) {
-      document.querySelectorAll(REVEAL_SEL).forEach((el) => el.classList.add('in'));
-    } else {
-      const revealObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in');
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+<script>
+// A reload has to land on the hero. Browsers restore the old scroll position by
+// default, which on a page built around a first-screen demo drops the visitor
+// back into the middle of the pricing table with no idea what the site is.
+// Turning restoration off is not enough on its own — Safari still restores
+// after the load event, so the reset is repeated once the page has settled.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+if (!location.hash) {
+  window.scrollTo(0, 0);
+  addEventListener('load', function () { if (!location.hash) window.scrollTo(0, 0); });
+}
 
-      document.querySelectorAll(REVEAL_SEL).forEach((el) => revealObserver.observe(el));
+// Reveal on enter. IntersectionObserver, never a scroll listener.
+document.documentElement.classList.add('js');
+const io = new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+}, { threshold: .12, rootMargin: '0px 0px -8% 0px' });
+document.querySelectorAll('.rv').forEach((el, i) => { el.style.transitionDelay = (i % 5) * 70 + 'ms'; io.observe(el); });
 
-      // Scroll-linked "zoom into place": the hero product window scales 0.94 → 1
-      // as it rises through the viewport. A continuous rAF loop LERPs the current
-      // scale toward its scroll-derived target every frame, so motion stays
-      // buttery instead of stepping on each discrete scroll event. Pure
-      // transform, compositor-friendly; disabled for reduced-motion above.
-      const zoomEls = [...document.querySelectorAll('[data-scroll-zoom]')].map((el) => ({ el, cur: 0.94, target: 0.94 }));
-      if (zoomEls.length) {
-        const computeTargets = () => {
-          const vh = window.innerHeight;
-          zoomEls.forEach((z) => {
-            const r = z.el.getBoundingClientRect();
-            const p = Math.max(0, Math.min(1, 1 - (r.top - vh * 0.12) / (vh * 0.8)));
-            z.target = 0.94 + 0.06 * p;
-          });
-        };
-        const tick = () => {
-          zoomEls.forEach((z) => {
-            z.cur += (z.target - z.cur) * 0.09; // smoothing factor
-            z.el.style.transform = `scale(${z.cur.toFixed(4)})`;
-          });
-          requestAnimationFrame(tick);
-        };
-        window.addEventListener('scroll', computeTargets, { passive: true });
-        window.addEventListener('resize', computeTargets);
-        computeTargets();
-        tick();
+// Pointer tilt on the app shell — small angles only; this is a product shot,
+// not a toy. Disabled for reduced motion and on coarse pointers.
+const shell = document.querySelector('[data-tilt]');
+const fine = matchMedia('(pointer:fine)').matches && !matchMedia('(prefers-reduced-motion:reduce)').matches;
+if (shell && fine) {
+  let raf = 0;
+  addEventListener('pointermove', (ev) => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const r = shell.getBoundingClientRect();
+      const dx = (ev.clientX - (r.left + r.width / 2)) / r.width;
+      const dy = (ev.clientY - (r.top + r.height / 2)) / r.height;
+      shell.style.transform = `perspective(1600px) rotateY(${dx * 3.2}deg) rotateX(${-dy * 2.2}deg)`;
+    });
+  }, { passive: true });
+  shell.style.transition = 'transform .9s cubic-bezier(.32,.72,0,1)';
+}
+
+// Which platform is this? The download row renders both entries either way —
+// this only promotes the matching one and retargets the Mac-specific buttons, so
+// a Windows visitor with scripting off still sees a Windows entry rather than a
+// page that only offers a .dmg.
+//
+// navigator.platform is deprecated but still the most reliable macOS/Windows
+// signal across current browsers; userAgentData is preferred where present and
+// its synchronous `platform` field is enough — no need for the async hints.
+(function () {
+  var uaData = navigator.userAgentData;
+  var raw = String((uaData && uaData.platform) || navigator.platform ||
+                   navigator.userAgent || '');
+  var os = /mac|iphone|ipad|ipod/i.test(raw) ? 'mac'
+         : /win/i.test(raw) ? 'win'
+         : null;
+  if (!os) return;                       // Linux and anything unknown: leave both neutral
+
+  var mine = document.querySelector('.dl[data-os=' + os + ']');
+  if (mine) {
+    mine.classList.add('is-yours');
+    // Put the visitor's platform first without touching source order for
+    // everyone else — a plain flex reorder, not a DOM move.
+    mine.style.order = '-1';
+  }
+
+  if (os !== 'win') return;
+  document.querySelectorAll('[data-mac-dl]').forEach(function (a) {
+    var href = a.getAttribute('data-win-href');
+    var label = a.getAttribute('data-win-label');
+    if (href) { a.setAttribute('href', href); a.removeAttribute('rel'); }
+    if (!label) return;
+    // Replace only the text node, so the arrow/icon markup survives — and keep
+    // its surrounding whitespace, or "Download <i>↓</i>" relabels to the
+    // spaceless "Open Klorn↓".
+    Array.prototype.forEach.call(a.childNodes, function (n) {
+      if (n.nodeType !== 3 || !n.textContent.trim()) return;
+      var pad = n.textContent.match(/^(\s*)[\s\S]*?(\s*)$/);
+      n.textContent = pad[1] + label + pad[2];
+    });
+  });
+})();
+
+// Product tour: one frame, four surfaces. Progressive enhancement — the panels
+// are all in the document, and this is what collapses them to one at a time, so
+// without JS the section is a readable stack rather than a single stuck tab.
+(function () {
+  var nav = document.querySelector('.tour-nav');
+  if (!nav) return;
+  var tabs = Array.prototype.slice.call(nav.querySelectorAll('[role=tab]'));
+  var panels = tabs.map(function (t) { return document.getElementById(t.getAttribute('aria-controls')); });
+
+  function select(i, focus) {
+    tabs.forEach(function (t, n) {
+      t.setAttribute('aria-selected', String(n === i));
+      t.tabIndex = n === i ? 0 : -1;
+      if (panels[n]) panels[n].hidden = n !== i;
+    });
+    if (focus) tabs[i].focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { select(i); });
+  });
+  // Arrow keys move between tabs — the pattern a tablist is expected to follow.
+  nav.addEventListener('keydown', function (ev) {
+    var i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    var next = ev.key === 'ArrowDown' || ev.key === 'ArrowRight' ? i + 1
+             : ev.key === 'ArrowUp' || ev.key === 'ArrowLeft' ? i - 1
+             : ev.key === 'Home' ? 0
+             : ev.key === 'End' ? tabs.length - 1 : null;
+    if (next === null) return;
+    ev.preventDefault();
+    select((next + tabs.length) % tabs.length, true);
+  });
+  select(0);
+})();
+
+// Recently shipped — populated from the public GitHub releases feed, because a
+// hand-maintained list would rot. The block stays hidden unless the fetch
+// succeeds, so offline/rate-limited visitors simply never see it.
+(function () {
+  var box = document.getElementById('ship');
+  if (!box || !window.fetch) return;
+  fetch('https://api.github.com/repos/k08200/klorn/releases?per_page=3')
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (rel) {
+      if (!rel || !rel.length) return;
+      var list = box.querySelector('ol');
+      var loc = document.documentElement.lang === 'ko' ? 'ko-KR' : 'en-US';
+      rel.slice(0, 3).forEach(function (r) {
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.href = r.html_url; a.rel = 'noreferrer noopener';
+        a.textContent = r.tag_name;
+        var s = document.createElement('span');
+        s.textContent = new Date(r.published_at)
+          .toLocaleDateString(loc, { month: 'short', day: 'numeric' });
+        li.appendChild(a); li.appendChild(s); list.appendChild(li);
+      });
+      box.hidden = false;
+    })
+    .catch(function () { /* stays hidden — the footer Releases link covers it */ });
+})();
+
+// The measured numbers count up the first time they scroll into view. Motion
+// only — the markup already holds the final values, so no JS, reduced motion,
+// or a missed observer all land on the true numbers.
+(function () {
+  var els = document.querySelectorAll('#measured .sv');
+  if (!els.length || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+      var el = e.target, txt = el.textContent.trim();
+      var m = txt.match(/^([0-9.]+)(.*)$/);
+      if (!m) return;
+      var target = parseFloat(m[1]), suffix = m[2];
+      var dec = (m[1].split('.')[1] || '').length, t0 = null;
+      function step(ts) {
+        if (t0 === null) t0 = ts;
+        var p = Math.min(1, (ts - t0) / 800);
+        el.textContent = (target * (1 - Math.pow(1 - p, 3))).toFixed(dec) + suffix;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = txt;          // land on the exact original string
       }
+      requestAnimationFrame(step);
+    });
+  }, { threshold: .6 });
+  els.forEach(function (el) { io.observe(el); });
+})();
+
+// The wordmark returns to the top. href="#top" is the no-JS fallback; with JS we
+// scroll instead of jumping and drop the hash again, so a later reload still
+// takes the "no hash" path above.
+document.querySelectorAll('[data-top]').forEach(function (a) {
+  a.addEventListener('click', function (ev) {
+    ev.preventDefault();
+    var smooth = !matchMedia('(prefers-reduced-motion:reduce)').matches;
+    window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+    history.replaceState(null, '', location.pathname + location.search);
+  });
+});
+
+// Language: follow the OS/browser preference on a first visit, and never again.
+// Rules that keep this from being hostile: an explicit EN/KO click is remembered
+// forever, the redirect fires at most once per browser, and it only ever runs on
+// the site root — deep links stay where they point.
+(function () {
+  var KEY = 'klorn.lang';
+  var picks = document.querySelectorAll('[data-lang-pick]');
+  picks.forEach(function (a) {
+    a.addEventListener('click', function () {
+      try { localStorage.setItem(KEY, a.getAttribute('data-lang-pick')); } catch (e) {}
+    });
+  });
+
+  var stored = null;
+  try { stored = localStorage.getItem(KEY); } catch (e) {}
+  if (stored) return;                                   // the user has decided
+  try { if (sessionStorage.getItem(KEY + '.tried')) return; } catch (e) {}
+
+  // Only on the deployed site: a file:// or preview open has no /ko/ to reach,
+  // and a failed replace() would stop the rest of this script.
+  if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+  var path = location.pathname;
+  // Never from inside /ko/ — /ko/index.html would otherwise match the root test
+  // below and redirect the Korean page to itself.
+  if (path.indexOf('/ko/') === 0) return;
+  if (path !== '/' && !/\/index\.html$/.test(path)) return;
+
+  var prefers = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+  if (!/^ko\b/i.test(prefers)) return;                  // English page is already right
+
+  try { sessionStorage.setItem(KEY + '.tried', '1'); } catch (e) {}
+  location.replace('/ko/');
+})();
+
+// The hero demonstration. A visitor who reads only the headline still sees the
+// product do its one job: sixty-four messages arrive, four of them are yours.
+(function () {
+  var stage = document.getElementById('dm-stage');
+  if (!stage) return;
+  var mails = [
+    ['Sarah Kim', 'Re: Contract review — needs your sign-off today', 'push'],
+    ['AWS Billing', 'Your July invoice is ready', 'silent'],
+    ['Alex Carter', 'Standup moved to 10:30', 'push'],
+    ['Product Hunt', 'Today in tech: 12 new launches', 'silent'],
+    ['Jordan Lee', 'Revised dashboard specs', 'queue'],
+    ['Calendar', 'Invitation accepted by 3 people', 'auto'],
+    ['billing@vendor.io', 'Invoice #4821 is overdue', 'push'],
+    ['Morning Brew', 'The 5 things you need to know', 'silent'],
+    ['Casey Park', 'Onboarding flow ideas', 'queue'],
+    ['Stripe', 'Payment receipt', 'auto']
+  ];
+  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
+  var cells = {};
+  document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
+    cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
+  });
+  var doneEl = document.getElementById('dm-done');
+  var stateEl = document.getElementById('dm-state');
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Reduced motion gets the answer, not the animation.
+  if (reduce) {
+    Object.keys(totals).forEach(function (k) { cells[k].num.textContent = totals[k]; });
+    doneEl.textContent = '64';
+    stateEl.textContent = 'sorted';
+    return;
+  }
+
+  var i = 0, shown = 0;
+  function step() {
+    var m = mails[i % mails.length];
+    var el = document.createElement('div');
+    el.className = 'mail run';
+    el.innerHTML = '<span class="from"></span><span class="subj"></span>';
+    el.firstChild.textContent = m[0];
+    el.lastChild.textContent = m[1];
+    // One chip at a time: the slot is a single absolute position, so a
+    // second arrival before the first leaves lands on top of it.
+    stage.replaceChildren(el);
+    setTimeout(function () { el.remove(); }, 1050);
+
+    setTimeout(function () {
+      var c = cells[m[2]];
+      c.box.classList.add('hit');
+      setTimeout(function () { c.box.classList.remove('hit'); }, 480);
+      // Walk each tier toward its real total rather than counting one at a time,
+      // so the numbers land on the figures the eval actually produced.
+      var target = totals[m[2]];
+      var stepSize = Math.max(1, Math.round(target / 6));
+      c.n = Math.min(target, c.n + stepSize);
+      c.num.textContent = c.n;
+      shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
+      doneEl.textContent = shown;
+      if (shown >= 64) {
+        stateEl.textContent = 'sorted';
+        // Hold the finished board, then run the morning again. A demo that
+        // stops dead reads as broken to anyone who scrolls back to it.
+        setTimeout(function () {
+          Object.keys(cells).forEach(function (k) { cells[k].n = 0; cells[k].num.textContent = 0; });
+          shown = 0; doneEl.textContent = 0;
+          stateEl.textContent = 'running';
+          setTimeout(step, 700);
+        }, 2600);
+      }
+    }, 560);
+
+    i++;
+    if (shown < 64) setTimeout(step, 1120);
+  }
+  // Only run once the strip is actually on screen.
+  new IntersectionObserver(function (es, ob) {
+    if (es[0].isIntersecting) { ob.disconnect(); step(); }
+  }, { threshold: .4 }).observe(stage);
+})();
+
+// The playable replica. A screenshot proves the app exists; it does not let
+// anyone find out whether they'd like using it. Everything here responds:
+// switch tiers, open a message, read why it was ranked, draft a reply from the
+// three one-key options, send it, or move it to another tier and watch the
+// counts follow. No network, no data leaves the page.
+(function () {
+  var root = document.getElementById('play');
+  if (!root) return;
+
+  var TIERS = [
+    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: 'Interrupts you now' },
+    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: 'Read it today' },
+    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: 'Filed, not deleted' },
+    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: 'Handled without you' }
+  ];
+  var mail = [
+    { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
+      why: 'You replied to this sender 6 times',
+      sum: 'Legal returned two changes to clause 4 and needs your sign-off before 17:00 so the counterparty can countersign today.',
+      body: 'Hi,\n\nLegal came back with two changes on clause 4 — the indemnity cap and the notice period. Both are minor but they need your sign-off before 17:00 today.\n\nI have attached the redline.\n\nBest,\nSarah',
+      r: ['Confirming — the redline looks fine on both points. Signing before 17:00.',
+          "I can't get to this before 17:00 today. Can we move the countersign to tomorrow morning?",
+          'Before I sign — is the indemnity cap the number we agreed last week, or has it moved?'] },
+    { id: 2, t: 'push', from: 'billing@vendor.io', subj: 'Invoice #4821 is overdue',
+      why: 'Payment due today',
+      sum: 'Invoice #4821 was due on 26 July and is now three days overdue.',
+      body: 'Your invoice #4821 for $2,400 was due on 26 July.\n\nPlease arrange payment at your earliest convenience.',
+      r: ['Paying this today — apologies for the delay.',
+          'This one is disputed; our team will follow up separately this week.',
+          'Can you resend the invoice with the PO number on it?'] },
+    { id: 3, t: 'push', from: 'Alex Carter', subj: 'Standup moved to 10:30',
+      why: 'Calendar conflict',
+      sum: 'Tomorrow’s standup moves to 10:30, which overlaps your 10:15 review.',
+      body: 'Moved tomorrow\'s standup to 10:30.\n\nDoes that still work for you?',
+      r: ['10:30 works for me.', 'I have a review then — could we do 11:00 instead?',
+          'That overlaps my 10:15 review. Any chance we start 15 minutes earlier?'] },
+    { id: 4, t: 'queue', from: 'Jordan Lee', subj: 'Revised dashboard specs',
+      why: 'No deadline mentioned',
+      sum: 'Updated specs for the reporting dashboard, sent for review when you have time.',
+      body: 'Attached the revised specs — mostly layout changes on the reporting view.\n\nNo rush.',
+      r: ['Got it, will read this week.', 'Passing this to the design review instead of reading it myself.',
+          'Which section changed most? I will start there.'] },
+    { id: 5, t: 'queue', from: 'Casey Park', subj: 'Onboarding flow ideas',
+      why: 'Ongoing thread, no ask',
+      sum: 'Three suggestions for the first-run flow, no decision requested yet.',
+      body: 'A few ideas after watching the last two onboarding sessions.\n\nHappy to talk them through.',
+      r: ['These look worth trying — let us talk Thursday.', 'Parking this until after the beta.',
+          'Which of the three would you ship first?'] },
+    { id: 6, t: 'silent', from: 'Morning Brew', subj: 'The 5 things you need to know',
+      why: 'Newsletter, never replied to',
+      sum: 'Daily newsletter.',
+      body: 'Today in business...', r: null },
+    { id: 7, t: 'silent', from: 'AWS Billing', subj: 'Your July invoice is ready',
+      why: 'Automated receipt',
+      sum: 'Monthly infrastructure invoice, no action needed.',
+      body: 'Your invoice is available in the billing console.', r: null },
+    { id: 8, t: 'auto', from: 'Calendar', subj: 'Invitation accepted by 3 people',
+      why: 'Klorn filed this without asking',
+      sum: 'Three attendees accepted the Thursday review.',
+      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null }
+  ];
+  var TONE = ['Accept', 'Decline', 'Ask'];
+
+  var cur = 'push', open = null, replying = false, draft = null, sent = false;
+  var elT = document.getElementById('pl-tiers');
+  var elR = document.getElementById('pl-rows');
+  var elRead = document.getElementById('pl-read');
+
+  function count(t) { return mail.filter(function (m) { return m.t === t; }).length; }
+  function tier(id) { return TIERS.filter(function (x) { return x.id === id; })[0]; }
+  function esc(v) { return String(v).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function renderTiers() {
+    elT.innerHTML = TIERS.map(function (t) {
+      return '<button class="pl-t" data-tier="' + t.id + '" aria-pressed="' + (t.id === cur) + '">' +
+        '<span class="dt" style="background:' + t.c + '"></span>' + t.name +
+        '<span class="cn">' + count(t.id) + '</span></button>';
+    }).join('');
+  }
+  function renderList() {
+    var t = tier(cur), rows = mail.filter(function (m) { return m.t === cur; });
+    document.getElementById('pl-hdot').style.background = t.c;
+    document.getElementById('pl-hname').textContent = t.name;
+    document.getElementById('pl-hcount').textContent = t.blurb;
+    elR.innerHTML = rows.length ? rows.map(function (m) {
+      return '<button class="pl-r" data-id="' + m.id + '" aria-current="' + (open === m.id) + '">' +
+        '<span class="fr">' + esc(m.from) + '</span>' +
+        '<span class="sj">' + esc(m.subj) + '</span>' +
+        '<span class="rs">' + esc(m.why) + '</span></button>';
+    }).join('') : '<p class="pl-empty">Nothing in ' + t.name + '. ' + t.blurb + '.</p>';
+  }
+  function renderRead() {
+    var m = mail.filter(function (x) { return x.id === open; })[0];
+    if (!m) {
+      elRead.innerHTML = '<p class="pl-empty">Pick a message on the left.<br>Everything here responds.</p>';
+      return;
     }
+    var opts = m.r && replying && draft === null
+      ? '<div class="pl-opts">' + m.r.map(function (txt, i) {
+          return '<button class="pl-opt" data-draft="' + i + '"><kbd>' + (i + 1) + '</kbd>' +
+            '<span><b>' + TONE[i] + '</b>' + esc(txt) + '</span></button>'; }).join('') + '</div>'
+      : (m.r && draft === null
+          ? '<p class="pl-hint">Hit <b>Reply with AI</b> — or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> — ' +
+            'for three drafts in your tone.</p>'
+          : '');
+    var comp = draft !== null
+      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="Reply draft">' + esc(m.r[draft]) + '</textarea>' +
+        '<div class="row">' + (sent ? '<span class="pl-sent">Sent · receipt logged</span>' : '') +
+        '<button class="pl-b" data-cancel>Cancel</button>' +
+        '<button class="pl-b on" data-send>' + (sent ? 'Sent' : 'Send') + '</button></div></div>'
+      : '';
+    var others = TIERS.filter(function (t) { return t.id !== m.t; });
+    elRead.innerHTML =
+      '<div class="pl-top"><div class="pl-sub">' + esc(m.subj) + '</div>' +
+      '<div class="pl-from">' + esc(m.from) + '</div>' +
+      '<div class="pl-acts">' +
+        (m.r ? '<button class="pl-b on" data-reply>Reply with AI</button>' : '') +
+        others.map(function (t) {
+          return '<button class="pl-b" data-move="' + t.id + '">Move to ' + t.name + '</button>'; }).join('') +
+      '</div></div>' +
+      // Drafts sit directly under the action row, not after the body — at the
+      // bottom they fall below the panel's fold and "Reply with AI" reads as a
+      // dead button on a short screen.
+      opts + comp +
+      '<div class="pl-why"><span class="w">Why ' + tier(m.t).name + ' · ' + esc(m.why) + '</span>' +
+      '<div class="sm">' + esc(m.sum) + '</div></div>' +
+      '<div class="pl-body">' + esc(m.body) + '</div>';
+  }
+  function draw() { renderTiers(); renderList(); renderRead(); }
+  function reset() { replying = false; draft = null; sent = false; }
 
-    // Video hygiene: no video auto-plays for reduced-motion users (controls
-    // stay available for manual play), and the brand film only runs while
-    // it is actually on screen.
-    if (reduceMotion) {
-      document.querySelectorAll('video[autoplay]').forEach((video) => {
-        video.removeAttribute('autoplay');
-        video.pause();
-      });
-    } else {
-      const filmObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          const video = entry.target;
-          if (entry.isIntersecting) {
-            video.play().catch(() => {});
-          } else {
-            video.pause();
-          }
-        });
-      }, { threshold: 0.35 });
-      document.querySelectorAll('video[data-inview-play]').forEach((video) => filmObserver.observe(video));
+  root.addEventListener('click', function (ev) {
+    var b = ev.target.closest('button');
+    if (!b) return;
+    if (b.dataset.tier) { cur = b.dataset.tier; open = null; reset(); return draw(); }
+    if (b.dataset.id) { open = +b.dataset.id; reset(); return draw(); }
+    if (b.hasAttribute('data-reply')) { replying = true; draft = null; sent = false; return renderRead(); }
+    // dataset.draft is "0" for the first option — a truthiness check would make
+    // Accept the one unclickable draft.
+    if (b.dataset.draft !== undefined) { draft = +b.dataset.draft; sent = false; return renderRead(); }
+    if (b.hasAttribute('data-cancel')) { replying = false; draft = null; sent = false; return renderRead(); }
+    if (b.hasAttribute('data-send')) { sent = true; return renderRead(); }
+    if (b.dataset.move) {
+      var m = mail.filter(function (x) { return x.id === open; })[0];
+      if (m) { m.t = b.dataset.move; m.why = 'Moved by you — Klorn learns from this'; }
+      open = null; reset(); return draw();
     }
+  });
+  // 1/2/3 pick a draft, matching the app's key bindings.
+  root.addEventListener('keydown', function (ev) {
+    if (!open || draft !== null) return;
+    var i = ['1', '2', '3'].indexOf(ev.key);
+    var m = mail.filter(function (x) { return x.id === open; })[0];
+    if (i > -1 && m && m.r) { replying = true; draft = i; sent = false; renderRead(); }
+  });
 
-    // ── Hero live classifier — calls the real /api/playground/classify ──
-    const IS_LOCAL = /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname) || location.hostname === '';
-    const CLASSIFY_URL = IS_LOCAL
-      ? 'http://localhost:3001/api/playground/classify'
-      : 'https://app.klorn.ai/api/playground/classify';
-    const kfEl = (id) => document.getElementById(id);
-    const kfRun = kfEl('kf-run');
-
-    if (kfRun) {
-      const kfProvider = kfEl('kf-provider');
-      const kfKey = kfEl('kf-key');
-      const kfModel = kfEl('kf-model');
-      const kfFrom = kfEl('kf-from');
-      const kfSubject = kfEl('kf-subject');
-      const kfSnippet = kfEl('kf-snippet');
-      const kfBadge = kfEl('kf-badge');
-      const kfDesc = kfEl('kf-desc');
-      const kfReason = kfEl('kf-reason');
-      const kfFeatures = kfEl('kf-features');
-
-      const TIER_DESC = {
-        PUSH: 'Time-sensitive and high-stakes — Klorn surfaces this the moment it lands.',
-        QUEUE: 'Worth a look, not urgent — batched into the decision queue.',
-        SILENT: 'Noise or an FYI — filed quietly so it never interrupts you.',
-        AUTO: 'Routine and low-risk — pre-handled for you, still staged for approval.',
-      };
-
-      const PRESETS = [
-        { name: 'Investor ask', from: 'Mina Kim <mina@sequoia.com>', subject: 'Revised metrics before tomorrow 3pm?', snippet: "Can you send the updated ARR and burn before our partner call tomorrow at 3? Need it to finalize the memo." },
-        { name: 'Newsletter', from: 'Morning Brew <crew@morningbrew.com>', subject: '☕ Nvidia earnings, and a $2 coffee war', snippet: 'Your daily roundup of business news. Unsubscribe anytime.' },
-        { name: 'Deploy failed', from: 'Vercel <notifications@vercel.com>', subject: 'Deployment to production failed', snippet: 'Build error in api route. Review env vars and redeploy.' },
-        { name: 'Receipt', from: 'Stripe <receipts@stripe.com>', subject: 'Your invoice #4021 was paid', snippet: 'No action needed. View invoice in your dashboard.' },
-      ];
-
-      const presetsWrap = kfEl('kf-presets');
-      PRESETS.forEach((p) => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'klassify-preset';
-        b.textContent = p.name;
-        b.addEventListener('click', () => {
-          kfFrom.value = p.from;
-          kfSubject.value = p.subject;
-          kfSnippet.value = p.snippet;
-        });
-        presetsWrap.appendChild(b);
-      });
-      kfFrom.value = PRESETS[0].from;
-      kfSubject.value = PRESETS[0].subject;
-      kfSnippet.value = PRESETS[0].snippet;
-
-      try {
-        const savedProvider = localStorage.getItem('klorn_pg_provider');
-        const savedModel = localStorage.getItem('klorn_pg_model');
-        if (savedProvider) kfProvider.value = savedProvider;
-        if (savedModel) kfModel.value = savedModel;
-      } catch (_) { /* storage blocked — fine */ }
-
-      const setBadge = (tier, text) => {
-        kfBadge.dataset.tier = tier || '';
-        kfBadge.textContent = text;
-      };
-
-      const renderFeatures = (features) => {
-        if (!features) { kfFeatures.innerHTML = ''; return; }
-        const order = ['urgency', 'senderTrust', 'reversibility', 'confidence'];
-        kfFeatures.innerHTML = order
-          .filter((k) => typeof features[k] === 'number')
-          .map((k) => {
-            const pct = Math.round(Math.max(0, Math.min(1, features[k])) * 100);
-            const label = k.replace(/([A-Z])/g, ' $1');
-            return `<div class="klassify-feature">
-              <span class="kf-label">${label}</span>
-              <span class="kf-bar"><span style="width:${pct}%"></span></span>
-              <span class="kf-val">${(features[k]).toFixed(2)}</span>
-            </div>`;
-          })
-          .join('');
-      };
-
-      const showError = (msg) => {
-        setBadge('', 'ERROR');
-        kfDesc.innerHTML = `<span class="klassify-error">${msg}</span>`;
-        kfReason.textContent = '';
-        renderFeatures(null);
-      };
-
-      const classify = async () => {
-        const provider = kfProvider.value;
-        const apiKey = kfKey.value.trim();
-        const from = kfFrom.value.trim();
-        const subject = kfSubject.value.trim();
-        const snippet = kfSnippet.value.trim();
-        const model = kfModel.value.trim();
-
-        // No key is fine: the request goes key-free first (server-paid demo);
-        // if the server answers key_required / demo_*, we fall back to the key UI.
-        if (!from || !subject) { showError('Fill in at least a From address and a Subject.'); return; }
-
-        try {
-          localStorage.setItem('klorn_pg_provider', provider);
-          if (model) localStorage.setItem('klorn_pg_model', model);
-        } catch (_) { /* ignore */ }
-
-        kfRun.disabled = true;
-        kfRun.textContent = 'Classifying…';
-        setBadge('', '···');
-        kfDesc.textContent = 'Running the model on your email…';
-        kfReason.textContent = '';
-        renderFeatures(null);
-
-        const body = apiKey ? { from, subject, provider, apiKey } : { from, subject };
-        if (snippet) body.snippet = snippet;
-        if (apiKey && model) body.model = model;
-
-        try {
-          const res = await fetch(CLASSIFY_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-          });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            if (!apiKey && (res.status === 401 || data.error === 'key_required')) {
-              showError('The key-free demo isn\'t open right now — add your own API key to run the classifier.');
-              kfKey.focus();
-              return;
-            }
-            if (!apiKey && data.error === 'demo_budget_exhausted') {
-              showError('Today\'s free demo budget is used up — add your own API key to keep classifying.');
-              kfKey.focus();
-              return;
-            }
-            if (!apiKey && res.status === 429) {
-              showError('Demo limit reached (3/min, 10/day per visitor) — wait a moment or add your own API key.');
-              kfKey.focus();
-              return;
-            }
-            let msg = data.error || `Request failed (${res.status}).`;
-            if (res.status === 429) msg = 'Rate limit hit (8/min). Wait a moment and try again.';
-            if (data.detail) msg += ` — ${data.detail}`;
-            showError(msg);
-            return;
-          }
-          const tier = data.tier;
-          setBadge(tier, tier);
-          kfDesc.textContent = TIER_DESC[tier] || '';
-          kfReason.textContent = data.reason || '';
-          renderFeatures(data.features);
-        } catch (err) {
-          showError('Couldn\'t reach the classifier. If you\'re the site owner, add this origin to the API\'s CORS_ORIGINS. Otherwise check your connection and retry.');
-        } finally {
-          kfRun.disabled = false;
-          kfRun.textContent = 'Classify this email';
-        }
-      };
-
-      kfRun.addEventListener('click', classify);
-    }
-
-    // ── Decision card: Approve / Edit first / Hold actually respond ──
-    const decisionCard = document.querySelector('.decision-card');
-    if (decisionCard) {
-      const pill = decisionCard.querySelector('.approval-pill');
-      const actions = decisionCard.querySelectorAll('.act-btn');
-      const pillDefault = pill ? pill.textContent : '';
-      actions.forEach((btn) => {
-        btn.addEventListener('click', () => {
-          if (!pill) return;
-          if (btn.classList.contains('primary')) {
-            pill.textContent = 'Approved ✓';
-            pill.classList.add('is-approved');
-          } else if (btn.classList.contains('plain')) {
-            pill.textContent = 'On hold';
-            pill.classList.remove('is-approved');
-          } else {
-            pill.textContent = 'Editing…';
-            pill.classList.remove('is-approved');
-          }
-          actions.forEach((b) => b.classList.toggle('is-selected', b === btn));
-          clearTimeout(decisionCard._resetTimer);
-          decisionCard._resetTimer = setTimeout(() => {
-            pill.textContent = pillDefault;
-            pill.classList.remove('is-approved');
-            actions.forEach((b) => b.classList.remove('is-selected'));
-          }, 2600);
-        });
-      });
-    }
-
-    fetch('https://api.github.com/repos/k08200/klorn')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((repo) => {
-        if (!repo || typeof repo.stargazers_count !== 'number') return;
-        const count = repo.stargazers_count;
-        const label = count >= 1000 ? (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(count);
-        document.querySelectorAll('[data-gh-stars]').forEach((el) => {
-          el.textContent = '★ ' + label;
-        });
-      })
-      .catch(() => {});
-  </script>
+  open = 1;
+  draw();
+})();
+</script>
 </body>
 </html>

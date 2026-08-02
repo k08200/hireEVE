@@ -29,6 +29,38 @@ final class AppModel {
     /// Drives the Preferences overlay in the full view.
     var showPreferences = false
 
+    /// Drives the tier explainer. Set on first run and by the sidebar's
+    /// "How sorting works", which is what keeps it re-readable.
+    var showTierGuide = false
+
+    /// Close the guide and remember it was seen. Dismissing IS the
+    /// acknowledgement — a separate "don't show again" would be a second
+    /// decision about a screen the user has already finished with.
+    func dismissTierGuide() {
+        showTierGuide = false
+        GuideSeen.value = true
+    }
+
+    /// Offer the guide once, after sign-in has actually produced a mailbox to
+    /// explain. Called when the full view appears.
+    func presentTierGuideIfFirstRun() {
+        if GuideSeen.shouldPresent(seen: GuideSeen.value, signedIn: phase == .signedIn) {
+            showTierGuide = true
+        }
+    }
+
+    /// What the full view's list column shows. Model state rather than view
+    /// state so any surface can open the full view already pointed at the right
+    /// thing — a tier count in the compact panel, or an urgent-mail card.
+    var listMode: ListMode = .tier(.push)
+
+    /// Open the full view on `tier`, and clear any reading-pane selection so the
+    /// pane doesn't keep showing a message from the tier the user just left.
+    func showTier(_ tier: Tier) {
+        listMode = .tier(tier)
+        clearSelection()
+    }
+
     // Reading pane (full view): the selected row + its loaded email content.
     private(set) var selectedItemId: String?
     private(set) var openedEmail: EmailDetail?
@@ -108,6 +140,17 @@ final class AppModel {
         } catch {
             Log.app.debug("inboxes fetch failed: \(String(describing: error), privacy: .private)")
         }
+    }
+
+    /// Populate the model from fixture JSON for the offscreen preview renderer
+    /// (`--render-previews`). Lives here because the state it fills is
+    /// `private(set)`; nothing in the running app calls it, and it performs no
+    /// network or disk I/O.
+    func seedForPreview(firewallJSON: String, emailJSON: String, selectedItemId: String?) {
+        phase = .signedIn
+        queue = try? JSONDecoder().decode(FirewallResponse.self, from: Data(firewallJSON.utf8))
+        openedEmail = try? JSONDecoder().decode(EmailDetail.self, from: Data(emailJSON.utf8))
+        self.selectedItemId = selectedItemId
     }
 
     /// Kick off the headless lifecycle at app launch. With no window driving it,
@@ -206,7 +249,7 @@ final class AppModel {
     /// its Pro hint instead of an error.
     func fetchReplyOptions(_ item: FirewallItem) async -> ReplyOptionsFetch {
         guard let emailDbId = item.email?.emailDbId else {
-            return .failed("Quick replies only work for email items.")
+            return .failed(L("reply.emailOnly"))
         }
         do {
             let options: ReplyOptionsResponse = try await api.post(
@@ -214,7 +257,7 @@ final class AppModel {
             return .ready(options)
         } catch APIError.unauthorized {
             signOut()
-            return .failed("Session expired. Please sign in again.")
+            return .failed(L("error.sessionExpired"))
         } catch APIError.forbidden {
             return .needsPro
         } catch {
@@ -245,15 +288,15 @@ final class AppModel {
     func sendReply(_ item: FirewallItem, body: String) async -> String? {
         guard let emailDbId = item.email?.emailDbId,
               !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else { return "Nothing to send." }
+        else { return L("reply.nothingToSend") }
         do {
             try await api.post("/api/email/\(emailDbId)/reply", json: ["body": body])
             return nil
         } catch APIError.unauthorized {
             signOut()
-            return "Session expired. Please sign in again."
+            return L("error.sessionExpired")
         } catch APIError.forbidden {
-            return "Replying from the app needs Klorn Pro."
+            return L("reply.needsPro")
         } catch {
             return Self.describe(error)
         }
@@ -317,7 +360,7 @@ final class AppModel {
     /// Today's autonomous-agent receipt (nil until first load). Best-effort.
     private(set) var agentToday: TodayActions?
 
-    private func refreshAgentToday() async {
+    func refreshAgentToday() async {
         do {
             agentToday = try await api.get(
                 "/api/automations/today-actions", as: TodayActions.self)
@@ -646,6 +689,108 @@ final class AppModel {
         }
     }
 
+    // MARK: Automation settings (server-owned behaviour)
+
+    /// Server-side behaviour settings shown in Preferences. Seeded with the
+    /// server's own defaults so the panel opens on the right shape; the first
+    /// fetch replaces it. `nil`-free by design — an unreachable server should
+    /// show the defaults with a save error, not an empty panel.
+    private(set) var automation = AutomationSettings()
+    private(set) var automationLoaded = false
+    private(set) var automationSaving = false
+    private(set) var automationError: String?
+
+    /// Refreshed on the queue cadence: System Settings is not the only writer —
+    /// the web settings screen can change these behind the desktop app's back.
+    private func refreshAutomation() async {
+        do {
+            automation = try await api.fetchAutomationSettings()
+            automationLoaded = true
+            automationError = nil
+        } catch {
+            Log.app.debug("automation fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Apply a settings change: paint it immediately, persist, then settle on
+    /// what the server stored. A failed write reverts to the last known-good
+    /// value rather than leaving the UI asserting a setting that isn't saved.
+    func updateAutomation(_ change: (inout AutomationSettings) -> Void) {
+        let previous = automation
+        var next = automation
+        change(&next)
+        guard next != previous else { return }
+        automation = next
+        automationSaving = true
+        automationError = nil
+        Task {
+            do {
+                automation = try await api.updateAutomationSettings(next)
+                automationLoaded = true
+            } catch {
+                automation = previous
+                automationError = Self.automationErrorText(error)
+                Log.app.debug("automation save failed: \(String(describing: error), privacy: .private)")
+            }
+            automationSaving = false
+        }
+    }
+
+    private static func automationErrorText(_ error: Error) -> String {
+        switch error {
+        case APIError.unauthorized: return L("auto.error.unauthorized")
+        case APIError.forbidden: return L("auto.error.forbidden")
+        case APIError.transport: return L("auto.error.offline")
+        default: return L("auto.error.generic")
+        }
+    }
+
+    // MARK: Agent proposals
+
+    /// Actions Klorn is waiting on approval for. Until now these could only be
+    /// approved on the web, which is why the agent's daily receipt linked out.
+    private(set) var pendingActions: [PendingActionsResponse.Action] = []
+    private(set) var pendingActionError: String?
+    /// Ids currently being approved/rejected — the row disables so a double
+    /// click can't fire the action twice.
+    private(set) var resolvingActions: Set<String> = []
+
+    private func refreshPendingActions() async {
+        do {
+            let resp: PendingActionsResponse = try await api.get(
+                "/api/chat/pending-actions", as: PendingActionsResponse.self)
+            pendingActions = resp.actions
+            pendingActionError = nil
+        } catch {
+            Log.app.debug("pending actions fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Approve or reject a proposal. The row is removed optimistically — the
+    /// user has decided, and leaving it on screen invites a second click — and
+    /// restored if the server refuses.
+    func resolvePendingAction(_ action: PendingActionsResponse.Action, approve: Bool) {
+        guard !resolvingActions.contains(action.id) else { return }
+        let previous = pendingActions
+        resolvingActions.insert(action.id)
+        pendingActions.removeAll { $0.id == action.id }
+        pendingActionError = nil
+        Task {
+            do {
+                try await api.post(
+                    "/api/chat/pending-actions/\(action.id)/\(approve ? "approve" : "reject")")
+                // The agent receipt counts this action too, so refresh both.
+                await refreshAgentToday()
+                await refreshPendingActions()
+            } catch {
+                pendingActions = previous
+                pendingActionError = Self.automationErrorText(error)
+                Log.app.debug("pending action resolve failed: \(String(describing: error), privacy: .private)")
+            }
+            resolvingActions.remove(action.id)
+        }
+    }
+
     /// GET /api/calendar/:id/prep-pack for the meeting card. Best-effort.
     func fetchPrepPack(eventId: String) async -> MeetingPrepPack? {
         do {
@@ -668,6 +813,8 @@ final class AppModel {
         Task { await refreshBriefing() }
         Task { await refreshCommitments() }
         Task { await refreshAgentToday() }
+        Task { await refreshAutomation() }
+        Task { await refreshPendingActions() }
         Task { await checkForUpdateIfDue() }
         do {
             let selectionAtFetch = selectedInbox
@@ -762,10 +909,10 @@ final class AppModel {
         switch error {
         case APIError.http(let code, let msg): return msg ?? "Server error (\(code))."
         case APIError.transport: return "Network error — check your connection."
-        case APIError.decoding: return "Unexpected response from the server."
-        case APIError.unauthorized: return "Session expired. Please sign in again."
-        case APIError.forbidden: return "This action needs Klorn Pro."
-        default: return "Something went wrong."
+        case APIError.decoding: return L("error.badResponse")
+        case APIError.unauthorized: return L("error.sessionExpired")
+        case APIError.forbidden: return L("error.needsPro")
+        default: return L("error.generic")
         }
     }
 }

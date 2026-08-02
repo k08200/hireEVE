@@ -35,7 +35,10 @@ enum Theme {
 
     /// The web engagement graph's "you engage with this sender" pink — reused by
     /// the reading pane's learned-engagement chip so desktop matches the web signal.
-    static let engage = Color(red: 0.96, green: 0.45, blue: 0.71)
+    /// Muted from the web graph's hot pink: at full saturation it outshouts the
+    /// PUSH dot, and a learned-affinity hint must never look more urgent than
+    /// urgency itself. Still ≥4.5:1 on the panel.
+    static let engage = Color(red: 0.776, green: 0.302, blue: 0.549)
 
     /// Per-tier signal palette — semantic hues kept from the dark system, with
     /// QUEUE/AUTO nudged darker so the dots stay perceivable on the white
@@ -81,6 +84,9 @@ enum Theme {
     /// Selection speaks in the accent — tinted fill (the accent bar still
     /// carries the hard edge, so selection is never color-alone).
     static let surfaceSelected = accent.opacity(0.12)
+
+    /// True only while `--render-previews` is drawing. See GlassPanel.
+    nonisolated(unsafe) static var isRenderingOffscreen = false
 
     // MARK: Spacing (4pt grid)
     // s2/s3 within a control, s4 between controls, s6 between sections.
@@ -154,7 +160,15 @@ struct GlassPanel: ViewModifier {
         content
             .background {
                 ZStack {
-                    GlassMaterial(cornerRadius: cornerRadius)
+                    // ImageRenderer cannot draw an NSViewRepresentable — it emits a
+                    // placeholder that swamps the whole surface — so the offscreen
+                    // design renderer substitutes a flat stand-in for the blur.
+                    // Runtime behaviour is untouched.
+                    if Theme.isRenderingOffscreen {
+                        Rectangle().fill(Theme.bg)
+                    } else {
+                        GlassMaterial(cornerRadius: cornerRadius)
+                    }
                     Theme.panelGradient(
                         opacity: Theme.glassTintOpacity(reduceTransparency: reduceTransparency))
                     LinearGradient(
@@ -221,13 +235,13 @@ struct PrimaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
             .background(
                 LinearGradient(
                     colors: [Theme.accent, Theme.accentDeep],
                     startPoint: .top, endPoint: .bottom),
-                in: RoundedRectangle(cornerRadius: 7))
+                in: Capsule())
             .shadow(color: Theme.accent.opacity(isEnabled ? 0.35 : 0), radius: 6, y: 2)
             .opacity(isEnabled ? (configuration.isPressed ? 0.82 : 1.0) : 0.45)
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
@@ -295,7 +309,7 @@ struct FirewallRow: View {
             }
             Spacer()
             if item.hashStale == true {
-                Text("re-classifying").font(.caption2).foregroundStyle(.orange)
+                Text(L("mail.reclassifying")).font(.caption2).foregroundStyle(.orange)
             }
         }
         .padding(.vertical, 4)

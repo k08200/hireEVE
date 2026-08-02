@@ -76,16 +76,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         // The icon only exists while the pill is hidden, so this is always "Show".
-        menu.addItem(actionItem("Show top bar", #selector(showBar)))
-        menu.addItem(actionItem("Open web inbox", #selector(openWeb)))
-        menu.addItem(actionItem("Preferences…", #selector(openPreferences)))
+        menu.addItem(actionItem(L("menu.showBar"), #selector(showBar)))
+        menu.addItem(actionItem(L("menu.preferences"), #selector(openPreferences)))
         menu.addItem(.separator())
         if model.phase == .signedIn {
-            menu.addItem(actionItem("Sign out", #selector(signOut)))
+            menu.addItem(actionItem(L("prefs.account.signOut"), #selector(signOut)))
         } else {
-            menu.addItem(actionItem("Sign in…", #selector(signIn)))
+            menu.addItem(actionItem(L("menu.signIn"), #selector(signIn)))
         }
-        menu.addItem(actionItem("Quit Klorn", #selector(quit), key: "q"))
+        menu.addItem(actionItem(L("menu.quit"), #selector(quit), key: "q"))
     }
 
     private func actionItem(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
@@ -131,8 +130,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     nonisolated static func statusLine(signedIn: Bool, pushCount: Int) -> String {
-        guard signedIn else { return "Klorn — not signed in" }
-        return pushCount == 0 ? "Klorn — no urgent mail" : "Klorn — \(pushCount) PUSH waiting"
+        guard signedIn else { return L("bar.menuBar.signedOut") }
+        return pushCount == 0 ? L("bar.menuBar.clear") : L("bar.menuBar.push", pushCount)
     }
 
     // MARK: - Actions
@@ -140,10 +139,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func showBar() {
         model.settings.pillVisible = true  // observation removes the icon
         topBar.refresh()
-    }
-
-    @objc private func openWeb() {
-        if let url = URL(string: Config.webBaseURL) { NSWorkspace.shared.open(url) }
     }
 
     @objc private func openPreferences() {

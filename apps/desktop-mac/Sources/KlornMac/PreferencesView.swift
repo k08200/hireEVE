@@ -17,34 +17,56 @@ struct PreferencesView: View {
     @State private var recordingShortcut = false
 
     var body: some View {
-        // Local @Bindable so the Toggle can write into the nested settings object.
-        @Bindable var settings = model.settings
-
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Preferences").font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                Text(L("prefs.title")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
                 Spacer()
                 // Amber, not system blue — the sheet's one primary action
                 // speaks in the brand accent like every other primary.
-                Button("Done") { model.showPreferences = false }
+                Button(L("prefs.done")) { model.showPreferences = false }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(PrimaryButtonStyle())
             }
             .padding(.bottom, 12)
 
-            section("NOTIFICATIONS") {
+            // Pinned header, scrolling body: the behaviour sections push the
+            // panel past the 860pt full view, and Done must stay reachable
+            // without scrolling to the bottom first.
+            ScrollView { sections }
+                .frame(maxHeight: 620)
+        }
+        .onAppear { launchAtLogin = LoginItem.isEnabled }
+        .padding(22)
+        .frame(width: 440)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
+        .shadow(color: Theme.panelShadow, radius: 24, y: 8)
+    }
+
+    @ViewBuilder
+    private var sections: some View {
+        @Bindable var settings = model.settings
+
+        VStack(alignment: .leading, spacing: 0) {
+            // Server-owned behaviour first: "what does Klorn do, and what is
+            // allowed to interrupt me" outranks local chrome like the hotkey.
+            if model.phase == .signedIn {
+                AutomationPreferences()
+            }
+
+            section(L("prefs.section.notifications")) {
                 Toggle(isOn: $settings.notificationsEnabled) {
-                    Text("Show a macOS notification for new PUSH").foregroundStyle(Theme.text)
+                    Text(L("prefs.banners")).foregroundStyle(Theme.text)
                 }
                 .toggleStyle(.switch).tint(Theme.accent)
-                Text("The top bar always updates its PUSH count — this only controls the system banner.")
+                Text(L("prefs.banners.detail"))
                     .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
             }
 
-            section("GENERAL") {
+            section(L("prefs.section.general")) {
                 if LoginItem.isAvailable {
                     Toggle(isOn: $launchAtLogin) {
-                        Text("Start Klorn at login").foregroundStyle(Theme.text)
+                        Text(L("prefs.launchAtLogin")).foregroundStyle(Theme.text)
                     }
                     .toggleStyle(.switch).tint(Theme.accent)
                     .onChange(of: launchAtLogin) { _, wanted in
@@ -61,26 +83,26 @@ struct PreferencesView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
-                    infoRow("Start at login", "Packaged app only")
+                    infoRow(L("prefs.launchAtLogin.unavailable.label"), L("prefs.launchAtLogin.unavailable.value"))
                 }
 
                 HStack {
-                    Text("Updates").font(.body).foregroundStyle(Theme.text)
+                    Text(L("prefs.updates")).font(.body).foregroundStyle(Theme.text)
                     Spacer()
                     switch updateOutcome {
                     case .updateAvailable(let version):
-                        Button("Get v\(version)") { UpdateCheck.openReleasePage() }
+                        Button(L("prefs.updates.get", version)) { UpdateCheck.openReleasePage() }
                             .buttonStyle(PrimaryButtonStyle())
                     case .upToDate:
-                        Text("Up to date (v\(AppInfo.version))")
+                        Text(L("prefs.updates.upToDate", AppInfo.version))
                             .font(.caption).foregroundStyle(Theme.textDim)
                     case .unknown:
-                        Text("Couldn't check — try the releases page")
+                        Text(L("prefs.updates.unknown"))
                             .font(.caption).foregroundStyle(Theme.textDim)
                     case nil:
                         EmptyView()
                     }
-                    Button(updateChecking ? "Checking…" : "Check for updates") {
+                    Button(updateChecking ? L("prefs.updates.checking") : L("prefs.updates.check")) {
                         updateChecking = true
                         Task {
                             updateOutcome = await UpdateCheck.run()
@@ -91,18 +113,18 @@ struct PreferencesView: View {
                 }
             }
 
-            section("TOP BAR") {
+            section(L("prefs.section.topBar")) {
                 Toggle(isOn: $settings.pillVisible) {
-                    Text("Always show the top bar").foregroundStyle(Theme.text)
+                    Text(L("prefs.pillVisible")).foregroundStyle(Theme.text)
                 }
                 .toggleStyle(.switch).tint(Theme.accent)
-                Text("Off: the bar stays hidden until ⌥⌘K summons it. Urgent-email cards still appear.")
+                Text(L("prefs.pillVisible.detail"))
                     .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
             }
 
-            section("KEYBOARD") {
+            section(L("prefs.section.keyboard")) {
                 HStack {
-                    Text("Summon / expand").font(.body).foregroundStyle(Theme.text)
+                    Text(L("prefs.shortcut")).font(.body).foregroundStyle(Theme.text)
                     Spacer()
                     ShortcutRecorder(
                         shortcut: model.settings.shortcut,
@@ -123,31 +145,43 @@ struct PreferencesView: View {
                         })
                 }
                 Text(recordingShortcut
-                     ? "Type a shortcut — must include ⌘, ⌥, or ⌃. Esc to cancel."
-                     : "Global shortcut to summon the bar. Click to change.")
+                     ? L("prefs.shortcut.recording")
+                     : L("prefs.shortcut.idle"))
                     .font(.caption).foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            section("ACCOUNT") {
-                infoRow("Status", model.phase == .signedIn ? "Signed in" : "Not signed in")
+            section(L("prefs.section.language")) {
+                HStack {
+                    Text(L("lang.label")).font(.body).foregroundStyle(Theme.text)
+                    Spacer()
+                    Picker(L("lang.label"), selection: $settings.appLanguage) {
+                        ForEach(AppLanguage.allCases, id: \.self) { language in
+                            Text(language.label).tag(language)
+                        }
+                    }
+                    .labelsHidden().pickerStyle(.menu).frame(width: 160)
+                    .accessibilityLabel(L("lang.label"))
+                }
+                Text(L("lang.detail"))
+                    .font(.caption).foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            section(L("prefs.section.account")) {
+                infoRow(L("prefs.account.status"),
+                        model.phase == .signedIn ? L("prefs.account.signedIn") : L("prefs.account.signedOut"))
                 if model.phase == .signedIn {
-                    Button("Sign out") { model.showPreferences = false; actions.onSignOut() }
+                    Button(L("prefs.account.signOut")) { model.showPreferences = false; actions.onSignOut() }
                         .buttonStyle(.bordered).controlSize(.small)
                 }
             }
 
-            section("ABOUT") {
-                infoRow("Version", AppInfo.version)
-                infoRow("API", Config.apiBaseURL)
+            section(L("prefs.section.about")) {
+                infoRow(L("prefs.about.version"), AppInfo.version)
+                infoRow(L("prefs.about.api"), Config.apiBaseURL)
             }
         }
-        .onAppear { launchAtLogin = LoginItem.isEnabled }
-        .padding(22)
-        .frame(width: 440)
-        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
-        .shadow(color: Theme.panelShadow, radius: 24, y: 8)
     }
 
     @ViewBuilder
@@ -170,7 +204,7 @@ struct PreferencesView: View {
                 .textSelection(.enabled).lineLimit(1).truncationMode(.middle)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label): \(value)")
+        .accessibilityLabel(L("prefs.infoRow.a11y", label, value))
     }
 }
 
@@ -189,20 +223,20 @@ private struct ShortcutRecorder: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Button(recording ? "Type shortcut…" : ShortcutFormat.display(shortcut)) {
+            Button(recording ? L("prefs.shortcut.typePrompt") : ShortcutFormat.display(shortcut)) {
                 onStartRecording()
             }
             .buttonStyle(.bordered).controlSize(.small)
             .tint(recording ? Theme.accent : nil)
             .frame(minWidth: 96)
-            .accessibilityLabel("Change summon shortcut, currently \(ShortcutFormat.display(shortcut))")
+            .accessibilityLabel(L("prefs.shortcut.change.a11y", ShortcutFormat.display(shortcut)))
 
             Button(action: onReset) {
                 Image(systemName: "arrow.uturn.backward").font(.caption)
             }
             .buttonStyle(.borderless).controlSize(.small)
-            .help("Reset to ⌥⌘K")
-            .accessibilityLabel("Reset shortcut to default")
+            .help(L("prefs.shortcut.reset.help"))
+            .accessibilityLabel(L("prefs.shortcut.reset.a11y"))
         }
         .onChange(of: recording) { _, isRecording in
             if isRecording { startCapture() } else { stopCapture() }

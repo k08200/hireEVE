@@ -28,7 +28,7 @@ func readinessLabel(_ readiness: String) -> String {
     switch readiness {
     case "ready": return "Ready"
     case "watch": return "Watch"
-    case "needs_review": return "Needs review"
+    case "needs_review": return L("meeting.needsReview")
     default: return "Prep"
     }
 }

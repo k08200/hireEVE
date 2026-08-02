@@ -130,22 +130,23 @@ func runSelfChecks() async -> Bool {
     // Engagement display logic — reply-count phrasing, learned-importance buckets,
     // clamping, and the color-independent accessibility label.
     check("engagement reply count (plural)",
-          engDetail?.engagement?.replyCountLabel == "You engage with this sender · replied 5 times")
+          engDetail?.engagement?.replyCountLabel == L("engagement.repliedTimes", 5))
     check("engagement reply count (singular)",
           EmailDetail.Engagement(outboundCount: 1, learnedImportance: 0.25).replyCountLabel
-              == "You engage with this sender · replied once")
+              == L("engagement.repliedOnce"))
     let saturated = EmailDetail.Engagement(outboundCount: 6, learnedImportance: 1.0)
-    check("importance label: consistent", saturated.importanceLabel == "Consistently important to you")
+    check("importance label: consistent", saturated.importanceLabel == L("engagement.consistent"))
     check("importance label: important",
-          EmailDetail.Engagement(outboundCount: 2, learnedImportance: 0.5).importanceLabel == "Important to you")
+          EmailDetail.Engagement(outboundCount: 2, learnedImportance: 0.5).importanceLabel == L("engagement.important"))
     check("importance label: building",
-          EmailDetail.Engagement(outboundCount: 1, learnedImportance: 0.25).importanceLabel == "Building importance")
+          EmailDetail.Engagement(outboundCount: 1, learnedImportance: 0.25).importanceLabel == L("engagement.building"))
     check("importance fill clamps high", EmailDetail.Engagement(outboundCount: 9, learnedImportance: 1.5).importanceFill == 1.0)
     let faded = EmailDetail.Engagement(outboundCount: 2, learnedImportance: 0.0)
     check("faded engagement hides meter", faded.importanceFill == 0.0 && !faded.showsImportance)
     check("faded a11y label omits importance", faded.accessibilityLabel == faded.replyCountLabel)
     check("engaged a11y label combines count + strength",
-          saturated.accessibilityLabel == "You engage with this sender · replied 6 times. Consistently important to you")
+          saturated.accessibilityLabel
+              == L("engagement.combined.a11y", L("engagement.repliedTimes", 6), L("engagement.consistent")))
 
     print("Notifications:")
     func push(_ id: String) -> FirewallItem {
@@ -203,7 +204,8 @@ func runSelfChecks() async -> Bool {
         check("ReplyOptions decodes 3 drafts", opts.options.count == 3 && opts.to == "boss@co.com")
         check("ReplyOptions keeps tone order",
               opts.options.map(\.tone) == ["accept", "decline", "info"])
-        check("tone labels", opts.options.map(\.toneLabel) == ["Accept", "Decline", "Ask info"])
+        check("tone labels", opts.options.map(\.toneLabel)
+              == [L("reply.tone.accept"), L("reply.tone.decline"), L("reply.tone.info")])
     } else {
         check("ReplyOptions decodes", false)
     }
@@ -239,23 +241,44 @@ func runSelfChecks() async -> Bool {
     check("detail falls back to snippet", cardDetailText(summary: "", snippet: "sn") == "sn")
     check("detail nil when both empty", cardDetailText(summary: nil, snippet: " ") == nil)
 
-    print("Top bar open URL:")
-    func item(href: String?) -> FirewallItem {
-        FirewallItem(id: "x", source: "email", sourceId: "x", type: "email", title: "t",
-                     tier: .push, tierReason: nil, priority: 0, surfacedAt: "",
-                     email: nil, href: href, hashStale: nil)
+    print("Sender name:")
+    // The raw From header is routing data. A list row that leads with
+    // "<sarah.kim@northwind-partners.com>" hides the one thing that identifies
+    // the sender, and truncates before it gets there.
+    check("display name wins over the address",
+          senderDisplayName("Sarah Kim <sarah@x.io>") == "Sarah Kim")
+    check("quoted display names are unwrapped",
+          senderDisplayName("\"Kim, Sarah\" <sarah@x.io>") == "Kim, Sarah")
+    check("a bare address is shown as-is",
+          senderDisplayName("billing@vendor.io") == "billing@vendor.io")
+    check("an address with no name loses only the brackets",
+          senderDisplayName("<billing@vendor.io>") == "billing@vendor.io")
+    check("non-Latin display names survive",
+          senderDisplayName("이준호 <junho@team.co.kr>") == "이준호")
+    check("empty input stays empty",
+          senderDisplayName(nil).isEmpty && senderDisplayName("").isEmpty)
+
+    print("No web escape:")
+    // Klorn is a native client, not a launcher for its own web app: the only
+    // link out is sign-in (AuthFlow) and the GitHub release page (UpdateCheck).
+    // A new NSWorkspace.open on a Klorn URL would quietly reintroduce the
+    // "finish this on the web" round trip the app exists to remove, so the rule
+    // is checked against the sources rather than trusted to review.
+    let sourceDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    let swiftFiles = (try? FileManager.default.contentsOfDirectory(at: sourceDir, includingPropertiesForKeys: nil))?
+        .filter { $0.pathExtension == "swift" } ?? []
+    check("sources are readable", !swiftFiles.isEmpty)
+    let allowedWebBaseUsers: Set<String> = ["AuthFlow.swift", "Config.swift", "SelfCheck.swift"]
+    let offenders = swiftFiles.filter { url in
+        guard !allowedWebBaseUsers.contains(url.lastPathComponent),
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return false }
+        return text.contains("Config.webBaseURL")
     }
-    let web = Config.webBaseURL
-    check("absolute href opens verbatim",
-          TopBarController.resolveURL(item(href: "https://x.test/mail/9"))?.absoluteString == "https://x.test/mail/9")
-    check("root-relative href joins web base",
-          TopBarController.resolveURL(item(href: "/mail/9"))?.absoluteString == web + "/mail/9")
-    check("bare-relative href joins with slash",
-          TopBarController.resolveURL(item(href: "mail/9"))?.absoluteString == web + "/mail/9")
-    check("nil href falls back to inbox root",
-          TopBarController.resolveURL(item(href: nil))?.absoluteString == web)
-    check("no item falls back to inbox root",
-          TopBarController.resolveURL(nil)?.absoluteString == web)
+    check("nothing navigates to the Klorn web app",
+          offenders.isEmpty)
+    if !offenders.isEmpty {
+        print("      offenders: \(offenders.map(\.lastPathComponent).joined(separator: ", "))")
+    }
 
     print("Dismiss:")
     let fw2JSON = """
@@ -406,7 +429,7 @@ func runSelfChecks() async -> Bool {
                          allDay: false, calendar: utc) == "05:00–06:30")
     check("event time label — all day",
           eventTimeLabel(startISO: "2026-07-16T00:00:00.000Z", endISO: "2026-07-17T00:00:00.000Z",
-                         allDay: true, calendar: utc) == "All day")
+                         allDay: true, calendar: utc) == L("calendar.allDay"))
     check("event time label — malformed ISO degrades",
           eventTimeLabel(startISO: "not-a-date", endISO: "also-no", allDay: false, calendar: utc) == "")
 
@@ -434,7 +457,7 @@ func runSelfChecks() async -> Bool {
     check("agenda keeps only tomorrow → +7 days",
           agenda.flatMap(\.events).map(\.id) == ["tmrw1", "tmrw2", "sat"])
     check("agenda groups by day, first labeled Tomorrow",
-          agenda.count == 2 && agenda[0].label == "Tomorrow" && agenda[0].events.count == 2)
+          agenda.count == 2 && agenda[0].label == L("calendar.tomorrow") && agenda[0].events.count == 2)
     check("agenda later day gets its weekday name", agenda[1].label == "Saturday")
     check("agenda sorts within a day", agenda[0].events.map(\.id) == ["tmrw1", "tmrw2"])
     check("agenda empty input → empty",
@@ -621,12 +644,12 @@ func runSelfChecks() async -> Bool {
         let two = inboxResp.inboxes
         check("inboxes wire decodes", two.count == 2 && two[0].id == nil && two[1].needsReconnect)
         check("primary selection value is \"primary\"", two[0].selectionValue == "primary")
-        check("selector label — all", inboxSelectorLabel(selected: "all", inboxes: two) == "All inboxes")
+        check("selector label — all", inboxSelectorLabel(selected: "all", inboxes: two) == L("mail.allInboxes"))
         check("selector label — short name of the selection",
               inboxSelectorLabel(selected: "primary", inboxes: two) == "me"
               && inboxSelectorLabel(selected: "li-1", inboxes: two) == "side.acct")
         check("selector label — stale id reads as all",
-              inboxSelectorLabel(selected: "gone", inboxes: two) == "All inboxes")
+              inboxSelectorLabel(selected: "gone", inboxes: two) == L("mail.allInboxes"))
         check("row badge maps null → primary", inboxRowBadge(linkedId: nil, inboxes: two) == "me")
         check("row badge maps a linked id", inboxRowBadge(linkedId: "li-1", inboxes: two) == "side.acct")
         check("row badge hidden with one inbox", inboxRowBadge(linkedId: nil, inboxes: [two[0]]) == nil)
@@ -648,8 +671,8 @@ func runSelfChecks() async -> Bool {
     check("firewall path — linked id scoped (hyphen encoded)",
           firewallPath(selected: "li-1") == "/api/inbox/firewall?inbox=li%2D1")
     check("inbox display label falls back by kind",
-          inboxDisplayLabel(email: nil, kind: "primary") == "Primary"
-          && inboxDisplayLabel(email: nil, kind: "linked") == "Linked inbox"
+          inboxDisplayLabel(email: nil, kind: "primary") == L("mail.inboxPrimary")
+          && inboxDisplayLabel(email: nil, kind: "linked") == L("mail.inboxLinked")
           && inboxDisplayLabel(email: "a@b.c", kind: "linked") == "a@b.c")
     check("inbox short name splits + caps",
           inboxShortName("averylongalias.mail@x.io") == "averylongalias"
@@ -730,7 +753,8 @@ func runSelfChecks() async -> Bool {
     check("snooze menu = all four options",
           PushCardSnooze.options.map(\.rawValue) == ["oneHour", "thisEvening", "tomorrow", "nextWeek"])
     check("snooze menu labels are human",
-          PushCardSnooze.options.map(\.label) == ["In 1 hour", "This evening", "Tomorrow 9am", "Next week"])
+          PushCardSnooze.options.map(\.label)
+              == [L("snooze.oneHour"), L("snooze.thisEvening"), L("snooze.tomorrow"), L("snooze.nextWeek")])
     check("snooze resurfaces in the future",
           SnoozeOption.oneHour.resurface(from: noonJan1, calendar: cal) > noonJan1)
 
@@ -793,7 +817,7 @@ func runSelfChecks() async -> Bool {
     // Readiness display mapping is fixed vocabulary (server enum).
     check("readiness labels", readinessLabel("ready") == "Ready"
           && readinessLabel("watch") == "Watch"
-          && readinessLabel("needs_review") == "Needs review"
+          && readinessLabel("needs_review") == L("meeting.needsReview")
           && readinessLabel("???") == "Prep")
 
     // Prep-pack wire decode (subset the card renders).
@@ -817,7 +841,8 @@ func runSelfChecks() async -> Bool {
     // never a silent no-op toggle.
     check("available for a bundled app", LoginItem.availability(hasBundleId: true) == .available)
     check("unbundled run explains itself",
-          LoginItem.availability(hasBundleId: false) == .unavailable(reason: "Packaged app only"))
+          LoginItem.availability(hasBundleId: false)
+              == .unavailable(reason: L("prefs.launchAtLogin.unavailable.value")))
 
     print("Update check:")
     // Tag comparison: strict semver on the desktop-v prefix; equal or older
@@ -831,11 +856,11 @@ func runSelfChecks() async -> Bool {
 
     print("Status item:")
     check("status line — signed out",
-          StatusItemController.statusLine(signedIn: false, pushCount: 9) == "Klorn — not signed in")
+          StatusItemController.statusLine(signedIn: false, pushCount: 9) == L("bar.menuBar.signedOut"))
     check("status line — clear inbox",
-          StatusItemController.statusLine(signedIn: true, pushCount: 0) == "Klorn — no urgent mail")
+          StatusItemController.statusLine(signedIn: true, pushCount: 0) == L("bar.menuBar.clear"))
     check("status line — push count",
-          StatusItemController.statusLine(signedIn: true, pushCount: 3) == "Klorn — 3 PUSH waiting")
+          StatusItemController.statusLine(signedIn: true, pushCount: 3) == L("bar.menuBar.push", 3))
     // Exactly one anchor at a time: the pill OR the menu-bar icon, never both,
     // never neither — hiding the pill is what makes the icon appear.
     check("menu-bar icon appears when the pill is hidden",
@@ -903,6 +928,213 @@ func runSelfChecks() async -> Bool {
     let cardMask = NSImage.roundedCornerMask(radius: PushCardMetrics.corner)
     check("mask caps fit PushCard",
           cardMask.capInsets.top + cardMask.capInsets.bottom < PushCardMetrics.compact.height)
+
+    print("Automation settings:")
+    // Decoding must survive an older desktop build meeting a newer server (and
+    // vice versa): every field absent has to land on the server's own defaults,
+    // not on false/empty, or the panel would show "all notifications off" for a
+    // user whose notifications are in fact all on.
+    if let sparse = try? JSONDecoder().decode(
+        AutomationSettings.self, from: Data("{}".utf8))
+    {
+        check("absent fields default to server defaults",
+              sparse.agentMode == .suggest && sparse.replyTone == .matchMe
+              && sparse.isEverything && sparse.quietHoursStart == nil)
+    } else {
+        check("AutomationSettings decodes an empty object", false)
+    }
+
+    let autoJSON = """
+    {"agentMode":"AUTO","replyTone":"FORMAL","notifyEmailUrgent":true,"notifyMeeting":true,
+    "notifyTaskDue":false,"notifyAgentProposal":false,"notifyDailyBriefing":false,
+    "notifyEmailCandidate":false,"quietHoursStart":"22:00","quietHoursEnd":"08:00"}
+    """
+    if let s = try? JSONDecoder().decode(AutomationSettings.self, from: Data(autoJSON.utf8)) {
+        check("decodes mode + tone", s.agentMode == .auto && s.replyTone == .formal)
+        check("decodes quiet hours", s.quietHoursStart == "22:00" && s.quietHoursEnd == "08:00")
+        check("essentials-only state is recognised", s.isEssentialsOnly && !s.isEverything)
+    } else {
+        check("AutomationSettings decodes a full payload", false)
+    }
+
+    // An unknown mode/tone from a newer server must not crash or silently
+    // become a *more* autonomous setting.
+    let unknownJSON = #"{"agentMode":"OVERDRIVE","replyTone":"SASSY"}"#
+    if let s = try? JSONDecoder().decode(AutomationSettings.self, from: Data(unknownJSON.utf8)) {
+        check("unknown mode falls back to ask-first", s.agentMode == .suggest)
+        check("unknown tone falls back to match-me", s.replyTone == .matchMe)
+    } else {
+        check("AutomationSettings tolerates unknown enum values", false)
+    }
+
+    let essentials = AutomationSettings().applyingEssentialsOnly()
+    check("essentials keeps urgent mail + meetings",
+          essentials.notifyEmailUrgent && essentials.notifyMeeting)
+    check("essentials mutes the rest",
+          !essentials.notifyTaskDue && !essentials.notifyAgentProposal
+          && !essentials.notifyDailyBriefing && !essentials.notifyEmailCandidate)
+    check("everything preset turns all categories on",
+          essentials.applyingEverything().isEverything)
+
+    // Clearing quiet hours has to reach the server as an explicit null; a
+    // dropped key would leave the old window in place.
+    let cleared = AutomationSettings().patchPayload
+    check("cleared quiet hours PATCH as null",
+          cleared["quietHoursStart"] is NSNull && cleared["quietHoursEnd"] is NSNull)
+    check("PATCH carries mode, tone and all six categories",
+          cleared["agentMode"] as? String == "SUGGEST"
+          && cleared["replyTone"] as? String == "MATCH_ME"
+          && NotifyCategory.all.allSatisfy { cleared[$0.id] != nil })
+
+    check("quiet hours normalize pads to HH:mm", QuietHours.normalize("9:5") == "09:05")
+    check("quiet hours normalize accepts 4 digits", QuietHours.normalize("2200") == "22:00")
+    check("quiet hours normalize passes through", QuietHours.normalize("22:00") == "22:00")
+    check("quiet hours reject out-of-range",
+          QuietHours.normalize("24:00") == nil && QuietHours.normalize("22:60") == nil)
+    check("quiet hours reject junk",
+          QuietHours.normalize("later") == nil && QuietHours.normalize("22") == nil
+          && QuietHours.normalize("") == nil)
+    check("half a window is discarded",
+          QuietHours.pair(start: "22:00", end: "").start == nil)
+    check("a full window survives", QuietHours.pair(start: "22:00", end: "8:00")
+          == (start: "22:00", end: "08:00"))
+
+    print("Activation policy:")
+    // Resting must stay out of Cmd+Tab and the Dock — an ambient firewall that
+    // shows up in the app switcher is no longer ambient. Everything the user
+    // deliberately opened must be in it, or there is no way to switch back.
+    check("collapsed stays out of Cmd+Tab",
+          TopBarController.activationPolicy(for: .collapsed) == .accessory)
+    check("expanded joins Cmd+Tab",
+          TopBarController.activationPolicy(for: .expanded) == .regular)
+    check("full joins Cmd+Tab",
+          TopBarController.activationPolicy(for: .full) == .regular)
+
+    print("Tier guide:")
+    // The one first run is the only one there is: showing the explainer over a
+    // signed-out shell spends it on someone with no mail to explain.
+    check("offered on a first run with a mailbox",
+          GuideSeen.shouldPresent(seen: false, signedIn: true))
+    check("not offered before sign-in",
+          !GuideSeen.shouldPresent(seen: false, signedIn: false))
+    check("not offered twice", !GuideSeen.shouldPresent(seen: true, signedIn: true))
+
+    // Every tier must explain itself: a blank blurb would leave the sidebar
+    // exactly as unexplained as before, and only for that one tier.
+    check("every tier has a distinct meaning",
+          Set(Tier.allCases.map(\.blurb)).count == Tier.allCases.count
+          && Tier.allCases.allSatisfy { !$0.blurb.isEmpty && !$0.blurb.hasPrefix("tier.") })
+    check("every tier has an empty state",
+          Set(Tier.allCases.map(\.emptyTitle)).count == Tier.allCases.count
+          && Tier.allCases.allSatisfy { !$0.emptyTitle.hasPrefix("tier.") })
+
+    print("Localization:")
+    // A key present in one language and missing in another ships a raw key
+    // ("prefs.done") to whoever runs the other language — the kind of bug that
+    // only the untested locale ever sees.
+    let english = L10n.keys(forLanguage: "en")
+    check("English catalogue loads", !english.isEmpty)
+    for code in L10n.shipped where code != "en" {
+        let other = L10n.keys(forLanguage: code)
+        let missing = english.subtracting(other).sorted()
+        let extra = other.subtracting(english).sorted()
+        check("\(code) has every English key", missing.isEmpty)
+        if !missing.isEmpty { print("      missing: \(missing.joined(separator: ", "))") }
+        check("\(code) defines no unknown keys", extra.isEmpty)
+        if !extra.isEmpty { print("      unknown: \(extra.joined(separator: ", "))") }
+    }
+
+    // Every key carrying a format specifier, exercised with the argument type
+    // its call site passes. A "%@" fed an Int makes String(format:) read the
+    // integer as a pointer and segfault — a crash that only fires in the
+    // language and screen that owns the bad key, so it must be checked here
+    // rather than found in dogfood.
+    check("integer formats render", [
+        L("bar.push", 3), L("bar.more", 2), L("commitments.a11y", 4),
+        L("aiUsage.a11y", 7, 20), L("bar.menuBar.push", 9),
+        L("engagement.repliedTimes", 5),
+    ].allSatisfy { $0.contains(where: \.isNumber) })
+    check("string formats render", [
+        L("today.a11y", "x"), L("briefing.a11y", "x"), L("commitments.markDone.a11y", "x"),
+        L("commitments.dismiss.a11y", "x"), L("calendar.join.a11y", "x"),
+        L("calendar.proposed.a11y", "x"), L("mail.filterByInbox.a11y", "x"),
+        L("mail.inbox.a11y", "x"), L("mail.searchResult.a11y", "x", "y"),
+        L("mail.snooze.a11y", "x"), L("mail.dismiss.a11y", "x"),
+        L("mail.changeTier.a11y", "x", "y"), L("mail.moveTo", "x"), L("mail.whyTier", "x", "y"),
+        L("reading.replyTo", "x"), L("push.sendReply.a11y", "x", "y"),
+        L("prefs.updates.get", "x"), L("prefs.updates.upToDate", "x"),
+        L("prefs.shortcut.change.a11y", "x"), L("prefs.infoRow.a11y", "x", "y"),
+        L("engagement.combined.a11y", "x", "y"), L("proposals.row.a11y", "x", "y"),
+        L("mail.needsReconnect", "x"), L("calendar.eventRow.a11y", "x", "y"),
+        L("mail.noMatches", "x"),
+    ].allSatisfy { $0.contains("x") && !$0.contains("%") })
+    // Mixed string+integer formats: the argument ORDER must survive too, since
+    // a "%1$@ %2$d" fed the wrong way round is the same pointer-read crash.
+    check("mixed formats render", [
+        L("tier.row.a11y", "x", 3, "y"), L("proposals.a11y", 2),
+    ].allSatisfy { !$0.contains("%") })
+
+    // Three separate passes each missed strings here, because the misses were
+    // never in `Text("…")` — they were in helpers that take a plain String
+    // (ColumnHeader, EmptyState, sidebarAction, SubtleTextButton). Grepping for
+    // the helpers is what actually finds them, so the harness does it.
+    let localizingHelpers = [
+        "ColumnHeader(title: \"", "EmptyState(icon: \"", "sidebarAction(\"",
+        "SubtleTextButton(title: \"", "actionItem(\"",
+    ]
+    let unlocalized = swiftFiles.filter { url in
+        guard url.lastPathComponent != "SelfCheck.swift",
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return false }
+        // EmptyState's first argument is an SF Symbol name, not a string the
+        // user reads; only its `title:` matters.
+        return localizingHelpers.contains { helper in
+            helper == "EmptyState(icon: \"" ? text.contains("\", title: \"") : text.contains(helper)
+        }
+    }
+    check("no user-facing string bypasses the catalogue", unlocalized.isEmpty)
+    if !unlocalized.isEmpty {
+        print("      offenders: \(unlocalized.map(\.lastPathComponent).joined(separator: ", "))")
+    }
+
+    // The helper grep above still only knows the helpers it was told about, and
+    // three rounds of misses were three different shapes. This one is
+    // shape-agnostic: any literal that reads like a sentence — two or more
+    // words, starting with a capital — is prose, and prose belongs in the
+    // catalogue. Comments, keys, symbol names and format strings don't match.
+    let proseLiteral = try! NSRegularExpression(
+        pattern: #""[A-Z][a-z]+(?: [A-Za-z,'’]+){1,}\.?""#)
+    var proseOffenders: [String] = []
+    let proseExempt: Set<String> = ["SelfCheck.swift", "PreviewRender.swift"]
+    for url in swiftFiles where !proseExempt.contains(url.lastPathComponent) {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+        for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            // Skip comments and the catalogue-facing call itself.
+            if trimmed.hasPrefix("//") || trimmed.hasPrefix("///") || trimmed.hasPrefix("*") {
+                continue
+            }
+            if trimmed.contains("Log.") || trimmed.contains("Announcement(") { continue }
+            // Explicitly marked server values: compared against, never displayed.
+            if trimmed.contains("// wire-value") { continue }
+            let range = NSRange(trimmed.startIndex..., in: trimmed)
+            if proseLiteral.firstMatch(in: trimmed, range: range) != nil {
+                proseOffenders.append("\(url.lastPathComponent): \(trimmed.prefix(60))")
+            }
+        }
+    }
+    check("no sentence-shaped literal outside the catalogue", proseOffenders.isEmpty)
+    for offender in proseOffenders.prefix(8) { print("      \(offender)") }
+
+    check("override wins over the system language",
+          L10n.resolvedCode(override: .korean, preferred: ["en-US"]) == "ko")
+    check("system follows the preferred language",
+          L10n.resolvedCode(override: .system, preferred: ["ko-KR", "en-US"]) == "ko")
+    check("region tags are matched on the base language",
+          L10n.resolvedCode(override: .system, preferred: ["ko-Hang-KR"]) == "ko")
+    check("an unshipped language falls back to English",
+          L10n.resolvedCode(override: .system, preferred: ["fr-FR", "de-DE"]) == "en")
+    check("no preferred language falls back to English",
+          L10n.resolvedCode(override: .system, preferred: []) == "en")
 
     print(failures == 0 ? "\nALL CHECKS PASSED" : "\n\(failures) CHECK(S) FAILED")
     return failures == 0

@@ -49,37 +49,18 @@ body {
    fixed background stack so marketing / auth surfaces have atmospheric depth
    instead of flat white. Content sits above it normally (no z-index needed). */
 .sky-bg {
-  background-color: #eef4fb;
+  /* Matched to the landing's backdrop (warm paper + the dusk photo's palette).
+     The auth pages are the first click OFF the landing; the old cool-blue dot
+     grid read as a different product on arrival. Same stop hues as the
+     landing's .field, and no dot layer — the landing dropped its ruled/dotted
+     patterns deliberately. */
+  background-color: #fbfaf6;
   background-image:
-    radial-gradient(circle at center, rgba(14, 116, 180, 0.07) 1px, transparent 1.6px),
-    radial-gradient(56% 46% at 85% -2%, rgba(56, 189, 248, 0.32), transparent 58%),
-    radial-gradient(48% 40% at 4% 20%, rgba(125, 211, 252, 0.3), transparent 60%),
-    radial-gradient(56% 44% at 96% 70%, rgba(186, 230, 253, 0.42), transparent 60%),
-    radial-gradient(82% 55% at 44% 110%, rgba(56, 189, 248, 0.26), transparent 60%),
-    radial-gradient(38% 30% at 28% 52%, rgba(255, 255, 255, 0.85), transparent 66%),
-    radial-gradient(34% 26% at 72% 34%, rgba(255, 255, 255, 0.7), transparent 66%),
-    radial-gradient(120% 90% at 50% -20%, rgba(255, 255, 255, 0.55), transparent 52%);
-  background-size:
-    30px 30px,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%;
-  background-position:
-    0 0,
-    center,
-    center,
-    center,
-    center,
-    center,
-    center,
-    center;
-  background-attachment: fixed;
-  background-repeat:
-    repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    radial-gradient(62% 40% at 88% -4%, rgba(240, 203, 158, 0.34), transparent 68%),
+    radial-gradient(58% 44% at 2% 16%, rgba(240, 222, 226, 0.5), transparent 70%),
+    radial-gradient(64% 46% at 96% 66%, rgba(212, 226, 240, 0.5), transparent 68%),
+    radial-gradient(52% 40% at 20% 96%, rgba(230, 222, 240, 0.42), transparent 70%),
+    radial-gradient(40% 30% at 40% 40%, rgba(255, 255, 255, 0.75), transparent 66%);
 }
 
 /* App-canvas wash: a soft sky→indigo two-tone gradient behind every in-app

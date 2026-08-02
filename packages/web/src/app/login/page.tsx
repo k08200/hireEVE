@@ -10,8 +10,8 @@ import { Input } from "../../components/ui/input";
 import { API_BASE, apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useT } from "../../lib/i18n";
-import { isNativePlatform } from "../../lib/native/capacitor";
 import { startNativeGoogleLogin } from "../../lib/native/native-auth";
+import { isNativeShell } from "../../lib/native/shell";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -68,7 +68,7 @@ function LoginForm() {
   // the link and run the system-browser flow instead. On the web the <a href>
   // navigates normally (no-op here).
   const handleGoogleClick = (e: React.MouseEvent) => {
-    if (!isNativePlatform()) return;
+    if (!isNativeShell()) return;
     e.preventDefault();
     startNativeGoogleLogin().catch((err) => {
       console.error("[AUTH] Native Google login failed:", err);

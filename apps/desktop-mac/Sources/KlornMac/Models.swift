@@ -179,8 +179,9 @@ struct EmailDetail: Codable, Sendable, Identifiable {
 
         /// "You engage with this sender · replied once / N times" — the raw count.
         var replyCountLabel: String {
-            let times = outboundCount == 1 ? "once" : "\(outboundCount) times"
-            return "You engage with this sender · replied \(times)"
+            return outboundCount == 1
+                ? L("engagement.repliedOnce")
+                : L("engagement.repliedTimes", outboundCount)
         }
 
         /// Meter fill fraction (0…1), clamped for display safety.
@@ -194,15 +195,15 @@ struct EmailDetail: Codable, Sendable, Identifiable {
         /// signal is never conveyed by color/graphic alone (WCAG 1.4.1).
         var importanceLabel: String {
             switch importanceFill {
-            case let v where v >= 0.99: return "Consistently important to you"
-            case let v where v >= 0.5: return "Important to you"
-            default: return "Building importance"
+            case let v where v >= 0.99: return L("engagement.consistent")
+            case let v where v >= 0.5: return L("engagement.important")
+            default: return L("engagement.building")
             }
         }
 
         /// One combined string for VoiceOver — count plus, when present, strength.
         var accessibilityLabel: String {
-            showsImportance ? "\(replyCountLabel). \(importanceLabel)" : replyCountLabel
+            showsImportance ? L("engagement.combined.a11y", replyCountLabel, importanceLabel) : replyCountLabel
         }
     }
 
@@ -233,6 +234,30 @@ struct TodayActions: Codable, Sendable {
     let executed: [Entry]
     let pending: [Entry]
     let totals: Totals
+}
+
+/// GET /api/chat/pending-actions — the actions Klorn wants approved.
+///
+/// Approving these was the last thing that only the web app could do, which is
+/// what kept the "review the agent's work" link pointing out of the app.
+struct PendingActionsResponse: Codable, Sendable {
+    struct Action: Codable, Sendable, Identifiable, Hashable {
+        let id: String
+        let toolName: String
+        let targetLabel: String?
+        let reasoning: String?
+        let createdAt: String?
+
+        /// "Send email" rather than "send_email" — the tool name is an internal
+        /// identifier and reads like one. Unknown tools degrade to a
+        /// de-underscored form instead of being hidden: an action the user
+        /// can't identify is still an action they must be able to decline.
+        var title: String {
+            toolName.split(separator: "_").map(\.capitalized).joined(separator: " ")
+        }
+    }
+
+    let actions: [Action]
 }
 
 /// One glanceable line for the TODAY column — "2 done · 1 awaiting approval".
@@ -375,7 +400,7 @@ func decodeHTMLEntities(_ text: String) -> String {
 /// Pure for testing.
 func rowTierReason(_ reason: String?) -> String? {
     guard let reason, !reason.isEmpty,
-          reason != "Visible in queue for manual review"
+          reason != "Visible in queue for manual review"  // wire-value: matched, never shown
     else { return nil }
     return reason
 }
@@ -446,7 +471,25 @@ func firewallPath(selected: String) -> String {
 /// (mirrors the web selector's fallback copy). Pure.
 func inboxDisplayLabel(email: String?, kind: String) -> String {
     if let email, !email.isEmpty { return email }
-    return kind == "primary" ? "Primary" : "Linked inbox"
+    return kind == "primary" ? L("mail.inboxPrimary") : L("mail.inboxLinked")
+}
+
+/// "Sarah Kim <sarah@x.io>" → "Sarah Kim". A mail client shows who wrote to
+/// you, not the routing address: the raw form eats a list row and buries the
+/// name that identifies the sender. Falls back to the address when there is no
+/// display name, and strips the quotes some clients wrap names in. Pure.
+func senderDisplayName(_ raw: String?) -> String {
+    guard let raw, !raw.isEmpty else { return "" }
+    guard let open = raw.lastIndex(of: "<") else {
+        return raw.trimmingCharacters(in: .whitespaces)
+    }
+    let name = raw[raw.startIndex..<open]
+        .trimmingCharacters(in: .whitespaces)
+        .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+    if !name.isEmpty { return name }
+    // No display name — show the address itself, without the brackets.
+    let inside = raw[raw.index(after: open)...].prefix { $0 != ">" }
+    return inside.isEmpty ? raw : String(inside)
 }
 
 /// Compact mailbox marker — the address's local part ("yong" of "yong@x.io"),
@@ -466,7 +509,7 @@ func inboxShortName(_ email: String?) -> String? {
 func inboxSelectorLabel(selected: String, inboxes: [InboxOption]) -> String {
     guard let value = inboxQueryParam(selected: selected),
           let match = inboxes.first(where: { $0.selectionValue == value })
-    else { return "All inboxes" }
+    else { return L("mail.allInboxes") }
     return inboxShortName(match.email) ?? inboxDisplayLabel(email: match.email, kind: match.kind)
 }
 
@@ -588,7 +631,7 @@ func upcomingAgenda(
 /// "Tomorrow" for the first agenda day, else the weekday name — unique within
 /// the 7-day window. Pure.
 func agendaDayLabel(day: Date, tomorrow: Date, calendar: Calendar) -> String {
-    if calendar.isDate(day, inSameDayAs: tomorrow) { return "Tomorrow" }
+    if calendar.isDate(day, inSameDayAs: tomorrow) { return L("calendar.tomorrow") }
     let symbols = calendar.weekdaySymbols
     let index = calendar.component(.weekday, from: day) - 1
     guard symbols.indices.contains(index) else { return "" }
@@ -612,7 +655,7 @@ func eventTimeLabel(
     allDay: Bool,
     calendar: Calendar = .current
 ) -> String {
-    if allDay { return "All day" }
+    if allDay { return L("calendar.allDay") }
     let parser = ISO8601DateFormatter()
     parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     guard let start = parser.date(from: startISO), let end = parser.date(from: endISO) else {
@@ -670,9 +713,9 @@ struct ReplyOption: Codable, Sendable, Hashable {
     /// value so a server-side tone addition degrades gracefully.
     var toneLabel: String {
         switch tone {
-        case "accept": return "Accept"
-        case "decline": return "Decline"
-        case "info": return "Ask info"
+        case "accept": return L("reply.tone.accept")
+        case "decline": return L("reply.tone.decline")
+        case "info": return L("reply.tone.info")
         default: return tone.capitalized
         }
     }
@@ -713,10 +756,10 @@ enum SnoozeOption: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .oneHour: return "In 1 hour"
-        case .thisEvening: return "This evening"
-        case .tomorrow: return "Tomorrow 9am"
-        case .nextWeek: return "Next week"
+        case .oneHour: return L("snooze.oneHour")
+        case .thisEvening: return L("snooze.thisEvening")
+        case .tomorrow: return L("snooze.tomorrow")
+        case .nextWeek: return L("snooze.nextWeek")
         }
     }
 

@@ -147,6 +147,10 @@ final class TopBarController {
         let size = TopBarMetrics.size(for: state)
         let root = TopBarRoot(state: state, actions: makeActions())
             .environment(model)
+            // Localized strings are read through L(), which SwiftUI cannot
+            // observe. Keying the tree on the language revision forces a full
+            // rebuild so a language change lands without a relaunch.
+            .id(model.settings.languageRevision)
         // Recreate the window when the focus model flips: pill/panel are
         // non-focus-stealing; full is a key-able app window so its reply field
         // can accept keyboard input.
@@ -160,17 +164,36 @@ final class TopBarController {
         self.panel = panel
         setFrame(panel, size: size)
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
+        NSApp.setActivationPolicy(Self.activationPolicy(for: state))
         if focusable {
-            // Full is a real, focusable app window: switch to a regular activation
-            // policy (Dock icon + menu + real focus) so the reply field can type.
-            NSApp.setActivationPolicy(.regular)
+            // Full is a real, focusable app window, so it takes focus outright —
+            // the reply field has to be able to type.
             panel.makeKeyAndOrderFront(nil)
             NSApp.activate()
         } else {
-            // Ambient: no Dock icon, never steal focus from the user's app.
-            NSApp.setActivationPolicy(.accessory)
+            // Expanded is Cmd+Tab-able but still never steals focus.
             panel.orderFrontRegardless()
         }
+    }
+
+    /// Whether Klorn appears in Cmd+Tab and the Dock.
+    ///
+    /// Resting, Klorn is ambient — it must stay out of both, which is the whole
+    /// point of the accessory policy. Once the user has deliberately opened the
+    /// panel it stops being ambient and becomes something they switch back to,
+    /// so from `.expanded` up it joins the app switcher (founder decision,
+    /// 2026-07-28: regular only while open, not always). Pure, for the harness.
+    nonisolated static func activationPolicy(
+        for state: BarState
+    ) -> NSApplication.ActivationPolicy {
+        state == .collapsed ? .accessory : .regular
+    }
+
+    /// Show one item in the full view's reading pane. The single in-app answer
+    /// to "open this", shared by the panel rows and the urgent-mail card.
+    func openInApp(_ item: FirewallItem) {
+        setState(.full)
+        Task { await model.select(item) }
     }
 
     private func makeActions() -> TopBarActions {
@@ -182,11 +205,17 @@ final class TopBarController {
             onClose: { [weak self] in self?.dismiss() },     // header ✕ → back to rest
             onSignIn: { [weak self] in guard let self else { return }; Task { await self.model.signIn() } },
             onSignOut: { [weak self] in self?.model.signOut() },
-            onOpenWeb: { [weak self] item in self?.open(item) },
-            onOpenInApp: { [weak self] item in
+            onOpenInApp: { [weak self] item in self?.openInApp(item) },
+            onOpenTier: { [weak self] tier in
                 guard let self else { return }
+                self.model.showTier(tier)
                 self.setState(.full)
-                Task { await self.model.select(item) }
+            },
+            onOpenFull: { [weak self] in self?.setState(.full) },
+            onOpenProposals: { [weak self] in
+                guard let self else { return }
+                self.model.listMode = .proposals
+                self.setState(.full)
             },
             onDismiss: { [weak self] item in guard let self else { return }; Task { await self.model.dismiss(item) } },
             onSnooze: { [weak self] item, option in
@@ -259,27 +288,4 @@ final class TopBarController {
     /// Animate the panel morph unless the user asked for reduced motion. Pure for testing.
     nonisolated static func shouldAnimateFrame(reduceMotion: Bool) -> Bool { !reduceMotion }
 
-    private func open(_ item: FirewallItem?) {
-        guard let url = Self.resolveURL(item) else {
-            Log.app.debug("top bar open: no resolvable URL")
-            return
-        }
-        NSWorkspace.shared.open(url)
-    }
-
-    /// Prefer an absolute item link; otherwise join a relative href onto the web
-    /// base; with no item (or no href) fall back to the inbox root.
-    nonisolated static func resolveURL(_ item: FirewallItem?) -> URL? {
-        let base = Config.webBaseURL
-        guard let item else { return URL(string: base) }
-        if let href = item.href, let url = URL(string: href),
-           let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" {
-            return url
-        }
-        if let href = item.href, !href.isEmpty {
-            let joined = href.hasPrefix("/") ? base + href : base + "/" + href
-            return URL(string: joined)
-        }
-        return URL(string: base)
-    }
 }
