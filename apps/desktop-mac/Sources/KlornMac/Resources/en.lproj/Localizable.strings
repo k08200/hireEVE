@@ -72,7 +72,7 @@
 "mail.dismiss.a11y" = "Dismiss message from %@";
 "mail.changeTier" = "Move to tier… (teaches Klorn)";
 "mail.changeTier.a11y" = "Change tier for message from %1$@, currently %2$@";
-"mail.moveTo" = "Move to %@ ";
+"mail.moveTo" = "Move to %1$@%2$@";
 "mail.snoozePrefix" = "Snooze ";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
@@ -284,7 +284,7 @@
 "tier.row.a11y" = "%1$@, %2$d messages. %3$@";
 "calendar.noEventsWeek" = "No events this week";
 "reading.noPreview" = "No preview for this item.";
-"mail.noMatches" = "No mail matches \u201C%@\u201D.";
+"mail.noMatches" = "No mail matches \u201C%1$@\u201D%2$@";
 
 "section.upcoming" = "UPCOMING";
 "section.waitingOn" = "WAITING ON";

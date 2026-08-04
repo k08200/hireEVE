@@ -1085,6 +1085,25 @@ func runSelfChecks() async -> Bool {
     check("show-in-Dock ignores a non-bool",
           !AppSettings.resolveShowInDock("yes"))
 
+    print("Korean josa:")
+    // "%@(으)로" is a workaround, not Korean — the collapsed pill already gets
+    // this right ("PUSH 3건"), so the app contradicted itself. Pick the
+    // particle from the final consonant of the preceding word.
+    check("no final consonant takes 로", L10n.josaRo(after: "Queue") == "로")
+    check("final consonant takes 으로", L10n.josaRo(after: "Push") == "으로")
+    check("Hangul without a final consonant takes 로", L10n.josaRo(after: "메모") == "로")
+    check("Hangul with a final consonant takes 으로", L10n.josaRo(after: "받은편지함") == "으로")
+    // ㄹ is the exception: 서울로, never 서울으로.
+    check("a final ㄹ still takes 로", L10n.josaRo(after: "서울") == "로")
+    check("digits are read as spoken, so 3 takes 으로", L10n.josaRo(after: "3") == "으로")
+    check("2 has no final consonant when spoken, so it takes 로", L10n.josaRo(after: "2") == "로")
+    check("an empty string falls back to the plain particle", L10n.josaRo(after: "") == "로")
+
+    check("no final consonant takes 와", L10n.josaWa(after: "Queue") == "와")
+    check("final consonant takes 과", L10n.josaWa(after: "Push") == "과")
+    check("Hangul without a final consonant takes 와", L10n.josaWa(after: "메모") == "와")
+    check("Hangul with a final consonant takes 과", L10n.josaWa(after: "받은편지함") == "과")
+
     print("Tier guide:")
     // The one first run is the only one there is: showing the explainer over a
     // signed-out shell spends it on someone with no mail to explain.
@@ -1135,13 +1154,13 @@ func runSelfChecks() async -> Bool {
         L("calendar.proposed.a11y", "x"), L("mail.filterByInbox.a11y", "x"),
         L("mail.inbox.a11y", "x"), L("mail.searchResult.a11y", "x", "y"),
         L("mail.snooze.a11y", "x"), L("mail.dismiss.a11y", "x"),
-        L("mail.changeTier.a11y", "x", "y"), L("mail.moveTo", "x"), L("mail.whyTier", "x", "y"),
+        L("mail.changeTier.a11y", "x", "y"), L("mail.moveTo", "x", "y"), L("mail.whyTier", "x", "y"),
         L("reading.replyTo", "x"), L("push.sendReply.a11y", "x", "y"),
         L("prefs.updates.get", "x"), L("prefs.updates.upToDate", "x"),
         L("prefs.shortcut.change.a11y", "x"), L("prefs.infoRow.a11y", "x", "y"),
         L("engagement.combined.a11y", "x", "y"), L("proposals.row.a11y", "x", "y"),
         L("mail.needsReconnect", "x"), L("calendar.eventRow.a11y", "x", "y"),
-        L("mail.noMatches", "x"),
+        L("mail.noMatches", "x", "y"),
     ].allSatisfy { $0.contains("x") && !$0.contains("%") })
     // Mixed string+integer formats: the argument ORDER must survive too, since
     // a "%1$@ %2$d" fed the wrong way round is the same pointer-read crash.

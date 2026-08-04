@@ -1256,7 +1256,10 @@ private struct FullList: View {
             Spacer()
             EmptyState(
                 icon: "magnifyingglass",
-                title: L("mail.noMatches", query.trimmingCharacters(in: .whitespaces)))
+                title: {
+                    let q = query.trimmingCharacters(in: .whitespaces)
+                    return L("mail.noMatches", q, L10n.josaWaIfKorean(after: q))
+                }())
             Spacer()
         }
     }
@@ -1767,7 +1770,9 @@ struct ReadingPane: View {
                         // (screen-verified 0.4.80007: "∨ Snooze").
                         if Theme.isRenderingOffscreen {
                             OffscreenMenuLabel(title: L("mail.snoozePrefix"))
-                            OffscreenMenuLabel(title: L("mail.moveTo", item.tier.label))
+                            OffscreenMenuLabel(
+                                    title: L("mail.moveTo", item.tier.label,
+                                             L10n.josaRoIfKorean(after: item.tier.label)))
                         } else {
                             SnoozeMenu(item: item, onSnooze: actions.onSnooze) {
                                 Text(L("mail.snoozePrefix"))
@@ -1777,7 +1782,8 @@ struct ReadingPane: View {
                             .menuStyle(.button).buttonStyle(.bordered).controlSize(.small)
                             .menuIndicator(.hidden).fixedSize()
                             TierMenu(item: item, onSetTier: actions.onSetTier) {
-                                Text(L("mail.moveTo", item.tier.label))
+                                Text(L("mail.moveTo", item.tier.label,
+                                       L10n.josaRoIfKorean(after: item.tier.label)))
                                     + Text(Image(systemName: "chevron.down"))
                                     .font(.caption2.weight(.semibold)).foregroundStyle(Theme.textDim)
                             }
