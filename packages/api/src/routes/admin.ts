@@ -1,4 +1,4 @@
-import type { WaitlistStatus } from "@prisma/client";
+import type { ProposalStatus, WaitlistStatus } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { Resend } from "resend";
 import { runAllScenarios, summarizeEval } from "../agentcore/agent-eval.js";
@@ -8,6 +8,7 @@ import { checkGlobalCostGate } from "../billing/cost-guard.js";
 import { getCostTripSnapshot } from "../billing/cost-trip-alert.js";
 import { getUsageSummary } from "../billing/llm-usage.js";
 import { db, prisma } from "../db.js";
+import { withTenant } from "../db-tenant.js";
 import type { CalibrationSnapshotPayload } from "../judge/calibration-snapshot.js";
 import { getDecisionMetrics } from "../judge/decision-metrics.js";
 import { getJudgeHealth } from "../judge/judge-health.js";
@@ -702,17 +703,66 @@ export async function adminRoutes(app: FastifyInstance) {
     return recomputeLearnedRules(userId);
   });
 
+  // The three lifecycle transitions below are the same shape: read the rule,
+  // reject it unless it is in the expected state, write the new one. Two
+  // details are load-bearing rather than stylistic.
+  //
+  // They run inside withTenant, which binds app.current_user_id for the
+  // transaction. That is inert today (LearnedRule has a permissive policy but
+  // is not FORCEd) and is what lets FORCE be flipped later without touching
+  // this code — see docs/rls-rollout.md.
+  //
+  // It also makes the read and the write atomic. Read-then-write across two
+  // connections leaves a window where a concurrent request changes the status
+  // between the guard and the update, so both callers observe OPEN and both
+  // write — the guard reports a conflict that the write does not honour.
+  //
+  // The write is an updateMany scoped by userId, not an update by id. The
+  // ownership scope then travels with the write itself instead of depending on
+  // the preceding read, which survives a later refactor that moves or drops
+  // the guard.
+  async function transitionLearnedRule(
+    userId: string,
+    id: string,
+    transition: { from: ProposalStatus; to: ProposalStatus; verb: string; conflictHint?: string },
+  ): Promise<{ ok: true } | { ok: false; code: 404 | 409; error: string }> {
+    return withTenant(userId, async (tx) => {
+      const existing = await tx.learnedRule.findFirst({ where: { id, userId } });
+      if (!existing)
+        return { ok: false as const, code: 404 as const, error: "Learned rule not found" };
+      if (existing.status !== transition.from) {
+        return {
+          ok: false as const,
+          code: 409 as const,
+          error: `Cannot ${transition.verb} a ${existing.status} rule${transition.conflictHint ?? ""}`,
+        };
+      }
+      // A concurrent account purge (purge-user-data.ts) can delete the row
+      // between the guard and the write, in which case updateMany matches
+      // nothing. Reporting the success the caller did not get would be a
+      // silent lie, so treat a vanished row the same as one that was never
+      // there. (The pre-refactor `update({where:{id}})` threw P2025 here and
+      // surfaced as a 500; 404 describes the same situation truthfully.)
+      const written = await tx.learnedRule.updateMany({
+        where: { id, userId },
+        data: { status: transition.to },
+      });
+      if (written.count === 0)
+        return { ok: false as const, code: 404 as const, error: "Learned rule not found" };
+      return { ok: true as const };
+    });
+  }
+
   // POST /api/admin/learned-rules/:id/approve — OPEN → APPLIED so the judge
   // starts acting on it (behind the flag). Scoped to the owner.
   app.post("/learned-rules/:id/approve", async (request, reply) => {
-    const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    const existing = await prisma.learnedRule.findFirst({ where: { id, userId } });
-    if (!existing) return reply.code(404).send({ error: "Learned rule not found" });
-    if (existing.status !== "OPEN") {
-      return reply.code(409).send({ error: `Cannot approve a ${existing.status} rule` });
-    }
-    await prisma.learnedRule.update({ where: { id }, data: { status: "APPLIED" } });
+    const result = await transitionLearnedRule(getUserId(request), id, {
+      from: "OPEN",
+      to: "APPLIED",
+      verb: "approve",
+    });
+    if (!result.ok) return reply.code(result.code).send({ error: result.error });
     return { status: "APPLIED" };
   });
 
@@ -720,30 +770,27 @@ export async function adminRoutes(app: FastifyInstance) {
   // judge never read it). OPEN-only: an APPLIED rule is live, so it must be
   // reverted (not silently disabled via dismiss). Scoped to the owner.
   app.post("/learned-rules/:id/dismiss", async (request, reply) => {
-    const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    const existing = await prisma.learnedRule.findFirst({ where: { id, userId } });
-    if (!existing) return reply.code(404).send({ error: "Learned rule not found" });
-    if (existing.status !== "OPEN") {
-      return reply
-        .code(409)
-        .send({ error: `Cannot dismiss a ${existing.status} rule (revert it instead)` });
-    }
-    await prisma.learnedRule.update({ where: { id }, data: { status: "DISMISSED" } });
+    const result = await transitionLearnedRule(getUserId(request), id, {
+      from: "OPEN",
+      to: "DISMISSED",
+      verb: "dismiss",
+      conflictHint: " (revert it instead)",
+    });
+    if (!result.ok) return reply.code(result.code).send({ error: result.error });
     return reply.code(204).send();
   });
 
   // POST /api/admin/learned-rules/:id/revert — APPLIED → DISMISSED (the judge
   // drops it on the next email). Scoped to the owner.
   app.post("/learned-rules/:id/revert", async (request, reply) => {
-    const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    const existing = await prisma.learnedRule.findFirst({ where: { id, userId } });
-    if (!existing) return reply.code(404).send({ error: "Learned rule not found" });
-    if (existing.status !== "APPLIED") {
-      return reply.code(409).send({ error: `Cannot revert a ${existing.status} rule` });
-    }
-    await prisma.learnedRule.update({ where: { id }, data: { status: "DISMISSED" } });
+    const result = await transitionLearnedRule(getUserId(request), id, {
+      from: "APPLIED",
+      to: "DISMISSED",
+      verb: "revert",
+    });
+    if (!result.ok) return reply.code(result.code).send({ error: result.error });
     return { status: "DISMISSED" };
   });
 

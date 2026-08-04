@@ -90,6 +90,20 @@ type StoredRule = {
 };
 const ruleById = new Map<string, StoredRule>();
 
+// Raw SQL issued inside interactive transactions — in practice the set_config
+// calls withTenant/withSystem use to bind the RLS context. Hoisted because the
+// vi.mock factory below runs before module-level initialisers.
+const { rawCalls } = vi.hoisted(() => ({
+  rawCalls: [] as Array<{ sql: string; values: unknown[] }>,
+}));
+
+function tenantIdsBound(): string[] {
+  return rawCalls
+    .filter((c) => c.sql.includes("set_config"))
+    .filter((c) => c.values[0] === "app.current_user_id")
+    .map((c) => String(c.values[1]));
+}
+
 vi.mock("../db.js", () => {
   const prisma = {
     user: {
@@ -171,7 +185,17 @@ vi.mock("../db.js", () => {
         },
       ),
     },
-    $transaction: vi.fn(async (ops: unknown[]) => ops),
+    // Two call shapes reach this: the batch form (an array of operations) and
+    // the interactive form used by withTenant/withSystem, which needs the
+    // callback to receive a client whose model mocks are the same ones the
+    // non-transactional assertions below inspect.
+    $transaction: vi.fn(async (arg: unknown[] | ((tx: unknown) => Promise<unknown>)) =>
+      typeof arg === "function" ? arg(prisma) : arg,
+    ),
+    $executeRaw: vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      rawCalls.push({ sql: strings.join("?"), values });
+      return 1;
+    }),
     device: {
       findUnique: vi.fn(async () => ({ id: "d1" })),
       findMany: vi.fn(async () => []),
@@ -205,13 +229,21 @@ vi.mock("../db.js", () => {
           (r) => r.userId === where.userId && r.status === where.status,
         ),
       ),
-      update: vi.fn(
-        async ({ where, data }: { where: { id: string }; data: { status: string } }) => {
+      // Scoped by userId as well as id: a write that matches no owned row
+      // reports count 0 rather than touching another tenant's rule, which is
+      // also how the query behaves once the table is FORCEd.
+      updateMany: vi.fn(
+        async ({
+          where,
+          data,
+        }: {
+          where: { id: string; userId: string };
+          data: { status: string };
+        }) => {
           const r = ruleById.get(where.id);
-          if (!r) throw new Error("LearnedRule not found");
-          const updated = { ...r, status: data.status };
-          ruleById.set(where.id, updated);
-          return updated;
+          if (!r || r.userId !== where.userId) return { count: 0 };
+          ruleById.set(where.id, { ...r, status: data.status });
+          return { count: 1 };
         },
       ),
     },
@@ -240,7 +272,11 @@ vi.mock("../db.js", () => {
     },
     emailMessage: { groupBy: vi.fn(async () => []) },
   };
-  return { prisma, db: prisma };
+  return {
+    prisma,
+    db: prisma,
+    INTERACTIVE_TX_OPTIONS: { maxWait: 10_000, timeout: 15_000 },
+  };
 });
 
 const ADMIN_TOKEN = signToken({ userId: "admin-1", email: "admin@e.com" });
@@ -812,6 +848,7 @@ describe("admin learned-rule approval gate", () => {
   beforeEach(() => {
     delete process.env.ADMIN_EMAILS;
     ruleById.clear();
+    rawCalls.length = 0;
   });
 
   const seed = (id: string, status: string, userId = "admin-1") =>
@@ -858,6 +895,81 @@ describe("admin learned-rule approval gate", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ status: "APPLIED" });
     expect(ruleById.get("r1")?.status).toBe("APPLIED");
+  });
+
+  // The RLS trip-wire. These endpoints run through withTenant so that FORCE
+  // ROW LEVEL SECURITY on LearnedRule activates isolation with no further code
+  // change. If a refactor drops the wrapper the queries keep passing (RLS is
+  // permissive until FORCE) and the regression is invisible until the day the
+  // table is forced, at which point the writes go silently dark. Asserting the
+  // GUC is bound is the only way to catch that here.
+  it("binds the caller's tenant context before mutating on approve", async () => {
+    seed("r1", "OPEN");
+    await post("/api/admin/learned-rules/r1/approve");
+    expect(tenantIdsBound()).toContain("admin-1");
+  });
+
+  it("binds the caller's tenant context before mutating on dismiss", async () => {
+    seed("r1", "OPEN");
+    await post("/api/admin/learned-rules/r1/dismiss");
+    expect(tenantIdsBound()).toContain("admin-1");
+  });
+
+  it("binds the caller's tenant context before mutating on revert", async () => {
+    seed("r1", "APPLIED");
+    await post("/api/admin/learned-rules/r1/revert");
+    expect(tenantIdsBound()).toContain("admin-1");
+  });
+
+  // Ownership is enforced by the userId filter today and by the policy once
+  // forced; the write must never be scoped by id alone, or a forced table
+  // would be the only thing standing between a bad id and another user's row.
+  it("never issues a rule write scoped by id alone", async () => {
+    seed("r1", "OPEN");
+    await post("/api/admin/learned-rules/r1/approve");
+    const { prisma } = (await import("../db.js")) as unknown as {
+      prisma: { learnedRule: { updateMany: { mock: { calls: [{ where: object }][] } } } };
+    };
+    const calls = prisma.learnedRule.updateMany.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    for (const [args] of calls) {
+      expect(args.where).toHaveProperty("userId");
+    }
+  });
+
+  // The three handlers were folded into one helper, and the 409 bodies are the
+  // only thing that distinguishes them. Asserting status codes alone let a
+  // reworded message pass review: the dismiss hint used to be unconditional and
+  // a refactor quietly narrowed it to APPLIED-only, so dismissing an already
+  // DISMISSED rule silently lost "(revert it instead)". Pin the exact strings.
+  it.each([
+    ["approve", "APPLIED", "Cannot approve a APPLIED rule"],
+    ["approve", "DISMISSED", "Cannot approve a DISMISSED rule"],
+    ["dismiss", "APPLIED", "Cannot dismiss a APPLIED rule (revert it instead)"],
+    ["dismiss", "DISMISSED", "Cannot dismiss a DISMISSED rule (revert it instead)"],
+    ["revert", "OPEN", "Cannot revert a OPEN rule"],
+    ["revert", "DISMISSED", "Cannot revert a DISMISSED rule"],
+  ])("409 body for %s on a %s rule is unchanged", async (verb, status, expected) => {
+    seed("r1", status);
+    const res = await post(`/api/admin/learned-rules/r1/${verb}`);
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ error: expected });
+  });
+
+  // The write is scoped by userId, so a row deleted by a concurrent purge
+  // matches nothing. Returning 200 for a write that never landed would be a
+  // silent false success.
+  it("reports 404 when the row vanishes between the guard and the write", async () => {
+    seed("r1", "OPEN");
+    const { prisma } = (await import("../db.js")) as unknown as {
+      prisma: {
+        learnedRule: { updateMany: { mockImplementationOnce: (f: () => unknown) => void } };
+      };
+    };
+    prisma.learnedRule.updateMany.mockImplementationOnce(async () => ({ count: 0 }));
+    const res = await post("/api/admin/learned-rules/r1/approve");
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: "Learned rule not found" });
   });
 
   it("blocks double-approve of a non-OPEN rule with 409", async () => {
