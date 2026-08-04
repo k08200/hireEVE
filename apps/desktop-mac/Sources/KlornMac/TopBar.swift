@@ -101,11 +101,30 @@ private extension View {
 
 struct ColumnHeader: View {
     let title: String
+
+    /// Wide tracking is a Latin small-caps device: it makes "RECENT PUSH" read
+    /// as a deliberate micro-label rather than a shrunken heading. Hangul
+    /// syllable blocks already carry their own internal spacing, so the same
+    /// value pulls "최근 PUSH" apart and costs legibility. Tracking is
+    /// script-specific; one value was always going to be wrong for one script.
+    nonisolated static func tracking(for title: String) -> CGFloat {
+        title.contains(where: \.isHangul) ? 0 : 1.4
+    }
+
     var body: some View {
-        // Editorial micro-label: wide tracking + smaller size reads as a
-        // deliberate system, not a shrunken heading.
         Text(title).font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(Theme.textDim).tracking(1.4)
+            .foregroundStyle(Theme.textDim).tracking(Self.tracking(for: title))
+    }
+}
+
+extension Character {
+    /// Hangul syllables, plus the Jamo blocks a decomposed string can carry.
+    var isHangul: Bool {
+        unicodeScalars.contains { s in
+            (0xAC00...0xD7A3).contains(s.value)  // syllables
+                || (0x1100...0x11FF).contains(s.value)  // conjoining jamo
+                || (0x3130...0x318F).contains(s.value)  // compatibility jamo
+        }
     }
 }
 

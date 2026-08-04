@@ -1085,6 +1085,18 @@ func runSelfChecks() async -> Bool {
     check("show-in-Dock ignores a non-bool",
           !AppSettings.resolveShowInDock("yes"))
 
+    print("Column header tracking:")
+    // Wide tracking is a Latin small-caps device: it makes "RECENT PUSH" read
+    // as a deliberate micro-label. Hangul syllable blocks already carry their
+    // own internal spacing, so the same value pulls "최근 PUSH" apart and
+    // costs legibility — the one tracking value was wrong for one of the two
+    // scripts (apple-design: tracking is script- and size-specific).
+    check("Latin headers keep the editorial tracking",
+          ColumnHeader.tracking(for: "RECENT PUSH") == 1.4)
+    check("Hangul headers drop it", ColumnHeader.tracking(for: "최근 PUSH") == 0)
+    check("a pure-Hangul header drops it", ColumnHeader.tracking(for: "수신함") == 0)
+    check("an empty title is treated as Latin", ColumnHeader.tracking(for: "") == 1.4)
+
     print("Korean josa:")
     // "%@(으)로" is a workaround, not Korean — the collapsed pill already gets
     // this right ("PUSH 3건"), so the app contradicted itself. Pick the
