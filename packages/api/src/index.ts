@@ -10,6 +10,7 @@ import {
   revokeDemoAccessIfDisabled,
 } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
+import { makeCorsOriginCallback } from "./cors-origin.js";
 import { db, INTERACTIVE_TX_OPTIONS, prisma } from "./db.js";
 import { withDbRetry } from "./db-retry.js";
 import { isDevOrTestEnv } from "./env.js";
@@ -166,14 +167,9 @@ function isAllowedDevOrigin(origin: string): boolean {
 }
 
 await app.register(cors, {
-  origin: (origin, cb) => {
-    // Allow requests with no origin (mobile apps, curl, server-to-server)
-    if (!origin || ALLOWED_ORIGINS.includes(origin) || isAllowedDevOrigin(origin)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Not allowed by CORS"), false);
-    }
-  },
+  // Quiet denial for unlisted origins — an error here becomes an HTTP 500,
+  // which is exactly what a DAST scan farms (see cors-origin.ts).
+  origin: makeCorsOriginCallback(ALLOWED_ORIGINS, isAllowedDevOrigin),
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   credentials: true,
 });

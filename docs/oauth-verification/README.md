@@ -96,13 +96,19 @@ closed and you restart.
 Triggered automatically after Step 3 because of the restricted Gmail scopes.
 Google emails instructions naming an authorized assessor.
 
-1. Pick an Authorized Lab from the
-   [App Defense Alliance CASA list](https://appdefensealliance.dev/casa/casa-assessors)
-   (e.g. TAC Security, Leviathan, Prescient — TAC has a low/free self-scan
-   tier commonly used by small apps).
-2. Choose the **self-assessment + verified scan** track (Tier 2 allows it):
-   run the lab's SAST/DAST tooling against the deployed app and the
-   `packages/api` codebase, complete the CASA questionnaire.
+1. **Follow the notification email's instructions** — as of 2026 the ADA has
+   deprecated the standalone self-scan compliance path ("The CASA self scanning
+   process is deprecated. For CASA compliance follow instructions provided in
+   your notification."); an independent Authorized Assessor must be involved.
+   Labs on the [ADA assessor list](https://appdefensealliance.dev/casa/casa-assessors)
+   sell Tier 2 packages (TAC Security ~$540–1,800 per app as of 2026; other
+   labs up to ~$3,000).
+2. Self-scanning is still useful as **readiness checking** before paying the
+   assessor: use the CASA Accelerator to export the required CWE list, load it
+   into an AST scan policy (see the ADA tooling matrix), and fix findings
+   first. Klorn's own pre-scan pass (2026-08-04) lives in the CASA companion
+   doc — headers/TLS/CORS/error-shape verified live, `pnpm audit --prod`
+   driven to zero.
 3. Evidence you already have for the questionnaire (keep handy):
    - OAuth tokens encrypted at rest with AES-256-GCM with key rotation
      support (2026-07-20 security audit).

@@ -218,6 +218,19 @@ Keep it under ~3 minutes, no cuts inside the consent flow.
 The assessor sends a ~54-question Self-Assessment Questionnaire. These are the
 answers grounded in the current codebase, ready to paste/adapt.
 
+**Pre-scan pass (2026-08-04, live against production)** — what a DAST will see:
+TLS 1.0/1.1 rejected at handshake, 1.2/1.3 negotiated (openssl s_client, both
+hosts); all headers below re-verified on live responses; CORS echoes only the
+pinned origin; 404/500 bodies are generic JSON (no stack traces); rate-limit
+headers live (`x-ratelimit-limit: 100`); no cookies anywhere (JWT header auth),
+so no cookie-flag findings are possible. Two findings were fixed the same day:
+a request with an unrecognized `Origin` header returned HTTP 500 (now a quiet
+CORS denial), and `pnpm audit --prod` showed 43 advisories (19 high, all
+transitive) — driven to **zero** via in-range updates plus `pnpm.overrides`
+(`postcss` ≥8.5.23, `sharp` ≥0.35.0, `uuid` ≥11.1.1). Re-run
+`pnpm audit --prod` the week the assessor scan is booked; new advisories land
+continuously.
+
 **Transport security:** All traffic is HTTPS. TLS 1.3 supported on both
 `app.klorn.ai` (Vercel) and `klorn-api.onrender.com` (Render/Cloudflare); TLS
 1.0/1.1 rejected; AEAD ciphers only (CHACHA20-POLY1305 / no CBC). HSTS enabled
