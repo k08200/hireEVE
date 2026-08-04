@@ -241,8 +241,14 @@ if (!providers.openrouter && !providers.gemini && !providers["openai-compat"]) {
     console.warn("[providers] OPENROUTER_API_KEY not set — primary provider disabled");
   }
   if (!providers.gemini) {
+    // Hosted Klorn deliberately runs ONE OpenRouter key (founder decision,
+    // 2026-08-02) — this is the expected shape, not a misconfiguration, so
+    // don't phrase it as a missing key. State the consequence instead: with a
+    // single provider there is nothing to fail over to, so a 402/403/429 on
+    // that key degrades every judge call to the keyword fallback (which caps
+    // confidence at 0.55 and cannot reach the PUSH floor of 0.7).
     console.warn(
-      "[providers] GEMINI_API_KEY not set — no secondary provider, OpenRouter daily limits will surface as hard errors until UTC midnight",
+      "[providers] Single provider configured (OpenRouter only) — no failover: a 402/403/429 on this key degrades every LLM surface until it clears. Add GEMINI_API_KEY or OPENAI_COMPAT_BASE_URL for a second lane.",
     );
   } else {
     console.log("[providers] Gemini secondary provider active (daily quota fallback)");
