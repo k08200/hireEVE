@@ -6,8 +6,8 @@ Tier 2 assessment window.
 
 ## What we are submitting for
 
-Klorn requests **restricted** Gmail scopes (`gmail.readonly`, `gmail.send`,
-`gmail.modify`) and **sensitive** Calendar scopes (`calendar.events`,
+Klorn requests **restricted** Gmail scopes (`gmail.readonly`, `gmail.modify`)
+and **sensitive** scopes (`gmail.send`, `calendar.events`,
 `calendar.readonly`), plus non-sensitive identity scopes (`openid`,
 `userinfo.email`, `userinfo.profile`). Restricted Gmail scopes require:
 
@@ -67,7 +67,7 @@ rejection reason; using more than you declare is worse):
 | `https://www.googleapis.com/auth/userinfo.email` | Non-sensitive |
 | `https://www.googleapis.com/auth/userinfo.profile` | Non-sensitive |
 | `https://www.googleapis.com/auth/gmail.readonly` | **Restricted** |
-| `https://www.googleapis.com/auth/gmail.send` | **Restricted** |
+| `https://www.googleapis.com/auth/gmail.send` | Sensitive |
 | `https://www.googleapis.com/auth/gmail.modify` | **Restricted** |
 | `https://www.googleapis.com/auth/calendar.events` | Sensitive |
 | `https://www.googleapis.com/auth/calendar.readonly` | Sensitive |
@@ -129,7 +129,8 @@ Google emails instructions naming an authorized assessor.
       longer shows the "unverified app" warning and the 100-user cap is lifted.
 - [ ] Do **not** add new scopes casually: any new sensitive/restricted scope
       reopens verification. (Linking a second inbox or calendar reuses the
-      already-verified scope set by design — see `gmail.ts` comments.)
+      already-verified scope set by design — see the comments in
+      `packages/api/src/mail/gmail.ts`.)
 - [ ] Keep the privacy policy URL, app name, and logo stable; changing them
       can re-trigger review.
 - [ ] Set a reminder for annual CASA recertification.
@@ -142,6 +143,11 @@ Google emails instructions naming an authorized assessor.
 | `scope-justifications.md` | Paste-ready per-scope justifications |
 | `demo-video-script.md` | Scene-by-scene demo video script |
 | `limited-use-disclosure.md` | Limited Use compliance statement + privacy-policy gap list |
+
+One file lives outside this directory: `docs/launch/google-oauth-verification.md`
+is the CASA-facing companion — its §6 has the code-backed answers to the
+assessor's ~54-question SAQ, which Step 4 above only summarizes. This directory
+drives the Google submission; that file answers the assessor.
 
 <!--
 CODE EVIDENCE (strip before submission)

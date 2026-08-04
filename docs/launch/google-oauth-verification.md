@@ -6,6 +6,14 @@ verification **and** an annual CASA Tier 2 security assessment. This file is the
 copy-paste source for every field in the OAuth verification form and the
 assessor's SAQ. Keep it in sync with the code.
 
+> **Which pack do I follow?** `docs/oauth-verification/` is the canonical
+> step-by-step submission runbook (console steps in order, prerequisites, the
+> paste-ready Limited Use declaration). **This** file is the CASA-facing
+> companion: its §6 holds the code-backed SAQ answers the assessor asks for,
+> which the runbook only summarizes. Use the runbook to drive the submission and
+> this file to answer the assessor. They must agree — if they ever diverge, the
+> code in `packages/api/src/mail/gmail.ts` wins.
+
 Google Cloud project: the Klorn project under `k0820086@gmail.com`.
 Console path: **APIs & Services → OAuth consent screen**.
 
@@ -149,20 +157,19 @@ Keep it under ~3 minutes, no cuts inside the consent flow.
 
 1. **App info**: name `Klorn`, user support email, app logo, developer contact.
 2. **App domain**: home `https://klorn.ai`, privacy `https://app.klorn.ai/privacy`,
-   terms `https://klorn.ai/terms`. Authorized domain `klorn.ai`.
+   terms `https://app.klorn.ai/terms`. Authorized domain `klorn.ai`.
 3. **Scopes**: add the scopes from §1; paste each justification.
 4. **Test → Production**: set the app to In production / **Submit for
    verification**. Attach the demo video link.
 5. Google reviews → for the restricted scopes they will email **CASA**
    instructions (see §5).
 
-> ⚠️ Privacy-policy URL: the retired `GOOGLE_OAUTH_VERIFICATION.md` gave
-> `https://klorn.ai/privacy` here. Both pages exist
-> (`website/privacy/index.html` and `packages/web/src/app/privacy/page.tsx`), but
-> the page actually reviewed for Limited Use is the app one — see
-> `docs/oauth-verification/limited-use-disclosure.md` — so this pack uses
-> `https://app.klorn.ai/privacy` throughout. Confirm before submitting: the
-> consent screen and the live policy URL must match exactly.
+> Policy URLs are settled — use the `app.klorn.ai` ones above. `klorn.ai/privacy`
+> and `klorn.ai/terms` are not separate documents: `website/privacy/index.html`
+> and `website/terms/index.html` are 14-line stubs that `noindex`, declare
+> `rel="canonical"` to the `app.klorn.ai` pages, and immediately redirect there.
+> The real policy is `packages/web/src/app/privacy/page.tsx`. Give Google the
+> canonical URL, not the redirect.
 
 ---
 

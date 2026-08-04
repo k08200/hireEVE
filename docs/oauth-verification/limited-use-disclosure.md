@@ -79,7 +79,7 @@ Reviewed against `packages/web/src/app/privacy/page.tsx` (live at
 1. **[적용 완료 2026-07-23] Scope list is incomplete and partially misattributed**
    (page.tsx:180-198). The page lists only `gmail.readonly`,
    `gmail.modify`, `calendar.events` — but the app requests **8 scopes**.
-   Missing: `gmail.send` (a *restricted* scope — its absence is the most
+   Missing: `gmail.send` (a *sensitive* scope — its absence is the most
    likely rejection trigger), `calendar.readonly`, `openid`,
    `userinfo.email`, `userinfo.profile`. Also, the `gmail.modify` bullet
    says it is used to "send replies" — sending is `gmail.send`, not
