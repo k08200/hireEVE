@@ -45,6 +45,19 @@ Gotchas:
 - Conventional commits. PR body must include all 4 template sections — `## Summary`, `## Type`, `## Checklist`, `## Test plan` — or a pre-push hook blocks `gh pr create`. Test plan = commands actually run and their results.
 - English for commits, PRs, code comments, and docs.
 
+## Production database
+
+Supabase (`ap-northeast-2`), reached through the **session pooler** on port
+5432 — the mode Prisma migrations need. `DATABASE_URL` is `sync: false` in
+`render.yaml`, i.e. it lives in the Render dashboard, not the blueprint.
+
+**Rotating that password has a required order** — Suspend the Render service
+first, or the outgoing container keeps auth-failing, arms Supabase's
+connection circuit breaker, and locks every replacement out. That is what
+took production down for 40 minutes on 2026-08-04. Full procedure, plus the
+manual backup/restore drill (the free tier has no automated backups):
+`docs/launch/db-credential-runbook.md`.
+
 ## Product vocabulary
 
 `docs/product-vocabulary.md` is the canonical word list — read it before naming

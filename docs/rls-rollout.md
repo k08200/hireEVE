@@ -40,8 +40,13 @@ These are wired but inert until FORCE — setting an unused GUC does nothing.
 
 ## Remaining steps (each its own PR)
 
-1. **Prereq (founder)**: a tested Postgres backup + point-in-time restore
-   rehearsal on the prod plan. Do not FORCE any table before this exists.
+1. **Prereq (founder)**: a **restore drill you have actually run** — not just
+   a backup that exists. Do not FORCE any table before this. Production runs
+   on **Supabase** (`ap-northeast-2`), whose free tier has no automated
+   backups, so the dump and the drill are both manual: see
+   `docs/launch/db-credential-runbook.md` for the exact commands. Record the
+   date and elapsed time here when it passes.
+
    Also confirm the app's role is neither a superuser nor `BYPASSRLS` —
    either makes `FORCE` silently inert (they bypass RLS unconditionally):
 
