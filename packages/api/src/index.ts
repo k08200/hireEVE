@@ -51,7 +51,7 @@ import { tokenUsageRoutes } from "./routes/token-usage.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
 import { webhookRoutes } from "./routes/webhook.js";
 import { buildSchedulerHealthReport, isBackgroundAgentsDisabled } from "./scheduler-heartbeat.js";
-import { captureError, initSentry } from "./sentry.js";
+import { captureError, flushSentry, initSentry } from "./sentry.js";
 import { getClientCount, initWebSocket } from "./websocket.js";
 
 // Initialize Sentry FIRST so every captureError() across the app actually
@@ -609,10 +609,21 @@ try {
       fetch(`${RENDER_URL}/api/health`).catch(() => {});
     }, KEEP_ALIVE_MS);
   }
-} catch (_err) {
-  // Exit so Render restarts the container. A permanent fallback 503 server
-  // would mask DB recovery and require manual redeploy to clear.
-  process.exit(1);
+} catch (err) {
+  // Say WHY before dying. This block used to swallow the error and exit
+  // silently, so a failed boot showed up in Render only as "Exited with
+  // status 1" — during the 2026-08-04 outage that cost half an hour of
+  // guessing at an error the process already had in hand.
+  //
+  // console.error first: Sentry is initialised at the top of this file, but
+  // captureError is a no-op without a DSN and the flush below is best-effort,
+  // so the platform log is the one channel guaranteed to survive.
+  console.error("[STARTUP] fatal: server did not start —", err);
+  captureError(err, { tags: { scope: "startup.fatal" } });
+  // Give Sentry a moment to ship it, then exit so Render restarts the
+  // container. A permanent fallback 503 server would mask DB recovery and
+  // require a manual redeploy to clear.
+  void flushSentry(2_000).finally(() => process.exit(1));
 }
 
 // Graceful shutdown: Render sends SIGTERM on every deploy/restart. Without a

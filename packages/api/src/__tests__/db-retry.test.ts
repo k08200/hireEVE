@@ -93,3 +93,55 @@ describe("withDbRetry", () => {
     expect(sleeps[1]).toBeGreaterThan(sleeps[0]);
   });
 });
+
+/**
+ * 2026-08-04 outage: a Supabase database-password rotation left the previous
+ * container auth-failing every scheduler tick, which kept Supabase's
+ * connection circuit breaker armed. Every new container then died on its
+ * FIRST database call in ~4 seconds — proof it never retried, because
+ * exhausting the configured 8 attempts would have taken ~63s.
+ *
+ * The cause: the retry predicate is an allowlist of message patterns, and
+ * none of them matched "too many authentication failures". A transient,
+ * server-side "back off and try again" was treated as a permanent
+ * application error, so the process exited instead of waiting it out — while
+ * start.sh's own shell-level retry loop survived the same window and
+ * completed `prisma migrate deploy` successfully.
+ */
+describe("isColdStartError — transient connection-gate errors", () => {
+  it("retries Supabase's circuit breaker", () => {
+    expect(
+      isColdStartError(
+        new Error(
+          "FATAL: (ECIRCUITBREAKER) too many authentication failures, new connections are temporarily blocked",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("retries the bare ECIRCUITBREAKER code", () => {
+    expect(isColdStartError(new Error("ECIRCUITBREAKER"))).toBe(true);
+  });
+
+  it("retries a pooler that is temporarily refusing new connections", () => {
+    expect(isColdStartError(new Error("new connections are temporarily blocked"))).toBe(true);
+  });
+
+  it("retries 'too many connections' — the pool drains on its own", () => {
+    expect(isColdStartError(new Error("FATAL: sorry, too many clients already"))).toBe(true);
+  });
+
+  it("still refuses to retry a genuinely wrong password", () => {
+    // A rotated-but-not-updated credential must fail loudly and stay failed;
+    // retrying it is what armed the breaker in the first place.
+    expect(
+      isColdStartError(new Error('FATAL: password authentication failed for user "postgres"')),
+    ).toBe(false);
+  });
+
+  it("still refuses to retry application errors", () => {
+    expect(isColdStartError(new Error("Unique constraint failed on the fields: (`email`)"))).toBe(
+      false,
+    );
+  });
+});
