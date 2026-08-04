@@ -28,7 +28,7 @@ consumption patterns of `gmail.metadata` do not support for body-based
 classification. Without this scope the product has no input: nothing can be
 classified, summarized, or surfaced, and the app is non-functional.
 
-## `https://www.googleapis.com/auth/gmail.send` (restricted)
+## `https://www.googleapis.com/auth/gmail.send` (sensitive)
 
 Klorn lets users reply to triaged mail from inside the app, including
 AI-drafted replies that the user reviews and approves before anything is
