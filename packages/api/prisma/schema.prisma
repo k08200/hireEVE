@@ -406,6 +406,12 @@ model AutomationConfig {
   // reply surface (all three /reply-options keys and AUTO rule replies); the
   // accept/decline/info axis is unchanged.
   replyTone              String   @default("MATCH_ME") // "MATCH_ME" | "FORMAL" | "FRIENDLY" | "CASUAL"
+  // Language for notification copy Klorn writes itself ("Draft ready",
+  // "긴급 메일 2건"). Server-side because a push is composed on the server, with
+  // no browser or Mac to read a locale from — the clients' own language
+  // settings only ever governed their own UI chrome. NOT the reply language:
+  // a reply follows the mail it answers (mail/email-reply.ts).
+  notificationLanguage   String   @default("en") // "en" | "ko"
   // Gmail read-state opt-in: when true, Eve marks the original email as read
   // after AUTO-replying to it. Default off so Gmail's "unread" remains a user signal.
   autoMarkReadEnabled    Boolean  @default(false)
