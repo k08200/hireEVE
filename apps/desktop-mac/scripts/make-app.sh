@@ -59,6 +59,27 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
 cp "$BIN" "$APP/Contents/MacOS/KlornMac"
 
+# SwiftPM's processed resources (Package.swift: resources:[.process("Resources")])
+# land in KlornMac_KlornMac.bundle NEXT TO the binary — they are not inside it.
+# Bundle.module looks for that bundle in the app's Contents/Resources at runtime
+# and calls fatalError when it is missing, so shipping without it is an app that
+# launches and dies the moment the status menu asks L10n for a string (every
+# packaged build 80024–80028 did exactly this; crash: EXC_BREAKPOINT in
+# "NSBundle.module" one-time init). Refuse to build rather than ship that again.
+RES_BUNDLE="$(dirname "$BIN")/KlornMac_KlornMac.bundle"
+[ -d "$RES_BUNDLE" ] || { echo "✗ $RES_BUNDLE missing — Bundle.module would fatalError at runtime"; exit 1; }
+mkdir -p "$APP/Contents/Resources"
+cp -R "$RES_BUNDLE" "$APP/Contents/Resources/"
+# The bundle's internal layout differs by build style — flat lprojs from a
+# plain `swift build`, a full Contents/Resources tree from the --arch
+# (Xcode-style) build. Foundation's Bundle API reads both; accept both here.
+SHIPPED="$APP/Contents/Resources/KlornMac_KlornMac.bundle"
+for code in en ko; do
+  [ -d "$SHIPPED/$code.lproj" ] || [ -d "$SHIPPED/Contents/Resources/$code.lproj" ] \
+    || { echo "✗ resource bundle is missing $code.lproj — localization would be dead"; exit 1; }
+done
+echo "▸ resource bundle: $(du -sh "$APP/Contents/Resources/KlornMac_KlornMac.bundle" | cut -f1) ($(ls "$APP/Contents/Resources/KlornMac_KlornMac.bundle" | tr '\n' ' '))"
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

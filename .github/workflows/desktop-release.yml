@@ -97,6 +97,17 @@ jobs:
               || { echo "::error::release binary is missing the $want slice"; exit 1; }
           done
 
+      - name: Self-check the PACKAGED app
+        working-directory: apps/desktop-mac
+        # `swift run --self-check` in CI tests the code but not the packaging:
+        # 80024–80028 all passed it and still crashed at launch because
+        # make-app.sh shipped the app without the SwiftPM resource bundle, so
+        # Bundle.module fatalErrored on the first L10n lookup. Running the
+        # self-check through the ASSEMBLED bundle exercises that exact path
+        # (SelfCheck calls L(...)), so a packaging regression fails the release
+        # instead of shipping an app that dies on its first menu.
+        run: ./Klorn.app/Contents/MacOS/KlornMac --self-check
+
       - name: Import Developer ID certificate
         if: steps.signing.outputs.enabled == 'true'
         env:
