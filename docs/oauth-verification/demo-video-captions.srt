@@ -1,0 +1,112 @@
+1
+00:00:00,500 --> 00:00:08,000
+This is Klorn, an AI email attention firewall at app.klorn.ai.
+
+2
+00:00:08,000 --> 00:00:16,500
+Klorn connects to a user's Gmail and Google Calendar and classifies every
+message into four attention tiers — PUSH, QUEUE, SILENT, and AUTO —
+
+3
+00:00:16,500 --> 00:00:25,000
+so users are only interrupted by mail that needs them. I'll sign in with
+Google and show how each requested scope powers a user-facing feature.
+
+4
+00:00:25,000 --> 00:00:33,000
+Here is Google's consent screen for our production OAuth client — note the
+client ID in the address bar.
+
+5
+00:00:33,000 --> 00:00:44,000
+Klorn requests Gmail read, send, and modify access, Calendar events and
+read-only Calendar access, plus basic profile information to create the account.
+
+6
+00:00:44,000 --> 00:01:00,000
+The user sees exactly what is requested and consents before any data is
+accessed.
+
+7
+00:01:00,000 --> 00:01:12,000
+Immediately after connecting, Klorn uses the Gmail read-only scope to sync
+recent messages and classify each one into an attention tier.
+
+8
+00:01:12,000 --> 00:01:24,000
+Message bodies are read to produce these per-message summaries and the
+daily briefing. This classification is the core of the product.
+
+9
+00:01:24,000 --> 00:01:50,000
+Mail content is used only for this classification and summarization; it is
+never used for advertising and never read by humans.
+
+10
+00:01:50,000 --> 00:02:03,000
+When the user acts on a triaged message, Klorn uses the gmail.modify scope
+to reflect that decision in the real mailbox —
+
+11
+00:02:03,000 --> 00:02:14,000
+applying tier labels, marking read, archiving, or moving a message to Trash
+after explicit approval. Deletes always go to Gmail's reversible Trash.
+
+12
+00:02:14,000 --> 00:02:25,000
+Here in Gmail you can see the same message with Klorn's changes applied.
+
+13
+00:02:25,000 --> 00:02:37,000
+Replying uses the gmail.send scope, gated behind explicit user approval.
+The user reviews and can edit the draft.
+
+14
+00:02:37,000 --> 00:02:52,000
+On approval, Klorn records a receipt of the exact approved content and sends
+precisely those bytes — the system refuses to send anything that doesn't
+match what was approved.
+
+15
+00:02:52,000 --> 00:03:05,000
+Here is the message in the Gmail Sent folder.
+
+16
+00:03:05,000 --> 00:03:18,000
+Calendar access powers meeting context. With the read-only Calendar scope,
+Klorn checks free/busy across all of the user's calendars to flag conflicts
+like this.
+
+17
+00:03:18,000 --> 00:03:32,000
+With the Calendar events scope, the user can approve turning an email into
+a calendar event without leaving the triage flow.
+
+18
+00:03:32,000 --> 00:03:50,000
+Here is the event in Google Calendar.
+
+19
+00:03:50,000 --> 00:04:02,000
+Klorn also ships a desktop client. It authenticates through the system
+browser with the same OAuth client and the same scopes — no embedded
+webviews and no additional permissions.
+
+20
+00:04:02,000 --> 00:04:15,000
+The desktop app is another view of the same account; all Google data access
+still happens on our backend, shown earlier.
+
+21
+00:04:15,000 --> 00:04:27,000
+Users stay in control: they can disconnect Google or delete their Klorn
+account at any time, which purges all Google-derived data from our systems.
+
+22
+00:04:27,000 --> 00:04:38,000
+Access can also be revoked from the user's Google Account permissions page.
+
+23
+00:04:38,000 --> 00:04:45,000
+All Google user data is stored encrypted and used only for the features
+shown in this video, in accordance with the Limited Use policy. Thank you.

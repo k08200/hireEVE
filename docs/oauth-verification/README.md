@@ -148,6 +148,7 @@ Google emails instructions naming an authorized assessor.
 | `README.md` | This checklist |
 | `scope-justifications.md` | Paste-ready per-scope justifications |
 | `demo-video-script.md` | Scene-by-scene demo video script |
+| `demo-video-captions.srt` | Upload-ready English captions matching the scene timings (record silently, attach on YouTube) |
 | `limited-use-disclosure.md` | Limited Use compliance statement + privacy-policy gap list |
 
 One file lives outside this directory: `docs/launch/google-oauth-verification.md`

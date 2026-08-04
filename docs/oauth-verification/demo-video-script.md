@@ -1,7 +1,9 @@
 # Demo Video Script — Google OAuth Restricted-Scope Review
 
-**Target length:** 3.5–4.5 minutes. **Upload:** unlisted YouTube link.
-**Language:** English narration (spoken or captions).
+**Target length:** 4–5 minutes. **Upload:** unlisted YouTube link.
+**Language:** English narration (spoken or captions —
+`demo-video-captions.srt` next to this file is upload-ready if you record
+silently; timestamps match the scene timings below).
 
 ## Google's hard requirements (check every one before uploading)
 
@@ -98,7 +100,21 @@ including secondary ones — to flag conflicts like this. With the Calendar
 events scope, the user can approve turning an email into a calendar event
 without leaving the triage flow. Here is the event in Google Calendar."
 
-## Scene 7 — User control: disconnect and delete (3:50–4:20)
+## Scene 7 — Same account, desktop app (3:50–4:15)
+
+**Screen:** Launch the Klorn macOS app. Click its sign-in control — it opens
+the **system browser** (not an embedded webview) on the same Google flow;
+since the demo account already granted consent, Google returns immediately
+and the app signs in. Show the menu-bar triage surface with the same
+PUSH/QUEUE/SILENT tiers as the web app.
+
+**Narration:** "Klorn also ships a desktop client. It authenticates through
+the system browser with the same OAuth client and the same scopes — no
+embedded webviews and no additional permissions. The desktop app is another
+view of the same account; all Google data access still happens on our
+backend, shown earlier."
+
+## Scene 8 — User control: disconnect and delete (4:15–4:45)
 
 **Screen:** Open Klorn settings. Show the disconnect-Google control and the
 account-deletion control (hover, don't need to execute deletion on the demo
