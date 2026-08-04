@@ -31,12 +31,14 @@ import { confirmAttentionTier, overrideAttentionTier } from "../judge/attention-
 import { snoozeAttentionItem } from "../judge/attention-snooze.js";
 import { getDecisionMetrics } from "../judge/decision-metrics.js";
 import { collapseEmailThreads } from "../judge/firewall-thread-collapse.js";
+import { resolveTierReason } from "../judge/tier-reason-strings.js";
 import { manualOverrideReason, normalizeTier, TIERS, type Tier } from "../judge/tiers.js";
 import { getInteractionGraph } from "../learning/interaction-graph.js";
 import { describePolicy } from "../learning/ontology.js";
 import { getTrustScoresBulk } from "../learning/trust-score.js";
 import { ensureFreshGmailWatch } from "../mail/gmail.js";
 import { senderEmail } from "../notify/notification-format.js";
+import { getUserNotificationLanguage } from "../notify/notification-strings.js";
 import { captureError } from "../sentry.js";
 
 // Tool args that carry a Gmail message id we can map back to a stored
@@ -308,6 +310,11 @@ export async function firewallRoutes(app: FastifyInstance) {
 
   app.get("/", async (request): Promise<FirewallResponse> => {
     const userId = getUserId(request);
+    // Deterministic reasons are stored as keys (tier-reason-strings.ts) and
+    // rendered here, so switching language re-reads existing rows instead of
+    // leaving them frozen in the language they were written in. Resolved once
+    // per request, not per row.
+    const reasonLanguage = await getUserNotificationLanguage(userId);
     // Per-inbox scope (mirrors routes/email.ts's `inbox=` param): absent/"all"
     // → every inbox (100% backward compatible); "primary" → primary-account
     // mail plus items with no email at all (GitHub etc. — the primary is the
@@ -491,7 +498,7 @@ export async function firewallRoutes(app: FastifyInstance) {
         type: row.type,
         title: row.title,
         tier,
-        tierReason: row.tierReason,
+        tierReason: resolveTierReason(row.tierReason, reasonLanguage),
         priority: row.priority,
         surfacedAt: row.surfacedAt.toISOString(),
       };

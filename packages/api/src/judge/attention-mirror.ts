@@ -122,37 +122,37 @@ export type { Tier };
 
 function tierForPendingAction(autonomyLevel: AutopilotLevel): { tier: Tier; tierReason: string } {
   if (autonomyLevel === AUTOPILOT_LEVEL.SAFE_AUTO) {
-    return { tier: "AUTO", tierReason: "Low-risk action — eligible for auto-execution" };
+    return { tier: "AUTO", tierReason: "action.lowRiskAuto" };
   }
-  return { tier: "QUEUE", tierReason: "Awaiting your approval" };
+  return { tier: "QUEUE", tierReason: "action.awaitingApproval" };
 }
 
 function tierForTask(priority: string, isOverdue: boolean): { tier: Tier; tierReason: string } {
   if (isOverdue && priority === "URGENT") {
     return {
       tier: "PUSH",
-      tierReason: "Overdue URGENT task — last-chance interrupt before damage compounds",
+      tierReason: "task.overdueUrgent",
     };
   }
   if (isOverdue && priority === "HIGH") {
-    return { tier: "PUSH", tierReason: "Overdue high-priority task needs immediate attention" };
+    return { tier: "PUSH", tierReason: "task.overdueHigh" };
   }
   if (priority === "URGENT") {
-    return { tier: "PUSH", tierReason: "Urgent task is due today" };
+    return { tier: "PUSH", tierReason: "task.urgentDueToday" };
   }
-  return { tier: "QUEUE", tierReason: "Due today — added to review queue" };
+  return { tier: "QUEUE", tierReason: "task.dueToday" };
 }
 
 function tierForCalendarEvent(priority: number): { tier: Tier; tierReason: string } {
   // priority 90+ means starting within ~15 minutes — top-urgency PUSH.
   // 70–89 keeps the existing "within the hour" PUSH.
   if (priority >= 90) {
-    return { tier: "PUSH", tierReason: "Meeting starts in minutes — interrupt now" };
+    return { tier: "PUSH", tierReason: "meeting.startingNow" };
   }
   if (priority >= 70) {
-    return { tier: "PUSH", tierReason: "Meeting starts within the hour — prep now" };
+    return { tier: "PUSH", tierReason: "meeting.startingWithinHour" };
   }
-  return { tier: "QUEUE", tierReason: "Today's meeting — prep recommended" };
+  return { tier: "QUEUE", tierReason: "meeting.today" };
 }
 
 function tierForCommitment(
@@ -163,19 +163,19 @@ function tierForCommitment(
   if (type === "COMMITMENT_OVERDUE" && priority >= 80) {
     return {
       tier: "PUSH",
-      tierReason: "High-priority commitment is overdue — counterparty actively blocked",
+      tierReason: "commitment.overdueHighPriority",
     };
   }
   if (type === "COMMITMENT_OVERDUE") {
-    return { tier: "PUSH", tierReason: "Overdue commitment — may be blocking counterparty" };
+    return { tier: "PUSH", tierReason: "commitment.overdue" };
   }
   if (type === "COMMITMENT_UNCONFIRMED" || confidence < 0.5) {
-    return { tier: "SILENT", tierReason: "Needs date confirmation before surfacing" };
+    return { tier: "SILENT", tierReason: "commitment.needsDate" };
   }
   if (priority >= 70) {
-    return { tier: "PUSH", tierReason: "Commitment due within 24 hours" };
+    return { tier: "PUSH", tierReason: "commitment.dueSoon" };
   }
-  return { tier: "QUEUE", tierReason: "Tracked commitment — added to review queue" };
+  return { tier: "QUEUE", tierReason: "commitment.tracked" };
 }
 
 /**
