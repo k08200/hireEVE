@@ -27,3 +27,10 @@ packages/api/scripts/diagnose-calendar-times.ts
 
 # threshold-sweep.ts feature cache (extracted scores, regenerated on demand)
 packages/api/eval/.feature-cache.json
+
+# Database dumps — these are real user data. A pg_dump of production is
+# ~82MB of mail, tokens and personal information; one `git add -A` on a
+# public repo publishes it. Backups belong outside the working tree.
+*.dump
+*.sql.gz
+*-backup.sql

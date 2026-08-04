@@ -46,39 +46,81 @@ Following this order means the breaker never arms.)
 ## Backup
 
 Supabase's free tier has no automated backups, so this is manual until the
-plan changes. Use the **direct connection** (`db.<ref>.supabase.co`), not the
-pooler — dumps through a pooler are unreliable.
+plan changes. Every detail below cost a failed attempt during the first
+drill (2026-08-04) — the obvious-looking version of each one does not work:
+
+- **Use the pooler, not the direct host.** `db.<ref>.supabase.co` resolves
+  over IPv6 only, so it fails inside Docker with "could not translate host
+  name". The session pooler (port 5432, the same URL Render uses) is IPv4 and
+  is fine for `pg_dump`. Only *transaction* mode (6543) is unsuitable.
+- **Match the server's major version.** Production runs Postgres **17**;
+  `pg_dump` 16 aborts with "server version mismatch" rather than dumping.
+- **Pipe to stdout instead of mounting a volume.** `-v $PWD:/out` collides
+  with the postgres image's entrypoint; `--entrypoint pg_dump` plus a shell
+  redirect avoids both problems.
+- **Paste these one block at a time, without the comments.** zsh does not
+  enable `interactivecomments`, so a pasted `# 1) …` line is a parse error —
+  and a multi-line paste that fails halfway silently continues to the next
+  command, which is how the first drill skipped a step and then reported a
+  missing database.
 
 ```bash
-export PROD_URL="postgresql://postgres:<password>@db.wqqjldncizvmandepobc.supabase.co:5432/postgres?sslmode=require"
-pg_dump "$PROD_URL" -Fc -f "klorn-$(date +%Y%m%d).dump"
-ls -lh klorn-*.dump      # a zero-byte file means it failed
+cd ~/Downloads/klorn
+docker run --rm --entrypoint pg_dump postgres:17 \
+  "postgresql://postgres.<ref>:<password>@aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require" \
+  --no-owner --no-privileges -Fc > klorn-backup.dump
+ls -lh klorn-backup.dump
 ```
+
+A zero-byte file means it failed; read the error rather than continuing. The
+2026-08-04 dump of a 383 MB database was 82 MB.
+
+The dump is real user data — mail bodies, encrypted tokens, addresses.
+`*.dump` is gitignored, but keep it out of the repo directory anyway and
+delete it once the drill is done.
 
 ## Restore drill
 
 A dump you have never restored is not a backup. Restore into a throwaway
-local database — production is untouched:
+local database — production is untouched. Run each block separately:
 
 ```bash
-docker run -d --name klorn-restore -e POSTGRES_PASSWORD=x -p 5433:5432 postgres:16
-sleep 8
-createdb -h localhost -p 5433 -U postgres klorn_restore
-pg_restore -h localhost -p 5433 -U postgres -d klorn_restore --no-owner klorn-*.dump
-
-export DRILL_URL="postgresql://postgres:x@localhost:5433/klorn_restore"
-psql "$DRILL_URL" -c 'SELECT count(*) FROM "User";'
-cd packages/api && DATABASE_URL="$DRILL_URL" npx prisma migrate status
-docker rm -f klorn-restore
+docker rm -f restore-test 2>/dev/null
+docker run -d --name restore-test -e POSTGRES_PASSWORD=x -p 5433:5432 postgres:17
 ```
 
-The last command is the point of the exercise. "The dump exists" and "the app
-boots on it" are different claims, and it is the second one that fails during
-a real incident.
+```bash
+until docker exec restore-test pg_isready -U postgres >/dev/null 2>&1; do sleep 2; done; echo READY
+```
 
-Record the result — the date, how long it took end to end, and the row counts
-— in `docs/rls-rollout.md`'s prerequisite section. A drill nobody wrote down
-gets re-argued the next time someone asks whether restores work.
+```bash
+docker exec restore-test createdb -U postgres testdb
+docker run --rm -i --network host --entrypoint pg_restore -e PGPASSWORD=x postgres:17 -h localhost -p 5433 -U postgres -d testdb --no-owner < klorn-backup.dump
+docker exec -e PGPASSWORD=x restore-test psql -U postgres -d testdb -c 'SELECT count(*) AS users FROM "User";'
+```
+
+`pg_restore` will report a few errors about `supabase_vault` — that extension
+does not exist outside Supabase. They are counted as "errors ignored" and do
+not affect application tables. The row count is the check that matters.
+
+```bash
+cd ~/Downloads/klorn/packages/api
+DATABASE_URL="postgresql://postgres:x@localhost:5433/testdb" ./node_modules/.bin/prisma migrate status
+```
+
+**This last command is the point of the exercise.** "The dump exists" and
+"the app boots on it" are different claims, and it is the second one that
+fails during a real incident. `Database schema is up to date!` is a pass.
+
+(This machine has no `npx`; call the local binary directly.)
+
+```bash
+docker rm -f restore-test
+```
+
+Record the result in `docs/rls-rollout.md`'s prerequisite section — a drill
+nobody wrote down gets re-argued the next time someone asks whether restores
+work.
 
 ## If the app will not start
 

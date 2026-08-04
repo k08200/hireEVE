@@ -40,12 +40,22 @@ These are wired but inert until FORCE — setting an unused GUC does nothing.
 
 ## Remaining steps (each its own PR)
 
-1. **Prereq (founder)**: a **restore drill you have actually run** — not just
-   a backup that exists. Do not FORCE any table before this. Production runs
-   on **Supabase** (`ap-northeast-2`), whose free tier has no automated
-   backups, so the dump and the drill are both manual: see
-   `docs/launch/db-credential-runbook.md` for the exact commands. Record the
-   date and elapsed time here when it passes.
+1. **Prereq (founder)**: ✅ **Done — drill run 2026-08-04.** A restore drill you
+   have actually run, not just a backup that exists. Production runs on
+   **Supabase** (`ap-northeast-2`), whose free tier has no automated backups,
+   so the dump and the drill are both manual:
+   `docs/launch/db-credential-runbook.md` has the exact commands.
+
+   | 2026-08-04 drill | Result |
+   | --- | --- |
+   | `pg_dump -Fc` via session pooler | 82 MB, ~2 min |
+   | `pg_restore` into a local postgres:17 | 3 ignorable `supabase_vault` errors, application tables intact (`User` = 10 rows) |
+   | `prisma migrate status` against the restored DB | `Database schema is up to date!` (110 migrations) |
+
+   The third row is the one that licenses FORCE. A dump that restores but that
+   the app then rejects is not a recovery path, and that gap only shows up
+   under the pressure of a real incident. Re-run the drill whenever the
+   Postgres major version or the connection topology changes.
 
    Also confirm the app's role is neither a superuser nor `BYPASSRLS` —
    either makes `FORCE` silently inert (they bypass RLS unconditionally):
