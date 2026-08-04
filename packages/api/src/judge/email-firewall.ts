@@ -20,6 +20,7 @@ import {
 import { classifyNeedsReplyFromSignals, classifyPriority } from "../mail/email-priority.js";
 import { markAsRead } from "../mail/gmail.js";
 import type { GmailRawEmail } from "../mail/gmail-fetch.js";
+import { getUserNotificationLanguage } from "../notify/notification-strings.js";
 import { extractAndUpsertCommitmentsFromText } from "../pim/commitment-ingestion.js";
 import type { ProviderCredentials } from "../providers/index.js";
 import { resolveUserEmail } from "../resolve-user-email.js";
@@ -257,6 +258,7 @@ export async function judgeAndMirrorEmail(
   userId: string,
   email: JudgeableEmailRow,
   credentials?: ProviderCredentials,
+  language?: string | null,
 ): Promise<PocTier> {
   // BYOK: route this user's classify call to their own provider key when they
   // have set one (billing.ts), so per-user load never lands on the shared env
@@ -266,6 +268,11 @@ export async function judgeAndMirrorEmail(
   // emails for one user (the backfill sweep) pass `credentials` so the lookup
   // happens once, not per email.
   const llmCredentials = credentials ?? (await getUserLlmCredentials(userId));
+  // The reason is shown as "why this was PUSH", so it follows the user's
+  // notification language — the same setting the banners use. Resolved by the
+  // caller when there is one (the backfill sweep judges many emails for one
+  // user and must not re-read the config per email), like `credentials`.
+  const reasonLanguage = language ?? (await getUserNotificationLanguage(userId));
   const judgeContext = await buildJudgeContext(userId, {
     from: email.from,
     subject: email.subject,
@@ -282,6 +289,9 @@ export async function judgeAndMirrorEmail(
     userId,
     judgeContext,
     llmCredentials,
+    undefined,
+    undefined,
+    reasonLanguage,
   );
   // Fleet-wide accuracy tripwire: track how the judge decided (LLM vs the
   // keyword fallback that caps PUSH recall ~46%). Prod path only — the eval
@@ -473,11 +483,14 @@ export async function backfillEmailAttentionItems(userId: string): Promise<numbe
   // can be hundreds of emails for the same user, so fetching per email would
   // be a needless query per row.
   const llmCredentials = await getUserLlmCredentials(userId);
+  // Resolve once for the whole sweep, like the credentials above — this loop
+  // judges many emails for one user and must not re-read the config per email.
+  const reasonLanguage = await getUserNotificationLanguage(userId);
 
   let done = 0;
   for (const email of unjudged) {
     try {
-      await judgeAndMirrorEmail(userId, email, llmCredentials);
+      await judgeAndMirrorEmail(userId, email, llmCredentials, reasonLanguage);
       done++;
     } catch (err) {
       // console first: captureError is silent without a Sentry DSN, and a
