@@ -186,6 +186,33 @@ that no policy is consulted for does nothing.
    percent-encoded inside a connection URL, and a mis-encoded `DATABASE_URL` is
    an outage.
 
+### Hard gate before step 4: `User` is upstream of tenancy itself
+
+`User` is not "one more table to route". Every other policied table is reached
+*after* a tenant is resolved; `User` is how the tenant gets resolved. 148
+`prisma.user.*` call sites across 39 files are currently unrouted, and the ones
+that matter cannot be tenant-scoped even in principle:
+
+| Path | Why no tenant context exists | Failure if unrouted when the role switches |
+| --- | --- | --- |
+| `routes/auth.ts:377` login, `:1036` Google OAuth | looks a user up *by email* — finding out who they are is the point | `null` for every attempt → **total lockout** |
+| `routes/auth.ts:288`,`:300` registration | the new `id` is not knowable before the row exists | duplicate check silently passes, then `INSERT` is **rejected** by `WITH CHECK` |
+| `routes/auth.ts:1487` reset, `:1543` verify | looked up by token hash, pre-authentication | every valid token reports "invalid or expired" |
+| `auth.ts:189` `requireAdmin` | reads role before trusting the caller | every admin gets 403 |
+| `automation-scheduler.ts:628`, `autonomous-agent-scheduler.ts:186`, `mail/github-scheduler.ts:20`, `mail/naver-imap-scheduler.ts:24` | sweeps the whole fleet | `[]` → mail sync and the agent go **silently dark**, no error logged |
+| `routes/webhook.ts` (Stripe/Paddle/RevenueCat) | resolves by `stripeId`/`customerId` | billing sync no-ops, and looks identical to "customer not ours" |
+
+These need `withSystem`, not `withTenant`. Which is worth being honest about:
+most `User` access is legitimately system-level, so the tenant policy on this
+table guards a narrower surface than the other 43 — essentially "read/update my
+own profile". It still earns its place, because the bug class this exists to
+stop is a query that *should* have been scoped and wasn't, and that query now
+returns nothing instead of everyone.
+
+**Route these before step 4, and treat "login still works" as the canary.** An
+unrouted `User` does not degrade gracefully; it locks every account out at once,
+including the account needed to diagnose it.
+
 4. **Split migration and runtime connections.** `scripts/start.sh` runs
    `prisma migrate deploy` with `DATABASE_URL`, so pointing that at a role
    without DDL rights breaks deploys. Add `directUrl = env("DIRECT_DATABASE_URL")`
