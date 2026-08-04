@@ -61,7 +61,9 @@ export async function automationRoutes(app: FastifyInstance) {
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
       replyTone: normalizeReplyTone(configAny.replyTone),
       replyTones: listReplyTonePolicies(),
-      notificationLanguage: resolveNotificationLanguage(configAny.notificationLanguage as string | null),
+      notificationLanguage: resolveNotificationLanguage(
+        configAny.notificationLanguage as string | null,
+      ),
       notificationLanguages: Array.from(NOTIFICATION_LANGUAGES),
       notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
       notifyMeeting: configAny.notifyMeeting ?? true,
@@ -168,7 +170,9 @@ export async function automationRoutes(app: FastifyInstance) {
       preApprovableTools: Array.from(PRE_APPROVABLE_TOOLS),
       replyTone: normalizeReplyTone(configAny.replyTone),
       replyTones: listReplyTonePolicies(),
-      notificationLanguage: resolveNotificationLanguage(configAny.notificationLanguage as string | null),
+      notificationLanguage: resolveNotificationLanguage(
+        configAny.notificationLanguage as string | null,
+      ),
       notificationLanguages: Array.from(NOTIFICATION_LANGUAGES),
       notifyEmailUrgent: configAny.notifyEmailUrgent ?? true,
       notifyMeeting: configAny.notifyMeeting ?? true,
