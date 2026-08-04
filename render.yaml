@@ -39,6 +39,13 @@ services:
       # surface at once.
       - key: OPENROUTER_API_KEY
         sync: false
+      # Required for the observability tripwires to reach anyone: judge-health
+      # (fleet-wide keyword-fallback rate) and the key-headroom probe both
+      # report via captureError, which is a NO-OP when SENTRY_DSN is unset
+      # (sentry.ts initSentry). Declared here so an empty value is visible in
+      # the dashboard instead of silently disabling every alarm.
+      - key: SENTRY_DSN
+        sync: false
       # LLM model pins — make prod explicit instead of relying on the in-code
       # defaults (which intentionally stay :free for self-hosters without paid
       # credit). Prod runs on a funded OpenRouter key, so every user-facing

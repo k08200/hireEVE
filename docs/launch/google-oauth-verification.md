@@ -6,6 +6,9 @@ verification **and** an annual CASA Tier 2 security assessment. This file is the
 copy-paste source for every field in the OAuth verification form and the
 assessor's SAQ. Keep it in sync with the code.
 
+Google Cloud project: the Klorn project under `k0820086@gmail.com`.
+Console path: **APIs & Services → OAuth consent screen**.
+
 Consent-screen basics (must match exactly):
 - App name: **Klorn**
 - Homepage: `https://klorn.ai` (public, no login)
@@ -19,6 +22,29 @@ Consent-screen basics (must match exactly):
 Principle: every scope is the **least privilege** that makes a user-facing,
 prominently-visible feature work. We do not request `gmail.full`, `gmail.settings.*`,
 or any scope that permits permanent deletion.
+
+### Scope inventory (source of truth: `packages/api/src/mail/gmail.ts`)
+
+| Scope | Google tier | Needs CASA? |
+|---|---|---|
+| `…/auth/gmail.readonly` | **Restricted** | ✅ yes |
+| `…/auth/gmail.modify` | **Restricted** | ✅ yes |
+| `…/auth/gmail.send` | Sensitive | (covered by CASA) |
+| `…/auth/calendar.events` | Sensitive | — |
+| `…/auth/calendar.readonly` | Sensitive | — |
+| `…/auth/userinfo.email` | Non-sensitive | — |
+| `…/auth/userinfo.profile` | Non-sensitive | — |
+| `openid` | Non-sensitive | — |
+
+> Because two **restricted** Gmail scopes are present, the app requires full
+> verification **and** an annual CASA assessment. There is no way around CASA
+> while reading mail content — it is the price of the core firewall feature.
+
+The consent screen must list exactly this set. It is the union of the four
+scope arrays in `packages/api/src/mail/gmail.ts`: `getAuthUrl`,
+`getLoginAuthUrl`, `getLinkCalendarAuthUrl` (calendar-only link), and
+`getLinkInboxAuthUrl` (mail-only link) — the link flows are strict subsets, so
+linking a second account requests no new scope.
 
 ### `https://www.googleapis.com/auth/gmail.readonly` — RESTRICTED
 **Feature:** Klorn's core value — it reads the user's incoming mail to classify
@@ -76,11 +102,14 @@ Used only to identify the signed-in account and which mailbox was linked.
   Limited Use policy — it is **not** a sale or transfer to advertisers/brokers.
 - Google user data is **never** used to train generalized/non-personalized AI/ML
   models, never sold, and never transferred for advertising.
+- **Human access is limited**: no human reads Google user data except with the
+  user's explicit consent, where necessary for security or to comply with
+  applicable law, or in aggregated/anonymized form for internal operations.
 - OAuth refresh/access tokens are encrypted at rest with **AES-256-GCM** (unique
   IV per record, key from env, key-rotation tooling); they are never returned to
   any client.
 - Users can disconnect Google (`DELETE /api/auth/google`) and delete their account,
-  which removes stored Google data. (See §4 Data Retention & Deletion.)
+  which removes stored Google data. (See §6 Data Retention & Deletion.)
 
 The privacy policy (`/privacy`) already states the above, including the verbatim
 "Limited Use" reference and the "do not train" commitment.
@@ -116,7 +145,41 @@ Keep it under ~3 minutes, no cuts inside the consent flow.
 
 ---
 
-## 4. CASA Tier 2 SAQ — pre-filled answers (code-backed)
+## 4. Consent screen — what to fill (order)
+
+1. **App info**: name `Klorn`, user support email, app logo, developer contact.
+2. **App domain**: home `https://klorn.ai`, privacy `https://app.klorn.ai/privacy`,
+   terms `https://klorn.ai/terms`. Authorized domain `klorn.ai`.
+3. **Scopes**: add the scopes from §1; paste each justification.
+4. **Test → Production**: set the app to In production / **Submit for
+   verification**. Attach the demo video link.
+5. Google reviews → for the restricted scopes they will email **CASA**
+   instructions (see §5).
+
+> ⚠️ Privacy-policy URL: the retired `GOOGLE_OAUTH_VERIFICATION.md` gave
+> `https://klorn.ai/privacy` here. Both pages exist
+> (`website/privacy/index.html` and `packages/web/src/app/privacy/page.tsx`), but
+> the page actually reviewed for Limited Use is the app one — see
+> `docs/oauth-verification/limited-use-disclosure.md` — so this pack uses
+> `https://app.klorn.ai/privacy` throughout. Confirm before submitting: the
+> consent screen and the live policy URL must match exactly.
+
+---
+
+## 5. CASA (after the console submission)
+
+- Google emails a link to authorized **CASA assessors**. Pick one from their
+  list, contact them, and complete a **Tier 2** assessment (self-assessment
+  questionnaire + an authorized scan of the app).
+- The assessor issues a **Letter of Assessment (LoA)** to Google; verification
+  completes once Google has it.
+- **Annual**: CASA must be re-done every ~12 months regardless of changes.
+- Cost: roughly **$540–$1,800/yr** depending on assessor (historical estimate —
+  confirm with the assessor).
+
+---
+
+## 6. CASA Tier 2 SAQ — pre-filled answers (code-backed)
 
 The assessor sends a ~54-question Self-Assessment Questionnaire. These are the
 answers grounded in the current codebase, ready to paste/adapt.
@@ -175,7 +238,7 @@ publicly; server does not run as root on Render.
 
 ---
 
-## 5. Pre-submission checklist
+## 7. Pre-submission checklist
 
 - [ ] OAuth consent screen: app name "Klorn", homepage `klorn.ai`, privacy
       `app.klorn.ai/privacy`, all 8 scopes listed with the §1 justifications.
@@ -187,3 +250,19 @@ publicly; server does not run as root on Render.
 - [ ] Account-deletion endpoint confirmed to remove all Google-derived data.
 - [ ] Pick an approved CASA assessor (e.g. TAC Security ~$540) and book the scan.
 - [ ] Run OWASP ZAP against production yourself first to catch findings early.
+
+---
+
+## 8. After verification — when features change (rule of thumb)
+
+- **No new scope** (UI, new classification logic, features within existing Gmail/
+  Calendar access) → **no re-verification**; just ship.
+- **New scope added** → update the consent screen (new scope + justification +
+  refreshed demo video) and **re-submit**; if it's another restricted scope,
+  the CASA assessment scope expands too.
+- **Identity change** (name/logo/domain/privacy policy) → update consent screen;
+  usually a lighter re-review.
+- **Design to reuse the already-granted scopes** so most features never need
+  re-verification. (Linking a second Gmail inbox already reuses the same scope
+  set — no new verification — see `packages/api/src/mail/gmail.ts`
+  `getLinkInboxAuthUrl`.)
