@@ -1777,7 +1777,6 @@ struct ReadingPane: View {
                     HStack(spacing: 10) {
                         Button(L("reading.replyWithAI")) { startReply(item) }
                             .buttonStyle(PrimaryButtonStyle())
-                            .buttonStyle(.bordered).controlSize(.small)
                         // menuIndicator(.hidden) kills the system-blue pull-down
                         // segment (the one off-palette element on this row —
                         // design audit 2026-07-20); a dim chevron in the label
@@ -1900,31 +1899,40 @@ struct ReadingPane: View {
                 if let summary = email.summary, !summary.isEmpty {
                     Text(summary).font(.callout).foregroundStyle(Theme.text.opacity(0.9))
                 }
+                // Signal lines carry their hue on the ICON (and meter) only; the
+                // text itself stays dim. Stacked colored text lines (accent blue +
+                // engage pink under a red tier dot) made this one band the loudest
+                // surface in the app — the hue is the signal, the sentence is not.
                 if email.needsReply == true {
                     HStack(spacing: 5) {
-                        Image(systemName: "arrowshape.turn.up.left").font(.caption2).accessibilityHidden(true)
+                        Image(systemName: "arrowshape.turn.up.left").font(.caption2)
+                            .foregroundStyle(Theme.accent).accessibilityHidden(true)
                         Text((email.needsReplyReason?.isEmpty == false) ? email.needsReplyReason! : L("reading.needsReply"))
-                            .font(.caption)
+                            .font(.caption).foregroundStyle(Theme.textDim)
                     }
-                    .foregroundStyle(Theme.accent)
                 }
                 if let engagement = email.engagement, engagement.outboundCount > 0 {
                     // Warm tint mirrors the web graph's "you engage" pink — the
-                    // signal Klorn learned from the user's own replies.
+                    // signal Klorn learned from the user's own replies. Pink lives
+                    // on the icon and the meter; see the signal-line rule above.
                     VStack(alignment: .leading, spacing: 5) {
                         HStack(spacing: 5) {
                             Image(systemName: "arrow.turn.up.left").font(.caption2)
+                                .foregroundStyle(Theme.engage)
                             Text(engagement.replyCountLabel).font(.caption)
+                                .foregroundStyle(Theme.textDim)
                         }
                         if engagement.showsImportance {
                             importanceRow(engagement)
                         }
                     }
-                    .foregroundStyle(Theme.engage)
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel(engagement.accessibilityLabel)
                 }
             }
+            // Same measure as the mail body below: intelligence about a document
+            // should not run wider than the document itself.
+            .frame(maxWidth: 640, alignment: .leading)
             .padding(.horizontal, 24).padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.surfaceRaised)
@@ -1944,7 +1952,7 @@ struct ReadingPane: View {
                 Capsule().fill(Theme.engage)
                     .frame(width: max(4, trackWidth * engagement.importanceFill), height: 5)
             }
-            Text(engagement.importanceLabel).font(.caption2).foregroundStyle(Theme.engage.opacity(0.95))
+            Text(engagement.importanceLabel).font(.caption2).foregroundStyle(Theme.textDim)
         }
         .accessibilityHidden(true)
     }
