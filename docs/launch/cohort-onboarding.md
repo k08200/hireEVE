@@ -21,11 +21,21 @@ correction (`DecisionLabel.outcome`) → `decision-metrics` counts it.
      + `gmailPushConfigured: true`, **or** `POST /api/notifications/push/test` and confirm a
      real push arrives. The second is the surer check.
 
-2. **Add each invitee as a Google OAuth test user** (Google Cloud Console → OAuth consent
-   screen → Test users). The app is already invite-only and the login page says so
-   ("Google will block sign-in unless I've added your email as a test user"). Test users on
-   restricted scopes need **no CASA verification** and the 100-user cap is far above this
-   cohort — so this whole phase is unblocked by verification.
+2. **Approve each invitee in the waitlist** (admin → waitlist → APPROVED, which fires the
+   invite email). That is the only gate: `BETA_GATE_ENABLED=true` makes both the Google and
+   the email/password sign-up paths require an APPROVED `Waitlist` row
+   (`routes/auth.ts` — the Google path redirects `?error=invite_only` otherwise).
+
+   ⚠️ **Do not run this cohort with the OAuth audience set to Testing.** In Testing mode
+   Google expires every authorization **7 days after consent**, so the whole cohort would
+   re-run the unverified-app consent screen weekly — which destroys exactly the sustained
+   usage this phase exists to produce. Set the audience to **In production** instead: the
+   7-day expiry disappears and the unverified-app screen becomes a one-time step.
+
+   The price of that switch is a **100-new-user cap that is counted for the life of the
+   project and does not reset** — which is why `BETA_GATE_ENABLED` must stay **on**. Without
+   it a single traffic spike burns all 100 slots permanently. The cap lifts only when
+   restricted-scope verification clears (see `google-oauth-verification.md`).
 
 3. **Set `ADMIN_EMAILS` to your account** (`k0820086@gmail.com`) so you can watch the data:
    `decision-metrics` (per-user PUSH recall / over-suppression) and the override count.
@@ -42,8 +52,8 @@ correction (`DecisionLabel.outcome`) → `decision-metrics` counts it.
 > you: **when it sorts something wrong, correct it.** That correction is the entire product.
 >
 > 1. Go to **klorn.ai** → **Continue with Google**.
-> 2. Google will warn it's an **unverified / test app** — that's expected, it's invite-only.
->    Click **Advanced → Continue** (I've added your email as an approved tester).
+> 2. Google will warn the app is **unverified** — that's expected while its security review
+>    is in the queue. Click **Advanced → Continue**. You only do this once.
 > 3. Grant Gmail access (it reads to classify, and can act only when you approve — nothing
 >    auto-sends by default).
 > 4. It classifies your recent mail. **Turn on notifications** so you feel a real PUSH.

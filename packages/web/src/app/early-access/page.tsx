@@ -77,7 +77,7 @@ export default function EarlyAccessPage() {
     <AuthScreen
       eyebrow="Early access"
       title="Apply for the private Klorn beta"
-      description="Klorn uses Gmail's restricted scope and is in Google OAuth testing mode until CASA review clears. I have to add your Google email as a test user before login works — this form is that request."
+      description="Klorn uses Gmail's restricted scope, so the beta is capped at 100 accounts until Google's security review clears. I approve every one of them by hand — this form is that request."
       navCtaHref="/login"
       navCtaLabel="Log in"
       asideTitle="What happens after you submit"
@@ -90,12 +90,12 @@ export default function EarlyAccessPage() {
         {
           label: "2. Approve",
           value:
-            "I add you to Google Cloud Console as a test user (~30 seconds). Within 5 min when I'm awake (KST), within a few hours otherwise.",
+            "I approve your email by hand (~30 seconds). Within 5 min when I'm awake (KST), within a few hours otherwise.",
         },
         {
           label: "3. Log in",
           value:
-            "You get an email from noreply@klorn.ai. Open klorn.ai/login, Continue with Google — works.",
+            "You get an email from noreply@klorn.ai. Open klorn.ai/login, Continue with Google. Google still shows an unverified-app notice until review clears — choose Advanced, then Continue.",
         },
       ]}
       footer={
@@ -139,7 +139,7 @@ export default function EarlyAccessPage() {
                 </>
               ) : (
                 <>
-                  I'll add you to Google Cloud Console as a test user{" "}
+                  I'll approve your email by hand{" "}
                   <span className="font-medium text-slate-900">within 5 minutes</span> if I'm awake
                   (KST), otherwise within a few hours. You'll get an email from{" "}
                   <span className="font-mono text-slate-900">noreply@klorn.ai</span> the moment

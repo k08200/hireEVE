@@ -6,6 +6,22 @@ verification **and** an annual CASA Tier 2 security assessment. This file is the
 copy-paste source for every field in the OAuth verification form and the
 assessor's SAQ. Keep it in sync with the code.
 
+## Audience mode while the review is pending
+
+Set the OAuth audience to **In production**, not Testing, and keep it there:
+
+| | Testing | In production, unverified | Verified |
+|---|---|---|---|
+| Authorization lifetime | **expires 7 days after consent** | normal | normal |
+| Who can sign in | only emails listed as test users (max 100) | anyone | anyone |
+| User cap | 100 listed test users (editable) | **100 new users, counted for the life of the project, no reset** | none |
+| Unverified-app warning | yes, on every re-consent | yes, once | no |
+
+Testing mode is unusable for a real cohort: the 7-day expiry sends every tester back
+through the unverified-app consent screen weekly. In production the warning is a one-time
+step. The cost is the lifetime cap, which is why `BETA_GATE_ENABLED` stays **on** —
+the waitlist is what stops a traffic spike from permanently burning all 100 slots.
+
 Consent-screen basics (must match exactly):
 - App name: **Klorn**
 - Homepage: `https://klorn.ai` (public, no login)
@@ -184,6 +200,10 @@ publicly; server does not run as root on Render.
 - [ ] Privacy policy live and states Limited Use + do-not-train (already true).
 - [ ] Headers/TLS re-verified live (done 2026-07-20: no wildcard ACAO, CSP,
       X-Frame-Options, TLS 1.3, legacy TLS rejected).
-- [ ] Account-deletion endpoint confirmed to remove all Google-derived data.
+- [x] Account-deletion endpoint confirmed to remove all Google-derived data.
+      `DELETE /api/auth/account` → `deleteUserAndAllData`; checked against the schema
+      2026-08-02: 42 of the 43 `userId` relations are `onDelete: Cascade` and the one
+      exception (`LlmUsageLog`, `SetNull`) is deleted explicitly in the same transaction,
+      so no row survives the user.
 - [ ] Pick an approved CASA assessor (e.g. TAC Security ~$540) and book the scan.
 - [ ] Run OWASP ZAP against production yourself first to catch findings early.
