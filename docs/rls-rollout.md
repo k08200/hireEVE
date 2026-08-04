@@ -117,9 +117,13 @@ tenant-scoped too.
   must use the `tx` handle.
 - `withSystem(tx => …)` — sets `app.bypass_rls = 'on'` for paths with no single
   owning user (schedulers, webhook ingest, admin fleet queries).
+- Either accepts `{ atomic: true }` for a block that needs a transaction for its
+  own sake (a read-then-write guard) rather than for isolation.
 
 These are wired but inert until the app stops bypassing RLS — setting a GUC
-that no policy is consulted for does nothing.
+that no policy is consulted for does nothing. They detect that state rather
+than assume it, and skip the transaction entirely while it holds; see
+"Resolution" below for why that is what unblocks the routing work.
 
 ## Remaining steps (each its own PR)
 
@@ -146,9 +150,15 @@ that no policy is consulted for does nothing.
    Started: `LearnedRule` (#1012). Remaining: 43 policied tables, several
    hundred call sites — this is the bulk of the work and it is unglamorous.
 
-   ⚠️ **Blocked on a latency decision** — see "Measured cost" below. Per-query
-   wrapping adds ~190 ms per query from Singapore, so the shape of this step is
-   not settled and routing at scale would bake in the wrong one.
+   ✅ **Unblocked 2026-08-05.** This step was held while per-query wrapping cost
+   ~190 ms; the wrapper now skips its transaction while RLS is inert, so routing
+   a call site costs nothing until the role switches. See "Resolution" below.
+
+   One rule that comes with that: a block whose write depends on a preceding
+   read must pass `{ atomic: true }`. The wrapper no longer opens a transaction
+   on its own, and that guarantee was always the caller's rather than RLS's —
+   it just used to arrive for free. Nothing in the signature enforces it, so it
+   belongs on the review checklist for every routing PR.
 
 3. **Create the dedicated app role.** ✅ **Done 2026-08-05** — `klorn_app`
    exists and was verified against production (see the probe table above). It
@@ -220,26 +230,65 @@ It happens to work; it is not guaranteed to. A security boundary must not rest
 on undefined evaluation order, and the failure mode when a planner reorders is
 silent. Rejected.
 
-What remains, in rough order of leverage:
+### Resolution: don't pay for the wrapper until it buys something (2026-08-05)
 
-1. **Co-locate the API with the database.** This is the real finding, and it is
-   independent of RLS: every query already pays ~70 ms of geography, so the app
-   is slow today for reasons nothing in this document caused. Render offers no
-   Seoul region, so this means either moving the API to a provider that does, or
-   moving Postgres to Singapore. Largest win available, and it makes the wrapper
-   cost ~30 ms instead of ~190 ms.
-2. **One transaction per request rather than per query** — a Fastify hook opens
-   the tenant context once and handlers use that `tx`. Bounds the cost at one
-   wrapper per request instead of one per query. Cost: a request that calls an
-   LLM would hold a database transaction for seconds, which on a free-tier
-   connection budget is its own outage.
-3. **Cache the hot path.** `sessionRevokedForToken` reads one column
-   (`sessionsInvalidatedAt`) on every request. A short-TTL in-process cache
-   removes that query entirely — worth doing regardless of RLS, since it is
-   already ~70 ms on every authenticated request today.
+The transaction exists only to carry a GUC. While the connected role bypasses
+RLS, **no policy ever reads that GUC** — the same fact this document opens with.
+So the three round trips are not the price of isolation, they are the price of
+nothing, paid early. `withTenant`/`withSystem` now detect whether RLS can
+constrain the connection and run the callback directly when it cannot.
 
-Decide this before routing the remaining call sites. Routing is the expensive,
-irreversible-in-effort part, and its shape depends on which of the above wins.
+Routing a call site therefore costs **0 ms today**, and the cost arrives with
+the isolation it buys — which moves it behind the same deliberate switch as
+everything else here. That is what unblocks step 2.
+
+Detection asks the database rather than reading a flag:
+
+```sql
+SELECT (rolsuper OR rolbypassrls) AS bypasses FROM pg_roles WHERE rolname = current_user;
+```
+
+memoized per process, and only on success. A flag would have to be flipped in
+the same change that repoints `DATABASE_URL`, and forgetting it is a total
+outage (RLS armed, no GUC bound, zero rows on 43 tables at once). Deriving the
+answer from the connection cannot drift from it. `RLS_ENFORCEMENT=on|off`
+overrides the probe; anything else, including unset, probes. A failed probe
+assumes **enforced** — that costs round trips, while the other guess would run
+routed call sites with nothing bound.
+
+Two consequences worth naming:
+
+- While inert the callback receives the global client, so a query that ignores
+  its `tx` handle behaves identically and stays invisible until the switch.
+  Tests run with `RLS_ENFORCEMENT=on` (`vitest.config.ts`) so that discipline is
+  enforced where it is observable.
+- Skipping the transaction also skips its atomicity. Blocks that need it for
+  their own reasons pass `{ atomic: true }` — the learned-rule transitions in
+  `routes/admin.ts` do, and a test pins it.
+
+### What is still true, and what was wrong
+
+1. **Co-locate the API with the database.** Unchanged, and still the largest win
+   available: every query already pays ~70 ms of geography, so the app is slow
+   today for reasons nothing in this document caused. Render offers no Seoul
+   region, so this means moving Postgres to Singapore or the API to a provider
+   with a Seoul region. It is also the precondition for the switch — once RLS
+   binds, the wrapper costs ~30 ms co-located versus ~190 ms as deployed.
+2. **Group the wrapper per unit of database work, not per query.** The earlier
+   framing — one transaction per request via a Fastify hook — is the wrong shape
+   for the right idea: a request that calls an LLM would hold a transaction for
+   seconds. The rule that survives is the ordinary one, *never do network I/O
+   inside a transaction*: a handler groups its queries into one `withTenant`
+   block and keeps LLM and Gmail calls outside it. Same bound (one wrapper per
+   request), no held-open transaction.
+3. ~~**Cache the hot path.**~~ **Wrong — worth 0 ms.** The claim was that
+   `sessionRevokedForToken`'s read of `sessionsInvalidatedAt` costs ~70 ms on
+   every authenticated request. It does not cost anything on its own:
+   `requireAuth` issues it via `Promise.all` alongside `isDeviceSessionValid`,
+   which reads `Device` (`auth.ts:163-166`, `auth.ts:267-269`). The two are
+   concurrent, so removing one leaves the round trip exactly where it was.
+   Caching the pair would remove it — at the price of a revocation delay on a
+   security control, for a win that co-location delivers anyway. Not worth it.
 
 ### Hard gate before step 4: `User` is upstream of tenancy itself
 

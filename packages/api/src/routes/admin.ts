@@ -715,7 +715,10 @@ export async function adminRoutes(app: FastifyInstance) {
   // It also makes the read and the write atomic. Read-then-write across two
   // connections leaves a window where a concurrent request changes the status
   // between the guard and the update, so both callers observe OPEN and both
-  // write — the guard reports a conflict that the write does not honour.
+  // write — the guard reports a conflict that the write does not honour. That
+  // is why this call site passes `atomic`: withTenant skips the transaction
+  // while RLS is inert, and this block needs the transaction for its own sake,
+  // not for isolation.
   //
   // The write is an updateMany scoped by userId, not an update by id. The
   // ownership scope then travels with the write itself instead of depending on
@@ -726,31 +729,35 @@ export async function adminRoutes(app: FastifyInstance) {
     id: string,
     transition: { from: ProposalStatus; to: ProposalStatus; verb: string; conflictHint?: string },
   ): Promise<{ ok: true } | { ok: false; code: 404 | 409; error: string }> {
-    return withTenant(userId, async (tx) => {
-      const existing = await tx.learnedRule.findFirst({ where: { id, userId } });
-      if (!existing)
-        return { ok: false as const, code: 404 as const, error: "Learned rule not found" };
-      if (existing.status !== transition.from) {
-        return {
-          ok: false as const,
-          code: 409 as const,
-          error: `Cannot ${transition.verb} a ${existing.status} rule${transition.conflictHint ?? ""}`,
-        };
-      }
-      // A concurrent account purge (purge-user-data.ts) can delete the row
-      // between the guard and the write, in which case updateMany matches
-      // nothing. Reporting the success the caller did not get would be a
-      // silent lie, so treat a vanished row the same as one that was never
-      // there. (The pre-refactor `update({where:{id}})` threw P2025 here and
-      // surfaced as a 500; 404 describes the same situation truthfully.)
-      const written = await tx.learnedRule.updateMany({
-        where: { id, userId },
-        data: { status: transition.to },
-      });
-      if (written.count === 0)
-        return { ok: false as const, code: 404 as const, error: "Learned rule not found" };
-      return { ok: true as const };
-    });
+    return withTenant(
+      userId,
+      async (tx) => {
+        const existing = await tx.learnedRule.findFirst({ where: { id, userId } });
+        if (!existing)
+          return { ok: false as const, code: 404 as const, error: "Learned rule not found" };
+        if (existing.status !== transition.from) {
+          return {
+            ok: false as const,
+            code: 409 as const,
+            error: `Cannot ${transition.verb} a ${existing.status} rule${transition.conflictHint ?? ""}`,
+          };
+        }
+        // A concurrent account purge (purge-user-data.ts) can delete the row
+        // between the guard and the write, in which case updateMany matches
+        // nothing. Reporting the success the caller did not get would be a
+        // silent lie, so treat a vanished row the same as one that was never
+        // there. (The pre-refactor `update({where:{id}})` threw P2025 here and
+        // surfaced as a 500; 404 describes the same situation truthfully.)
+        const written = await tx.learnedRule.updateMany({
+          where: { id, userId },
+          data: { status: transition.to },
+        });
+        if (written.count === 0)
+          return { ok: false as const, code: 404 as const, error: "Learned rule not found" };
+        return { ok: true as const };
+      },
+      { atomic: true },
+    );
   }
 
   // POST /api/admin/learned-rules/:id/approve — OPEN → APPLIED so the judge

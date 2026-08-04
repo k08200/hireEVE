@@ -3,6 +3,14 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     testTimeout: 60_000,
+    env: {
+      // Force the tenant wrapper into its enforcing shape. In production it is
+      // inert today (the app's role bypasses RLS, see db-tenant.ts) and an
+      // inert wrapper hands the callback the global client — under which a call
+      // site that ignores its `tx` handle passes every test and then reads zero
+      // rows on the day the role switches. Tests are where that is catchable.
+      RLS_ENFORCEMENT: "on",
+    },
     // Scope vitest to api unit/integration suites only. Without `include`,
     // vitest walks up the monorepo and picks up Playwright e2e specs from
     // packages/web/e2e which fail because they require a Playwright runner.

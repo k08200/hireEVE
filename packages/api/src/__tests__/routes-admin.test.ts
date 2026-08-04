@@ -897,12 +897,12 @@ describe("admin learned-rule approval gate", () => {
     expect(ruleById.get("r1")?.status).toBe("APPLIED");
   });
 
-  // The RLS trip-wire. These endpoints run through withTenant so that FORCE
-  // ROW LEVEL SECURITY on LearnedRule activates isolation with no further code
-  // change. If a refactor drops the wrapper the queries keep passing (RLS is
-  // permissive until FORCE) and the regression is invisible until the day the
-  // table is forced, at which point the writes go silently dark. Asserting the
-  // GUC is bound is the only way to catch that here.
+  // The RLS trip-wire. These endpoints run through withTenant so that pointing
+  // the app at a role RLS can constrain activates isolation with no further
+  // code change. If a refactor drops the wrapper the queries keep passing (the
+  // app's role bypasses RLS outright today) and the regression is invisible
+  // until the day the role switches, at which point the writes go silently
+  // dark. Asserting the GUC is bound is the only way to catch that here.
   it("binds the caller's tenant context before mutating on approve", async () => {
     seed("r1", "OPEN");
     await post("/api/admin/learned-rules/r1/approve");
@@ -921,8 +921,30 @@ describe("admin learned-rule approval gate", () => {
     expect(tenantIdsBound()).toContain("admin-1");
   });
 
+  // withTenant skips its transaction while RLS is inert — which is the state
+  // production runs in, and the whole point of the wrapper being cheap. This
+  // block still needs a transaction for a reason of its own: the status guard
+  // and the write must not straddle two connections, or two concurrent callers
+  // both read OPEN and both write. Pin the `atomic` opt-in so it cannot be
+  // dropped as redundant.
+  it("keeps the status guard and the write in one transaction even when RLS is inert", async () => {
+    seed("r1", "OPEN");
+    const { prisma } = (await import("../db.js")) as unknown as {
+      prisma: { $transaction: { mock: { calls: unknown[] } } };
+    };
+    process.env.RLS_ENFORCEMENT = "off";
+    try {
+      const before = prisma.$transaction.mock.calls.length;
+      const res = await post("/api/admin/learned-rules/r1/approve");
+      expect(res.statusCode).toBe(200);
+      expect(prisma.$transaction.mock.calls.length).toBe(before + 1);
+    } finally {
+      process.env.RLS_ENFORCEMENT = "on";
+    }
+  });
+
   // Ownership is enforced by the userId filter today and by the policy once
-  // forced; the write must never be scoped by id alone, or a forced table
+  // the role switches; the write must never be scoped by id alone, or a policy
   // would be the only thing standing between a bad id and another user's row.
   it("never issues a rule write scoped by id alone", async () => {
     seed("r1", "OPEN");
