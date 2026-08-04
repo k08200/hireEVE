@@ -143,8 +143,12 @@ that no policy is consulted for does nothing.
 2. **Route query sites through the helpers**, one domain at a time: replace
    `prisma.*` calls in a domain's handlers with `withTenant`/`withSystem`.
    Still inert, so each PR is behaviour-preserving and reviewable on its own.
-   Started: `LearnedRule` (#1012). Remaining: 41 policied tables, several
+   Started: `LearnedRule` (#1012). Remaining: 43 policied tables, several
    hundred call sites — this is the bulk of the work and it is unglamorous.
+
+   ⚠️ **Blocked on a latency decision** — see "Measured cost" below. Per-query
+   wrapping adds ~190 ms per query from Singapore, so the shape of this step is
+   not settled and routing at scale would bake in the wrong one.
 
 3. **Create the dedicated app role.** ✅ **Done 2026-08-05** — `klorn_app`
    exists and was verified against production (see the probe table above). It
@@ -185,6 +189,57 @@ that no policy is consulted for does nothing.
    Alphanumeric only, deliberately: `@` and `/` in a password have to be
    percent-encoded inside a connection URL, and a mis-encoded `DATABASE_URL` is
    an outage.
+
+### Measured cost: wrapping is 3.7x, and the API is 4,700 km from the database
+
+Measured 2026-08-05 against the production pooler as `klorn_app`, marginal cost
+per query (101 iterations minus 1, so connection setup is excluded):
+
+| | per query |
+| --- | --- |
+| plain `SELECT` | **11.5 ms** |
+| same query inside `withTenant` | **42.1 ms** |
+
+`BEGIN`, `set_config` and `COMMIT` are three extra round trips — the wrapper
+costs 2.7 RTT, not a constant. Those numbers are from a laptop ~11 ms from
+Seoul. **The API runs on Render in `singapore` while the database is Supabase
+`ap-northeast-2` (Seoul)**, roughly 4,700 km apart; `/api/health`, which does
+hit the database, answers in ~190 ms from Korea. At a Singapore→Seoul RTT of
+~70 ms, the same wrapper costs **≈ +190 ms per query**.
+
+That rules out the obvious implementation. `requireAuth` reads `User` on every
+authenticated request (`auth.ts:116`), so wrapping call sites individually adds
+~190 ms to *every* request, and a handler issuing five wrapped queries would
+add nearly a second. Routing 148 call sites into that shape would produce a
+correct system nobody can use.
+
+A tempting shortcut does not work either: collapsing to one round trip with
+`SELECT set_config(...), (SELECT … )` measures 11.7 ms — free — but SQL does
+not define the evaluation order of a `SELECT` list relative to its subqueries.
+It happens to work; it is not guaranteed to. A security boundary must not rest
+on undefined evaluation order, and the failure mode when a planner reorders is
+silent. Rejected.
+
+What remains, in rough order of leverage:
+
+1. **Co-locate the API with the database.** This is the real finding, and it is
+   independent of RLS: every query already pays ~70 ms of geography, so the app
+   is slow today for reasons nothing in this document caused. Render offers no
+   Seoul region, so this means either moving the API to a provider that does, or
+   moving Postgres to Singapore. Largest win available, and it makes the wrapper
+   cost ~30 ms instead of ~190 ms.
+2. **One transaction per request rather than per query** — a Fastify hook opens
+   the tenant context once and handlers use that `tx`. Bounds the cost at one
+   wrapper per request instead of one per query. Cost: a request that calls an
+   LLM would hold a database transaction for seconds, which on a free-tier
+   connection budget is its own outage.
+3. **Cache the hot path.** `sessionRevokedForToken` reads one column
+   (`sessionsInvalidatedAt`) on every request. A short-TTL in-process cache
+   removes that query entirely — worth doing regardless of RLS, since it is
+   already ~70 ms on every authenticated request today.
+
+Decide this before routing the remaining call sites. Routing is the expensive,
+irreversible-in-effort part, and its shape depends on which of the above wins.
 
 ### Hard gate before step 4: `User` is upstream of tenancy itself
 
