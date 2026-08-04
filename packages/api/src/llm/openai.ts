@@ -29,6 +29,7 @@ import {
   isProviderUnavailable,
   markCreditExhausted,
   markKeyLimited,
+  redactProviderMessage,
 } from "./model-fallback.js";
 import { isModelKnownAbsent } from "./openrouter-catalog-cache.js";
 import { activeFallbackChain, walkFallbackChain } from "./openrouter-fallback-chain.js";
@@ -72,10 +73,14 @@ export const DRAFT_MODEL = process.env.DRAFT_MODEL || JUDGE_MODEL;
 // daily-quota-zero on OpenRouter.
 export const VISION_MODEL = process.env.VISION_MODEL || "google/gemini-2.5-flash:free";
 
-/** User-facing error thrown when every configured provider has failed */
+/**
+ * User-facing error thrown when every configured provider has failed.
+ * `options.cause` carries the original provider error for operators — the
+ * message itself stays free of provider bodies (see buildExhaustedError).
+ */
 export class AllProvidersExhaustedError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
     this.name = "AllProvidersExhaustedError";
   }
 }
@@ -220,19 +225,55 @@ function hasUserOwnedProvider(chain: Provider[], playgroundOnly: boolean): boole
   return !playgroundOnly && chain.some((p) => p.ownedByUser === true);
 }
 
-// When a user's OWN (BYOK) key hits its limit and we fail over to the shared env
-// key, signal it — otherwise the user's key silently stops serving and Klorn's
-// env budget is spent on their behalf with zero trace. No-op for env providers.
-function signalUserKeyFailover(provider: Provider, err: unknown, userId?: string): void {
-  if (provider.ownedByUser !== true) return;
+// A key hit its limit. Two audiences, both previously under-served:
+//   - BYOK: the user's own key silently stops serving and Klorn's env budget is
+//     spent on their behalf — that must leave a trace.
+//   - env key: this is an OPERATOR incident (the whole fleet degrades to the
+//     keyword fallback), and until now it reached neither the logs nor Sentry —
+//     markKeyLimited recorded only our own classification. The 2026-08-02 eval
+//     outage was un-root-causable for exactly this reason.
+// Sentry volume is bounded by the cooldown itself: once marked, the provider
+// loop skips this quotaKey outright until it expires.
+function signalKeyFailover(provider: Provider, err: unknown, userId?: string): void {
+  const upstream = redactProviderMessage(err);
+  if (provider.ownedByUser !== true) {
+    console.warn(
+      `[MODEL-FALLBACK] env key (${provider.quotaKey}) hit its limit — no user key to fall back to${
+        upstream ? `; upstream said: ${upstream}` : ""
+      }`,
+    );
+    captureError(err, {
+      tags: { scope: "llm.env_key_limited" },
+      extra: { quotaKey: provider.quotaKey, provider: provider.name, upstream },
+    });
+    return;
+  }
   console.warn(
     `[BYOK] user key (${provider.quotaKey}) hit its limit — falling back to the shared env key; the user's own key is no longer serving requests`,
   );
   captureError(err, {
     tags: { scope: "byok.user_key_failover" },
-    extra: { userId: userId ?? null, quotaKey: provider.quotaKey },
+    extra: { userId: userId ?? null, quotaKey: provider.quotaKey, upstream },
   });
 }
+
+/**
+ * Is there another provider in the chain that could serve this request once the
+ * current one is cooled down? A single-key deployment (one OpenRouter key, the
+ * hosted default since the Gemini secondary was retired) answers no — and the
+ * cooldown length depends on it: locking out the ONLY provider is an outage,
+ * not a routing decision. See markKeyLimited in model-fallback.ts.
+ */
+function hasFailoverProvider(chain: Provider[], current: Provider): boolean {
+  // Availability, not mere presence: a second provider that is itself cooled
+  // down cannot absorb this traffic, so marking the current one for an hour
+  // would still be a total outage. `current` is excluded by quotaKey — it has
+  // not been marked yet at this point in the catch.
+  return chain.some((p) => p.quotaKey !== current.quotaKey && !isProviderUnavailable(p.quotaKey));
+}
+
+/** Test seam — the cooldown length hinges on this predicate. */
+export const hasFailoverProviderForTest = hasFailoverProvider;
 
 const PROVIDERS_EXHAUSTED_BASE =
   "All AI providers are unavailable right now. To unblock yourself, add your own OpenRouter or Gemini key in Settings.";
@@ -266,9 +307,29 @@ function buildExhaustedMessage(chain: Provider[], lastError: unknown): string {
   }
   // Provider 4xx bodies (Gemini billing URL, OpenRouter dashboard links) leak
   // operator surface area to end users without giving them anything they can
-  // act on — the base message already tells them what to do. We capture the
-  // raw error via Sentry separately for operators.
+  // act on — the base message already tells them what to do. Operators get the
+  // raw error from `cause` (buildExhaustedError) and from Sentry.
   return parts.join(" ");
+}
+
+/**
+ * Build the terminal error for an exhausted chain: a user-safe message with the
+ * ORIGINAL provider failure attached as `cause`.
+ *
+ * Without the cause the root failure is unrecoverable downstream — poc-judge
+ * logs and Sentry-captures whatever it caught, which was the generic
+ * "All AI providers are unavailable" string. That is exactly why the 401 outage
+ * was diagnosable from CI logs and the 429 one was not.
+ */
+export function buildExhaustedError(
+  chain: Provider[],
+  lastError: unknown,
+  prefix?: string,
+): AllProvidersExhaustedError {
+  const message = buildExhaustedMessage(chain, lastError);
+  return new AllProvidersExhaustedError(prefix ? `${prefix} ${message}` : message, {
+    cause: lastError,
+  });
 }
 
 /**
@@ -481,8 +542,10 @@ export async function createCompletion(
         } catch (err2) {
           lastError = err2;
           if (isKeyLimitError(err2)) {
-            markKeyLimited(provider.quotaKey, err2);
-            signalUserKeyFailover(provider, err2, options.userId);
+            markKeyLimited(provider.quotaKey, err2, {
+              hasFailover: hasFailoverProvider(chain, provider),
+            });
+            signalKeyFailover(provider, err2, options.userId);
             continue; // → next provider
           }
           // The :free fallback model can itself be retired (404) or hit a
@@ -508,8 +571,10 @@ export async function createCompletion(
       // markKeyLimited will pick a cooldown duration matching the actual
       // quota window (RPM=5min, daily=until UTC midnight, ambiguous=1h).
       if (isKeyLimitError(err)) {
-        markKeyLimited(provider.quotaKey, err);
-        signalUserKeyFailover(provider, err, options.userId);
+        markKeyLimited(provider.quotaKey, err, {
+          hasFailover: hasFailoverProvider(chain, provider),
+        });
+        signalKeyFailover(provider, err, options.userId);
         continue;
       }
 
@@ -544,7 +609,7 @@ export async function createCompletion(
     }
   }
 
-  throw new AllProvidersExhaustedError(buildExhaustedMessage(chain, lastError));
+  throw buildExhaustedError(chain, lastError);
 }
 
 export async function createVisionCompletion(
@@ -641,8 +706,10 @@ export async function createVisionCompletion(
       lastError = err;
       // Budget / availability errors → fail over to the next provider.
       if (isKeyLimitError(err)) {
-        markKeyLimited(provider.quotaKey, err);
-        signalUserKeyFailover(provider, err, options.userId);
+        markKeyLimited(provider.quotaKey, err, {
+          hasFailover: hasFailoverProvider(ordered, provider),
+        });
+        signalKeyFailover(provider, err, options.userId);
         continue;
       }
       if (isCreditError(err)) {
@@ -673,8 +740,10 @@ export async function createVisionCompletion(
         } catch (err2) {
           lastError = err2;
           if (isKeyLimitError(err2)) {
-            markKeyLimited(provider.quotaKey, err2);
-            signalUserKeyFailover(provider, err2, options.userId);
+            markKeyLimited(provider.quotaKey, err2, {
+              hasFailover: hasFailoverProvider(ordered, provider),
+            });
+            signalKeyFailover(provider, err2, options.userId);
             continue;
           }
           if (isCreditError(err2)) {
@@ -709,8 +778,10 @@ export async function createVisionCompletion(
     }
   }
 
-  throw new AllProvidersExhaustedError(
-    `No AI provider is available for vision/OCR analysis. ${buildExhaustedMessage(ordered, lastError)}`,
+  throw buildExhaustedError(
+    ordered,
+    lastError,
+    "No AI provider is available for vision/OCR analysis.",
   );
 }
 

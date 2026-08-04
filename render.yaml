@@ -31,9 +31,20 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      # SINGLE PROVIDER (founder decision, 2026-08-02): hosted prod runs on one
+      # OpenRouter key. The Gemini secondary was retired, so this key has NO
+      # failover — see the privacy note below for why the :free net is off too.
+      # Operational consequence: keep the balance funded (OpenRouter Auto Top-Up)
+      # and watch the judge-health alarm; a 402/403/429 here degrades every LLM
+      # surface at once.
       - key: OPENROUTER_API_KEY
         sync: false
-      - key: GEMINI_API_KEY
+      # Required for the observability tripwires to reach anyone: judge-health
+      # (fleet-wide keyword-fallback rate) and the key-headroom probe both
+      # report via captureError, which is a NO-OP when SENTRY_DSN is unset
+      # (sentry.ts initSentry). Declared here so an empty value is visible in
+      # the dashboard instead of silently disabling every alarm.
+      - key: SENTRY_DSN
         sync: false
       # LLM model pins — make prod explicit instead of relying on the in-code
       # defaults (which intentionally stay :free for self-hosters without paid
@@ -46,11 +57,13 @@ services:
       # Privacy (Limited Use / no-train): hosted prod NEVER degrades onto :free
       # OpenRouter endpoints — their hosts may train on request data (verified
       # 2026-07-03: gemma-4-31b-it:free routes via Google AI Studio free tier +
-      # OpenInference). On 402 the chain fails over to GEMINI_API_KEY (paid
-      # Tier 1 project = no-train) instead. The account-level OpenRouter toggle
-      # "Free endpoints that may train on request data" must ALSO stay off.
-      # Self-host keeps the :free net by default (operator's own data-policy
-      # choice).
+      # OpenInference). The account-level OpenRouter toggle "Free endpoints that
+      # may train on request data" must ALSO stay off. With the Gemini secondary
+      # retired there is nothing left to fail over to, so on 402 the request
+      # fails outright and the judge drops to the keyword fallback (which caps
+      # confidence at 0.55 and cannot emit PUSH) — that is the accepted trade
+      # for the no-train commitment, not an oversight. Self-host keeps the :free
+      # net by default (operator's own data-policy choice).
       # Chat/assistant default = frontier (user-selectable in Settings from the
       # curated catalog; this is the default for users who never picked).
       - key: CHAT_MODEL

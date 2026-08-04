@@ -34,6 +34,8 @@ on:
 
 permissions:
   contents: read
+  # The alarm step files/refreshes a tracking issue — a red run notifies nobody.
+  issues: write
 
 concurrency:
   group: judge-canary
@@ -187,3 +189,35 @@ jobs:
             exit 1
           fi
           echo "Canary scored — no flips, baseline refreshed."
+
+      # A tripwire nobody sees is not a tripwire. The 2026-07-26 provider
+      # failure sat red for a week: this canary is the only always-on detector
+      # (eval.yml fires only when a PR touches judge files) and a failed
+      # scheduled run notifies no one. File one tracking issue and keep
+      # commenting on it, so the alarm accumulates in a single thread instead
+      # of spawning a new issue every Monday.
+      - name: Open or refresh the alarm issue
+        if: failure() && steps.key.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SCORED: ${{ steps.scored.outputs.ok }}
+        run: |
+          if [ "$SCORED" = "true" ]; then
+            reason="verdict flips against last week's baseline — the decision boundary moved on an unchanged codebase"
+          else
+            reason="instrument degraded — the judge never reached the LLM provider, so every item fell to the keyword fallback"
+          fi
+          body=$(printf '%s\n\n%s\n\n%s\n' \
+            "Weekly judge canary failed: ${reason}." \
+            "Run: ${RUN_URL}" \
+            "The keyword fallback caps confidence at 0.55 and the PUSH rule floor is 0.7 (packages/api/src/judge/tier-policy.ts), so while the instrument is degraded PUSH cannot be emitted at all — for the canary and for prod. First check the provider key (credit balance, rate limit, validity), then re-run this workflow.")
+          gh label create judge-canary --color B60205 --description "Weekly judge canary alarm" 2>/dev/null || true
+          # `run:` executes under `bash -e`: an empty/failed lookup must not
+          # abort the step before the issue is filed.
+          existing=$(gh issue list --label judge-canary --state open --limit 1 --json number --jq '.[0].number // empty' || true)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "Judge canary alarm" --label judge-canary --body "$body"
+          fi
