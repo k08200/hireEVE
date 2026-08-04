@@ -336,10 +336,11 @@ struct ExpandedPanel: View {
                 .help(L("bar.fullView"))
                 .accessibilityLabel(L("bar.fullView.a11y"))
 
-                if model.phase == .signedIn {
-                    Button(L("auth.signOut"), action: actions.onSignOut)
-                        .buttonStyle(.plain).font(.callout).hoverDim()
-                } else if model.phase == .signedOut {
+                // Sign-out lives under the account heading, not here: two
+                // controls for one destructive action reads as though they
+                // differ, and this one sat directly beside the ✕. Log In stays
+                // — signed out, it is the only thing worth offering.
+                if model.phase == .signedOut {
                     Button(L("auth.logIn"), action: actions.onSignIn)
                         .buttonStyle(PrimaryButtonStyle())
                 }
@@ -928,12 +929,10 @@ struct FullView: View {
             }
             Spacer()
 
-            if model.phase == .signedIn {
-                // Secondary by design: signing out is rare — it must never
-                // compete with content. (Log In stays the accent CTA.)
-                Button(L("auth.signOut"), action: actions.onSignOut)
-                    .buttonStyle(.plain).font(.callout).hoverDim()
-            } else if model.phase == .signedOut {
+            // Sign-out lives in the sidebar's account area, not here — one
+            // way out per surface, and never beside the ✕. Log In stays: it is
+            // the whole point of the header when signed out.
+            if model.phase == .signedOut {
                 Button(L("auth.logIn"), action: actions.onSignIn)
                     .buttonStyle(PrimaryButtonStyle())
             }

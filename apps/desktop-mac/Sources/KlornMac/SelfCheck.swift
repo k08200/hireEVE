@@ -1085,6 +1085,29 @@ func runSelfChecks() async -> Bool {
     check("show-in-Dock ignores a non-bool",
           !AppSettings.resolveShowInDock("yes"))
 
+    print("One way out:")
+    // Both panels offered sign-out twice: once in the header, once under the
+    // account heading. Two controls for one destructive action is the kind of
+    // thing that makes a user wonder whether they differ — and the header copy
+    // sat directly beside the ✕, so the riskiest action lived next to the most
+    // reflexive one. Sign-out now lives only where account actions belong.
+    // Checked against the sources, like the web-escape rule, because a future
+    // header could quietly add it back.
+    // Count real call sites, skipping this file (its own literals would match).
+    let signOutCallSites = swiftFiles.reduce(0) { total, url in
+        guard url.lastPathComponent != "SelfCheck.swift",
+              let text = try? String(contentsOf: url, encoding: .utf8) else { return total }
+        return total + text.components(separatedBy: "actions.onSignOut()").count - 1
+    }
+    // Three, one per surface that has an account area: the expanded panel's
+    // account column, the full sidebar, and Preferences. None in a header.
+    check("sign-out is offered once per surface, not twice", signOutCallSites == 3)
+    let headerSignOut = swiftFiles.contains { url in
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return false }
+        return text.contains("Button(L(\"auth.signOut\")")
+    }
+    check("no header offers sign-out beside the ✕", !headerSignOut)
+
     print("Column header tracking:")
     // Wide tracking is a Latin small-caps device: it makes "RECENT PUSH" read
     // as a deliberate micro-label. Hangul syllable blocks already carry their
