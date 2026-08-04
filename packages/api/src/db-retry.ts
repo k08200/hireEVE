@@ -32,6 +32,18 @@ const COLD_START_PATTERNS: ReadonlyArray<RegExp> = [
   /etimedout/i,
   /ehostunreach/i,
   /enetunreach/i,
+  // The gate is temporarily shut, not the door permanently locked. Supabase's
+  // pooler arms a circuit breaker after repeated auth failures and refuses ALL
+  // new connections for a cool-down — including correctly-credentialed ones.
+  // A password rotation on 2026-08-04 left the outgoing container failing auth
+  // every scheduler tick, so the breaker stayed armed and each replacement
+  // container died on its first query in ~4s. Waiting it out is exactly what
+  // start.sh's own retry loop did to get `migrate deploy` through.
+  /ecircuitbreaker/i,
+  /new connections are temporarily blocked/i,
+  // Pool saturation drains by itself; the next attempt usually lands.
+  /too many clients already/i,
+  /too many connections/i,
 ];
 
 const DEFAULT_MAX_ATTEMPTS = 4;
