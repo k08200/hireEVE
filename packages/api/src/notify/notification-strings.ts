@@ -11,6 +11,8 @@
  * cost the user a notification.
  */
 
+import { prisma } from "../db.js";
+
 export const NOTIFICATION_LANGUAGES = ["en", "ko"] as const;
 export type NotificationLanguage = (typeof NOTIFICATION_LANGUAGES)[number];
 
@@ -123,4 +125,25 @@ const COPY: Record<NotificationLanguage, NotificationCopy> = { en: EN, ko: KO };
 
 export function notificationCopy(language: string | null | undefined): NotificationCopy {
   return COPY[resolveNotificationLanguage(language)];
+}
+
+/**
+ * The user's notification language, for server-composed copy outside the
+ * notification pipeline (e.g. the judge's tier reason).
+ *
+ * Fail-soft: a config read that throws must never stop an email from being
+ * judged, so the English default is returned instead of propagating. Callers
+ * that process many rows for one user should resolve this once and pass it
+ * down rather than calling per row.
+ */
+export async function getUserNotificationLanguage(userId: string): Promise<NotificationLanguage> {
+  try {
+    const config = (await prisma.automationConfig.findUnique({
+      where: { userId },
+      select: { notificationLanguage: true },
+    })) as { notificationLanguage?: string | null } | null;
+    return resolveNotificationLanguage(config?.notificationLanguage);
+  } catch {
+    return DEFAULT_LANGUAGE;
+  }
 }

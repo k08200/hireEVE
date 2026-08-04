@@ -31,6 +31,7 @@ import { asString, asUnitInterval, isNonFinitePresent } from "../llm/llm-coerce.
 import { parseLlmJson } from "../llm/llm-json.js";
 import { describeErrorChain } from "../llm/model-fallback.js";
 import { createCompletion, JUDGE_MODEL } from "../llm/openai.js";
+import { resolveNotificationLanguage } from "../notify/notification-strings.js";
 import type { ProviderCredentials } from "../providers/index.js";
 import { captureError } from "../sentry.js";
 import { wrapUntrusted } from "../untrusted.js";
@@ -272,11 +273,23 @@ Observed profile for this sender, extracted from their past mail (a prior, not a
 ${lines.join("\n")}`;
 }
 
+/**
+ * The reason is shown to the user as "why this was PUSH", so it has to be in a
+ * language they read. Only languages we ship UI for get an instruction; anything
+ * else leaves the prompt byte-identical to the English default, so the judge's
+ * scoring behaviour (and its eval baseline) is untouched.
+ */
+function reasonLanguageInstruction(language?: string | null): string {
+  if (resolveNotificationLanguage(language) !== "ko") return "";
+  return "\nWrite the reason in Korean. The scores stay unchanged — only the reason's language.";
+}
+
 function buildJudgePrompt(
   email: ClassifiableEmail,
   corrections: CorrectionExample[] = [],
   senderFacts: SenderFacts | null = null,
   senderTraits: SenderTraitFact[] | null = null,
+  language?: string | null,
 ): string {
   const subject = (email.subject || "").slice(0, 200);
   const from = (email.from || "").slice(0, 200);
@@ -297,7 +310,7 @@ Features:
 - reversibility: if this mail were auto-handled (e.g. archived, replied) and that turned out wrong, how easy is it to recover? (1.0 = trivial undo, just unarchive; 0.5 = mildly awkward; 0.0 = irreversible action, e.g. lost an investor)
 - urgency: does this need attention within hours? (1.0 = today / time-bound; 0.5 = this week; 0.0 = informational, no clock). A scheduled date alone is NOT urgency — an invite or reminder for next week is ≤0.3, and routine security/sign-in confirmations without suspicious context are ≤0.3
 
-Also give a short reason (under 12 words) describing what the email is.
+Also give a short reason (under 12 words) describing what the email is.${reasonLanguageInstruction(language)}
 
 Respond with JSON only:
 {"confidence":0.0,"senderTrust":0.0,"reversibility":0.0,"urgency":0.0,"reason":"short phrase"}${buildCorrectionsBlock(corrections)}${buildSenderFactsBlock(senderFacts)}${buildSenderTraitsBlock(senderTraits)}
@@ -360,9 +373,12 @@ async function extractFeaturesWithLlm(
   credentials?: ProviderCredentials,
   modelOverride?: string,
   onError?: (message: string) => void,
+  language?: string | null,
 ): Promise<{ features: PocFeatures; reason: string } | null> {
   const model = modelOverride || JUDGE_MODEL;
-  const userPrompt = buildJudgePrompt(email, corrections, senderFacts, senderTraits);
+  // The language rides inside userPrompt, so the cache key varies with it for
+  // free — a Korean run can never be served an English reason from cache.
+  const userPrompt = buildJudgePrompt(email, corrections, senderFacts, senderTraits, language);
   // Exact prompt→result cache is only sound at temperature 0 (deterministic).
   // A sampled call (JUDGE_TEMPERATURE > 0) must neither read nor write it.
   const cacheable = JUDGE_TEMPERATURE === 0;
@@ -485,6 +501,7 @@ async function extractWithDial(
   credentials: ProviderCredentials | undefined,
   modelOverride: string | undefined,
   onError?: (message: string) => void,
+  language?: string | null,
 ): Promise<{ features: PocFeatures; reason: string } | null> {
   const cheap = await extractFeaturesWithLlm(
     email,
@@ -495,6 +512,7 @@ async function extractWithDial(
     credentials,
     modelOverride,
     onError,
+    language,
   );
   if (!cheap) return null;
 
@@ -516,6 +534,7 @@ async function extractWithDial(
     credentials,
     escalateTo,
     onError,
+    language,
   );
   // A failed escalation must never lose the cheap result we already have —
   // but log it, or a frontier-model outage silently degrades every ambiguous
@@ -678,6 +697,7 @@ export async function judgeEmail(
   credentials?: ProviderCredentials,
   modelOverride?: string,
   onLlmError?: (message: string) => void,
+  language?: string | null,
 ): Promise<PocJudgement> {
   // Fast-path: only the patterns we are certain the founder treats as SILENT.
   //   - Gmail's CATEGORY_PROMOTIONS label (calibrated, ad-targeted mail)
@@ -734,6 +754,7 @@ export async function judgeEmail(
     credentials,
     modelOverride,
     onLlmError,
+    language,
   );
   if (llm) {
     if (senderFacts) {
