@@ -1068,6 +1068,23 @@ func runSelfChecks() async -> Bool {
     check("full joins Cmd+Tab",
           TopBarController.activationPolicy(for: .full) == .regular)
 
+    // Opt-in escape hatch: people who expect Cmd+Tab to reach every running app
+    // can have that, without changing what Klorn is by default. The default
+    // stays ambient — the checks above are the showInDock=false path.
+    check("the default is unchanged: resting is still ambient",
+          TopBarController.activationPolicy(for: .collapsed, showInDock: false) == .accessory)
+    check("showInDock puts the resting app in Cmd+Tab and the Dock",
+          TopBarController.activationPolicy(for: .collapsed, showInDock: true) == .regular)
+    check("showInDock does not change an already-open panel",
+          TopBarController.activationPolicy(for: .expanded, showInDock: true) == .regular
+          && TopBarController.activationPolicy(for: .full, showInDock: true) == .regular)
+    check("show-in-Dock defaults to off when nothing is stored",
+          !AppSettings.resolveShowInDock(nil))
+    check("show-in-Dock honors a stored true",
+          AppSettings.resolveShowInDock(true))
+    check("show-in-Dock ignores a non-bool",
+          !AppSettings.resolveShowInDock("yes"))
+
     print("Tier guide:")
     // The one first run is the only one there is: showing the explainer over a
     // signed-out shell spends it on someone with no mail to explain.

@@ -120,6 +120,13 @@ struct PreferencesView: View {
                 .toggleStyle(.switch).tint(Theme.accent)
                 Text(L("prefs.pillVisible.detail"))
                     .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
+
+                Toggle(isOn: $settings.showInDock) {
+                    Text(L("prefs.showInDock")).foregroundStyle(Theme.text)
+                }
+                .toggleStyle(.switch).tint(Theme.accent)
+                Text(L("prefs.showInDock.detail"))
+                    .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
             }
 
             section(L("prefs.section.keyboard")) {

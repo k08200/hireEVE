@@ -112,6 +112,14 @@ export default function SettingsPage() {
   const [briefingTime, setBriefingTime] = useState("06:00");
   const [alwaysAllowedTools, setAlwaysAllowedTools] = useState<string[]>([]);
   const [autoMarkReadEnabled, setAutoMarkReadEnabled] = useState(false);
+  // Reply tone and notification language were backend-supported and exposed in
+  // the desktop app, but had no web UI — the same account showed different
+  // settings depending on which client you opened.
+  const [replyTone, setReplyTone] = useState("MATCH_ME");
+  const [replyTones, setReplyTones] = useState<
+    Array<{ tone: string; label: string; description: string }>
+  >([]);
+  const [notificationLanguage, setNotificationLanguage] = useState("en");
   const [proactiveActionsEnabled, setProactiveActionsEnabled] = useState(false);
   const [phoneEscalationEnabled, setPhoneEscalationEnabled] = useState(false);
   const [preApprovableTools, setPreApprovableTools] = useState<string[]>([]);
@@ -421,6 +429,10 @@ export default function SettingsPage() {
       briefingTime?: string;
       alwaysAllowedTools?: string[];
       preApprovableTools?: string[];
+      replyTone?: string;
+      replyTones?: Array<{ tone: string; label: string; description: string }>;
+      notificationLanguage?: string;
+      notificationLanguages?: string[];
       autoMarkReadEnabled?: boolean;
       notifyEmailUrgent?: boolean;
       notifyMeeting?: boolean;
@@ -446,6 +458,9 @@ export default function SettingsPage() {
         setAlwaysAllowedTools(Array.isArray(d.alwaysAllowedTools) ? d.alwaysAllowedTools : []);
         setPreApprovableTools(Array.isArray(d.preApprovableTools) ? d.preApprovableTools : []);
         setAutoMarkReadEnabled(d.autoMarkReadEnabled ?? false);
+        setReplyTone(d.replyTone ?? "MATCH_ME");
+        if (Array.isArray(d.replyTones) && d.replyTones.length > 0) setReplyTones(d.replyTones);
+        setNotificationLanguage(d.notificationLanguage ?? "en");
         if (d.timezone) setProfile((p) => ({ ...p, timezone: d.timezone ?? p.timezone }));
         setNotifPrefs({
           notifyEmailUrgent: d.notifyEmailUrgent ?? true,
@@ -509,6 +524,67 @@ export default function SettingsPage() {
       });
     } catch {
       toast("Could not save setting.", "error");
+    }
+  };
+
+  const updateReplyTone = async (tone: string) => {
+    const previous = replyTone;
+    setReplyTone(tone);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ replyTone: tone }),
+      });
+    } catch {
+      setReplyTone(previous);
+      toast("Could not save reply tone.", "error");
+    }
+  };
+
+  const updateNotificationLanguage = async (language: string) => {
+    const previous = notificationLanguage;
+    setNotificationLanguage(language);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ notificationLanguage: language }),
+      });
+    } catch {
+      setNotificationLanguage(previous);
+      toast("Could not save notification language.", "error");
+    }
+  };
+
+  /** One click for "only the things that actually need me": urgent mail and
+   *  calendar. Matches the desktop app's Essentials-only preset — reaching the
+   *  same state on the web meant toggling five checkboxes in the right order. */
+  const applyEssentialsOnly = async () => {
+    const next = {
+      ...notifPrefs,
+      notifyEmailUrgent: true,
+      notifyMeeting: true,
+      notifyTaskDue: false,
+      notifyAgentProposal: false,
+      notifyDailyBriefing: false,
+      notifyEmailCandidate: false,
+    };
+    const previous = notifPrefs;
+    setNotifPrefs(next);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({
+          notifyEmailUrgent: true,
+          notifyMeeting: true,
+          notifyTaskDue: false,
+          notifyAgentProposal: false,
+          notifyDailyBriefing: false,
+          notifyEmailCandidate: false,
+        }),
+      });
+    } catch {
+      setNotifPrefs(previous);
+      toast("Could not apply the preset.", "error");
     }
   };
 
@@ -1019,6 +1095,71 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Replies — register + the language Klorn's own notifications use.
+            Both are backend settings the desktop app already exposed; the web
+            had no picker, so the same account read differently per client. */}
+        <section className="mb-8">
+          <h2 className={SECTION_TITLE}>Replies</h2>
+          <div className={`${PANEL} divide-y divide-slate-100`}>
+            <div className="p-5 space-y-3">
+              <div>
+                <label htmlFor="reply-tone" className="font-medium block">
+                  Reply tone
+                </label>
+                <p className="text-sm text-slate-500">
+                  How Klorn's drafts sound. It changes the wording, not what the reply says — and
+                  never the language: a reply is always written in the language of the mail it
+                  answers.
+                </p>
+              </div>
+              <select
+                id="reply-tone"
+                value={replyTone}
+                onChange={(e) => updateReplyTone(e.target.value)}
+                className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+              >
+                {(replyTones.length > 0
+                  ? replyTones
+                  : [
+                      {
+                        tone: "MATCH_ME",
+                        label: "Match me",
+                        description: "Learn from my sent mail",
+                      },
+                      { tone: "FORMAL", label: "Formal", description: "Polite and businesslike" },
+                      { tone: "FRIENDLY", label: "Friendly", description: "Warm but professional" },
+                      { tone: "CASUAL", label: "Casual", description: "Relaxed and short" },
+                    ]
+                ).map((option) => (
+                  <option key={option.tone} value={option.tone}>
+                    {option.label} — {option.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label htmlFor="notification-language" className="font-medium block">
+                  Notification language
+                </label>
+                <p className="text-sm text-slate-500">
+                  The language Klorn writes its own notifications in ("Draft ready"). Separate from
+                  the app language above, because a notification is composed on the server.
+                </p>
+              </div>
+              <select
+                id="notification-language"
+                value={notificationLanguage}
+                onChange={(e) => updateNotificationLanguage(e.target.value)}
+                className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+              >
+                <option value="en">English</option>
+                <option value="ko">한국어</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
         {/* Notifications */}
         <section className="mb-8">
           <h2 className={SECTION_TITLE}>Signal rhythm</h2>
@@ -1096,6 +1237,27 @@ export default function SettingsPage() {
                     Disabled categories stay quiet across push and in-app notifications.
                   </span>
                 </legend>
+                <div className="flex flex-wrap items-center gap-2 pb-2">
+                  <button
+                    type="button"
+                    onClick={applyEssentialsOnly}
+                    aria-pressed={
+                      notifPrefs.notifyEmailUrgent &&
+                      notifPrefs.notifyMeeting &&
+                      !notifPrefs.notifyTaskDue &&
+                      !notifPrefs.notifyAgentProposal &&
+                      !notifPrefs.notifyDailyBriefing &&
+                      !notifPrefs.notifyEmailCandidate
+                    }
+                    className="ease-strong min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition duration-150 hover:bg-slate-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent"
+                  >
+                    Essentials only
+                  </button>
+                  <span className="text-xs text-slate-500">
+                    Mail that needs an answer, plus anything on your calendar. Everything else stays
+                    in the app without a notification.
+                  </span>
+                </div>
                 {[
                   {
                     key: "notifyEmailUrgent" as const,

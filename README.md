@@ -213,7 +213,7 @@ To sync mail you bring your own OAuth client — no Google verification or CASA 
 1. [Google Cloud Console](https://console.cloud.google.com/) → create (or pick) a project.
 2. **APIs & Services → Library** → enable **Gmail API** and **Google Calendar API**.
 3. **OAuth consent screen** → User type **External** → fill the basics → under **Test users**, add the Google account you'll log in with. (Unverified apps only work for accounts on the test-user list — that's the 100-slot cap, and it's why self-host has no verification step: it's *your* account on *your* client.)
-4. **Scopes**: add `gmail.modify` and `calendar` (Klorn reads mail and writes tier labels; see [`scope-justification.md`](docs/google-oauth-verification/scope-justification.md)).
+4. **Scopes**: add the five the code actually requests — `gmail.readonly`, `gmail.send`, `gmail.modify`, `calendar.events`, `calendar.readonly` (Klorn reads mail, writes tier labels, sends approved replies, and reads/creates events; the exact set lives in `packages/api/src/mail/gmail.ts`, and each one is justified in [`scope-justifications.md`](docs/oauth-verification/scope-justifications.md)).
 5. **Credentials → Create credentials → OAuth client ID → Web application.** Set the **Authorized redirect URI** to `http://localhost:8000/api/auth/google/callback` (match your API port and `GOOGLE_REDIRECT_URI`).
 6. Copy the client ID and secret into `packages/api/.env`:
 

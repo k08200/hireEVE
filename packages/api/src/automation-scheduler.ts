@@ -1263,7 +1263,12 @@ async function runUserCycle(
             // DB message keeps a trailing [id1,id2,…] marker for EVERY
             // notified email so the dedup read above records all of them
             // (not just the first) and they aren't re-notified next tick.
-            const userBody = formatUrgentEmailBody(newUrgent);
+            // Klorn's own copy follows the user's notification language;
+            // the email subject/summary inside it stays as written.
+            const userBody = formatUrgentEmailBody(
+              newUrgent,
+              (config as { notificationLanguage?: string | null }).notificationLanguage,
+            );
             const dbMessage = buildUrgentDedupMessage(
               userBody,
               newUrgent.map((e) => e.gmailId),
