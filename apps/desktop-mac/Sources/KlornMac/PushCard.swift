@@ -151,7 +151,7 @@ struct PushCard: View {
                 Text(state.item?.email?.subject ?? state.item?.title ?? "")
                     .font(.caption).foregroundStyle(Theme.textDim).lineLimit(1)
                 if let reason = state.item?.tierReason, !reason.isEmpty {
-                    Text(reason).font(.caption2).foregroundStyle(Theme.textDim.opacity(0.8)).lineLimit(1)
+                    Text(reason).font(.caption2).foregroundStyle(Theme.textDim).lineLimit(1)
                 }
             }
             Spacer()

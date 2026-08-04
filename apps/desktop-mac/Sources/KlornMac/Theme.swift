@@ -25,8 +25,12 @@ enum Theme {
     }
     /// slate-900 `#0f172a`.
     static let text = Color(red: 0.059, green: 0.090, blue: 0.165)
-    /// slate-500 `#64748b`.
-    static let textDim = Color(red: 0.392, green: 0.455, blue: 0.545)
+    /// Secondary text — slate-600 `#475569`. Was slate-500, which measured
+    /// 4.09:1 on a raised card over the canvas (below the WCAG AA 4.5:1 text
+    /// floor; caption sizes never qualify as "large text"). slate-600 clears
+    /// every panel/raised stack with margin (~6.5:1 worst case). Never thin
+    /// this with `.opacity()` on the color — the self-check bans the pattern.
+    static let textDim = Color(red: 0.278, green: 0.333, blue: 0.412)
 
     /// Input-field boundary. `line` (black@0.08 ≈ 1.2:1) is fine for decorative
     /// dividers but fails WCAG 1.4.11 (≥3:1) for a control boundary; 0.35 ≈ 3:1
@@ -37,7 +41,9 @@ enum Theme {
     /// the reading pane's learned-engagement chip so desktop matches the web signal.
     /// Muted from the web graph's hot pink: at full saturation it outshouts the
     /// PUSH dot, and a learned-affinity hint must never look more urgent than
-    /// urgency itself. Still ≥4.5:1 on the panel.
+    /// urgency itself. ~4.3:1 on the panel — below the 4.5:1 text floor, fine
+    /// for its actual use (chip icon + meter = non-text, 1.4.11 needs ≥3:1).
+    /// Don't set text in this color.
     static let engage = Color(red: 0.776, green: 0.302, blue: 0.549)
 
     /// Per-tier signal palette — semantic hues kept from the dark system, with
@@ -260,11 +266,12 @@ struct EmptyState: View {
         VStack(spacing: Theme.s3) {
             Image(systemName: icon)
                 .font(.system(size: 28, weight: .light))
-                .foregroundStyle(Theme.textDim.opacity(0.7))
+                .foregroundStyle(Theme.textDim)
+                .opacity(0.7)
                 .accessibilityHidden(true)
             Text(title).font(.callout).foregroundStyle(Theme.textDim)
             if let hint {
-                Text(hint).font(.caption).foregroundStyle(Theme.textDim.opacity(0.7))
+                Text(hint).font(.caption).foregroundStyle(Theme.textDim)
                     .multilineTextAlignment(.center)
             }
         }

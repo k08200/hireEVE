@@ -1745,7 +1745,7 @@ struct ReadingPane: View {
                         LogoRing(size: 44).opacity(0.45)
                         Text(L("reading.empty.title")).font(.title3).foregroundStyle(Theme.textDim)
                         Text(L("reading.empty.detail"))
-                            .font(.caption).foregroundStyle(Theme.textDim.opacity(0.7))
+                            .font(.caption).foregroundStyle(Theme.textDim)
                             .multilineTextAlignment(.center)
                     }
                     .accessibilityElement(children: .combine)

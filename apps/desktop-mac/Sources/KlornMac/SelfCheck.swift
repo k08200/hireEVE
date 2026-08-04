@@ -1,6 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 import Foundation
+import SwiftUI
 import os
 
 // Runnable verification harness. The Command Line Tools toolchain ships no
@@ -1264,6 +1265,81 @@ func runSelfChecks() async -> Bool {
           L10n.resolvedCode(override: .system, preferred: ["fr-FR", "de-DE"]) == "en")
     check("no preferred language falls back to English",
           L10n.resolvedCode(override: .system, preferred: []) == "en")
+
+    // WCAG 2.2 AA contrast (the CLAUDE.md baseline). textDim carries
+    // caption-sized text on the glass panel AND on surfaceRaised cards, so both
+    // stacks must clear the 4.5:1 text floor (1.4.3). The engage tone only
+    // colors non-text signal (chip icon + meter), so it gets the 3:1 graphics
+    // floor (1.4.11). Ratios are computed from the live Theme colors — a future
+    // palette tweak that drops below the floor fails here, not in dogfood.
+    func srgba(_ color: Color) -> (r: Double, g: Double, b: Double, a: Double) {
+        // Fail loudly: a silent black fallback would make every fg-on-light
+        // check pass at 21:1 and hide a real regression.
+        guard let ns = NSColor(color).usingColorSpace(.sRGB) else {
+            fatalError("theme color is not sRGB-convertible")
+        }
+        return (ns.redComponent, ns.greenComponent, ns.blueComponent, ns.alphaComponent)
+    }
+    func luminance(_ c: (r: Double, g: Double, b: Double, a: Double)) -> Double {
+        func lin(_ v: Double) -> Double { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+        return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b)
+    }
+    func contrast(_ fg: Color, on bg: (r: Double, g: Double, b: Double, a: Double)) -> Double {
+        let (a, b) = (luminance(srgba(fg)) + 0.05, luminance(bg) + 0.05)
+        return max(a, b) / min(a, b)
+    }
+    /// Composite a translucent color over an opaque backdrop (source-over).
+    func over(_ top: Color, _ bottom: (r: Double, g: Double, b: Double, a: Double))
+        -> (r: Double, g: Double, b: Double, a: Double) {
+        let t = srgba(top)
+        return (t.r * t.a + bottom.r * (1 - t.a),
+                t.g * t.a + bottom.g * (1 - t.a),
+                t.b * t.a + bottom.b * (1 - t.a), 1)
+    }
+    let white: (r: Double, g: Double, b: Double, a: Double) = (1, 1, 1, 1)
+    let canvas = srgba(Theme.bg)
+    // Worst real stack: a raised card over the translucent panel with the
+    // canvas showing through — darker backdrop than pure white, lower ratio.
+    let raisedOnCanvas = over(Theme.surfaceRaised, canvas)
+    // NOTE: these are the two statically checkable backdrops. The live glass
+    // panel is a blur over arbitrary desktop content, so its contrast is only
+    // bounded when reduce-transparency forces it opaque — the white case here.
+    check("textDim clears 4.5:1 on opaque white (reduce-transparency panel)",
+          contrast(Theme.textDim, on: white) >= 4.5)
+    check("textDim clears 4.5:1 on a raised card over the canvas",
+          contrast(Theme.textDim, on: raisedOnCanvas) >= 4.5)
+    check("text clears 4.5:1 on a raised card over the canvas",
+          contrast(Theme.text, on: raisedOnCanvas) >= 4.5)
+    check("engage (non-text) clears 3:1 on a raised card over the canvas",
+          contrast(Theme.engage, on: raisedOnCanvas) >= 3.0)
+    // textDim IS the floor: any extra .opacity() on top drops caption text
+    // back under 4.5:1, so both single-line shapes are banned — thinning the
+    // color (`textDim.opacity(…)`) and thinning an inline chain
+    // (`…(Theme.textDim).opacity(…)`). engage may never color a Text at all
+    // (it is a non-text tone, ~3.7:1 on a raised card). Decorative
+    // (accessibilityHidden) views that want a fainter look put `.opacity(…)`
+    // on the view, on its own line. Line-level grep: a multi-line chain or a
+    // container-inherited style still slips through — the render-preview pass
+    // is the backstop for those.
+    func lineOffenders(_ isOffense: (Substring) -> Bool) -> [String] {
+        swiftFiles.filter { url in
+            guard url.lastPathComponent != "SelfCheck.swift",
+                  let text = try? String(contentsOf: url, encoding: .utf8) else { return false }
+            return text.split(separator: "\n").contains(where: isOffense)
+        }.map(\.lastPathComponent)
+    }
+    let dimmedTextOffenders = lineOffenders {
+        $0.contains("textDim.opacity") || $0.contains("textDim).opacity")
+    }
+    check("nothing thins textDim below the AA floor", dimmedTextOffenders.isEmpty)
+    if !dimmedTextOffenders.isEmpty {
+        print("      offenders: \(dimmedTextOffenders.joined(separator: ", "))")
+    }
+    let engageTextOffenders = lineOffenders { $0.contains("Text(") && $0.contains("Theme.engage") }
+    check("engage never colors text", engageTextOffenders.isEmpty)
+    if !engageTextOffenders.isEmpty {
+        print("      offenders: \(engageTextOffenders.joined(separator: ", "))")
+    }
 
     print(failures == 0 ? "\nALL CHECKS PASSED" : "\n\(failures) CHECK(S) FAILED")
     return failures == 0
