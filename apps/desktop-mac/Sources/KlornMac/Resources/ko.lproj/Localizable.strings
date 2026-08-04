@@ -133,6 +133,8 @@
 "prefs.updates.checking" = "확인 중…";
 "prefs.pillVisible" = "상단 바 항상 표시";
 "prefs.pillVisible.detail" = "끄면 ⌥⌘K 로 부를 때까지 바가 숨어 있습니다. 급한 메일 카드는 그대로 뜹니다.";
+"prefs.showInDock" = "Dock과 Cmd+Tab에 표시";
+"prefs.showInDock.detail" = "끄면(기본) 클론은 보이지 않는 곳에서 대기합니다 — Dock 아이콘이 없고 ⌥⌘K 로 부릅니다. 켜면 Cmd+Tab 으로 전환하는 일반 앱처럼 동작합니다.";
 "prefs.shortcut" = "부르기 / 펼치기";
 "prefs.shortcut.recording" = "단축키를 누르세요 — ⌘, ⌥, ⌃ 중 하나는 포함해야 합니다. Esc로 취소.";
 "prefs.shortcut.idle" = "바를 부르는 전역 단축키입니다. 눌러서 바꾸세요.";

@@ -164,7 +164,8 @@ final class TopBarController {
         self.panel = panel
         setFrame(panel, size: size)
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
-        NSApp.setActivationPolicy(Self.activationPolicy(for: state))
+        NSApp.setActivationPolicy(
+            Self.activationPolicy(for: state, showInDock: model.settings.showInDock))
         if focusable {
             // Full is a real, focusable app window, so it takes focus outright —
             // the reply field has to be able to type.
@@ -182,11 +183,25 @@ final class TopBarController {
     /// point of the accessory policy. Once the user has deliberately opened the
     /// panel it stops being ambient and becomes something they switch back to,
     /// so from `.expanded` up it joins the app switcher (founder decision,
-    /// 2026-07-28: regular only while open, not always). Pure, for the harness.
+    /// 2026-07-28: regular only while open, not always).
+    ///
+    /// `showInDock` is the opt-in escape hatch (default off): people who expect
+    /// Cmd+Tab to reach every running app get that, and the resting default
+    /// stays ambient for everyone else. Pure, for the harness.
     nonisolated static func activationPolicy(
-        for state: BarState
+        for state: BarState,
+        showInDock: Bool = false
     ) -> NSApplication.ActivationPolicy {
-        state == .collapsed ? .accessory : .regular
+        if showInDock { return .regular }
+        return state == .collapsed ? .accessory : .regular
+    }
+
+    /// Re-apply the activation policy for the current state. Called when the
+    /// user flips show-in-Dock, so the Dock icon appears/disappears on the
+    /// click rather than at the next panel state change.
+    func refreshActivationPolicy() {
+        NSApp.setActivationPolicy(
+            Self.activationPolicy(for: state, showInDock: model.settings.showInDock))
     }
 
     /// Show one item in the full view's reading pane. The single in-app answer

@@ -10,6 +10,7 @@ final class AppSettings {
     static let notificationsKey = "klorn.notificationsEnabled"
     static let pillVisibleKey = "klorn.pillVisible"
     static let shortcutKey = "klorn.toggleShortcut"
+    static let showInDockKey = "klorn.showInDock"
 
     private let defaults: UserDefaults
 
@@ -23,6 +24,11 @@ final class AppSettings {
     /// before the recorder's local monitor ever sees it. Not persisted.
     var onShortcutRecordingChanged: ((Bool) -> Void)?
 
+    /// Fired when show-in-Dock flips, so the app can re-apply the activation
+    /// policy immediately instead of at the next panel state change. Not
+    /// persisted (wired at launch).
+    var onShowInDockChanged: ((Bool) -> Void)?
+
     /// A new PUSH posts a macOS banner unless the user turns it off. The top-bar
     /// count always updates regardless — this only gates the system banner.
     var notificationsEnabled: Bool {
@@ -32,6 +38,20 @@ final class AppSettings {
     /// Whether the collapsed pill stays on screen. OFF = ambient-invisible mode:
     /// nothing is drawn until ⌥⌘K summons the panel or a PUSH card appears —
     /// the card and the background engine are unaffected.
+    /// Whether Klorn appears in the Dock and Cmd+Tab while resting.
+    ///
+    /// OFF by default, which is the ambient firewall Klorn is designed as: no
+    /// Dock icon, no app switcher, never steals focus (founder decision,
+    /// 2026-07-28). It is opt-in rather than removed because people who expect
+    /// Cmd+Tab to reach every running app were left with no way to find Klorn
+    /// except the ⌥⌘K hotkey.
+    var showInDock: Bool {
+        didSet {
+            defaults.set(showInDock, forKey: Self.showInDockKey)
+            onShowInDockChanged?(showInDock)
+        }
+    }
+
     var pillVisible: Bool {
         didSet {
             defaults.set(pillVisible, forKey: Self.pillVisibleKey)
@@ -94,6 +114,7 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.notificationsEnabled = Self.resolveNotifications(defaults.object(forKey: Self.notificationsKey))
+        self.showInDock = Self.resolveShowInDock(defaults.object(forKey: Self.showInDockKey))
         self.pillVisible = Self.resolvePillVisible(defaults.object(forKey: Self.pillVisibleKey))
         self.shortcut = Self.resolveShortcut(defaults.object(forKey: Self.shortcutKey))
     }
@@ -118,6 +139,12 @@ final class AppSettings {
     /// Default ON (pill shown) when never set; otherwise honor the stored flag. Pure.
     nonisolated static func resolvePillVisible(_ stored: Any?) -> Bool {
         (stored as? Bool) ?? true
+    }
+
+    /// Default OFF when never set: the resting app stays ambient (no Dock icon,
+    /// out of Cmd+Tab) unless the user opts in. Pure.
+    nonisolated static func resolveShowInDock(_ stored: Any?) -> Bool {
+        (stored as? Bool) ?? false
     }
 }
 

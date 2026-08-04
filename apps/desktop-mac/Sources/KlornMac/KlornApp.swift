@@ -187,6 +187,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         hotKey = key
         // Re-register live when the user records a new shortcut.
         model.settings.onShortcutChanged = { [weak key] shortcut in key?.register(shortcut) }
+        // Apply show-in-Dock the moment it is flipped, not at the next state change.
+        model.settings.onShowInDockChanged = { [weak bar] _ in bar?.refreshActivationPolicy() }
         // Suspend the hotkey while the recorder captures, so re-recording the
         // currently-bound chord reaches the recorder instead of toggling the bar.
         model.settings.onShortcutRecordingChanged = { [weak key, weak self] recording in
