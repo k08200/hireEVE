@@ -14,8 +14,35 @@ assessor's SAQ. Keep it in sync with the code.
 > this file to answer the assessor. They must agree — if they ever diverge, the
 > code in `packages/api/src/mail/gmail.ts` wins.
 
-Google Cloud project: the Klorn project under `k0820086@gmail.com`.
-Console path: **APIs & Services → OAuth consent screen**.
+Google Cloud project: **`gen-lang-client-0294713076`** ("Default Gemini Project"),
+project number **19950762743**, under `k0820086@gmail.com`. The name is an
+auto-generated one from AI Studio, not a mistake — confirmed 2026-08-04 by matching
+the console's client list against the client id production actually redirects with
+(`19950762743-cb3t502kt3cp1ean72hh00t0102fukge.apps.googleusercontent.com`, readable
+from the `Location` header of `GET /api/auth/google/login`). Check that id before
+trusting any console screen; the project picker defaults elsewhere.
+
+Console path: **Google Auth Platform → Audience** (older consoles:
+**APIs & Services → OAuth consent screen**).
+
+## Audience mode while the review is pending
+
+The audience is **In production**, unverified — verified 2026-08-04, and it must stay
+that way. Do not press "Back to testing":
+
+| | Testing | In production, unverified (current) | Verified |
+|---|---|---|---|
+| Authorization lifetime | **expires 7 days after consent** | normal | normal |
+| Who can sign in | only emails listed as test users (max 100) | anyone | anyone |
+| User cap | 100 listed test users (editable) | **100 new users, counted for the life of the project, no reset** | none |
+| Unverified-app warning | yes, on every re-consent | yes, once | no |
+
+Testing mode would be unusable for a real cohort: the 7-day expiry sends every tester
+back through the unverified-app consent screen weekly. The cost of production is the
+lifetime cap, which is why `BETA_GATE_ENABLED` stays **on** — the waitlist is the only
+thing stopping a traffic spike from permanently burning all 100 slots. Probe the gate
+without console access: `GET /api/auth/signup-status` returns `{"open":false}` when it
+is armed.
 
 Consent-screen basics (must match exactly):
 - App name: **Klorn**
@@ -237,8 +264,10 @@ password/token/apiKey body fields, and scrubs the URL query string (so OAuth
 **Data retention & deletion:** Users can disconnect Google (`DELETE
 /api/auth/google`, removes the stored `UserToken`) and delete their account.
 Handled mail state is reconciled from Gmail; on account deletion Google-derived
-data is removed. (Confirm the account-deletion endpoint wipes all rows before
-submitting.)
+data is removed. `DELETE /api/auth/account` → `deleteUserAndAllData`, checked against
+the schema 2026-08-02: 42 of the 43 `userId` relations are `onDelete: Cascade` and the
+one exception (`LlmUsageLog`, `SetNull`) is deleted explicitly in the same transaction,
+so no row survives the user.
 
 **Dependency & build:** pnpm lockfile pinned; production source maps not served
 publicly; server does not run as root on Render.
@@ -254,7 +283,11 @@ publicly; server does not run as root on Render.
 - [ ] Privacy policy live and states Limited Use + do-not-train (already true).
 - [ ] Headers/TLS re-verified live (done 2026-07-20: no wildcard ACAO, CSP,
       X-Frame-Options, TLS 1.3, legacy TLS rejected).
-- [ ] Account-deletion endpoint confirmed to remove all Google-derived data.
+- [x] Account-deletion endpoint confirmed to remove all Google-derived data.
+      `DELETE /api/auth/account` → `deleteUserAndAllData`; checked against the schema
+      2026-08-02: 42 of the 43 `userId` relations are `onDelete: Cascade` and the one
+      exception (`LlmUsageLog`, `SetNull`) is deleted explicitly in the same transaction,
+      so no row survives the user.
 - [ ] Pick an approved CASA assessor (e.g. TAC Security ~$540) and book the scan.
 - [ ] Run OWASP ZAP against production yourself first to catch findings early.
 

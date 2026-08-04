@@ -54,7 +54,7 @@ const enTranslations: Record<string, string> = {
     "Connect Gmail and Calendar to turn team signals into evidence-backed decision cards.",
   "auth.inviteOnlyTitle": "Klorn is invite-only.",
   "auth.inviteOnlyBody":
-    "Google blocks sign-in until your email is approved as a test user. Request access first — you can sign in the moment you're approved.",
+    "The beta is capped while Google's security review clears, so every account is approved by hand. Request access first — you can sign in the moment you're approved.",
   "auth.requestEarlyAccess": "Request early access",
   "auth.googleApprovedSignIn": "Already approved? Sign in with Google",
   "auth.continueWithGoogle": "Continue with Google",
@@ -90,7 +90,7 @@ const enTranslations: Record<string, string> = {
   "auth.googleSignInError": "Google sign-in could not be completed. Please try again.",
   "auth.googleDenied": "Google connection was canceled — just try again whenever you're ready.",
   "auth.googleUnverified":
-    "Google hasn't finished verifying Klorn for your account yet. Approved testers can retry shortly; otherwise request early access.",
+    "Google reports this account's email address as unverified, so it can't be used to sign in. Verify the address with Google, or use a different account.",
   "auth.sessionExpired": "Your session expired. Please sign in again.",
   "auth.inviteOnlyRedirect":
     "Klorn is invite-only right now. Request access from the early access page.",
@@ -294,7 +294,7 @@ const koTranslations: Record<string, string> = {
   "auth.descRegister": "Gmail과 캘린더를 연결해 팀 신호를 근거 기반 결정 카드로 바꿔보세요.",
   "auth.inviteOnlyTitle": "Klorn은 현재 초대 전용입니다.",
   "auth.inviteOnlyBody":
-    "테스트 사용자로 승인되기 전까지는 Google 로그인이 차단됩니다. 먼저 액세스를 요청하세요 — 승인되는 즉시 로그인할 수 있어요.",
+    "Google 보안 심사가 끝날 때까지 베타 인원이 제한되어, 모든 계정을 직접 승인하고 있습니다. 먼저 액세스를 요청하세요 — 승인되는 즉시 로그인할 수 있어요.",
   "auth.requestEarlyAccess": "얼리 액세스 요청",
   "auth.googleApprovedSignIn": "이미 승인되셨나요? Google로 로그인",
   "auth.continueWithGoogle": "Google로 계속하기",
@@ -330,7 +330,7 @@ const koTranslations: Record<string, string> = {
   "auth.googleSignInError": "Google 로그인을 완료하지 못했습니다. 다시 시도해 주세요.",
   "auth.googleDenied": "Google 연결이 취소되었어요 — 준비되면 다시 시도하면 됩니다.",
   "auth.googleUnverified":
-    "Google이 아직 회원님 계정에 대한 Klorn 검증을 마치지 않았습니다. 승인된 테스터는 잠시 후 다시 시도할 수 있으며, 그 외에는 얼리 액세스를 신청해 주세요.",
+    "Google에서 이 계정의 이메일 주소가 미확인 상태로 보고되어 로그인에 사용할 수 없습니다. Google에서 주소를 인증하시거나 다른 계정을 사용해 주세요.",
   "auth.sessionExpired": "세션이 만료되었습니다. 다시 로그인해 주세요.",
   "auth.inviteOnlyRedirect":
     "Klorn은 현재 초대 전용입니다. 얼리 액세스 페이지에서 액세스를 신청해 주세요.",
