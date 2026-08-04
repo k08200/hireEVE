@@ -45,6 +45,15 @@ Gotchas:
 - Conventional commits. PR body must include all 4 template sections — `## Summary`, `## Type`, `## Checklist`, `## Test plan` — or a pre-push hook blocks `gh pr create`. Test plan = commands actually run and their results.
 - English for commits, PRs, code comments, and docs.
 
+## Product vocabulary
+
+`docs/product-vocabulary.md` is the canonical word list — read it before naming
+a surface or writing user-facing copy. The load-bearing ones: **"inbox" means a
+connected mail account, never a screen**; the approval surface is the
+**Decision queue**; the 4-tier view is the **Firewall board**. AUTO is a
+classification, not an action. App language / notification language / reply
+language are three different things.
+
 ## Engineering doctrine
 
 - **Deterministic floor**: the 3 real-world actions (send / delete / forward) always produce an `ActionReceipt` with a payload hash. Everything else goes through the classifier.
