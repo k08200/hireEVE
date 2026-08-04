@@ -38,6 +38,43 @@ Do **not** try to fix this with `ALTER ROLE postgres NOBYPASSRLS`. On Supabase
 and Supabase's own internals — dashboard, PostgREST, extensions — run as that
 role.
 
+### Verified end to end on production, 2026-08-05
+
+`klorn_app` now exists (`NOBYPASSRLS`, owns nothing) and the whole mechanism
+was proven against the real database before any application code depends on
+it. Nothing was switched over — `DATABASE_URL` still points at `postgres`, so
+this was observation only.
+
+Connecting through the session pooler as `klorn_app.<ref>` works, which was the
+open question that would have invalidated the approach: Supavisor accepts a
+non-`postgres` username.
+
+| Probe (as `klorn_app`, on `EmailMessage`) | Result |
+| --- | --- |
+| no GUC set | **0 rows** — fails closed |
+| `app.current_user_id` = each of the 10 users | rows visible, and **every visible row belonged to that user** |
+| `app.bypass_rls = 'on'` | **1020 rows** (the whole table) |
+| sum of the 10 per-user counts | **1020** |
+
+The last two lines are the proof, and they are worth more than the first two.
+"Fails closed" and "opens for a tenant" are both satisfied by a broken policy —
+one that denies everything scores the first, one that ignores the GUC scores
+the second. Only an exact partition satisfies both at once: the per-user counts
+summing to precisely the unrestricted total means no row is hidden from its
+owner **and** no row is visible to anyone else. A leak or a loss would show up
+as a mismatch here and nowhere else.
+
+This also confirms `set_config(..., is_local => true)` survives the pooler,
+which is the assumption `withTenant` is built on.
+
+**Known gap: `User` itself has no RLS.** 43 tables are enabled and all 43 have
+policies (no orphan with RLS on and no policy — that combination would deny
+everything once RLS binds). `User` is not among them: it has no `userId`
+column, so the `"userId" = current_setting(...)` shape does not fit — it needs
+`id = current_setting(...)`. Until that lands, a missed filter on the table
+holding every account's email address is exactly the class of bug this whole
+effort exists to backstop. It should be its own slice, and it is not optional.
+
 ### What actually unlocks isolation
 
 Connect the app as a **dedicated least-privilege role** that owns nothing and
@@ -47,7 +84,7 @@ once the app runs as that role the existing migration is sufficient and
 an application has no business connecting as the schema owner.
 
 This changes the shape of the work. `FORCE` was per-table and reversible;
-switching the connection role activates RLS on **all 42 policied tables at
+switching the connection role activates RLS on **all 43 policied tables at
 once**, and an unrouted query does not error — it returns **zero rows**. Keep
 the rollout incremental by disabling RLS on the tables that are not routed yet
 (a no-op in practice: the app bypasses every one of them today) and re-enabling
@@ -109,13 +146,16 @@ that no policy is consulted for does nothing.
    Started: `LearnedRule` (#1012). Remaining: 41 policied tables, several
    hundred call sites — this is the bulk of the work and it is unglamorous.
 
-3. **Create the dedicated app role** (founder + one migration). Blocked until
-   it is confirmed that `postgres` can create roles (`rolcreaterole`) and that
-   the pooler accepts a non-`postgres` username.
+3. **Create the dedicated app role.** ✅ **Done 2026-08-05** — `klorn_app`
+   exists and was verified against production (see the probe table above). It
+   is not wired into anything yet; `DATABASE_URL` still points at `postgres`,
+   so creating it changed no behaviour.
+
+   Recorded for reproduction (e.g. rebuilding from a restored dump):
 
    ```sql
    CREATE ROLE klorn_app LOGIN PASSWORD '<generated>'
-     NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOINHERIT;
+     NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
    GRANT USAGE ON SCHEMA public TO klorn_app;
    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO klorn_app;
    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO klorn_app;
@@ -126,12 +166,25 @@ that no policy is consulted for does nothing.
      GRANT USAGE, SELECT ON SEQUENCES TO klorn_app;
    ```
 
-   Verify before going further — a role that still bypasses RLS buys nothing:
+   Re-verify after any rebuild — a role that still bypasses RLS buys nothing,
+   and it fails silently rather than loudly:
 
    ```sql
    SELECT rolbypassrls, rolsuper FROM pg_roles WHERE rolname = 'klorn_app';
    -- both must be false
    ```
+
+   Generate the password so it never passes through a clipboard or a chat
+   window; two of them leaked that way while setting this up.
+
+   ```bash
+   PW=$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32)
+   printf '%s' "$PW" | pbcopy   # straight to the Render field, never to stdout
+   ```
+
+   Alphanumeric only, deliberately: `@` and `/` in a password have to be
+   percent-encoded inside a connection URL, and a mis-encoded `DATABASE_URL` is
+   an outage.
 
 4. **Split migration and runtime connections.** `scripts/start.sh` runs
    `prisma migrate deploy` with `DATABASE_URL`, so pointing that at a role
@@ -145,7 +198,7 @@ that no policy is consulted for does nothing.
 
 5. **Disable RLS on the tables that are not routed yet**, in the same change
    that switches the role. This looks like undoing work and is not: the app
-   bypasses all 42 today, so their RLS state is decorative. Making it explicit
+   bypasses all 43 today, so their RLS state is decorative. Making it explicit
    is what keeps the rollout incremental — otherwise flipping the role arms
    every table simultaneously and every unrouted query silently returns zero
    rows.
@@ -165,10 +218,17 @@ that no policy is consulted for does nothing.
    Roll a table back instantly with `ALTER TABLE t DISABLE ROW LEVEL SECURITY;`
    (no data change).
 
-7. **Bespoke policies** for the tables the first migration skipped: `Message`
-   (scoped by `conversationId` → needs a subquery/join policy), `LlmUsageLog`
-   (nullable `userId` for system calls), `WebhookEvent` (global idempotency
-   ledger — likely stays system-only).
+7. **Bespoke policies** for the tables the first migration skipped:
+
+   - **`User`** — the important one, and the only one the migration omitted
+     without saying so. It has no `userId`; the policy shape is
+     `id = current_setting('app.current_user_id', true)`. Leaving it out means
+     the table holding every account's email address stays outside the backstop
+     that the other 43 get, which inverts the point of the exercise. Confirmed
+     readable in full by `klorn_app` on 2026-08-05.
+   - `Message` — scoped via `conversationId`, needs a subquery/join policy.
+   - `LlmUsageLog` — nullable `userId` for system calls.
+   - `WebhookEvent` — global idempotency ledger; likely stays system-only.
 
 ## Rollback
 
