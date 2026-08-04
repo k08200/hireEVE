@@ -708,9 +708,9 @@ export async function adminRoutes(app: FastifyInstance) {
   // details are load-bearing rather than stylistic.
   //
   // They run inside withTenant, which binds app.current_user_id for the
-  // transaction. That is inert today (LearnedRule has a permissive policy but
-  // is not FORCEd) and is what lets FORCE be flipped later without touching
-  // this code — see docs/rls-rollout.md.
+  // transaction. That is inert today — the app connects as a role that
+  // bypasses RLS outright — and is what lets isolation be switched on later
+  // without touching this code. See docs/rls-rollout.md.
   //
   // It also makes the read and the write atomic. Read-then-write across two
   // connections leaves a window where a concurrent request changes the status

@@ -231,7 +231,7 @@ vi.mock("../db.js", () => {
       ),
       // Scoped by userId as well as id: a write that matches no owned row
       // reports count 0 rather than touching another tenant's rule, which is
-      // also how the query behaves once the table is FORCEd.
+      // also how the query behaves once RLS binds for real.
       updateMany: vi.fn(
         async ({
           where,

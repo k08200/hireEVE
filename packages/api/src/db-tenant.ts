@@ -5,18 +5,26 @@ import { INTERACTIVE_TX_OPTIONS, prisma } from "./db.js";
  * Tenant-scoped and system-scoped query execution for Postgres Row-Level
  * Security.
  *
- * RLS is enabled (not yet FORCEd) on every per-user table. Because the app
- * connects as the table owner, an un-FORCEd policy is inert today — these
- * helpers set the request's tenant context now so that flipping FORCE later
- * (per table, after a backup/restore rehearsal) activates isolation without a
- * second code change.
+ * RLS is enabled (not FORCEd) on every per-user table, and is inert today: the
+ * app connects as `postgres`, which both owns the tables and carries the
+ * BYPASSRLS attribute (measured 2026-08-04). Ownership alone would be fixable
+ * with FORCE; BYPASSRLS is not — it outranks FORCE, so no amount of forcing
+ * makes these policies evaluate while the app connects as that role.
+ *
+ * What activates them is connecting as a dedicated least-privilege role that
+ * owns nothing and has no BYPASSRLS. Plain ENABLE constrains a non-owner role,
+ * so at that point the existing migration is already sufficient. These helpers
+ * bind the request's tenant context now so that switch needs no second code
+ * change. See docs/rls-rollout.md for the staged plan and its ordering hazard
+ * (the switch arms every table at once; unrouted queries return zero rows
+ * rather than erroring).
  *
  * Mechanism: an interactive transaction with `set_config(name, value, true)`.
  * The `is_local = true` third arg scopes the GUC to the transaction, so it can
  * never leak across a pooled (PgBouncer transaction-mode) connection — the one
  * pattern that is pooler-safe. Every query inside must use the passed `tx`
  * handle; a query issued on the global `prisma` client runs in its own
- * connection without the GUC and (once FORCEd) sees zero rows.
+ * connection without the GUC and (once RLS binds) sees zero rows.
  *
  * Policies OR two permissive rules: `"userId" = app.current_user_id` (tenant)
  * and `app.bypass_rls = 'on'` (system). withSystem is for the paths that have
