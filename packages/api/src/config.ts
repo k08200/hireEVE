@@ -88,6 +88,28 @@ export const CONTACT_ENGAGEMENT_IN_JUDGE = process.env.CONTACT_ENGAGEMENT_IN_JUD
 // user's) on keyword-fallback tiers. Manual repair: scripts/rejudge-fallback.ts.
 export const FALLBACK_REJUDGE_SWEEP = process.env.FALLBACK_REJUDGE_SWEEP === "true";
 
+// How far back the sweep looks for keyword-fallback residue, in days.
+// The 14-day default was sized for the 2026-07-16 RPM starvation, which lasted
+// hours. The key-cap outage that followed lasted ~19 days, so by the time it
+// was diagnosed the oldest residue had already aged out — and nothing else
+// re-judges a row that already carries an AttentionItem, so what falls out of
+// this window stays mis-tiered forever. Tunable so an operator can widen it to
+// the actual outage from the dashboard, without shell access to the database.
+// Capped: a typo here would re-judge (and re-bill) the whole ledger.
+// A zero or negative value would push the cutoff into the future and silently
+// disable the repair while the flag still reads ON — fall back to the default
+// instead of failing quiet.
+export const FALLBACK_REJUDGE_LOOKBACK_MAX_DAYS = 90;
+const FALLBACK_REJUDGE_LOOKBACK_DEFAULT_DAYS = 14;
+const rejudgeLookbackRaw = intEnv(
+  "FALLBACK_REJUDGE_LOOKBACK_DAYS",
+  FALLBACK_REJUDGE_LOOKBACK_DEFAULT_DAYS,
+);
+export const FALLBACK_REJUDGE_LOOKBACK_DAYS =
+  rejudgeLookbackRaw > 0
+    ? Math.min(rejudgeLookbackRaw, FALLBACK_REJUDGE_LOOKBACK_MAX_DAYS)
+    : FALLBACK_REJUDGE_LOOKBACK_DEFAULT_DAYS;
+
 // ── Paywall / monetization ────────────────────────────────────────────
 // Master kill-switch for the subscription paywall. OFF by default so merging
 // to main (which auto-deploys to prod) changes NOTHING: FREE keeps its current
