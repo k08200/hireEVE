@@ -26,16 +26,17 @@ correction (`DecisionLabel.outcome`) → `decision-metrics` counts it.
    the email/password sign-up paths require an APPROVED `Waitlist` row
    (`routes/auth.ts` — the Google path redirects `?error=invite_only` otherwise).
 
-   ⚠️ **Do not run this cohort with the OAuth audience set to Testing.** In Testing mode
-   Google expires every authorization **7 days after consent**, so the whole cohort would
-   re-run the unverified-app consent screen weekly — which destroys exactly the sustained
-   usage this phase exists to produce. Set the audience to **In production** instead: the
-   7-day expiry disappears and the unverified-app screen becomes a one-time step.
+   ⚠️ The OAuth audience is **In production**, unverified (verified 2026-08-04) — leave it
+   there. Reverting to Testing would expire every authorization **7 days after consent**,
+   sending the whole cohort back through the unverified-app screen weekly, which destroys
+   exactly the sustained usage this phase exists to produce.
 
-   The price of that switch is a **100-new-user cap that is counted for the life of the
-   project and does not reset** — which is why `BETA_GATE_ENABLED` must stay **on**. Without
-   it a single traffic spike burns all 100 slots permanently. The cap lifts only when
-   restricted-scope verification clears (see `google-oauth-verification.md`).
+   The price of production-unverified is a **100-new-user cap counted for the life of the
+   project that does not reset** — which is why `BETA_GATE_ENABLED` must stay **on**.
+   Without it a single traffic spike burns all 100 slots permanently. Confirm it from
+   outside the console: `GET /api/auth/signup-status` must return `{"open":false}`.
+   The cap lifts only when restricted-scope verification clears (see
+   `google-oauth-verification.md`).
 
 3. **Set `ADMIN_EMAILS` to your account** (`k0820086@gmail.com`) so you can watch the data:
    `decision-metrics` (per-user PUSH recall / over-suppression) and the override count.

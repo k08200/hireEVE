@@ -72,7 +72,7 @@
 "mail.dismiss.a11y" = "Dismiss message from %@";
 "mail.changeTier" = "Move to tier… (teaches Klorn)";
 "mail.changeTier.a11y" = "Change tier for message from %1$@, currently %2$@";
-"mail.moveTo" = "Move to %@ ";
+"mail.moveTo" = "Move to %1$@%2$@";
 "mail.snoozePrefix" = "Snooze ";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
@@ -134,6 +134,8 @@
 "prefs.updates.checking" = "Checking…";
 "prefs.pillVisible" = "Always show the top bar";
 "prefs.pillVisible.detail" = "Off: the bar stays hidden until ⌥⌘K summons it. Urgent-email cards still appear.";
+"prefs.showInDock" = "Show in the Dock and Cmd+Tab";
+"prefs.showInDock.detail" = "Off (default): Klorn rests out of sight — no Dock icon, and ⌥⌘K is how you summon it. On: it behaves like a normal app you can Cmd+Tab to.";
 "prefs.shortcut" = "Summon / expand";
 "prefs.shortcut.recording" = "Type a shortcut — must include ⌘, ⌥, or ⌃. Esc to cancel.";
 "prefs.shortcut.idle" = "Global shortcut to summon the bar. Click to change.";
@@ -282,7 +284,7 @@
 "tier.row.a11y" = "%1$@, %2$d messages. %3$@";
 "calendar.noEventsWeek" = "No events this week";
 "reading.noPreview" = "No preview for this item.";
-"mail.noMatches" = "No mail matches \u201C%@\u201D.";
+"mail.noMatches" = "No mail matches \u201C%1$@\u201D%2$@";
 
 "section.upcoming" = "UPCOMING";
 "section.waitingOn" = "WAITING ON";

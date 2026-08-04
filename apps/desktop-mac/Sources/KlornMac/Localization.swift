@@ -114,3 +114,81 @@ func L(_ key: String) -> String { L10n.t(key) }
 func L(_ key: String, _ args: CVarArg...) -> String {
     String(format: L10n.t(key), arguments: args)
 }
+
+// MARK: - Korean particles (조사)
+
+/// Korean postpositions agree with the final consonant (받침) of the word they
+/// follow, so a fixed string can't be correct for both. The shipped copy used
+/// the "%@(으)로" escape hatch, which is a workaround rather than Korean — and
+/// the app already contradicted itself, since the collapsed pill renders a
+/// correct "PUSH 3건".
+///
+/// The word in front is user- or server-supplied (a tier name, a search query),
+/// so the particle has to be chosen at runtime.
+extension L10n {
+    /// The 로/으로 particle when the UI is Korean, "" otherwise — so one call
+    /// site serves both languages and the English string simply has nothing to
+    /// interpolate.
+    nonisolated static func josaRoIfKorean(after word: String) -> String {
+        resolvedCode(override: override, preferred: Locale.preferredLanguages,
+                     available: shipped) == "ko" ? josaRo(after: word) : ""
+    }
+
+    /// The 와/과 particle when the UI is Korean, "" otherwise.
+    nonisolated static func josaWaIfKorean(after word: String) -> String {
+        resolvedCode(override: override, preferred: Locale.preferredLanguages,
+                     available: shipped) == "ko" ? josaWa(after: word) : ""
+    }
+
+    /// 로 / 으로. A final ㄹ takes 로 (서울로, not 서울으로).
+    nonisolated static func josaRo(after word: String) -> String {
+        switch finalConsonant(of: word) {
+        case .none, .rieul: "로"
+        case .some: "으로"
+        }
+    }
+
+    /// 와 / 과.
+    nonisolated static func josaWa(after word: String) -> String {
+        finalConsonant(of: word) == .none ? "와" : "과"
+    }
+
+    private enum FinalConsonant { case none, rieul, some }
+
+    /// Whether the last character ends in a consonant, judged the way the word
+    /// is *spoken*: Hangul decomposes arithmetically, Latin letters and digits
+    /// fall back to how their Korean reading ends (3 → 삼, so 으로; 2 → 이, so 로).
+    private nonisolated static func finalConsonant(of word: String) -> FinalConsonant {
+        guard let last = word.last else { return .none }
+
+        if let scalar = last.unicodeScalars.first,
+           (0xAC00...0xD7A3).contains(scalar.value) {
+            // (code - 0xAC00) % 28 == 0 means no 받침; 8 is ㄹ.
+            let index = (scalar.value - 0xAC00) % 28
+            if index == 0 { return .none }
+            return index == 8 ? .rieul : .some
+        }
+
+        if last.isNumber {
+            // Read the digit aloud: 0 영, 1 일, 3 삼, 6 육, 7 칠, 8 팔 end in a
+            // consonant; 2 이, 4 사, 5 오, 9 구 do not. 1/7/8 end in ㄹ.
+            switch last {
+            case "1", "7", "8": return .rieul
+            case "0", "3", "6": return .some
+            default: return .none
+            }
+        }
+
+        // Latin: judged by the letter's Korean reading. L/M/N/R end in a
+        // consonant sound (엘/엠/엔/알), and L/R end in ㄹ.
+        let lower = Character(last.lowercased())
+        switch lower {
+        case "l", "r": return .rieul
+        case "m", "n": return .some
+        case "b", "c", "d", "e", "g", "k", "p", "t", "v", "z": return .none
+        case "f", "h", "j", "q", "s", "w", "x", "y": return .some
+        case "a", "i", "o", "u": return .none
+        default: return .none
+        }
+    }
+}

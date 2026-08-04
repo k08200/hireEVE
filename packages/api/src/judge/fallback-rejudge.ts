@@ -25,15 +25,20 @@
  * scripts/rejudge-fallback.ts is the manual CLI over the same core.
  */
 
-import { FALLBACK_REJUDGE_SWEEP } from "../config.js";
+import { FALLBACK_REJUDGE_LOOKBACK_DAYS, FALLBACK_REJUDGE_SWEEP } from "../config.js";
 import { prisma } from "../db.js";
 import { captureError } from "../sentry.js";
 import { recordEmailDecision } from "./decision-label.js";
 import { buildJudgeContext } from "./judge-context.js";
 import { judgeEmail } from "./poc-judge.js";
 
-/** How far back a fallback row is still worth repairing. */
-const REJUDGE_LOOKBACK_DAYS = 14;
+/**
+ * How far back a fallback row is still worth repairing. Env-tunable
+ * (FALLBACK_REJUDGE_LOOKBACK_DAYS) because an outage longer than the window
+ * leaves residue that nothing will ever revisit — the backfill only judges
+ * emails with NO AttentionItem, so what ages out here stays mis-tiered.
+ */
+const REJUDGE_LOOKBACK_DAYS = FALLBACK_REJUDGE_LOOKBACK_DAYS;
 /** Per-sweep bound so a large residue drains over ticks, not in one burst. */
 const SWEEP_BATCH = 5;
 
@@ -183,10 +188,16 @@ export async function rejudgeFallbackItems(
  */
 export async function sweepFallbackRejudge(userId: string): Promise<number> {
   if (!FALLBACK_REJUDGE_SWEEP) return 0;
-  const summary = await rejudgeFallbackItems(userId, {
-    apply: true,
-    limit: SWEEP_BATCH,
-    delayMs: 1000,
-  });
+  const summary = await rejudgeFallbackItems(userId, buildSweepOptions());
   return summary.changed;
+}
+
+/**
+ * What the scheduler asks the repair core for. Exported so the window and the
+ * per-tick bound are assertable without standing up a database.
+ */
+export function buildSweepOptions(): Required<
+  Pick<RejudgeOptions, "apply" | "limit" | "delayMs" | "lookbackDays">
+> {
+  return { apply: true, limit: SWEEP_BATCH, delayMs: 1000, lookbackDays: REJUDGE_LOOKBACK_DAYS };
 }

@@ -138,6 +138,9 @@ let lastWatchRenewalAt = 0;
 // UTC date ("YYYY-MM-DD") of the last OpenRouter catalog check. In-memory is
 // fine — a restart re-running the check the same day is harmless (read-only).
 let lastCatalogCheckDate = "";
+// UTC date of the last OpenRouter key-headroom probe. Read-only like the
+// catalog check, so a restart re-running it the same day costs one request.
+let lastKeyHealthCheckDate = "";
 // UTC date of the last calibration snapshot run. Same trade-off: the daily
 // job upserts on (userId, dayKey), so a restart re-running it is idempotent.
 let lastCalibrationSnapshotDate = "";
@@ -745,6 +748,23 @@ async function runAutomations() {
         });
     }
 
+    // --- Daily: OpenRouter key headroom ---
+    // The catalog check above watches the models; this watches the key paying
+    // for them. A spend cap set on the key drains with the account still
+    // funded, so nothing bills-side warns — and at zero every call 403s and the
+    // whole fleet drops to the keyword fallback (2026-07-26 outage, found only
+    // a week later). Shares the catalog check's daily marker: same cadence,
+    // same "one cheap request per day" budget.
+    if (lastKeyHealthCheckDate !== todayUtc) {
+      lastKeyHealthCheckDate = todayUtc;
+      import("./llm/openrouter-key-health.js")
+        .then(({ runOpenRouterKeyCheck }) => runOpenRouterKeyCheck())
+        .catch((err) => {
+          console.warn("[AUTOMATION] Key health check failed:", err);
+          captureError(err, { tags: { scope: "automation.key-health" } });
+        });
+    }
+
     // --- Daily: calibration snapshot ---
     // Persists per-user classification-quality KPIs (override rate, judge
     // source mix incl. keyword-fallback demotion, drift) as one
@@ -1243,7 +1263,12 @@ async function runUserCycle(
             // DB message keeps a trailing [id1,id2,…] marker for EVERY
             // notified email so the dedup read above records all of them
             // (not just the first) and they aren't re-notified next tick.
-            const userBody = formatUrgentEmailBody(newUrgent);
+            // Klorn's own copy follows the user's notification language;
+            // the email subject/summary inside it stays as written.
+            const userBody = formatUrgentEmailBody(
+              newUrgent,
+              (config as { notificationLanguage?: string | null }).notificationLanguage,
+            );
             const dbMessage = buildUrgentDedupMessage(
               userBody,
               newUrgent.map((e) => e.gmailId),

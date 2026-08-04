@@ -71,7 +71,7 @@
 "mail.dismiss.a11y" = "%@ 님의 메일 지우기";
 "mail.changeTier" = "분류 옮기기… (Klorn이 학습합니다)";
 "mail.changeTier.a11y" = "%1$@ 님의 메일 분류 변경, 현재 %2$@";
-"mail.moveTo" = "%@(으)로 옮기기 ";
+"mail.moveTo" = "%1$@%2$@ 옮기기 ";
 "mail.snoozePrefix" = "미루기 ";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
@@ -133,6 +133,8 @@
 "prefs.updates.checking" = "확인 중…";
 "prefs.pillVisible" = "상단 바 항상 표시";
 "prefs.pillVisible.detail" = "끄면 ⌥⌘K 로 부를 때까지 바가 숨어 있습니다. 급한 메일 카드는 그대로 뜹니다.";
+"prefs.showInDock" = "Dock과 Cmd+Tab에 표시";
+"prefs.showInDock.detail" = "끄면(기본) 클론은 보이지 않는 곳에서 대기합니다 — Dock 아이콘이 없고 ⌥⌘K 로 부릅니다. 켜면 Cmd+Tab 으로 전환하는 일반 앱처럼 동작합니다.";
 "prefs.shortcut" = "부르기 / 펼치기";
 "prefs.shortcut.recording" = "단축키를 누르세요 — ⌘, ⌥, ⌃ 중 하나는 포함해야 합니다. Esc로 취소.";
 "prefs.shortcut.idle" = "바를 부르는 전역 단축키입니다. 눌러서 바꾸세요.";
@@ -281,7 +283,7 @@
 "tier.row.a11y" = "%1$@, 메일 %2$d건. %3$@";
 "calendar.noEventsWeek" = "이번 주 일정 없음";
 "reading.noPreview" = "미리 볼 내용이 없습니다.";
-"mail.noMatches" = "\u201C%@\u201D 와(과) 일치하는 메일이 없습니다.";
+"mail.noMatches" = "\u201C%1$@\u201D%2$@ 일치하는 메일이 없습니다.";
 
 "section.upcoming" = "예정";
 "section.waitingOn" = "기다리는 중";

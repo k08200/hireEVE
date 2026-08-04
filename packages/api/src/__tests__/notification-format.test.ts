@@ -100,3 +100,61 @@ describe("formatUrgentEmailBody", () => {
     expect(out).not.toMatch(/\[[a-f0-9]{8,}\]/);
   });
 });
+
+// Notification chrome is Klorn's own voice, so it follows the user's chosen
+// language — unlike a reply, which follows the language of the mail it answers.
+// Before this, every banner was hardcoded English regardless of the setting.
+describe("notification language", () => {
+  it("formats the urgent-mail body in Korean when that is the user's language", () => {
+    const out = formatUrgentEmailBody(
+      [{ from: "김영희 <y@acme.kr>", subject: "계약서 검토 부탁드립니다", summary: null }],
+      "ko",
+    );
+    expect(out).toContain("김영희");
+    expect(out).toContain("계약서 검토 부탁드립니다");
+  });
+
+  it("pluralizes the multi-mail summary in Korean without an English word", () => {
+    const out = formatUrgentEmailBody(
+      [
+        { from: "A <a@x.com>", subject: "First", summary: null },
+        { from: "B <b@y.com>", subject: "Second", summary: null },
+      ],
+      "ko",
+    );
+    expect(out).toContain("2");
+    expect(out).not.toMatch(/urgent emails/i);
+  });
+
+  it("keeps English as the default when no language is given", () => {
+    const out = formatUrgentEmailBody([
+      { from: "A <a@x.com>", subject: "First", summary: null },
+      { from: "B <b@y.com>", subject: "Second", summary: null },
+    ]);
+    expect(out).toContain("2 urgent emails");
+  });
+
+  it("translates auto-exec summaries", () => {
+    const ko = humanizeAutoExec("classify_emails", {}, "ko");
+    expect(ko.autoTitle).toContain("[Klorn]");
+    expect(ko.autoTitle).not.toMatch(/Mail prioritized/i);
+    const en = humanizeAutoExec("classify_emails", {});
+    expect(en.autoTitle).toBe("[Klorn] Mail prioritized");
+  });
+
+  it("falls back to English for a language it does not ship", () => {
+    const out = formatUrgentEmailBody(
+      [
+        { from: "A <a@x.com>", subject: "First", summary: null },
+        { from: "B <b@y.com>", subject: "Second", summary: null },
+      ],
+      "fr",
+    );
+    expect(out).toContain("2 urgent emails");
+  });
+
+  it("keeps an unknown sender label in the chosen language", () => {
+    expect(senderName(null, "ko")).not.toBe("Unknown sender");
+    expect(senderName(null)).toBe("Unknown sender");
+  });
+});

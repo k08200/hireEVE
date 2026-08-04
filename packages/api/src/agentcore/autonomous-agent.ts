@@ -1301,7 +1301,16 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
           // and the in-app surface stay quiet for housekeeping work, the
           // same way the daily receipt page already does.
           if (isSafeWrite && isAutoMode) {
-            const { autoTitle, autoMessage } = humanizeAutoExec(fnName, args);
+            // Klorn's own copy follows the user's notification language.
+            const langCfg = (await prisma.automationConfig.findUnique({
+              where: { userId },
+              select: { notificationLanguage: true },
+            })) as { notificationLanguage?: string | null } | null;
+            const { autoTitle, autoMessage } = humanizeAutoExec(
+              fnName,
+              args,
+              langCfg?.notificationLanguage,
+            );
             const suppression = notificationSuppressionReason({
               title: autoTitle,
               message: autoMessage,

@@ -1,5 +1,10 @@
 # OAuth verification demo video — shot-by-shot script
 
+> **Superseded by `docs/oauth-verification/demo-video-script.md` (2026-07-23).**
+> That script covers the same scenes at more length (~4:20) and adds Google's
+> hard-requirements checklist. Record from it. This file is kept for its tighter
+> ~3-minute cut, which is a usable fallback if the longer take runs over.
+
 Target: **~3 minutes**, one take, no editing needed. Upload **Unlisted** to
 YouTube and paste the link into the OAuth verification form.
 
@@ -86,7 +91,9 @@ refresh → show the created event.
 
 **Screen:** Settings → **"Connections"** section → Google row →
 **"Disconnect"** → confirm. Then show **`app.klorn.ai/privacy`** briefly
-(scroll to the Limited Use section — NOT klorn.ai/privacy, which 404s).
+(scroll to the Limited Use section). Use that canonical URL on camera, not
+`klorn.ai/privacy` — the latter is only a `noindex` redirect stub
+(`website/privacy/index.html`) and filming a redirect muddies the review.
 
 > "The user can disconnect Google at any time — Klorn deletes its tokens — and
 > can also revoke access at myaccount.google.com. Our privacy policy documents

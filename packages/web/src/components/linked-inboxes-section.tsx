@@ -111,8 +111,8 @@ export function LinkedInboxesSection() {
     <section className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
       <h2 className="text-base font-semibold text-slate-900">Connected inboxes</h2>
       <p className="mt-1 text-xs text-slate-500">
-        Add a second Google account (e.g. work) so Klorn runs the same 4-tier firewall across all
-        your mail, not just your primary account.
+        An inbox is one connected mail account. Add a second Google account (e.g. work) so Klorn
+        runs the same 4-tier firewall across all your mail, not just your primary account.
       </p>
 
       {accounts.length > 0 && (
