@@ -80,7 +80,7 @@ export async function adminRoutes(app: FastifyInstance) {
   // trip state so a silently-degraded judge (ceiling tripped → keyword
   // fallback → PUSH dead) is visible here instead of only in logs.
   app.get("/flags", async () => {
-    const globalGate = checkGlobalCostGate();
+    const globalGate = await checkGlobalCostGate();
     return {
       ...collectFeatureFlags(),
       costGuard: {

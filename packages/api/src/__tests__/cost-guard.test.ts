@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 let mockRow: { cents: number } | null = null;
+/** Stands in for GlobalCostLedger: dayKey -> integer micro-cents. */
+const globalTable = new Map<string, number>();
 let mockUpsertCents = 0;
 let upsertShouldThrow = false;
 let mockUser: { plan: string; role: string | null } | null = null;
@@ -14,6 +16,26 @@ vi.mock("../db.js", () => ({
         if (userLookupShouldThrow) throw new Error("db down");
         return mockUser;
       }),
+    },
+    globalCostLedger: {
+      findUnique: vi.fn(async (args: { where: { dayKey: string } }) => {
+        const microCents = globalTable.get(args.where.dayKey);
+        return microCents === undefined ? null : { microCents };
+      }),
+      upsert: vi.fn(
+        async (args: {
+          where: { dayKey: string };
+          create: { microCents: number };
+          update: { microCents: { increment: number } };
+        }) => {
+          const key = args.where.dayKey;
+          const next = globalTable.has(key)
+            ? (globalTable.get(key) ?? 0) + args.update.microCents.increment
+            : args.create.microCents;
+          globalTable.set(key, next);
+          return { microCents: next };
+        },
+      ),
     },
     llmCostLedger: {
       findUnique: vi.fn(async () => mockRow),
@@ -41,6 +63,7 @@ const ORIGINAL_FREE_CAP = process.env.FREE_DAILY_COST_CAP_CENTS;
 const ORIGINAL_PAYWALL = process.env.PAYWALL_ENABLED;
 
 afterEach(() => {
+  globalTable.clear();
   mockRow = null;
   mockUpsertCents = 0;
   upsertShouldThrow = false;
@@ -311,23 +334,20 @@ describe("checkGlobalCostGate", () => {
     process.env.GLOBAL_DAILY_COST_CAP_CENTS = "0";
     vi.resetModules();
     const { checkGlobalCostGate } = await import("../billing/cost-guard.js");
-    expect(checkGlobalCostGate().allowed).toBe(true);
-    expect(checkGlobalCostGate().capCents).toBe(0);
+    expect((await checkGlobalCostGate()).allowed).toBe(true);
+    expect((await checkGlobalCostGate()).capCents).toBe(0);
   });
 
   it("blocks system (userId-less) spend once the aggregate reaches the cap", async () => {
     process.env.GLOBAL_DAILY_COST_CAP_CENTS = "50";
     vi.resetModules();
-    const { checkGlobalCostGate, recordGlobalCostUsage, __resetGlobalSpendForTest } = await import(
-      "../billing/cost-guard.js"
-    );
-    __resetGlobalSpendForTest();
-    expect(checkGlobalCostGate().allowed).toBe(true);
-    recordGlobalCostUsage(30);
-    expect(checkGlobalCostGate().allowed).toBe(true);
-    expect(checkGlobalCostGate().remainingCents).toBe(20);
-    recordGlobalCostUsage(20); // now at 50, the cap
-    const blocked = checkGlobalCostGate();
+    const { checkGlobalCostGate, recordGlobalCostUsage } = await import("../billing/cost-guard.js");
+    expect((await checkGlobalCostGate()).allowed).toBe(true);
+    await recordGlobalCostUsage(30);
+    expect((await checkGlobalCostGate()).allowed).toBe(true);
+    expect((await checkGlobalCostGate()).remainingCents).toBe(20);
+    await recordGlobalCostUsage(20); // now at 50, the cap
+    const blocked = await checkGlobalCostGate();
     expect(blocked.allowed).toBe(false);
     expect(blocked.reason).toMatch(/global/i);
   });

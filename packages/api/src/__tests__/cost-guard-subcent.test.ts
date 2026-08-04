@@ -17,6 +17,9 @@ const rows = vi.hoisted(() => new Map<string, number>());
 // Every upsert's effective increment, in call order.
 const increments = vi.hoisted(() => [] as number[]);
 
+/** Stands in for GlobalCostLedger: dayKey -> integer micro-cents. */
+const globalTable = new Map<string, number>();
+
 vi.mock("../db.js", () => ({
   prisma: {
     user: {
@@ -25,6 +28,26 @@ vi.mock("../db.js", () => ({
     },
     notification: {
       create: vi.fn(async () => ({ id: "n-1", createdAt: new Date() })),
+    },
+    globalCostLedger: {
+      findUnique: vi.fn(async (args: { where: { dayKey: string } }) => {
+        const microCents = globalTable.get(args.where.dayKey);
+        return microCents === undefined ? null : { microCents };
+      }),
+      upsert: vi.fn(
+        async (args: {
+          where: { dayKey: string };
+          create: { microCents: number };
+          update: { microCents: { increment: number } };
+        }) => {
+          const key = args.where.dayKey;
+          const next = globalTable.has(key)
+            ? (globalTable.get(key) ?? 0) + args.update.microCents.increment
+            : args.create.microCents;
+          globalTable.set(key, next);
+          return { microCents: next };
+        },
+      ),
     },
     llmCostLedger: {
       findUnique: vi.fn(async () => null),
@@ -168,45 +191,39 @@ describe("global ceiling — float accumulation", () => {
   it("accumulates fractional cents without per-call rounding", async () => {
     process.env.GLOBAL_DAILY_COST_CAP_CENTS = "1";
     vi.resetModules();
-    const { checkGlobalCostGate, recordGlobalCostUsage, __resetGlobalSpendForTest } = await import(
-      "../billing/cost-guard.js"
-    );
-    __resetGlobalSpendForTest();
-    recordGlobalCostUsage(0.3);
-    recordGlobalCostUsage(0.3);
-    recordGlobalCostUsage(0.3);
+    globalTable.clear();
+    const { checkGlobalCostGate, recordGlobalCostUsage } = await import("../billing/cost-guard.js");
+    await recordGlobalCostUsage(0.3);
+    await recordGlobalCostUsage(0.3);
+    await recordGlobalCostUsage(0.3);
     // Old behavior: 3 calls × round(0.3)=0 (or ×1¢ prebill) — either dead or
     // instantly tripped. New: exactly 0.9¢ accumulated, still under the 1¢ cap.
-    const gate = checkGlobalCostGate();
+    const gate = await checkGlobalCostGate();
     expect(gate.allowed).toBe(true);
     expect(gate.usedCents).toBeCloseTo(0.9, 6);
-    recordGlobalCostUsage(0.1);
-    expect(checkGlobalCostGate().allowed).toBe(false);
+    await recordGlobalCostUsage(0.1);
+    expect((await checkGlobalCostGate()).allowed).toBe(false);
   });
 
   it("fires the global trip alert exactly when the accumulation crosses the cap", async () => {
     process.env.GLOBAL_DAILY_COST_CAP_CENTS = "1";
     vi.resetModules();
-    const { recordGlobalCostUsage, __resetGlobalSpendForTest } = await import(
-      "../billing/cost-guard.js"
-    );
-    __resetGlobalSpendForTest();
-    recordGlobalCostUsage(0.5);
+    globalTable.clear();
+    const { recordGlobalCostUsage } = await import("../billing/cost-guard.js");
+    await recordGlobalCostUsage(0.5);
     expect(notifySpy).not.toHaveBeenCalled();
-    recordGlobalCostUsage(0.5);
+    await recordGlobalCostUsage(0.5);
     expect(notifySpy).toHaveBeenCalledWith(expect.objectContaining({ scope: "global" }));
   });
 
   it("keeps integer accumulation identical to the old behavior", async () => {
     process.env.GLOBAL_DAILY_COST_CAP_CENTS = "50";
     vi.resetModules();
-    const { checkGlobalCostGate, recordGlobalCostUsage, __resetGlobalSpendForTest } = await import(
-      "../billing/cost-guard.js"
-    );
-    __resetGlobalSpendForTest();
-    recordGlobalCostUsage(30);
-    expect(checkGlobalCostGate().remainingCents).toBe(20);
-    recordGlobalCostUsage(20);
-    expect(checkGlobalCostGate().allowed).toBe(false);
+    globalTable.clear();
+    const { checkGlobalCostGate, recordGlobalCostUsage } = await import("../billing/cost-guard.js");
+    await recordGlobalCostUsage(30);
+    expect((await checkGlobalCostGate()).remainingCents).toBe(20);
+    await recordGlobalCostUsage(20);
+    expect((await checkGlobalCostGate()).allowed).toBe(false);
   });
 });

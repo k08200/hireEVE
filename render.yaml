@@ -74,6 +74,27 @@ services:
         value: "google/gemini-2.5-flash"
       - key: VISION_MODEL
         value: "google/gemini-2.5-flash"
+      # Global daily LLM ceiling, in cents. Sized for ~100 active users; raise
+      # it deliberately as the number grows, don't discover it as an outage.
+      #
+      # Measured 2026-08-04 from the OpenRouter key's own ledger: $10.005 spent
+      # over ~3.5 months (created 2026-04-17), i.e. ~$2.9/month for one dogfood
+      # account — and of the visible window, 85% went to CHAT_MODEL
+      # (claude-sonnet-5, $2.71) against 15% for the whole triage pipeline
+      # (gemini-2.5-flash, $0.49). Triage is cheap; conversation is not.
+      #
+      # 100 users × ~50 classified emails/day is a few dollars a day on the
+      # flash model; chat is the variable. 3000¢ = $30/day leaves room for that
+      # mix while still capping a runaway loop at a survivable number. The
+      # per-user gate ($1/day, DAILY_COST_CAP_CENTS) bounds any single account,
+      # and the key's own monthly budget is the final hard stop below both.
+      #
+      # This ceiling is only real because it is now DB-backed (GlobalCostLedger)
+      # — as an in-memory counter it reset on every deploy and every wake from
+      # idle, which is why BACKGROUND_AGENTS_DISABLED had to serve as the brake
+      # instead, disabling every scheduler with it.
+      - key: GLOBAL_DAILY_COST_CAP_CENTS
+        value: "3000"
       - key: DISABLE_FREE_MODEL_FALLBACK
         value: "true"
       # #653/#655: flipped by founder decision (2026-07-09) ahead of the formal

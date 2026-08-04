@@ -56,6 +56,12 @@ vi.mock("../db.js", () => ({
       findUnique: vi.fn(async () => null),
       upsert: vi.fn(async () => ({})),
     },
+    // The global ceiling is DB-backed too (GlobalCostLedger) — an empty ledger
+    // means "nothing spent today", so the gate stays open in these tests.
+    globalCostLedger: {
+      findUnique: vi.fn(async () => null),
+      upsert: vi.fn(async () => ({ cents: 0 })),
+    },
   },
   db: {},
 }));

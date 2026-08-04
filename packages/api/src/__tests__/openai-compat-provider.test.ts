@@ -132,7 +132,14 @@ describe("createCompletion failover when the local endpoint is down", () => {
       markKeyLimited,
       isProviderUnavailable: () => false,
     }));
-    vi.doMock("../db.js", () => ({ prisma: {}, db: {} }));
+    vi.doMock("../db.js", () => ({
+      // enforceCostGates reads the DB-backed global ceiling before dispatch;
+      // an empty ledger keeps the gate open so the test exercises the provider.
+      prisma: {
+        globalCostLedger: { findUnique: async () => null, upsert: async () => ({ cents: 0 }) },
+      },
+      db: {},
+    }));
 
     const { createCompletion } = await import("../llm/openai.js");
     const result = (await createCompletion({
@@ -165,7 +172,14 @@ describe("createCompletion failover when the local endpoint is down", () => {
       markKeyLimited,
       isProviderUnavailable: () => false,
     }));
-    vi.doMock("../db.js", () => ({ prisma: {}, db: {} }));
+    vi.doMock("../db.js", () => ({
+      // enforceCostGates reads the DB-backed global ceiling before dispatch;
+      // an empty ledger keeps the gate open so the test exercises the provider.
+      prisma: {
+        globalCostLedger: { findUnique: async () => null, upsert: async () => ({ cents: 0 }) },
+      },
+      db: {},
+    }));
 
     const { createCompletion } = await import("../llm/openai.js");
     await expect(

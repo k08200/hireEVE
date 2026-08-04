@@ -182,7 +182,7 @@ async function enforceCostGates(
   // post-call true-up charges $0 when their key served and the real cost only
   // on a genuine env fallthrough (where servedByUserKey is false).
   if (!userKeyAvailable) {
-    const globalGate = checkGlobalCostGate();
+    const globalGate = await checkGlobalCostGate();
     if (!globalGate.allowed) {
       throw new DailyCostCapExceededError(DAILY_COST_CAP_MESSAGE);
     }
@@ -205,7 +205,15 @@ async function enforceCostGates(
     }
   }
 
-  if (!userKeyAvailable) recordGlobalCostUsage(estCents);
+  if (!userKeyAvailable) {
+    // Await the pre-bill and re-check the post-increment total, exactly as the
+    // per-user path does: the read-side gate above is check-then-act, so two
+    // concurrent calls could otherwise both pass it and both spend.
+    const globalUsage = await recordGlobalCostUsage(estCents);
+    if (globalUsage?.overCap) {
+      throw new DailyCostCapExceededError(DAILY_COST_CAP_MESSAGE);
+    }
+  }
 }
 
 /**

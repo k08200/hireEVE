@@ -192,30 +192,38 @@ export async function recordCostUsage(
 export { usdToCents } from "./cents.js";
 
 // ── Global daily ceiling ──────────────────────────────────────────────────
-// In-memory aggregate across every LLM call (per-user AND system-initiated),
-// reset at UTC-day rollover. This is the circuit breaker the per-user gate
-// can't be: it sees userId-less calls. It is intentionally in-memory — the
-// deployment is a single instance, and this is a runaway-burst breaker, not
-// exact accounting. A process restart resets it (rare; per-user DB caps still
-// hold). If the app is ever scaled out, this must move to a shared store.
-const globalSpend = { dayKey: utcDayKey(), cents: 0 };
+// Aggregate across every LLM call (per-user AND system-initiated) for one UTC
+// day. This is the circuit breaker the per-user gate cannot be: it is the only
+// gate that sees calls made without a userId — schedulers, reconcilers, the
+// fallback-rejudge sweep.
+//
+// It lived in a module variable until 2026-08-04. On Render every deploy and
+// every wake-from-idle restarts the container, and each restart forgot the
+// day's spend and began again at zero, so the ceiling never actually bound.
+// That is why the 2026-06-05 billing spike had no brake and
+// BACKGROUND_AGENTS_DISABLED had to serve as one (index.ts) — which in turn
+// disabled every scheduler, including outage repair and the key-headroom probe.
+//
+// The ledger is now a row per UTC day (GlobalCostLedger): the rollover is a new
+// row rather than a timer, the increment is applied server-side so concurrent
+// writers cannot lose spend, and the amount is stored as integer micro-cents so
+// sub-cent classifications accumulate exactly — neither rounded up to 1¢ each
+// (20x too fast) nor drifting the way accumulated floats do.
 
-function rollGlobalDayIfNeeded(): void {
-  const today = utcDayKey();
-  if (globalSpend.dayKey !== today) {
-    globalSpend.dayKey = today;
-    globalSpend.cents = 0;
-  }
-}
+/** Storage precision: 1 cent = 10_000 micro-cents (matches the pre-bill). */
+const MICRO_PER_CENT = 10_000;
 
 /** Check whether the global daily ceiling still allows another paid call. */
-export function checkGlobalCostGate(): CostGateResult {
+export async function checkGlobalCostGate(): Promise<CostGateResult> {
   const cap = GLOBAL_DAILY_COST_CAP_CENTS;
   if (cap <= 0) {
     return { allowed: true, remainingCents: Number.POSITIVE_INFINITY, usedCents: 0, capCents: 0 };
   }
-  rollGlobalDayIfNeeded();
-  const used = globalSpend.cents;
+  const row = await prisma.globalCostLedger.findUnique({
+    where: { dayKey: utcDayKey() },
+    select: { microCents: true },
+  });
+  const used = (row?.microCents ?? 0) / MICRO_PER_CENT;
   if (used >= cap) {
     // Fire-and-forget visibility: once per UTC day (deduped inside).
     void notifyCostCapTrip({ scope: "global", usedCents: used, capCents: cap });
@@ -231,27 +239,35 @@ export function checkGlobalCostGate(): CostGateResult {
 }
 
 /**
- * Record cost against the global ceiling. Called for every LLM call.
- * `cents` may be fractional (0.01¢ precision) — the accumulator is a float,
- * rounded at comparison time only, so ~0.19¢ classifications no longer
- * round up to 1¢ each and burn the $10 ceiling at 20x their real cost.
+ * Record cost against the global ceiling. Called for every LLM call that the
+ * shared key pays for. Returns the post-increment total so the caller can
+ * re-check it: two calls that both passed the read-side gate would otherwise
+ * both slip through (the same check-then-act race the per-user path closes).
  */
-export function recordGlobalCostUsage(cents: number): void {
-  rollGlobalDayIfNeeded();
+export async function recordGlobalCostUsage(
+  cents: number,
+): Promise<{ totalCents: number; overCap: boolean } | null> {
   const amount = Number.isFinite(cents) ? Math.max(0, cents) : 0;
-  if (amount <= 0) return;
-  const before = globalSpend.cents;
-  // Keep the accumulator at 0.01¢-ish precision so float error can't creep.
-  globalSpend.cents = Math.round((before + amount) * 10_000) / 10_000;
+  if (amount <= 0) return null;
+  const micro = Math.round(amount * MICRO_PER_CENT);
+  if (micro <= 0) return null;
+  const dayKey = utcDayKey();
+  const row = await prisma.globalCostLedger.upsert({
+    where: { dayKey },
+    create: { dayKey, microCents: micro, callCount: 1 },
+    update: { microCents: { increment: micro }, callCount: { increment: 1 } },
+    select: { microCents: true },
+  });
+  const totalCents = row.microCents / MICRO_PER_CENT;
   const cap = GLOBAL_DAILY_COST_CAP_CENTS;
-  if (cap > 0 && before < cap && globalSpend.cents >= cap) {
-    void notifyCostCapTrip({ scope: "global", usedCents: globalSpend.cents, capCents: cap });
+  const overCap = cap > 0 && totalCents >= cap;
+  if (overCap) {
+    void notifyCostCapTrip({ scope: "global", usedCents: totalCents, capCents: cap });
   }
+  return { totalCents, overCap };
 }
 
-/** Test seam: reset the in-memory global accumulator + fractional carries. */
+/** Test seam: clear the per-user fractional carries. */
 export function __resetGlobalSpendForTest(): void {
-  globalSpend.dayKey = utcDayKey();
-  globalSpend.cents = 0;
   fractionalCarry.clear();
 }

@@ -1579,6 +1579,29 @@ model LlmCostLedger {
   @@unique([userId, dayKey])
 }
 
+// Global daily LLM spend, one row per UTC day.
+//
+// The per-user ledger above cannot see system-initiated calls (schedulers,
+// reconcilers, the fallback-rejudge sweep) because those pass no userId. This
+// table is the ceiling that does. It lived in a module variable until
+// 2026-08-04, which meant every restart forgot the day's spend — on Render that
+// is every deploy and every wake-from-idle, so the ceiling never actually
+// bound. Keyed by day so the UTC rollover is a new row, not a timer, and
+// incremented server-side so concurrent writers cannot lose spend.
+//
+// Stored as integer micro-cents (1 cent = 10_000) rather than a float: a
+// single classification costs a fraction of a cent, so rounding each one up to
+// 1 cent burned the ceiling ~20x too fast, while accumulating floats drifts
+// (0.3+0.3+0.3+0.1 lands just under 1 and would not trip the cap). Integers are
+// exact at the precision the pre-bill already uses.
+model GlobalCostLedger {
+  dayKey     String   @id // "YYYY-MM-DD" in UTC
+  microCents Int      @default(0)
+  callCount  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Persistent Stripe webhook idempotency. The handler records an event id here
 // AFTER processing succeeds; a duplicate delivery (Stripe retry, or a second
 // dyno) finds the row and skips. Survives restarts and works across dynos,

@@ -144,7 +144,7 @@ export async function trueUpCostLedgers(input: {
         );
       }
     }
-    recordGlobalCostUsage(deltaCents);
+    await recordGlobalCostUsage(deltaCents);
   } catch (err) {
     // Fire-and-forget settlement: a failure here silently drops a real charge
     // (env-fallthrough cost that should land on the cap/ceiling), so signal it
