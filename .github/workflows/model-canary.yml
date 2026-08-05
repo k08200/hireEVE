@@ -53,6 +53,10 @@ jobs:
       # The probe runner never reads real data; the Prisma client just needs a
       # syntactically valid URL (usage-ledger writes are fire-and-forget).
       DATABASE_URL: "postgresql://eval:eval@localhost:5432/eval"
+      # Disable the global daily ceiling (#1004): it reads GlobalCostLedger
+      # before every paid call, and with no DB that throws and drops calls to
+      # fallback paths (see eval.yml).
+      GLOBAL_DAILY_COST_CAP_CENTS: "0"
       # Resolve model pins the way PROD does (see header comment).
       NODE_ENV: "production"
     steps:
