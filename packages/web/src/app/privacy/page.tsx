@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "How Klorn handles Gmail, Calendar, and account data during beta.",
 };
 
-const updatedAt = "July 23, 2026";
+const updatedAt = "August 5, 2026";
 
 /** Stable, URL-safe anchor id so the TOC links line up with each section. */
 function slug(title: string): string {
@@ -254,21 +254,46 @@ export default function PrivacyPage() {
               AI or ML models, and we configure our AI providers under API terms that do not train
               their models on the data we send.
             </p>
+            <p>
+              Klorn&apos;s server-side AI providers are Google (Gemini API) and OpenRouter, both
+              used under API terms that exclude training on submitted data. If you bring your own
+              API key or point a self-hosted Klorn at your own OpenAI-compatible endpoint, that
+              provider is used only for your own requests.
+            </p>
           </Section>
 
           <Section title="Retention and Deletion">
             <p>
-              We retain account and workspace data while your account is active or while it is
-              needed to operate the beta. You can request export or deletion at any time.
+              We retain account and workspace data while your account is active. You can export your
+              data or delete it at any time.
             </p>
+            <ul className="list-disc space-y-2 pl-5">
+              <li>
+                <strong className="text-slate-900">Self-service deletion.</strong> You can delete
+                your account and all associated data from Settings at any time. Deletion takes
+                effect immediately: all Google-derived data — messages, summaries, calendar events,
+                and OAuth tokens — is permanently removed from Klorn&apos;s database in the same
+                operation.
+              </li>
+              <li>
+                <strong className="text-slate-900">Export and workspace reset.</strong> Settings
+                also offers a full data export and a workspace reset that deletes all synced and
+                derived data while keeping your account.
+              </li>
+              <li>
+                <strong className="text-slate-900">Operational logs.</strong> Logs are deleted
+                automatically on a fixed schedule: agent, email-processing, and
+                notification-delivery logs after 90 days; push rate-limit records after 30 days;
+                billing webhook records after 90 days; aggregate AI usage accounting after 180 days.
+              </li>
+            </ul>
             <p>
-              To request account data deletion, contact{" "}
+              To request deletion by email instead, contact{" "}
               <a className="text-sky-600 hover:text-sky-700" href="mailto:k0820086@gmail.com">
                 k0820086@gmail.com
               </a>
-              . Authenticated users may also use in-product deletion controls where available.
-              Deleting Klorn data does not delete messages or events from your Google account unless
-              you explicitly approve that action inside Klorn.
+              . Deleting Klorn data does not delete messages or events from your Google account
+              unless you explicitly approve that action inside Klorn.
             </p>
           </Section>
 
@@ -278,7 +303,10 @@ export default function PrivacyPage() {
               data. Google OAuth tokens are encrypted at rest using AES-256-GCM. All data access is
               scoped to your account, transport is TLS-encrypted, and your Google user data is
               stored only in Klorn&apos;s own database — it is not shared with analytics or
-              advertising services.
+              advertising services. Klorn&apos;s infrastructure sub-processors are Render (API
+              hosting), Vercel (web application hosting), and Supabase (managed Postgres database,
+              hosted in Seoul, ap-northeast-2); they store and transmit data solely to operate
+              Klorn.
             </p>
             <p>
               Because Klorn is a beta product, avoid connecting accounts that contain information
