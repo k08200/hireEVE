@@ -72,9 +72,23 @@ Reviewed against `packages/web/src/app/privacy/page.tsx` (live at
 > `packages/web/src/app/privacy/page.tsx` (full 8-scope list incl. `gmail.send`,
 > `gmail.modify` attribution fixed, `calendar.readonly` + secondary-account
 > linking disclosed, concrete Security claims, product description updated to
-> attention firewall; "Last updated" bumped to July 23, 2026). Gaps 4, 5, 6, 8
-> (retention windows, affirmative self-service deletion, named sub-processors,
-> contact address) remain open.
+> attention firewall; "Last updated" bumped to July 23, 2026).
+>
+> **적용 완료 2026-08-05** — Gaps 4, 5, 6 applied to the same page ("Last
+> updated" bumped to August 5, 2026): concrete log-retention windows mirroring
+> `packages/api/src/log-retention.ts` (90d agent/processing/delivery logs, 30d
+> push rate-limit records, 90d webhook ledger, 180d LLM usage accounting) plus
+> immediate synchronous account deletion (`user-deletion.ts` single
+> transaction); affirmative self-service deletion/export/reset wording matching
+> the real Settings controls; sub-processors named (Render, Vercel, Supabase
+> ap-northeast-2; AI: Google Gemini API + OpenRouter, BYOK/self-host caveat).
+> ⚠️ **Prerequisite for the retention claim**: `LOG_RETENTION_ENABLED=true`
+> must be set in the production environment (the sweep is OFF by default,
+> `log-retention.ts:114-116`) — verify on Render before submitting.
+> Gap 8 (contact address): resolved by decision — the support address is pinned
+> to `k0820086@gmail.com` everywhere (policy already uses it consistently in 3
+> places; the consent screen must use the same literal). Switching to a domain
+> address later = brand re-review trigger; do it before submission or not at all.
 
 1. **[적용 완료 2026-07-23] Scope list is incomplete and partially misattributed**
    (page.tsx:180-198). The page lists only `gmail.readonly`,

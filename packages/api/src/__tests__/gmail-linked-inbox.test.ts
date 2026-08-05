@@ -107,7 +107,11 @@ describe("getAuthedInboxClient", () => {
     });
     const client = await getAuthedInboxClient("u1", "a");
     expect(client).toBeTruthy();
-    expect(m.findFirst).toHaveBeenCalledWith({ where: { id: "a", userId: "u1" } });
+    // provider: GOOGLE — this lookup's contract is "an OAuth2 client or null",
+    // which only a GOOGLE row can satisfy once IMAP rows share the table.
+    expect(m.findFirst).toHaveBeenCalledWith({
+      where: { id: "a", userId: "u1", provider: "GOOGLE" },
+    });
   });
 
   it("returns null when the row is missing (wrong user or deleted)", async () => {
@@ -141,7 +145,9 @@ describe("mail actions route to the correct account (P2b)", () => {
     const { archiveEmail } = await import("../mail/gmail.js");
     const result = await archiveEmail("u1", "gmail-123", "acc-1");
     expect(result).toEqual({ error: "Gmail not connected." });
-    expect(m.findFirst).toHaveBeenCalledWith({ where: { id: "acc-1", userId: "u1" } });
+    expect(m.findFirst).toHaveBeenCalledWith({
+      where: { id: "acc-1", userId: "u1", provider: "GOOGLE" },
+    });
     expect(m.userTokenFindFirst).not.toHaveBeenCalled();
   });
 

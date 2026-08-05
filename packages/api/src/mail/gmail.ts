@@ -662,7 +662,15 @@ async function persistRefreshedInboxToken(
 }
 
 function buildInboxOAuthClient(
-  row: { id: string; accessToken: string; refreshToken: string | null; expiresAt: Date | null },
+  // accessToken is nullable since the provider column landed: IMAP rows never
+  // carry one. A null here means "not an OAuth-usable row" — same treatment as
+  // an undecryptable token below: flag for reconnect, return null, never throw.
+  row: {
+    id: string;
+    accessToken: string | null;
+    refreshToken: string | null;
+    expiresAt: Date | null;
+  },
   userId: string,
 ): InstanceType<typeof google.auth.OAuth2> | null {
   let accessTokenPlain = "";
@@ -728,7 +736,12 @@ function buildInboxOAuthClient(
 export async function getLinkedInboxClients(
   userId: string,
 ): Promise<Array<{ client: InstanceType<typeof google.auth.OAuth2>; id: string; email: string }>> {
-  const rows = await prisma.linkedInboxAccount.findMany({ where: { userId } });
+  // provider: GOOGLE — this fan-out builds OAuth clients; once IMAP rows share
+  // the table (Phase 0b) they must not land here or the empty-token branch in
+  // buildInboxOAuthClient would flag every one of them for "reconnect".
+  const rows = await prisma.linkedInboxAccount.findMany({
+    where: { userId, provider: "GOOGLE" },
+  });
   const clients: Array<{
     client: InstanceType<typeof google.auth.OAuth2>;
     id: string;
@@ -751,7 +764,10 @@ export async function getAuthedInboxClient(
   linkedInboxAccountId: string,
 ): Promise<InstanceType<typeof google.auth.OAuth2> | null> {
   const row = await prisma.linkedInboxAccount.findFirst({
-    where: { id: linkedInboxAccountId, userId },
+    // provider-scoped for the same reason as getLinkedInboxClients: this
+    // function's contract is "an OAuth2 client or null", which only a GOOGLE
+    // row can satisfy.
+    where: { id: linkedInboxAccountId, userId, provider: "GOOGLE" },
   });
   if (!row) return null;
   return buildInboxOAuthClient(row, userId);

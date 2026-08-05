@@ -233,21 +233,43 @@ model LinkedCalendarAccount {
   @@unique([userId, email])
 }
 
-// A SECONDARY Google account linked for FULL INBOX access (gmail read/send/
-// modify) so the firewall runs across more than the primary login account.
+// Which mail service a LinkedInboxAccount row belongs to. GOOGLE/OUTLOOK are
+// OAuth providers (token cipher in accessToken); NAVER/ICLOUD/IMAP are IMAP
+// providers (imapHost + imapPasswordCipher). inbox-credentials.ts is the one
+// place that maps provider → required credential shape.
+enum InboxProvider {
+  GOOGLE
+  NAVER
+  ICLOUD
+  OUTLOOK
+  IMAP
+}
+
+// A SECONDARY mail account linked for FULL INBOX access so the firewall runs
+// across more than the primary login account. Historically Google-only; the
+// provider column (Phase 0a, docs/providers/multi-provider-plan.md) makes the
+// row provider-aware — OAuth providers use the token columns, IMAP providers
+// the imap* columns, and inboxAuthKind() decides which shape a row must have.
 // Kept deliberately SEPARATE from UserToken — whose @@unique([userId, provider])
 // is single-account-per-provider and load-bearing for the primary mail path —
 // so multi-account never destabilizes the primary inbox. Pro/Enterprise only
 // (the multi_account feature). watch/history/sync fields are for the later
 // real-time + incremental-sync phases and are unused until then.
 model LinkedInboxAccount {
-  id                  String    @id @default(uuid())
+  id                  String        @id @default(uuid())
   userId              String
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  email               String // the linked Google account address — label + dedup key
-  accessToken         String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider            InboxProvider @default(GOOGLE)
+  email               String // the linked account address — label + dedup key
+  // OAuth providers (GOOGLE, OUTLOOK): encrypted token pair. Nullable because
+  // IMAP rows never have one; Google reads already guard `row.accessToken ?`.
+  accessToken         String?
   refreshToken        String?
   expiresAt           DateTime?
+  // IMAP providers (NAVER, ICLOUD, IMAP): exact host (SSRF-allowlisted at the
+  // route) + AES-256-GCM password cipher, same crypto-tokens helper as OAuth.
+  imapHost            String?
+  imapPasswordCipher  String?
   gmailWatchExpiresAt DateTime?
   historyId           String?
   lastSyncedAt        DateTime?
@@ -259,15 +281,17 @@ model LinkedInboxAccount {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  @@unique([userId, email])
+  // provider participates so the same address can exist on two services (a
+  // user forwarding their iCloud into Gmail links both) without colliding.
+  @@unique([userId, provider, email])
   // renewExpiringGmailWatches scans linked inboxes by watch expiry (no userId)
   // every tick — including the `gmailWatchExpiresAt IS NULL` first-register case,
   // which a btree serves too. Without this it seq-scans every linked inbox.
   @@index([gmailWatchExpiresAt])
   // The gmail-push webhook resolves a pubsub address to its owning linked inbox
   // by email ALONE (no userId — the webhook only knows the address). The
-  // (userId, email) unique above is userId-leading and can't serve that lookup,
-  // so without this it seq-scans every linked inbox on each linked-inbox push.
+  // (userId, provider, email) unique above is userId-leading and can't serve
+  // that lookup, so without this it seq-scans every linked inbox on each push.
   @@index([email])
 }
 
