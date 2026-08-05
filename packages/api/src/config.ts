@@ -134,6 +134,15 @@ export const MULTI_INBOX_SYNC_ENABLED = ["true", "1", "yes", "on"].includes(
 console.log(
   `[CONFIG] MULTI_INBOX_SYNC_ENABLED=${MULTI_INBOX_SYNC_ENABLED} (raw=${JSON.stringify(process.env.MULTI_INBOX_SYNC_ENABLED)})`,
 );
+// Auto-reply for linked GOOGLE inboxes (Phase 1 per-account send routing).
+// OFF by default (repo doctrine); only meaningful alongside
+// MULTI_INBOX_SYNC_ENABLED — without that, linked rows never see new mail.
+export const AUTO_REPLY_LINKED_INBOX_ENABLED = ["true", "1", "yes", "on"].includes(
+  (process.env.AUTO_REPLY_LINKED_INBOX_ENABLED ?? "").trim().toLowerCase(),
+);
+console.log(
+  `[CONFIG] AUTO_REPLY_LINKED_INBOX_ENABLED=${AUTO_REPLY_LINKED_INBOX_ENABLED} (raw=${JSON.stringify(process.env.AUTO_REPLY_LINKED_INBOX_ENABLED)})`,
+);
 // Inbox selector shows non-Google (IMAP) mailboxes too (Phase 1 of the
 // multi-provider plan). OFF by default (repo doctrine). Read at request time
 // (BETA_GATE precedent) with the same lenient truthy parse as the flags above.

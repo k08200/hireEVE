@@ -14,6 +14,7 @@ import { sendAutoReplyViaFloor } from "./agentcore/auto-reply-send.js";
 import { runProactiveActions } from "./agentcore/proactive-actions.js";
 import { isEntitled, planHasFeature } from "./billing/stripe.js";
 import {
+  AUTO_REPLY_LINKED_INBOX_ENABLED,
   MULTI_INBOX_SYNC_ENABLED,
   SCHEDULER_CALENDAR_SYNC_INTERVAL_MS,
   SCHEDULER_CHECK_INTERVAL_MS,
@@ -26,6 +27,7 @@ import { withDbRetry } from "./db-retry.js";
 import { parseGoogleDateTime } from "./google-calendar-time.js";
 import { findOpenEmailAttentionItemId } from "./judge/attention-override.js";
 import { sweepFallbackRejudge } from "./judge/fallback-rejudge.js";
+import { autoReplyEmailWhere } from "./mail/auto-reply-scope.js";
 import { syncRecentCandidateIntakes } from "./mail/email-candidate-intake.js";
 import {
   backfillEmailAttentionItems,
@@ -1017,6 +1019,11 @@ async function runUserCycle(
         // (revoked token, quota) is logged and skipped, never aborting the
         // others or the tick. The per-user daily cost cap covers all
         // inboxes, so on a cap hit we stop the rest of the fan-out.
+        // Linked GOOGLE inboxes that synced successfully this tick, and how
+        // much new mail they brought — feeds the flag-gated auto-reply
+        // widening below (per-account send routing, Phase 1).
+        const syncedLinkedInboxIds: string[] = [];
+        let linkedNewCount = 0;
         if (
           MULTI_INBOX_SYNC_ENABLED &&
           planHasFeature(configUserPlan, "multi_account", configUserRole)
@@ -1044,6 +1051,13 @@ async function runUserCycle(
                 email: inbox.email,
                 client: inbox.client,
               });
+              // Scope the auto-reply sweep IMMEDIATELY after a successful
+              // sync, before summarize: persistGmailEmail is an idempotent
+              // upsert, so rows committed by this sync report newCount=0 on
+              // every later tick — if a summarize failure below skipped this
+              // push, that mail would be stranded outside the sweep forever.
+              syncedLinkedInboxIds.push(inbox.id);
+              linkedNewCount += linkedResult.newCount;
               if (linkedResult.newCount > 0) {
                 await summarizeUnsummarizedEmails(config.userId, linkedResult.newCount);
               }
@@ -1111,21 +1125,27 @@ async function runUserCycle(
 
         // Auto-reply: check rules for newly synced emails (dedup by gmailId)
         // Requires TEAM+ plan for auto-reply
+        //
+        // Scope: primary rows always; linked GOOGLE rows only behind
+        // AUTO_REPLY_LINKED_INBOX_ENABLED (per-account send routing —
+        // sendAutoReplyViaFloor passes the source row id and the executor
+        // resolves THAT account's client, so the reply leaves from the
+        // address the sender actually wrote to). Flag OFF is byte-identical
+        // to the historical primary-only sweep, including `take`.
+        const autoReplyNewCount = AUTO_REPLY_LINKED_INBOX_ENABLED
+          ? syncResult.newCount + linkedNewCount
+          : syncResult.newCount;
         if (
-          syncResult.newCount > 0 &&
+          autoReplyNewCount > 0 &&
           planHasFeature(configUserPlan, "email_auto_reply", configUserRole)
         ) {
-          // PRIMARY-account rows only. sendAutoReplyViaFloor below always
-          // sends from the primary Gmail client, so auto-replying to a
-          // linked-inbox email would come from the WRONG address (the
-          // sender emailed the linked account, not the primary). Until
-          // per-account send routing exists, auto-reply is primary-only;
-          // this also keeps `take: newCount` from mixing in linked rows
-          // once MULTI_INBOX_SYNC_ENABLED is on.
           const newEmails = await prisma.emailMessage.findMany({
-            where: { userId: config.userId, linkedInboxAccountId: null },
+            where: autoReplyEmailWhere(
+              config.userId,
+              AUTO_REPLY_LINKED_INBOX_ENABLED ? syncedLinkedInboxIds : [],
+            ),
             orderBy: { syncedAt: "desc" },
-            take: syncResult.newCount,
+            take: autoReplyNewCount,
           });
           for (const email of newEmails) {
             try {
@@ -1155,6 +1175,24 @@ async function runUserCycle(
                   config.userId,
                 );
                 if (matched.actionType === "AUTO_REPLY") {
+                  // The LLM draft above took real seconds — re-check the source
+                  // row still exists before sending. A row deleted mid-window
+                  // (user trashed it, reconcile pruned it) would make the
+                  // executor's account resolution silently fall back to the
+                  // PRIMARY client — for a linked-inbox email that leaks the
+                  // primary address to a sender who only knows the linked one
+                  // (and auto-replying to deleted mail is wrong regardless).
+                  // Narrows the race from LLM-seconds to milliseconds.
+                  const sourceStillExists = await prisma.emailMessage.findFirst({
+                    where: { id: email.id, userId: config.userId },
+                    select: { id: true },
+                  });
+                  if (!sourceStillExists) {
+                    console.log(
+                      `[AUTOMATION] auto-reply skipped — source email ${email.gmailId} was deleted mid-draft (user ${config.userId})`,
+                    );
+                    continue;
+                  }
                   const emailMatch = email.from.match(/<([^>]+)>/) || [null, email.from];
                   const toAddr = emailMatch[1] || email.from;
                   // Route the autonomous send through the deterministic
@@ -1167,6 +1205,10 @@ async function runUserCycle(
                     toAddr,
                     `Re: ${email.subject}`,
                     replyBody,
+                    // Per-account routing: the executor resolves this row's
+                    // account server-side; a primary row resolves to the
+                    // primary client, unchanged.
+                    email.id,
                   );
                   // Atomic + winner-only alert (dedupeKey = "auto-reply:<gmailId>"):
                   // the findFirst pre-filter above is a cheap best-effort skip, but
