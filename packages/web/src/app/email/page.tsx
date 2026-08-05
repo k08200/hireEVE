@@ -1523,7 +1523,9 @@ function InboxSelector({
             {o.tag && (
               <span
                 className={`shrink-0 rounded px-1 text-[10px] font-medium leading-4 ${
-                  active ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                  // AA on both states: sky-700 on near-white ≈ 6:1; slate-600
+                  // on slate-200 ≈ 6.1:1 (white-on-white/20-over-accent was 2.2:1).
+                  active ? "bg-white text-sky-700" : "bg-slate-200 text-slate-600"
                 }`}
               >
                 {o.tag}

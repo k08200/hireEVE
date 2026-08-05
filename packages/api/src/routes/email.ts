@@ -13,7 +13,6 @@ import type {
   EmailListResponse,
   EmailThreadListResponse,
   InboxesResponse,
-  InboxProvider,
   TrustWire,
 } from "@klorn/contract";
 import type { EmailMessage, FeedbackSignal, Prisma } from "@prisma/client";
@@ -1205,7 +1204,10 @@ export async function emailRoutes(app: FastifyInstance) {
           email: l.email,
           kind: "linked" as const,
           needsReconnect: l.needsReconnect,
-          provider: l.provider as InboxProvider,
+          // No cast on purpose: the Prisma enum and the contract union are the
+          // same five values today, and this assignment is what fails the
+          // build the day a migration adds a provider the contract lacks.
+          provider: l.provider,
         })),
       ],
     };
