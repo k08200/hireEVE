@@ -32,19 +32,23 @@ classifies every message into four attention tiers — PUSH, QUEUE, SILENT, and
 AUTO — so users are only interrupted by mail that needs them. I'll sign in
 with Google and show how each requested scope powers a user-facing feature."
 
-## Scene 2 — OAuth consent screen (0:25–1:00)
+## Scene 2 — Sign-in, then the Connect consent screen (0:25–1:00)
 
-**Screen:** Click "Continue with Google". Pause on the Google account chooser,
-then the consent screen. **Zoom into the address bar** so the production
-`client_id` is legible. Scroll the consent screen slowly so every scope row is
-readable: email/profile, "Read, compose, and send" items for Gmail, and the
-Calendar items. Click Allow.
+**Screen:** Click "Continue with Google". The first Google screen is the
+account chooser with a minimal identity-only consent (email/profile) — show
+it briefly and sign in. Klorn lands on onboarding's Connect step; click
+**Connect Gmail & Calendar**. Pause on the full consent screen. **Zoom into
+the address bar** so the production `client_id` is legible. Scroll the
+consent screen slowly so every scope row is readable: the "Read, compose,
+and send" items for Gmail and the Calendar items. Click Allow.
 
-**Narration:** "Here is Google's consent screen for our production OAuth
-client. Klorn requests Gmail read, send, and modify access, Calendar events
-and read-only Calendar access, plus basic profile information to create the
-account. The user sees exactly what is requested and consents before any data
-is accessed."
+**Narration:** "Signing in with Google asks only for basic profile
+information — Klorn follows incremental authorization, so no mail access is
+requested at login. The Gmail and Calendar permissions are requested
+separately, at the moment the user chooses to connect their inbox. Here is
+that consent screen for our production OAuth client: Gmail read, send, and
+modify access, plus Calendar events and read-only Calendar access. The user
+sees exactly what is requested and consents before any data is accessed."
 
 ## Scene 3 — `gmail.readonly`: sync, classification, summaries (1:00–1:50)
 
@@ -109,10 +113,10 @@ and the app signs in. Show the menu-bar triage surface with the same
 PUSH/QUEUE/SILENT tiers as the web app.
 
 **Narration:** "Klorn also ships a desktop client. It authenticates through
-the system browser with the same OAuth client and the same scopes — no
-embedded webviews and no additional permissions. The desktop app is another
-view of the same account; all Google data access still happens on our
-backend, shown earlier."
+the system browser with the same OAuth client and the same identity-only
+sign-in — no embedded webviews and no additional permissions. The desktop
+app is another view of the same account; all Google data access still
+happens on our backend, shown earlier."
 
 ## Scene 8 — User control: disconnect and delete (4:15–4:45)
 
@@ -143,7 +147,8 @@ Thank you."
 
 <!--
 CODE EVIDENCE (strip before submission — maps scenes to implementation)
-- Scene 2 consent scopes: packages/api/src/mail/gmail.ts:66-78 (getLoginAuthUrl).
+- Scene 2 consent scopes: packages/api/src/mail/gmail.ts getLoginAuthUrl (identity-only
+  sign-in) + getAuthUrl (Gmail/Calendar connect grant via POST /api/auth/google/start).
 - Scene 3 sync/classify/summarize: packages/api/src/mail/gmail.ts (sync),
   packages/api/src/mail/email-summarize.ts, packages/api/src/automation-scheduler.ts
   (classify cycles + briefing, e.g. :844-861); 4 tiers per CLAUDE.md.

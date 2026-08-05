@@ -14,18 +14,20 @@ Google and show how each requested scope powers a user-facing feature.
 
 4
 00:00:25,000 --> 00:00:33,000
-Here is Google's consent screen for our production OAuth client — note the
-client ID in the address bar.
+Signing in with Google asks only for basic profile information — Klorn
+follows incremental authorization, so no mail access is requested at login.
 
 5
 00:00:33,000 --> 00:00:44,000
-Klorn requests Gmail read, send, and modify access, Calendar events and
-read-only Calendar access, plus basic profile information to create the account.
+Gmail and Calendar permissions are requested separately, when the user
+connects their inbox. Here is that consent screen for our production OAuth
+client — note the client ID in the address bar.
 
 6
 00:00:44,000 --> 00:01:00,000
-The user sees exactly what is requested and consents before any data is
-accessed.
+It lists Gmail read, send, and modify access, plus Calendar events and
+read-only Calendar access. The user sees exactly what is requested and
+consents before any data is accessed.
 
 7
 00:01:00,000 --> 00:01:12,000
@@ -89,8 +91,8 @@ Here is the event in Google Calendar.
 19
 00:03:50,000 --> 00:04:02,000
 Klorn also ships a desktop client. It authenticates through the system
-browser with the same OAuth client and the same scopes — no embedded
-webviews and no additional permissions.
+browser with the same OAuth client and the same identity-only sign-in — no
+embedded webviews and no additional permissions.
 
 20
 00:04:02,000 --> 00:04:15,000

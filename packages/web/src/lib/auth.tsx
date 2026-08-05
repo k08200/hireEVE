@@ -188,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (newToken: string) => {
       setStoredAuthToken(newToken);
       setToken(newToken);
+      let connected = false;
       try {
         const data = await apiFetch<{ user: User & { googleConnected?: boolean } }>(
           "/api/auth/me",
@@ -197,17 +198,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         setUser(data.user);
         setAuthError(null);
-        setGoogleConnected(data.user.googleConnected ?? true);
+        connected = data.user.googleConnected ?? false;
+        setGoogleConnected(connected);
       } catch (err) {
         // biome-ignore lint/suspicious/noConsole: critical auth failure, always log
         console.error("[auth] loginWithToken: /api/auth/me FAILED", err);
         throw err;
       }
 
-      // Trigger initial sync (calendar, contacts, recent emails) after Google login.
-      runInitialSync(newToken);
-
-      window.location.href = "/inbox";
+      // Login is identity-only (incremental auth): a fresh Google sign-in has
+      // no Gmail/Calendar grant yet, so syncing would just 403. Send those
+      // users straight to onboarding's Connect step instead of bouncing
+      // /inbox → AuthGuard → /onboarding.
+      if (connected) {
+        runInitialSync(newToken);
+        window.location.href = "/inbox";
+      } else {
+        window.location.href = "/onboarding";
+      }
     },
     [runInitialSync],
   );

@@ -61,6 +61,12 @@ Console → **OAuth consent screen → Scopes → Add or remove scopes**. Declar
 `packages/api/src/mail/gmail.ts` — declaring more than the code uses is a
 rejection reason; using more than you declare is worse):
 
+> **Incremental auth (2026-08-05):** sign-in requests only the identity
+> scopes (`getLoginAuthUrl`); the Gmail/Calendar scopes are requested by the
+> separate Connect step (`getAuthUrl`, reached via
+> `POST /api/auth/google/start` from onboarding/Settings). The table below is
+> the union across flows — it is still the exact set to declare.
+
 | Scope | Classification |
 |---|---|
 | `openid` | Non-sensitive |
@@ -158,8 +164,9 @@ drives the Google submission; that file answers the assessor.
 
 <!--
 CODE EVIDENCE (strip before submission)
-- Requested scopes (the superset above): packages/api/src/mail/gmail.ts:66-78 (getLoginAuthUrl, primary login),
-  gmail.ts:46-55 (getAuthUrl, reconnect), gmail.ts:95-99 (getLinkCalendarAuthUrl, secondary calendar:
+- Requested scopes (the superset above): packages/api/src/mail/gmail.ts getAuthUrl (primary
+  Gmail/Calendar connect grant), getLoginAuthUrl (identity-only sign-in — incremental auth),
+  gmail.ts:95-99 (getLinkCalendarAuthUrl, secondary calendar:
   openid + userinfo.email + calendar.readonly only), gmail.ts:118-124 (getLinkInboxAuthUrl, secondary inbox:
   openid + userinfo.email + gmail.readonly/send/modify; comment at gmail.ts:103-111 notes it reuses the
   verified scope set so it does not reopen CASA).
