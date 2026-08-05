@@ -1051,11 +1051,16 @@ async function runUserCycle(
                 email: inbox.email,
                 client: inbox.client,
               });
+              // Scope the auto-reply sweep IMMEDIATELY after a successful
+              // sync, before summarize: persistGmailEmail is an idempotent
+              // upsert, so rows committed by this sync report newCount=0 on
+              // every later tick — if a summarize failure below skipped this
+              // push, that mail would be stranded outside the sweep forever.
+              syncedLinkedInboxIds.push(inbox.id);
+              linkedNewCount += linkedResult.newCount;
               if (linkedResult.newCount > 0) {
                 await summarizeUnsummarizedEmails(config.userId, linkedResult.newCount);
               }
-              syncedLinkedInboxIds.push(inbox.id);
-              linkedNewCount += linkedResult.newCount;
               // Stamp the last successful sync so the UI's "Synced Xm ago" is real
               // (the column had a reader but no writer — it showed "Not yet synced"
               // forever even while syncing). Runs on every successful tick, incl.
@@ -1170,6 +1175,24 @@ async function runUserCycle(
                   config.userId,
                 );
                 if (matched.actionType === "AUTO_REPLY") {
+                  // The LLM draft above took real seconds — re-check the source
+                  // row still exists before sending. A row deleted mid-window
+                  // (user trashed it, reconcile pruned it) would make the
+                  // executor's account resolution silently fall back to the
+                  // PRIMARY client — for a linked-inbox email that leaks the
+                  // primary address to a sender who only knows the linked one
+                  // (and auto-replying to deleted mail is wrong regardless).
+                  // Narrows the race from LLM-seconds to milliseconds.
+                  const sourceStillExists = await prisma.emailMessage.findFirst({
+                    where: { id: email.id, userId: config.userId },
+                    select: { id: true },
+                  });
+                  if (!sourceStillExists) {
+                    console.log(
+                      `[AUTOMATION] auto-reply skipped — source email ${email.gmailId} was deleted mid-draft (user ${config.userId})`,
+                    );
+                    continue;
+                  }
                   const emailMatch = email.from.match(/<([^>]+)>/) || [null, email.from];
                   const toAddr = emailMatch[1] || email.from;
                   // Route the autonomous send through the deterministic
