@@ -11,6 +11,8 @@ final class AppSettings {
     static let pillVisibleKey = "klorn.pillVisible"
     static let shortcutKey = "klorn.toggleShortcut"
     static let showInDockKey = "klorn.showInDock"
+    static let fullWindowSizeKey = "klorn.fullWindowSize"
+    static let hasLaunchedKey = "klorn.hasLaunchedBefore"
 
     private let defaults: UserDefaults
 
@@ -49,6 +51,18 @@ final class AppSettings {
         didSet {
             defaults.set(showInDock, forKey: Self.showInDockKey)
             onShowInDockChanged?(showInDock)
+        }
+    }
+
+    /// The full view's user-chosen window size (drag-resize), persisted so it
+    /// survives state changes and relaunch. nil until the user first resizes —
+    /// the screen-fitted default applies.
+    var fullWindowSize: NSSize? {
+        didSet {
+            guard let size = fullWindowSize else { return }
+            defaults.set(
+                ["width": Double(size.width), "height": Double(size.height)],
+                forKey: Self.fullWindowSizeKey)
         }
     }
 
@@ -117,6 +131,34 @@ final class AppSettings {
         self.showInDock = Self.resolveShowInDock(defaults.object(forKey: Self.showInDockKey))
         self.pillVisible = Self.resolvePillVisible(defaults.object(forKey: Self.pillVisibleKey))
         self.shortcut = Self.resolveShortcut(defaults.object(forKey: Self.shortcutKey))
+        self.fullWindowSize = Self.resolveFullWindowSize(
+            defaults.object(forKey: Self.fullWindowSizeKey), floor: TopBarMetrics.fullMin)
+    }
+
+    /// Restore a stored {width,height}; malformed → nil (the screen-fitted
+    /// default applies). Values below `floor` are lifted to it — a too-small
+    /// stored size would re-clip the fixed columns the floor protects. Pure.
+    nonisolated static func resolveFullWindowSize(_ stored: Any?, floor: NSSize) -> NSSize? {
+        guard let dict = stored as? [String: Any],
+              let w = (dict["width"] as? NSNumber)?.doubleValue ?? (dict["width"] as? Double),
+              let h = (dict["height"] as? NSNumber)?.doubleValue ?? (dict["height"] as? Double)
+        else { return nil }
+        return NSSize(width: max(w, floor.width), height: max(h, floor.height))
+    }
+
+    /// Whether this is the install's first run (no marker yet). Pure.
+    nonisolated static func isFirstLaunch(_ stored: Any?) -> Bool {
+        !((stored as? Bool) ?? false)
+    }
+
+    /// One-shot first-launch gate: true exactly once, then marked. The first
+    /// launch opens the full app window — an accessory app whose only chrome
+    /// is a top-edge pill is invisible to someone who just installed it
+    /// (user report 2026-08-05).
+    func consumeFirstLaunch() -> Bool {
+        let first = Self.isFirstLaunch(defaults.object(forKey: Self.hasLaunchedKey))
+        if first { defaults.set(true, forKey: Self.hasLaunchedKey) }
+        return first
     }
 
     /// Default ⌥⌘K when unset; otherwise restore the stored {keyCode,modifiers}.

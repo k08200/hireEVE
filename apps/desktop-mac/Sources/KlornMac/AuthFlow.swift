@@ -211,3 +211,37 @@ enum GoogleSignIn {
         }
     }
 }
+
+/// "Add Google account": fetch the consent URL from the Pro-gated
+/// `POST /api/auth/google/link-inbox` and bounce it to the system browser.
+/// The server finishes the link on its OAuth callback; the caller watches
+/// GET /api/email/inboxes for the new account to land.
+enum LinkInboxFlow {
+    enum Failure: Error, Equatable, Sendable { case needsPro, unauthorized, network }
+
+    static func start(api: APIClient = APIClient()) async -> Result<URL, Failure> {
+        do {
+            let bytes = try await api.data("/api/auth/google/link-inbox", method: "POST")
+            guard let url = url(from: bytes) else { return .failure(.network) }
+            await MainActor.run { NSWorkspace.shared.open(url) }
+            return .success(url)
+        } catch APIError.forbidden {
+            return .failure(.needsPro)
+        } catch APIError.unauthorized {
+            return .failure(.unauthorized)
+        } catch {
+            Log.net.debug("link-inbox start failed: \(String(describing: error), privacy: .private)")
+            return .failure(Failure.network)
+        }
+    }
+
+    /// Pure parse of the start response ({url}). https-only: the parsed URL
+    /// is handed straight to the browser, so anything else is refused.
+    nonisolated static func url(from data: Data) -> URL? {
+        struct Body: Decodable { let url: String }
+        guard let body = try? JSONDecoder().decode(Body.self, from: data),
+              let url = URL(string: body.url),
+              url.scheme == "https" else { return nil }
+        return url
+    }
+}

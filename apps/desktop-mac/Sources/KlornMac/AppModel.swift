@@ -79,6 +79,12 @@ final class AppModel {
     private var didRequestNotifyAuth = false
     private var pollTask: Task<Void, Never>?
     private var realtime: RealtimeClient?
+    /// Error from the last add-account attempt; cleared on the next attempt.
+    private(set) var linkAccountError: String?
+    private var isLinkingAccount = false
+    /// Bounded watcher that picks up the newly linked inbox after the browser
+    /// handoff, without waiting for the 60 s poll tick.
+    private var linkWatchTask: Task<Void, Never>?
 
     private let api: APIClient
 
@@ -139,6 +145,43 @@ final class AppModel {
             }
         } catch {
             Log.app.debug("inboxes fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// "Add Google account": open the Pro-gated link-inbox consent in the
+    /// browser, then watch the inbox list so the new account appears quickly.
+    func addAccount() async {
+        guard !isLinkingAccount else { return }
+        isLinkingAccount = true
+        defer { isLinkingAccount = false }
+        linkAccountError = nil
+        switch await LinkInboxFlow.start(api: api) {
+        case .success:
+            startLinkWatch()
+        case .failure(.needsPro):
+            linkAccountError = L("error.needsPro")
+        case .failure(.unauthorized):
+            signOut()
+        case .failure(.network):
+            linkAccountError = L("account.add.failed")
+        }
+    }
+
+    /// Poll the inbox list (5 s cadence, 3 min cap) until the link lands —
+    /// then pull the merged queue right away. Cancelled on sign-out.
+    private func startLinkWatch() {
+        linkWatchTask?.cancel()
+        let baseline = inboxes.count
+        linkWatchTask = Task { [weak self] in
+            for _ in 0..<36 {
+                try? await Task.sleep(for: .seconds(5))
+                guard let self, !Task.isCancelled else { return }
+                await self.refreshInboxes()
+                if self.inboxes.count > baseline {
+                    await self.loadQueue()
+                    return
+                }
+            }
         }
     }
 
@@ -551,6 +594,9 @@ final class AppModel {
 
     func signOut() {
         stopPolling()
+        linkWatchTask?.cancel()
+        linkWatchTask = nil
+        linkAccountError = nil
         realtime?.stop()
         realtime = nil
         seenPush = []

@@ -312,3 +312,7 @@
 "push.expand.hint" = "Click to expand";
 "push.collapse.hint" = "Click to collapse";
 "mail.unknownSender" = "(unknown sender)";
+"account.add" = "Add Google account…";
+"account.add.hint" = "Opens your browser to connect another Gmail inbox to Klorn.";
+"account.add.failed" = "Couldn't start account linking. Try again.";
+"account.reconnect" = "Reconnect account…";

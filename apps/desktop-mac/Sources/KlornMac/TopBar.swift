@@ -42,6 +42,12 @@ enum TopBarMetrics {
     static let collapsed = NSSize(width: 400, height: 52)
     static let expanded = NSSize(width: 1140, height: 380)
     static let full = NSSize(width: 1400, height: 860)
+    /// Smallest full window that still fits the fixed sidebar (220) + list
+    /// (420) columns plus a usable reading pane. Floor for both the panel's
+    /// contentMinSize and screen fitting.
+    static let fullMin = NSSize(width: 1000, height: 560)
+    /// Gap kept to the screen edges when the ideal size doesn't fit.
+    static let screenMargin: CGFloat = 12
     static let corner: CGFloat = 20
 
     /// The pill is a TRUE capsule (corner = height/2); panels soften to 20.
@@ -55,6 +61,29 @@ enum TopBarMetrics {
         case .expanded: expanded
         case .full: full
         }
+    }
+
+    /// `ideal` shrunk to fit inside `visible` (with a margin), never below
+    /// `floor`. The full view was a hardcoded 1400×860 that clipped on 13"
+    /// displays — the frame math never consulted the screen.
+    nonisolated static func fittedSize(
+        ideal: NSSize, visible: NSSize, floor: NSSize = .zero
+    ) -> NSSize {
+        NSSize(
+            width: max(floor.width, min(ideal.width, visible.width - screenMargin * 2)),
+            height: max(floor.height, min(ideal.height, visible.height - screenMargin * 2)))
+    }
+
+    /// Top-center placement clamped into the visible rect, so no state can
+    /// put any part of the panel off-screen.
+    nonisolated static func pinnedFrame(
+        size: NSSize, visible: NSRect, topMargin: CGFloat
+    ) -> NSRect {
+        let x = min(
+            max(visible.midX - size.width / 2, visible.minX),
+            max(visible.maxX - size.width, visible.minX))
+        let y = max(visible.maxY - size.height - topMargin, visible.minY)
+        return NSRect(x: x, y: y, width: size.width, height: size.height)
     }
 }
 
@@ -631,6 +660,12 @@ struct InboxSelectorMenu: View {
                         label: inboxDisplayLabel(email: inbox.email, kind: inbox.kind),
                         needsReconnect: inbox.needsReconnect)
                 }
+                if model.inboxes.contains(where: \.needsReconnect) {
+                    Divider()
+                    // Re-runs the link-inbox consent; the server upserts the
+                    // re-linked account, which clears needsReconnect.
+                    Button(L("account.reconnect")) { Task { await model.addAccount() } }
+                }
             } label: {
                 // Chevron lives INSIDE the one Text (concatenation) — a
                 // separate Image in a menu label is reordered to the leading
@@ -804,6 +839,11 @@ private struct AccountColumn: View {
                     UpdateRow(version: version)
                 }
                 SubtleTextButton(title: L("prefs.account.signOut")) { actions.onSignOut() }
+                SubtleTextButton(title: L("account.add")) { Task { await model.addAccount() } }
+                if let error = model.linkAccountError {
+                    Text(error).font(.caption2).foregroundStyle(Theme.textDim)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             } else {
                 SubtleTextButton(title: L("auth.signInGoogle"), dim: false) { actions.onSignIn() }
             }
@@ -907,7 +947,12 @@ struct FullView: View {
                 TierGuide { model.dismissTierGuide() }
             }
         }
-        .frame(width: TopBarMetrics.full.width, height: TopBarMetrics.full.height)
+        // Fill whatever frame the controller fitted to the screen (and the
+        // user's drag-resize); the old fixed 1400×860 clipped on smaller
+        // displays instead of compressing.
+        .frame(
+            minWidth: TopBarMetrics.fullMin.width, maxWidth: .infinity,
+            minHeight: TopBarMetrics.fullMin.height, maxHeight: .infinity)
     }
 
     private var header: some View {
@@ -1126,6 +1171,12 @@ private struct FullSidebar: View {
                     UpdateRow(version: version)
                 }
                 sidebarAction(L("prefs.account.signOut"), dim: true) { actions.onSignOut() }
+                sidebarAction(L("account.add"), dim: true) { Task { await model.addAccount() } }
+                if let error = model.linkAccountError {
+                    Text(error).font(.caption2).foregroundStyle(Theme.textDim)
+                        .padding(.horizontal, 20)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             } else {
                 sidebarAction(L("auth.signInGoogle")) { actions.onSignIn() }
             }
