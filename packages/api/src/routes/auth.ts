@@ -1117,61 +1117,13 @@ export function authRoutes(app: FastifyInstance) {
           }
         }
 
-        // Auto-save Google tokens for Gmail/Calendar integration (one-click setup).
-        // Refuse to save a token without a refresh_token unless we already have
-        // one on file to preserve. Otherwise Google's silent omission of
-        // refresh_token (G Suite + unverified-app policy) leaves the user with
-        // a 1-hour working window followed by a "Gmail sync failed" loop with
-        // no actionable error message.
-        const existingToken = await withDbRetry(
-          () =>
-            prisma.userToken.findUnique({
-              where: { userId_provider: { userId: user!.id, provider: "google" } },
-              select: { refreshToken: true },
-            }),
-          { label: "oauth.find_existing_token" },
-        );
-        const haveUsableRefreshToken = !!tokens.refresh_token || !!existingToken?.refreshToken;
-        if (!haveUsableRefreshToken) {
-          console.warn(
-            `[GOOGLE] Refusing to save partial token for ${user!.email} — refresh_token missing, no prior token to preserve`,
-          );
-          // Still let the user finish signing in — they just have to retry the
-          // Gmail integration from /settings where we explain why it failed.
-        } else {
-          await withDbRetry(
-            () =>
-              prisma.userToken.upsert({
-                where: { userId_provider: { userId: user!.id, provider: "google" } },
-                create: {
-                  userId: user!.id,
-                  provider: "google",
-                  accessToken: encryptToken(tokens.access_token ?? ""),
-                  refreshToken: encryptOptional(tokens.refresh_token),
-                  expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-                },
-                update: {
-                  accessToken: encryptToken(tokens.access_token ?? ""),
-                  // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
-                  ...(tokens.refresh_token
-                    ? { refreshToken: encryptToken(tokens.refresh_token) }
-                    : {}),
-                  expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-                },
-              }),
-            { label: "oauth.upsert_user_token" },
-          );
-
-          // Register the Gmail Pub/Sub watch so new mail pushes in near-real-time
-          // from the moment the account is connected. Without this a freshly
-          // connected user has NO watch until a scheduler renewal tick, so mail
-          // only surfaced on the client's poll — the "why isn't mail instant?"
-          // gap. No-ops cleanly when GMAIL_PUBSUB_TOPIC is unset; fire-and-forget
-          // so it never delays the OAuth redirect.
-          void registerGmailWatch(user.id).catch((err) =>
-            console.warn(`[GMAIL-WATCH] register on connect failed for ${user!.id}:`, err),
-          );
-        }
+        // Incremental auth: login requests identity scopes only, so there is
+        // no Gmail/Calendar grant to persist here. The primary Google token is
+        // stored exclusively by the connect flow (__oauth_state__ branch
+        // below) — saving the identity-only token would make every
+        // "has a UserToken row ⇒ has Gmail" consumer (connection status,
+        // watch renewal, sync schedulers) treat this user as connected and
+        // 403 forever.
 
         // Auto-create AutomationConfig with defaults
         await withDbRetry(
@@ -1239,15 +1191,12 @@ export function authRoutes(app: FastifyInstance) {
 
         // Issue a short-lived exchange code instead of putting the JWT in the URL.
         // The frontend exchanges it via POST /api/auth/exchange-code (60 s window).
+        // No integration flag: login is identity-only now, so it has nothing
+        // truthful to say about the Gmail/Calendar connection state.
         const xcode = crypto.randomBytes(20).toString("hex");
         exchangeCodes.set(xcode, { jwt: token, expiresAt: Date.now() + 60_000 });
         setTimeout(() => exchangeCodes.delete(xcode), 60_000);
-        // Pass google integration status forward so the post-login UI can
-        // either flash "connected" or surface the offline_access guidance.
-        const integrationFlag = haveUsableRefreshToken
-          ? "google=connected"
-          : "google=offline_access_denied";
-        return reply.redirect(`${webUrl}/auth/callback?code=${xcode}&${integrationFlag}`);
+        return reply.redirect(`${webUrl}/auth/callback?code=${xcode}`);
       }
 
       // --- Gmail/Calendar integration flow (state signed with __oauth_state__ marker) ---
@@ -1303,6 +1252,21 @@ export function authRoutes(app: FastifyInstance) {
           }),
         { label: "oauth.integration.upsert_user_token" },
       );
+
+      // Register the Gmail Pub/Sub watch so new mail pushes in near-real-time
+      // from the moment the account is connected. This used to live only on
+      // the login path; now that connect is the sole place the primary grant
+      // is stored, a fresh connect would otherwise have NO watch until the
+      // hourly renewal sweep — the "why isn't mail instant?" gap. No-ops
+      // cleanly when GMAIL_PUBSUB_TOPIC is unset; fire-and-forget so it never
+      // delays the OAuth redirect.
+      void registerGmailWatch(user.id).catch((err) => {
+        // Connect is now the ONLY place a fresh watch is registered — a silent
+        // failure here leaves a brand-new connection push-less until the next
+        // renewal sweep, so alert like the sweep does instead of stdout-only.
+        console.warn(`[GMAIL-WATCH] register on connect failed for ${user.id}:`, err);
+        captureError(err, { tags: { scope: "auth.oauth.connect.watch" } });
+      });
 
       return reply.redirect(`${webUrl}/settings?google=connected`);
     } catch (err) {

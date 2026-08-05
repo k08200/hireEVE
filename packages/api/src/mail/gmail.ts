@@ -57,25 +57,23 @@ export function getAuthUrl(userId?: string) {
   });
 }
 
-/** Google login OAuth URL — requests profile + email + Gmail + Calendar for one-click setup */
+/**
+ * Google login OAuth URL — identity scopes ONLY (incremental auth).
+ * Sign-in must not request Gmail/Calendar: the restricted-scope grant happens
+ * through the dedicated connect flow (getAuthUrl, POST /api/auth/google/start)
+ * at the point of feature use, per Google's incremental-authorization
+ * guidance for restricted-scope verification. No offline access here — the
+ * login callback stores no Google tokens.
+ */
 export function getLoginAuthUrl(signedState: string) {
   const oauth2 = getOAuth2Client();
   return oauth2.generateAuthUrl({
-    access_type: "offline",
-    prompt: "consent",
+    prompt: "select_account",
     state: signedState,
     scope: [
       "openid",
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
-      "https://www.googleapis.com/auth/gmail.readonly",
-      "https://www.googleapis.com/auth/gmail.send",
-      "https://www.googleapis.com/auth/gmail.modify",
-      "https://www.googleapis.com/auth/calendar.events",
-      // Read-only across ALL calendars: needed for calendarList.list + freebusy
-      // (multi-calendar conflict detection). Existing tokens lack it and degrade
-      // to primary-only until the user reconnects.
-      "https://www.googleapis.com/auth/calendar.readonly",
     ],
   });
 }

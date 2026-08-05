@@ -34,6 +34,10 @@ and **sensitive** scopes (`gmail.send`, `calendar.events`,
       line with a link to the privacy policy satisfies this).
 - [ ] App is functional in production — reviewers will create an account and
       click through.
+- [ ] `LOG_RETENTION_ENABLED=true` set on Render. The privacy policy states
+      concrete log-retention windows (90/30/180 days); the sweep that enforces
+      them is OFF by default (`packages/api/src/log-retention.ts`), so the
+      claim is only true with the flag on.
 
 ## Step 1 — Complete the OAuth consent screen
 
@@ -43,7 +47,11 @@ Cloud Console → **APIs & Services → OAuth consent screen** (now under
 1. User type: **External**.
 2. App name: `Klorn` (must match the visible product name on klorn.ai —
    mismatches are a common rejection reason).
-3. User support email: the founder support address.
+3. User support email: `k0820086@gmail.com` — **pinned 2026-08-05**. This is
+   the literal used by the live privacy policy (3 places) and the landing-page
+   footer; the consent screen must use the exact same address. Switching to a
+   domain address (e.g. `support@klorn.ai`) later re-triggers brand review —
+   change it everywhere before submission or not at all.
 4. App logo: 120×120px. Note: uploading a logo puts the app into review even
    before scope verification; do it now, once.
 5. App domain fields:
@@ -51,8 +59,8 @@ Cloud Console → **APIs & Services → OAuth consent screen** (now under
    - Privacy policy: `https://app.klorn.ai/privacy`
    - Terms of service: `https://app.klorn.ai/terms`
 6. Authorized domains: `klorn.ai`.
-7. Developer contact email(s): an address you actually monitor — all review
-   correspondence goes here.
+7. Developer contact email(s): `k0820086@gmail.com` (same pinned address) —
+   all review correspondence goes here.
 
 ## Step 2 — Declare exactly the scopes the code requests
 
@@ -60,6 +68,12 @@ Console → **OAuth consent screen → Scopes → Add or remove scopes**. Declar
 **only** these (the exact set requested in
 `packages/api/src/mail/gmail.ts` — declaring more than the code uses is a
 rejection reason; using more than you declare is worse):
+
+> **Incremental auth (2026-08-05):** sign-in requests only the identity
+> scopes (`getLoginAuthUrl`); the Gmail/Calendar scopes are requested by the
+> separate Connect step (`getAuthUrl`, reached via
+> `POST /api/auth/google/start` from onboarding/Settings). The table below is
+> the union across flows — it is still the exact set to declare.
 
 | Scope | Classification |
 |---|---|
@@ -91,6 +105,32 @@ Submit. Expect a reply from `api-oauth-dev-verification@google.com` (or the
 Trust & Safety team) within days; respond promptly — threads that idle get
 closed and you restart.
 
+## Step 3.5 — Reviewer and assessor test access (beta gate)
+
+`BETA_GATE_ENABLED=true` stays on, which makes signup invite-only on both the
+email/password and Google paths. Google reviewers click through the production
+app, and the CASA lab's DAST scanner needs working login credentials — neither
+can pass the gate on their own. Pre-provision access like this:
+
+1. Add the reviewer/assessor email to the waitlist:
+   `POST /api/waitlist` with `{ "email": "<their-address>" }` (public
+   endpoint, rate-limited), or ask them for the address they will use.
+2. Approve it (admin token required):
+   `GET /api/admin/waitlist?status=PENDING` → find the entry id →
+   `PATCH /api/admin/waitlist/:id` with `{ "status": "APPROVED" }`.
+   Approval fires the beta invite email automatically.
+3. Register the account with email + password
+   (`POST /api/auth/register`, or the invite-email flow). For the DAST
+   scanner, register a dedicated account yourself (e.g.
+   `<your-alias>+casa@gmail.com`) and hand the lab the URL
+   (`https://app.klorn.ai`) plus those credentials — the crawl does not need
+   a Google grant.
+4. For the Google reviewer, connect a disposable Gmail account to the test
+   login first so every scoped feature is demonstrable in-app, matching the
+   demo video.
+5. Disable or delete the test accounts after the review concludes (Settings →
+   Delete account, or the admin users endpoint).
+
 ## Step 4 — CASA Tier 2 security assessment
 
 Triggered automatically after Step 3 because of the restricted Gmail scopes.
@@ -101,8 +141,12 @@ Google emails instructions naming an authorized assessor.
    process is deprecated. For CASA compliance follow instructions provided in
    your notification."); an independent Authorized Assessor must be involved.
    Labs on the [ADA assessor list](https://appdefensealliance.dev/casa/casa-assessors)
-   sell Tier 2 packages (TAC Security ~$540–1,800 per app as of 2026; other
-   labs up to ~$3,000).
+   sell Tier 2 (AL1) packages. TAC Security pricing as of 2026-08
+   (casa.tacsecurity.com): Basic **$675**/app (includes 2 revalidation
+   cycles + LoV, quoted 2–3 weeks to LoV), Premium $855 (unlimited
+   revalidation), Enterprise tiers above that; other labs up to ~$3,000.
+   TAC delivers the Letter of Validation to Google directly; Google then
+   confirms to the developer within ~5–6 business days.
 2. Self-scanning is still useful as **readiness checking** before paying the
    assessor: use the CASA Accelerator to export the required CWE list, load it
    into an AST scan policy (see the ADA tooling matrix), and fix findings
@@ -158,8 +202,9 @@ drives the Google submission; that file answers the assessor.
 
 <!--
 CODE EVIDENCE (strip before submission)
-- Requested scopes (the superset above): packages/api/src/mail/gmail.ts:66-78 (getLoginAuthUrl, primary login),
-  gmail.ts:46-55 (getAuthUrl, reconnect), gmail.ts:95-99 (getLinkCalendarAuthUrl, secondary calendar:
+- Requested scopes (the superset above): packages/api/src/mail/gmail.ts getAuthUrl (primary
+  Gmail/Calendar connect grant), getLoginAuthUrl (identity-only sign-in — incremental auth),
+  gmail.ts:95-99 (getLinkCalendarAuthUrl, secondary calendar:
   openid + userinfo.email + calendar.readonly only), gmail.ts:118-124 (getLinkInboxAuthUrl, secondary inbox:
   openid + userinfo.email + gmail.readonly/send/modify; comment at gmail.ts:103-111 notes it reuses the
   verified scope set so it does not reopen CASA).

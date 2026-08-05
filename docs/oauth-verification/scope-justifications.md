@@ -84,7 +84,8 @@ the standard minimum for Google sign-in and account labeling.
 
 <!--
 CODE EVIDENCE (strip before submission)
-- Exact scope arrays: packages/api/src/mail/gmail.ts:66-78 (login), :46-55 (reconnect),
+- Exact scope arrays: packages/api/src/mail/gmail.ts getLoginAuthUrl (identity-only
+  sign-in — incremental auth), getAuthUrl (primary Gmail/Calendar connect grant),
   :95-99 (secondary calendar link — calendar.readonly only, least-privilege comment at :83-88),
   :118-124 (secondary inbox link — gmail scopes only, no calendar, comment :103-111).
 - gmail.readonly usage: continuous sync + classification pipeline (packages/api/src/mail/gmail.ts,
