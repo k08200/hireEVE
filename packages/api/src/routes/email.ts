@@ -13,6 +13,7 @@ import type {
   EmailListResponse,
   EmailThreadListResponse,
   InboxesResponse,
+  InboxProvider,
   TrustWire,
 } from "@klorn/contract";
 import type { EmailMessage, FeedbackSignal, Prisma } from "@prisma/client";
@@ -20,7 +21,7 @@ import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { requireAppAccess } from "../billing/entitlement-guard.js";
 import { planHasFeature } from "../billing/stripe.js";
-import { MULTI_INBOX_SYNC_ENABLED } from "../config.js";
+import { MULTI_INBOX_SYNC_ENABLED, providerInboxSelectorEnabled } from "../config.js";
 import { prisma } from "../db.js";
 import { getCachedInteractionNode } from "../learning/interaction-graph.js";
 import {
@@ -1182,12 +1183,12 @@ export async function emailRoutes(app: FastifyInstance) {
       select: { email: true },
     });
     const linked = await prisma.linkedInboxAccount.findMany({
-      // GOOGLE only for now: this selector feeds per-inbox Gmail actions
-      // (send-from, archive) that IMAP rows can't satisfy yet. NAVER rows
-      // (in this table since Phase 0b) join the selector in Phase 1 when the
-      // contract carries a provider field and actions dispatch by provider.
-      where: { userId: uid, provider: "GOOGLE" },
-      select: { id: true, email: true, needsReconnect: true },
+      // Flag OFF keeps the historical GOOGLE-only selector. Flag ON (Phase 1:
+      // the contract carries `provider` and actions dispatch by provider, with
+      // unsupported ones refusing loudly as 501) surfaces every connected
+      // mailbox — NAVER rows have been in this table since Phase 0b.
+      where: providerInboxSelectorEnabled() ? { userId: uid } : { userId: uid, provider: "GOOGLE" },
+      select: { id: true, email: true, needsReconnect: true, provider: true },
       orderBy: { email: "asc" },
     });
     return {
@@ -1197,12 +1198,14 @@ export async function emailRoutes(app: FastifyInstance) {
           email: user?.email ?? null,
           kind: "primary" as const,
           needsReconnect: false,
+          provider: "GOOGLE" as const,
         },
         ...linked.map((l) => ({
           id: l.id,
           email: l.email,
           kind: "linked" as const,
           needsReconnect: l.needsReconnect,
+          provider: l.provider as InboxProvider,
         })),
       ],
     };

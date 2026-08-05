@@ -247,7 +247,7 @@ describe("email routes (demo mode)", () => {
       .mockResolvedValueOnce(primaryUser)
       .mockResolvedValueOnce(primaryUser);
     vi.mocked(prisma.linkedInboxAccount.findMany).mockResolvedValueOnce([
-      { id: "linked-1", email: "second@school.edu", needsReconnect: false },
+      { id: "linked-1", email: "second@school.edu", needsReconnect: false, provider: "GOOGLE" },
     ] as never);
 
     const app = await buildApp();
@@ -260,15 +260,87 @@ describe("email routes (demo mode)", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       inboxes: [
-        { id: null, email: "primary@example.com", kind: "primary", needsReconnect: false },
-        { id: "linked-1", email: "second@school.edu", kind: "linked", needsReconnect: false },
+        {
+          id: null,
+          email: "primary@example.com",
+          kind: "primary",
+          needsReconnect: false,
+          provider: "GOOGLE",
+        },
+        {
+          id: "linked-1",
+          email: "second@school.edu",
+          kind: "linked",
+          needsReconnect: false,
+          provider: "GOOGLE",
+        },
       ],
     });
-    // Self-scoped: linked lookup keyed by the caller's userId.
+    // Self-scoped: linked lookup keyed by the caller's userId. Flag off →
+    // the historical GOOGLE-only selector.
     expect(prisma.linkedInboxAccount.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId: "user-1", provider: "GOOGLE" } }),
     );
     await app.close();
+  });
+
+  it("GET /inboxes includes non-Google inboxes with their provider when the selector flag is on", async () => {
+    process.env.PROVIDER_INBOX_SELECTOR_ENABLED = "true";
+    try {
+      const { prisma } = await import("../db.js");
+      const primaryUser = {
+        id: "user-1",
+        email: "primary@example.com",
+        plan: "PRO",
+        role: "USER",
+      } as never;
+      vi.mocked(prisma.user.findUnique)
+        .mockResolvedValueOnce(primaryUser)
+        .mockResolvedValueOnce(primaryUser);
+      vi.mocked(prisma.linkedInboxAccount.findMany).mockResolvedValueOnce([
+        { id: "linked-1", email: "second@school.edu", needsReconnect: false, provider: "GOOGLE" },
+        { id: "linked-2", email: "me@naver.com", needsReconnect: false, provider: "NAVER" },
+      ] as never);
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/email/inboxes",
+        headers: auth(),
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().inboxes).toEqual([
+        {
+          id: null,
+          email: "primary@example.com",
+          kind: "primary",
+          needsReconnect: false,
+          provider: "GOOGLE",
+        },
+        {
+          id: "linked-1",
+          email: "second@school.edu",
+          kind: "linked",
+          needsReconnect: false,
+          provider: "GOOGLE",
+        },
+        {
+          id: "linked-2",
+          email: "me@naver.com",
+          kind: "linked",
+          needsReconnect: false,
+          provider: "NAVER",
+        },
+      ]);
+      // Flag on → no provider filter: every connected mailbox joins the selector.
+      expect(prisma.linkedInboxAccount.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: "user-1" } }),
+      );
+      await app.close();
+    } finally {
+      delete process.env.PROVIDER_INBOX_SELECTOR_ENABLED;
+    }
   });
 
   it("force-sync returns immediately and runs reconcile in the background", async () => {

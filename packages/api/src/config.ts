@@ -134,6 +134,14 @@ export const MULTI_INBOX_SYNC_ENABLED = ["true", "1", "yes", "on"].includes(
 console.log(
   `[CONFIG] MULTI_INBOX_SYNC_ENABLED=${MULTI_INBOX_SYNC_ENABLED} (raw=${JSON.stringify(process.env.MULTI_INBOX_SYNC_ENABLED)})`,
 );
+// Inbox selector shows non-Google (IMAP) mailboxes too (Phase 1 of the
+// multi-provider plan). OFF by default (repo doctrine). Read at request time
+// (BETA_GATE precedent) with the same lenient truthy parse as the flags above.
+export function providerInboxSelectorEnabled(): boolean {
+  return ["true", "1", "yes", "on"].includes(
+    (process.env.PROVIDER_INBOX_SELECTOR_ENABLED ?? "").trim().toLowerCase(),
+  );
+}
 // Fail-open is intentional pre-launch, but a lost/typo'd env var in production
 // silently makes every paid feature free. Emit a loud startup signal so the
 // operator notices a misconfigured deploy rather than discovering it via revenue.

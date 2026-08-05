@@ -118,6 +118,14 @@ export interface EmailListResponse {
 }
 
 /**
+ * Which mail service a connected inbox lives on. Mirrors the API's
+ * InboxProviderName (Phase 1 of the multi-provider plan). Clients must treat
+ * unknown values as "a provider without a full action surface" — new
+ * providers may appear before every client updates.
+ */
+export type InboxProvider = "GOOGLE" | "NAVER" | "ICLOUD" | "OUTLOOK" | "IMAP";
+
+/**
  * A mailbox the user can scope the list to. `id === null` is the primary
  * Google inbox; a string id is a linked secondary inbox.
  */
@@ -126,6 +134,7 @@ export interface InboxOption {
   email: string | null;
   kind: "primary" | "linked";
   needsReconnect: boolean;
+  provider: InboxProvider;
 }
 
 /** `GET /api/email/inboxes` — the caller's mailboxes for the inbox selector. */

@@ -1482,12 +1482,21 @@ function InboxSelector({
   onChange: (value: string) => void;
 }) {
   if (inboxes.length < 2) return null;
+  // Non-Google mailboxes (in the selector since Phase 1) get a small provider
+  // tag — the address alone doesn't identify the service on custom domains.
+  const providerTag: Record<string, string> = {
+    NAVER: "Naver",
+    ICLOUD: "iCloud",
+    OUTLOOK: "Outlook",
+    IMAP: "IMAP",
+  };
   const options = [
-    { value: "all", label: "All inboxes", needsReconnect: false },
+    { value: "all", label: "All inboxes", needsReconnect: false, tag: null as string | null },
     ...inboxes.map((i) => ({
       value: i.id ?? "primary",
       label: i.email ?? (i.kind === "primary" ? "Primary" : "Linked inbox"),
       needsReconnect: i.needsReconnect,
+      tag: providerTag[i.provider] ?? null,
     })),
   ];
   return (
@@ -1511,6 +1520,15 @@ function InboxSelector({
             }`}
           >
             <span className="max-w-[168px] truncate">{o.label}</span>
+            {o.tag && (
+              <span
+                className={`shrink-0 rounded px-1 text-[10px] font-medium leading-4 ${
+                  active ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                }`}
+              >
+                {o.tag}
+              </span>
+            )}
             {o.needsReconnect && (
               <span
                 role="img"
