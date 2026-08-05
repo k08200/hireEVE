@@ -59,6 +59,15 @@ export async function persistGmailEmail(
         // Backfill the normalized address on re-sync so already-persisted mail
         // gets an indexed fromAddress without a separate backfill pass.
         fromAddress: normalizedFromAddress(email.from),
+        // (Re)stamp provenance only when the caller holds a REAL account id:
+        // the Naver poll re-touches its recent window every cycle, so pre-0b
+        // rows adopt their account id without a data migration. Truthy-only on
+        // purpose — every caller passes the key (primary sync passes null), so
+        // an undefined-check would be dead code, and an update must never be
+        // able to null out a linked row's provenance.
+        ...(options.linkedInboxAccountId
+          ? { linkedInboxAccountId: options.linkedInboxAccountId }
+          : {}),
       },
     });
     if (email.attachments.length > 0) {

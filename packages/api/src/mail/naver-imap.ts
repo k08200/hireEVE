@@ -10,11 +10,11 @@
  *   - verifyNaverImapCredentials  — short LOGIN+LOGOUT roundtrip used
  *                                   by /api/naver-imap/connect to fail
  *                                   loudly on a wrong password.
- *   - syncNaverImap               — fetches recent messages, upserts
- *                                   EmailMessage rows, fires judgeEmail
- *                                   + upsertAttentionForEmailJudgement
- *                                   so the firewall surfaces them next
- *                                   to Gmail-sourced mail.
+ *   - syncNaverImap               — fetches recent messages and hands each
+ *                                   to the shared persist path
+ *                                   (persistGmailEmail), which owns dedup,
+ *                                   judge + attention mirroring, and PUSH
+ *                                   interrupts — identical to Gmail ingest.
  *
  * Free Render tier note: we do NOT use IMAP IDLE (persistent connection
  * holding) because the dyno can sleep and the connection lock interacts
@@ -24,12 +24,7 @@
 import { ImapFlow } from "imapflow";
 import sanitizeHtml from "sanitize-html";
 
-import { prisma } from "../db.js";
-import { upsertAttentionForEmailJudgement } from "../judge/attention-mirror.js";
-import { buildJudgeContext } from "../judge/judge-context.js";
-import { judgeEmail } from "../judge/poc-judge.js";
-import { engagementKindOf } from "../learning/sender-policy.js";
-import { getUserLlmCredentials } from "../llm/llm-credentials.js";
+import { persistGmailEmail } from "../judge/email-firewall.js";
 import { captureError } from "../sentry.js";
 
 interface VerifyArgs {
@@ -101,6 +96,9 @@ interface SyncArgs {
 interface SyncResult {
   fetched: number;
   inserted: number;
+  // Kept for wire/aggregate stability: classification now happens inside the
+  // shared persist path (fire-and-forget), so this equals `inserted` — every
+  // first-seen email is handed to the judge.
   classified: number;
   errors: number;
 }
@@ -160,11 +158,6 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
 
   const result: SyncResult = { fetched: 0, inserted: 0, classified: 0, errors: 0 };
 
-  // BYOK: resolve once for the whole poll so every judged email bills this
-  // user's own provider key when set (keyless users fall through to the shared
-  // env key, unchanged) — see judgeAndMirrorEmail for the rationale.
-  const llmCredentials = await getUserLlmCredentials(args.userId);
-
   const client = new ImapFlow({
     host,
     port,
@@ -223,104 +216,53 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
         const isStarred = flags.includes("\\Flagged");
 
         try {
-          // Upsert keyed on (userId, gmailId) — we co-opt gmailId as the
-          // canonical "external mail provider id" since the column is
-          // already unique on that pair. The `naver-imap:` prefix keeps
-          // the namespaces from colliding.
-          const upserted = await prisma.emailMessage.upsert({
-            where: { userId_gmailId: { userId: args.userId, gmailId: stableId } },
-            create: {
-              userId: args.userId,
+          // Shared persist path (Phase 1): the same fetch→normalize→persist→
+          // judge pipeline Gmail ingestion uses. We still co-opt gmailId as the
+          // canonical "external mail provider id" (the `naver-imap:` prefix
+          // keeps the namespaces from colliding), and persistGmailEmail owns
+          // dedup, fromAddress normalization, commitment mining, and the
+          // fire-and-forget judge + attention mirror — including PUSH
+          // interrupts and judge-health recording the old inline judge lacked.
+          const persisted = await persistGmailEmail(
+            args.userId,
+            {
               gmailId: stableId,
-              linkedInboxAccountId: args.linkedInboxAccountId ?? null,
               threadId: null,
               from,
               to,
-              cc,
+              cc: cc ?? "",
               subject,
-              snippet,
-              body: bodyBuf ? bodyBuf.toString("utf8").slice(0, 50_000) : null,
-              htmlBody: null,
+              snippet: snippet ?? "",
+              body: bodyBuf ? bodyBuf.toString("utf8").slice(0, 50_000) : "",
+              htmlBody: "",
               labels,
               isRead,
               isStarred,
               receivedAt,
+              attachments: [],
             },
-            update: {
-              isRead,
-              isStarred,
-              labels,
-              // Backfill: rows ingested before the table move have null here;
-              // the poll re-touches the recent window, so they adopt their
-              // account's id on the next cycle without a data migration.
+            {
               linkedInboxAccountId: args.linkedInboxAccountId ?? null,
+              // Self-sent detection and commitment senderIsUser must compare
+              // against THIS mailbox's address, not the primary Google account
+              // (same as email-sync's linked fan-out passing linked.email).
+              userEmail: args.email,
             },
-          });
-          // Only judge first-seen emails. The poll re-fetches the most-recent
-          // window every cycle; re-judging an already-seen email each time
-          // wasted LLM calls AND (via the mirror) resurrected items the user
-          // had already dismissed. `wasJust` = row created in the last minute,
-          // i.e. this poll inserted it.
-          const wasJust = upserted.createdAt.getTime() >= Date.now() - 60_000;
-          if (wasJust) {
+          );
+          // `isNew` from the persist result replaces the old "created in the
+          // last 60s" heuristic — a slow tick can no longer double-judge, and
+          // re-touched rows (the poll re-fetches its window every cycle) are
+          // never re-judged or resurrected in the attention mirror.
+          if (persisted.isNew) {
             result.inserted += 1;
-
-            // Classify + mirror — fire-and-forget so a slow LLM doesn't
-            // block the IMAP loop. Failures are captured to Sentry.
-            // buildJudgeContext feeds past manual overrides back in and
-            // never throws — worst case is an empty context.
-            buildJudgeContext(args.userId, { from, excludeEmailId: upserted.id })
-              // Nested so judgeContext stays in scope for the ledger's
-              // engagementKind (it's lost across a flat .then chain).
-              .then((judgeContext) =>
-                judgeEmail(
-                  {
-                    from,
-                    subject,
-                    snippet,
-                    // Same body the Gmail path feeds the judge, so JUDGE_INCLUDE_BODY
-                    // behaves identically across ingest sources. Truncated inside
-                    // buildJudgePrompt; off by default.
-                    body: bodyBuf ? bodyBuf.toString("utf8") : null,
-                    labels,
-                  },
-                  args.userId,
-                  judgeContext,
-                  llmCredentials,
-                ).then((judgement) =>
-                  upsertAttentionForEmailJudgement(
-                    {
-                      id: upserted.id,
-                      userId: args.userId,
-                      from,
-                      subject,
-                      snippet,
-                      labels,
-                      receivedAt,
-                    },
-                    judgement,
-                    engagementKindOf(judgeContext.senderFacts),
-                  ),
-                ),
-              )
-              .catch((err) => {
-                // console first: captureError is a no-op without a Sentry DSN,
-                // which would make this fire-and-forget failure silent in
-                // dev/self-host and drop the email from triage with no trace.
-                console.warn(`[naver-imap] classify+mirror failed for ${stableId}`, err);
-                captureError(err, {
-                  tags: { scope: "naver-imap.judge" },
-                  extra: { userId: args.userId, stableId },
-                });
-              });
             result.classified += 1;
           }
         } catch (err) {
           result.errors += 1;
           // console first: captureError is a no-op without a Sentry DSN, so in
-          // dev/self-host an upsert failure would drop this email from triage
-          // with no trace (matches the classify path's signal 10 lines above).
-          console.warn(`[naver-imap] upsert failed for ${stableId}`, err);
+          // dev/self-host a persist failure would drop this email from triage
+          // with no trace.
+          console.warn(`[naver-imap] persist failed for ${stableId}`, err);
           captureError(err, {
             tags: { scope: "naver-imap.upsert" },
             extra: { userId: args.userId, stableId },

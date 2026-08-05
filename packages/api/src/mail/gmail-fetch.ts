@@ -26,7 +26,9 @@ const GMAIL_FETCH_CONCURRENCY = 8;
 
 export interface GmailRawEmail {
   gmailId: string;
-  threadId: string;
+  // Gmail always has a thread; IMAP producers (Naver) have none — null keeps
+  // their rows out of thread grouping instead of collapsing into one "".
+  threadId: string | null;
   from: string;
   to: string;
   cc: string;
