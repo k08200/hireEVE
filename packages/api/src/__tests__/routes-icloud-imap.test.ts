@@ -45,12 +45,14 @@ const ORIGINAL_FLAG = process.env.ICLOUD_INBOX_ENABLED;
 
 async function buildApp() {
   vi.resetModules();
-  const { signToken, requireAuth } = await import("../auth.js");
+  const { signToken } = await import("../auth.js");
   const { imapConnectRoutes } = await import("../routes/imap-connect.js");
   const { IMAP_PROVIDERS } = await import("../mail/imap-providers.js");
   const { icloudInboxEnabled } = await import("../config.js");
+  // No outer auth hook — production index.ts has none either; the route
+  // plugin registers its own requireAuth. An outer preHandler would also
+  // 401 the truly-unregistered sibling the fingerprint test compares against.
   const app = Fastify();
-  app.addHook("preHandler", requireAuth);
   await app.register(imapConnectRoutes(IMAP_PROVIDERS.ICLOUD, { gate: icloudInboxEnabled }), {
     prefix: "/api/icloud-imap",
   });
@@ -96,6 +98,29 @@ describe("flag OFF (default) — the surface does not exist", () => {
     const { app } = await buildApp();
     const res = await app.inject({ method: "GET", url: "/api/icloud-imap/status" });
     expect(res.statusCode).toBe(404);
+    await app.close();
+  });
+
+  it("is byte-identical to Fastify's default 404 (no body-diff fingerprint)", async () => {
+    delete process.env.ICLOUD_INBOX_ENABLED;
+    const { app } = await buildApp();
+    // A DAST scanner diffing a dark-but-registered route against a truly
+    // unregistered sibling must see the same body shape — Fastify's default
+    // embeds METHOD:url, so a static "Not Found" message is a fingerprint.
+    const gated = await app.inject({ method: "GET", url: "/api/icloud-imap/status" });
+    const unregistered = await app.inject({ method: "GET", url: "/api/icloud-imap/nope" });
+    expect(gated.statusCode).toBe(404);
+    expect(unregistered.statusCode).toBe(404);
+    expect(gated.json()).toEqual({
+      message: "Route GET:/api/icloud-imap/status not found",
+      error: "Not Found",
+      statusCode: 404,
+    });
+    expect(unregistered.json()).toEqual({
+      message: "Route GET:/api/icloud-imap/nope not found",
+      error: "Not Found",
+      statusCode: 404,
+    });
     await app.close();
   });
 });

@@ -30,7 +30,7 @@ import { getUserId, requireAuth } from "../auth.js";
 import { requireEntitled } from "../billing/entitlement-guard.js";
 import { encryptToken } from "../crypto-tokens.js";
 import { prisma } from "../db.js";
-import type { ImapProviderConfig } from "../mail/imap-providers.js";
+import { hostMatchesProvider, type ImapProviderConfig } from "../mail/imap-providers.js";
 import { verifyImapCredentials } from "../mail/imap-sync.js";
 import { isAllowedImapHost } from "../mail/is-allowed-imap-host.js";
 
@@ -53,13 +53,21 @@ export function imapConnectRoutes(
     // Feature-flag gate FIRST — as onRequest, because the app-level auth hook
     // is a preHandler and would otherwise answer 401 before this runs. A dark
     // provider must be indistinguishable from a route that doesn't exist,
-    // even to an unauthenticated probe.
+    // even to an unauthenticated probe — so the body replicates Fastify's
+    // default 404 (fastify/lib/four-oh-four.js) byte-for-byte: a static
+    // "Not Found" message would let a scanner diff this route against a
+    // truly unregistered sibling and learn it exists.
     if (opts.gate) {
       const gate = opts.gate;
-      app.addHook("onRequest", async (_request, reply) => {
+      app.addHook("onRequest", async (request, reply) => {
         if (!gate()) {
+          const { url, method } = request.raw;
           reply.code(404);
-          return reply.send({ message: "Not Found", error: "Not Found", statusCode: 404 });
+          return reply.send({
+            message: `Route ${method}:${url} not found`,
+            error: "Not Found",
+            statusCode: 404,
+          });
         }
       });
     }
@@ -121,12 +129,9 @@ export function imapConnectRoutes(
         // SSRF guard: this host is opened as a TLS connection here AND on every
         // subsequent poll. Reject anything outside the provider allowlist before
         // we connect, so a user can't probe internal hosts via this endpoint.
-        // Also pin host↔provider (host part only — the port-less form was
-        // always accepted): the global allowlist alone would let a NAVER row
-        // point at the iCloud host (and vice versa).
-        const hostPart = imapHost.toLowerCase().split(":")[0];
-        const expectedHostPart = cfg.defaultHost.split(":")[0];
-        if (!isAllowedImapHost(imapHost) || hostPart !== expectedHostPart) {
+        // Also pin host↔provider: the global allowlist alone would let a NAVER
+        // row point at the iCloud host (and vice versa).
+        if (!isAllowedImapHost(imapHost) || !hostMatchesProvider(imapHost, cfg)) {
           reply.code(400);
           return {
             ok: false,

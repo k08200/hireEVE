@@ -55,6 +55,18 @@ export const IMAP_PROVIDERS: Record<ImapProviderKey, ImapProviderConfig> = {
 };
 
 /**
+ * Host↔provider pin: the shared SSRF allowlist alone would let a NAVER row
+ * point at the iCloud host (and vice versa). Compares the host part only —
+ * the port-less form was always accepted, and port validity is the
+ * allowlist's job. Enforced at the /connect write AND re-checked at poll
+ * time (imap-accounts.ts), same belt-and-braces as the allowlist itself.
+ */
+export function hostMatchesProvider(host: string, provider: ImapProviderConfig): boolean {
+  const hostPart = host.trim().toLowerCase().split(":")[0];
+  return hostPart === provider.defaultHost.split(":")[0];
+}
+
+/**
  * Providers the poll scheduler may select rows for. NAVER predates the flag
  * doctrine and is always on; ICLOUD stays dark until ICLOUD_INBOX_ENABLED
  * (CASA surface freeze — see the flag comment in config.ts). Evaluated per

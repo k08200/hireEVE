@@ -23,11 +23,11 @@ describe("scheduler-heartbeat", () => {
   });
 
   it("treats registration as the first heartbeat so a delayed first tick is not stale", () => {
-    // naver-imap/github fire their first tick 30s after start; registration
+    // imap/github fire their first tick 30s after start; registration
     // must count as "alive" or every boot would begin in a stale state.
-    registerScheduler("naver-imap", 5 * 60_000, T0);
+    registerScheduler("imap", 5 * 60_000, T0);
     const health = getSchedulerHealth({ now: T0 + 30_000, uptimeMs: 30_000 });
-    const entry = health.schedulers.find((s) => s.name === "naver-imap");
+    const entry = health.schedulers.find((s) => s.name === "imap");
     expect(entry?.stale).toBe(false);
     expect(entry?.lastSeenAt).toBe(T0);
   });

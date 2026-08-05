@@ -14,7 +14,7 @@
 import { decryptToken } from "../crypto-tokens.js";
 import { prisma } from "../db.js";
 import { captureError } from "../sentry.js";
-import type { ImapProviderConfig } from "./imap-providers.js";
+import { hostMatchesProvider, type ImapProviderConfig } from "./imap-providers.js";
 import { syncImapInbox } from "./imap-sync.js";
 import { isAllowedImapHost } from "./is-allowed-imap-host.js";
 
@@ -53,6 +53,15 @@ export async function syncImapAccountsForUser(
     if (!isAllowedImapHost(row.imapHost)) {
       console.warn(
         `[${scope}] poll skipped — host not allowlisted for row ${row.id}: ${row.imapHost}`,
+      );
+      continue;
+    }
+    // Re-pin host↔provider too: /connect is the only writer and enforces
+    // this, but a row that arrives by any other path must not connect a
+    // NAVER account to the iCloud host (or vice versa).
+    if (!hostMatchesProvider(row.imapHost, provider)) {
+      console.warn(
+        `[${scope}] poll skipped — host does not match provider for row ${row.id}: ${row.imapHost}`,
       );
       continue;
     }

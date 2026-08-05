@@ -126,6 +126,21 @@ describe("syncImapAccountsForUser", () => {
     expect(result).toEqual({ fetched: 1, inserted: 1, classified: 1, errors: 1 });
   });
 
+  it("skips a row whose host belongs to ANOTHER provider (pin re-checked at poll time)", async () => {
+    // imap.mail.me.com:993 passes the global allowlist, but a NAVER row must
+    // never open a connection to it — mirrors the /connect write-time pin.
+    m.findMany.mockResolvedValue([
+      naverRow({ id: "cross", imapHost: "imap.mail.me.com:993" }),
+      naverRow({ id: "good" }),
+    ]);
+    const { syncImapAccountsForUser } = await import("../mail/imap-accounts.js");
+    await syncImapAccountsForUser("u1", NAVER);
+    expect(m.syncImapInbox).toHaveBeenCalledTimes(1);
+    expect(m.syncImapInbox).toHaveBeenCalledWith(
+      expect.objectContaining({ linkedInboxAccountId: "good" }),
+    );
+  });
+
   it("filters rows by the given provider (ICLOUD selects only ICLOUD rows)", async () => {
     m.findMany.mockResolvedValue([]);
     const { syncImapAccountsForUser } = await import("../mail/imap-accounts.js");
