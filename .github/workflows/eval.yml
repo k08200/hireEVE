@@ -42,6 +42,9 @@ jobs:
       # run. Cap 0 short-circuits before the DB read (cost-guard.ts) — the
       # eval measures the judge, not billing infrastructure.
       GLOBAL_DAILY_COST_CAP_CENTS: "0"
+      # Same reason: the ground-truth usage log write (llm-usage.ts) is
+      # fire-and-forget but warns + Sentry-captures per call with no DB.
+      LLM_USAGE_LOG_DISABLED: "true"
       # Match prod's flag state (#653 flipped body ON): the gate measures the
       # judge as deployed. Inert on the committed 50-item set (no `body`
       # fields) until the body-bearing eval set (#648) lands — see #650.

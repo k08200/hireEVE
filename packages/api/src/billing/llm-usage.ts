@@ -17,6 +17,7 @@
  * gate; this table never gates anything.
  */
 
+import { LLM_USAGE_LOG_DISABLED } from "../config.js";
 import { estimateModelCostUsd } from "../llm/model-fallback.js";
 import { captureError } from "../sentry.js";
 // NOTE: db.js (Prisma) is imported LAZILY inside the async functions below.
@@ -165,6 +166,7 @@ export async function trueUpCostLedgers(input: {
  * swallowed.
  */
 export async function recordLlmUsage(input: RecordLlmUsageInput): Promise<void> {
+  if (LLM_USAGE_LOG_DISABLED) return;
   try {
     const usage = input.usage ?? null;
     const usageMissing =

@@ -54,6 +54,9 @@ jobs:
       # before every paid call, and with no DB that throws and drops every
       # item to the keyword fallback (see eval.yml).
       GLOBAL_DAILY_COST_CAP_CENTS: "0"
+      # Same reason: the ground-truth usage log write (llm-usage.ts) is
+      # fire-and-forget but warns + Sentry-captures per call with no DB.
+      LLM_USAGE_LOG_DISABLED: "true"
       # Match prod's flag state (#653) and the PR-gate eval (eval.yml).
       JUDGE_INCLUDE_BODY: "true"
     steps:
