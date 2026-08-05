@@ -24,6 +24,24 @@ describe("collectFeatureFlags", () => {
     expect(report.dynamic.PHONE_ESCALATION_ENABLED).toBe(false);
   });
 
+  it("reports the request-time provider inbox selector flag", () => {
+    expect(
+      collectFeatureFlags({ PROVIDER_INBOX_SELECTOR_ENABLED: "on" } as NodeJS.ProcessEnv).dynamic
+        .PROVIDER_INBOX_SELECTOR_ENABLED,
+    ).toBe(true);
+    expect(
+      collectFeatureFlags({} as NodeJS.ProcessEnv).dynamic.PROVIDER_INBOX_SELECTOR_ENABLED,
+    ).toBe(false);
+  });
+
+  it("reports the import-time linked-inbox auto-reply flag", () => {
+    // Import-time: the value tracks the config.ts const frozen at module load,
+    // not the env passed in — asserting presence is what's meaningful here.
+    const report = collectFeatureFlags({} as NodeJS.ProcessEnv);
+    expect(report.importTime).toHaveProperty("AUTO_REPLY_LINKED_INBOX_ENABLED");
+    expect(typeof report.importTime.AUTO_REPLY_LINKED_INBOX_ENABLED).toBe("boolean");
+  });
+
   it("reports configured entries as presence booleans, never values", () => {
     const report = collectFeatureFlags({
       GMAIL_PUBSUB_TOPIC: "projects/x/topics/y",

@@ -10,6 +10,7 @@
  */
 
 import {
+  AUTO_REPLY_LINKED_INBOX_ENABLED,
   CONTACT_ENGAGEMENT_IN_JUDGE,
   FALLBACK_REJUDGE_SWEEP,
   LEARNED_RULES_IN_JUDGE,
@@ -43,6 +44,7 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       CONTACT_ENGAGEMENT_IN_JUDGE,
       FALLBACK_REJUDGE_SWEEP,
       MULTI_INBOX_SYNC_ENABLED,
+      AUTO_REPLY_LINKED_INBOX_ENABLED,
       PAYWALL_ENABLED,
       // Scheduler-scoped consts (module-private there; same boot-time freeze).
       PROACTIVE_ACTIONS_ENABLED: env.PROACTIVE_ACTIONS_ENABLED === "true",
@@ -56,6 +58,9 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       LOG_RETENTION_ENABLED:
         env.LOG_RETENTION_ENABLED === "true" || env.LOG_RETENTION_ENABLED === "1",
       PHONE_ESCALATION_ENABLED: dynamicFlag(env, "PHONE_ESCALATION_ENABLED"),
+      // Read at request time by config.ts `providerInboxSelectorEnabled()`, so
+      // it belongs here rather than in the boot-frozen map above.
+      PROVIDER_INBOX_SELECTOR_ENABLED: dynamicFlag(env, "PROVIDER_INBOX_SELECTOR_ENABLED"),
     },
     configured: {
       GMAIL_PUBSUB_TOPIC: Boolean(env.GMAIL_PUBSUB_TOPIC),
