@@ -241,7 +241,13 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
               receivedAt,
               attachments: [],
             },
-            { linkedInboxAccountId: args.linkedInboxAccountId ?? null },
+            {
+              linkedInboxAccountId: args.linkedInboxAccountId ?? null,
+              // Self-sent detection and commitment senderIsUser must compare
+              // against THIS mailbox's address, not the primary Google account
+              // (same as email-sync's linked fan-out passing linked.email).
+              userEmail: args.email,
+            },
           );
           // `isNew` from the persist result replaces the old "created in the
           // last 60s" heuristic — a slow tick can no longer double-judge, and

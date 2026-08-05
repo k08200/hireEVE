@@ -86,8 +86,14 @@ describe("persistGmailEmail update path × linkedInboxAccountId", () => {
     expect(update.mock.calls[0][0].data).toMatchObject({ linkedInboxAccountId: "acc-naver" });
   });
 
-  it("leaves the column untouched when the caller passes no account id", async () => {
-    await persistGmailEmail("u1", rawEmail(), {});
+  it("never stamps null on update — the real primary-sync caller shape passes an explicit null", async () => {
+    // This is the shape every production caller uses (email-sync passes
+    // `linked?.id ?? null`): an update from the primary sync must not be able
+    // to null out a linked row's provenance.
+    await persistGmailEmail("u1", rawEmail(), {
+      userEmail: "me@example.com",
+      linkedInboxAccountId: null,
+    });
 
     expect(update).toHaveBeenCalledTimes(1);
     expect(update.mock.calls[0][0].data).not.toHaveProperty("linkedInboxAccountId");

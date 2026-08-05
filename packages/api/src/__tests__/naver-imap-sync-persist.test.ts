@@ -120,7 +120,10 @@ describe("syncNaverImap → shared persist path", () => {
         receivedAt: RECEIVED,
         attachments: [],
       }),
-      expect.objectContaining({ linkedInboxAccountId: "acc-naver" }),
+      // userEmail must be the Naver mailbox's own address — self-sent detection
+      // and commitment senderIsUser compare against THIS inbox, not the
+      // primary Google account (same pattern as email-sync's linked fan-out).
+      expect.objectContaining({ linkedInboxAccountId: "acc-naver", userEmail: "me@naver.com" }),
     );
 
     expect(persistGmailEmail).toHaveBeenNthCalledWith(
