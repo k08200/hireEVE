@@ -62,13 +62,16 @@ async function applyBulkReadAction(
   emails: EmailMessage[],
   isRead: boolean,
 ): Promise<BulkEmailActionResult> {
+  // The provider lookup sits inside the per-item guarded chain: one item's
+  // lookup failure must not abort the batch or the local updateMany below.
   await Promise.all(
-    emails.map(async (email) => {
-      const actions = await mailActionsFor(userId, email.linkedInboxAccountId);
-      return actions
-        .toggleRead(userId, email.gmailId, isRead, email.linkedInboxAccountId)
-        .catch(() => null);
-    }),
+    emails.map((email) =>
+      mailActionsFor(userId, email.linkedInboxAccountId)
+        .then((actions) =>
+          actions.toggleRead(userId, email.gmailId, isRead, email.linkedInboxAccountId),
+        )
+        .catch(() => null),
+    ),
   );
   await prisma.emailMessage.updateMany({
     where: { userId, id: { in: emails.map((email) => email.id) } },

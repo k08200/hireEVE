@@ -218,10 +218,13 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
 
     // Sync to the provider first, then update DB. An unsupported result (IMAP
     // providers have no read surface yet) is a silent local-only update — the
-    // same divergence-tolerated contract as a failed Gmail sync below.
-    const actions = await mailActionsFor(uid, email.linkedInboxAccountId);
-    await actions
-      .toggleRead(uid, email.gmailId, readVal, email.linkedInboxAccountId)
+    // same divergence-tolerated contract as a failed Gmail sync. The provider
+    // lookup itself lives inside the same guarded chain: even a DB blip there
+    // must degrade to the local write below, never a 500.
+    await mailActionsFor(uid, email.linkedInboxAccountId)
+      .then((actions) =>
+        actions.toggleRead(uid, email.gmailId, readVal, email.linkedInboxAccountId),
+      )
       .catch((err) => {
         // Provider sync failed — still update local DB, but surface the divergence
         // (DB will say read while the mailbox still shows unread) instead of hiding it.
@@ -247,9 +250,10 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
     });
     if (!email) return reply.code(404).send({ error: "Email not found" });
 
-    const actions = await mailActionsFor(uid, email.linkedInboxAccountId);
-    await actions
-      .toggleStar(uid, email.gmailId, starVal, email.linkedInboxAccountId)
+    await mailActionsFor(uid, email.linkedInboxAccountId)
+      .then((actions) =>
+        actions.toggleStar(uid, email.gmailId, starVal, email.linkedInboxAccountId),
+      )
       .catch((err) => {
         console.warn(`[EMAIL] toggleStar failed for ${email.id}:`, err);
         captureError(err, { tags: { scope: "email.star-sync" }, extra: { userId: uid } });

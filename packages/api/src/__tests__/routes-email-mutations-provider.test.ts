@@ -203,6 +203,30 @@ describe("email mutation routes × provider", () => {
     });
   });
 
+  describe("POST /api/email/:id/delete/undo and /archive/undo", () => {
+    it.each([
+      ["/api/email/e-naver/delete/undo", "restore"],
+      ["/api/email/e-naver/archive/undo", "restore"],
+    ])("refuses %s with 501 for a NAVER-linked account id", async (url, action) => {
+      db.linkedFindFirst.mockResolvedValue({ provider: "NAVER" });
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: "POST",
+        url,
+        headers: auth(),
+        payload: { gmailId: "naver-imap:me@naver.com:42", linkedInboxAccountId: "acc-naver" },
+      });
+
+      expect(res.statusCode).toBe(501);
+      expect(res.json()).toEqual({
+        error: `This mailbox's provider does not support ${action} from Klorn yet.`,
+      });
+      expect(gmail.untrashEmail).not.toHaveBeenCalled();
+      expect(gmail.unarchiveEmail).not.toHaveBeenCalled();
+    });
+  });
+
   describe("PATCH /api/email/:id/read", () => {
     it("still updates the local row when the provider has no read surface (divergence tolerated by design)", async () => {
       db.emailFindFirst.mockResolvedValue(NAVER_EMAIL);
@@ -221,6 +245,46 @@ describe("email mutation routes × provider", () => {
       expect(db.emailUpdate).toHaveBeenCalledWith({
         where: { id: "e-naver" },
         data: { isRead: true },
+      });
+    });
+
+    it("still updates the local row when the provider lookup itself fails (degrade contract)", async () => {
+      db.emailFindFirst.mockResolvedValue(NAVER_EMAIL);
+      db.linkedFindFirst.mockRejectedValue(new Error("pooler connection dropped"));
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: "PATCH",
+        url: "/api/email/e-naver/read",
+        headers: auth(),
+        payload: { isRead: true },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(db.emailUpdate).toHaveBeenCalledWith({
+        where: { id: "e-naver" },
+        data: { isRead: true },
+      });
+    });
+  });
+
+  describe("PATCH /api/email/:id/star", () => {
+    it("still updates the local row when the provider lookup itself fails (degrade contract)", async () => {
+      db.emailFindFirst.mockResolvedValue(NAVER_EMAIL);
+      db.linkedFindFirst.mockRejectedValue(new Error("pooler connection dropped"));
+
+      const app = await buildApp();
+      const res = await app.inject({
+        method: "PATCH",
+        url: "/api/email/e-naver/star",
+        headers: auth(),
+        payload: { isStarred: true },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(db.emailUpdate).toHaveBeenCalledWith({
+        where: { id: "e-naver" },
+        data: { isStarred: true },
       });
     });
   });
