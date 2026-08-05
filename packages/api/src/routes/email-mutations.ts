@@ -26,6 +26,7 @@ import {
   unarchiveEmail,
   untrashEmail,
 } from "../mail/gmail.js";
+import { isNonGoogleLinkedInbox } from "../mail/linked-inbox-provider.js";
 import { captureError } from "../sentry.js";
 import { safeAttachmentFilename } from "./email.js";
 
@@ -267,6 +268,16 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
     });
     if (!email) return reply.code(404).send({ error: "Email not found" });
 
+    // Non-Google mailbox (NAVER since Phase 0b): there is no IMAP delete yet,
+    // and falling into the "not connected, remove locally" branch below would
+    // report success while the message survives in the real mailbox — the
+    // next poll then resurrects it as brand-new. Refuse loudly instead.
+    if (await isNonGoogleLinkedInbox(uid, email.linkedInboxAccountId)) {
+      return reply
+        .code(501)
+        .send({ error: "This mailbox's provider does not support delete from Klorn yet." });
+    }
+
     // Try Gmail first — only delete from DB if Gmail succeeds (or not connected)
     try {
       const result = await trashEmail(uid, email.gmailId, email.linkedInboxAccountId);
@@ -315,6 +326,14 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
       where: { userId: uid, OR: [{ id }, { gmailId: id }] },
     });
     if (!email) return reply.code(404).send({ error: "Email not found" });
+
+    // Same refusal as DELETE above: no IMAP archive exists, and the local-only
+    // fallback would fake success and resurrect on the next poll.
+    if (await isNonGoogleLinkedInbox(uid, email.linkedInboxAccountId)) {
+      return reply
+        .code(501)
+        .send({ error: "This mailbox's provider does not support archive from Klorn yet." });
+    }
 
     try {
       const result = await archiveEmail(uid, email.gmailId, email.linkedInboxAccountId);
