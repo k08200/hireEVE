@@ -39,6 +39,29 @@ describe("sendAutoReplyViaFloor — autonomous AUTO_REPLY routes through the flo
     expect(receipt.approvedBy).toBe("user-1");
   });
 
+  it("threads in_reply_to_email_id through to the executor for per-account routing, without touching the hashed bytes", async () => {
+    await sendAutoReplyViaFloor("user-1", "bob@example.com", "Re: x", "hi", "email-42");
+
+    const [, , args, receipt] = executeToolCall.mock.calls[0] as [
+      string,
+      string,
+      Record<string, string>,
+      { payloadHash: string },
+    ];
+    // The executor resolves the source row server-side and sends from THAT
+    // account (tool-executor's send_email case) — the id is routing metadata.
+    expect(args).toEqual({
+      to: "bob@example.com",
+      subject: "Re: x",
+      body: "hi",
+      in_reply_to_email_id: "email-42",
+    });
+    // Routing must not change the receipt: the floor hashes {to,subject,body}.
+    expect(receipt.payloadHash).toBe(
+      sendEmailPayloadHash({ to: "bob@example.com", subject: "Re: x", body: "hi" }),
+    );
+  });
+
   it("refuses a multi-recipient / crafted address and never sends", async () => {
     await expect(
       sendAutoReplyViaFloor("user-1", "victim@real.com, attacker@evil.com", "Re: x", "hi"),

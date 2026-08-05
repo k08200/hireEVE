@@ -24,6 +24,10 @@ export async function sendAutoReplyViaFloor(
   to: string,
   subject: string,
   body: string,
+  // The EmailMessage id being replied to. The executor resolves the source row
+  // server-side and sends from THAT account (per-account routing, Phase 1) —
+  // routing metadata only, deliberately outside the hashed payload bytes.
+  inReplyToEmailId?: string,
 ): Promise<void> {
   const recipient = to.trim();
   if (!SINGLE_EMAIL_RE.test(recipient)) {
@@ -42,5 +46,15 @@ export async function sendAutoReplyViaFloor(
     approvedAt: new Date(),
     approvedBy: userId,
   });
-  await executeToolCall(userId, "send_email", { to: recipient, subject, body }, receipt);
+  await executeToolCall(
+    userId,
+    "send_email",
+    {
+      to: recipient,
+      subject,
+      body,
+      ...(inReplyToEmailId ? { in_reply_to_email_id: inReplyToEmailId } : {}),
+    },
+    receipt,
+  );
 }

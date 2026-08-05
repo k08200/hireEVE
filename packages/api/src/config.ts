@@ -134,6 +134,15 @@ export const MULTI_INBOX_SYNC_ENABLED = ["true", "1", "yes", "on"].includes(
 console.log(
   `[CONFIG] MULTI_INBOX_SYNC_ENABLED=${MULTI_INBOX_SYNC_ENABLED} (raw=${JSON.stringify(process.env.MULTI_INBOX_SYNC_ENABLED)})`,
 );
+// Auto-reply for linked GOOGLE inboxes (Phase 1 per-account send routing).
+// OFF by default (repo doctrine); only meaningful alongside
+// MULTI_INBOX_SYNC_ENABLED — without that, linked rows never see new mail.
+export const AUTO_REPLY_LINKED_INBOX_ENABLED = ["true", "1", "yes", "on"].includes(
+  (process.env.AUTO_REPLY_LINKED_INBOX_ENABLED ?? "").trim().toLowerCase(),
+);
+console.log(
+  `[CONFIG] AUTO_REPLY_LINKED_INBOX_ENABLED=${AUTO_REPLY_LINKED_INBOX_ENABLED} (raw=${JSON.stringify(process.env.AUTO_REPLY_LINKED_INBOX_ENABLED)})`,
+);
 // Fail-open is intentional pre-launch, but a lost/typo'd env var in production
 // silently makes every paid feature free. Emit a loud startup signal so the
 // operator notices a misconfigured deploy rather than discovering it via revenue.
