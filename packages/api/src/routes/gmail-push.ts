@@ -179,8 +179,13 @@ export async function gmailPushRoutes(app: FastifyInstance) {
     // is off. We NEVER resolve the session user by this address — only the
     // pre-linked LinkedInboxAccount row's userId.
     if (MULTI_INBOX_SYNC_ENABLED) {
+      // provider: GOOGLE — this is a Gmail Pub/Sub handler, so only a Google
+      // row can be the target. Without the filter, a same-address IMAP row
+      // (possible once the dedup key includes provider) could win findFirst's
+      // undefined ordering and silently starve real-time sync for the real
+      // Google inbox.
       const linked = await prisma.linkedInboxAccount.findFirst({
-        where: { email },
+        where: { email, provider: "GOOGLE" },
         select: { id: true, userId: true },
       });
       if (linked) {
