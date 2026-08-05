@@ -49,7 +49,8 @@ import {
   syncLinkedInboxesForUser,
 } from "../mail/email-sync.js";
 import { htmlToPlainText } from "../mail/email-text.js";
-import { getLinkedInboxClients, toggleReadGmail } from "../mail/gmail.js";
+import { getLinkedInboxClients } from "../mail/gmail.js";
+import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { senderEmail } from "../notify/notification-format.js";
 import { createTask } from "../pim/tasks.js";
 import { captureError } from "../sentry.js";
@@ -989,9 +990,11 @@ export async function emailRoutes(app: FastifyInstance) {
     if (dbEmail) {
       // Mark-as-read is explicit. Many users rely on unread as a work queue.
       if (markRead === "true" && !dbEmail.isRead) {
-        toggleReadGmail(uid, dbEmail.gmailId, true, dbEmail.linkedInboxAccountId).catch((err) =>
-          console.warn(`[EMAIL] toggleReadGmail failed for ${dbEmail.gmailId}`, err),
-        );
+        mailActionsFor(uid, dbEmail.linkedInboxAccountId)
+          .then((actions) =>
+            actions.toggleRead(uid, dbEmail.gmailId, true, dbEmail.linkedInboxAccountId),
+          )
+          .catch((err) => console.warn(`[EMAIL] toggleRead failed for ${dbEmail.gmailId}`, err));
         await prisma.emailMessage.update({ where: { id: dbEmail.id }, data: { isRead: true } });
       }
       const actionItems = parseJsonArray(dbEmail.actionItems);

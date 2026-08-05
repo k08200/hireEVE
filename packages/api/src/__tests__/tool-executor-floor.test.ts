@@ -35,7 +35,11 @@ vi.mock("../mail/gmail.js", () => ({
   classifyEmails: vi.fn(),
 }));
 vi.mock("../db.js", () => ({
-  prisma: { emailMessage: { findFirst: (...args: unknown[]) => findFirstMock(...args) } },
+  prisma: {
+    emailMessage: { findFirst: (...args: unknown[]) => findFirstMock(...args) },
+    // The provider dispatch resolves a linked id to its provider row.
+    linkedInboxAccount: { findFirst: async () => ({ provider: "GOOGLE" }) },
+  },
   db: {},
 }));
 vi.mock("../pim/calendar.js", () => ({

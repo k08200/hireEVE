@@ -19,6 +19,8 @@ vi.mock("../db.js", () => {
   const prisma = {
     emailMessage: { findFirst: emailFindFirst },
     emailAttachment: { findMany: vi.fn(async () => []) },
+    // The provider dispatch resolves a linked id to its provider row.
+    linkedInboxAccount: { findFirst: vi.fn(async () => ({ provider: "GOOGLE" })) },
   };
   return { prisma, db: prisma };
 });

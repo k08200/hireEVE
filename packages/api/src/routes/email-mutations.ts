@@ -16,17 +16,8 @@ import { requireEntitled } from "../billing/entitlement-guard.js";
 import { prisma } from "../db.js";
 import { recordContactEngagement } from "../learning/contact-engagement.js";
 import { syncEmailByGmailId } from "../mail/email-sync.js";
-import {
-  archiveEmail,
-  type GmailDraftAttachment,
-  sendEmail,
-  toggleReadGmail,
-  toggleStarGmail,
-  trashEmail,
-  unarchiveEmail,
-  untrashEmail,
-} from "../mail/gmail.js";
-import { isNonGoogleLinkedInbox } from "../mail/linked-inbox-provider.js";
+import { mailActionsFor } from "../mail/providers/dispatch.js";
+import type { MailAttachment, SendMailResult } from "../mail/providers/types.js";
 import { captureError } from "../sentry.js";
 import { safeAttachmentFilename } from "./email.js";
 
@@ -103,7 +94,10 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
       // must be a 4xx, not a 200 with an { error } body — otherwise callers that
       // gate on HTTP status treat a failed send as success (the reply-draft flow
       // cleared the draft on failure before this).
-      const result = await sendEmail(uid, to, subject, body);
+      // Compose sends from the primary inbox until per-account send routing
+      // (Phase 1 of the multi-provider plan) lands.
+      const actions = await mailActionsFor(uid, null);
+      const result = await actions.sendEmail(uid, to, subject, body);
       if (result && "error" in result) {
         return reply.code(400).send(result);
       }
@@ -131,7 +125,7 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
       }
 
       const fields: Record<string, string> = {};
-      const attachments: GmailDraftAttachment[] = [];
+      const attachments: MailAttachment[] = [];
       let totalBytes = 0;
 
       try {
@@ -188,9 +182,10 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
         return reply.code(400).send({ error: "Missing required fields: to, subject, body" });
       }
 
-      let result: Awaited<ReturnType<typeof sendEmail>>;
+      let result: SendMailResult;
       try {
-        result = await sendEmail(uid, to, subject, body, attachments);
+        const actions = await mailActionsFor(uid, null);
+        result = await actions.sendEmail(uid, to, subject, body, attachments);
       } catch (err) {
         // A non-auth Gmail failure (timeout, 5xx) would otherwise surface as an
         // untagged 500. Tag it with send context so it's diagnosable.
@@ -221,13 +216,18 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
     });
     if (!email) return reply.code(404).send({ error: "Email not found" });
 
-    // Sync to Gmail first, then update DB
-    await toggleReadGmail(uid, email.gmailId, readVal, email.linkedInboxAccountId).catch((err) => {
-      // Gmail sync failed — still update local DB, but surface the divergence
-      // (DB will say read while Gmail still shows unread) instead of hiding it.
-      console.warn(`[EMAIL] toggleReadGmail failed for ${email.id}:`, err);
-      captureError(err, { tags: { scope: "email.read-sync" }, extra: { userId: uid } });
-    });
+    // Sync to the provider first, then update DB. An unsupported result (IMAP
+    // providers have no read surface yet) is a silent local-only update — the
+    // same divergence-tolerated contract as a failed Gmail sync below.
+    const actions = await mailActionsFor(uid, email.linkedInboxAccountId);
+    await actions
+      .toggleRead(uid, email.gmailId, readVal, email.linkedInboxAccountId)
+      .catch((err) => {
+        // Provider sync failed — still update local DB, but surface the divergence
+        // (DB will say read while the mailbox still shows unread) instead of hiding it.
+        console.warn(`[EMAIL] toggleRead failed for ${email.id}:`, err);
+        captureError(err, { tags: { scope: "email.read-sync" }, extra: { userId: uid } });
+      });
     await prisma.emailMessage.update({
       where: { id: email.id },
       data: { isRead: readVal },
@@ -247,10 +247,13 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
     });
     if (!email) return reply.code(404).send({ error: "Email not found" });
 
-    await toggleStarGmail(uid, email.gmailId, starVal, email.linkedInboxAccountId).catch((err) => {
-      console.warn(`[EMAIL] toggleStarGmail failed for ${email.id}:`, err);
-      captureError(err, { tags: { scope: "email.star-sync" }, extra: { userId: uid } });
-    });
+    const actions = await mailActionsFor(uid, email.linkedInboxAccountId);
+    await actions
+      .toggleStar(uid, email.gmailId, starVal, email.linkedInboxAccountId)
+      .catch((err) => {
+        console.warn(`[EMAIL] toggleStar failed for ${email.id}:`, err);
+        captureError(err, { tags: { scope: "email.star-sync" }, extra: { userId: uid } });
+      });
     await prisma.emailMessage.update({
       where: { id: email.id },
       data: { isStarred: starVal },
@@ -268,19 +271,18 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
     });
     if (!email) return reply.code(404).send({ error: "Email not found" });
 
-    // Non-Google mailbox (NAVER since Phase 0b): there is no IMAP delete yet,
-    // and falling into the "not connected, remove locally" branch below would
-    // report success while the message survives in the real mailbox — the
-    // next poll then resurrects it as brand-new. Refuse loudly instead.
-    if (await isNonGoogleLinkedInbox(uid, email.linkedInboxAccountId)) {
-      return reply
-        .code(501)
-        .send({ error: "This mailbox's provider does not support delete from Klorn yet." });
-    }
+    const actions = await mailActionsFor(uid, email.linkedInboxAccountId);
 
-    // Try Gmail first — only delete from DB if Gmail succeeds (or not connected)
+    // Try the provider first — only delete from DB if it succeeds (or not connected)
     try {
-      const result = await trashEmail(uid, email.gmailId, email.linkedInboxAccountId);
+      const result = await actions.trash(uid, email.gmailId, email.linkedInboxAccountId);
+      // Unsupported (NAVER since Phase 0b: no IMAP delete yet): falling into
+      // the "not connected, remove locally" branch below would report success
+      // while the message survives in the real mailbox — the next poll then
+      // resurrects it as brand-new. Refuse loudly instead.
+      if ("unsupported" in result) {
+        return reply.code(501).send({ error: result.error });
+      }
       if (result && "error" in result) {
         // Gmail not connected — just remove from DB
         await prisma.emailMessage.deleteMany({ where: { id: email.id } });
@@ -304,7 +306,11 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
     const linkedInboxAccountId = resolveUndoLinkedInbox(request.body);
 
     try {
-      const result = await untrashEmail(uid, gmailId, linkedInboxAccountId);
+      const actions = await mailActionsFor(uid, linkedInboxAccountId);
+      const result = await actions.untrash(uid, gmailId, linkedInboxAccountId);
+      if ("unsupported" in result) {
+        return reply.code(501).send({ error: result.error });
+      }
       if (result && "error" in result) {
         return reply.code(409).send({ error: result.error });
       }
@@ -327,16 +333,15 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
     });
     if (!email) return reply.code(404).send({ error: "Email not found" });
 
-    // Same refusal as DELETE above: no IMAP archive exists, and the local-only
-    // fallback would fake success and resurrect on the next poll.
-    if (await isNonGoogleLinkedInbox(uid, email.linkedInboxAccountId)) {
-      return reply
-        .code(501)
-        .send({ error: "This mailbox's provider does not support archive from Klorn yet." });
-    }
+    const actions = await mailActionsFor(uid, email.linkedInboxAccountId);
 
     try {
-      const result = await archiveEmail(uid, email.gmailId, email.linkedInboxAccountId);
+      const result = await actions.archive(uid, email.gmailId, email.linkedInboxAccountId);
+      // Same refusal as DELETE above: no IMAP archive exists, and the local-only
+      // fallback would fake success and resurrect on the next poll.
+      if ("unsupported" in result) {
+        return reply.code(501).send({ error: result.error });
+      }
       if (result && "error" in result) {
         await prisma.emailMessage.deleteMany({ where: { id: email.id } });
         void recordEvent(uid, "queue_action", { action: "archive" });
@@ -361,7 +366,11 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
     const linkedInboxAccountId = resolveUndoLinkedInbox(request.body);
 
     try {
-      const result = await unarchiveEmail(uid, gmailId, linkedInboxAccountId);
+      const actions = await mailActionsFor(uid, linkedInboxAccountId);
+      const result = await actions.unarchive(uid, gmailId, linkedInboxAccountId);
+      if ("unsupported" in result) {
+        return reply.code(501).send({ error: result.error });
+      }
       if (result && "error" in result) {
         return reply.code(409).send({ error: result.error });
       }

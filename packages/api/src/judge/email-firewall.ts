@@ -18,8 +18,8 @@ import {
   upsertEmailAttachments,
 } from "../mail/email-attachments.js";
 import { classifyNeedsReplyFromSignals, classifyPriority } from "../mail/email-priority.js";
-import { markAsRead } from "../mail/gmail.js";
 import type { GmailRawEmail } from "../mail/gmail-fetch.js";
+import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { getUserNotificationLanguage } from "../notify/notification-strings.js";
 import { extractAndUpsertCommitmentsFromText } from "../pim/commitment-ingestion.js";
 import type { ProviderCredentials } from "../providers/index.js";
@@ -219,7 +219,10 @@ async function markPromotionalEmailRead(
   email: { id: string; gmailId: string; linkedInboxAccountId?: string | null },
 ): Promise<void> {
   try {
-    const result = await markAsRead(userId, email.gmailId, email.linkedInboxAccountId);
+    const actions = await mailActionsFor(userId, email.linkedInboxAccountId);
+    const result = await actions.markAsRead(userId, email.gmailId, email.linkedInboxAccountId);
+    // An unsupported provider (IMAP read surface doesn't exist yet) lands in
+    // the same benign branch — the local isRead mirror is judge-side anyway.
     if ("error" in result && result.error) {
       // Gmail not connected / token expired — an expected, benign state (the
       // user simply hasn't linked Gmail). Log it but do NOT captureError: this

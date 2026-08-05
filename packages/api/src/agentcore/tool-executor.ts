@@ -16,14 +16,8 @@ import {
 } from "../judge/attention-floor.js";
 import { upsertAttentionForCalendarEvent } from "../judge/attention-mirror.js";
 import { forget, MEMORY_TOOLS, recall, remember } from "../learning/memory.js";
-import {
-  classifyEmails,
-  GMAIL_TOOLS,
-  listEmails,
-  markAsRead,
-  readEmail,
-  sendEmail,
-} from "../mail/gmail.js";
+import { classifyEmails, GMAIL_TOOLS, listEmails, readEmail } from "../mail/gmail.js";
+import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { BRIEFING_TOOLS } from "../pim/briefing.js";
 import {
   CALENDAR_TOOLS,
@@ -225,8 +219,9 @@ async function executeToolCallInternal(
           });
           linkedInboxAccountId = source?.linkedInboxAccountId ?? undefined;
         }
+        const actions = await mailActionsFor(userId, linkedInboxAccountId ?? null);
         return JSON.stringify(
-          await sendEmail(userId, to, subject, body, [], { linkedInboxAccountId }),
+          await actions.sendEmail(userId, to, subject, body, [], { linkedInboxAccountId }),
         );
       }
       case "classify_emails":
@@ -239,8 +234,9 @@ async function executeToolCallInternal(
           where: { userId, OR: [{ id: emailId }, { gmailId: emailId }] },
           select: { gmailId: true, linkedInboxAccountId: true },
         });
+        const actions = await mailActionsFor(userId, row?.linkedInboxAccountId ?? null);
         return JSON.stringify(
-          await markAsRead(userId, row?.gmailId ?? emailId, row?.linkedInboxAccountId),
+          await actions.markAsRead(userId, row?.gmailId ?? emailId, row?.linkedInboxAccountId),
         );
       }
       case "list_events":

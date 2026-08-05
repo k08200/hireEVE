@@ -14,7 +14,7 @@ import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { prisma } from "../db.js";
 import type { EmailPriorityValue } from "../mail/email-label-feedback.js";
-import { archiveEmail, toggleReadGmail } from "../mail/gmail.js";
+import { mailActionsFor } from "../mail/providers/dispatch.js";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -63,9 +63,12 @@ async function applyBulkReadAction(
   isRead: boolean,
 ): Promise<BulkEmailActionResult> {
   await Promise.all(
-    emails.map((email) =>
-      toggleReadGmail(userId, email.gmailId, isRead, email.linkedInboxAccountId).catch(() => null),
-    ),
+    emails.map(async (email) => {
+      const actions = await mailActionsFor(userId, email.linkedInboxAccountId);
+      return actions
+        .toggleRead(userId, email.gmailId, isRead, email.linkedInboxAccountId)
+        .catch(() => null);
+    }),
   );
   await prisma.emailMessage.updateMany({
     where: { userId, id: { in: emails.map((email) => email.id) } },
@@ -96,8 +99,11 @@ async function applyBulkArchiveAction(
   const archivedIds: string[] = [];
   for (const email of emails) {
     try {
-      const result = await archiveEmail(userId, email.gmailId, email.linkedInboxAccountId);
+      const actions = await mailActionsFor(userId, email.linkedInboxAccountId);
+      const result = await actions.archive(userId, email.gmailId, email.linkedInboxAccountId);
       if (result && "error" in result) {
+        // Includes unsupported providers (no IMAP archive yet): the per-item
+        // failure keeps the row local instead of faking success.
         failed.push({ id: email.id, error: result.error || "Gmail archive failed" });
       } else archivedIds.push(email.id);
     } catch (err) {

@@ -37,7 +37,8 @@ import { recipientFromToolArgs, recordFeedback } from "../learning/feedback.js";
 import { loadMemoriesForPrompt } from "../learning/memory.js";
 import { getFeedbackPolicyContextForPrompt } from "../learning/policy-extraction.js";
 import { AGENT_MODEL, createCompletion } from "../llm/openai.js";
-import { isNoReplyAddress, markAsRead } from "../mail/gmail.js";
+import { isNoReplyAddress } from "../mail/gmail.js";
+import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { humanizeAutoExec } from "../notify/notification-format.js";
 import { notificationSuppressionReason } from "../notify/notification-policy.js";
 import type { NotifCategory } from "../notify/notification-prefs.js";
@@ -1237,10 +1238,13 @@ Silently ignore. The user does not want a push every time a newsletter arrives o
                     (replyTo && ueFrom.includes(replyTo))
                   ) {
                     if (ue.gmailId) {
-                      await markAsRead(userId, ue.gmailId, ue.linkedInboxAccountId).catch(
-                        (err: unknown) =>
+                      await mailActionsFor(userId, ue.linkedInboxAccountId)
+                        .then((actions) =>
+                          actions.markAsRead(userId, ue.gmailId, ue.linkedInboxAccountId),
+                        )
+                        .catch((err: unknown) =>
                           console.warn(`[AGENT] Failed to mark ${ue.gmailId} as read:`, err),
-                      );
+                        );
                       console.log(
                         `[AGENT] Marked Gmail message as read: ${ue.gmailId} (${ue.subject})`,
                       );

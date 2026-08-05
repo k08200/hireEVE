@@ -17,7 +17,11 @@ vi.mock("../auth.js", () => ({
   resolveEffectiveJwtSecret: () => "test-secret",
 }));
 vi.mock("../db.js", () => {
-  const prisma = { emailMessage: { findFirst: emailFindFirst } };
+  const prisma = {
+    emailMessage: { findFirst: emailFindFirst },
+    // The provider dispatch resolves a linked id to its provider row.
+    linkedInboxAccount: { findFirst: vi.fn(async () => ({ provider: "GOOGLE" })) },
+  };
   return { prisma, db: prisma };
 });
 vi.mock("../sentry.js", () => ({ captureError: vi.fn() }));

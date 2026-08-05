@@ -22,13 +22,8 @@ import {
   listEmailAttachments,
 } from "../mail/email-attachments.js";
 import { updateCandidateIntake } from "../mail/email-candidate-intake.js";
-import {
-  createEmailDraft,
-  type GmailDraftAttachment,
-  getReplyHeaders,
-  resolveMailClient,
-  sendEmail,
-} from "../mail/gmail.js";
+import { type GmailDraftAttachment, resolveMailClient } from "../mail/gmail.js";
+import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { captureError } from "../sentry.js";
 import { wrapUntrusted } from "../untrusted.js";
 import { parseJsonArray, safeAttachmentFilename } from "./email.js";
@@ -405,7 +400,8 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
           .send({ error: err instanceof Error ? err.message : "Attachment fetch failed" });
       }
 
-      const result = await createEmailDraft(
+      const actions = await mailActionsFor(uid, dbEmail.linkedInboxAccountId);
+      const result = await actions.createDraft(
         uid,
         to,
         subject,
@@ -414,6 +410,7 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
         attachments,
         dbEmail.linkedInboxAccountId,
       );
+      if ("unsupported" in result) return reply.code(501).send({ error: result.error });
       if ("error" in result) return reply.code(409).send(result);
       await updateCandidateIntake({
         userId: uid,
@@ -472,19 +469,21 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
       // RFC822 Message-ID isn't stored — fetch it live so In-Reply-To/References
       // are correct. References = original chain + original Message-ID (RFC 5322).
       // A message from a linked secondary inbox lives on THAT account (#757).
-      const { messageId, references } = await getReplyHeaders(
+      const actions = await mailActionsFor(uid, dbEmail.linkedInboxAccountId);
+      const { messageId, references } = await actions.getReplyHeaders(
         uid,
         dbEmail.gmailId,
         dbEmail.linkedInboxAccountId,
       );
       const referencesChain = [references, messageId].filter(Boolean).join(" ") || undefined;
 
-      const result = await sendEmail(uid, to, subject, body, [], {
+      const result = await actions.sendEmail(uid, to, subject, body, [], {
         threadId: dbEmail.threadId,
         linkedInboxAccountId: dbEmail.linkedInboxAccountId,
         inReplyTo: messageId,
         references: referencesChain,
       });
+      if ("unsupported" in result) return reply.code(501).send({ error: result.error });
       if ("error" in result) return reply.code(409).send(result);
 
       // Manual reply = genuine engagement with this sender (an importance-graph

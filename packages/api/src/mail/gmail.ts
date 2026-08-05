@@ -1168,7 +1168,7 @@ export async function sendEmail(
     throw err;
   }
 
-  return { success: true, messageId: res.data.id };
+  return { success: true as const, messageId: res.data.id };
 }
 
 export async function createEmailDraft(
@@ -1218,7 +1218,7 @@ export async function createEmailDraft(
   }
 
   return {
-    success: true,
+    success: true as const,
     draftId: res.data.id,
     messageId: res.data.message?.id,
     url: "https://mail.google.com/mail/u/0/#drafts",
@@ -1291,7 +1291,7 @@ export async function markAsRead(
     data: { isRead: true },
   });
 
-  return { success: true };
+  return { success: true as const };
 }
 
 /** Trash a Gmail message (move to Trash) */
@@ -1318,7 +1318,7 @@ export async function trashEmail(
     where: { userId, gmailId: gmailMessageId },
   });
 
-  return { success: true };
+  return { success: true as const };
 }
 
 /** Archive a Gmail message (remove INBOX label) */
@@ -1349,7 +1349,7 @@ export async function archiveEmail(
     where: { userId, gmailId: gmailMessageId },
   });
 
-  return { success: true };
+  return { success: true as const };
 }
 
 /** Restore a Gmail message to the inbox */
@@ -1376,7 +1376,7 @@ export async function unarchiveEmail(
     throw err;
   }
 
-  return { success: true };
+  return { success: true as const };
 }
 
 /** Restore a Gmail message from trash */
@@ -1399,7 +1399,7 @@ export async function untrashEmail(
     throw err;
   }
 
-  return { success: true };
+  return { success: true as const };
 }
 
 /** Toggle star on Gmail (add/remove STARRED label) */
@@ -1432,7 +1432,7 @@ export async function toggleStarGmail(
     data: { isStarred: starred },
   });
 
-  return { success: true };
+  return { success: true as const };
 }
 
 /** Toggle read/unread on Gmail */
@@ -1465,7 +1465,7 @@ export async function toggleReadGmail(
     data: { isRead },
   });
 
-  return { success: true };
+  return { success: true as const };
 }
 
 export async function classifyEmails(userId: string, maxResults = 10) {
