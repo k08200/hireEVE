@@ -969,7 +969,15 @@ export function authRoutes(app: FastifyInstance) {
         // be allowed so a user can never lock themselves out of reconnecting an
         // inbox they already have.
         const existingLink = await prisma.linkedInboxAccount.findUnique({
-          where: { userId_email: { userId: statePayload.userId, email: linkedEmail } },
+          // The dedup key gained provider (Phase 0a): this route links Google
+          // accounts, so it addresses the GOOGLE slice of the key explicitly.
+          where: {
+            userId_provider_email: {
+              userId: statePayload.userId,
+              provider: "GOOGLE",
+              email: linkedEmail,
+            },
+          },
           select: { id: true },
         });
         if (!existingLink) {
@@ -981,7 +989,13 @@ export function authRoutes(app: FastifyInstance) {
           }
         }
         await prisma.linkedInboxAccount.upsert({
-          where: { userId_email: { userId: statePayload.userId, email: linkedEmail } },
+          where: {
+            userId_provider_email: {
+              userId: statePayload.userId,
+              provider: "GOOGLE",
+              email: linkedEmail,
+            },
+          },
           update: {
             accessToken: encryptToken(tokens.access_token),
             refreshToken: encryptOptional(tokens.refresh_token),
