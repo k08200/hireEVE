@@ -33,6 +33,19 @@ describe("isAllowedImapHost — SSRF allowlist", () => {
     expect(isAllowedImapHost("workmail.naver.com:993")).toBe(false);
   });
 
+  it("allows the iCloud IMAP host with and without the IMAPS port (Phase 2)", () => {
+    expect(isAllowedImapHost("imap.mail.me.com:993")).toBe(true);
+    expect(isAllowedImapHost("imap.mail.me.com")).toBe(true);
+    expect(isAllowedImapHost("  IMAP.MAIL.ME.COM:993  ")).toBe(true);
+  });
+
+  it("rejects non-IMAP Apple hosts and look-alikes", () => {
+    expect(isAllowedImapHost("smtp.mail.me.com:993")).toBe(false);
+    expect(isAllowedImapHost("mail.me.com:993")).toBe(false);
+    expect(isAllowedImapHost("imap.mail.me.com.attacker.com:993")).toBe(false);
+    expect(isAllowedImapHost("imap.mail.me.com:587")).toBe(false);
+  });
+
   it("rejects empty / malformed input", () => {
     expect(isAllowedImapHost("")).toBe(false);
     expect(isAllowedImapHost("   ")).toBe(false);

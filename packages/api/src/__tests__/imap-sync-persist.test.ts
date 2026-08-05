@@ -1,5 +1,5 @@
 /**
- * syncNaverImap must go through the SHARED persist path (persistGmailEmail)
+ * syncImapInbox must go through the SHARED persist path (persistGmailEmail)
  * instead of its own raw upsert + inline judge (Phase 1 of the multi-provider
  * plan). That buys Naver mail everything the Gmail path already has: judge +
  * attention mirroring with PUSH interrupts, judge-health recording, commitment
@@ -8,7 +8,7 @@
  *
  * The IMAP roundtrip is faked (no public Naver sandbox); persistGmailEmail is
  * mocked at the module boundary and the test asserts the normalized
- * GmailRawEmail shape Naver hands it.
+ * GmailRawEmail shape the IMAP path hands it.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -39,7 +39,8 @@ vi.mock("../judge/poc-judge.js", () => ({ judgeEmail }));
 vi.mock("../db.js", () => ({ prisma: {}, db: {} }));
 vi.mock("../sentry.js", () => ({ captureError: vi.fn() }));
 
-const { syncNaverImap } = await import("../mail/naver-imap.js");
+const { syncImapInbox } = await import("../mail/imap-sync.js");
+const { IMAP_PROVIDERS } = await import("../mail/imap-providers.js");
 
 const RECEIVED = new Date("2026-08-01T09:00:00Z");
 
@@ -82,7 +83,7 @@ function armImap() {
   });
 }
 
-describe("syncNaverImap → shared persist path", () => {
+describe("syncImapInbox → shared persist path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     armImap();
@@ -93,7 +94,8 @@ describe("syncNaverImap → shared persist path", () => {
       .mockResolvedValueOnce({ emailId: "e1", isNew: true })
       .mockResolvedValueOnce({ emailId: "e2", isNew: false });
 
-    const result = await syncNaverImap({
+    const result = await syncImapInbox({
+      provider: IMAP_PROVIDERS.NAVER,
       userId: "u1",
       email: "me@naver.com",
       password: "app-pw",
@@ -146,12 +148,33 @@ describe("syncNaverImap → shared persist path", () => {
     expect(judgeEmail).not.toHaveBeenCalled();
   });
 
+  it("namespaces the dedup key with the provider idPrefix (icloud-imap: for ICLOUD)", async () => {
+    persistGmailEmail.mockResolvedValue({ emailId: "e1", isNew: true });
+
+    await syncImapInbox({
+      provider: IMAP_PROVIDERS.ICLOUD,
+      userId: "u1",
+      email: "me@icloud.com",
+      password: "app-pw",
+      host: "imap.mail.me.com:993",
+      linkedInboxAccountId: "acc-icloud",
+    });
+
+    expect(persistGmailEmail).toHaveBeenNthCalledWith(
+      1,
+      "u1",
+      expect.objectContaining({ gmailId: "icloud-imap:me@icloud.com:101" }),
+      expect.objectContaining({ linkedInboxAccountId: "acc-icloud", userEmail: "me@icloud.com" }),
+    );
+  });
+
   it("counts a persist failure as an error and keeps the loop going", async () => {
     persistGmailEmail
       .mockRejectedValueOnce(new Error("db down"))
       .mockResolvedValueOnce({ emailId: "e2", isNew: true });
 
-    const result = await syncNaverImap({
+    const result = await syncImapInbox({
+      provider: IMAP_PROVIDERS.NAVER,
       userId: "u1",
       email: "me@naver.com",
       password: "app-pw",

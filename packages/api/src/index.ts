@@ -10,11 +10,13 @@ import {
   revokeDemoAccessIfDisabled,
 } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
+import { icloudInboxEnabled } from "./config.js";
 import { makeCorsOriginCallback } from "./cors-origin.js";
 import { db, INTERACTIVE_TX_OPTIONS, prisma } from "./db.js";
 import { withDbRetry } from "./db-retry.js";
 import { isDevOrTestEnv } from "./env.js";
 import { handleError } from "./error-handler.js";
+import { IMAP_PROVIDERS } from "./mail/imap-providers.js";
 import { attachPerfMonitor } from "./perf-monitor.js";
 import { briefingRoutes } from "./pim/briefing.js";
 import { purgeUserData } from "./purge-user-data.js";
@@ -35,9 +37,9 @@ import { feedbackRoutes } from "./routes/feedback.js";
 import { firewallRoutes } from "./routes/firewall.js";
 import { githubRoutes } from "./routes/github.js";
 import { gmailPushRoutes } from "./routes/gmail-push.js";
+import { imapConnectRoutes } from "./routes/imap-connect.js";
 import { inboxRoutes } from "./routes/inbox.js";
 import { memoryRoutes } from "./routes/memory.js";
-import { naverImapRoutes } from "./routes/naver-imap.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { opsRoutes } from "./routes/ops.js";
 import { patternRoutes } from "./routes/patterns.js";
@@ -238,7 +240,12 @@ await app.register(playgroundRoutes, { prefix: "/api/playground" });
 await app.register(adminRoutes, { prefix: "/api/admin" });
 await app.register(analyticsRoutes, { prefix: "/api/analytics" });
 await app.register(memoryRoutes, { prefix: "/api/memories" });
-await app.register(naverImapRoutes, { prefix: "/api/naver-imap" });
+await app.register(imapConnectRoutes(IMAP_PROVIDERS.NAVER), { prefix: "/api/naver-imap" });
+// Phase 2: dark until ICLOUD_INBOX_ENABLED — every route (auth'd or not)
+// answers 404 while the flag is off (CASA surface freeze).
+await app.register(imapConnectRoutes(IMAP_PROVIDERS.ICLOUD, { gate: icloudInboxEnabled }), {
+  prefix: "/api/icloud-imap",
+});
 await app.register(githubRoutes, { prefix: "/api/github" });
 await app.register(patternRoutes, { prefix: "/api/patterns" });
 await app.register(tokenUsageRoutes, { prefix: "/api/usage" });
@@ -539,15 +546,16 @@ try {
       });
   }
 
-  // Start Naver IMAP polling scheduler (5min interval per connected user)
+  // Start IMAP polling scheduler (5min interval per connected user; covers
+  // every enabled app-password provider — Naver always, iCloud behind flag)
   if (!BG_DISABLED) {
-    import("./mail/naver-imap-scheduler.js")
-      .then(({ startNaverImapScheduler }) => {
-        startNaverImapScheduler();
+    import("./mail/imap-scheduler.js")
+      .then(({ startImapScheduler }) => {
+        startImapScheduler();
       })
       .catch((err) => {
-        console.error("[STARTUP] naver-imap-scheduler failed to start:", err);
-        captureError(err, { tags: { context: "startup:naver-imap-scheduler" } });
+        console.error("[STARTUP] imap-scheduler failed to start:", err);
+        captureError(err, { tags: { context: "startup:imap-scheduler" } });
       });
   }
 

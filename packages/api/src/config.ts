@@ -151,6 +151,17 @@ export function providerInboxSelectorEnabled(): boolean {
     (process.env.PROVIDER_INBOX_SELECTOR_ENABLED ?? "").trim().toLowerCase(),
   );
 }
+// iCloud Mail connect + sync (IMAP with an app-specific password) — Phase 2 of
+// the multi-provider plan. OFF by default (repo doctrine) and it stays off
+// until the CASA Letter of Assessment is issued: while OFF, every
+// /api/icloud-imap route 404s and the IMAP poll never selects ICLOUD rows, so
+// the DAST-scanned surface is unchanged. Read at request time
+// (PROVIDER_INBOX_SELECTOR_ENABLED precedent) with the same lenient parse.
+export function icloudInboxEnabled(): boolean {
+  return ["true", "1", "yes", "on"].includes(
+    (process.env.ICLOUD_INBOX_ENABLED ?? "").trim().toLowerCase(),
+  );
+}
 // Fail-open is intentional pre-launch, but a lost/typo'd env var in production
 // silently makes every paid feature free. Emit a loud startup signal so the
 // operator notices a misconfigured deploy rather than discovering it via revenue.

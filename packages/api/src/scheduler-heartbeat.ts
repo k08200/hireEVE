@@ -9,7 +9,7 @@
  * missed" (see routes/cron.ts for the documented dogfood incident).
  *
  * Registration counts as the first heartbeat: most schedulers delay their
- * first tick (30s for naver-imap/github/autonomous-agent, 5min for
+ * first tick (30s for imap/github/autonomous-agent, 5min for
  * pattern-learner), so a boot must start in a healthy state.
  */
 
@@ -23,7 +23,7 @@ export const EXPECTED_SCHEDULERS = [
   "background-agent",
   "reminder",
   "automation",
-  "naver-imap",
+  "imap",
   "github",
   "autonomous-agent",
   "pattern-learner",

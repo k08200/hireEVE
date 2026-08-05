@@ -1,8 +1,8 @@
 /**
- * Unit tests for the parts of naver-imap that don't require a live IMAP
+ * Unit tests for the parts of imap-sync that don't require a live IMAP
  * server. Real IMAP roundtrips are exercised manually via the settings
- * UI's "Connect" button — there's no public Naver sandbox to integration
- * test against.
+ * UI's "Connect" button — there's no public Naver/iCloud sandbox to
+ * integration test against.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -47,15 +47,17 @@ vi.mock("../judge/poc-judge.js", () => ({
   }),
 }));
 
-const { verifyNaverImapCredentials } = await import("../mail/naver-imap.js");
+const { verifyImapCredentials } = await import("../mail/imap-sync.js");
+const { IMAP_PROVIDERS } = await import("../mail/imap-providers.js");
 
-describe("verifyNaverImapCredentials", () => {
+describe("verifyImapCredentials", () => {
   it("returns ok=true when LOGIN + INBOX lock succeed", async () => {
     connectFn.mockResolvedValueOnce(undefined);
     getLockFn.mockResolvedValueOnce({ release: () => {} });
     logoutFn.mockResolvedValueOnce(undefined);
 
-    const result = await verifyNaverImapCredentials({
+    const result = await verifyImapCredentials({
+      provider: IMAP_PROVIDERS.NAVER,
       email: "user@naver.com",
       password: "app-password",
       host: "imap.naver.com:993",
@@ -67,7 +69,8 @@ describe("verifyNaverImapCredentials", () => {
   it("maps 'Authentication failed' to a helpful Korean-aware message", async () => {
     connectFn.mockRejectedValueOnce(new Error("Authentication failed (AUTH=PLAIN)"));
 
-    const result = await verifyNaverImapCredentials({
+    const result = await verifyImapCredentials({
+      provider: IMAP_PROVIDERS.NAVER,
       email: "user@naver.com",
       password: "wrong",
       host: "imap.naver.com:993",
@@ -80,7 +83,8 @@ describe("verifyNaverImapCredentials", () => {
   it("maps network errors to a host-prefixed message", async () => {
     connectFn.mockRejectedValueOnce(new Error("ENOTFOUND imap.naver.invalid"));
 
-    const result = await verifyNaverImapCredentials({
+    const result = await verifyImapCredentials({
+      provider: IMAP_PROVIDERS.NAVER,
       email: "user@naver.com",
       password: "x",
       host: "imap.naver.invalid:993",
@@ -93,7 +97,8 @@ describe("verifyNaverImapCredentials", () => {
   it("falls back to the raw error message for unknown errors", async () => {
     connectFn.mockRejectedValueOnce(new Error("some unexpected IMAP error"));
 
-    const result = await verifyNaverImapCredentials({
+    const result = await verifyImapCredentials({
+      provider: IMAP_PROVIDERS.NAVER,
       email: "user@naver.com",
       password: "x",
       host: "imap.naver.com:993",
@@ -103,12 +108,27 @@ describe("verifyNaverImapCredentials", () => {
     expect(result.message).toBe("some unexpected IMAP error");
   });
 
+  it("uses the provider's auth-failure hint (Apple app-specific password for ICLOUD)", async () => {
+    connectFn.mockRejectedValueOnce(new Error("Authentication failed (AUTH=PLAIN)"));
+
+    const result = await verifyImapCredentials({
+      provider: IMAP_PROVIDERS.ICLOUD,
+      email: "user@icloud.com",
+      password: "wrong",
+      host: "imap.mail.me.com:993",
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/app-specific password/);
+  });
+
   it("parses host:port into the right tuple", async () => {
     connectFn.mockResolvedValueOnce(undefined);
     getLockFn.mockResolvedValueOnce({ release: () => {} });
     logoutFn.mockResolvedValueOnce(undefined);
 
-    await verifyNaverImapCredentials({
+    await verifyImapCredentials({
+      provider: IMAP_PROVIDERS.NAVER,
       email: "u@n.com",
       password: "p",
       host: "custom.example.com:1234",

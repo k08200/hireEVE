@@ -1,7 +1,7 @@
 /**
  * GitHub notifications polling scheduler.
  *
- * Mirrors naver-imap-scheduler: every POLL_INTERVAL_MS, walk every User
+ * Mirrors imap-scheduler: every POLL_INTERVAL_MS, walk every User
  * with a connected GitHub token and run syncGitHubForUser. Per-user errors
  * never block the others. Polling (not webhooks) so self-hosters behind
  * NAT need no public endpoint — the same trade-off the Naver poller makes.
@@ -32,7 +32,7 @@ async function tickOnce(): Promise<void> {
     } catch (err) {
       // Terminal handler for the per-user GitHub sync — console first so a
       // failure is visible without a Sentry DSN (self-host / dev), matching
-      // naver-imap-scheduler. Without this, a broken token or API change
+      // imap-scheduler. Without this, a broken token or API change
       // silently stalls that user's GitHub notifications with no trace.
       console.warn(`[github-scheduler] sync failed for user ${user.id}:`, err);
       captureError(err, { tags: { scope: "github-scheduler" }, extra: { userId: user.id } });

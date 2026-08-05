@@ -49,6 +49,7 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       DB_HEARTBEAT_ENABLED: env.DB_HEARTBEAT_ENABLED === "true",
     },
     dynamic: {
+      ICLOUD_INBOX_ENABLED: dynamicFlag(env, "ICLOUD_INBOX_ENABLED"),
       JUDGE_INCLUDE_BODY: dynamicFlag(env, "JUDGE_INCLUDE_BODY"),
       AUTO_TIER_EXECUTION: env.AUTO_TIER_EXECUTION === "true",
       CI_NOISE_SILENT_FLOOR: dynamicFlag(env, "CI_NOISE_SILENT_FLOOR"),

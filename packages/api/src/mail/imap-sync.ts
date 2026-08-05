@@ -1,20 +1,21 @@
 /**
- * Naver IMAP integration.
+ * Generalized IMAP integration (Phase 2 of the multi-provider plan;
+ * formerly naver-imap.ts — Naver-only until then).
  *
- * Naver mail has no production REST API, but every Naver account supports
- * IMAP via the "외부 메일 가져오기/보내기" feature. The user generates a
- * per-app password in their security settings (NOT the account password)
- * and pastes it into Klorn's settings page.
+ * Providers without a production REST API (Naver, iCloud) support IMAP with
+ * a per-app password the user generates in their account security settings
+ * (NOT the account password) and pastes into Klorn's settings page. Which
+ * providers exist, their hosts, dedup-key prefixes, and error copy live in
+ * imap-providers.ts — this module owns only the IMAP conversation.
  *
  * Two entry points:
- *   - verifyNaverImapCredentials  — short LOGIN+LOGOUT roundtrip used
- *                                   by /api/naver-imap/connect to fail
- *                                   loudly on a wrong password.
- *   - syncNaverImap               — fetches recent messages and hands each
- *                                   to the shared persist path
- *                                   (persistGmailEmail), which owns dedup,
- *                                   judge + attention mirroring, and PUSH
- *                                   interrupts — identical to Gmail ingest.
+ *   - verifyImapCredentials — short LOGIN+LOGOUT roundtrip used by the
+ *                             connect route to fail loudly on a wrong
+ *                             password.
+ *   - syncImapInbox         — fetches recent messages and hands each to the
+ *                             shared persist path (persistGmailEmail), which
+ *                             owns dedup, judge + attention mirroring, and
+ *                             PUSH interrupts — identical to Gmail ingest.
  *
  * Free Render tier note: we do NOT use IMAP IDLE (persistent connection
  * holding) because the dyno can sleep and the connection lock interacts
@@ -26,8 +27,10 @@ import sanitizeHtml from "sanitize-html";
 
 import { persistGmailEmail } from "../judge/email-firewall.js";
 import { captureError } from "../sentry.js";
+import type { ImapProviderConfig } from "./imap-providers.js";
 
 interface VerifyArgs {
+  provider: ImapProviderConfig;
   email: string;
   password: string;
   host: string; // "imap.naver.com:993"
@@ -44,7 +47,7 @@ function parseHost(host: string): { host: string; port: number } {
   return { host: h, port };
 }
 
-export async function verifyNaverImapCredentials(args: VerifyArgs): Promise<VerifyResult> {
+export async function verifyImapCredentials(args: VerifyArgs): Promise<VerifyResult> {
   const { host, port } = parseHost(args.host);
   const client = new ImapFlow({
     host,
@@ -68,11 +71,7 @@ export async function verifyNaverImapCredentials(args: VerifyArgs): Promise<Veri
     const msg = err instanceof Error ? err.message : String(err);
     // Map common IMAP error shapes to user-readable hints.
     if (/authentication failed/i.test(msg) || /AUTH=/i.test(msg)) {
-      return {
-        ok: false,
-        message:
-          "Naver IMAP login failed. Generate a separate '외부 메일 비밀번호' in Naver security settings and paste that — not your account password.",
-      };
+      return { ok: false, message: args.provider.authFailureHint };
     }
     if (/timeout|ECONN|ENOTFOUND/i.test(msg)) {
       return { ok: false, message: `Could not reach ${args.host}: ${msg}` };
@@ -82,12 +81,13 @@ export async function verifyNaverImapCredentials(args: VerifyArgs): Promise<Veri
 }
 
 interface SyncArgs {
+  provider: ImapProviderConfig;
   userId: string;
   email: string;
   password: string; // plaintext (decrypted by caller)
   host: string;
   // The LinkedInboxAccount row this mailbox belongs to (Phase 0b). Stamped on
-  // every EmailMessage so Naver mail carries real provenance instead of being
+  // every EmailMessage so IMAP mail carries real provenance instead of being
   // indistinguishable from primary-account mail.
   linkedInboxAccountId?: string;
   limit?: number; // defaults to 50
@@ -147,13 +147,14 @@ function snippetFromBody(buf: Buffer | undefined, max = 200): string | null {
 }
 
 /**
- * Sync the most-recent `limit` messages from the user's Naver INBOX.
+ * Sync the most-recent `limit` messages from the mailbox's INBOX.
  * Upsert each into EmailMessage (keyed on (userId, gmailId) — for IMAP
  * we synthesize a stable id from the IMAP UID), then classify via
  * poc-judge and mirror to AttentionItem.
  */
-export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
+export async function syncImapInbox(args: SyncArgs): Promise<SyncResult> {
   const limit = args.limit ?? 50;
+  const scope = args.provider.logScope;
   const { host, port } = parseHost(args.host);
 
   const result: SyncResult = { fetched: 0, inserted: 0, classified: 0, errors: 0 };
@@ -203,9 +204,10 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
         const bodyBuf = msg.bodyParts?.get("text") ?? msg.bodyParts?.get("TEXT");
         const snippet = snippetFromBody(bodyBuf);
 
-        // Stable id-per-mailbox: prefix with `naver-imap:` so it never
-        // collides with Gmail message ids in the same EmailMessage table.
-        const stableId = `naver-imap:${args.email}:${msg.uid}`;
+        // Stable id-per-mailbox: the provider's idPrefix (`naver-imap:`,
+        // `icloud-imap:`) keeps it from colliding with Gmail message ids —
+        // or another provider's UIDs — in the same EmailMessage table.
+        const stableId = `${args.provider.idPrefix}:${args.email}:${msg.uid}`;
 
         // Flags → Gmail-ish labels so existing classifier paths work.
         const flags = Array.isArray(msg.flags) ? msg.flags : [...(msg.flags ?? new Set<string>())];
@@ -218,9 +220,9 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
         try {
           // Shared persist path (Phase 1): the same fetch→normalize→persist→
           // judge pipeline Gmail ingestion uses. We still co-opt gmailId as the
-          // canonical "external mail provider id" (the `naver-imap:` prefix
-          // keeps the namespaces from colliding), and persistGmailEmail owns
-          // dedup, fromAddress normalization, commitment mining, and the
+          // canonical "external mail provider id" (the idPrefix keeps the
+          // namespaces from colliding), and persistGmailEmail owns dedup,
+          // fromAddress normalization, commitment mining, and the
           // fire-and-forget judge + attention mirror — including PUSH
           // interrupts and judge-health recording the old inline judge lacked.
           const persisted = await persistGmailEmail(
@@ -262,9 +264,9 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
           // console first: captureError is a no-op without a Sentry DSN, so in
           // dev/self-host a persist failure would drop this email from triage
           // with no trace.
-          console.warn(`[naver-imap] persist failed for ${stableId}`, err);
+          console.warn(`[${scope}] persist failed for ${stableId}`, err);
           captureError(err, {
-            tags: { scope: "naver-imap.upsert" },
+            tags: { scope: `${scope}.upsert` },
             extra: { userId: args.userId, stableId },
           });
         }
@@ -277,11 +279,11 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
     result.errors += 1;
     // console first — captureError is silent without a Sentry DSN (self-host/dev).
     console.warn(
-      `[naver-imap] sync failed for ${args.userId}:`,
+      `[${scope}] sync failed for ${args.userId}:`,
       err instanceof Error ? err.message : String(err),
     );
     captureError(err, {
-      tags: { scope: "naver-imap.sync" },
+      tags: { scope: `${scope}.sync` },
       extra: { userId: args.userId },
     });
     throw err;
@@ -289,7 +291,3 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
 
   return result;
 }
-
-// syncNaverImapForUser (the User-columns reader) moved to naver-accounts.ts as
-// syncNaverAccountsForUser in Phase 0b: Naver credentials now live in
-// LinkedInboxAccount rows (provider NAVER), one per connected mailbox.

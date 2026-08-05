@@ -124,6 +124,11 @@ services:
         sync: false
       - key: BETA_AUTO_PRO_LIMIT
         sync: false
+      # iCloud Mail connect + sync (Phase 2, multi-provider plan). OFF until
+      # the CASA Letter of Assessment is issued — while unset/false, every
+      # /api/icloud-imap route 404s and the poll never selects ICLOUD rows.
+      - key: ICLOUD_INBOX_ENABLED
+        sync: false
       # Prod-critical runtime config — declared (sync:false) so a blueprint sync
       # can never PRUNE them. Previously these lived only in the Render dashboard
       # and got dropped on redeploy, which silently disabled Web Push (the PUSH

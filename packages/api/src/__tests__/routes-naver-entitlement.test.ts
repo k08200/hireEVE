@@ -40,8 +40,8 @@ vi.mock("../db.js", () => {
 });
 vi.mock("../crypto-tokens.js", () => ({ encryptToken: vi.fn(() => "cipher") }));
 vi.mock("../mail/is-allowed-imap-host.js", () => ({ isAllowedImapHost: vi.fn(() => true) }));
-vi.mock("../mail/naver-imap.js", () => ({
-  verifyNaverImapCredentials: vi.fn(async () => ({ ok: true })),
+vi.mock("../mail/imap-sync.js", () => ({
+  verifyImapCredentials: vi.fn(async () => ({ ok: true })),
 }));
 
 const ORIGINAL_PAYWALL = process.env.PAYWALL_ENABLED;
@@ -50,10 +50,11 @@ async function buildApp() {
   process.env.PAYWALL_ENABLED = "true";
   vi.resetModules();
   const { signToken, requireAuth } = await import("../auth.js");
-  const { naverImapRoutes } = await import("../routes/naver-imap.js");
+  const { imapConnectRoutes } = await import("../routes/imap-connect.js");
+  const { IMAP_PROVIDERS } = await import("../mail/imap-providers.js");
   const app = Fastify();
   app.addHook("preHandler", requireAuth);
-  await app.register(naverImapRoutes, { prefix: "/api/naver-imap" });
+  await app.register(imapConnectRoutes(IMAP_PROVIDERS.NAVER), { prefix: "/api/naver-imap" });
   await app.ready();
   const token = signToken({ userId: "user-1", email: "test@example.com" });
   return { app, headers: { authorization: `Bearer ${token}` } };

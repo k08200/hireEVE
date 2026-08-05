@@ -89,6 +89,20 @@ actions (send/archive/markRead/trash/star) behind one interface;
 **Phase 2 — iCloud.** Allowlist + app-specific-password connect UX on the
 generalized IMAP path. Smallest new provider; validates Phase 1.
 
+Phase 2 outcome (landed): `imap.mail.me.com` joined the exact-host allowlist,
+and the Naver-named IMAP path became provider-parameterized — `imap-sync.ts` /
+`imap-accounts.ts` / `imap-scheduler.ts` / `routes/imap-connect.ts` (a
+per-provider route factory), driven by the `IMAP_PROVIDERS` registry in
+`mail/imap-providers.ts`. Naver behavior, URLs, and the persisted `naver-imap:`
+dedup prefix are unchanged; iCloud uses `icloud-imap:`. The connect route now
+also pins host↔provider (the shared allowlist alone would let a NAVER row point
+at the iCloud host). Everything iCloud is dark behind `ICLOUD_INBOX_ENABLED`
+(dynamic, default OFF): the `/api/icloud-imap/*` routes answer 404 — even
+unauthenticated — and the poll never selects ICLOUD rows, so the CASA/DAST
+surface is unchanged until the flag flips. iCloud is read-only (ingest + judge;
+actions stay 501 via `unsupportedMailActions`), same as Naver. The scheduler
+heartbeat renamed `naver-imap` → `imap` (one scheduler, all IMAP providers).
+
 **Phase 3 — Outlook.** Azure app registration (founder action), Graph OAuth
 connect, delta-query sync, Graph-API actions, change-notification webhook (or
 poll first, webhook later).

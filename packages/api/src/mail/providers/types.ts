@@ -50,7 +50,7 @@ export interface SendMailOptions {
 /**
  * `messageId` below is the provider-side message id stored in
  * `EmailMessage.gmailId` — Gmail's native id for GOOGLE, the synthetic
- * `naver-imap:<email>:<uid>` for NAVER. `linkedInboxAccountId` stays an
+ * `<idPrefix>:<email>:<uid>` for IMAP providers (naver-imap:, icloud-imap:). `linkedInboxAccountId` stays an
  * explicit parameter (repo doctrine: thread the account id end-to-end, never
  * assume the primary).
  */

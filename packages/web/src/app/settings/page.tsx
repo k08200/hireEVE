@@ -8,6 +8,7 @@ import { useConfirm } from "../../components/confirm-dialog";
 import { FeedbackPolicyPanel } from "../../components/feedback-policy-panel";
 import { GitHubSection } from "../../components/github-section";
 import { GoogleConnectRedirect } from "../../components/google-connect-redirect";
+import { ICloudImapSection } from "../../components/icloud-imap-section";
 import InAppBrowserNotice from "../../components/in-app-browser-notice";
 import { LinkedInboxesSection } from "../../components/linked-inboxes-section";
 import { NaverImapSection } from "../../components/naver-imap-section";
@@ -1792,6 +1793,11 @@ export default function SettingsPage() {
         <section className="mb-8">
           <NaverImapSection />
         </section>
+
+        {/* iCloud Mail (IMAP, app-specific password) — renders nothing (no
+            wrapper, no margin) while ICLOUD_INBOX_ENABLED is off server-side
+            (the status probe 404s), so it carries its own mb-8 */}
+        <ICloudImapSection />
 
         {/* Bring your own LLM key */}
         <section className="mb-8">
