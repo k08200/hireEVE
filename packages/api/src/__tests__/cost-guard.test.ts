@@ -352,3 +352,15 @@ describe("checkGlobalCostGate", () => {
     expect(blocked.reason).toMatch(/global/i);
   });
 });
+
+describe("recordGlobalCostUsage", () => {
+  it("never touches the ledger when the global cap is disabled (cap <= 0)", async () => {
+    // DB-less contexts (CI eval/canary jobs) set the cap to 0; the pre-bill
+    // must not reach Prisma or every judge call dies on the missing DB.
+    process.env.GLOBAL_DAILY_COST_CAP_CENTS = "0";
+    vi.resetModules();
+    const { recordGlobalCostUsage } = await import("../billing/cost-guard.js");
+    expect(await recordGlobalCostUsage(30)).toBeNull();
+    expect(globalTable.size).toBe(0);
+  });
+});
