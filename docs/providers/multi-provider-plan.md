@@ -61,15 +61,23 @@ NAVER rows exist): `mail/gmail.ts:742,786,821,1629,1684,1725`,
 `routes/email.ts:1151,1181`, `scripts/reencrypt-tokens.ts:143,147`.
 (`routes/gmail-push.ts` was already scoped to GOOGLE in 0a.)
 
-Two more 0b must-fixes beyond the filter list:
-- `notify/reconnect-notification.ts:22,27,47` — the reconnect alert's copy is
-  hardcoded "Gmail disconnected" and its dedupe key is `reconnect:google:…`;
-  reached from `markLinkedInboxForReconnect` for ANY row, so a broken
-  Naver/iCloud row would surface Gmail-branded copy. Needs provider-aware
-  copy + dedupe key.
-- `scripts/reencrypt-tokens.ts:140-148` — the key-rotation sweep covers only
-  accessToken/refreshToken; it must also sweep `imapPasswordCipher` once 0b
-  populates it, or rotated keys silently strand IMAP credentials.
+0b outcome (landed): the audit list's real exposures were closed — the OAuth
+fan-outs, watch renewal, the Google linked-inboxes list/delete routes, the
+Google link cap, and `/api/email/inboxes` are provider-scoped to GOOGLE; the
+by-`{id,userId}` writes were verified safe (their ids come from GOOGLE-scoped
+selections upstream) and left unfiltered. The key-rotation sweep now covers
+`imapPasswordCipher`. Naver sync stamps `linkedInboxAccountId` on every
+EmailMessage (legacy rows adopt it as the poll re-touches the recent window).
+
+Deferred to Phase 1, with reasons:
+- `notify/reconnect-notification.ts` Gmail-branded copy/dedupe key: still
+  unreachable for NAVER rows — the naver sync path does not yet flag
+  `needsReconnect` on auth failure (failures log + count only). Generalize the
+  copy WHEN that flagging lands, as one change.
+- `/api/naver-imap/status` returns `needsReconnect` per account but it can
+  only be false today, for the same reason.
+- The `User.naverImap*` columns still exist (stale, unread). Drop via a
+  contract migration after this release proves out.
 
 **Phase 1 — MailProvider interface.** Extract ingestion
 (fetch→normalize→upsert→judge, the shape `naver-imap.ts` already proves) and

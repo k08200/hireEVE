@@ -266,7 +266,7 @@ describe("email routes (demo mode)", () => {
     });
     // Self-scoped: linked lookup keyed by the caller's userId.
     expect(prisma.linkedInboxAccount.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { userId: "user-1" } }),
+      expect.objectContaining({ where: { userId: "user-1", provider: "GOOGLE" } }),
     );
     await app.close();
   });

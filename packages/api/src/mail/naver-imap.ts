@@ -23,7 +23,7 @@
 
 import { ImapFlow } from "imapflow";
 import sanitizeHtml from "sanitize-html";
-import { decryptToken } from "../crypto-tokens.js";
+
 import { prisma } from "../db.js";
 import { upsertAttentionForEmailJudgement } from "../judge/attention-mirror.js";
 import { buildJudgeContext } from "../judge/judge-context.js";
@@ -31,7 +31,6 @@ import { judgeEmail } from "../judge/poc-judge.js";
 import { engagementKindOf } from "../learning/sender-policy.js";
 import { getUserLlmCredentials } from "../llm/llm-credentials.js";
 import { captureError } from "../sentry.js";
-import { isAllowedImapHost } from "./is-allowed-imap-host.js";
 
 interface VerifyArgs {
   email: string;
@@ -92,6 +91,10 @@ interface SyncArgs {
   email: string;
   password: string; // plaintext (decrypted by caller)
   host: string;
+  // The LinkedInboxAccount row this mailbox belongs to (Phase 0b). Stamped on
+  // every EmailMessage so Naver mail carries real provenance instead of being
+  // indistinguishable from primary-account mail.
+  linkedInboxAccountId?: string;
   limit?: number; // defaults to 50
 }
 
@@ -229,6 +232,7 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
             create: {
               userId: args.userId,
               gmailId: stableId,
+              linkedInboxAccountId: args.linkedInboxAccountId ?? null,
               threadId: null,
               from,
               to,
@@ -246,6 +250,10 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
               isRead,
               isStarred,
               labels,
+              // Backfill: rows ingested before the table move have null here;
+              // the poll re-touches the recent window, so they adopt their
+              // account's id on the next cycle without a data migration.
+              linkedInboxAccountId: args.linkedInboxAccountId ?? null,
             },
           });
           // Only judge first-seen emails. The poll re-fetches the most-recent
@@ -340,37 +348,6 @@ export async function syncNaverImap(args: SyncArgs): Promise<SyncResult> {
   return result;
 }
 
-/**
- * Convenience wrapper for the scheduler: looks up the user, decrypts the
- * stored password, then runs syncNaverImap.
- */
-export async function syncNaverImapForUser(userId: string): Promise<SyncResult | null> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      naverImapEmail: true,
-      naverImapPasswordCipher: true,
-      naverImapHost: true,
-    },
-  });
-  if (!user?.naverImapEmail || !user.naverImapPasswordCipher || !user.naverImapHost) {
-    return null;
-  }
-  // Re-validate the stored host at the connection boundary, not only at the
-  // /connect write. Enforcing the SSRF allowlist on every poll means a host
-  // that ever reaches this column by any other write path (migration, admin
-  // tooling, future endpoint) can never open a TLS connection to an internal
-  // target.
-  if (!isAllowedImapHost(user.naverImapHost)) {
-    console.warn(
-      `[naver-imap] poll skipped — host not allowlisted for user ${userId}: ${user.naverImapHost}`,
-    );
-    return null;
-  }
-  return syncNaverImap({
-    userId,
-    email: user.naverImapEmail,
-    password: decryptToken(user.naverImapPasswordCipher),
-    host: user.naverImapHost,
-  });
-}
+// syncNaverImapForUser (the User-columns reader) moved to naver-accounts.ts as
+// syncNaverAccountsForUser in Phase 0b: Naver credentials now live in
+// LinkedInboxAccount rows (provider NAVER), one per connected mailbox.

@@ -141,9 +141,12 @@ function buildSweeps(): FieldSweep[] {
       "LinkedInboxAccount",
       () =>
         prisma.linkedInboxAccount.findMany({
-          select: { id: true, accessToken: true, refreshToken: true },
+          // imapPasswordCipher joined in Phase 0b: IMAP-provider rows carry
+          // their credential there, and a key rotation that skipped it would
+          // silently strand every IMAP mailbox on the retired key.
+          select: { id: true, accessToken: true, refreshToken: true, imapPasswordCipher: true },
         }),
-      ["accessToken", "refreshToken"],
+      ["accessToken", "refreshToken", "imapPasswordCipher"],
       (id, data, guard) => prisma.linkedInboxAccount.updateMany({ where: { id, ...guard }, data }),
     ),
     tableSweep(

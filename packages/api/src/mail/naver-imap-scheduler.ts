@@ -14,36 +14,39 @@
 import { prisma } from "../db.js";
 import { recordSchedulerTick, registerScheduler } from "../scheduler-heartbeat.js";
 import { captureError } from "../sentry.js";
-import { syncNaverImapForUser } from "./naver-imap.js";
+import { syncNaverAccountsForUser } from "./naver-accounts.js";
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let firstTickTimer: ReturnType<typeof setTimeout> | null = null;
 const POLL_INTERVAL_MS = 5 * 60_000; // 5 minutes
 
 async function tickOnce(): Promise<void> {
-  const users = await prisma.user.findMany({
-    where: { naverImapEmail: { not: null } },
-    select: { id: true, naverImapEmail: true },
+  // Users come from the table now (Phase 0b) — one row per connected Naver
+  // mailbox, so groupBy collapses a user's multiple accounts into one entry;
+  // syncNaverAccountsForUser fans out over their rows itself.
+  const owners = await prisma.linkedInboxAccount.groupBy({
+    by: ["userId"],
+    where: { provider: "NAVER" },
   });
-  if (users.length === 0) return;
+  if (owners.length === 0) return;
 
   // Run serially — Naver IMAP per-user rate-limits aggressively when you
   // open multiple LOGIN sessions from the same IP in quick succession.
-  for (const user of users) {
+  for (const owner of owners) {
     try {
-      const result = await syncNaverImapForUser(user.id);
+      const result = await syncNaverAccountsForUser(owner.userId);
       if (result) {
         console.log(
-          `[naver-imap] ${user.naverImapEmail}: fetched=${result.fetched} inserted=${result.inserted} errors=${result.errors}`,
+          `[naver-imap] user ${owner.userId}: fetched=${result.fetched} inserted=${result.inserted} errors=${result.errors}`,
         );
       }
     } catch (err) {
       // Terminal handler for the per-user Naver sync — console first so a
       // failure is visible without a Sentry DSN (self-host / dev).
-      console.warn(`[naver-imap-scheduler] sync failed for user ${user.id}:`, err);
+      console.warn(`[naver-imap-scheduler] sync failed for user ${owner.userId}:`, err);
       captureError(err, {
         tags: { scope: "naver-imap-scheduler" },
-        extra: { userId: user.id },
+        extra: { userId: owner.userId },
       });
     }
   }

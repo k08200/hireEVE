@@ -17,11 +17,17 @@ vi.mock("../db.js", () => {
         id: "user-1",
         plan: state.plan,
         role: state.role,
-        naverImapEmail: null,
-        naverImapHost: null,
-        naverImapConnectedAt: null,
       })),
       update: vi.fn(async () => ({ id: "user-1" })),
+    },
+    // Phase 0b: the naver routes read/write LinkedInboxAccount (provider
+    // NAVER) instead of the four User columns.
+    linkedInboxAccount: {
+      findMany: vi.fn(async () => []),
+      findUnique: vi.fn(async () => null),
+      count: vi.fn(async () => 0),
+      upsert: vi.fn(async () => ({ id: "row-1" })),
+      deleteMany: vi.fn(async () => ({ count: 0 })),
     },
     device: {
       findUnique: vi.fn(async () => ({ id: "device-1" })),

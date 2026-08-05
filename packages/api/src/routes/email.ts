@@ -1179,7 +1179,11 @@ export async function emailRoutes(app: FastifyInstance) {
       select: { email: true },
     });
     const linked = await prisma.linkedInboxAccount.findMany({
-      where: { userId: uid },
+      // GOOGLE only for now: this selector feeds per-inbox Gmail actions
+      // (send-from, archive) that IMAP rows can't satisfy yet. NAVER rows
+      // (in this table since Phase 0b) join the selector in Phase 1 when the
+      // contract carries a provider field and actions dispatch by provider.
+      where: { userId: uid, provider: "GOOGLE" },
       select: { id: true, email: true, needsReconnect: true },
       orderBy: { email: "asc" },
     });

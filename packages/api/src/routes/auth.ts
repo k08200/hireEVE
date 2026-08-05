@@ -982,7 +982,9 @@ export function authRoutes(app: FastifyInstance) {
         });
         if (!existingLink) {
           const linkedCount = await prisma.linkedInboxAccount.count({
-            where: { userId: statePayload.userId },
+            // GOOGLE only: the cap governs Google links; Naver has its own
+            // cap on its own route (MAX_NAVER_ACCOUNTS).
+            where: { userId: statePayload.userId, provider: "GOOGLE" },
           });
           if (linkedCount >= MAX_LINKED_INBOXES) {
             return reply.redirect(`${webUrl}/settings?inbox=limit`);
@@ -1393,7 +1395,9 @@ export function authRoutes(app: FastifyInstance) {
     async (request) => {
       const userId = getUserId(request);
       const accounts = await prisma.linkedInboxAccount.findMany({
-        where: { userId },
+        // This is the GOOGLE linked-inboxes surface; NAVER rows share the
+        // table since Phase 0b and list on /api/naver-imap/status instead.
+        where: { userId, provider: "GOOGLE" },
         select: {
           id: true,
           email: true,
@@ -1415,7 +1419,11 @@ export function authRoutes(app: FastifyInstance) {
   app.delete("/google/linked-inboxes/:id", { preHandler: requireAuth }, async (request, reply) => {
     const userId = getUserId(request);
     const { id } = request.params as { id: string };
-    const result = await prisma.linkedInboxAccount.deleteMany({ where: { id, userId } });
+    const result = await prisma.linkedInboxAccount.deleteMany({
+      // provider-scoped so this Google-surface endpoint can never remove a
+      // NAVER row by id — Naver disconnects live on /api/naver-imap.
+      where: { id, userId, provider: "GOOGLE" },
+    });
     if (result.count === 0) {
       return reply.code(404).send({ error: "Linked inbox not found" });
     }

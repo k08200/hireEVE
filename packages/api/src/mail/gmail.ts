@@ -784,7 +784,10 @@ export async function getAuthedInboxAccount(
   linkedInboxAccountId: string,
 ): Promise<{ client: InstanceType<typeof google.auth.OAuth2>; id: string; email: string } | null> {
   const row = await prisma.linkedInboxAccount.findFirst({
-    where: { id: linkedInboxAccountId, userId },
+    // provider-scoped like getAuthedInboxClient: the contract is an OAuth2
+    // client, which only a GOOGLE row can satisfy (NAVER rows share the table
+    // since Phase 0b).
+    where: { id: linkedInboxAccountId, userId, provider: "GOOGLE" },
   });
   if (!row) return null;
   const client = buildInboxOAuthClient(row, userId);
@@ -1633,6 +1636,10 @@ export async function renewExpiringGmailWatches(): Promise<{ renewed: number; fa
       // its gmailWatchExpiresAt; a linked flag doesn't touch that column). They
       // re-enter this query once a re-link clears needsReconnect.
       where: {
+        // GOOGLE only: NAVER rows (in this table since Phase 0b) always have
+        // gmailWatchExpiresAt null and would match the first-register arm
+        // forever, burning a doomed watch attempt every renewal tick.
+        provider: "GOOGLE",
         needsReconnect: false,
         OR: [{ gmailWatchExpiresAt: null }, { gmailWatchExpiresAt: { lte: cutoff } }],
       },
