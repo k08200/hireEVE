@@ -24,9 +24,14 @@ final class TopBarController {
     /// though hidden-pill mode suppresses the ambient pill. Cleared on dismiss.
     private var summoned = false
     private static let topMargin: CGFloat = 8
+    /// Persists the full window's user-chosen size after a drag-resize.
+    private let resizeRecorder = PanelResizeRecorder()
 
     init(model: AppModel) {
         self.model = model
+        resizeRecorder.onLiveResizeEnd = { [weak self] size in
+            self?.model.settings.fullWindowSize = size
+        }
     }
 
     /// Show the bar (collapsed) at launch and keep it present for the session.
@@ -76,6 +81,13 @@ final class TopBarController {
         summoned = true
         setState(.full)
         model.showPreferences = true
+    }
+
+    /// First launch + Finder/Dock reopen: show the real app window. An
+    /// explicit summon, so hidden-pill mode must not eat it.
+    func openFull() {
+        summoned = true
+        setState(.full)
     }
 
     /// What ⌥⌘K does, given whether the bar is on screen and its state. Pure so
@@ -144,7 +156,7 @@ final class TopBarController {
             return
         }
         let focusable = (state == .full)
-        let size = TopBarMetrics.size(for: state)
+        let size = panelSize(for: state)
         let root = TopBarRoot(state: state, actions: makeActions())
             .environment(model)
             // Localized strings are read through L(), which SwiftUI cannot
@@ -255,14 +267,38 @@ final class TopBarController {
             onQuit: { NSApplication.shared.terminate(nil) })
     }
 
+    /// The frame size for a state: full fits the screen (and honors the
+    /// user's drag-resize); pill/expanded stay at their fixed metrics.
+    private func panelSize(for state: BarState) -> NSSize {
+        let ideal = state == .full
+            ? (model.settings.fullWindowSize ?? TopBarMetrics.full)
+            : TopBarMetrics.size(for: state)
+        guard state == .full, let visible = NSScreen.main?.visibleFrame else { return ideal }
+        return TopBarMetrics.fittedSize(
+            ideal: ideal, visible: visible.size, floor: TopBarMetrics.fullMin)
+    }
+
+    /// Pure for the harness: full is a resizable key-able window (the fixed
+    /// 1400×860 could not be shrunk — clipped-display report, 2026-08-05);
+    /// pill/expanded stay non-focus-stealing and fixed.
+    nonisolated static func styleMask(focusable: Bool) -> NSWindow.StyleMask {
+        focusable ? [.borderless, .resizable] : [.borderless, .nonactivatingPanel]
+    }
+
     private func makePanel(focusable: Bool) -> NSPanel {
         let rect = NSRect(origin: .zero, size: TopBarMetrics.collapsed)
         // Non-focus-stealing for pill/panel (`.nonactivatingPanel`); a key-able
         // window for full so the reply field can accept typing.
-        let mask: NSWindow.StyleMask = focusable ? [.borderless] : [.borderless, .nonactivatingPanel]
+        let mask = Self.styleMask(focusable: focusable)
         let panel: NSPanel = focusable
             ? KeyablePanel(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
             : NSPanel(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
+        if focusable {
+            // Borderless windows still get native edge-drag with .resizable;
+            // the floor keeps the fixed sidebar + list columns from clipping.
+            panel.contentMinSize = TopBarMetrics.fullMin
+            panel.delegate = resizeRecorder
+        }
         panel.isFloatingPanel = true
         panel.level = .floating
         panel.hidesOnDeactivate = false
@@ -281,14 +317,12 @@ final class TopBarController {
     /// Keep the bar pinned top-center; animate the frame so expand/collapse morphs.
     private func setFrame(_ panel: NSPanel, size: NSSize) {
         guard let visible = NSScreen.main?.visibleFrame else { return }
-        let origin = NSPoint(
-            x: visible.midX - size.width / 2,
-            y: visible.maxY - size.height - Self.topMargin)
         // Honor Reduce Motion (WCAG 2.3.3 + CLAUDE.md): a full-window morph up to
         // 1400px is exactly the large motion the setting exists to suppress.
         let animate = Self.shouldAnimateFrame(
             reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
-        let frame = NSRect(origin: origin, size: size)
+        let frame = TopBarMetrics.pinnedFrame(
+            size: size, visible: visible, topMargin: Self.topMargin)
         panel.setFrame(frame, display: true, animate: animate)
         if animate {
             // The shadow computed mid-morph is stale (square) — re-derive it
@@ -303,4 +337,17 @@ final class TopBarController {
     /// Animate the panel morph unless the user asked for reduced motion. Pure for testing.
     nonisolated static func shouldAnimateFrame(reduceMotion: Bool) -> Bool { !reduceMotion }
 
+}
+
+/// NSWindowDelegate hook that reports the size a user drag-resize settled on,
+/// so the full window's size survives state changes and relaunch. A separate
+/// NSObject because the controller is a plain class.
+@MainActor
+final class PanelResizeRecorder: NSObject, NSWindowDelegate {
+    var onLiveResizeEnd: ((NSSize) -> Void)?
+
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        onLiveResizeEnd?(window.frame.size)
+    }
 }

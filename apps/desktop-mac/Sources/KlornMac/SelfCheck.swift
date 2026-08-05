@@ -269,6 +269,55 @@ func runSelfChecks() async -> Bool {
     check("detail falls back to snippet", cardDetailText(summary: "", snippet: "sn") == "sn")
     check("detail nil when both empty", cardDetailText(summary: nil, snippet: " ") == nil)
 
+    print("Top bar window fit:")
+    // Small-display fit: full was a hardcoded 1400×860 that clipped on 13"
+    // screens, and the frame math never consulted the screen (2026-08-05).
+    let smallScreen = NSRect(x: 0, y: 0, width: 1280, height: 775)
+    let fittedFull = TopBarMetrics.fittedSize(
+        ideal: TopBarMetrics.full, visible: smallScreen.size, floor: TopBarMetrics.fullMin)
+    check("full shrinks to fit a small display",
+          fittedFull.width <= smallScreen.width - TopBarMetrics.screenMargin * 2
+          && fittedFull.height <= smallScreen.height - TopBarMetrics.screenMargin * 2)
+    check("fit never drops below the column floor",
+          TopBarMetrics.fittedSize(
+              ideal: TopBarMetrics.full, visible: NSSize(width: 640, height: 400),
+              floor: TopBarMetrics.fullMin) == TopBarMetrics.fullMin)
+    check("large displays keep the ideal size",
+          TopBarMetrics.fittedSize(
+              ideal: TopBarMetrics.full, visible: NSSize(width: 1512, height: 950),
+              floor: TopBarMetrics.fullMin) == TopBarMetrics.full)
+    let fittedFrame = TopBarMetrics.pinnedFrame(size: fittedFull, visible: smallScreen, topMargin: 8)
+    check("pinned frame stays fully on screen", smallScreen.contains(fittedFrame))
+    check("pinned frame is top-centered",
+          abs(fittedFrame.midX - smallScreen.midX) < 0.5
+          && fittedFrame.maxY == smallScreen.maxY - 8)
+    check("full panel is user-resizable",
+          TopBarController.styleMask(focusable: true).contains(.resizable))
+    check("pill/expanded panel stays fixed and non-activating",
+          !TopBarController.styleMask(focusable: false).contains(.resizable)
+          && TopBarController.styleMask(focusable: false).contains(.nonactivatingPanel))
+    check("stored size below the floor is lifted",
+          AppSettings.resolveFullWindowSize(
+              ["width": 100.0, "height": 100.0], floor: TopBarMetrics.fullMin)
+              == TopBarMetrics.fullMin)
+    check("malformed stored size resolves nil",
+          AppSettings.resolveFullWindowSize("junk", floor: TopBarMetrics.fullMin) == nil)
+    check("valid stored size round-trips",
+          AppSettings.resolveFullWindowSize(
+              ["width": 1200.0, "height": 700.0], floor: TopBarMetrics.fullMin)
+              == NSSize(width: 1200, height: 700))
+    check("first launch fires exactly once",
+          AppSettings.isFirstLaunch(nil) && !AppSettings.isFirstLaunch(true))
+
+    print("Link inbox:")
+    check("link URL parses from the start response",
+          LinkInboxFlow.url(from: Data(#"{"url":"https://accounts.google.com/o/oauth2/v2/auth?x=1"}"#.utf8))
+          != nil)
+    check("non-https link URL is refused",
+          LinkInboxFlow.url(from: Data(#"{"url":"javascript:alert(1)"}"#.utf8)) == nil)
+    check("malformed link body is refused",
+          LinkInboxFlow.url(from: Data("nope".utf8)) == nil)
+
     print("Sender name:")
     // The raw From header is routing data. A list row that leads with
     // "<sarah.kim@northwind-partners.com>" hides the one thing that identifies

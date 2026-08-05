@@ -176,6 +176,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         bar.show()
         topBar = bar
         pushCard = card
+        // First run after install: open the real app window once. The resting
+        // pill at the top edge is easy to miss right after a download — people
+        // reported not realizing the app had launched (2026-08-05).
+        if model.settings.consumeFirstLaunch() {
+            bar.openFull()
+        }
 
         // Global toggle shortcut (default ⌥⌘K, user-configurable in Preferences):
         // while a card is up it arms/releases the card's keyboard (1/2/3/⏎/esc);
@@ -201,6 +207,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
 
         model.start()
+    }
+
+    /// Finder/Dock re-open of a running Klorn (LaunchServices sends reopen
+    /// instead of spawning a second process): show the app window. Without
+    /// this, double-clicking Klorn.app again appears to do nothing — the
+    /// accessory pill gives no visible response.
+    func applicationShouldHandleReopen(
+        _ sender: NSApplication, hasVisibleWindows flag: Bool
+    ) -> Bool {
+        topBar?.openFull()
+        return false
     }
 }
 

@@ -181,6 +181,15 @@ struct PreferencesView: View {
                 if model.phase == .signedIn {
                     Button(L("prefs.account.signOut")) { model.showPreferences = false; actions.onSignOut() }
                         .buttonStyle(.bordered).controlSize(.small)
+                    Button(L("account.add")) { Task { await model.addAccount() } }
+                        .buttonStyle(.bordered).controlSize(.small)
+                    Text(L("account.add.hint"))
+                        .font(.caption).foregroundStyle(Theme.textDim)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let error = model.linkAccountError {
+                        Text(error).font(.caption).foregroundStyle(Theme.textDim)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
