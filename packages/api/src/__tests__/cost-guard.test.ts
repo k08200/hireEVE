@@ -5,6 +5,7 @@ let mockRow: { cents: number } | null = null;
 const globalTable = new Map<string, number>();
 let mockUpsertCents = 0;
 let upsertShouldThrow = false;
+let globalUpsertShouldThrow = false;
 let mockUser: { plan: string; role: string | null } | null = null;
 let userLookupShouldThrow = false;
 const upserts: Array<{ userId: string; dayKey: string; data: Record<string, unknown> }> = [];
@@ -28,6 +29,7 @@ vi.mock("../db.js", () => ({
           create: { microCents: number };
           update: { microCents: { increment: number } };
         }) => {
+          if (globalUpsertShouldThrow) throw new Error("db down");
           const key = args.where.dayKey;
           const next = globalTable.has(key)
             ? (globalTable.get(key) ?? 0) + args.update.microCents.increment
@@ -67,6 +69,7 @@ afterEach(() => {
   mockRow = null;
   mockUpsertCents = 0;
   upsertShouldThrow = false;
+  globalUpsertShouldThrow = false;
   mockUser = null;
   userLookupShouldThrow = false;
   upserts.length = 0;
@@ -350,5 +353,27 @@ describe("checkGlobalCostGate", () => {
     const blocked = await checkGlobalCostGate();
     expect(blocked.allowed).toBe(false);
     expect(blocked.reason).toMatch(/global/i);
+  });
+});
+
+describe("recordGlobalCostUsage", () => {
+  it("never touches the ledger when the global cap is disabled (cap <= 0)", async () => {
+    // DB-less contexts (CI eval/canary jobs) set the cap to 0; the pre-bill
+    // must not reach Prisma or every judge call dies on the missing DB.
+    process.env.GLOBAL_DAILY_COST_CAP_CENTS = "0";
+    vi.resetModules();
+    const { recordGlobalCostUsage } = await import("../billing/cost-guard.js");
+    expect(await recordGlobalCostUsage(30)).toBeNull();
+    expect(globalTable.size).toBe(0);
+  });
+
+  it("throws on a ledger write failure when the cap is armed (fail-closed)", async () => {
+    // Deliberately NOT best-effort like the per-user recordCostUsage: spend
+    // that cannot be recorded against an armed ceiling must not happen.
+    process.env.GLOBAL_DAILY_COST_CAP_CENTS = "50";
+    vi.resetModules();
+    globalUpsertShouldThrow = true;
+    const { recordGlobalCostUsage } = await import("../billing/cost-guard.js");
+    await expect(recordGlobalCostUsage(30)).rejects.toThrow("db down");
   });
 });

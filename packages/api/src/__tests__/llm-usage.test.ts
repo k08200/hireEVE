@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const created: Array<Record<string, unknown>> = [];
 let createShouldFail = false;
@@ -59,6 +59,39 @@ beforeEach(() => {
   };
   groupByResult = [];
   countResult = 0;
+});
+
+const ORIGINAL_USAGE_LOG_DISABLED = process.env.LLM_USAGE_LOG_DISABLED;
+
+afterEach(() => {
+  if (ORIGINAL_USAGE_LOG_DISABLED === undefined) {
+    delete process.env.LLM_USAGE_LOG_DISABLED;
+  } else {
+    process.env.LLM_USAGE_LOG_DISABLED = ORIGINAL_USAGE_LOG_DISABLED;
+  }
+  // The flag is read at module-eval time; drop the cached copy so the next
+  // test's dynamic import re-evaluates with the restored env.
+  vi.resetModules();
+});
+
+describe("recordLlmUsage — disabled by flag", () => {
+  it("skips the DB write entirely when LLM_USAGE_LOG_DISABLED=true", async () => {
+    // DB-less contexts (CI eval/canary jobs) disable the ground-truth log so
+    // every judge call doesn't spray a failed-write warning + Sentry capture.
+    process.env.LLM_USAGE_LOG_DISABLED = "true";
+    vi.resetModules();
+    const { recordLlmUsage } = await import("../billing/llm-usage.js");
+    await recordLlmUsage({
+      userId: null,
+      provider: "openrouter",
+      model: "test-model",
+      source: "background",
+      estimatedCostCents: 1,
+      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    });
+    expect(created).toHaveLength(0);
+    expect(capturedErrors).toHaveLength(0);
+  });
 });
 
 describe("recordLlmUsage — happy path", () => {

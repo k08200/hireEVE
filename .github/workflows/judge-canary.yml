@@ -47,9 +47,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      # poc-accuracy never queries the DB in fixture mode, but the Prisma
-      # client is constructed at import time and needs a syntactically valid URL.
+      # There is no DB in this job; the Prisma client is constructed at
+      # import time and just needs a syntactically valid URL.
       DATABASE_URL: "postgresql://eval:eval@localhost:5432/eval"
+      # Disable the global daily ceiling (#1004): it reads GlobalCostLedger
+      # before every paid call, and with no DB that throws and drops every
+      # item to the keyword fallback (see eval.yml).
+      GLOBAL_DAILY_COST_CAP_CENTS: "0"
+      # Same reason: the ground-truth usage log write (llm-usage.ts) is
+      # fire-and-forget but warns + Sentry-captures per call with no DB.
+      LLM_USAGE_LOG_DISABLED: "true"
       # Match prod's flag state (#653) and the PR-gate eval (eval.yml).
       JUDGE_INCLUDE_BODY: "true"
     steps:

@@ -33,9 +33,18 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      # poc-accuracy never queries the DB, but the Prisma client is
-      # constructed at import time and needs a syntactically valid URL.
+      # There is no DB in this job; the Prisma client is constructed at
+      # import time and just needs a syntactically valid URL.
       DATABASE_URL: "postgresql://eval:eval@localhost:5432/eval"
+      # The global daily ceiling (#1004) reads GlobalCostLedger before every
+      # paid call. With no DB that read throws, every item drops to the
+      # keyword fallback, and the gate exits 3 (INSTRUMENT DEGRADED) on every
+      # run. Cap 0 short-circuits before the DB read (cost-guard.ts) — the
+      # eval measures the judge, not billing infrastructure.
+      GLOBAL_DAILY_COST_CAP_CENTS: "0"
+      # Same reason: the ground-truth usage log write (llm-usage.ts) is
+      # fire-and-forget but warns + Sentry-captures per call with no DB.
+      LLM_USAGE_LOG_DISABLED: "true"
       # Match prod's flag state (#653 flipped body ON): the gate measures the
       # judge as deployed. Inert on the committed 50-item set (no `body`
       # fields) until the body-bearing eval set (#648) lands — see #650.

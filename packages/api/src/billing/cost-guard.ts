@@ -243,10 +243,17 @@ export async function checkGlobalCostGate(): Promise<CostGateResult> {
  * shared key pays for. Returns the post-increment total so the caller can
  * re-check it: two calls that both passed the read-side gate would otherwise
  * both slip through (the same check-then-act race the per-user path closes).
+ *
+ * Cap <= 0 disables the ceiling AND its ledger, symmetric with
+ * checkGlobalCostGate: DB-less contexts (CI eval/canary jobs) rely on the
+ * whole gate being inert, and a write here would throw before the judge call
+ * ever ran. With a nonzero cap a failed write still throws — spend that
+ * cannot be recorded must not happen (fail-closed, #1004).
  */
 export async function recordGlobalCostUsage(
   cents: number,
 ): Promise<{ totalCents: number; overCap: boolean } | null> {
+  if (GLOBAL_DAILY_COST_CAP_CENTS <= 0) return null;
   const amount = Number.isFinite(cents) ? Math.max(0, cents) : 0;
   if (amount <= 0) return null;
   const micro = Math.round(amount * MICRO_PER_CENT);

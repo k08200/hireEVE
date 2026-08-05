@@ -196,6 +196,11 @@ export const FREE_DAILY_COST_CAP_CENTS = intEnv("FREE_DAILY_COST_CAP_CENTS", 10)
 // Default 1000¢ = $10/day — generous for a small beta, fatal-bill-proof.
 export const GLOBAL_DAILY_COST_CAP_CENTS = intEnv("GLOBAL_DAILY_COST_CAP_CENTS", 1000);
 
+// Ground-truth usage log (LlmUsageLog, llm-usage.ts). OFF = writes happen
+// (prod default). DB-less contexts (CI eval/canary jobs) set "true" so the
+// fire-and-forget write doesn't warn + Sentry-capture on every LLM call.
+export const LLM_USAGE_LOG_DISABLED = process.env.LLM_USAGE_LOG_DISABLED === "true";
+
 // ── Playground key-free demo ──────────────────────────────────────────
 // Server-paid, no-key demo path on POST /api/playground/classify. OFF by
 // default (doctrine: new features ship dark) — while false the playground
