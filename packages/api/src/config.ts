@@ -162,6 +162,17 @@ export function icloudInboxEnabled(): boolean {
     (process.env.ICLOUD_INBOX_ENABLED ?? "").trim().toLowerCase(),
   );
 }
+// Outlook inbox linking via Microsoft Graph OAuth — Phase 3 of the
+// multi-provider plan. OFF by default and dark until the CASA Letter of
+// Assessment (same freeze as ICLOUD_INBOX_ENABLED): while OFF, every
+// /api/auth/outlook route answers Fastify's default 404. Also requires
+// MS_CLIENT_ID/MS_CLIENT_SECRET (Azure app registration — founder action);
+// with the flag on but no credentials, /link-inbox answers 503.
+export function outlookInboxEnabled(): boolean {
+  return ["true", "1", "yes", "on"].includes(
+    (process.env.OUTLOOK_INBOX_ENABLED ?? "").trim().toLowerCase(),
+  );
+}
 // Fail-open is intentional pre-launch, but a lost/typo'd env var in production
 // silently makes every paid feature free. Emit a loud startup signal so the
 // operator notices a misconfigured deploy rather than discovering it via revenue.

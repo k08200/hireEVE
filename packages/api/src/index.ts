@@ -10,7 +10,7 @@ import {
   revokeDemoAccessIfDisabled,
 } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
-import { icloudInboxEnabled } from "./config.js";
+import { icloudInboxEnabled, outlookInboxEnabled } from "./config.js";
 import { makeCorsOriginCallback } from "./cors-origin.js";
 import { db, INTERACTIVE_TX_OPTIONS, prisma } from "./db.js";
 import { withDbRetry } from "./db-retry.js";
@@ -42,6 +42,7 @@ import { inboxRoutes } from "./routes/inbox.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { opsRoutes } from "./routes/ops.js";
+import { outlookAuthRoutes } from "./routes/outlook-auth.js";
 import { patternRoutes } from "./routes/patterns.js";
 import { phoneRoutes } from "./routes/phone.js";
 import { playbookRoutes } from "./routes/playbooks.js";
@@ -245,6 +246,10 @@ await app.register(imapConnectRoutes(IMAP_PROVIDERS.NAVER), { prefix: "/api/nave
 // answers 404 while the flag is off (CASA surface freeze).
 await app.register(imapConnectRoutes(IMAP_PROVIDERS.ICLOUD, { gate: icloudInboxEnabled }), {
   prefix: "/api/icloud-imap",
+});
+// Phase 3: dark until OUTLOOK_INBOX_ENABLED — same 404 gate as iCloud.
+await app.register(outlookAuthRoutes({ gate: outlookInboxEnabled }), {
+  prefix: "/api/auth/outlook",
 });
 await app.register(githubRoutes, { prefix: "/api/github" });
 await app.register(patternRoutes, { prefix: "/api/patterns" });

@@ -129,6 +129,17 @@ services:
       # /api/icloud-imap route 404s and the poll never selects ICLOUD rows.
       - key: ICLOUD_INBOX_ENABLED
         sync: false
+      # Outlook via Microsoft Graph OAuth (Phase 3). Same CASA freeze: while
+      # unset/false every /api/auth/outlook route 404s. Client credentials
+      # come from the Azure app registration (set in the dashboard).
+      - key: OUTLOOK_INBOX_ENABLED
+        sync: false
+      - key: MS_CLIENT_ID
+        sync: false
+      - key: MS_CLIENT_SECRET
+        sync: false
+      - key: MS_REDIRECT_URI
+        sync: false
       # Prod-critical runtime config — declared (sync:false) so a blueprint sync
       # can never PRUNE them. Previously these lived only in the Render dashboard
       # and got dropped on redeploy, which silently disabled Web Push (the PUSH

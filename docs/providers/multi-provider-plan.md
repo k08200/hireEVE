@@ -107,6 +107,24 @@ heartbeat renamed `naver-imap` → `imap` (one scheduler, all IMAP providers).
 connect, delta-query sync, Graph-API actions, change-notification webhook (or
 poll first, webhook later).
 
+Phase 3 progress — 3A (connect surface) landed:
+`/api/auth/outlook/{link-inbox,callback,linked-inboxes}` mirrors the Google
+link flow (state-JWT CSRF, TOCTOU entitlement re-check at the callback,
+new-links-only cap of 10), dark behind `OUTLOOK_INBOX_ENABLED` via the shared
+`darkRouteGate` (extracted from the iCloud gate). Token exchange is plain
+fetch against login.microsoftonline.com (no msal dependency); delegated
+scopes `Mail.Read/ReadWrite/Send` + `offline_access`. Re-verified 2026-08-06:
+the 2026-12-31 `Mail-Advanced.ReadWrite` requirement covers subject/body/
+recipient edits on delivered mail only — Klorn never does those, standard
+scopes suffice; note some org tenants require admin consent for
+`Mail.ReadWrite` (personal accounts consent directly). Founder action before
+any real link: Azure app registration (supported account types: personal +
+work/school), then `MS_CLIENT_ID` / `MS_CLIENT_SECRET` / `MS_REDIRECT_URI`
+(prod callback `https://klorn-api.onrender.com/api/auth/outlook/callback`) in
+Render. Remaining: 3B delta-query sync (mirror the imap-scheduler/-accounts
+pair, `outlook:` id prefix), 3C Graph actions behind `MailProviderActions`,
+3D web settings UI.
+
 **Phase 4 — generic IMAP.** Only after the SSRF design (resolve-then-pin,
 private-range rejection) passes security review. OFF flag until then.
 
