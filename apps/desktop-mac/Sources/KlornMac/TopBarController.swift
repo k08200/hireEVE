@@ -20,6 +20,8 @@ final class TopBarController {
     private var panel: NSPanel?
     private var state: BarState = .collapsed
     private var panelIsFocusable = false
+    /// Last state render() framed for — gates the snap-back-free re-render.
+    private var renderedState: BarState?
     /// True while an explicit summon (⌥⌘K / Show-all) is showing the bar even
     /// though hidden-pill mode suppresses the ambient pill. Cleared on dismiss.
     private var summoned = false
@@ -174,7 +176,15 @@ final class TopBarController {
         panelIsFocusable = focusable
         panel.contentView = NSHostingView(rootView: root)
         self.panel = panel
-        setFrame(panel, size: size)
+        // Re-pinning on EVERY render fought the user: refresh()/language
+        // changes snapped a dragged window back to top-center and re-derived
+        // its size mid-session. Only a state change (pill↔expanded↔full
+        // morph) or a fresh panel may reposition; a same-state re-render
+        // keeps whatever frame the user put it in.
+        if renderedState != state || !panel.isVisible {
+            setFrame(panel, size: size)
+        }
+        renderedState = state
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
         NSApp.setActivationPolicy(
             Self.activationPolicy(for: state, showInDock: model.settings.showInDock))

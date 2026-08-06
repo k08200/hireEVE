@@ -278,9 +278,17 @@ func runSelfChecks() async -> Bool {
     check("full shrinks to fit a small display",
           fittedFull.width <= smallScreen.width - TopBarMetrics.screenMargin * 2
           && fittedFull.height <= smallScreen.height - TopBarMetrics.screenMargin * 2)
-    check("fit never drops below the column floor",
+    check("screen clamp beats the floor — no off-screen window on tiny displays",
+          {
+              let s = TopBarMetrics.fittedSize(
+                  ideal: TopBarMetrics.full, visible: NSSize(width: 640, height: 400),
+                  floor: TopBarMetrics.fullMin)
+              return s.width <= 640 - TopBarMetrics.screenMargin * 2
+                  && s.height <= 400 - TopBarMetrics.screenMargin * 2
+          }())
+    check("floor still lifts a too-small ideal on a roomy display",
           TopBarMetrics.fittedSize(
-              ideal: TopBarMetrics.full, visible: NSSize(width: 640, height: 400),
+              ideal: NSSize(width: 300, height: 300), visible: NSSize(width: 1512, height: 950),
               floor: TopBarMetrics.fullMin) == TopBarMetrics.fullMin)
     check("large displays keep the ideal size",
           TopBarMetrics.fittedSize(
