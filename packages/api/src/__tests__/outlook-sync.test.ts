@@ -194,6 +194,18 @@ describe("syncOutlookInbox", () => {
     expect(result.cursor).toBeNull();
   });
 
+  it("falls back to now() on a malformed receivedDateTime instead of dropping the email", async () => {
+    fetchMock.mockResolvedValueOnce(
+      pageResponse({
+        value: [graphMessage({ receivedDateTime: "not-a-date" })],
+        "@odata.deltaLink": `${GRAPH}/v1.0/me/delta?token=x`,
+      }),
+    );
+    await syncOutlookInbox(baseArgs());
+    const [, raw] = persistGmailEmail.mock.calls[0];
+    expect(Number.isNaN(raw.receivedAt.getTime())).toBe(false);
+  });
+
   it("counts a persist failure and keeps the loop going", async () => {
     persistGmailEmail
       .mockRejectedValueOnce(new Error("db down"))

@@ -115,6 +115,9 @@ export async function syncOutlookInbox(args: OutlookSyncArgs): Promise<OutlookSy
         authorization: `Bearer ${args.accessToken}`,
         Prefer: 'IdType="ImmutableId", outlook.body-content-type="text"',
       },
+      // A hung Graph call would stall the whole tick (and overlapping ticks
+      // are what make the concurrent-refresh race real) — fail fast instead.
+      signal: AbortSignal.timeout(30_000),
     });
     if (res.status === 401 || res.status === 403) {
       result.authFailed = true;
@@ -144,7 +147,12 @@ export async function syncOutlookInbox(args: OutlookSyncArgs): Promise<OutlookSy
       const to = formatAddress(msg.toRecipients?.[0]);
       const cc = (msg.ccRecipients ?? []).map(formatAddress).filter(Boolean).join(", ") || "";
       const subject = msg.subject?.trim() || "(no subject)";
-      const receivedAt = msg.receivedDateTime ? new Date(msg.receivedDateTime) : new Date();
+      // Invalid Date would make Prisma reject the create and permanently drop
+      // the email (delta pages never replay) — same guard as gmail-fetch's
+      // parseReceivedAt.
+      const parsedReceived = msg.receivedDateTime ? new Date(msg.receivedDateTime) : null;
+      const receivedAt =
+        parsedReceived && !Number.isNaN(parsedReceived.getTime()) ? parsedReceived : new Date();
       const isRead = msg.isRead === true;
       const isStarred = msg.flag?.flagStatus === "flagged";
       const labels: string[] = ["INBOX"];

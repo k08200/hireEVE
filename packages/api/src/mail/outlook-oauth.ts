@@ -84,6 +84,8 @@ export async function exchangeOutlookCode(
   const res = await fetch(`${authorityBase()}/token`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
+    // Fail fast — a hung token call stalls whichever flow is waiting on it.
+    signal: AbortSignal.timeout(15_000),
     body: new URLSearchParams({
       client_id: msClientId(),
       client_secret: msClientSecret(),
@@ -136,6 +138,8 @@ export async function refreshOutlookTokens(
   const res = await fetch(`${authorityBase()}/token`, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
+    // Fail fast — a hung token call stalls whichever flow is waiting on it.
+    signal: AbortSignal.timeout(15_000),
     body: new URLSearchParams({
       client_id: msClientId(),
       client_secret: msClientSecret(),
@@ -181,6 +185,7 @@ export async function refreshOutlookTokens(
 export async function fetchOutlookAccountEmail(accessToken: string): Promise<string | null> {
   const res = await fetch("https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName", {
     headers: { authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) {
     console.warn(`[outlook-oauth] /me failed: http ${res.status}`);

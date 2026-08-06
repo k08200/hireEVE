@@ -26,8 +26,11 @@ export interface OutlookSyncAggregate {
   errors: number;
 }
 
-// Refresh slightly BEFORE expiry so a token that dies mid-sync is rare.
-const EXPIRY_SLACK_MS = 2 * 60_000;
+// Refresh BEFORE the token can expire between ticks: the poll runs every
+// 5 minutes, so anything with less than one interval (+ margin) left would
+// come back 401 on the NEXT tick and false-flag a healthy account for
+// reconnect. Slack must therefore exceed the poll interval.
+const EXPIRY_SLACK_MS = 7 * 60_000; // poll interval (5m) + 2m margin
 
 interface OutlookRow {
   id: string;
@@ -47,10 +50,8 @@ async function resolveAccessToken(userId: string, row: OutlookRow): Promise<stri
   if (!row.accessToken) return null;
 
   let accessToken: string;
-  let refreshToken: string | null;
   try {
     accessToken = decryptToken(row.accessToken);
-    refreshToken = decryptOptional(row.refreshToken);
   } catch (err) {
     // Undecryptable cipher (key rotation gap, hand-edited row): durable flag,
     // fire-and-forget — same contract as the Google linked path.
@@ -59,6 +60,15 @@ async function resolveAccessToken(userId: string, row: OutlookRow): Promise<stri
       console.warn(`[outlook-accounts] reconnect mark failed for row ${row.id}:`, markErr);
     });
     return null;
+  }
+  let refreshToken: string | null = null;
+  try {
+    refreshToken = decryptOptional(row.refreshToken);
+  } catch (err) {
+    // A rotten refresh cipher alone must not discard a still-valid access
+    // token: sync with it now; the refresh-needed branch below flags
+    // reconnect once the access token actually runs out.
+    console.warn(`[outlook-accounts] undecryptable refresh cipher for row ${row.id}:`, err);
   }
 
   const fresh = row.expiresAt && row.expiresAt.getTime() > Date.now() + EXPIRY_SLACK_MS;
@@ -81,17 +91,43 @@ async function resolveAccessToken(userId: string, row: OutlookRow): Promise<stri
     });
     return null;
   }
-  await prisma.linkedInboxAccount.updateMany({
-    where: { id: row.id, userId },
-    data: {
-      accessToken: encryptToken(refreshed.accessToken),
-      // Rotation: persist the NEW refresh token when Microsoft sent one;
-      // keep the old cipher otherwise (some responses omit it).
-      ...(refreshed.refreshToken ? { refreshToken: encryptOptional(refreshed.refreshToken) } : {}),
-      expiresAt: refreshed.expiresAt,
-      needsReconnect: false,
-    },
-  });
+  const rotated = Boolean(refreshed.refreshToken);
+  try {
+    await prisma.linkedInboxAccount.updateMany({
+      where: {
+        id: row.id,
+        userId,
+        // Access-only refresh: optimistic guard so a stale concurrent tick
+        // can't clobber a newer token (mirror of gmail's
+        // decideRefreshTokenWrite). A ROTATION writes unconditionally — the
+        // previous refresh token is already dead at Microsoft either way.
+        ...(rotated || !refreshed.expiresAt
+          ? {}
+          : { OR: [{ expiresAt: null }, { expiresAt: { lt: refreshed.expiresAt } }] }),
+      },
+      data: {
+        accessToken: encryptToken(refreshed.accessToken),
+        // Rotation: persist the NEW refresh token when Microsoft sent one;
+        // keep the old cipher otherwise (some responses omit it).
+        ...(rotated ? { refreshToken: encryptOptional(refreshed.refreshToken) } : {}),
+        expiresAt: refreshed.expiresAt,
+        needsReconnect: false,
+      },
+    });
+  } catch (err) {
+    // A transient DB failure must not lose the tick — the fresh tokens are
+    // in memory and valid. Worst case the rotated refresh cipher is lost and
+    // the NEXT refresh invalid_grants into a reconnect prompt; log loudly so
+    // that shows up as this write failing, not as a mystery reconnect.
+    console.warn(
+      `[outlook-accounts] token persist failed for row ${row.id} (syncing anyway):`,
+      err,
+    );
+    captureError(err, {
+      tags: { scope: "outlook-accounts.token-persist" },
+      extra: { userId, linkedInboxAccountId: row.id },
+    });
+  }
   return refreshed.accessToken;
 }
 

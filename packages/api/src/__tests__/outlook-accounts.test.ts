@@ -25,7 +25,10 @@ vi.mock("../crypto-tokens.js", () => ({
     if (cipher === "BAD") throw new Error("undecryptable");
     return `plain:${cipher}`;
   }),
-  decryptOptional: vi.fn((cipher: string | null) => (cipher ? `plain:${cipher}` : null)),
+  decryptOptional: vi.fn((cipher: string | null) => {
+    if (cipher === "BAD") throw new Error("undecryptable");
+    return cipher ? `plain:${cipher}` : null;
+  }),
   encryptToken: vi.fn((t: string) => `enc:${t}`),
   encryptOptional: vi.fn((t: string | null) => (t ? `enc:${t}` : null)),
 }));
@@ -181,6 +184,65 @@ describe("syncOutlookAccountsForUser", () => {
     await syncOutlookAccountsForUser("u1");
     const write = m.updateMany.mock.calls[0][0];
     expect(write.data).not.toHaveProperty("historyId");
+  });
+
+  it("refreshes when the token outlives the tick but not the NEXT tick (slack >= poll interval)", async () => {
+    // 4 minutes left: still valid now, but dead before the next 5-minute
+    // tick — returning it as "fresh" would 401 next tick and false-flag a
+    // healthy account for reconnect.
+    m.findMany.mockResolvedValue([outlookRow({ expiresAt: new Date(Date.now() + 4 * 60_000) })]);
+    await syncOutlookAccountsForUser("u1");
+    expect(m.refreshOutlookTokens).toHaveBeenCalled();
+    expect(m.markLinkedInboxForReconnect).not.toHaveBeenCalled();
+  });
+
+  it("still syncs with the in-memory token when the rotated-cipher persist fails", async () => {
+    // Losing a ROTATED refresh token to a transient DB blip must not lose
+    // the tick too — the fresh access token is in memory and still valid.
+    m.findMany.mockResolvedValue([outlookRow({ expiresAt: PAST })]);
+    m.updateMany.mockRejectedValueOnce(new Error("db blip"));
+    await syncOutlookAccountsForUser("u1");
+    expect(m.syncOutlookInbox).toHaveBeenCalledWith(
+      expect.objectContaining({ accessToken: "new-at" }),
+    );
+    expect(m.markLinkedInboxForReconnect).not.toHaveBeenCalled();
+  });
+
+  it("an undecryptable refresh cipher does not discard a still-fresh access token", async () => {
+    m.findMany.mockResolvedValue([outlookRow({ refreshToken: "BAD" })]);
+    await syncOutlookAccountsForUser("u1");
+    expect(m.syncOutlookInbox).toHaveBeenCalledWith(
+      expect.objectContaining({ accessToken: "plain:at-cipher" }),
+    );
+    expect(m.markLinkedInboxForReconnect).not.toHaveBeenCalled();
+  });
+
+  it("guards an access-only refresh write optimistically, but a rotation writes unconditionally", async () => {
+    // Access-only (no rotated refresh token): a stale concurrent tick must
+    // not clobber a newer token — mirror gmail's decideRefreshTokenWrite.
+    m.refreshOutlookTokens.mockResolvedValue({
+      accessToken: "new-at",
+      refreshToken: null,
+      expiresAt: FUTURE,
+    });
+    m.findMany.mockResolvedValue([outlookRow({ expiresAt: PAST })]);
+    await syncOutlookAccountsForUser("u1");
+    const guarded = m.updateMany.mock.calls.find((c) => c[0]?.data?.accessToken);
+    expect(guarded?.[0].where).toMatchObject({
+      id: "row-1",
+      userId: "u1",
+      OR: [{ expiresAt: null }, { expiresAt: { lt: FUTURE } }],
+    });
+
+    m.updateMany.mockClear();
+    m.refreshOutlookTokens.mockResolvedValue({
+      accessToken: "new-at",
+      refreshToken: "new-rt",
+      expiresAt: FUTURE,
+    });
+    await syncOutlookAccountsForUser("u1");
+    const rotated = m.updateMany.mock.calls.find((c) => c[0]?.data?.accessToken);
+    expect(rotated?.[0].where).toEqual({ id: "row-1", userId: "u1" });
   });
 
   it("one account failing never blocks the next, and errors aggregate", async () => {
