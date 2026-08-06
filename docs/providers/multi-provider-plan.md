@@ -121,8 +121,26 @@ scopes suffice; note some org tenants require admin consent for
 any real link: Azure app registration (supported account types: personal +
 work/school), then `MS_CLIENT_ID` / `MS_CLIENT_SECRET` / `MS_REDIRECT_URI`
 (prod callback `https://klorn-api.onrender.com/api/auth/outlook/callback`) in
-Render. Remaining after 3B: 3C Graph actions behind `MailProviderActions`,
-3D web settings UI.
+Render. Remaining after 3C: 3D web settings UI.
+
+3C (actions) landed: `mail/providers/outlook.ts` implements the full
+`MailProviderActions` surface via Graph (PATCH isRead/flag, moves to the
+well-known deleteditems/archive/inbox folders, sendMail with base64
+fileAttachments, draft creation) and the dispatch registry routes OUTLOOK to
+it — the 501 refusals are gone. Every request carries
+`Prefer: IdType="ImmutableId"` so the ids stored by the sync resolve after
+folder moves; the Graph id is extracted from the synthesized
+`outlook:<email>:<id>` key. Token lifecycle moved to `mail/outlook-token.ts`
+(shared by poll + actions without dragging the ingestion chain into the
+action import graph). Result contract, deliberately mirroring Gmail's:
+`{error}` ONLY for the not-connected class (missing linked id, unresolvable
+bearer, Graph 401/403 — which also durably flag reconnect); EVERYTHING else
+(non-auth 4xx incl. 429, foreign/corrupt message ids, 5xx, network) throws —
+callers' `{error}` fallback is a local-only write, and for DELETE that means
+false-success + resurrection on the next delta sync. Reply threading
+deferred: Graph sendMail cannot set In-Reply-To, so `getReplyHeaders`
+answers `{}` (best-effort per contract) to keep `/reply` from claiming
+`threaded: true`; real threading needs the /messages/{id}/reply endpoint.
 
 3B (ingestion) landed: `mail/outlook-{sync,accounts,scheduler}.ts` mirror the
 IMAP trio — Graph delta query against the inbox folder, every message through
