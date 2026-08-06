@@ -162,7 +162,18 @@ export function icloudInboxEnabled(): boolean {
     (process.env.ICLOUD_INBOX_ENABLED ?? "").trim().toLowerCase(),
   );
 }
-// Social login providers beyond Google (Sign in with Apple, Naver OAuth) —
+// Outlook inbox linking via Microsoft Graph OAuth — Phase 3 of the
+// multi-provider plan. OFF by default and dark until the CASA Letter of
+// Assessment (same freeze as ICLOUD_INBOX_ENABLED): while OFF, every
+// /api/auth/outlook route answers Fastify's default 404. Also requires
+// MS_CLIENT_ID/MS_CLIENT_SECRET (Azure app registration — founder action);
+// with the flag on but no credentials, /link-inbox answers 503.
+export function outlookInboxEnabled(): boolean {
+  return ["true", "1", "yes", "on"].includes(
+    (process.env.OUTLOOK_INBOX_ENABLED ?? "").trim().toLowerCase(),
+  );
+}
+// Social LOGIN providers beyond Google (Sign in with Apple, Naver OAuth) —
 // OFF by default (repo doctrine). While OFF, every /api/auth/apple/* and
 // /api/auth/naver/* route 404s with the same cloak as the dark IMAP providers
 // and GET /api/auth/providers omits them, so neither the DAST-scanned surface

@@ -52,6 +52,7 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
     },
     dynamic: {
       ICLOUD_INBOX_ENABLED: dynamicFlag(env, "ICLOUD_INBOX_ENABLED"),
+      OUTLOOK_INBOX_ENABLED: dynamicFlag(env, "OUTLOOK_INBOX_ENABLED"),
       JUDGE_INCLUDE_BODY: dynamicFlag(env, "JUDGE_INCLUDE_BODY"),
       AUTO_TIER_EXECUTION: env.AUTO_TIER_EXECUTION === "true",
       CI_NOISE_SILENT_FLOOR: dynamicFlag(env, "CI_NOISE_SILENT_FLOOR"),
@@ -68,6 +69,7 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       EMBEDDING_MODEL: Boolean(env.EMBEDDING_MODEL),
       TWILIO_ACCOUNT_SID: Boolean(env.TWILIO_ACCOUNT_SID),
       SENTRY_DSN: Boolean(env.SENTRY_DSN),
+      MS_CLIENT_ID: Boolean(env.MS_CLIENT_ID),
     },
   };
 }

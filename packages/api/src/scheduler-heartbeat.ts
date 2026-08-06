@@ -24,6 +24,7 @@ export const EXPECTED_SCHEDULERS = [
   "reminder",
   "automation",
   "imap",
+  "outlook",
   "github",
   "autonomous-agent",
   "pattern-learner",

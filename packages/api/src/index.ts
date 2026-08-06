@@ -10,7 +10,7 @@ import {
   revokeDemoAccessIfDisabled,
 } from "./auth.js";
 import { startBackgroundAgent } from "./background.js";
-import { icloudInboxEnabled } from "./config.js";
+import { icloudInboxEnabled, outlookInboxEnabled } from "./config.js";
 import { makeCorsOriginCallback } from "./cors-origin.js";
 import { db, INTERACTIVE_TX_OPTIONS, prisma } from "./db.js";
 import { withDbRetry } from "./db-retry.js";
@@ -42,6 +42,7 @@ import { inboxRoutes } from "./routes/inbox.js";
 import { memoryRoutes } from "./routes/memory.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { opsRoutes } from "./routes/ops.js";
+import { outlookAuthRoutes } from "./routes/outlook-auth.js";
 import { patternRoutes } from "./routes/patterns.js";
 import { phoneRoutes } from "./routes/phone.js";
 import { playbookRoutes } from "./routes/playbooks.js";
@@ -246,6 +247,10 @@ await app.register(imapConnectRoutes(IMAP_PROVIDERS.NAVER), { prefix: "/api/nave
 // answers 404 while the flag is off (CASA surface freeze).
 await app.register(imapConnectRoutes(IMAP_PROVIDERS.ICLOUD, { gate: icloudInboxEnabled }), {
   prefix: "/api/icloud-imap",
+});
+// Phase 3: dark until OUTLOOK_INBOX_ENABLED — same 404 gate as iCloud.
+await app.register(outlookAuthRoutes({ gate: outlookInboxEnabled }), {
+  prefix: "/api/auth/outlook",
 });
 // Social LOGIN providers beyond Google — dark until APPLE_LOGIN_ENABLED /
 // NAVER_LOGIN_ENABLED flip; every route answers the cloaked 404 while off
@@ -562,6 +567,19 @@ try {
       .catch((err) => {
         console.error("[STARTUP] imap-scheduler failed to start:", err);
         captureError(err, { tags: { context: "startup:imap-scheduler" } });
+      });
+  }
+
+  // Start Outlook polling scheduler (flag-gated per tick; dark while
+  // OUTLOOK_INBOX_ENABLED is off)
+  if (!BG_DISABLED) {
+    import("./mail/outlook-scheduler.js")
+      .then(({ startOutlookScheduler }) => {
+        startOutlookScheduler();
+      })
+      .catch((err) => {
+        console.error("[STARTUP] outlook-scheduler failed to start:", err);
+        captureError(err, { tags: { context: "startup:outlook-scheduler" } });
       });
   }
 

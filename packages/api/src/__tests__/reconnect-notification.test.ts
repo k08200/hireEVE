@@ -118,6 +118,38 @@ describe("ensureGmailReconnectNotification — primary account", () => {
   });
 });
 
+describe("ensureGmailReconnectNotification — provider copy (Phase 3B)", () => {
+  it("OUTLOOK: outlook slug in the dedupe key and Outlook-branded copy", async () => {
+    const result = await ensureGmailReconnectNotification(USER, {
+      linkedInboxAccountId: "acc-1",
+      provider: "OUTLOOK",
+    });
+    expect(result).not.toBeNull();
+    expect(vi.mocked(prisma.notification.create)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          dedupeKey: `reconnect:outlook:acc-1:${gmailReconnectDayKey()}`,
+          title: "Outlook disconnected — 1 click to reconnect",
+          message:
+            "Klorn lost access to your Outlook, so the firewall is paused. Reconnect in Settings to resume.",
+        }),
+      }),
+    );
+  });
+
+  it("default (no provider) stays byte-identical to the pre-3B Gmail copy", async () => {
+    await ensureGmailReconnectNotification(USER);
+    expect(vi.mocked(prisma.notification.create)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          dedupeKey: `reconnect:google:${gmailReconnectDayKey()}`,
+          title: RECONNECT_TITLE,
+        }),
+      }),
+    );
+  });
+});
+
 describe("ensureGmailReconnectNotification — linked inbox", () => {
   it("scopes the dedupe key per linked account: reconnect:google:<accountId>:<dayKey>", async () => {
     const result = await ensureGmailReconnectNotification(USER, {

@@ -33,6 +33,7 @@ import { prisma } from "../db.js";
 import { hostMatchesProvider, type ImapProviderConfig } from "../mail/imap-providers.js";
 import { verifyImapCredentials } from "../mail/imap-sync.js";
 import { isAllowedImapHost } from "../mail/is-allowed-imap-host.js";
+import { darkRouteGate } from "./dark-route-gate.js";
 
 const connectBodySchema = {
   type: "object",
@@ -50,26 +51,10 @@ export function imapConnectRoutes(
   opts: { gate?: () => boolean } = {},
 ): (app: FastifyInstance) => Promise<void> {
   return async function routes(app: FastifyInstance) {
-    // Feature-flag gate FIRST — as onRequest, because the app-level auth hook
-    // is a preHandler and would otherwise answer 401 before this runs. A dark
-    // provider must be indistinguishable from a route that doesn't exist,
-    // even to an unauthenticated probe — so the body replicates Fastify's
-    // default 404 (fastify/lib/four-oh-four.js) byte-for-byte: a static
-    // "Not Found" message would let a scanner diff this route against a
-    // truly unregistered sibling and learn it exists.
+    // Feature-flag gate FIRST — shared darkRouteGate (see its doc comment
+    // for why onRequest and why the body must match Fastify's default 404).
     if (opts.gate) {
-      const gate = opts.gate;
-      app.addHook("onRequest", async (request, reply) => {
-        if (!gate()) {
-          const { url, method } = request.raw;
-          reply.code(404);
-          return reply.send({
-            message: `Route ${method}:${url} not found`,
-            error: "Not Found",
-            statusCode: 404,
-          });
-        }
-      });
+      app.addHook("onRequest", darkRouteGate(opts.gate));
     }
     app.addHook("preHandler", requireAuth);
 
