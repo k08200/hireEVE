@@ -564,6 +564,19 @@ try {
       });
   }
 
+  // Start Outlook polling scheduler (flag-gated per tick; dark while
+  // OUTLOOK_INBOX_ENABLED is off)
+  if (!BG_DISABLED) {
+    import("./mail/outlook-scheduler.js")
+      .then(({ startOutlookScheduler }) => {
+        startOutlookScheduler();
+      })
+      .catch((err) => {
+        console.error("[STARTUP] outlook-scheduler failed to start:", err);
+        captureError(err, { tags: { context: "startup:outlook-scheduler" } });
+      });
+  }
+
   // Start GitHub notifications polling scheduler (5min interval per connected user)
   if (!BG_DISABLED) {
     import("./mail/github-scheduler.js")

@@ -121,9 +121,26 @@ scopes suffice; note some org tenants require admin consent for
 any real link: Azure app registration (supported account types: personal +
 work/school), then `MS_CLIENT_ID` / `MS_CLIENT_SECRET` / `MS_REDIRECT_URI`
 (prod callback `https://klorn-api.onrender.com/api/auth/outlook/callback`) in
-Render. Remaining: 3B delta-query sync (mirror the imap-scheduler/-accounts
-pair, `outlook:` id prefix), 3C Graph actions behind `MailProviderActions`,
+Render. Remaining after 3B: 3C Graph actions behind `MailProviderActions`,
 3D web settings UI.
+
+3B (ingestion) landed: `mail/outlook-{sync,accounts,scheduler}.ts` mirror the
+IMAP trio — Graph delta query against the inbox folder, every message through
+the shared persist path with dedup key `outlook:<email>:<immutable id>`.
+Load-bearing details: `Prefer: IdType="ImmutableId"` (default Graph ids CHANGE
+on folder moves — archive would re-ingest everything) and
+`outlook.body-content-type="text"`. The delta cursor (delta/next link) lives
+in `LinkedInboxAccount.historyId` — the provider-generic sync watermark, same
+co-opt precedent as gmailId; page-capped ticks store whichever link they
+stopped at, so large first syncs catch up incrementally and 429s resume in
+place. Cursor URLs are only ever followed on graph.microsoft.com (a tampered
+row must not aim the bearer token elsewhere). Token refresh handles
+Microsoft's refresh-token ROTATION (new cipher persisted each grant); every
+auth-failure path (undecryptable cipher, invalid_grant, Graph 401/403) flags
+`needsReconnect` via the now provider-parameterized reconnect alert
+(`reconnect:outlook:` dedupe keys, Outlook-branded copy — the 0b deferred
+"generalize the copy when flagging lands" item, done here). Scheduler
+heartbeat name `outlook`; the tick no-ops while OUTLOOK_INBOX_ENABLED is off.
 
 **Phase 4 — generic IMAP.** Only after the SSRF design (resolve-then-pin,
 private-range rejection) passes security review. OFF flag until then.

@@ -124,6 +124,55 @@ export async function exchangeOutlookCode(
 }
 
 /**
+ * Refresh-token grant. Microsoft ROTATES refresh tokens — the response
+ * carries a new one that must replace the stored cipher, or the chain dies
+ * at the old token's expiry. An `invalid_grant` error code means the user
+ * revoked access (or the token aged out): callers must flag the row for
+ * reconnect rather than retrying.
+ */
+export async function refreshOutlookTokens(
+  refreshToken: string,
+): Promise<OutlookTokens | OutlookTokenError> {
+  const res = await fetch(`${authorityBase()}/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: msClientId(),
+      client_secret: msClientSecret(),
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      scope: GRAPH_SCOPES.join(" "),
+    }),
+  });
+  if (!res.ok) {
+    // Same non-reflection rule as the code exchange: status + short code only.
+    let errorCode = "token_refresh_failed";
+    try {
+      const body = (await res.json()) as { error?: unknown };
+      if (typeof body.error === "string" && body.error.length <= 64) errorCode = body.error;
+    } catch {
+      // non-JSON error body — keep the generic code
+    }
+    console.warn(`[outlook-oauth] token refresh failed: http ${res.status} error=${errorCode}`);
+    return { error: errorCode };
+  }
+  const body = (await res.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+  };
+  if (!body.access_token) {
+    return { error: "no_access_token" };
+  }
+  return {
+    accessToken: body.access_token,
+    refreshToken: body.refresh_token ?? null,
+    expiresAt:
+      typeof body.expires_in === "number" ? new Date(Date.now() + body.expires_in * 1000) : null,
+  };
+}
+
+/**
  * The signed-in account's address via Graph /me. Personal accounts can have
  * `mail` null — userPrincipalName is the login address there. Unlike Google
  * there is no verified_email flag to check: Microsoft verifies the address

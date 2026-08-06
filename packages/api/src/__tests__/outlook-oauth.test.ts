@@ -107,6 +107,31 @@ describe("exchangeOutlookCode", () => {
   });
 });
 
+describe("refreshOutlookTokens", () => {
+  it("posts the refresh grant and maps the rotated tokens", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: "at2", refresh_token: "rt2", expires_in: 3600 }),
+    });
+    const result = await mod.refreshOutlookTokens("rt1");
+    if ("error" in result) throw new Error("unreachable");
+    expect(result.accessToken).toBe("at2");
+    expect(result.refreshToken).toBe("rt2");
+    const [, init] = fetchMock.mock.calls[0];
+    expect(String(init.body)).toContain("grant_type=refresh_token");
+    expect(String(init.body)).toContain("refresh_token=rt1");
+  });
+
+  it("returns only the short error code on a rejected grant", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: "invalid_grant", error_description: "AADSTS long text" }),
+    });
+    expect(await mod.refreshOutlookTokens("dead")).toEqual({ error: "invalid_grant" });
+  });
+});
+
 describe("fetchOutlookAccountEmail", () => {
   it("prefers mail, falls back to userPrincipalName (personal accounts)", async () => {
     fetchMock.mockResolvedValueOnce({

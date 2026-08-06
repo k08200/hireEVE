@@ -49,7 +49,7 @@ describe("markGoogleTokenForReconnect — reconnect notification wiring", () => 
     await markGoogleTokenForReconnect("user-1");
     expect(vi.mocked(prisma.userToken.update)).toHaveBeenCalledTimes(1);
     expect(ensureSpy).toHaveBeenCalledTimes(1);
-    expect(ensureSpy).toHaveBeenCalledWith("user-1");
+    expect(ensureSpy).toHaveBeenCalledWith("user-1", { provider: "GOOGLE" });
   });
 
   it("does nothing when the user has no google token row", async () => {
@@ -80,7 +80,10 @@ describe("markLinkedInboxForReconnect — reconnect notification wiring", () => 
       expect.objectContaining({ where: { id: "linked-1", userId: "user-1" } }),
     );
     expect(ensureSpy).toHaveBeenCalledTimes(1);
-    expect(ensureSpy).toHaveBeenCalledWith("user-1", { linkedInboxAccountId: "linked-1" });
+    expect(ensureSpy).toHaveBeenCalledWith("user-1", {
+      linkedInboxAccountId: "linked-1",
+      provider: "GOOGLE",
+    });
   });
 
   it("does not notify when the {id, userId} scope matched no row", async () => {

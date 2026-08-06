@@ -19,12 +19,24 @@ import { prisma } from "../db.js";
 import { pushNotification } from "../websocket.js";
 import { sendPushNotification } from "./push.js";
 
-const RECONNECT_TITLE = "Gmail disconnected — 1 click to reconnect";
 // Wording deliberately avoids the notification-policy noise keywords
 // ("verify your", "confirm your", "deal", "sale") so the system push is
 // never vetoed by the inbound-mail heuristic.
-const RECONNECT_MESSAGE =
-  "Klorn lost access to your Gmail, so the firewall is paused. Reconnect in Settings to resume.";
+// Per-provider label/slug (Phase 3B): OUTLOOK rows reuse this whole module —
+// only the product name and the dedupe-key slug differ. GOOGLE stays the
+// default so every existing caller is byte-identical.
+const PROVIDER_COPY = {
+  GOOGLE: { slug: "google", label: "Gmail" },
+  OUTLOOK: { slug: "outlook", label: "Outlook" },
+} as const;
+export type ReconnectProvider = keyof typeof PROVIDER_COPY;
+
+function reconnectTitle(label: string): string {
+  return `${label} disconnected — 1 click to reconnect`;
+}
+function reconnectMessage(label: string): string {
+  return `Klorn lost access to your ${label}, so the firewall is paused. Reconnect in Settings to resume.`;
+}
 const RECONNECT_LINK = "/settings";
 
 /** UTC calendar day (YYYY-MM-DD) the reconnect alert dedupes on. */
@@ -40,12 +52,15 @@ export function gmailReconnectDayKey(now: Date = new Date()): string {
  */
 export async function ensureGmailReconnectNotification(
   userId: string,
-  opts?: { linkedInboxAccountId?: string },
+  opts?: { linkedInboxAccountId?: string; provider?: ReconnectProvider },
 ): Promise<{ id: string; createdAt: Date } | null> {
+  const { slug, label } = PROVIDER_COPY[opts?.provider ?? "GOOGLE"];
+  const title = reconnectTitle(label);
+  const message = reconnectMessage(label);
   const dayKey = gmailReconnectDayKey();
   const dedupeKey = opts?.linkedInboxAccountId
-    ? `reconnect:google:${opts.linkedInboxAccountId}:${dayKey}`
-    : `reconnect:google:${dayKey}`;
+    ? `reconnect:${slug}:${opts.linkedInboxAccountId}:${dayKey}`
+    : `reconnect:${slug}:${dayKey}`;
 
   let notification: { id: string; createdAt: Date };
   try {
@@ -54,8 +69,8 @@ export async function ensureGmailReconnectNotification(
         userId,
         type: "email",
         dedupeKey,
-        title: RECONNECT_TITLE,
-        message: RECONNECT_MESSAGE,
+        title,
+        message,
         link: RECONNECT_LINK,
       },
       select: { id: true, createdAt: true },
@@ -69,8 +84,8 @@ export async function ensureGmailReconnectNotification(
   pushNotification(userId, {
     id: notification.id,
     type: "email",
-    title: RECONNECT_TITLE,
-    message: RECONNECT_MESSAGE,
+    title,
+    message,
     createdAt: notification.createdAt.toISOString(),
     link: RECONNECT_LINK,
   });
@@ -78,8 +93,8 @@ export async function ensureGmailReconnectNotification(
   await sendPushNotification(
     userId,
     {
-      title: RECONNECT_TITLE,
-      body: RECONNECT_MESSAGE,
+      title,
+      body: message,
       url: RECONNECT_LINK,
       notificationId: notification.id,
     },
