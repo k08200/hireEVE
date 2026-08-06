@@ -429,6 +429,18 @@ func runSelfChecks() async -> Bool {
           ws?.scheme == wantScheme && ws?.path == "/ws"
           && ws?.query?.contains("type=desktop") == true
           && ws?.query?.contains("token=") != true)
+    // Heartbeat: a half-open socket (mac sleep, NAT rebind) never errors
+    // receive(), so liveness rests on these — pin the pure parts.
+    check("backoff doubles", RealtimeClient.nextBackoff(1) == 2)
+    check("backoff caps at 30 s",
+          RealtimeClient.nextBackoff(20) == 30 && RealtimeClient.nextBackoff(30) == 30)
+    check("ping cadence comfortably exceeds the pong timeout",
+          RealtimeClient.pingIntervalSeconds > RealtimeClient.pongTimeoutSeconds
+          && RealtimeClient.pongTimeoutSeconds > 0)
+    let pongBox = PongBox()
+    check("pong flag starts clear", !pongBox.isMarked)
+    pongBox.mark()
+    check("pong flag latches", pongBox.isMarked)
 
     print("Accessibility:")
     check("reduce motion disables the panel morph",
