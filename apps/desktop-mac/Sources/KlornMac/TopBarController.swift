@@ -176,12 +176,17 @@ final class TopBarController {
         panelIsFocusable = focusable
         panel.contentView = NSHostingView(rootView: root)
         self.panel = panel
-        // Re-pinning on EVERY render fought the user: refresh()/language
-        // changes snapped a dragged window back to top-center and re-derived
-        // its size mid-session. Only a state change (pill↔expanded↔full
-        // morph) or a fresh panel may reposition; a same-state re-render
-        // keeps whatever frame the user put it in.
-        if renderedState != state || !panel.isVisible {
+        // Re-pinning on EVERY render fought the user: any same-state
+        // refresh() snapped a dragged window back to top-center and
+        // re-derived its size mid-session. Only a state change
+        // (pill↔expanded↔full morph), a fresh panel, or a window that is no
+        // longer on ANY screen (display unplugged/resized) may reposition —
+        // a partially off-screen frame is respected as a deliberate drag.
+        let frameLost = !(NSScreen.main?.visibleFrame.intersects(panel.frame) ?? true)
+        if Self.shouldSetFrame(
+            renderedState: renderedState, state: state,
+            panelVisible: panel.isVisible, frameLost: frameLost)
+        {
             setFrame(panel, size: size)
         }
         renderedState = state
@@ -288,6 +293,15 @@ final class TopBarController {
             ideal: ideal, visible: visible.size, floor: TopBarMetrics.fullMin)
     }
 
+    /// Pure for the harness: when may render() move/resize the panel? Only a
+    /// state morph, a not-yet-shown panel, or a frame stranded off every
+    /// screen — never a same-state re-render (that was the snap-back bug).
+    nonisolated static func shouldSetFrame(
+        renderedState: BarState?, state: BarState, panelVisible: Bool, frameLost: Bool
+    ) -> Bool {
+        renderedState != state || !panelVisible || frameLost
+    }
+
     /// Pure for the harness: full is a resizable key-able window (the fixed
     /// 1400×860 could not be shrunk — clipped-display report, 2026-08-05);
     /// pill/expanded stay non-focus-stealing and fixed.
@@ -306,6 +320,8 @@ final class TopBarController {
         if focusable {
             // Borderless windows still get native edge-drag with .resizable;
             // the floor keeps the fixed sidebar + list columns from clipping.
+            // Screen-clamped below in setFrame — a floor wider than the
+            // display would let live-resize park the window off-screen.
             panel.contentMinSize = TopBarMetrics.fullMin
             panel.delegate = resizeRecorder
         }
@@ -327,6 +343,14 @@ final class TopBarController {
     /// Keep the bar pinned top-center; animate the frame so expand/collapse morphs.
     private func setFrame(_ panel: NSPanel, size: NSSize) {
         guard let visible = NSScreen.main?.visibleFrame else { return }
+        // The drag-resize floor must also respect the CURRENT screen: a
+        // contentMinSize wider than the display would let AppKit's live
+        // resize (and possibly programmatic frames) exceed the screen, which
+        // is the exact clipping fittedSize exists to prevent.
+        if panelIsFocusable {
+            panel.contentMinSize = TopBarMetrics.fittedSize(
+                ideal: TopBarMetrics.fullMin, visible: visible.size)
+        }
         // Honor Reduce Motion (WCAG 2.3.3 + CLAUDE.md): a full-window morph up to
         // 1400px is exactly the large motion the setting exists to suppress.
         let animate = Self.shouldAnimateFrame(

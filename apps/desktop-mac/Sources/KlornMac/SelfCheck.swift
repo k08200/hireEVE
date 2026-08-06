@@ -301,6 +301,20 @@ func runSelfChecks() async -> Bool {
           && fittedFrame.maxY == smallScreen.maxY - 8)
     check("full panel is user-resizable",
           TopBarController.styleMask(focusable: true).contains(.resizable))
+    check("same-state re-render never reframes (snap-back fix)",
+          !TopBarController.shouldSetFrame(
+              renderedState: .full, state: .full, panelVisible: true, frameLost: false))
+    check("state morph, first show, and a lost frame each reframe",
+          TopBarController.shouldSetFrame(
+              renderedState: .collapsed, state: .full, panelVisible: true, frameLost: false)
+          && TopBarController.shouldSetFrame(
+              renderedState: .full, state: .full, panelVisible: false, frameLost: false)
+          && TopBarController.shouldSetFrame(
+              renderedState: .full, state: .full, panelVisible: true, frameLost: true))
+    check("drag floor is screen-clamped on small displays",
+          TopBarMetrics.fittedSize(
+              ideal: TopBarMetrics.fullMin, visible: NSSize(width: 800, height: 500)).width
+              <= 800 - TopBarMetrics.screenMargin * 2)
     check("pill/expanded panel stays fixed and non-activating",
           !TopBarController.styleMask(focusable: false).contains(.resizable)
           && TopBarController.styleMask(focusable: false).contains(.nonactivatingPanel))
