@@ -39,6 +39,7 @@ import {
   syncEmails,
 } from "./mail/email-sync.js";
 import { getAuthedClient, getLinkedInboxClients, renewExpiringGmailWatches } from "./mail/gmail.js";
+import { notifyConversationsUpdated } from "./notify/conversations-updated.js";
 import { formatUrgentEmailBody, senderName } from "./notify/notification-format.js";
 import { escalateUnackedPush } from "./notify/phone-escalation.js";
 import { sendPushNotification } from "./notify/push.js";
@@ -1003,6 +1004,10 @@ async function runUserCycle(
       try {
         // Sync from Gmail → DB
         const syncResult = await syncEmails(config.userId, 20);
+        // The gmail-push route emits this after every sync with new mail; the
+        // poll fallback never did, so mail that arrived via THIS path reached
+        // clients only when their own polling caught up (desktop: 60 s).
+        if (syncResult.newCount > 0) notifyConversationsUpdated(config.userId);
 
         // AI summarize new emails — floor 10 so a zero-new tick still drains
         // the backlog (same #725 floor the interactive routes already have;
