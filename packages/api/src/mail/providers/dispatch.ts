@@ -16,6 +16,7 @@
 import { prisma } from "../../db.js";
 import type { InboxProviderName } from "../inbox-credentials.js";
 import { googleMailActions } from "./google.js";
+import { outlookMailActions } from "./outlook.js";
 import type { MailProviderActions } from "./types.js";
 import { unsupportedMailActions } from "./unsupported.js";
 
@@ -23,7 +24,9 @@ const ACTIONS_BY_PROVIDER: Readonly<Record<InboxProviderName, MailProviderAction
   GOOGLE: googleMailActions,
   NAVER: unsupportedMailActions("NAVER"),
   ICLOUD: unsupportedMailActions("ICLOUD"),
-  OUTLOOK: unsupportedMailActions("OUTLOOK"),
+  // Phase 3C: real Graph-backed actions. Reachable only for OUTLOOK rows,
+  // which can only exist once OUTLOOK_INBOX_ENABLED let a user link one.
+  OUTLOOK: outlookMailActions,
   IMAP: unsupportedMailActions("IMAP"),
 };
 

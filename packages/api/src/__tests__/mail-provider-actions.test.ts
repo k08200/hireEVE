@@ -4,7 +4,7 @@
  *
  * The action surface (send/read/star/trash/archive…) dispatches by the
  * provider of the mailbox a message lives on. GOOGLE delegates to the Gmail
- * module; providers with no action surface yet (NAVER today, ICLOUD/OUTLOOK/
+ * module; providers with no action surface yet (NAVER today, ICLOUD/
  * IMAP until their phases land) answer every mutation with an explicit
  * `unsupported` result — never a plain `{ error }`, because callers treat
  * `{ error }` as "not connected" and fall back to local-only writes, which is
@@ -72,7 +72,6 @@ describe("mailActionsForProvider", () => {
   it.each([
     "NAVER",
     "ICLOUD",
-    "OUTLOOK",
     "IMAP",
   ] as const)("%s has no action surface yet — every mutation answers unsupported", async (provider) => {
     const { mailActionsForProvider } = await loadDispatch();
