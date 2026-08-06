@@ -42,6 +42,7 @@ export const queryKeys = {
     pending: () => ["inbox", "pending"] as const,
     receipt: (date?: string) => ["inbox", "receipt", date ?? "today"] as const,
     linkedAccounts: () => ["inbox", "linked-accounts"] as const,
+    outlookAccounts: () => ["inbox", "outlook-accounts"] as const,
   },
   email: {
     all: ["email"] as const,

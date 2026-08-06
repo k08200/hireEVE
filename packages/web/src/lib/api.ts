@@ -141,3 +141,10 @@ export async function startLinkInbox(): Promise<void> {
   });
   await openOAuthUrl(url);
 }
+
+export async function startLinkOutlookInbox(): Promise<void> {
+  const { url } = await apiFetch<{ url: string }>("/api/auth/outlook/link-inbox", {
+    method: "POST",
+  });
+  await openOAuthUrl(url);
+}

@@ -121,7 +121,15 @@ scopes suffice; note some org tenants require admin consent for
 any real link: Azure app registration (supported account types: personal +
 work/school), then `MS_CLIENT_ID` / `MS_CLIENT_SECRET` / `MS_REDIRECT_URI`
 (prod callback `https://klorn-api.onrender.com/api/auth/outlook/callback`) in
-Render. Remaining after 3C: 3D web settings UI.
+Render. Phase 3 complete pending the founder's Azure app registration.
+
+3D (web UI) landed: `OutlookInboxesSection` in settings mirrors the Google
+linked-inboxes section (list / OAuth link / unlink via /api/auth/outlook/*),
+renders nothing while the list probe 404s (flag off — same dark pattern as
+the iCloud section, no NEXT_PUBLIC flag), and defers the shared ?inbox=
+redirect toast/strip to the Google section to avoid effect races. Flipping
+OUTLOOK_INBOX_ENABLED requires the Azure registration first: without
+MS_CLIENT_ID/MS_CLIENT_SECRET the link-start endpoint answers 503 by design.
 
 3C (actions) landed: `mail/providers/outlook.ts` implements the full
 `MailProviderActions` surface via Graph (PATCH isRead/flag, moves to the

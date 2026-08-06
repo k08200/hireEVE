@@ -13,6 +13,7 @@ import InAppBrowserNotice from "../../components/in-app-browser-notice";
 import { LinkedInboxesSection } from "../../components/linked-inboxes-section";
 import { NaverImapSection } from "../../components/naver-imap-section";
 import { OAuthErrorBanner } from "../../components/oauth-error-banner";
+import { OutlookInboxesSection } from "../../components/outlook-inboxes-section";
 import { ListSkeleton } from "../../components/skeleton";
 import { SubscriptionSection } from "../../components/subscription-section";
 import { TelegramSection } from "../../components/telegram-section";
@@ -1798,6 +1799,13 @@ export default function SettingsPage() {
             wrapper, no margin) while ICLOUD_INBOX_ENABLED is off server-side
             (the status probe 404s), so it carries its own mb-8 */}
         <ICloudImapSection />
+
+        {/* Outlook inboxes (Graph OAuth) — renders nothing while
+            OUTLOOK_INBOX_ENABLED is off server-side (the list probe 404s),
+            so it carries its own mb-8. Needs Suspense (useSearchParams). */}
+        <Suspense>
+          <OutlookInboxesSection />
+        </Suspense>
 
         {/* Bring your own LLM key */}
         <section className="mb-8">
