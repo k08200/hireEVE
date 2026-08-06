@@ -70,6 +70,7 @@ model User {
   welcomeEmailSentAt        DateTime?
   conversations             Conversation[]
   tokens                    UserToken[]
+  identities                UserIdentity[]
   linkedCalendarAccounts    LinkedCalendarAccount[]
   linkedInboxAccounts       LinkedInboxAccount[]
   tasks                     Task[]
@@ -208,6 +209,27 @@ model UserToken {
   // renewExpiringGmailWatches scans all tokens by expiry (no userId) every tick;
   // without this it seq-scans the whole table as the user base grows.
   @@index([gmailWatchExpiresAt])
+}
+
+// External LOGIN identity (Sign in with Apple, Naver OAuth) — who the user is,
+// never a mail grant. Kept apart from UserToken on purpose: the mere existence
+// of a UserToken row is the app-wide "has Gmail" predicate (connection status,
+// watch renewal, sync schedulers), so an identity row there would flip every
+// consumer. The provider's stable subject is the key — Apple private-relay
+// emails can rotate and differ from the account email, so email alone cannot
+// identify a returning user.
+model UserIdentity {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  String // "apple" | "naver"
+  subject   String // provider's stable user id (Apple `sub`, Naver `id`)
+  email     String? // email the provider reported at the last sign-in
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, subject])
+  @@unique([userId, provider])
 }
 
 // A secondary Google account (e.g. work) linked ONLY for cross-account calendar

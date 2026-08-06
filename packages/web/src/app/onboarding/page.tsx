@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
@@ -20,8 +21,16 @@ export default function OnboardingPage() {
 
 type Step = 1 | 2 | 3 | 4;
 
-function deriveStep(googleConnected: boolean | null, syncStatus: string): Step {
-  if (!googleConnected) return 1;
+function deriveStep(
+  googleConnected: boolean | null,
+  hasMailSource: boolean | null,
+  syncStatus: string,
+): Step {
+  // No mail source at all → the connect gate.
+  if (!googleConnected && !hasMailSource) return 1;
+  // Mail via IMAP only (e.g. Naver connected in Settings): there is no Google
+  // init-sync to wait for — land on review; the IMAP poll fills it server-side.
+  if (!googleConnected) return 3;
   // Sync done → land on the review step (3); the ready step (4) is reached only
   // after the user finishes (or skips) reviewing their classifications.
   if (syncStatus === "done") return 3;
@@ -29,12 +38,12 @@ function deriveStep(googleConnected: boolean | null, syncStatus: string): Step {
 }
 
 function OnboardingFlow() {
-  const { googleConnected, initSync } = useAuth();
+  const { googleConnected, hasMailSource, initSync } = useAuth();
   const router = useRouter();
   const [manualStep, setManualStep] = useState<Step | null>(null);
   const [connecting, setConnecting] = useState(false);
 
-  const derivedStep = deriveStep(googleConnected, initSync.status);
+  const derivedStep = deriveStep(googleConnected, hasMailSource, initSync.status);
   const step = manualStep ?? derivedStep;
 
   // Auto-advance from syncing → review when sync finishes
@@ -124,6 +133,18 @@ function WelcomeStep({
           {connecting ? "Redirecting to Google..." : "Connect Gmail & Calendar"}
           {!connecting && <span aria-hidden>→</span>}
         </button>
+        {/* Non-Google escape hatch: a user who signed in with Apple/Naver and
+            lives in Naver Mail attaches it via IMAP in Settings instead —
+            without this line the Google button reads as the only way in. */}
+        <p className="text-center text-xs leading-5 text-slate-400">
+          Prefer Naver Mail?{" "}
+          <Link
+            href="/settings"
+            className="font-medium text-sky-600 underline decoration-sky-200 underline-offset-2 hover:text-sky-500"
+          >
+            Connect it via IMAP in Settings
+          </Link>
+        </p>
       </div>
 
       <div className="mt-8 grid grid-cols-3 gap-3">

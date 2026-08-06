@@ -14,20 +14,21 @@ function isPaywallBypass(pathname: string): boolean {
   return PAYWALL_BYPASS_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-// Pages that stay reachable while Google is unconnected. /onboarding is the
-// gate itself; /settings is where the user manages the connection; /billing
-// must be reachable so a user can upgrade BEFORE connecting Google (otherwise
-// a paying customer is bounced to onboarding and can never check out); any
-// path under /auth or /login is the sign-in flow.
-const GOOGLE_OPTIONAL_PREFIXES = ["/onboarding", "/settings", "/billing", "/login", "/auth"];
+// Pages that stay reachable while NO mail source is attached. /onboarding is
+// the gate itself; /settings is where the user manages connections (including
+// Naver IMAP — the non-Google way to attach mail); /billing must be reachable
+// so a user can upgrade BEFORE connecting (otherwise a paying customer is
+// bounced to onboarding and can never check out); any path under /auth or
+// /login is the sign-in flow.
+const MAIL_OPTIONAL_PREFIXES = ["/onboarding", "/settings", "/billing", "/login", "/auth"];
 
-function isGoogleOptional(pathname: string): boolean {
-  return GOOGLE_OPTIONAL_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+function isMailOptional(pathname: string): boolean {
+  return MAIL_OPTIONAL_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 /** Redirects to /login if user is not authenticated. Wraps protected pages. */
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading, authError, googleConnected } = useAuth();
+  const { user, loading, authError, hasMailSource } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -39,13 +40,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace(`/login?next=${encodeURIComponent(next)}`);
       return;
     }
-    // User is signed in but Google is not connected — Klorn cannot do its
-    // job without mail/calendar access, so route them through the onboarding
-    // gate. Settings and the gate itself stay reachable.
-    if (!loading && user && googleConnected === false && !isGoogleOptional(pathname)) {
+    // User is signed in but NO mail source is attached (no Google grant, no
+    // linked/IMAP inbox) — Klorn cannot do its job without mail, so route
+    // them through the onboarding gate. Keyed on hasMailSource rather than
+    // googleConnected so an Apple/Naver-login user who attached Naver IMAP
+    // is not bounced out of the app forever. Settings and the gate itself
+    // stay reachable.
+    if (!loading && user && hasMailSource === false && !isMailOptional(pathname)) {
       router.replace("/onboarding");
     }
-  }, [user, loading, authError, googleConnected, pathname, router]);
+  }, [user, loading, authError, hasMailSource, pathname, router]);
 
   if (loading) {
     return (

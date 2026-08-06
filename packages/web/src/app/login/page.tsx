@@ -1,5 +1,6 @@
 "use client";
 
+import type { AuthProvidersResponse } from "@klorn/contract";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -90,6 +91,24 @@ function LoginForm() {
     if (!signupOpen && mode === "register") setMode("login");
   }, [signupOpen, mode]);
 
+  // Server-advertised sign-in providers (GET /api/auth/providers). Google
+  // renders unconditionally — it must never be held hostage to this probe;
+  // Apple/Naver buttons appear only when the deployment enables them.
+  // Hidden in the native shell: those providers block WebView OAuth like
+  // Google does, and the external-browser relay currently speaks Google only.
+  const providersQuery = useQuery({
+    queryKey: ["auth", "providers"],
+    queryFn: () => apiFetch<AuthProvidersResponse>("/api/auth/providers"),
+    staleTime: 5 * 60_000,
+  });
+  const [nativeShell, setNativeShell] = useState(false);
+  useEffect(() => {
+    setNativeShell(isNativeShell());
+  }, []);
+  const extraProviders = nativeShell
+    ? []
+    : (providersQuery.data?.providers ?? []).filter((p) => p.id === "apple" || p.id === "naver");
+
   useEffect(() => {
     if (!authLoading && user) {
       router.push(nextPath);
@@ -112,7 +131,7 @@ function LoginForm() {
                 ? t("auth.sessionExpired")
                 : error === "invite_only"
                   ? t("auth.inviteOnlyRedirect")
-                  : error;
+                  : (socialErrorMessage(error, t) ?? error);
       toast(message, "error");
     }
     if (verified) {
@@ -230,6 +249,16 @@ function LoginForm() {
             <GoogleMark />
             {t("auth.continueWithGoogle")}
           </a>
+          {extraProviders.map((provider) => (
+            <a
+              key={provider.id}
+              href={`${API_BASE}/api/auth/${provider.id}/login`}
+              className="mt-3 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-200 bg-transparent text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+            >
+              {provider.id === "apple" ? <AppleMark /> : <NaverMark />}
+              {provider.id === "apple" ? t("auth.continueWithApple") : t("auth.continueWithNaver")}
+            </a>
+          ))}
           {/* Marketing/doctrine copy is landing-page context — hide it on the app
               (mobile) for a clean login; keep it on desktop. */}
           <div className="mt-3 hidden space-y-2 text-center text-[11px] leading-5 text-slate-500 md:block">
@@ -394,6 +423,42 @@ function LoginForm() {
         )}
       </div>
     </AuthScreen>
+  );
+}
+
+/**
+ * Apple/Naver callback errors (`<provider>_<reason>` from the API's social
+ * routes). null = not a social error; the caller shows the raw code.
+ */
+function socialErrorMessage(error: string, t: (key: string) => string): string | null {
+  const match = /^(?:apple|naver)_(denied|failed|email_in_use|email_unverified)$/.exec(error);
+  if (!match) return null;
+  switch (match[1]) {
+    case "denied":
+      return t("auth.socialDenied");
+    case "email_in_use":
+      return t("auth.socialEmailInUse");
+    case "email_unverified":
+      return t("auth.socialEmailUnverified");
+    default:
+      return t("auth.socialSignInError");
+  }
+}
+
+function AppleMark() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16.7 12.9c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.9-1.6 0-3.1 1-4 2.4-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.6-1-2.7-3.6zM14.4 5.6c.7-.8 1.1-1.9 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z" />
+    </svg>
+  );
+}
+
+function NaverMark() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24">
+      <rect width="24" height="24" rx="4" fill="#03C75A" />
+      <path fill="#fff" d="M13.9 6.5v5.4L10.1 6.5H6.5v11h3.6v-5.4l3.8 5.4h3.6v-11z" />
+    </svg>
   );
 }
 

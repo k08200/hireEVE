@@ -37,6 +37,11 @@ interface AuthContextType {
   loading: boolean;
   authError: "api_unavailable" | null;
   googleConnected: boolean | null;
+  // Whether ANY mail source is attached (primary Google grant OR a linked/
+  // IMAP inbox) — server-computed on /api/auth/me. The AuthGuard keys its
+  // onboarding redirect on this, so an Apple/Naver-login user who connected
+  // Naver IMAP instead of Gmail is not bounced out of the app. null = unknown.
+  hasMailSource: boolean | null;
   initSync: InitSyncState;
   login: (email: string, password: string, redirectTo?: string) => Promise<void>;
   register: (email: string, password: string, name?: string, redirectTo?: string) => Promise<void>;
@@ -78,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<"api_unavailable" | null>(null);
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
+  const [hasMailSource, setHasMailSource] = useState<boolean | null>(null);
   const [initSync, setInitSync] = useState<InitSyncState>(INIT_SYNC_IDLE);
   const router = useRouter();
 
@@ -102,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         setGoogleConnected(true);
+        setHasMailSource(true);
         setInitSync({
           status: "done",
           calendar: data.calendar ?? 0,
@@ -121,12 +128,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (stored) {
       setToken(stored);
       // Verify token
-      apiFetch<{ user: User & { googleConnected?: boolean } }>("/api/auth/me", {
-        headers: { Authorization: `Bearer ${stored}` },
-      })
+      apiFetch<{ user: User & { googleConnected?: boolean; hasAnyMailSource?: boolean } }>(
+        "/api/auth/me",
+        {
+          headers: { Authorization: `Bearer ${stored}` },
+        },
+      )
         .then((data) => {
           setUser(data.user);
           setGoogleConnected(data.user.googleConnected ?? false);
+          // Older API without the field: fall back to googleConnected so the
+          // guard behaves exactly as before this field existed.
+          setHasMailSource(data.user.hasAnyMailSource ?? data.user.googleConnected ?? false);
           // Retention analytics: an authenticated session bootstrapped = the
           // user opened the app. Fires once per browser session (DAU signal).
           trackAppOpenOnce();
@@ -179,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
       setAuthError(null);
       setGoogleConnected(false);
+      setHasMailSource(false); // fresh account — nothing attached yet
       router.push(redirectTo);
     },
     [router],
@@ -190,16 +204,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(newToken);
       let connected = false;
       try {
-        const data = await apiFetch<{ user: User & { googleConnected?: boolean } }>(
-          "/api/auth/me",
-          {
-            headers: { Authorization: `Bearer ${newToken}` },
-          },
-        );
+        const data = await apiFetch<{
+          user: User & { googleConnected?: boolean; hasAnyMailSource?: boolean };
+        }>("/api/auth/me", {
+          headers: { Authorization: `Bearer ${newToken}` },
+        });
         setUser(data.user);
         setAuthError(null);
         connected = data.user.googleConnected ?? false;
         setGoogleConnected(connected);
+        setHasMailSource(data.user.hasAnyMailSource ?? connected);
       } catch (err) {
         // biome-ignore lint/suspicious/noConsole: critical auth failure, always log
         console.error("[auth] loginWithToken: /api/auth/me FAILED", err);
@@ -226,6 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setAuthError(null);
     setGoogleConnected(null);
+    setHasMailSource(null);
     setInitSync(INIT_SYNC_IDLE);
     router.push("/login");
   }, [router]);
@@ -238,6 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         authError,
         googleConnected,
+        hasMailSource,
         initSync,
         login,
         register,

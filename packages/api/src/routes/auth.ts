@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
+import { exchangeCodes } from "../auth/exchange-codes.js";
 import {
   comparePassword,
   getUserId,
@@ -14,7 +15,7 @@ import {
 } from "../auth.js";
 import { requireEntitled } from "../billing/entitlement-guard.js";
 import { isEntitled, isHardPaywalled, isWebCheckoutAvailable } from "../billing/stripe.js";
-import { INIT_SYNC_EMAIL_COUNT } from "../config.js";
+import { appleLoginEnabled, INIT_SYNC_EMAIL_COUNT, naverLoginEnabled } from "../config.js";
 import { encryptOptional, encryptToken } from "../crypto-tokens.js";
 import { prisma } from "../db.js";
 import { withDbRetry } from "../db-retry.js";
@@ -73,7 +74,9 @@ const DEMO_USER_ID = "demo-user";
 /** Ceiling on linked secondary inboxes per user (unbounded-growth guard). */
 const MAX_LINKED_INBOXES = 10;
 
-function isDemoUser(userId: string): boolean {
+// Exported for the Apple/Naver social-login path (auth/social-login.ts),
+// which must mirror this guard exactly.
+export function isDemoUser(userId: string): boolean {
   return userId === DEMO_USER_ID;
 }
 
@@ -154,7 +157,9 @@ const resetPasswordBodySchema = {
   },
 } as const;
 
-function normalizeEmail(email: string): string {
+// Exported for auth/social-login.ts — the Apple/Naver path must normalize
+// exactly like every email/password and Google path here.
+export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
@@ -201,7 +206,7 @@ export async function runLoginBriefingCatchUp(userId: string): Promise<void> {
   await createDailyBriefingDelivery(userId);
 }
 
-function triggerDueLoginBriefing(userId: string, delayMs = 0): void {
+export function triggerDueLoginBriefing(userId: string, delayMs = 0): void {
   const timer = setTimeout(() => {
     runLoginBriefingCatchUp(userId).catch((err) => {
       console.warn(`[AUTH] Login briefing catch-up failed for ${userId}:`, err);
@@ -215,7 +220,9 @@ function triggerDueLoginBriefing(userId: string, delayMs = 0): void {
 // null and the caller falls back to default plan. Used by both the
 // email/password register endpoint and the Google OAuth signup callback so
 // the two paths stay consistent.
-async function evaluateBetaAutoPro(): Promise<{
+// Exported for auth/social-login.ts so the Apple/Naver signup path grants (or
+// exhausts) the same beta-PRO pool instead of forking a third policy.
+export async function evaluateBetaAutoPro(): Promise<{
   plan: "PRO";
   betaProGrantedAt: Date;
 } | null> {
@@ -240,6 +247,21 @@ export function authRoutes(app: FastifyInstance) {
   app.get("/signup-status", async () => {
     const open = process.env.BETA_GATE_ENABLED !== "true";
     return { open };
+  });
+
+  // GET /api/auth/providers — Public probe so the login UI renders exactly the
+  // sign-in buttons this deployment supports (signup-status precedent: values
+  // only, never raw env). Google is always on; Apple/Naver appear once their
+  // OFF-by-default flags flip (config.ts) — while dark they are also absent
+  // here, so the login page is unchanged and nothing advertises the cloaked
+  // /api/auth/apple|naver routes. Contract: AuthProvidersResponse.
+  app.get("/providers", async () => {
+    const providers = [
+      { id: "google" },
+      ...(appleLoginEnabled() ? [{ id: "apple" }] : []),
+      ...(naverLoginEnabled() ? [{ id: "naver" }] : []),
+    ];
+    return { providers };
   });
 
   // POST /api/auth/register — Create account
@@ -462,6 +484,14 @@ export function authRoutes(app: FastifyInstance) {
       }
 
       const googleStatus = await getGoogleConnectionStatus(user.id);
+      // Any non-primary mail source (linked Google inbox, Naver/iCloud IMAP)
+      // also counts as "has mail" — see hasAnyMailSource below. Retried so a
+      // transient DB blip can't masquerade as "Invalid token" via the outer
+      // catch (a real session must not read as a hard logout).
+      const linkedInboxCount = await withDbRetry(
+        () => prisma.linkedInboxAccount.count({ where: { userId: user.id } }),
+        { label: "me.linked_inbox_count" },
+      );
 
       return reply.send({
         user: {
@@ -489,6 +519,12 @@ export function authRoutes(app: FastifyInstance) {
           timezone: (user as unknown as { timezone?: string | null }).timezone ?? "Asia/Seoul",
           googleConnected: googleStatus.connected,
           googleNeedsReconnect: googleStatus.needsReconnect,
+          // Whether ANY mail source is attached — the primary Google grant or
+          // a linked/IMAP inbox. The web AuthGuard keys its onboarding
+          // redirect on this instead of googleConnected alone, so an
+          // Apple/Naver-login user who connected Naver IMAP is not bounced
+          // out of the app forever.
+          hasAnyMailSource: googleStatus.connected || linkedInboxCount > 0,
         },
       });
     } catch {
@@ -666,9 +702,9 @@ export function authRoutes(app: FastifyInstance) {
     { jwt?: string; expiresAt: number; challenge?: string }
   >();
 
-  // In-memory store for OAuth exchange codes (?code in the redirect instead of ?token).
-  // Expires after 60 s; deleted on first use. Prevents JWT leakage via browser history.
-  const exchangeCodes = new Map<string, { jwt: string; expiresAt: number }>();
+  // OAuth exchange codes moved to auth/exchange-codes.ts (module-level) so the
+  // Apple/Naver callbacks in routes/social-auth.ts mint codes this file's
+  // POST /exchange-code endpoint can redeem. Same map, same semantics.
 
   // GET /api/auth/desktop-nonce — Desktop app must call this FIRST to obtain a
   // server-generated nonce before opening the browser for Google login. Calling
@@ -1801,7 +1837,7 @@ export function authRoutes(app: FastifyInstance) {
 }
 
 /** Parse a human-readable device name from User-Agent */
-function parseDeviceName(ua: string): string {
+export function parseDeviceName(ua: string): string {
   if (!ua) return "Unknown device";
 
   let browser = "Browser";
@@ -1822,7 +1858,7 @@ function parseDeviceName(ua: string): string {
 }
 
 /** Parse device type from User-Agent */
-function parseDeviceType(ua: string): string {
+export function parseDeviceType(ua: string): string {
   if (!ua) return "web";
   if (/iPhone|iPad|Android|Mobile/i.test(ua)) return "mobile";
   if (/Electron/i.test(ua)) return "desktop";

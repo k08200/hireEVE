@@ -49,6 +49,7 @@ import { playgroundRoutes } from "./routes/playground.js";
 import { receiptRoutes } from "./routes/receipt.js";
 import { skillRoutes } from "./routes/skills.js";
 import { smsRoutes } from "./routes/sms.js";
+import { appleAuthProvider, naverAuthProvider, socialAuthRoutes } from "./routes/social-auth.js";
 import { telegramRoutes } from "./routes/telegram.js";
 import { tokenUsageRoutes } from "./routes/token-usage.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
@@ -246,6 +247,11 @@ await app.register(imapConnectRoutes(IMAP_PROVIDERS.NAVER), { prefix: "/api/nave
 await app.register(imapConnectRoutes(IMAP_PROVIDERS.ICLOUD, { gate: icloudInboxEnabled }), {
   prefix: "/api/icloud-imap",
 });
+// Social LOGIN providers beyond Google — dark until APPLE_LOGIN_ENABLED /
+// NAVER_LOGIN_ENABLED flip; every route answers the cloaked 404 while off
+// (same CASA surface freeze as the dark IMAP providers above).
+await app.register(socialAuthRoutes(appleAuthProvider), { prefix: "/api/auth/apple" });
+await app.register(socialAuthRoutes(naverAuthProvider), { prefix: "/api/auth/naver" });
 await app.register(githubRoutes, { prefix: "/api/github" });
 await app.register(patternRoutes, { prefix: "/api/patterns" });
 await app.register(tokenUsageRoutes, { prefix: "/api/usage" });

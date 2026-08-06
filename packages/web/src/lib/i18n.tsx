@@ -91,6 +91,14 @@ const enTranslations: Record<string, string> = {
   "auth.googleDenied": "Google connection was canceled — just try again whenever you're ready.",
   "auth.googleUnverified":
     "Google reports this account's email address as unverified, so it can't be used to sign in. Verify the address with Google, or use a different account.",
+  "auth.continueWithApple": "Continue with Apple",
+  "auth.continueWithNaver": "Continue with Naver",
+  "auth.socialSignInError": "Sign-in could not be completed. Please try again.",
+  "auth.socialDenied": "Sign-in was canceled — just try again whenever you're ready.",
+  "auth.socialEmailInUse":
+    "This email already has a Klorn account. Sign in the way you originally did — you can link other accounts from Settings.",
+  "auth.socialEmailUnverified":
+    "This provider can't verify that email address, so it can't be used to sign in. Use an address the provider owns, or a different sign-in method.",
   "auth.sessionExpired": "Your session expired. Please sign in again.",
   "auth.inviteOnlyRedirect":
     "Klorn is invite-only right now. Request access from the early access page.",
@@ -331,6 +339,14 @@ const koTranslations: Record<string, string> = {
   "auth.googleDenied": "Google 연결이 취소되었어요 — 준비되면 다시 시도하면 됩니다.",
   "auth.googleUnverified":
     "Google에서 이 계정의 이메일 주소가 미확인 상태로 보고되어 로그인에 사용할 수 없습니다. Google에서 주소를 인증하시거나 다른 계정을 사용해 주세요.",
+  "auth.continueWithApple": "Apple로 계속하기",
+  "auth.continueWithNaver": "네이버로 계속하기",
+  "auth.socialSignInError": "로그인을 완료하지 못했습니다. 다시 시도해 주세요.",
+  "auth.socialDenied": "로그인이 취소되었어요 — 준비되면 다시 시도하면 됩니다.",
+  "auth.socialEmailInUse":
+    "이 이메일로 만든 Klorn 계정이 이미 있습니다. 원래 쓰던 방법으로 로그인해 주세요 — 다른 계정 연결은 설정에서 할 수 있어요.",
+  "auth.socialEmailUnverified":
+    "해당 서비스가 이 이메일 주소를 보증할 수 없어 로그인에 사용할 수 없습니다. 서비스 자체 주소를 쓰시거나 다른 로그인 방법을 사용해 주세요.",
   "auth.sessionExpired": "세션이 만료되었습니다. 다시 로그인해 주세요.",
   "auth.inviteOnlyRedirect":
     "Klorn은 현재 초대 전용입니다. 얼리 액세스 페이지에서 액세스를 신청해 주세요.",

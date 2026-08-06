@@ -168,6 +168,9 @@ vi.mock("../db.js", () => {
       }),
     },
     userToken: { findFirst: vi.fn(async () => null) },
+    // /me's hasAnyMailSource counts linked/IMAP inboxes alongside the Google
+    // grant; none exist in these tests.
+    linkedInboxAccount: { count: vi.fn(async () => 0) },
     automationConfig: { create: vi.fn(async () => ({})), upsert: vi.fn(async () => ({})) },
     device: {
       create: vi.fn(async () => ({ id: "device-1" })),

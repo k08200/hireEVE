@@ -162,6 +162,22 @@ export function icloudInboxEnabled(): boolean {
     (process.env.ICLOUD_INBOX_ENABLED ?? "").trim().toLowerCase(),
   );
 }
+// Social login providers beyond Google (Sign in with Apple, Naver OAuth) —
+// OFF by default (repo doctrine). While OFF, every /api/auth/apple/* and
+// /api/auth/naver/* route 404s with the same cloak as the dark IMAP providers
+// and GET /api/auth/providers omits them, so neither the DAST-scanned surface
+// nor the login page changes until the provider apps are registered and the
+// flags flip. Read at request time with the lenient truthy parse.
+export function appleLoginEnabled(): boolean {
+  return ["true", "1", "yes", "on"].includes(
+    (process.env.APPLE_LOGIN_ENABLED ?? "").trim().toLowerCase(),
+  );
+}
+export function naverLoginEnabled(): boolean {
+  return ["true", "1", "yes", "on"].includes(
+    (process.env.NAVER_LOGIN_ENABLED ?? "").trim().toLowerCase(),
+  );
+}
 // Fail-open is intentional pre-launch, but a lost/typo'd env var in production
 // silently makes every paid feature free. Emit a loud startup signal so the
 // operator notices a misconfigured deploy rather than discovering it via revenue.
