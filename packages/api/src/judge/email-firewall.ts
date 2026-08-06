@@ -20,6 +20,7 @@ import {
 import { classifyNeedsReplyFromSignals, classifyPriority } from "../mail/email-priority.js";
 import type { GmailRawEmail } from "../mail/gmail-fetch.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
+import { notifyConversationsUpdated } from "../notify/conversations-updated.js";
 import { getUserNotificationLanguage } from "../notify/notification-strings.js";
 import { extractAndUpsertCommitmentsFromText } from "../pim/commitment-ingestion.js";
 import type { ProviderCredentials } from "../providers/index.js";
@@ -314,6 +315,14 @@ export async function judgeAndMirrorEmail(
     judgement,
     engagementKindOf(judgeContext.senderFacts),
   );
+  // The email just became visible on the firewall surfaces — they read
+  // AttentionItem, which is written only here, post-judge. Wake every open
+  // client so it refetches NOW: without this, only PUSH-tier mail produced
+  // any signal after classification, and the desktop app (whose queue is
+  // AttentionItem-only) waited out its 60 s poll for every other tier even
+  // though the Pub/Sub → sync leg was sub-second. Best-effort by design
+  // (broadcast to open sockets; no throw path).
+  notifyConversationsUpdated(userId);
 
   // The whole point of the firewall: a PUSH tier should actually interrupt
   // you. Until now nothing did — email pushes fired only off the separate

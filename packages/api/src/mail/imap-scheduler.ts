@@ -13,6 +13,7 @@
  */
 
 import { prisma } from "../db.js";
+import { notifyConversationsUpdated } from "../notify/conversations-updated.js";
 import { recordSchedulerTick, registerScheduler } from "../scheduler-heartbeat.js";
 import { captureError } from "../sentry.js";
 import { syncImapAccountsForUser } from "./imap-accounts.js";
@@ -44,6 +45,10 @@ async function tickOnce(): Promise<void> {
         console.log(
           `[${provider.logScope}] user ${owner.userId}: fetched=${result.fetched} inserted=${result.inserted} errors=${result.errors}`,
         );
+        // IMAP mail previously reached clients only via their own polling —
+        // no WS signal existed anywhere on this path. Same wake the Gmail
+        // paths send; per-user throttle inside.
+        if (result.inserted > 0) notifyConversationsUpdated(owner.userId);
       }
     } catch (err) {
       // Terminal handler for the per-user sync — console first so a

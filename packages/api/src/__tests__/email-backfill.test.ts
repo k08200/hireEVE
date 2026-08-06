@@ -11,6 +11,7 @@ const attentionFindMany = vi.hoisted(() => vi.fn());
 const notifFindFirst = vi.hoisted(() => vi.fn(async () => null));
 const notifCreate = vi.hoisted(() => vi.fn(async () => ({ id: "n1", createdAt: new Date() })));
 const judgeEmail = vi.hoisted(() => vi.fn());
+const notifyConversationsUpdated = vi.hoisted(() => vi.fn());
 const upsert = vi.hoisted(() => vi.fn(async () => {}));
 const buildJudgeContext = vi.hoisted(() =>
   vi.fn(async () => ({ corrections: [], senderPrior: null })),
@@ -42,6 +43,10 @@ vi.mock("../sentry.js", () => ({ captureError }));
 // Dynamically imported by the PUSH-tier push path.
 vi.mock("../notify/push.js", () => ({ sendPushNotification }));
 vi.mock("../websocket.js", () => ({ pushNotification }));
+// Mocked so the module-singleton throttle can't leak state across tests (its
+// fixed fake clock would otherwise never expire an entry) and so assertions
+// on `pushNotification` count only THIS file's direct emits.
+vi.mock("../notify/conversations-updated.js", () => ({ notifyConversationsUpdated }));
 vi.mock("../judge/attention-override.js", () => ({ findOpenEmailAttentionItemId }));
 
 import { backfillEmailAttentionItems, judgeAndMirrorEmail } from "../mail/email-sync.js";
@@ -77,6 +82,7 @@ beforeEach(() => {
   captureError.mockClear();
   sendPushNotification.mockClear();
   pushNotification.mockClear();
+  notifyConversationsUpdated.mockClear();
   findOpenEmailAttentionItemId.mockReset();
   findOpenEmailAttentionItemId.mockResolvedValue(null);
   userFindUnique.mockReset();
@@ -177,6 +183,9 @@ describe("judgeAndMirrorEmail — PUSH tier drives a real push", () => {
     expect(sendPushNotification).toHaveBeenCalledTimes(1);
     expect(sendPushNotification.mock.calls[0][2]).toBe("email_urgent");
     expect(pushNotification).toHaveBeenCalledTimes(1); // in-app bell toast
+    // The judged item just became visible on the firewall — every judge
+    // completion must fire the refetch wake (desktop's queue depends on it).
+    expect(notifyConversationsUpdated).toHaveBeenCalledWith("u1");
     // Bell row carries the [gmailId] dedup marker.
     expect(notifCreate.mock.calls[0][0].data.message).toContain("[g-hn]");
   });

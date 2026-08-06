@@ -27,9 +27,9 @@ import { prisma } from "../db.js";
 import { verifyGoogleOidcToken } from "../google-oidc.js";
 import { syncEmails } from "../mail/email-sync.js";
 import { getAuthedInboxClient, registerGmailWatch, stopGmailWatch } from "../mail/gmail.js";
+import { notifyConversationsUpdated } from "../notify/conversations-updated.js";
 import { captureError } from "../sentry.js";
 import { timingSafeEqualStr } from "../timing-safe-equal.js";
-import { pushNotification } from "../websocket.js";
 
 function extractBearerToken(req: FastifyRequest): string | null {
   const auth = req.headers.authorization;
@@ -139,18 +139,14 @@ export async function gmailPushRoutes(app: FastifyInstance) {
     // Sentry is not configured; captureError preserves the stack + context.
     // On new mail, tell every open client to refetch (conversations-updated is
     // the app-wide refresh signal that NotificationBell bridges to a window
-    // event) instead of making the user press "Sync".
+    // event) instead of making the user press "Sync". Shared helper so the
+    // poll/IMAP fallbacks and the post-judge wake send the identical envelope,
+    // with one per-user throttle across all of them.
     const runSyncAndNotify = (uid: string, syncPromise: Promise<{ newCount: number }>) => {
       syncPromise
         .then((result) => {
           if (result.newCount > 0) {
-            pushNotification(uid, {
-              id: "mail-sync",
-              type: "system",
-              title: "conversations-updated",
-              message: "",
-              createdAt: new Date().toISOString(),
-            });
+            notifyConversationsUpdated(uid);
           }
         })
         .catch((err) => {
