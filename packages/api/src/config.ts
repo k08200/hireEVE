@@ -248,8 +248,14 @@ export const FREE_DAILY_COST_CAP_CENTS = intEnv("FREE_DAILY_COST_CAP_CENTS", 10)
 // cents (USD). The per-user gate can't see calls made without a userId
 // (background reconcilers, system briefings), so a runaway system loop is
 // invisible to it. This ceiling catches the aggregate. 0 disables it.
-// Default 1000¢ = $10/day — generous for a small beta, fatal-bill-proof.
-export const GLOBAL_DAILY_COST_CAP_CENTS = intEnv("GLOBAL_DAILY_COST_CAP_CENTS", 1000);
+// Default 5000¢ = $50/day (founder decision 2026-08-10, raised from $10).
+// Measured steady state at 100 users is ~$7/day (10k classifications at
+// ~$0.00055 each + drafts + briefings — see docs/launch/launch-plan.md), so
+// $10 left barely one heavy day of headroom and a spike stopped classifying
+// FOR EVERYONE mid-day. A protective ceiling that trips in normal operation
+// has stopped protecting and started breaking; $50 keeps ~7x headroom while
+// staying fatal-bill-proof.
+export const GLOBAL_DAILY_COST_CAP_CENTS = intEnv("GLOBAL_DAILY_COST_CAP_CENTS", 5000);
 
 // Ground-truth usage log (LlmUsageLog, llm-usage.ts). OFF = writes happen
 // (prod default). DB-less contexts (CI eval/canary jobs) set "true" so the

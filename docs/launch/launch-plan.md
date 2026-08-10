@@ -76,13 +76,14 @@ margin improves as the fallback chain (cheap paid SKUs) absorbs spillover.
 
 **Two findings, both actionable:**
 
-1. **`GLOBAL_DAILY_COST_CAP_CENTS` defaults to 1000 ($10/day) — too low for
-   100 users.** At ~$7/day steady-state a single heavier day (200 mails/user)
-   trips it and the WHOLE FLEET stops classifying mid-day. The cap is a
-   protective ceiling, not a budget: raise it deliberately at cohort growth
-   (≈$50/day covers 100 users with headroom) and keep the per-user cap
-   ($1.00/day, free $0.10/day) as the real per-account guard. Founder
-   decision — not changed silently here.
+1. ~~`GLOBAL_DAILY_COST_CAP_CENTS` defaults to $10/day~~ — **raised to
+   $50/day, founder decision 2026-08-10.** At ~$7/day steady state the old
+   ceiling left barely one heavy day of headroom, and tripping it stops
+   classification for EVERY user mid-day — a protective ceiling that fires in
+   normal operation has stopped protecting and started breaking. Per-user
+   caps ($1.00/day, free $0.10/day) remain the real per-account guard; the
+   global figure is only the fatal-bill backstop. Revisit at the next cohort
+   step — rule of thumb is ~7x measured steady state.
 2. **Mis-priced fallback SKUs cost SERVICE, not money.** Three chain entries
    were metered 60–100x their real price by the family-match table, which
    would have burned the caps in minutes at this volume. Fixed with explicit
