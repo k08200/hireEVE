@@ -357,13 +357,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    before installing; without it the only mention of a mail provider on this page
    was one word inside a pricing bullet. */
 .works{max-width:1180px;margin:0 auto;padding:0 24px;display:grid;
-  grid-template-columns:repeat(4,1fr);gap:18px}
+  grid-template-columns:repeat(5,1fr);gap:18px}
 .work{border-radius:20px;padding:22px 22px;background:#fff;border:1px solid var(--line);
   display:grid;gap:5px;align-content:start}
 .work b{font-size:15px;font-weight:650;letter-spacing:-.015em}
 .work span{font-size:13px;color:var(--ink-3);line-height:1.5}
 .works-note{max-width:1180px;margin:20px auto 0;padding:0 24px;font-size:13px;color:var(--ink-3)}
 .works-note b{color:var(--ink-2);font-weight:650}
+@media(max-width:1140px){.works{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.works{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.works{grid-template-columns:1fr}}
 
@@ -963,15 +964,19 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="work"><b>Naver Mail</b><span>Connected over IMAP from Settings.</span></div>
     <div class="work"><b>Google Calendar</b><span>Read, and create events on your say-so.</span></div>
     <div class="work"><b>macOS 14+</b><span>Universal — Apple Silicon and Intel.</span></div>
+    <div class="work"><b>Any mail language</b><span>Replies come back in the language the mail arrived in.</span></div>
   </div>
   <p class="works-note rv"><b>Not supported:</b> IMAP hosts other than Naver. Signing in to Klorn is
     Google-only, and there is no native mobile app — mobile runs in the browser today.
-    On Windows the desktop app is an unsigned beta (SmartScreen warns once); on Linux, Klorn runs in
-    the browser. Self-hosting works against your own database and model keys.</p>
+    Klorn's own interface — menus, notifications, its own words — is English and Korean only, whatever
+    language your mail is in. On Windows the desktop app is an unsigned beta (SmartScreen warns once);
+    on Linux, Klorn runs in the browser. Self-hosting works against your own database and model keys.</p>
   <p class="works-note rv"><b>Coming soon:</b> Outlook &amp; Microsoft 365 and iCloud Mail — already built,
     staged for rollout after security review. Sign in with Apple and Naver is planned on the web, the Mac
     app and mobile alike, so one Klorn account covers every device, and native mobile apps are on the way.
-    None of it has shipped yet; this page is where it lands when it does.</p>
+    <b>Planned, but not built yet:</b> the interface in Spanish, French, Japanese and more — unlike the
+    providers above, there is no code for it today. None of it has shipped; this page is where it lands
+    when it does.</p>
 </section>
 
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
