@@ -4,6 +4,24 @@ import {
   parseFallbackChain,
 } from "../llm/openrouter-fallback-chain.js";
 
+describe("shipped default chain", () => {
+  it("carries no id that upstream retired (checked against the live catalog 2026-08-10)", () => {
+    // The chain sat two-thirds dead for two months because nothing failed
+    // when an id disappeared — the catalog check emailed, and the mail was
+    // just another unread alert. Pin the known-dead ids so a future
+    // retirement cannot be re-introduced by a copy-paste.
+    const retired = [
+      "meta-llama/llama-3.3-70b-instruct:free",
+      "qwen/qwen3-next-80b-a3b-instruct:free",
+      "openai/gpt-oss-120b:free",
+    ];
+    for (const id of retired) {
+      expect(DEFAULT_OPENROUTER_FALLBACK_CHAIN).not.toContain(id);
+    }
+    expect(DEFAULT_OPENROUTER_FALLBACK_CHAIN.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("parseFallbackChain", () => {
   it("returns the default chain when no env value is set", () => {
     expect(parseFallbackChain(undefined)).toEqual(DEFAULT_OPENROUTER_FALLBACK_CHAIN);

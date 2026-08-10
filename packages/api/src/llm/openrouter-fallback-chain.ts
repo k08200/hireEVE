@@ -24,17 +24,18 @@ import {
   isModelUnavailableError,
 } from "./model-fallback.js";
 
-// Verified against the live catalog 2026-06-12 — three of the previous five
-// entries (deepseek-r1, qwen-2.5-72b, mistral-small) had already been retired
-// upstream, which is exactly the failure mode the daily catalog check now
-// alerts on. Ordered most-capable-first among currently-listed :free SKUs
-// with reliable tool support.
+// Re-verified against the live catalog 2026-08-10: THREE of the five entries
+// dated 2026-06-12 (llama-3.3-70b, qwen3-next-80b, gpt-oss-120b) had been
+// retired upstream, so the chain was two-thirds dead — the daily catalog
+// check had been emailing about exactly this and the alert went unread.
+// Every entry below was confirmed present in /api/v1/models AND advertises
+// tool support; ordered most-capable-first.
 export const DEFAULT_OPENROUTER_FALLBACK_CHAIN: ReadonlyArray<string> = [
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "qwen/qwen3-next-80b-a3b-instruct:free",
-  "openai/gpt-oss-120b:free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
   "nvidia/nemotron-3-super-120b-a12b:free",
   "google/gemma-4-31b-it:free",
+  "google/gemma-4-26b-a4b-it:free",
+  "openai/gpt-oss-20b:free",
 ];
 
 export function parseFallbackChain(envValue: string | undefined): string[] {
