@@ -237,6 +237,24 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
         // is pure noise. Name check (not instanceof) matches the
         // autonomous-agent precedent and survives the LLM layer being mocked
         // in tests.
+        // A daily-budget trip is a different fact from an outage, and the
+        // generic "temporarily unavailable" sent the user in circles retrying
+        // something that cannot succeed until tomorrow (founder, 2026-08-10).
+        if (err instanceof Error && err.name === "DailyCostCapExceededError") {
+          return reply.code(429).send({ error: err.message });
+        }
+        if (err instanceof Error && err.name === "AllProvidersExhaustedError") {
+          // Every model in the fallback chain refused. Still 503 (it is
+          // transient), but say which layer failed so a key/quota problem is
+          // not mistaken for a Klorn bug.
+          captureError(err, {
+            tags: { scope: "reply-draft.providers-exhausted" },
+            extra: { userId: uid, emailId: dbEmail.id },
+          });
+          return reply.code(503).send({
+            error: "The AI model provider is unavailable right now. Please try again shortly.",
+          });
+        }
         if (err instanceof Error && err.name === "UserRateLimitedError") {
           const retryAfterMs = (err as { retryAfterMs?: number }).retryAfterMs ?? 1_000;
           reply.header("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
@@ -308,6 +326,24 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
         // back-off signal and keep Sentry quiet — an alert here is pure noise.
         // Name check (not instanceof) matches the autonomous-agent precedent
         // and survives the LLM layer being mocked in tests.
+        // A daily-budget trip is a different fact from an outage, and the
+        // generic "temporarily unavailable" sent the user in circles retrying
+        // something that cannot succeed until tomorrow (founder, 2026-08-10).
+        if (err instanceof Error && err.name === "DailyCostCapExceededError") {
+          return reply.code(429).send({ error: err.message });
+        }
+        if (err instanceof Error && err.name === "AllProvidersExhaustedError") {
+          // Every model in the fallback chain refused. Still 503 (it is
+          // transient), but say which layer failed so a key/quota problem is
+          // not mistaken for a Klorn bug.
+          captureError(err, {
+            tags: { scope: "reply-draft.providers-exhausted" },
+            extra: { userId: uid, emailId: dbEmail.id },
+          });
+          return reply.code(503).send({
+            error: "The AI model provider is unavailable right now. Please try again shortly.",
+          });
+        }
         if (err instanceof Error && err.name === "UserRateLimitedError") {
           const retryAfterMs = (err as { retryAfterMs?: number }).retryAfterMs ?? 1_000;
           reply.header("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));

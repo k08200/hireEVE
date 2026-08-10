@@ -878,6 +878,13 @@ private struct AccountColumn: View {
                     Task { await model.reconnectPrimary() }
                 }
                 SubtleTextButton(title: L("account.add")) { Task { await model.addAccount() } }
+                SubtleTextButton(title: L("menu.checkUpdates")) {
+                    Task { await model.checkForUpdateNow() }
+                }
+                SubtleTextButton(title: L("menu.restart")) { AppRestart.relaunch() }
+                if let result = model.updateCheckResult {
+                    Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1215,6 +1222,16 @@ private struct FullSidebar: View {
                     Task { await model.reconnectPrimary() }
                 }
                 sidebarAction(L("account.add"), dim: true) { Task { await model.addAccount() } }
+                // The full window had no way to ASK for an update — the row
+                // only appeared if a check had already found one.
+                sidebarAction(L("menu.checkUpdates"), dim: true) {
+                    Task { await model.checkForUpdateNow() }
+                }
+                sidebarAction(L("menu.restart"), dim: true) { AppRestart.relaunch() }
+                if let result = model.updateCheckResult {
+                    Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                        .padding(.horizontal, 20)
+                }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
                         .padding(.horizontal, 20)
