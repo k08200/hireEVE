@@ -187,7 +187,7 @@ describe("firewall board — recency window, priority presentation", () => {
     await app.close();
   });
 
-  it("still ranks each tier lane by priority within the fetched window", async () => {
+  it("orders each tier lane NEWEST FIRST (priority only breaks ties)", async () => {
     const app = await buildApp();
     const res = await app.inject({ method: "GET", url: "/api/inbox/firewall/" });
     const body = res.json() as {
@@ -198,9 +198,11 @@ describe("firewall board — recency window, priority presentation", () => {
     // exactly this class of row), and within a lane priority still ranks.
     expect(body.tiers.SILENT.map((i) => i.id)).toEqual(["att-new-low"]);
     expect(body.tiers.PUSH.map((i) => i.id)).toEqual(["att-old-high"]);
+    // The newer, LOWER-priority row leads: priority ordering here is exactly
+    // what buried today's mail under 8/4 items in production.
     expect(body.tiers.QUEUE.map((i) => i.id)).toEqual([
-      "att-queue-older-high",
       "att-queue-newer-low",
+      "att-queue-older-high",
     ]);
     expect(body.summary.total).toBe(4);
     await app.close();

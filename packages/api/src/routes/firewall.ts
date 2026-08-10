@@ -383,10 +383,14 @@ export async function firewallRoutes(app: FastifyInstance) {
       orderBy: [{ surfacedAt: "desc" }],
       take: 200,
     });
-    // Priority still decides presentation order WITHIN the visible window —
-    // the lanes below are built in iteration order.
+    // NEWEST FIRST inside every lane. Priority ordering here buried today's
+    // mail in the middle of an 88-row Queue while 8/4 items held the top —
+    // the founder read that as "mail stopped arriving" three times running
+    // (2026-08-10). The TIER is the priority signal; a list of mail must be
+    // a list of mail, ordered the way every mail client orders one. Priority
+    // stays as the tie-break for items surfaced in the same instant.
     const items = [...recentItems].sort(
-      (a, b) => b.priority - a.priority || b.surfacedAt.getTime() - a.surfacedAt.getTime(),
+      (a, b) => b.surfacedAt.getTime() - a.surfacedAt.getTime() || b.priority - a.priority,
     );
 
     // Batch-fetch PendingActions referenced by the PENDING_ACTION items —
