@@ -477,7 +477,22 @@ interface ModelRateUsdPerMTok {
  * code priced every paid model at flash rates, undercounting sonnet ~20x).
  */
 const MODEL_RATES: ReadonlyArray<{ match: readonly string[]; rate: ModelRateUsdPerMTok }> = [
-  { match: ["gemini", "flash-lite"], rate: { input: 0.1, output: 0.4 } },
+  // Cheap fallback SKUs, priced from the live OpenRouter catalog 2026-08-10
+  // and rounded up. These rows exist because the generic family rows below
+  // mis-price them by 60-100x: gpt-oss-120b fell into the ["gpt"] row
+  // ($2.50/$10 vs a real $0.037/$0.17), qwen matched nothing and took the
+  // sonnet-tier default ($3/$15 vs $0.03/$0.13), and mistral-nemo took the
+  // generic mistral row ($2/$6 vs $0.019/$0.03). Over-billing is "safe" for
+  // a protective cap in isolation, but at 100 users it burns the daily caps
+  // ~100x too fast and the fleet stops classifying mid-day — the caps stop
+  // protecting and start breaking. Specific rows MUST stay above generic.
+  { match: ["gpt-oss"], rate: { input: 0.05, output: 0.2 } },
+  { match: ["qwen"], rate: { input: 0.1, output: 0.3 } },
+  { match: ["mistral", "nemo"], rate: { input: 0.05, output: 0.1 } },
+  { match: ["nemotron"], rate: { input: 0.1, output: 0.4 } },
+  // Gemini flash-lite spans 2.5 ($0.10/$0.40) and 3.1 ($0.25/$1.50); the
+  // family row must carry the HIGHER of the two or the newer SKU under-bills.
+  { match: ["gemini", "flash-lite"], rate: { input: 0.25, output: 1.5 } },
   { match: ["gemini", "flash"], rate: { input: 0.3, output: 2.5 } },
   { match: ["gemini", "pro"], rate: { input: 1.25, output: 10 } },
   { match: ["gemma"], rate: { input: 0.1, output: 0.4 } },

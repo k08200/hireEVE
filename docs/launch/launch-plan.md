@@ -57,6 +57,38 @@ JWT and does not touch the Google token.
 - [ ] PAYWALL flip per docs/launch/paywall-flip-runbook.md (trial stays 7d
       card-required). Flip AFTER beta cohort feedback, not with it.
 
+## P2b — Unit economics at 100 users (measured 2026-08-10)
+
+Inputs are the real ones in code, not guesses: `JUDGE_BODY_CAP = 1500` chars
+of body plus prompt scaffolding ≈ 1,000 prompt tokens, ~100 completion
+tokens per classification; judge/draft model `google/gemini-2.5-flash` at
+$0.30 / $2.50 per 1M (the rate the cost ledger actually meters).
+
+| Load | Volume/day | Cost/day |
+|---|---|---|
+| Classification | 100 users × 100 mails = 10,000 | **$5.50** |
+| Reply drafts | ~10/user = 1,000 | ~$1.20 |
+| Briefings | 100 | ~$0.19 |
+| **Total** | | **≈ $7/day ≈ $210/mo** |
+
+Against $8.99 × 100 = $899/mo that is **~23% of revenue** — viable, and the
+margin improves as the fallback chain (cheap paid SKUs) absorbs spillover.
+
+**Two findings, both actionable:**
+
+1. **`GLOBAL_DAILY_COST_CAP_CENTS` defaults to 1000 ($10/day) — too low for
+   100 users.** At ~$7/day steady-state a single heavier day (200 mails/user)
+   trips it and the WHOLE FLEET stops classifying mid-day. The cap is a
+   protective ceiling, not a budget: raise it deliberately at cohort growth
+   (≈$50/day covers 100 users with headroom) and keep the per-user cap
+   ($1.00/day, free $0.10/day) as the real per-account guard. Founder
+   decision — not changed silently here.
+2. **Mis-priced fallback SKUs cost SERVICE, not money.** Three chain entries
+   were metered 60–100x their real price by the family-match table, which
+   would have burned the caps in minutes at this volume. Fixed with explicit
+   rows + tests (`model-fallback.ts`, 2026-08-10). Any future chain entry
+   must be added to `MODEL_RATES` in the same change.
+
 ## P3 — Product surface for launch
 
 - [ ] Demo video: script around the 4-tier firewall + Decision queue +

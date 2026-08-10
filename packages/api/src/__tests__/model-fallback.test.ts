@@ -7,6 +7,7 @@ import {
   isKeyLimited,
   markKeyLimited,
   nextDailyResetMs,
+  resolveModelRateUsdPerMTok,
 } from "../llm/model-fallback.js";
 
 describe("model fallback error classification", () => {
@@ -115,5 +116,30 @@ describe("markKeyLimited cooldown durations", () => {
     expect(isKeyLimited("expiring:test")).toBe(true);
     vi.advanceTimersByTime(5 * 60_000 + 1000);
     expect(isKeyLimited("expiring:test")).toBe(false);
+  });
+});
+
+describe("fallback-chain SKUs are metered at their real rates (100-user economics)", () => {
+  // Every chain entry used to fall into a generic family row or the
+  // sonnet-tier default, over-billing 60-100x. The caps are what stop the
+  // fleet, so a mis-priced fallback does not cost money — it costs SERVICE
+  // (2026-08-10 analysis: 100 users x ~100 mails/day ≈ $5.50/day of real
+  // judge spend against a $10/day global cap; a 100x mis-price trips it in
+  // minutes).
+  it.each([
+    ["openai/gpt-oss-120b", 0.05, 0.2],
+    ["qwen/qwen3.7-flash", 0.1, 0.3],
+    ["mistralai/mistral-nemo", 0.05, 0.1],
+    ["google/gemini-3.1-flash-lite", 0.25, 1.5],
+    ["openai/gpt-5-nano", 0.1, 0.4],
+  ])("%s is priced at $%s/$%s per M", (model, input, output) => {
+    expect(resolveModelRateUsdPerMTok(model)).toEqual({ input, output });
+  });
+
+  it("keeps the sonnet-tier default for genuinely unknown models", () => {
+    expect(resolveModelRateUsdPerMTok("acme/brand-new-frontier")).toEqual({
+      input: 3,
+      output: 15,
+    });
   });
 });
