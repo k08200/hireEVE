@@ -189,6 +189,15 @@ export function naverLoginEnabled(): boolean {
     (process.env.NAVER_LOGIN_ENABLED ?? "").trim().toLowerCase(),
   );
 }
+// Attention aging sweep (hourly): auto-resolve firewall items the user
+// already acted on elsewhere + age out SILENT/QUEUE email items. OFF by
+// default — what leaves the board is a product decision; flipping is
+// deliberate. Read at request time (same lenient parse as the flags above).
+export function attentionAgingEnabled(): boolean {
+  return ["true", "1", "yes", "on"].includes(
+    (process.env.ATTENTION_AGING_ENABLED ?? "").trim().toLowerCase(),
+  );
+}
 // Fail-open is intentional pre-launch, but a lost/typo'd env var in production
 // silently makes every paid feature free. Emit a loud startup signal so the
 // operator notices a misconfigured deploy rather than discovering it via revenue.

@@ -15,6 +15,7 @@ import { runProactiveActions } from "./agentcore/proactive-actions.js";
 import { isEntitled, planHasFeature } from "./billing/stripe.js";
 import {
   AUTO_REPLY_LINKED_INBOX_ENABLED,
+  attentionAgingEnabled,
   MULTI_INBOX_SYNC_ENABLED,
   SCHEDULER_CALENDAR_SYNC_INTERVAL_MS,
   SCHEDULER_CHECK_INTERVAL_MS,
@@ -25,6 +26,7 @@ import {
 import { prisma } from "./db.js";
 import { withDbRetry } from "./db-retry.js";
 import { parseGoogleDateTime } from "./google-calendar-time.js";
+import { sweepAttentionAging } from "./judge/attention-aging.js";
 import { findOpenEmailAttentionItemId } from "./judge/attention-override.js";
 import { sweepFallbackRejudge } from "./judge/fallback-rejudge.js";
 import { autoReplyEmailWhere } from "./mail/auto-reply-scope.js";
@@ -138,6 +140,12 @@ async function releaseSchedulerLock(): Promise<void> {
 // Actual dedup is DB-based (survives server restarts).
 const briefingSentToday = new Map<string, string>(); // userId -> date string
 let lastWatchRenewalAt = 0;
+let lastAttentionAgingAt = 0;
+// Once-per-user-per-UTC-day Sentry alert for the "Gmail not connected"
+// per-tick skip: every tick warns to stdout only, which is how a dead
+// primary token ran silently for weeks (2026-08-10 diagnosis). One alert a
+// day is signal; 1440 a day is noise.
+const syncSkipAlertedDay = new Map<string, string>();
 // UTC date ("YYYY-MM-DD") of the last OpenRouter catalog check. In-memory is
 // fine — a restart re-running the check the same day is harmless (read-only).
 let lastCatalogCheckDate = "";
@@ -580,6 +588,22 @@ async function runAutomations() {
       // advisory-lock false-release. Contained so the rest of the tick runs.
       console.error("[OUTBOX] drain errored:", err);
       captureError(err, { tags: { scope: "automation.outbox-drain" } });
+    }
+
+    // Attention aging (flag-gated, hourly): resolve items the user already
+    // acted on elsewhere + age out low-stakes lanes. See judge/attention-aging.
+    if (attentionAgingEnabled() && Date.now() - lastAttentionAgingAt >= WATCH_RENEWAL_INTERVAL_MS) {
+      lastAttentionAgingAt = Date.now();
+      sweepAttentionAging()
+        .then(({ resolvedActed, resolvedAged }) => {
+          if (resolvedActed + resolvedAged > 0) {
+            console.log(`[ATTENTION-AGING] resolved acted=${resolvedActed} aged=${resolvedAged}`);
+          }
+        })
+        .catch((err) => {
+          console.warn("[ATTENTION-AGING] sweep errored:", err);
+          captureError(err, { tags: { scope: "automation.attention-aging" } });
+        });
     }
 
     // Gmail watch renewal runs once per hour regardless of configs.
@@ -1388,6 +1412,14 @@ async function runUserCycle(
         // mid-tick (race). Warn without Sentry to avoid noise.
         if (err instanceof Error && err.message === "Gmail not connected") {
           console.warn(`[AUTOMATION] Email sync skipped for ${config.userId}: Gmail not connected`);
+          const day = new Date().toISOString().slice(0, 10);
+          if (syncSkipAlertedDay.get(config.userId) !== day) {
+            syncSkipAlertedDay.set(config.userId, day);
+            captureError(new Error("Email sync skipped every tick: Gmail not connected"), {
+              tags: { scope: "automation.email-sync.dead-token" },
+              extra: { userId: config.userId },
+            });
+          }
         } else if (errName === "DailyCostCapExceededError") {
           // Expected back-pressure, not an outage — don't Sentry-spam it
           // (mirrors the briefing handler above). For a FREE user this is
