@@ -13,7 +13,12 @@
  */
 
 /** Free model used when paid credits run out (same provider) */
-export const FALLBACK_MODEL = process.env.FALLBACK_MODEL || "google/gemma-4-31b-it:free";
+// The 402 "insufficient credits" swap target. Paid-but-cheap since
+// 2026-08-10 (founder decision) for the same reasons as the chain — and note
+// the irony of the old value: swapping to a :free SKU on a credit error is
+// pointless when DISABLE_FREE_MODEL_FALLBACK is on in hosted prod, which is
+// precisely where credits run out. $0.05/$0.40 per 1M, 400k context.
+export const FALLBACK_MODEL = process.env.FALLBACK_MODEL || "openai/gpt-5-nano";
 
 /**
  * Kill switch for every :free-model fallback (the 402 credit swap and the

@@ -1,5 +1,5 @@
 /**
- * OpenRouter free-model fallback chain.
+ * OpenRouter fallback chain (cheap PAID SKUs since 2026-08-10).
  *
  * OpenRouter retires :free SKUs without notice (e.g. google/gemini-2.5-flash:free
  * silently became 404 in early June 2026). The autonomous agent — which runs as a
@@ -9,7 +9,8 @@
  * When the configured model returns 404 / "no endpoints found" on OpenRouter,
  * createCompletion walks this chain on the same provider before giving up. Each
  * entry is a known-stable :free SKU; the chain is ordered so the most
- * capable / well-tooled model comes first.
+ * capable / well-tooled model comes first. Entries are paid-but-cheap on
+ * purpose — see the note on the constant for why :free chains kept failing.
  *
  * Override the chain via OPENROUTER_FALLBACK_CHAIN (comma-separated). Useful
  * when OpenRouter publishes a hot new free SKU you want to prefer, or to
@@ -24,18 +25,26 @@ import {
   isModelUnavailableError,
 } from "./model-fallback.js";
 
-// Re-verified against the live catalog 2026-08-10: THREE of the five entries
-// dated 2026-06-12 (llama-3.3-70b, qwen3-next-80b, gpt-oss-120b) had been
-// retired upstream, so the chain was two-thirds dead — the daily catalog
-// check had been emailing about exactly this and the alert went unread.
-// Every entry below was confirmed present in /api/v1/models AND advertises
-// tool support; ordered most-capable-first.
+// PAID, cheap, and alive — founder decision 2026-08-10: stop chaining :free
+// SKUs. Three reasons, all of them things that actually bit us:
+//   1. :free SKUs are retired without notice. Three of the five entries dated
+//      2026-06-12 were already gone by 08-10, so the chain sat two-thirds
+//      dead while the daily catalog check emailed into an unread inbox.
+//   2. DISABLE_FREE_MODEL_FALLBACK (set in hosted prod, because :free hosts
+//      may train on request data) filters :free entries out — an all-free
+//      chain therefore collapses to NOTHING exactly when it is needed.
+//   3. :free endpoints share one per-key daily limit, so the second entry is
+//      already rate-limited when the first one trips it.
+// Prices below are per 1M tokens from the live catalog on 2026-08-10
+// (in/out); every id was confirmed present AND advertising tool support.
+// Ordered reliability-first, not purely cheapest: a fallback that returns
+// malformed JSON costs more than it saves.
 export const DEFAULT_OPENROUTER_FALLBACK_CHAIN: ReadonlyArray<string> = [
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "nvidia/nemotron-3-super-120b-a12b:free",
-  "google/gemma-4-31b-it:free",
-  "google/gemma-4-26b-a4b-it:free",
-  "openai/gpt-oss-20b:free",
+  "google/gemini-3.1-flash-lite", // $0.25 / $1.50 — same vendor as the primary
+  "openai/gpt-5-nano", //            $0.05 / $0.40 — 400k ctx, solid tool use
+  "openai/gpt-oss-120b", //          $0.037 / $0.17
+  "qwen/qwen3.7-flash", //           $0.03 / $0.13 — 1M ctx, cheapest usable
+  "mistralai/mistral-nemo", //       $0.019 / $0.03 — last-ditch, cheapest out
 ];
 
 export function parseFallbackChain(envValue: string | undefined): string[] {

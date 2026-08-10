@@ -20,6 +20,15 @@ describe("shipped default chain", () => {
     }
     expect(DEFAULT_OPENROUTER_FALLBACK_CHAIN.length).toBeGreaterThanOrEqual(3);
   });
+
+  it("carries NO :free SKU — an all-free chain collapses under the privacy kill switch", () => {
+    // DISABLE_FREE_MODEL_FALLBACK is set in hosted prod, and activeFallbackChain
+    // filters :free entries out. An all-free default therefore left production
+    // with no fallback at all (founder decision 2026-08-10: cheap paid only).
+    for (const id of DEFAULT_OPENROUTER_FALLBACK_CHAIN) {
+      expect(id.endsWith(":free")).toBe(false);
+    }
+  });
 });
 
 describe("parseFallbackChain", () => {
@@ -40,9 +49,14 @@ describe("parseFallbackChain", () => {
     expect(parseFallbackChain("a/b:free,,,e/f:free, ")).toEqual(["a/b:free", "e/f:free"]);
   });
 
-  it("default chain contains only :free SKUs (we never want to bill silently)", () => {
+  it("default chain is cheap PAID SKUs — the never-bill rule was reversed on purpose", () => {
+    // Founder decision 2026-08-10, replacing "only :free": free SKUs get
+    // retired without notice, share one per-key daily limit, and are filtered
+    // out entirely by DISABLE_FREE_MODEL_FALLBACK — so the no-bill rule was
+    // bought at the price of having no fallback at all. Spend stays bounded
+    // by the per-user and global daily cost caps, not by the chain.
     for (const model of DEFAULT_OPENROUTER_FALLBACK_CHAIN) {
-      expect(model).toMatch(/:free$/);
+      expect(model).not.toMatch(/:free$/);
     }
   });
 
