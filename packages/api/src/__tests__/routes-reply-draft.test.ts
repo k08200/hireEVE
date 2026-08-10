@@ -128,6 +128,9 @@ describe("POST /api/email/:id/reply-draft", () => {
     });
     expect(res.statusCode).toBe(503);
     expect(res.json().error).toMatch(/temporarily unavailable/i);
+    // The failure CLASS is surfaced: "temporarily unavailable" alone gave the
+    // founder nothing to act on for a day (2026-08-10).
+    expect(res.json().error).toMatch(/\(Error\)/);
     expect(captureError.mock.calls[0][1].tags.scope).toBe("reply-draft");
     await app.close();
   });

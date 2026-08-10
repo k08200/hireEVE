@@ -208,9 +208,10 @@ function googleCheck(data: ReadinessData): ReadinessCheck {
 }
 
 function aiProviderCheck(data: ReadinessData): ReadinessCheck {
-  // Treat AI as healthy if at least one provider key (env or user) is usable.
-  // If every provider is in cooldown the dashboard must say so plainly so
-  // "Overall OK" stops lying while chat and briefing silently fall back.
+  // Cooldown state ONLY — this makes no live call, so "ok" means "nothing is
+  // in cooldown", not "a completion would succeed". Saying "All providers
+  // available" while every draft 503s is the dashboard lying by omission
+  // (founder, 2026-08-10); the message now says what was actually checked.
   const total = data.aiProviders.providers.length;
   const downCount = data.aiProviders.unavailable.length;
   const allDown = downCount > 0 && downCount === total;
@@ -229,7 +230,7 @@ function aiProviderCheck(data: ReadinessData): ReadinessCheck {
       ? "All AI providers are in cooldown — chat and briefing fall back to rule-based view"
       : someDown
         ? `${downCount}/${total} providers in cooldown — fallback active`
-        : "All providers available",
+        : "No provider in cooldown (not a live call)",
     detail: {
       providers: data.aiProviders.providers.map((info) => ({
         quotaKey: info.quotaKey,

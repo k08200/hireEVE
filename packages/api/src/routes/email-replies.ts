@@ -264,9 +264,15 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
           tags: { scope: "reply-draft" },
           extra: { userId: uid, emailId: dbEmail.id, model: DRAFT_MODEL },
         });
-        return reply
-          .code(503)
-          .send({ error: "Reply drafting is temporarily unavailable. Please try again shortly." });
+        // Name the failure class. "temporarily unavailable" with nothing else
+        // is unactionable: the founder retried it for a day with no way to
+        // tell a bad model id from a dead key from a code fault
+        // (2026-08-10). The error NAME is safe to surface — no bodies, no
+        // keys, no prompts.
+        const reason = err instanceof Error && err.name ? err.name : "UnknownError";
+        return reply.code(503).send({
+          error: `Reply drafting is temporarily unavailable (${reason}). Please try again shortly.`,
+        });
       }
 
       return {
@@ -353,9 +359,15 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
           tags: { scope: "reply-options" },
           extra: { userId: uid, emailId: dbEmail.id, model: DRAFT_MODEL },
         });
-        return reply
-          .code(503)
-          .send({ error: "Reply drafting is temporarily unavailable. Please try again shortly." });
+        // Name the failure class. "temporarily unavailable" with nothing else
+        // is unactionable: the founder retried it for a day with no way to
+        // tell a bad model id from a dead key from a code fault
+        // (2026-08-10). The error NAME is safe to surface — no bodies, no
+        // keys, no prompts.
+        const reason = err instanceof Error && err.name ? err.name : "UnknownError";
+        return reply.code(503).send({
+          error: `Reply drafting is temporarily unavailable (${reason}). Please try again shortly.`,
+        });
       }
 
       const response: ReplyOptionsResponseWire = {
