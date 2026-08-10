@@ -36,6 +36,7 @@ import { manualOverrideReason, normalizeTier, TIERS, type Tier } from "../judge/
 import { getInteractionGraph } from "../learning/interaction-graph.js";
 import { describePolicy } from "../learning/ontology.js";
 import { getTrustScoresBulk } from "../learning/trust-score.js";
+import { ensureRecentMailSync } from "../mail/activity-sync.js";
 import { ensureFreshGmailWatch } from "../mail/gmail.js";
 import { senderEmail } from "../notify/notification-format.js";
 import { getUserNotificationLanguage } from "../notify/notification-strings.js";
@@ -328,6 +329,13 @@ export async function firewallRoutes(app: FastifyInstance) {
     // in-process renewal scheduler slept through the expiry (free-tier
     // dynos). Fire-and-forget — never blocks or fails the queue response.
     void ensureFreshGmailWatch(userId);
+    // Activity-driven mail pull: the scheduler's sync sits behind gates a user
+    // can silently fall out of (no AutomationConfig row, flag off, token
+    // dropped from the connected set), and with Gmail push unconfigured there
+    // is no second path — mail simply stops with no in-app signal (observed
+    // 2026-08-04 → 08-10). Opening the app now always pulls. Debounced 60 s
+    // per user inside the helper; never blocks or fails this response.
+    void ensureRecentMailSync(userId);
 
     // Pull OPEN items only — resolved/dismissed don't belong in the live queue.
     // tier is nullable on AttentionItem because the migration backfill is

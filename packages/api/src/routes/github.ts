@@ -85,6 +85,14 @@ export async function githubRoutes(app: FastifyInstance) {
       where: { id: userId },
       data: { githubTokenCipher: null, githubConnectedAt: null, githubLastPolledAt: null },
     });
-    return { ok: true };
+    // Disconnecting must also clear what the integration already put on the
+    // board. GitHub items are never auto-resolved, so without this they sit
+    // in the firewall forever after the source is gone — and they compete
+    // for the board's window against real mail (2026-08-10).
+    const { count } = await prisma.attentionItem.updateMany({
+      where: { userId, source: "GITHUB", status: "OPEN" },
+      data: { status: "RESOLVED", resolvedAt: new Date() },
+    });
+    return { ok: true, clearedItems: count };
   });
 }

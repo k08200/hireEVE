@@ -28,6 +28,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("../mail/activity-sync.js", () => ({
+  ensureRecentMailSync: vi.fn(async () => {}),
+}));
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Throw-on-invoke — any read path that touches the classifier at

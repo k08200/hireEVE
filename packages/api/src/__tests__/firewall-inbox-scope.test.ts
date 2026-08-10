@@ -18,6 +18,10 @@
 import Fastify from "fastify";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("../mail/activity-sync.js", () => ({
+  ensureRecentMailSync: vi.fn(async () => {}),
+}));
+
 const attentionRows = [
   {
     id: "att-primary",

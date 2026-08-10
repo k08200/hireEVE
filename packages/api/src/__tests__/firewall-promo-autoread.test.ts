@@ -8,6 +8,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../mail/activity-sync.js", () => ({
+  ensureRecentMailSync: vi.fn(async () => {}),
+}));
+
 const findUnique = vi.hoisted(() => vi.fn(async () => null));
 const create = vi.hoisted(() => vi.fn(async () => ({ id: "e1" })));
 const update = vi.hoisted(() => vi.fn(async () => ({})));

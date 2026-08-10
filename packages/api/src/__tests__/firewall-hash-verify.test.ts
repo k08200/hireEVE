@@ -12,6 +12,11 @@
 
 import Fastify from "fastify";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../mail/activity-sync.js", () => ({
+  ensureRecentMailSync: vi.fn(async () => {}),
+}));
+
 import { computeAttentionInputHash } from "../judge/attention-input-hash.js";
 
 const baseEmailFields = {

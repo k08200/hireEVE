@@ -14,6 +14,10 @@
 import Fastify from "fastify";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("../mail/activity-sync.js", () => ({
+  ensureRecentMailSync: vi.fn(async () => {}),
+}));
+
 const findManyArgs = vi.hoisted(() => ({ current: null as unknown }));
 
 // Returned in surfacedAt-DESC order (what the fixed query asks for): the

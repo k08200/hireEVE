@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { collapseEmailThreads } from "../judge/firewall-thread-collapse.js";
 
 type Row = { id: string; source: string; threadId?: string | null };

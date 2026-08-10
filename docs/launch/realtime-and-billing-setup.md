@@ -1,0 +1,77 @@
+# Realtime mail push + Paddle billing — operator setup (2026-08-10)
+
+Two founder-only setup jobs the code cannot do for itself. Both are
+prerequisites for launch claims: "mail appears the second it arrives" and
+"$8.99/mo".
+
+## 1. Gmail realtime push (Pub/Sub)
+
+**Current state, verified 2026-08-10:** `GMAIL_PUSH_TOKEN` is not set in
+Render, so `POST /api/gmail/push` answers `503 { error: "Gmail push not
+configured" }` to every delivery (`routes/gmail-push.ts` refuses when both
+`GMAIL_PUSH_TOKEN` and `GMAIL_PUSH_OIDC_EMAIL` are absent). Watches are
+registered and renewed, but nothing can be delivered — realtime has never
+worked. Without it the floor is the poll cadence (~60 s), not one second.
+
+Pick ONE auth mode. The shared secret is the fastest to get right; OIDC is
+the stronger one and is what a production deployment should end at.
+
+### Mode A — shared secret (fastest)
+
+1. Generate a secret: `openssl rand -hex 32`.
+2. Render → klorn-api → Environment → add `GMAIL_PUSH_TOKEN` = that value.
+   (The key is already declared `sync: false` in `render.yaml`, so a
+   blueprint sync cannot prune it.)
+3. Google Cloud → Pub/Sub → the topic in `GMAIL_PUBSUB_TOPIC` → its push
+   subscription → endpoint
+   `https://klorn-api.onrender.com/api/gmail/push`, and add the header
+   `Authorization: Bearer <the same secret>`.
+
+### Mode B — Google OIDC (recommended end state)
+
+1. Render: `GMAIL_PUSH_OIDC_EMAIL` = the service account the subscription
+   signs as, `GMAIL_PUSH_OIDC_AUDIENCE` = the audience configured on the
+   subscription (both declared in `render.yaml`).
+2. Pub/Sub subscription → Authentication → enable OIDC with that service
+   account and audience.
+
+### Verify
+
+- Send yourself a mail; it should land in Klorn within a second or two.
+- Render logs: a `[GMAIL-PUSH]` line per delivery, no 401/503.
+- `GET /api/ops/readiness` (authed) → `google.detail.gmailPushEnabled: true`.
+
+### Independent of push
+
+`GET /api/inbox/firewall` now fires a debounced (60 s) mail sync on every
+call, so opening any client always pulls — push turns "within a minute" into
+"immediately", it is no longer the only path.
+
+## 2. Paddle billing at $8.99/mo
+
+Payment provider is **Paddle** (not Stripe) — `billing/paddle.ts`,
+`routes/webhook.ts`. Paddle confirmed 2026-08-10 that a **sole trader /
+individual** can sign up; no company registration required. Verification is
+domain review → identity verification → final review.
+
+Founder steps:
+
+1. Sign up as sole trader; submit `klorn.ai` for domain review. Have the
+   legal pages reachable from the landing (terms, privacy, refund) — domain
+   review checks them.
+2. Create the product + a **$8.99/mo** price. Copy the price id.
+3. Render → klorn-api → `PADDLE_API_KEY`, `PADDLE_PRO_PRICE_ID`,
+   `PADDLE_WEBHOOK_SECRET`, `PADDLE_ENV` (`sandbox` first, then
+   `production`).
+4. Paddle → Notifications → webhook to
+   `https://klorn-api.onrender.com/api/webhook/paddle`, signed with the same
+   secret.
+5. Sandbox end-to-end: checkout → webhook → `User.plan` flips to PRO →
+   entitlement-gated features open. Only then switch `PADDLE_ENV`.
+6. Flip `PAYWALL_ENABLED=true` as a **separate, deliberate** decision
+   (`docs/launch/paywall-flip-runbook.md`). Until it flips, every gate is
+   inert and multi-inbox stays free.
+
+The landing already says $8.99/mo with a 7-day trial (EN + KO). Keep the
+price string, the Paddle price, and `TRIAL_DAYS` in sync — three places,
+one number.
