@@ -205,10 +205,33 @@ final class AppModel {
         Task { await loadQueue() }
     }
 
+    /// The in-flight sign-in, so a re-click SUPERSEDES it instead of racing it.
+    private var signInTask: Task<Void, Never>?
+
+    /// Start (or restart) the browser-bounce sign-in.
+    ///
+    /// Re-clicking is normal: the browser leg can leave the user looking at a
+    /// tab that seems stuck. Without superseding, the first attempt keeps
+    /// polling a nonce the server has already burned, fails a few seconds
+    /// later, and stomps the SECOND attempt's state back to signed-out — the
+    /// bar flickering between "Log in" and "Signing in…" (dogfood 2026-08-10).
     func signIn() async {
+        signInTask?.cancel()
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.runSignIn()
+        }
+        signInTask = task
+        await task.value
+    }
+
+    private func runSignIn() async {
         phase = .signingIn
         signInError = nil
-        switch await GoogleSignIn.run(api: api) {
+        let result = await GoogleSignIn.run(api: api)
+        // A superseded attempt owns none of this state any more.
+        guard !Task.isCancelled else { return }
+        switch result {
         case .success(let token):
             if !KeychainStore.save(token) {
                 Log.app.warning("Keychain save denied (unsigned dev build?) — token kept in memory for this session only")
