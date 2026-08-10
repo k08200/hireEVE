@@ -870,7 +870,21 @@ private struct AccountColumn: View {
                     UpdateRow(version: version)
                 }
                 SubtleTextButton(title: L("prefs.account.signOut")) { actions.onSignOut() }
+                // Always offered, not only when needsReconnect is already
+                // true: a dead primary token is exactly the state where the
+                // app cannot be trusted to know it is dead, and sending the
+                // user to the web app to fix it is the bug we are closing.
+                SubtleTextButton(title: L("account.reconnectPrimary")) {
+                    Task { await model.reconnectPrimary() }
+                }
                 SubtleTextButton(title: L("account.add")) { Task { await model.addAccount() } }
+                SubtleTextButton(title: L("menu.checkUpdates")) {
+                    Task { await model.checkForUpdateNow() }
+                }
+                SubtleTextButton(title: L("menu.restart")) { AppRestart.relaunch() }
+                if let result = model.updateCheckResult {
+                    Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1202,7 +1216,22 @@ private struct FullSidebar: View {
                     UpdateRow(version: version)
                 }
                 sidebarAction(L("prefs.account.signOut"), dim: true) { actions.onSignOut() }
+                // Same reasoning as the expanded panel: reconnecting the
+                // PRIMARY Google account is a first-class in-app action.
+                sidebarAction(L("account.reconnectPrimary"), dim: true) {
+                    Task { await model.reconnectPrimary() }
+                }
                 sidebarAction(L("account.add"), dim: true) { Task { await model.addAccount() } }
+                // The full window had no way to ASK for an update — the row
+                // only appeared if a check had already found one.
+                sidebarAction(L("menu.checkUpdates"), dim: true) {
+                    Task { await model.checkForUpdateNow() }
+                }
+                sidebarAction(L("menu.restart"), dim: true) { AppRestart.relaunch() }
+                if let result = model.updateCheckResult {
+                    Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                        .padding(.horizontal, 20)
+                }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
                         .padding(.horizontal, 20)

@@ -732,6 +732,31 @@ final class AppModel {
         }
     }
 
+    /// True while a user-initiated update check is in flight, and the result
+    /// of the last one ("up to date" / failure) — the background check is
+    /// silent by design, but a button the user pressed must answer.
+    private(set) var updateCheckInFlight = false
+    private(set) var updateCheckResult: String?
+
+    /// Explicit "check for updates" — ignores the interval leash entirely,
+    /// because the user asked. The full window only ever showed an update row
+    /// when one happened to be known already; there was no way to ASK
+    /// (founder, 2026-08-10).
+    func checkForUpdateNow() async {
+        guard !updateCheckInFlight else { return }
+        updateCheckInFlight = true
+        updateCheckResult = nil
+        defer { updateCheckInFlight = false }
+        lastUpdateCheck = Date()
+        if case .updateAvailable(let version) = await UpdateCheck.run() {
+            updateAvailable = version
+            updateCheckResult = nil  // the update row itself is the answer
+        } else {
+            updateAvailable = nil
+            updateCheckResult = L("update.upToDate")
+        }
+    }
+
     /// Called when the expanded panel opens — the moment the user is actually
     /// looking at the ACCOUNT column where the update row lives.
     func checkForUpdateOnPanelOpen() {

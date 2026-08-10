@@ -17,10 +17,6 @@ export type NotifCategory =
   | "task_due"
   | "agent_proposal"
   | "daily_briefing"
-  // GitHub firewall PUSH the judge already adjudicated. Not user-filterable
-  // (no GitHub-specific pref), but authoredSurface() maps it to "firewall" so
-  // it bypasses the inbound-mail noise heuristic, matching email_urgent.
-  | "github_urgent"
   | "system";
 
 interface NotifPrefs {
@@ -49,8 +45,6 @@ function categoryEnabled(prefs: NotifPrefs, category: NotifCategory): boolean {
       return prefs.notifyAgentProposal;
     case "daily_briefing":
       return prefs.notifyDailyBriefing;
-    case "github_urgent":
-      return true; // Judge-adjudicated GitHub PUSH is not category-filterable
     case "system":
       return true; // System notifications are not category-filterable
   }

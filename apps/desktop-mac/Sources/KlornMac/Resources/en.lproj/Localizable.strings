@@ -242,6 +242,10 @@
 "menu.preferences" = "Preferences…";
 "menu.signIn" = "Sign in…";
 "menu.quit" = "Quit Klorn";
+"menu.restart" = "Restart Klorn";
+"menu.checkUpdates" = "Check for updates…";
+"update.upToDate" = "Klorn is up to date.";
+"push.tryAgainIn" = "Try again in %ds";
 "mail.reclassifying" = "re-classifying";
 
 /* Proposals — actions awaiting approval */

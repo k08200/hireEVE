@@ -84,6 +84,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         } else {
             menu.addItem(actionItem(L("menu.signIn"), #selector(signIn)))
         }
+        menu.addItem(actionItem(L("menu.restart"), #selector(restart)))
         menu.addItem(actionItem(L("menu.quit"), #selector(quit), key: "q"))
     }
 
@@ -151,6 +152,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func signIn() {
         Task { await model.signIn() }
+    }
+
+    @objc private func restart() {
+        AppRestart.relaunch()
     }
 
     @objc private func quit() {

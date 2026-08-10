@@ -70,6 +70,10 @@ enum PushCardMetrics {
 /// 3 tone drafts (click to send), then the key hints. Never steals focus on
 /// appear; clicking the card (or the global hotkey) arms the keyboard.
 struct PushCard: View {
+    /// Seconds left before the failed-draft retry is allowed again.
+    @State private var retryCooldown = 0
+    @State private var retryAttempt = 0
+    private let retryTicker = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     let state: PushCardState
     let actions: PushCardActions
 
@@ -203,10 +207,22 @@ struct PushCard: View {
         case .failed(let message):
             VStack(alignment: .leading, spacing: 8) {
                 Text(message).font(.caption).foregroundStyle(Theme.textDim)
-                Button(L("push.tryAgain"), action: actions.onRetry)
-                    .buttonStyle(.bordered).controlSize(.small).tint(Theme.accent)
+                // Retrying instantly re-hits the same rate limit and lands
+                // back on this identical screen, which reads as "the button
+                // does nothing" (founder, 2026-08-10). Back off visibly, so
+                // the wait is the answer rather than a dead control.
+                Button(retryCooldown > 0 ? L("push.tryAgainIn", retryCooldown) : L("push.tryAgain")) {
+                    retryAttempt += 1
+                    retryCooldown = min(30, 3 * (1 << min(retryAttempt - 1, 3)))
+                    actions.onRetry()
+                }
+                .buttonStyle(.bordered).controlSize(.small).tint(Theme.accent)
+                .disabled(retryCooldown > 0)
             }
             .frame(maxWidth: .infinity, minHeight: 180, alignment: .topLeading)
+            .onReceive(retryTicker) { _ in
+                if retryCooldown > 0 { retryCooldown -= 1 }
+            }
         case .ready(let options):
             VStack(spacing: 6) {
                 ForEach(Array(options.prefix(3).enumerated()), id: \.offset) { index, option in

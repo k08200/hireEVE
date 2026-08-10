@@ -97,7 +97,9 @@ describe("POST /api/email/:id/reply-draft", () => {
     await app.close();
   });
 
-  it("returns 503 and captures the error when the LLM fails (not a silent 500)", async () => {
+  it("names the model provider when the whole fallback chain refused (503)", async () => {
+    // The generic "temporarily unavailable" sent the founder in circles
+    // retrying a key/quota problem as if it were a Klorn bug (2026-08-10).
     createCompletion.mockRejectedValue(
       Object.assign(new Error("All AI providers are unavailable"), {
         name: "AllProvidersExhaustedError",
@@ -110,9 +112,43 @@ describe("POST /api/email/:id/reply-draft", () => {
       payload: {},
     });
     expect(res.statusCode).toBe(503);
-    expect(res.json().error).toMatch(/temporarily unavailable/i);
+    expect(res.json().error).toMatch(/model provider is unavailable/i);
     expect(captureError).toHaveBeenCalledTimes(1);
+    expect(captureError.mock.calls[0][1].tags.scope).toBe("reply-draft.providers-exhausted");
+    await app.close();
+  });
+
+  it("returns 503 and captures unknown LLM failures (not a silent 500)", async () => {
+    createCompletion.mockRejectedValue(new Error("socket hang up"));
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/email/e1/reply-draft",
+      payload: {},
+    });
+    expect(res.statusCode).toBe(503);
+    expect(res.json().error).toMatch(/temporarily unavailable/i);
     expect(captureError.mock.calls[0][1].tags.scope).toBe("reply-draft");
+    await app.close();
+  });
+
+  it("maps a daily-budget trip to 429 with its own message, not an outage 503", async () => {
+    // Retrying cannot succeed until the cap resets — saying "temporarily
+    // unavailable" invites exactly the wrong action.
+    createCompletion.mockRejectedValue(
+      Object.assign(new Error("Daily AI budget reached."), {
+        name: "DailyCostCapExceededError",
+      }),
+    );
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/email/e1/reply-draft",
+      payload: {},
+    });
+    expect(res.statusCode).toBe(429);
+    expect(res.json().error).toMatch(/budget/i);
+    expect(captureError).not.toHaveBeenCalled();
     await app.close();
   });
 

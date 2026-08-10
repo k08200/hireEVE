@@ -35,7 +35,6 @@ import { diagnosticsRoutes } from "./routes/diagnostics.js";
 import { emailRoutes } from "./routes/email.js";
 import { feedbackRoutes } from "./routes/feedback.js";
 import { firewallRoutes } from "./routes/firewall.js";
-import { githubRoutes } from "./routes/github.js";
 import { gmailPushRoutes } from "./routes/gmail-push.js";
 import { imapConnectRoutes } from "./routes/imap-connect.js";
 import { inboxRoutes } from "./routes/inbox.js";
@@ -257,7 +256,6 @@ await app.register(outlookAuthRoutes({ gate: outlookInboxEnabled }), {
 // (same CASA surface freeze as the dark IMAP providers above).
 await app.register(socialAuthRoutes(appleAuthProvider), { prefix: "/api/auth/apple" });
 await app.register(socialAuthRoutes(naverAuthProvider), { prefix: "/api/auth/naver" });
-await app.register(githubRoutes, { prefix: "/api/github" });
 await app.register(patternRoutes, { prefix: "/api/patterns" });
 await app.register(tokenUsageRoutes, { prefix: "/api/usage" });
 await app.register(skillRoutes, { prefix: "/api/skills" });
@@ -557,6 +555,15 @@ try {
       });
   }
 
+  // One-shot: retire the AttentionItems the removed GitHub integration left
+  // behind. Idempotent — a no-op on every boot after the first.
+  void import("./judge/github-legacy-cleanup.js")
+    .then(({ purgeLegacyGitHubAttention }) => purgeLegacyGitHubAttention())
+    .catch((err) => {
+      console.error("[STARTUP] github legacy purge failed:", err);
+      captureError(err, { tags: { context: "startup:github-purge" } });
+    });
+
   // Start IMAP polling scheduler (5min interval per connected user; covers
   // every enabled app-password provider — Naver always, iCloud behind flag)
   if (!BG_DISABLED) {
@@ -580,18 +587,6 @@ try {
       .catch((err) => {
         console.error("[STARTUP] outlook-scheduler failed to start:", err);
         captureError(err, { tags: { context: "startup:outlook-scheduler" } });
-      });
-  }
-
-  // Start GitHub notifications polling scheduler (5min interval per connected user)
-  if (!BG_DISABLED) {
-    import("./mail/github-scheduler.js")
-      .then(({ startGitHubScheduler }) => {
-        startGitHubScheduler();
-      })
-      .catch((err) => {
-        console.error("[STARTUP] github-scheduler failed to start:", err);
-        captureError(err, { tags: { context: "startup:github-scheduler" } });
       });
   }
 
