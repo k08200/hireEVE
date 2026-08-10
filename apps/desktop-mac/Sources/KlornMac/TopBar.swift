@@ -882,6 +882,10 @@ private struct AccountColumn: View {
                     Task { await model.checkForUpdateNow() }
                 }
                 SubtleTextButton(title: L("menu.restart")) { AppRestart.relaunch() }
+                SubtleTextButton(title: L("menu.diagnostics")) {
+                    Task { await model.runDiagnostics() }
+                }
+                DiagnosticsBlock()
                 if let result = model.updateCheckResult {
                     Text(result).font(.caption2).foregroundStyle(Theme.textDim)
                 }
@@ -1228,6 +1232,11 @@ private struct FullSidebar: View {
                     Task { await model.checkForUpdateNow() }
                 }
                 sidebarAction(L("menu.restart"), dim: true) { AppRestart.relaunch() }
+                // The app must be able to answer "why is mail stuck" itself.
+                sidebarAction(L("menu.diagnostics"), dim: true) {
+                    Task { await model.runDiagnostics() }
+                }
+                DiagnosticsBlock().padding(.horizontal, 20)
                 if let result = model.updateCheckResult {
                     Text(result).font(.caption2).foregroundStyle(Theme.textDim)
                         .padding(.horizontal, 20)
@@ -2196,6 +2205,31 @@ struct ReadingPane: View {
 /// invisible either: a tinted capsule with a pulsing dot and a gentle
 /// appear transition says "one click waiting" the moment the row exists.
 /// Pulse respects Reduce Motion.
+/// Compact per-account readiness readout: one line per check, colored by
+/// status. Renders nothing until the user asks for it.
+private struct DiagnosticsBlock: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            if model.diagnosticsInFlight {
+                Text(L("diagnostics.checking")).font(.caption2).foregroundStyle(Theme.textDim)
+            }
+            if let error = model.diagnosticsError {
+                Text(error).font(.caption2).foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ForEach(model.diagnostics) { check in
+                // Status is never color-only: the word carries it too.
+                Text("\(check.label): \(check.status) — \(check.message)")
+                    .font(.caption2)
+                    .foregroundStyle(check.status == "ok" ? Theme.textDim : Theme.text)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
 private struct UpdateRow: View {
     let version: String
     @State private var updating = false

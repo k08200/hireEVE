@@ -757,6 +757,28 @@ final class AppModel {
         }
     }
 
+    /// Per-account readiness, on demand. "왜 메일이 안 와" was answered by
+    /// guesswork three times running; this makes the app state the facts.
+    private(set) var diagnostics: [ReadinessCheck] = []
+    private(set) var diagnosticsInFlight = false
+    private(set) var diagnosticsError: String?
+
+    func runDiagnostics() async {
+        guard !diagnosticsInFlight else { return }
+        diagnosticsInFlight = true
+        defer { diagnosticsInFlight = false }
+        diagnosticsError = nil
+        do {
+            let res = try await api.get("/api/ops/readiness", as: ReadinessResponse.self)
+            diagnostics = diagnosticHighlights(res.checks)
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            diagnostics = []
+            diagnosticsError = Self.describe(error)
+        }
+    }
+
     /// Called when the expanded panel opens — the moment the user is actually
     /// looking at the ACCOUNT column where the update row lives.
     func checkForUpdateOnPanelOpen() {

@@ -467,6 +467,28 @@ func firewallPath(selected: String) -> String {
     return base + "?inbox=\(enc)"
 }
 
+/// `GET /api/ops/readiness` — the per-account truth the app can show the user
+/// instead of making them guess why mail stopped (founder, 2026-08-10).
+struct ReadinessCheck: Decodable, Identifiable, Sendable {
+    let key: String
+    let label: String
+    let status: String
+    let message: String
+    var id: String { key }
+}
+
+struct ReadinessResponse: Decodable, Sendable {
+    let status: String
+    let checks: [ReadinessCheck]
+}
+
+/// The checks worth showing on a small panel, in the order a stuck user needs
+/// them: is the mailbox connected, is AI alive, is anything syncing.
+func diagnosticHighlights(_ checks: [ReadinessCheck]) -> [ReadinessCheck] {
+    let wanted = ["google", "aiProvider", "automations", "push", "db"]
+    return wanted.compactMap { key in checks.first { $0.key == key } }
+}
+
 /// Caption label for a non-EMAIL firewall item (which has no sender):
 /// currently only GitHub notifications reach the desktop board without an
 /// email context. nil = render no caption line at all. Pure for the harness.

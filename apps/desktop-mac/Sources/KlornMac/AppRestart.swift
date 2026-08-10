@@ -9,17 +9,27 @@ import AppKit
 enum AppRestart {
     @MainActor
     static func relaunch() {
-        let config = NSWorkspace.OpenConfiguration()
-        config.createsNewApplicationInstance = true
-        NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: config) {
-            _, error in
-            if let error {
-                Log.app.error("restart failed: \(String(describing: error), privacy: .public)")
-                return
-            }
-            // Give the second instance a moment to come up before this one
-            // drops its status item, so the menu bar never goes empty.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { NSApp.terminate(nil) }
+        // Asking LaunchServices to open our OWN bundle while this process is
+        // still alive does not start a second instance — the app terminated
+        // and never came back (founder, 2026-08-10). The reliable shape is a
+        // DETACHED helper that outlives us: it waits for this pid to exit,
+        // then opens the bundle fresh.
+        let bundlePath = Bundle.main.bundleURL.path
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = [
+            "-c",
+            // Poll rather than sleep-a-fixed-time: `open` on a bundle that is
+            // still running would just activate the dying instance.
+            "while kill -0 \(pid) 2>/dev/null; do sleep 0.2; done; open \"\(bundlePath)\"",
+        ]
+        do {
+            try task.run()
+        } catch {
+            Log.app.error("restart failed to spawn: \(String(describing: error), privacy: .public)")
+            return
         }
+        NSApp.terminate(nil)
     }
 }
