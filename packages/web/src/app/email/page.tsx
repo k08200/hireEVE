@@ -351,10 +351,27 @@ function EmailView() {
     setSyncing(true);
     setError(null);
     try {
-      const result = await apiFetch<{ synced?: number; newCount?: number }>("/api/email/sync", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
+      const result = await apiFetch<{ synced?: number; newCount?: number; error?: string }>(
+        "/api/email/sync",
+        {
+          method: "POST",
+          body: JSON.stringify({}),
+        },
+      );
+      // The route answers HTTP 200 with { error } on a dead token — without
+      // this branch a broken Gmail connection showed the green "Sync
+      // complete" toast, which is how a founder ran for days believing the
+      // account was connected (2026-08-10 diagnosis).
+      if (result?.error) {
+        const notConnected = result.error.toLowerCase().includes("not connected");
+        setError(
+          notConnected
+            ? "Gmail isn't connected. Reconnect in Settings → Connections."
+            : "Gmail sync failed. Check Settings → Connections to reconnect.",
+        );
+        toast(notConnected ? "Gmail isn't connected." : "Gmail sync failed.", "error");
+        return;
+      }
       await load(filter, appliedSearch);
       const newCount = typeof result?.newCount === "number" ? result.newCount : 0;
       const synced = typeof result?.synced === "number" ? result.synced : 0;

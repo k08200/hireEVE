@@ -128,10 +128,15 @@ function CommandCenterView() {
       // the manual fast path when the real-time WS push didn't fire.
       setSyncing(true);
       try {
-        await apiFetch("/api/email/sync", {
+        const result = await apiFetch<{ error?: string }>("/api/email/sync", {
           method: "POST",
           body: JSON.stringify({ maxResults: 30 }),
         });
+        // 200-with-{error} is the dead-token shape — surface it instead of
+        // silently refreshing stale DB contents (2026-08-10 diagnosis).
+        if (result?.error) {
+          toast("Gmail isn't connected — reconnect in Settings.", "error");
+        }
       } catch (err) {
         // Sync is best-effort; still refetch below so the queue reflects the DB.
         captureClientError(err, { scope: "inbox.refresh.sync" });

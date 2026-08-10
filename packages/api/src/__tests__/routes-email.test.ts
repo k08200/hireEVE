@@ -284,6 +284,25 @@ describe("email routes (demo mode)", () => {
     await app.close();
   });
 
+  it("GET /inboxes reports a REAL primary needsReconnect when the token was invalidated", async () => {
+    const { prisma } = await import("../db.js");
+    // invalidateGoogleToken keeps the row but empties the refresh token —
+    // the previously hardcoded `false` here hid a dead primary from every
+    // client that renders this field (2026-08-07 desktop diagnosis).
+    vi.mocked(prisma.userToken.findFirst).mockResolvedValueOnce({
+      refreshToken: null,
+    } as never);
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/email/inboxes",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().inboxes[0]).toMatchObject({ kind: "primary", needsReconnect: true });
+    await app.close();
+  });
+
   it("GET /inboxes includes non-Google inboxes with their provider when the selector flag is on", async () => {
     process.env.PROVIDER_INBOX_SELECTOR_ENABLED = "true";
     try {

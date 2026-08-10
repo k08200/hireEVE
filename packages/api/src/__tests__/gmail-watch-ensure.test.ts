@@ -44,11 +44,22 @@ describe("ensureFreshGmailWatch", () => {
     expect(tokenFindFirst).not.toHaveBeenCalled();
   });
 
-  it("does not resurrect a watch the user stopped (expiresAt null)", async () => {
-    tokenFindFirst.mockResolvedValue({ gmailWatchExpiresAt: null });
+  it("does not resurrect when there is no refresh token (stopped/disconnected)", async () => {
+    tokenFindFirst.mockResolvedValue({ gmailWatchExpiresAt: null, refreshToken: null });
     const register = vi.fn();
     await ensureFreshGmailWatch(freshUser(), register);
     expect(register).not.toHaveBeenCalled();
+  });
+
+  it("registers a null-expiry watch when a refresh token exists (post-reconnect heal)", async () => {
+    // invalidateGoogleToken nulls the watch expiry; a later re-consent stores
+    // a fresh token but the connect-time watch registration can be lost to a
+    // dyno sleep. This is exactly the state the self-heal exists for — a
+    // permanent no-op here left realtime dead forever (2026-08-10 diagnosis).
+    tokenFindFirst.mockResolvedValue({ gmailWatchExpiresAt: null, refreshToken: "rt-cipher" });
+    const register = vi.fn(async () => ({ historyId: "1", expiration: "2" }));
+    await ensureFreshGmailWatch(freshUser(), register);
+    expect(register).toHaveBeenCalledTimes(1);
   });
 
   it("leaves a healthy watch (expiring in >24h) alone", async () => {

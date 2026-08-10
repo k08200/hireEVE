@@ -1761,9 +1761,13 @@ const WATCH_ENSURE_DEBOUNCE_MS = 10 * 60 * 1000;
 const WATCH_RENEW_MARGIN_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Re-register the Gmail watch when it is expired or expiring within 24h.
+ * Re-register the Gmail watch when it is expired, expiring within 24h, or
+ * missing while a live refresh token exists (the post-reconnect state:
+ * invalidateGoogleToken nulls the expiry, and the connect-time registration
+ * can be lost to a dyno sleep — treating null as "stopped" made this hook a
+ * permanent no-op in exactly the scenario it was built for). A row with NO
+ * refresh token stays untouched — that is the genuinely-disconnected case.
  * Fire-and-forget safe: never throws, debounced per user (10 min, in-memory).
- * Deliberately does NOT resurrect watches the user stopped (expiresAt null).
  * `register` is injectable for tests only.
  */
 export async function ensureFreshGmailWatch(
@@ -1778,11 +1782,12 @@ export async function ensureFreshGmailWatch(
 
     const token = await prisma.userToken.findFirst({
       where: { userId, provider: "google" },
-      select: { gmailWatchExpiresAt: true },
+      select: { gmailWatchExpiresAt: true, refreshToken: true },
     });
-    const expiresAt = (token as { gmailWatchExpiresAt?: Date | null } | null)?.gmailWatchExpiresAt;
-    if (!expiresAt) return;
-    if (expiresAt.getTime() > Date.now() + WATCH_RENEW_MARGIN_MS) return;
+    const row = token as { gmailWatchExpiresAt?: Date | null; refreshToken?: string | null } | null;
+    const expiresAt = row?.gmailWatchExpiresAt;
+    if (!expiresAt && !row?.refreshToken) return;
+    if (expiresAt && expiresAt.getTime() > Date.now() + WATCH_RENEW_MARGIN_MS) return;
 
     const result = await register(userId);
     if ("error" in result) {

@@ -169,6 +169,17 @@ services:
       # Real-time Gmail push (else the scheduler falls back to polling).
       - key: GMAIL_PUBSUB_TOPIC
         sync: false
+      # Pub/Sub push RECEIVER auth — without one of these the push
+      # endpoint 503s every delivery and realtime mail dies while the
+      # watch side looks healthy. Declared (sync:false) so a blueprint
+      # sync can never PRUNE the dashboard values (VAPID incident
+      # pattern, 2026-08-10 diagnosis). Values live in the dashboard.
+      - key: GMAIL_PUSH_TOKEN
+        sync: false
+      - key: GMAIL_PUSH_OIDC_EMAIL
+        sync: false
+      - key: GMAIL_PUSH_OIDC_AUDIENCE
+        sync: false
       # Free-dyno keepalive ping target (else the dyno sleeps and misses pushes).
       - key: KEEPALIVE_URL
         sync: false

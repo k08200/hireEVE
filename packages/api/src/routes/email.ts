@@ -1181,6 +1181,12 @@ export async function emailRoutes(app: FastifyInstance) {
       where: { id: uid },
       select: { email: true },
     });
+    // Primary reconnect state: an invalidated token keeps its row but loses
+    // the refresh token — that IS "needs reconnect" for the primary account.
+    const googleToken = await prisma.userToken.findFirst({
+      where: { userId: uid, provider: "google" },
+      select: { refreshToken: true },
+    });
     const linked = await prisma.linkedInboxAccount.findMany({
       // Flag OFF keeps the historical GOOGLE-only selector. Flag ON (Phase 1:
       // the contract carries `provider` and actions dispatch by provider, with
@@ -1196,7 +1202,10 @@ export async function emailRoutes(app: FastifyInstance) {
           id: null as string | null,
           email: user?.email ?? null,
           kind: "primary" as const,
-          needsReconnect: false,
+          // Real state, not a constant: the hardcoded `false` here made a
+          // dead primary token indistinguishable from a quiet inbox on every
+          // client that renders this field (2026-08-07 desktop diagnosis).
+          needsReconnect: Boolean(googleToken) && !googleToken?.refreshToken,
           provider: "GOOGLE" as const,
         },
         ...linked.map((l) => ({
