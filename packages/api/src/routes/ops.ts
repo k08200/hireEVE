@@ -207,6 +207,21 @@ function googleCheck(data: ReadinessData): ReadinessCheck {
   };
 }
 
+/**
+ * Which provider env keys this PROCESS actually holds. Names only — never a
+ * key, never a fragment of one. "AI provider: ok" while every call failed was
+ * unreadable precisely because it never said whether a provider existed at
+ * all (founder, 2026-08-10).
+ */
+function envProviderSummary(): string {
+  const present = [
+    process.env.OPENROUTER_API_KEY ? "openrouter" : null,
+    process.env.GEMINI_API_KEY ? "gemini" : null,
+    process.env.OPENAI_COMPAT_BASE_URL ? "openai-compat" : null,
+  ].filter((name): name is string => name !== null);
+  return present.length > 0 ? present.join(", ") : "NONE CONFIGURED";
+}
+
 function aiProviderCheck(data: ReadinessData): ReadinessCheck {
   // Cooldown state ONLY — this makes no live call, so "ok" means "nothing is
   // in cooldown", not "a completion would succeed". Saying "All providers
@@ -230,7 +245,7 @@ function aiProviderCheck(data: ReadinessData): ReadinessCheck {
       ? "All AI providers are in cooldown — chat and briefing fall back to rule-based view"
       : someDown
         ? `${downCount}/${total} providers in cooldown — fallback active`
-        : "No provider in cooldown (not a live call)",
+        : `No provider in cooldown, not a live call — env keys: ${envProviderSummary()}`,
     detail: {
       providers: data.aiProviders.providers.map((info) => ({
         quotaKey: info.quotaKey,

@@ -150,9 +150,14 @@ async function callGemini(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    // NAMED on purpose: the reply/draft routes surface `err.name` to the
+    // user, and a bare `Error` told the founder nothing for a day
+    // (2026-08-10). The message keeps the body for operators/Sentry; the
+    // name is what reaches the UI.
     const err = new Error(`Gemini ${res.status}: ${text || "(no body)"}`) as Error & {
       status: number;
     };
+    err.name = `GeminiHttp${res.status}Error`;
     err.status = res.status;
     throw err;
   }
