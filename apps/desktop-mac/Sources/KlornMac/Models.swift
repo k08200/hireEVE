@@ -467,6 +467,13 @@ func firewallPath(selected: String) -> String {
     return base + "?inbox=\(enc)"
 }
 
+/// Caption label for a non-EMAIL firewall item (which has no sender):
+/// currently only GitHub notifications reach the desktop board without an
+/// email context. nil = render no caption line at all. Pure for the harness.
+func sourceBadgeLabel(_ source: String) -> String? {
+    source == "GITHUB" ? L("source.github") : nil
+}
+
 /// Full menu-row label for one inbox: the address, falling back by kind
 /// (mirrors the web selector's fallback copy). Pure.
 func inboxDisplayLabel(email: String?, kind: String) -> String {

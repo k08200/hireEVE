@@ -133,6 +133,10 @@ final class TopBarController {
             setState(.collapsed)
         } else {
             state = .collapsed
+            // orderOut skips render(): drop the policy back to ambient here
+            // too, or the app lingers in Cmd+Tab after Close.
+            NSApp.setActivationPolicy(
+                Self.activationPolicy(for: .collapsed, showInDock: model.settings.showInDock))
             panel?.orderOut(nil)
         }
     }
@@ -153,6 +157,12 @@ final class TopBarController {
         // A summon (⌥⌘K / Show-all) draws the pill even in hidden-pill mode —
         // pillVisible only governs the RESTING ambient pill, not explicit intent.
         let effectiveVisible = model.settings.pillVisible || summoned
+        // Activation policy is applied on EVERY render, BEFORE the draw guard:
+        // the hidden-pill early-return below used to skip it, which left a
+        // stored show-in-Dock=true unapplied at launch and (inversely) a
+        // stale .regular in Cmd+Tab after Close (2026-08-10 diagnosis).
+        NSApp.setActivationPolicy(
+            Self.activationPolicy(for: state, showInDock: model.settings.showInDock))
         guard Self.shouldDraw(state: state, pillVisible: effectiveVisible) else {
             panel?.orderOut(nil)
             return
@@ -191,13 +201,16 @@ final class TopBarController {
         }
         renderedState = state
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
-        NSApp.setActivationPolicy(
-            Self.activationPolicy(for: state, showInDock: model.settings.showInDock))
         if focusable {
             // Full is a real, focusable app window, so it takes focus outright —
-            // the reply field has to be able to type.
+            // the reply field has to be able to type. Cooperative activate()
+            // can be DENIED when the trigger was a global hotkey (no user
+            // event delivered to this app), and a denied .accessory→.regular
+            // transition never materializes the Cmd+Tab entry — the
+            // option-based NSRunningApplication activate is the supported
+            // strong form (2026-08-10 Cmd+Tab diagnosis).
             panel.makeKeyAndOrderFront(nil)
-            NSApp.activate()
+            NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps])
         } else {
             // Expanded is Cmd+Tab-able but still never steals focus.
             panel.orderFrontRegardless()

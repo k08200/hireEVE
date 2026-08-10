@@ -668,9 +668,18 @@ struct InboxSelectorMenu: View {
                 }
                 if model.inboxes.contains(where: \.needsReconnect) {
                     Divider()
-                    // Re-runs the link-inbox consent; the server upserts the
-                    // re-linked account, which clears needsReconnect.
-                    Button(L("account.reconnect")) { Task { await model.addAccount() } }
+                    // The PRIMARY account reconnects through the full-scope
+                    // /google/start consent — the link-inbox flow would add a
+                    // Pro-gated SECOND account instead of fixing the first
+                    // (2026-08-10 diagnosis). Linked rows keep link-inbox.
+                    if model.inboxes.contains(where: { $0.needsReconnect && $0.kind == "primary" }) {
+                        Button(L("account.reconnectPrimary")) {
+                            Task { await model.reconnectPrimary() }
+                        }
+                    }
+                    if model.inboxes.contains(where: { $0.needsReconnect && $0.kind != "primary" }) {
+                        Button(L("account.reconnect")) { Task { await model.addAccount() } }
+                    }
                 }
             } label: {
                 // Chevron lives INSIDE the one Text (concatenation) — a
@@ -1687,8 +1696,17 @@ struct FullRow: View {
                     // a list for. The old row set them one point apart, which
                     // reads as one grey block at arm's length.
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(sender).font(.caption.weight(.semibold))
-                            .foregroundStyle(Theme.textDim).lineLimit(1)
+                        // Non-EMAIL items (GitHub notifications) have no
+                        // sender — a blank caption line here made them read as
+                        // mail that "doesn't exist in Gmail" (2026-08-10).
+                        // Web parity: firewall-board's SourceBadge.
+                        if !sender.isEmpty {
+                            Text(sender).font(.caption.weight(.semibold))
+                                .foregroundStyle(Theme.textDim).lineLimit(1)
+                        } else if let badge = sourceBadgeLabel(item.source) {
+                            Text(badge).font(.caption.weight(.semibold))
+                                .foregroundStyle(Theme.textDim).lineLimit(1)
+                        }
                         Text(decodeHTMLEntities(item.email?.subject ?? item.title))
                             .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(Theme.text).lineLimit(1)

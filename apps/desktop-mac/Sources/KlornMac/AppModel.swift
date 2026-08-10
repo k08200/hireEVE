@@ -167,6 +167,24 @@ final class AppModel {
         }
     }
 
+    /// Reconnect the PRIMARY Google account (full-scope /google/start consent
+    /// in the browser) — distinct from addAccount, which links a Pro-gated
+    /// SECOND account and cannot revive the primary token.
+    func reconnectPrimary() async {
+        guard !isLinkingAccount else { return }
+        isLinkingAccount = true
+        defer { isLinkingAccount = false }
+        linkAccountError = nil
+        switch await GoogleConnectFlow.start(api: api) {
+        case .success:
+            startLinkWatch()
+        case .failure(.unauthorized):
+            signOut()
+        case .failure(.network):
+            linkAccountError = L("account.add.failed")
+        }
+    }
+
     /// Poll the inbox list (5 s cadence, 3 min cap) until the link lands —
     /// then pull the merged queue right away. Cancelled on sign-out.
     private func startLinkWatch() {

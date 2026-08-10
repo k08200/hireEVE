@@ -216,6 +216,28 @@ enum GoogleSignIn {
 /// `POST /api/auth/google/link-inbox` and bounce it to the system browser.
 /// The server finishes the link on its OAuth callback; the caller watches
 /// GET /api/email/inboxes for the new account to land.
+/// Reconnect the PRIMARY Google account: full-scope consent via
+/// /api/auth/google/start (auth-only, not Pro-gated — reconnecting what you
+/// already had must never sit behind the paywall). Same {url}→browser shape
+/// as LinkInboxFlow.
+enum GoogleConnectFlow {
+    enum Failure: Error, Equatable, Sendable { case unauthorized, network }
+
+    static func start(api: APIClient = APIClient()) async -> Result<URL, Failure> {
+        do {
+            let bytes = try await api.data("/api/auth/google/start", method: "POST")
+            guard let url = LinkInboxFlow.url(from: bytes) else { return .failure(.network) }
+            await MainActor.run { NSWorkspace.shared.open(url) }
+            return .success(url)
+        } catch APIError.unauthorized {
+            return .failure(.unauthorized)
+        } catch {
+            Log.net.debug("google connect start failed: \(String(describing: error), privacy: .private)")
+            return .failure(Failure.network)
+        }
+    }
+}
+
 enum LinkInboxFlow {
     enum Failure: Error, Equatable, Sendable { case needsPro, unauthorized, network }
 

@@ -316,3 +316,5 @@
 "account.add.hint" = "Opens your browser to connect another Gmail inbox to Klorn.";
 "account.add.failed" = "Couldn't start account linking. Try again.";
 "account.reconnect" = "Reconnect account…";
+"account.reconnectPrimary" = "Reconnect Google account…";
+"source.github" = "GitHub";

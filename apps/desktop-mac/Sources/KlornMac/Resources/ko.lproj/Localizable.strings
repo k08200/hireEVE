@@ -315,3 +315,5 @@
 "account.add.hint" = "브라우저가 열리며 다른 Gmail 수신함을 Klorn에 연결합니다.";
 "account.add.failed" = "계정 연결을 시작하지 못했습니다. 다시 시도해 주세요.";
 "account.reconnect" = "계정 다시 연결…";
+"account.reconnectPrimary" = "Google 계정 다시 연결…";
+"source.github" = "GitHub";
