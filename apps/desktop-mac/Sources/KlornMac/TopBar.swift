@@ -289,7 +289,12 @@ struct CollapsedBar: View {
                     }
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Theme.tint(.push).opacity(0.12), in: Capsule())
-                } else if model.loadError != nil {
+                }
+                // NOT an else-branch: a frozen board WITH push items used to
+                // show no error at all, forever — staleness matters MORE when
+                // the user believes urgent items are live (2026-08-10, the
+                // 403-freeze hole).
+                if model.loadError != nil {
                     HStack(spacing: 5) {
                         Circle().fill(Theme.tint(.push).opacity(0.7)).frame(width: 6, height: 6)
                         Text(L("bar.offline")).font(.caption)
@@ -297,7 +302,7 @@ struct CollapsedBar: View {
                     .foregroundStyle(Theme.textDim)
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Theme.surfaceRaised, in: Capsule())
-                } else {
+                } else if pushCount == 0 {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark").font(.caption2.weight(.semibold))
                             .accessibilityHidden(true)
