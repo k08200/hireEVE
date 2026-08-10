@@ -13,8 +13,11 @@ configured" }` to every delivery (`routes/gmail-push.ts` refuses when both
 registered and renewed, but nothing can be delivered — realtime has never
 worked. Without it the floor is the poll cadence (~60 s), not one second.
 
-Pick ONE auth mode. The shared secret is the fastest to get right; OIDC is
-the stronger one and is what a production deployment should end at.
+Pick ONE auth mode — **whichever the subscription already uses**. Checked
+2026-08-10: the live `gmail-push-sub` has "Enable authentication" ON with a
+service account, i.e. it signs OIDC tokens. For that subscription the shared
+secret can never match (Pub/Sub sends a Google-signed JWT, not your string) —
+Mode B is the one to configure.
 
 ### Mode A — shared secret (fastest)
 
@@ -27,13 +30,20 @@ the stronger one and is what a production deployment should end at.
    `https://klorn-api.onrender.com/api/gmail/push`, and add the header
    `Authorization: Bearer <the same secret>`.
 
-### Mode B — Google OIDC (recommended end state)
+### Mode B — Google OIDC (what the live subscription uses)
 
-1. Render: `GMAIL_PUSH_OIDC_EMAIL` = the service account the subscription
-   signs as, `GMAIL_PUSH_OIDC_AUDIENCE` = the audience configured on the
-   subscription (both declared in `render.yaml`).
-2. Pub/Sub subscription → Authentication → enable OIDC with that service
-   account and audience.
+1. Pub/Sub → the push subscription → **Edit**. Note the **service account**
+   under "Enable authentication", and set **Audience** explicitly to
+   `https://klorn-api.onrender.com/api/gmail/push` (leaving it blank makes
+   the audience implicit, and the server refuses to verify without a
+   configured audience — it fails closed on purpose so any Google-signed
+   token cannot be replayed).
+2. Render → klorn-api → Environment:
+   - `GMAIL_PUSH_OIDC_EMAIL` = that service account's full email
+   - `GMAIL_PUSH_OIDC_AUDIENCE` = `https://klorn-api.onrender.com/api/gmail/push`
+   Both are already declared `sync: false` in `render.yaml`.
+3. Do NOT set `GMAIL_PUSH_TOKEN` alongside it — when the OIDC email is
+   present the server takes the OIDC path exclusively.
 
 ### Verify
 

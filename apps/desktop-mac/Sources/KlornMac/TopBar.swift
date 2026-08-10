@@ -863,6 +863,11 @@ private struct AccountColumn: View {
     @State private var updating = false
 
     var body: some View {
+        // The panel is a fixed 1140x380; this column grew past it when the
+        // update/restart/diagnostics actions landed and the TOP silently
+        // clipped (founder, 2026-08-10). Scroll instead of clip — never let
+        // an added action push the header off-screen again.
+        ScrollView(.vertical, showsIndicators: false) {
         VStack(alignment: .leading, spacing: 14) {
             ColumnHeader(title: L("prefs.section.account"))
             if model.phase == .signedIn {
@@ -921,9 +926,9 @@ private struct AccountColumn: View {
 
             SubtleTextButton(title: L("prefs.title")) { actions.onOpenPreferences() }
             SubtleTextButton(title: L("menu.quit")) { actions.onQuit() }
-            Spacer()
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 
@@ -1215,6 +1220,11 @@ private struct FullSidebar: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             ColumnHeader(title: L("prefs.section.account")).padding(.horizontal, 20).padding(.bottom, 6)
+            // Own scroll area with a hard ceiling: the list above stays the
+            // star, and the account actions can grow without running off the
+            // bottom edge (founder, 2026-08-10).
+            ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
             if model.phase == .signedIn {
                 if let version = model.updateAvailable {
                     UpdateRow(version: version)
@@ -1251,6 +1261,9 @@ private struct FullSidebar: View {
             }
             sidebarAction(L("guide.reopen"), dim: true) { model.showTierGuide = true }
             sidebarAction(L("prefs.title"), dim: true) { model.showPreferences = true }
+            }
+            }
+            .frame(maxHeight: 260)
         }
         .padding(.horizontal, 8).padding(.vertical, 18)
     }
