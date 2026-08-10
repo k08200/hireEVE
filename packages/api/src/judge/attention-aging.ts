@@ -6,7 +6,12 @@
  * Policy, deliberately conservative:
  * - RESOLVE when the user already ACTED elsewhere: the underlying
  *   EmailMessage row is gone, or it left the INBOX (archived/trashed at the
- *   provider and reflected back by reconcile).
+ *   provider and reflected back by reconcile). Known limitation: `labels`
+ *   is the last-synced snapshot, not a live check — a transient
+ *   out-of-INBOX state (e.g. Gmail native snooze) captured at the wrong
+ *   moment resolves the item permanently (re-judge never re-OPENs by
+ *   design). Accepted for the OFF-by-default flip; revisit with a
+ *   freshness guard if it bites.
  * - Age out only the low-stakes lanes: SILENT after 14 days, QUEUE (and
  *   legacy null tier, which the board buckets as QUEUE) after 30 days.
  * - PUSH and AUTO never age: PUSH is precisely "needs the user", and AUTO
@@ -42,7 +47,13 @@ export async function sweepAttentionAging(now: Date = new Date()): Promise<Atten
   let resolvedActed = 0;
   if (openEmailItems.length > 0) {
     const emails = await prisma.emailMessage.findMany({
-      where: { id: { in: openEmailItems.map((i) => i.sourceId) } },
+      // userId scope carried even though EMAIL sourceIds are uuid PKs with no
+      // cross-user collision — same "every sweep query is scoped" invariant
+      // the reconcile path keeps on principle (email-sync.ts).
+      where: {
+        id: { in: openEmailItems.map((i) => i.sourceId) },
+        userId: { in: [...new Set(openEmailItems.map((i) => i.userId))] },
+      },
       select: { id: true, labels: true },
     });
     const labelsById = new Map(emails.map((e) => [e.id, e.labels]));

@@ -141,6 +141,9 @@ async function releaseSchedulerLock(): Promise<void> {
 const briefingSentToday = new Map<string, string>(); // userId -> date string
 let lastWatchRenewalAt = 0;
 let lastAttentionAgingAt = 0;
+// Own constant on purpose: piggybacking WATCH_RENEWAL_INTERVAL_MS would let
+// a Gmail-quota retune silently change the aging cadence too.
+const ATTENTION_AGING_INTERVAL_MS = 60 * 60 * 1000;
 // Once-per-user-per-UTC-day Sentry alert for the "Gmail not connected"
 // per-tick skip: every tick warns to stdout only, which is how a dead
 // primary token ran silently for weeks (2026-08-10 diagnosis). One alert a
@@ -592,7 +595,10 @@ async function runAutomations() {
 
     // Attention aging (flag-gated, hourly): resolve items the user already
     // acted on elsewhere + age out low-stakes lanes. See judge/attention-aging.
-    if (attentionAgingEnabled() && Date.now() - lastAttentionAgingAt >= WATCH_RENEWAL_INTERVAL_MS) {
+    if (
+      attentionAgingEnabled() &&
+      Date.now() - lastAttentionAgingAt >= ATTENTION_AGING_INTERVAL_MS
+    ) {
       lastAttentionAgingAt = Date.now();
       sweepAttentionAging()
         .then(({ resolvedActed, resolvedAged }) => {
@@ -1494,7 +1500,11 @@ async function resurrectSnoozedItems(): Promise<void> {
       status: "SNOOZED",
       snoozedUntil: { lte: now },
     } as unknown,
-    data: { status: "OPEN", snoozedUntil: null },
+    // surfacedAt resets on wake: resurrection IS a re-surfacing, and the
+    // aging sweep keys off surfacedAt — without this, un-snoozing an item
+    // that was already old would age it out on the next hourly pass, before
+    // the user ever saw it come back (2026-08-10 review).
+    data: { status: "OPEN", snoozedUntil: null, surfacedAt: now },
   });
 }
 

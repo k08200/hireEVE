@@ -39,7 +39,7 @@ describe("sweepAttentionAging — acted elsewhere", () => {
   it("resolves items whose email vanished or left the INBOX; keeps live INBOX mail", async () => {
     m.attentionFindMany.mockResolvedValue([
       { id: "att-gone", userId: "u1", sourceId: "em-gone" },
-      { id: "att-archived", userId: "u1", sourceId: "em-archived" },
+      { id: "att-archived", userId: "u2", sourceId: "em-archived" },
       { id: "att-live", userId: "u1", sourceId: "em-live" },
     ]);
     m.emailFindMany.mockResolvedValue([
@@ -57,6 +57,12 @@ describe("sweepAttentionAging — acted elsewhere", () => {
       }),
     );
     expect(result.resolvedActed).toBe(2);
+    // Every sweep query stays user-scoped (reconcile-path invariant).
+    expect(m.emailFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: { in: ["u1", "u2"] } }),
+      }),
+    );
   });
 
   it("only ever scans OPEN EMAIL items for the acted path", async () => {
