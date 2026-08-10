@@ -8,7 +8,7 @@
  *   - absent / "all"  → every inbox (100% backward compatible)
  *   - "primary"       → items whose email lives on the primary account
  *                       (linkedInboxAccountId null) PLUS items with no email
- *                       at all (GitHub etc. — primary is the home workspace)
+ *                       at all (commitments etc. — primary is the home workspace)
  *   - a linked id     → only items whose email lives on that linked inbox
  *
  * The userId scope on every query is the IDOR guard — a foreign or malformed
@@ -48,11 +48,11 @@ const attentionRows = [
     inputHash: null,
   },
   {
-    id: "att-github",
-    source: "GITHUB",
-    sourceId: "gh-1",
+    id: "att-commitment",
+    source: "COMMITMENT",
+    sourceId: "cm-1",
     type: "FYI",
-    title: "CI failed on main",
+    title: "Promised a follow-up",
     tier: "QUEUE",
     tierReason: "fixture",
     priority: 50,
@@ -160,7 +160,7 @@ describe("GET /api/inbox/firewall — per-inbox scoping", () => {
     const res = await app.inject({ method: "GET", url: "/api/inbox/firewall/" });
     expect(res.statusCode).toBe(200);
     const body = res.json() as FirewallResponseWire;
-    expect(itemIds(body)).toEqual(["att-github", "att-linked", "att-primary"]);
+    expect(itemIds(body)).toEqual(["att-commitment", "att-linked", "att-primary"]);
     expect(body.summary.total).toBe(3);
     await app.close();
   });
@@ -170,7 +170,7 @@ describe("GET /api/inbox/firewall — per-inbox scoping", () => {
     const res = await app.inject({ method: "GET", url: "/api/inbox/firewall/?inbox=all" });
     expect(res.statusCode).toBe(200);
     const body = res.json() as FirewallResponseWire;
-    expect(itemIds(body)).toEqual(["att-github", "att-linked", "att-primary"]);
+    expect(itemIds(body)).toEqual(["att-commitment", "att-linked", "att-primary"]);
     expect(body.summary.total).toBe(3);
     await app.close();
   });
@@ -180,7 +180,7 @@ describe("GET /api/inbox/firewall — per-inbox scoping", () => {
     const res = await app.inject({ method: "GET", url: "/api/inbox/firewall/?inbox=primary" });
     expect(res.statusCode).toBe(200);
     const body = res.json() as FirewallResponseWire;
-    expect(itemIds(body)).toEqual(["att-github", "att-primary"]);
+    expect(itemIds(body)).toEqual(["att-commitment", "att-primary"]);
     expect(body.summary.total).toBe(2);
     await app.close();
   });

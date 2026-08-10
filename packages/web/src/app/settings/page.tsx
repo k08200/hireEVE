@@ -6,7 +6,6 @@ import AuthGuard from "../../components/auth-guard";
 import { ByokKeysSection } from "../../components/byok-keys-section";
 import { useConfirm } from "../../components/confirm-dialog";
 import { FeedbackPolicyPanel } from "../../components/feedback-policy-panel";
-import { GitHubSection } from "../../components/github-section";
 import { GoogleConnectRedirect } from "../../components/google-connect-redirect";
 import { ICloudImapSection } from "../../components/icloud-imap-section";
 import InAppBrowserNotice from "../../components/in-app-browser-notice";
@@ -1778,9 +1777,6 @@ export default function SettingsPage() {
 
           {/* Telegram channel */}
           <TelegramSection />
-
-          {/* GitHub notifications source */}
-          <GitHubSection />
         </section>
 
         {/* Connected Google inboxes (multi-account, Pro) */}

@@ -870,6 +870,13 @@ private struct AccountColumn: View {
                     UpdateRow(version: version)
                 }
                 SubtleTextButton(title: L("prefs.account.signOut")) { actions.onSignOut() }
+                // Always offered, not only when needsReconnect is already
+                // true: a dead primary token is exactly the state where the
+                // app cannot be trusted to know it is dead, and sending the
+                // user to the web app to fix it is the bug we are closing.
+                SubtleTextButton(title: L("account.reconnectPrimary")) {
+                    Task { await model.reconnectPrimary() }
+                }
                 SubtleTextButton(title: L("account.add")) { Task { await model.addAccount() } }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
@@ -1202,6 +1209,11 @@ private struct FullSidebar: View {
                     UpdateRow(version: version)
                 }
                 sidebarAction(L("prefs.account.signOut"), dim: true) { actions.onSignOut() }
+                // Same reasoning as the expanded panel: reconnecting the
+                // PRIMARY Google account is a first-class in-app action.
+                sidebarAction(L("account.reconnectPrimary"), dim: true) {
+                    Task { await model.reconnectPrimary() }
+                }
                 sidebarAction(L("account.add"), dim: true) { Task { await model.addAccount() } }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
