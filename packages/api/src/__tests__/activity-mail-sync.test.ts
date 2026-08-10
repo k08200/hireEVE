@@ -10,7 +10,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captureError = vi.hoisted(() => vi.fn());
+const configFindUnique = vi.hoisted(() => vi.fn(async () => null));
 vi.mock("../sentry.js", () => ({ captureError }));
+vi.mock("../db.js", () => ({
+  prisma: { automationConfig: { findUnique: configFindUnique } },
+  db: {},
+}));
 
 const { ensureRecentMailSync } = await import("../mail/activity-sync.js");
 
@@ -20,6 +25,9 @@ const freshUser = () => `sync-user-${seq++}`;
 
 beforeEach(() => {
   captureError.mockClear();
+  configFindUnique.mockClear();
+  configFindUnique.mockResolvedValue(null);
+  delete process.env.ACTIVITY_MAIL_SYNC_DISABLED;
 });
 
 describe("ensureRecentMailSync", () => {
@@ -51,6 +59,28 @@ describe("ensureRecentMailSync", () => {
     });
     await expect(ensureRecentMailSync(freshUser(), sync)).resolves.toBeUndefined();
     expect(captureError).not.toHaveBeenCalled();
+  });
+
+  it("syncs when the user has NO automation config — the gate-fallout case", async () => {
+    configFindUnique.mockResolvedValue(null);
+    const sync = vi.fn(async () => ({}));
+    await ensureRecentMailSync(freshUser(), sync);
+    expect(sync).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects an explicit emailAutoClassify=false", async () => {
+    configFindUnique.mockResolvedValue({ emailAutoClassify: false } as never);
+    const sync = vi.fn(async () => ({}));
+    await ensureRecentMailSync(freshUser(), sync);
+    expect(sync).not.toHaveBeenCalled();
+  });
+
+  it("stops entirely when the operator kill switch is set", async () => {
+    process.env.ACTIVITY_MAIL_SYNC_DISABLED = "true";
+    const sync = vi.fn(async () => ({}));
+    await ensureRecentMailSync(freshUser(), sync);
+    expect(sync).not.toHaveBeenCalled();
+    expect(configFindUnique).not.toHaveBeenCalled();
   });
 
   it("reports real faults without throwing (fire-and-forget contract)", async () => {

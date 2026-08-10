@@ -90,7 +90,11 @@ export async function githubRoutes(app: FastifyInstance) {
     // in the firewall forever after the source is gone — and they compete
     // for the board's window against real mail (2026-08-10).
     const { count } = await prisma.attentionItem.updateMany({
-      where: { userId, source: "GITHUB", status: "OPEN" },
+      // SNOOZED too: the scheduler's resurrect sweep flips any snoozed item
+      // back to OPEN on its wake time, so leaving them would resurface
+      // GitHub cards after the source is gone (precedent: the deleted-email
+      // resolver in mail/email-sync.ts uses the same pair).
+      where: { userId, source: "GITHUB", status: { in: ["OPEN", "SNOOZED"] } },
       data: { status: "RESOLVED", resolvedAt: new Date() },
     });
     return { ok: true, clearedItems: count };
