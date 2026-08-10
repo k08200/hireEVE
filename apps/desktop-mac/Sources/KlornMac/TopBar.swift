@@ -657,6 +657,17 @@ struct InboxSelectorMenu: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
+        if model.inboxes.count < 2,
+           model.inboxes.contains(where: { $0.kind == "primary" && $0.needsReconnect }) {
+            // Solo-account case: no selector renders, but a dead PRIMARY
+            // token still needs a way back — this is the most common trigger
+            // (2026-08-10 review). Same flow as the menu's primary button.
+            Button(L("account.reconnectPrimary")) { Task { await model.reconnectPrimary() } }
+                .buttonStyle(.plain)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.accentDeep)
+                .help(L("account.reconnectPrimary"))
+        }
         if model.inboxes.count >= 2 {
             let current = inboxSelectorLabel(selected: model.selectedInbox, inboxes: model.inboxes)
             Menu {
@@ -823,14 +834,14 @@ private struct RecentPushRow: View {
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
             .foregroundStyle(Theme.textDim)
             .help(L("mail.snooze"))
-            .accessibilityLabel(L("mail.snooze.a11y", sender))
+            .accessibilityLabel(L("mail.snooze.a11y", a11ySenderLabel(item)))
             .opacity(hovering ? 1 : 0)
             Button { actions.onDismiss(item) } label: {
                 Image(systemName: "xmark").font(.caption2).iconTarget()
             }
             .buttonStyle(.plain).foregroundStyle(Theme.textDim)
             .help(L("mail.dismiss"))
-            .accessibilityLabel(L("mail.dismiss.a11y", sender))
+            .accessibilityLabel(L("mail.dismiss.a11y", a11ySenderLabel(item)))
             .opacity(hovering ? 1 : 0)
         }
         .padding(.horizontal, Theme.s2).padding(.vertical, 6)
@@ -1741,7 +1752,7 @@ struct FullRow: View {
                     }
                 }
                 .help(L("mail.changeTier"))
-                .accessibilityLabel(L("mail.changeTier.a11y", sender, item.tier.label))
+                .accessibilityLabel(L("mail.changeTier.a11y", a11ySenderLabel(item), item.tier.label))
                 Group {
                     if Theme.isRenderingOffscreen {
                         Image(systemName: "moon.zzz").iconTarget()
@@ -1753,11 +1764,11 @@ struct FullRow: View {
                     }
                 }
                 .foregroundStyle(Theme.textDim).help(L("mail.snooze"))
-                .accessibilityLabel(L("mail.snooze.a11y", sender))
+                .accessibilityLabel(L("mail.snooze.a11y", a11ySenderLabel(item)))
                 .opacity(hovering || selected || focused ? 1 : 0)
                 Button { actions.onDismiss(item) } label: { Image(systemName: "xmark").iconTarget() }
                     .buttonStyle(.plain).foregroundStyle(Theme.textDim).help(L("mail.dismiss"))
-                    .accessibilityLabel(L("mail.dismiss.a11y", sender))
+                    .accessibilityLabel(L("mail.dismiss.a11y", a11ySenderLabel(item)))
                     .opacity(hovering || selected || focused ? 1 : 0)
             }
         }

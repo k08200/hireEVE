@@ -203,14 +203,12 @@ final class TopBarController {
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
         if focusable {
             // Full is a real, focusable app window, so it takes focus outright —
-            // the reply field has to be able to type. Cooperative activate()
-            // can be DENIED when the trigger was a global hotkey (no user
-            // event delivered to this app), and a denied .accessory→.regular
-            // transition never materializes the Cmd+Tab entry — the
-            // option-based NSRunningApplication activate is the supported
-            // strong form (2026-08-10 Cmd+Tab diagnosis).
+            // the reply field has to be able to type. (ignoringOtherApps is
+            // inert on the macOS 14 target — cooperative activate() is the
+            // only sanctioned form; the load-bearing Cmd+Tab fixes are the
+            // policy hoist above and the dismiss()-path policy drop.)
             panel.makeKeyAndOrderFront(nil)
-            NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps])
+            NSApp.activate()
         } else {
             // Expanded is Cmd+Tab-able but still never steals focus.
             panel.orderFrontRegardless()

@@ -299,6 +299,9 @@ func runSelfChecks() async -> Bool {
     check("pinned frame is top-centered",
           abs(fittedFrame.midX - smallScreen.midX) < 0.5
           && fittedFrame.maxY == smallScreen.maxY - 8)
+    check("GitHub items get a source caption; mail items keep their sender line",
+          sourceBadgeLabel("GITHUB") != nil && sourceBadgeLabel("GITHUB") != ""
+          && sourceBadgeLabel("EMAIL") == nil && sourceBadgeLabel("PENDING_ACTION") == nil)
     check("full panel is user-resizable",
           TopBarController.styleMask(focusable: true).contains(.resizable))
     check("same-state re-render never reframes (snap-back fix)",

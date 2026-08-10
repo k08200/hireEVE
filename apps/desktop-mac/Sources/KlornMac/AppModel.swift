@@ -177,11 +177,32 @@ final class AppModel {
         linkAccountError = nil
         switch await GoogleConnectFlow.start(api: api) {
         case .success:
-            startLinkWatch()
+            startReconnectWatch()
         case .failure(.unauthorized):
             signOut()
         case .failure(.network):
-            linkAccountError = L("account.add.failed")
+            linkAccountError = L("account.reconnect.failed")
+        }
+    }
+
+    /// Poll (5 s cadence, 3 min cap) until the PRIMARY row's needsReconnect
+    /// clears — a reconnect flips a flag, it never adds an inbox row, so
+    /// startLinkWatch's count-grew condition can never fire for it.
+    private func startReconnectWatch() {
+        linkWatchTask?.cancel()
+        linkWatchTask = Task { [weak self] in
+            for _ in 0..<36 {
+                try? await Task.sleep(for: .seconds(5))
+                guard let self, !Task.isCancelled else { return }
+                await self.refreshInboxes()
+                let primaryDead = self.inboxes.contains {
+                    $0.kind == "primary" && $0.needsReconnect
+                }
+                if !primaryDead {
+                    await self.loadQueue()
+                    return
+                }
+            }
         }
     }
 

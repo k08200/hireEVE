@@ -317,4 +317,6 @@
 "account.add.failed" = "Couldn't start account linking. Try again.";
 "account.reconnect" = "Reconnect account…";
 "account.reconnectPrimary" = "Reconnect Google account…";
+"account.reconnect.failed" = "Couldn't start the reconnect. Try again.";
+"source.unknown" = "Klorn";
 "source.github" = "GitHub";
