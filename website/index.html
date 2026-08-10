@@ -113,7 +113,32 @@ a{color:inherit;text-decoration:none}
 .nav-cta i{width:26px;height:26px;border-radius:9999px;background:rgba(10,14,20,.07);display:grid;place-items:center;
   font-style:normal;font-size:12px;transition:transform .6s var(--ease),background .6s var(--ease)}
 .nav-cta:hover i{transform:translate(2px,-1px) scale(1.06);background:rgba(10,14,20,.12)}
+/* Web sign-in lives in the pill, NOT in .nav-links — those collapse under
+   880px, and someone reaching for the web app is most likely on a phone.
+   Outlined rather than filled so it reads as the secondary action next to the
+   white download CTA without disappearing into the glass. */
+.nav-login{position:relative;display:inline-flex;align-items:center;height:38px;padding:0 15px;
+  border-radius:9999px;margin-left:8px;color:rgba(255,255,255,.88);font-size:13.5px;font-weight:600;
+  border:1px solid rgba(255,255,255,.22);white-space:nowrap;
+  transition:color .5s var(--ease),background .5s var(--ease),border-color .5s var(--ease)}
+.nav-login:hover{color:#fff;background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.34)}
+/* 38px keeps the pill's height; the overlay takes the touch target to 44px by
+   claiming the pill's own padding, so nothing reflows to buy the AA target. */
+.nav-login::before{content:"";position:absolute;inset:-3px -2px;border-radius:inherit}
 @media(max-width:880px){.nav-links{display:none}}
+/* Phones drop .nav-links, leaving brand + Log in + Download in the pill. Tighten its
+   own spacing before anything is allowed to clip: measured 378px into a
+   343px budget at 375px wide before this block. The band runs to 480px so the
+   first full-padding width (481px) still clears its budget by ~70px, not ~10. */
+@media(max-width:480px){
+  .nav-pill{padding:5px 5px 5px 13px}
+  .nav-brand{margin-right:8px}
+  .nav-login{margin-left:6px;padding:0 11px;font-size:13px}
+  .nav-cta{margin-left:6px;padding:0 12px;font-size:13px}
+  /* The arrow puck is decoration and the widest thing here (26px + 9px gap);
+     dropping it on phones buys the room without unlabelling a single control. */
+  .nav-cta i{display:none}
+}
 
 /* ── Hero ─────────────────────────────────────────── */
 .hero{position:relative;overflow:hidden;padding:196px 0 0;text-align:center}
@@ -528,6 +553,16 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .nav-lang a:hover{color:#fff}
 .nav-lang a[aria-current]{background:#fff;color:var(--ink)}
 @media(max-width:880px){.nav-lang{margin-left:4px}}
+/* Phones: the pill carries brand + Log in + Download, and the language switch is
+   the one control here that is not load-bearing — the first visit is routed by
+   navigator.languages, the choice persists in localStorage, and the footer keeps
+   a manual EN/KO switch. Keeping it left only 7px of slack at 361px on the EN
+   copy, which will not survive real device font metrics. (The pill already
+   overflowed a 320px viewport before the Log in button existed — 301px into a
+   288px budget — so this closes that too.) Placed below the base rule on purpose:
+   .nav-lang is defined after the pill's own media queries, so an override up
+   there loses on source order. */
+@media(max-width:480px){.nav-lang{display:none}}
 
 
 @media (max-height: 900px){
@@ -690,6 +725,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <span class="nav-lang">
     <a href="/" data-lang-pick="en" aria-current="true">EN</a><a href="/ko/" data-lang-pick="ko">한국어</a>
   </span>
+  <a class="nav-login" href="https://app.klorn.ai/login">Log in</a>
   <a class="nav-cta" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
      data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download">Download <i>↓</i></a>
 </div></nav>
