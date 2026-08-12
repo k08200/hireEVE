@@ -5,6 +5,7 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { isNativePlatform } from "../lib/native/capacitor";
 import { iapAvailable, restoreNativePurchases, startNativePurchase } from "../lib/native/iap";
+import { proPrice } from "../lib/pricing";
 import { useToast } from "./toast";
 
 const PRO_PLANS = new Set(["PRO", "TEAM", "ENTERPRISE"]);
@@ -30,7 +31,7 @@ export function SubscriptionSection() {
   // Web checkout is live only when the server has Stripe fully configured;
   // undefined (older API) is treated as available (deploy-skew safe).
   const webCheckoutReady = user.webCheckoutAvailable !== false;
-  const price = native ? "$9.99" : "$7.99";
+  const price = proPrice(native);
 
   const startWebTrial = async () => {
     if (loading) return;
