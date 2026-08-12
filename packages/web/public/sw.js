@@ -1,7 +1,12 @@
 // Klorn Service Worker — offline caching + push notification support
 // v8: icons regenerated to a bigger K on a full-white tile; flush the v7 cache
 // so the query-less push icon/badge (/icon-192.png, /badge-96.png) re-fetch.
-const CACHE_NAME = "klorn-v9";
+// v10: stop caching cross-origin requests and non-ok responses. The old
+// cache-first .js rule captured cdn.paddle.com/paddle.js — one bad CDN
+// response got pinned forever and the checkout overlay died silently on
+// every later visit (observed 2026-08-13). The version bump flushes any
+// cache poisoned that way.
+const CACHE_NAME = "klorn-v10";
 const PRECACHE_URLS = ["/", "/chat", "/briefing", "/manifest.json"];
 
 // Install: precache shell
@@ -31,13 +36,20 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   if (url.pathname.startsWith("/api/")) return;
 
+  // Never intercept cross-origin requests (payment/CDN scripts like
+  // cdn.paddle.com). Serving those cache-first pinned one bad response
+  // forever; the browser's own HTTP cache handles them correctly.
+  if (url.origin !== self.location.origin) return;
+
   // For navigation requests, try network first then cache
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return res;
         })
         .catch(() => caches.match(request).then((cached) => cached || caches.match("/"))),
@@ -50,8 +62,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return res;
         })
         .catch(() => caches.match(request)),
@@ -65,8 +79,10 @@ self.addEventListener("fetch", (event) => {
         (cached) =>
           cached ||
           fetch(request).then((res) => {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
             return res;
           }),
       ),
