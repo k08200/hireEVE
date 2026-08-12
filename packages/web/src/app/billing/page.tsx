@@ -8,6 +8,7 @@ import { CardSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 import { isSafeBillingRedirect } from "../../lib/billing-redirect";
+import { checkoutReturnUrl } from "../../lib/checkout-return";
 import { isNativePlatform } from "../../lib/native/capacitor";
 import { PRO_PRICE_WEB } from "../../lib/pricing";
 
@@ -93,9 +94,16 @@ export default function BillingPage() {
   return (
     <AuthGuard>
       {/* Paddle.js must live on this page: it detects the _ptxn param on the
-          default-payment-link URL and opens the checkout overlay. Completed
-          checkout reloads so the webhook-granted plan is refetched. */}
-      <PaddleLoader onCheckoutCompleted={() => window.location.reload()} />
+          default-payment-link URL and opens the checkout overlay. A completed
+          checkout navigates to the same page WITHOUT that param, which both
+          refetches the webhook-granted plan and stops Paddle.js from reopening
+          the finished transaction. replace(), not assign(), so Back can't land
+          the customer on the _ptxn url again. */}
+      <PaddleLoader
+        onCheckoutCompleted={() => {
+          window.location.replace(checkoutReturnUrl(window.location.href));
+        }}
+      />
       <Suspense>
         <BillingContent />
       </Suspense>

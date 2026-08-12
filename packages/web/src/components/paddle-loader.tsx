@@ -1,6 +1,6 @@
 "use client";
 import Script from "next/script";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
 declare global {
   interface Window {
@@ -22,13 +22,19 @@ export function PaddleLoader({ onCheckoutCompleted }: { onCheckoutCompleted?: ()
   const token = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
   const env = process.env.NEXT_PUBLIC_PADDLE_ENV;
 
+  // Paddle can emit checkout.completed more than once for one purchase (a
+  // reopened overlay re-announces a completed transaction). Handling it twice
+  // means two navigations racing each other, so the handler is one-shot.
+  const handled = useRef(false);
+
   const init = useCallback(() => {
     if (!window.Paddle || !token) return;
     if (env === "sandbox") window.Paddle.Environment.set("sandbox");
     window.Paddle.Initialize({
       token,
       eventCallback: (ev) => {
-        if (ev.name === "checkout.completed" && onCheckoutCompleted) {
+        if (ev.name === "checkout.completed" && onCheckoutCompleted && !handled.current) {
+          handled.current = true;
           // Give the webhook a beat to land before refetching plan state.
           setTimeout(onCheckoutCompleted, 1500);
         }
