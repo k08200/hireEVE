@@ -55,6 +55,7 @@ import { tokenUsageRoutes } from "./routes/token-usage.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
 import { webhookRoutes } from "./routes/webhook.js";
 import { buildSchedulerHealthReport, isBackgroundAgentsDisabled } from "./scheduler-heartbeat.js";
+import { isRateLimitAllowedIp, parseAllowedCidrs } from "./security/scanner-allowlist.js";
 import { captureError, flushSentry, initSentry } from "./sentry.js";
 import { getClientCount, initWebSocket } from "./websocket.js";
 
@@ -178,6 +179,15 @@ await app.register(cors, {
 });
 
 // Global rate limiting — 100 requests per minute per IP
+// Parsed once at boot: an authorized-scan exemption should not re-parse an env
+// string on every request, and a mid-run change should require a restart.
+const scannerAllowRules = parseAllowedCidrs(process.env.RATE_LIMIT_ALLOW_IPS);
+if (scannerAllowRules.length > 0) {
+  console.warn(
+    `[security] rate-limit exemption ACTIVE for ${scannerAllowRules.length} range(s) — clear RATE_LIMIT_ALLOW_IPS when the scan window closes`,
+  );
+}
+
 await app.register(rateLimit, {
   max: 100,
   timeWindow: "1 minute",
@@ -192,8 +202,22 @@ await app.register(rateLimit, {
     if (typeof cf === "string" && cf.length > 0) return cf;
     return req.socket?.remoteAddress ?? "unknown";
   },
-  allowList: (req: { url?: string }) => {
+  allowList: (req: {
+    url?: string;
+    headers?: Record<string, unknown>;
+    socket?: { remoteAddress?: string };
+  }) => {
     const url = req.url ?? "";
+    // Authorized security scan: a CASA DAST fires thousands of requests from a
+    // few source ranges and would otherwise be throttled into an incomplete
+    // report. Empty unless RATE_LIMIT_ALLOW_IPS names the assessor's ranges,
+    // and it reads the same Cloudflare-verified address the limiter keys on —
+    // never X-Forwarded-For, which a client can forge.
+    if (scannerAllowRules.length > 0) {
+      const cf = req.headers?.["cf-connecting-ip"];
+      const clientIp = typeof cf === "string" && cf.length > 0 ? cf : req.socket?.remoteAddress;
+      if (isRateLimitAllowedIp(clientIp, scannerAllowRules)) return true;
+    }
     // OAuth callback: Google redirects here after consent; rate-limiting it
     // would break the login flow for users on slow networks or retry loops.
     if (url.startsWith("/api/auth/google/callback")) return true;
