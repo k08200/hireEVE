@@ -7,6 +7,7 @@ import { PaddleLoader } from "../../components/paddle-loader";
 import { CardSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
+import { isSafeBillingRedirect } from "../../lib/billing-redirect";
 import { isNativePlatform } from "../../lib/native/capacitor";
 
 /** Server-side Infinity arrives as null through JSON — treat both as "unlimited". */
@@ -118,22 +119,12 @@ function BillingContent() {
       .finally(() => setLoading(false));
   }, [toast]);
 
-  /** Only allow our payment providers' hosted URLs to prevent open redirect */
+  /** Refuse any redirect target that is not us or a payment provider. */
   function safeRedirect(url: string) {
-    try {
-      const parsed = new URL(url);
-      if (
-        parsed.protocol === "https:" &&
-        (parsed.hostname.endsWith(".stripe.com") ||
-          parsed.hostname.endsWith(".paddle.com") ||
-          parsed.hostname === "paddle.com")
-      ) {
-        window.location.href = url;
-      } else {
-        toast("Unsafe billing redirect URL.", "error");
-      }
-    } catch {
-      toast("Could not verify billing redirect URL.", "error");
+    if (isSafeBillingRedirect(url, window.location.origin)) {
+      window.location.href = url;
+    } else {
+      toast("Unsafe billing redirect URL.", "error");
     }
   }
 
