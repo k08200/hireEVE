@@ -9,8 +9,8 @@ import { useToast } from "../../../components/toast";
 import { TrustBadgeChip } from "../../../components/trust-badge";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
 import { linkifyText } from "../../../lib/linkify";
-import { serverErrorMessage } from "../../../lib/server-error";
 import { captureClientError } from "../../../lib/sentry";
+import { serverErrorMessage } from "../../../lib/server-error";
 import { formatBytes, ProfileFact, senderName } from "./atoms";
 import { AttachmentAnalysis } from "./attachment-analysis";
 import { EmailActionToolbar, EmailReminderQuickActions, UndoActionBanner } from "./toolbar";
@@ -317,7 +317,12 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.attachments.ocr", id });
-      setError(serverErrorMessage(err, "Could not run OCR/vision analysis. Check Gmail connection and the AI key."));
+      setError(
+        serverErrorMessage(
+          err,
+          "Could not run OCR/vision analysis. Check Gmail connection and the AI key.",
+        ),
+      );
     } finally {
       setOcring(false);
     }
@@ -435,7 +440,12 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.reply-draft.gmail-draft", id });
-      setError(serverErrorMessage(err, "Could not save a Gmail draft. Check Gmail connection and permissions."));
+      setError(
+        serverErrorMessage(
+          err,
+          "Could not save a Gmail draft. Check Gmail connection and permissions.",
+        ),
+      );
     } finally {
       setSavingGmailDraft(false);
     }
@@ -524,7 +534,12 @@ function EmailDetailView() {
       router.replace(`/email/${data.emailId}?${params.toString()}`);
     } catch (err) {
       captureClientError(err, { scope: "email.detail.undo", action: undoNotice.action });
-      setError(serverErrorMessage(err, "Could not restore that email. Check Gmail connection and try again."));
+      setError(
+        serverErrorMessage(
+          err,
+          "Could not restore that email. Check Gmail connection and try again.",
+        ),
+      );
       setActionBusy(null);
     }
   };
