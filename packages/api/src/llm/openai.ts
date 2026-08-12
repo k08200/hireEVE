@@ -283,6 +283,25 @@ function hasFailoverProvider(chain: Provider[], current: Provider): boolean {
 /** Test seam — the cooldown length hinges on this predicate. */
 export const hasFailoverProviderForTest = hasFailoverProvider;
 
+/**
+ * A user-owned key failed for a reason that is not a quota trip — a revoked or
+ * mistyped key, most often. Klorn absorbs the call on the shared env key, so
+ * the user sees no error at all; this warning is the only trace that their own
+ * key stopped serving, and the counterpart to signalKeyFailover's BYOK branch.
+ */
+function signalUserKeyUnusable(provider: Provider, err: unknown, userId?: string): void {
+  const upstream = redactProviderMessage(err);
+  console.warn(
+    `[BYOK] user key (${provider.quotaKey}) is not serving — falling back to the shared env key${
+      upstream ? `; upstream said: ${upstream}` : ""
+    }`,
+  );
+  captureError(err, {
+    tags: { scope: "byok.user_key_unusable" },
+    extra: { userId: userId ?? null, quotaKey: provider.quotaKey, upstream },
+  });
+}
+
 const PROVIDERS_EXHAUSTED_BASE =
   "All AI providers are unavailable right now. To unblock yourself, add your own OpenRouter or Gemini key in Settings.";
 
@@ -612,7 +631,21 @@ export async function createCompletion(
         continue;
       }
 
-      // Non-budget error: don't mask it with a provider swap
+      // A user's own key failing is not a reason to fail the request: the env
+      // key sits behind it in the chain for exactly this. Only key-LIMIT trips
+      // failed over before, so a revoked BYOK key (401) or a mistyped one (400)
+      // hard-failed every call that passes credentials — reply drafts — while
+      // classification, which passes none and runs on the env key, kept working
+      // (2026-08-10). Deliberately no cooldown: a user key is not fleet
+      // capacity, and one wasted round-trip per call is cheaper than locking
+      // out a key the user may correct at any moment.
+      if (provider.ownedByUser === true && hasFailoverProvider(chain, provider)) {
+        signalUserKeyUnusable(provider, err, options.userId);
+        continue;
+      }
+
+      // Non-budget error on an ENV provider: don't mask it with a provider
+      // swap. This one is an operator fault and must stay loud.
       throw err;
     }
   }
