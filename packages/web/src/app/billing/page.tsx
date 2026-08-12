@@ -8,6 +8,7 @@ import { CardSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 import { isNativePlatform } from "../../lib/native/capacitor";
+import { PRO_PRICE_WEB } from "../../lib/pricing";
 
 /** Server-side Infinity arrives as null through JSON — treat both as "unlimited". */
 function isFiniteLimit(value: number | null): value is number {
@@ -56,9 +57,8 @@ const PLANS = [
   {
     key: "PRO",
     name: "Pro",
-    // Founding price — must match paywall-screen.tsx / subscription-section.tsx
-    // (web $7.99; native shows $9.99 there) and the live Stripe Price object.
-    price: "$7.99",
+    // Single source of truth — see lib/pricing.ts. This card is web-only.
+    price: PRO_PRICE_WEB,
     period: "/mo",
     limit: "2K decisions/mo · 10M tokens",
     features: [

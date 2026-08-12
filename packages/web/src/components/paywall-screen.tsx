@@ -6,6 +6,7 @@ import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { isNativePlatform } from "../lib/native/capacitor";
 import { iapAvailable, restoreNativePurchases, startNativePurchase } from "../lib/native/iap";
+import { proPrice } from "../lib/pricing";
 import { useToast } from "./toast";
 
 const VALUE_PROPS = [
@@ -30,8 +31,8 @@ export default function PaywallScreen() {
   // undefined (older API) is treated as available so the button never
   // regresses on deploy skew.
   const webCheckoutReady = user?.webCheckoutAvailable !== false;
-  // Web is cheaper (no Apple cut). Founding price is locked in for early users.
-  const price = native ? "$9.99" : "$7.99";
+  // Web is cheaper (no store cut) — both values live in lib/pricing.ts.
+  const price = proPrice(native);
 
   const startWebTrial = async () => {
     if (loading) return;
