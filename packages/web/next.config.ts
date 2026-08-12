@@ -12,9 +12,17 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   // Next.js injects inline bootstrap scripts; without a nonce setup
   // 'unsafe-inline' is required for the app to boot at all.
-  // Paddle.js (hosted checkout overlay) is an allowed external script.
-  "script-src 'self' 'unsafe-inline' https://cdn.paddle.com",
-  "style-src 'self' 'unsafe-inline'",
+  // Paddle.js (hosted checkout overlay) is an allowed external script. The
+  // wildcard covers the sandbox host too: sandbox serves from
+  // sandbox-cdn.paddle.com, live from cdn.paddle.com.
+  "script-src 'self' 'unsafe-inline' https://*.paddle.com",
+  // Paddle's overlay pulls its own stylesheet. Without this the checkout
+  // iframe mounts and the transaction is created, but the overlay renders
+  // unstyled and invisible — the upgrade button looked like it reloaded the
+  // page and did nothing (2026-08-12):
+  //   Loading the stylesheet 'https://sandbox-cdn.paddle.com/paddle/v2/assets/
+  //   css/paddle.css' violates ... "style-src 'self' 'unsafe-inline'"
+  "style-src 'self' 'unsafe-inline' https://*.paddle.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   `connect-src 'self' ${apiUrl ?? ""} ${apiWsUrl ?? ""} https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.paddle.com`,
