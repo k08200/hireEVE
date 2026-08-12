@@ -9,6 +9,7 @@ import { useToast } from "../../../components/toast";
 import { TrustBadgeChip } from "../../../components/trust-badge";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
 import { linkifyText } from "../../../lib/linkify";
+import { serverErrorMessage } from "../../../lib/server-error";
 import { captureClientError } from "../../../lib/sentry";
 import { formatBytes, ProfileFact, senderName } from "./atoms";
 import { AttachmentAnalysis } from "./attachment-analysis";
@@ -222,7 +223,7 @@ function EmailDetailView() {
       }
     } catch (err) {
       captureClientError(err, { scope: "email.detail", id });
-      setError("Could not load the email.");
+      setError(serverErrorMessage(err, "Could not load the email."));
     } finally {
       setLoading(false);
     }
@@ -259,7 +260,7 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.attachments.reanalyze", id });
-      setError("Could not reanalyze attachments.");
+      setError(serverErrorMessage(err, "Could not reanalyze attachments."));
     } finally {
       setReanalyzing(false);
     }
@@ -283,7 +284,7 @@ function EmailDetailView() {
       setEmail((prev) => (prev ? { ...prev, candidateIntake: data.candidateIntake } : prev));
     } catch (err) {
       captureClientError(err, { scope: "email.candidate-intake.update", id });
-      setError("Could not save candidate status.");
+      setError(serverErrorMessage(err, "Could not save candidate status."));
     } finally {
       setUpdatingCandidate(false);
     }
@@ -316,7 +317,7 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.attachments.ocr", id });
-      setError("Could not run OCR/vision analysis. Check Gmail connection and the AI key.");
+      setError(serverErrorMessage(err, "Could not run OCR/vision analysis. Check Gmail connection and the AI key."));
     } finally {
       setOcring(false);
     }
@@ -360,7 +361,7 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.attachment-correction", id });
-      setError("Could not save attachment analysis changes.");
+      setError(serverErrorMessage(err, "Could not save attachment analysis changes."));
     } finally {
       setSavingAttachmentCorrection(null);
     }
@@ -379,7 +380,7 @@ function EmailDetailView() {
       setGmailDraftUrl(null);
     } catch (err) {
       captureClientError(err, { scope: "email.reply-draft", id });
-      setError("Could not draft a reply.");
+      setError(serverErrorMessage(err, "Could not draft a reply."));
     } finally {
       setDrafting(false);
     }
@@ -397,7 +398,7 @@ function EmailDetailView() {
       setDraft(null);
     } catch (err) {
       captureClientError(err, { scope: "email.reply-draft.send", id });
-      setError("Could not send the reply. Check the address and body.");
+      setError(serverErrorMessage(err, "Could not send the reply. Check the address and body."));
     } finally {
       setSendingDraft(false);
     }
@@ -434,7 +435,7 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.reply-draft.gmail-draft", id });
-      setError("Could not save a Gmail draft. Check Gmail connection and permissions.");
+      setError(serverErrorMessage(err, "Could not save a Gmail draft. Check Gmail connection and permissions."));
     } finally {
       setSavingGmailDraft(false);
     }
@@ -523,7 +524,7 @@ function EmailDetailView() {
       router.replace(`/email/${data.emailId}?${params.toString()}`);
     } catch (err) {
       captureClientError(err, { scope: "email.detail.undo", action: undoNotice.action });
-      setError("Could not restore that email. Check Gmail connection and try again.");
+      setError(serverErrorMessage(err, "Could not restore that email. Check Gmail connection and try again."));
       setActionBusy(null);
     }
   };
@@ -545,7 +546,7 @@ function EmailDetailView() {
       toast(`Reminder set for ${option.label.toLowerCase()}.`, "success");
     } catch (err) {
       captureClientError(err, { scope: "email.detail.reminder", id, option: option.key });
-      setError("Could not create a reminder for this email.");
+      setError(serverErrorMessage(err, "Could not create a reminder for this email."));
     } finally {
       setReminderBusy(null);
     }
@@ -560,7 +561,7 @@ function EmailDetailView() {
       goToNextOrList("Archived. Moving to the next email.", "Archived. Queue complete.", "archive");
     } catch (err) {
       captureClientError(err, { scope: "email.detail.archive", id });
-      setError("Could not archive this email.");
+      setError(serverErrorMessage(err, "Could not archive this email."));
       setActionBusy(null);
     }
   };
@@ -581,7 +582,7 @@ function EmailDetailView() {
       goToNextOrList("Deleted. Moving to the next email.", "Deleted. Queue complete.", "delete");
     } catch (err) {
       captureClientError(err, { scope: "email.detail.delete", id });
-      setError("Could not delete this email.");
+      setError(serverErrorMessage(err, "Could not delete this email."));
       setActionBusy(null);
     }
   };
@@ -1580,7 +1581,7 @@ function LabelFeedbackControl({
       setOpen(false);
     } catch (err) {
       captureClientError(err, { scope: "email.feedback.submit", emailId, correctedPriority });
-      setError("Could not report this. Please try again soon.");
+      setError(serverErrorMessage(err, "Could not report this. Please try again soon."));
     } finally {
       setSubmitting(null);
     }
@@ -1683,7 +1684,7 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
       });
     } catch (err) {
       captureClientError(err, { scope: "email.reply-needed-feedback.submit", emailId, choice });
-      setError("Could not save.");
+      setError(serverErrorMessage(err, "Could not save."));
     } finally {
       setSubmitting(null);
     }
