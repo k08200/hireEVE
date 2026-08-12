@@ -242,6 +242,13 @@ export default function Sidebar() {
               {showUserMenu && (
                 <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 z-50 py-1 animate-slide-up">
                   <Link
+                    href="/billing"
+                    onClick={() => setShowUserMenu(false)}
+                    className="block px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-md mx-1 transition"
+                  >
+                    {t("nav.billing")}
+                  </Link>
+                  <Link
                     href="/settings"
                     onClick={() => setShowUserMenu(false)}
                     className="block px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-md mx-1 transition"

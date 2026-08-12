@@ -62,6 +62,9 @@ const PLANS = [
     // Single source of truth — see lib/pricing.ts. This card is web-only.
     price: PRO_PRICE_WEB,
     period: "/mo",
+    // Trial length is configured on the Paddle price (founder decision,
+    // 2026-08-13) — keep this line in sync with the Paddle dashboard.
+    trialNote: "7-day free trial · cancel anytime before it ends and pay nothing",
     limit: "2K decisions/mo · 10M tokens",
     features: [
       "Everything in Free",
@@ -302,7 +305,12 @@ function BillingContent() {
                 {plan.price}
                 <span className="text-sm font-normal text-slate-400">{plan.period}</span>
               </p>
-              <p className="mb-4 text-sm text-slate-500">{plan.limit}</p>
+              <p className="mb-1 text-sm text-slate-500">{plan.limit}</p>
+              {"trialNote" in plan && plan.trialNote ? (
+                <p className="mb-4 text-xs font-medium text-emerald-600">{plan.trialNote}</p>
+              ) : (
+                <div className="mb-4" />
+              )}
 
               <ul className="mb-6 flex-1 space-y-2">
                 {plan.features.map((f) => (
@@ -352,13 +360,60 @@ function BillingContent() {
                   onClick={() => handleUpgrade(plan.key as "PRO")}
                   className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 py-2.5 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97]"
                 >
-                  Upgrade to {plan.name}
+                  Start 7-day free trial
                 </button>
               )}
             </div>
           );
         })}
       </div>
+
+      <PlanDetails />
     </div>
+  );
+}
+
+/**
+ * Factual plan/trial explanations under the cards. Copy rules: measured
+ * claims only, numbers must match the Paddle price configuration and the
+ * PLANS array above — no marketing language.
+ */
+const PLAN_FAQ = [
+  {
+    q: "How does the 7-day free trial work?",
+    a: `Starting Pro costs $0 today and unlocks everything in Pro immediately. The first charge of ${PRO_PRICE_WEB} happens when the 7-day trial ends. Cancel anytime before then from "Manage subscription" and you pay nothing.`,
+  },
+  {
+    q: "What is the difference between Free and Pro?",
+    a: "Free reads and organizes: Klorn watches mail and calendar and turns them into decision cards, within 50 decisions and 500K tokens per month on free models. Pro executes: sending mail, creating calendar events, reply drafts, daily briefings, and the decision loop's suggest + policy execution — with 2K decisions and 10M tokens per month and Claude Sonnet model selection.",
+  },
+  {
+    q: "What does Enterprise add?",
+    a: "Custom limits instead of fixed quotas, Claude Opus model selection, on-prem deployment options, SLA-backed support, and custom integrations. Pricing depends on scope — contact sales.",
+  },
+  {
+    q: "How do I cancel or manage my subscription?",
+    a: `"Manage subscription" on this page opens the billing portal of Paddle, our merchant of record, where you can cancel, change the payment method, or download invoices. After cancelling, Pro stays active until the end of the period you already paid for.`,
+  },
+];
+
+function PlanDetails() {
+  return (
+    <section className="mt-10" aria-labelledby="plan-details-heading">
+      <h2 id="plan-details-heading" className="mb-4 text-lg font-semibold text-slate-900">
+        Plan details
+      </h2>
+      <dl className="space-y-4">
+        {PLAN_FAQ.map((item) => (
+          <div
+            key={item.q}
+            className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5"
+          >
+            <dt className="text-sm font-semibold text-slate-900">{item.q}</dt>
+            <dd className="mt-1.5 text-sm leading-relaxed text-slate-500">{item.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
