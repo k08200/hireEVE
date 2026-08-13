@@ -78,7 +78,7 @@ remark an assessor may probe.
 
 | # | ID | Verdict | Evidence | Portal comment |
 |---|----|---------|----------|----------------|
-| 42 | 6.1.1 | PASS | `pnpm audit --prod`: 0 known vulnerabilities (run 2026-08-13). CI: CodeQL `security-extended` on main + weekly (`.github/workflows/security-deep.yml:44-65`), TruffleHog verified-secret scan per PR (`security.yml:25-28`). | Production dependencies audit clean (screenshot attached); CodeQL security-extended and secret scanning run continuously in CI. |
+| 42 | 6.1.1 | PASS | `pnpm audit --prod`: 0 known vulnerabilities (run 2026-08-13). CI: `pnpm audit --prod` blocking on main + weekly (`security-deep.yml`), Dependabot version+security updates (`.github/dependabot.yml`), CodeQL `security-extended` on main + weekly (`.github/workflows/security-deep.yml`), TruffleHog verified-secret scan per PR (`security.yml:25-28`). | Production dependencies audit clean (screenshot attached); CodeQL security-extended and secret scanning run continuously in CI. |
 | 43 | 6.2.1 | PASS | No debug flag exists (grep); pino at default info level with credential redaction (`index.ts:74-83`); the central error handler never sends stack traces (`error-handler.ts:17-27`); insecure dev defaults are gated behind an env allowlist that fails closed (`env.ts:14-17`). Live: errors return structured JSON only. | No debug mode exists in production; error responses contain no stack traces or internals, and all development conveniences fail closed outside development. |
 | 44 | 6.3.1 | PASS | Authentication and authorization read only the Authorization header (`auth.ts:134-149`); repo-wide, the single read of `headers.origin` validates a push-subscription's service-worker origin as data on an already-authenticated route (`routes/notifications.ts:159`) — it gates no access decision. CORS allowlisting is transport policy, not authentication. | The Origin header is never an input to authentication or authorization; identity derives solely from the verified bearer token. |
 | 45 | 6.4.1 | PASS | Live DNS audit 2026-08-13: `klorn.ai` (GitHub Pages, active), `www.klorn.ai` (CNAME k08200.github.io, active), `app.klorn.ai` (CNAME Vercel, active), `api.klorn.ai` (CNAME Render, active) — every record resolves to a claimed, serving deployment; no dangling CNAMEs, no wildcard records, and CORS trusts exact origins only (`cors-origin.ts:25`). | All subdomains resolve to actively claimed deployments; there are no dangling DNS records, no wildcard trust, and CORS matches exact origins only. Screenshot: DNS + liveness audit. |
@@ -90,11 +90,11 @@ remark an assessor may probe.
 
 Tracked separately; none of these change a verdict above:
 
-1. Per-account login throttle/lockout in addition to per-IP (1.1.1 hardening).
-2. ~~Route-specific rate limit on `GET /verify-email` (1.3.4 symmetry).~~ Shipped.
-3. Remove the legacy WebSocket `?token=` fallback once native clients are confirmed on the subprotocol path (`websocket.ts:82-84`).
-4. Querystring schemas on remaining string params (turns polluted-param 500s into 400s).
-5. MIME allowlist on compose uploads (5.2.1 hardening; execution already impossible).
-6. `GET /api/email/:id?markRead=true` → move the mutation to a POST (semantic hygiene).
-7. Make `pnpm audit` blocking in CI + add Dependabot (6.1.1 hardening).
+1. ~~Per-account login throttle/lockout in addition to per-IP (1.1.1 hardening).~~ Shipped (#1081).
+2. ~~Route-specific rate limit on `GET /verify-email` (1.3.4 symmetry).~~ Shipped (#1082).
+3. ~~Remove the legacy WebSocket `?token=` fallback.~~ Shipped (#1083).
+4. ~~Querystring schemas on remaining string params.~~ Shipped (#1084).
+5. ~~MIME allowlist on compose uploads (5.2.1 hardening).~~ Shipped (#1085).
+6. ~~`GET /api/email/:id?markRead=true` → mutation moved to `PATCH /:id/read`.~~ Shipped (#1086).
+7. ~~Make `pnpm audit` blocking in CI + add Dependabot (6.1.1 hardening).~~ Shipped.
 8. bcrypt cost 10 → 12 with migration-on-login.

@@ -1,9 +1,11 @@
 name: Security Deep
 
-# The slow, non-gating scans. Neither job gates a PR (CodeQL only uploads to
-# the Security tab; the audit is informational), so neither has a pull_request
-# trigger — keeping them here means zero "skipped" rows in every PR's checks
-# list. Main stays continuously analyzed via push + the weekly cron.
+# The slow scans. Neither job has a pull_request trigger — keeping them here
+# means zero "skipped" rows in every PR's checks list, and a new advisory
+# published upstream should not block unrelated PRs. But the audit IS blocking
+# on main + the weekly cron: a red run is the signal that a production
+# dependency has a known vulnerability (Dependabot then raises the fix PR).
+# CodeQL stays upload-only to the Security tab.
 
 on:
   push:
@@ -33,8 +35,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check for known vulnerabilities
-        run: pnpm audit --prod || true
+      - name: Check for known vulnerabilities (blocking)
+        run: pnpm audit --prod
 
       - name: Check for outdated critical packages
         run: |

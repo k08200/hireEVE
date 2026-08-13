@@ -1,0 +1,27 @@
+# Version updates. Security updates are enabled separately in repo settings
+# and run regardless of this file. Advisory fixes for production deps are
+# what un-reds the blocking audit job in security-deep.yml.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 5
+    # One PR per batch of routine bumps — review load stays flat. Security
+    # updates are never grouped by Dependabot and still arrive individually.
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Seoul"
+    open-pull-requests-limit: 3
