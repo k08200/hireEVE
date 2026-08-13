@@ -307,7 +307,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(false)}
-                    className="ease-strong rounded-md px-2 py-1 text-[11px] text-slate-400 transition duration-150 hover:text-slate-600"
+                    className="ease-strong rounded-md px-2 py-1 text-[11px] text-slate-400 transition duration-150 hover:text-slate-600 focus-ring min-h-9 min-w-9"
                   >
                     Cancel
                   </button>
@@ -315,7 +315,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                     type="button"
                     onClick={handleDelete}
                     disabled={deleting}
-                    className="ease-strong rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-50"
+                    className="ease-strong rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-50 focus-ring min-h-9 min-w-9"
                   >
                     {deleting ? "Deleting…" : "Delete"}
                   </button>
@@ -324,7 +324,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(true)}
-                  className="ease-strong rounded-md p-1.5 text-slate-300 transition duration-150 hover:text-red-500"
+                  className="ease-strong rounded-md p-1.5 text-slate-300 transition duration-150 hover:text-red-500 focus-ring min-h-9 min-w-9"
                   aria-label="Delete event"
                 >
                   <svg

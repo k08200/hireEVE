@@ -7,6 +7,7 @@ import AuthGuard from "../../../components/auth-guard";
 import { useConfirm } from "../../../components/confirm-dialog";
 import { useToast } from "../../../components/toast";
 import { TrustBadgeChip } from "../../../components/trust-badge";
+import LoadingState from "../../../components/ui/loading-state";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
 import { linkifyText } from "../../../lib/linkify";
 import { captureClientError } from "../../../lib/sentry";
@@ -615,7 +616,7 @@ function EmailDetailView() {
     <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 md:py-10">
       <Link
         href="/email"
-        className="ease-strong mb-5 inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+        className="ease-strong mb-5 inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
       >
         <svg
           aria-hidden="true"
@@ -643,7 +644,7 @@ function EmailDetailView() {
         />
       )}
 
-      {loading && <p className="text-sm text-slate-400">Loading...</p>}
+      {loading && <LoadingState rows={3} rowHeight="h-20" label="Loading email" />}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -845,7 +846,7 @@ function CandidateProfileCard({
             type="button"
             onClick={() => onUpdate({ status: option.status })}
             disabled={updating || status === option.status}
-            className={`ease-strong rounded-lg border px-2 py-1 text-[11px] font-medium transition duration-150 active:scale-[0.97] disabled:cursor-default ${
+            className={`ease-strong rounded-lg border px-2 py-1 text-[11px] font-medium transition duration-150 active:scale-[0.97] disabled:cursor-default focus-ring ${
               status === option.status
                 ? "border-sky-300 bg-accent/10 text-sky-700"
                 : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
@@ -1220,7 +1221,7 @@ function ReplyDraftBox({
           type="button"
           onClick={onGenerate}
           disabled={drafting}
-          className="ease-strong inline-flex h-9 shrink-0 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] disabled:opacity-50"
+          className="ease-strong inline-flex h-9 shrink-0 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] disabled:opacity-50 focus-ring"
         >
           {drafting ? "Drafting..." : draft ? "Regenerate" : "Draft reply"}
         </button>
@@ -1237,7 +1238,7 @@ function ReplyDraftBox({
             key={option.value}
             type="button"
             onClick={() => setMode(option.value)}
-            className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium transition duration-150 active:scale-[0.97] ${
+            className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium transition duration-150 active:scale-[0.97] focus-ring ${
               mode === option.value
                 ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -1257,7 +1258,7 @@ function ReplyDraftBox({
               key={item.label}
               type="button"
               onClick={() => onIntentChange(item.intent)}
-              className="ease-strong rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] text-slate-500 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97]"
+              className="ease-strong rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] text-slate-500 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] focus-ring"
             >
               {item.label}
             </button>
@@ -1325,7 +1326,7 @@ function ReplyDraftBox({
                         : attachments.map((attachment) => attachment.id),
                     )
                   }
-                  className="text-[11px] font-medium text-slate-400 transition duration-150 hover:text-sky-700"
+                  className="text-[11px] font-medium text-slate-400 transition duration-150 hover:text-sky-700 focus-ring"
                 >
                   {selectedCount === attachments.length ? "Clear all" : "Select all"}
                 </button>
@@ -1360,7 +1361,7 @@ function ReplyDraftBox({
                   href={gmailDraftUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="ease-strong inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97]"
+                  className="ease-strong inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] focus-ring"
                 >
                   Open Gmail draft
                 </a>
@@ -1369,7 +1370,7 @@ function ReplyDraftBox({
                 type="button"
                 onClick={onSaveGmailDraft}
                 disabled={savingGmailDraft || !draft.to || !draft.subject || !draft.body}
-                className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+                className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50 focus-ring"
               >
                 {savingGmailDraft
                   ? "Saving..."
@@ -1381,7 +1382,7 @@ function ReplyDraftBox({
                 type="button"
                 onClick={onSend}
                 disabled={sending || !draft.to || !draft.subject || !draft.body}
-                className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-xs font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-xs font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
               >
                 {sending ? "Sending..." : "Send this reply"}
               </button>
@@ -1517,7 +1518,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
             type="button"
             onClick={createAll}
             disabled={creating !== null}
-            className="ease-strong rounded-md border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700 transition duration-150 hover:bg-teal-100 active:scale-[0.97] disabled:opacity-40"
+            className="ease-strong rounded-md border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700 transition duration-150 hover:bg-teal-100 active:scale-[0.97] disabled:opacity-40 focus-ring"
           >
             {creating === "all" ? "Creating…" : "Create all tasks"}
           </button>
@@ -1539,7 +1540,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
                 type="button"
                 onClick={() => createTask(i)}
                 disabled={creating !== null}
-                className="ease-strong shrink-0 rounded-md border border-slate-200 bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:opacity-40"
+                className="ease-strong shrink-0 rounded-md border border-slate-200 bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:opacity-40 focus-ring"
               >
                 {creating === i ? "…" : "+ task"}
               </button>
@@ -1626,7 +1627,7 @@ function LabelFeedbackControl({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-[11px] text-slate-400 underline-offset-2 hover:text-slate-500 hover:underline"
+        className="text-[11px] text-slate-400 underline-offset-2 hover:text-slate-500 hover:underline focus-ring"
       >
         Wrong label
       </button>
@@ -1646,7 +1647,7 @@ function LabelFeedbackControl({
           type="button"
           onClick={() => submit(p)}
           disabled={!!submitting}
-          className="ease-strong rounded-md border border-slate-200 bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-slate-700 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+          className="ease-strong rounded-md border border-slate-200 bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-slate-700 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50 focus-ring"
         >
           {submitting === p ? "..." : PRIORITY_LABELS[p]}
         </button>
@@ -1658,7 +1659,7 @@ function LabelFeedbackControl({
           setError(null);
         }}
         disabled={!!submitting}
-        className="text-[11px] text-slate-400 hover:text-slate-500"
+        className="text-[11px] text-slate-400 hover:text-slate-500 focus-ring"
       >
         Cancel
       </button>
@@ -1737,7 +1738,7 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
               onClick={() => submit(option.choice)}
               aria-pressed={selected}
               disabled={!!submitting}
-              className={`h-7 rounded-lg border px-2 text-[11px] transition disabled:opacity-50 ${
+              className={`h-7 rounded-lg border px-2 text-[11px] transition disabled:opacity-50 focus-ring ${
                 selected
                   ? "border-sky-300 bg-accent/10 text-sky-700"
                   : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import type { GraphEdge, GraphNode } from "../../components/relationship-graph";
 import { useToast } from "../../components/toast";
+import LoadingState from "../../components/ui/loading-state";
 import { apiFetch } from "../../lib/api";
 import { captureClientError } from "../../lib/sentry";
 
@@ -13,7 +14,7 @@ const ForceGraph3DView = dynamic(
   () => import("../../components/force-graph-3d").then((m) => m.ForceGraph3DView),
   {
     ssr: false,
-    loading: () => <p className="text-sm text-slate-400">Loading 3D graph…</p>,
+    loading: () => <LoadingState rows={1} rowHeight="h-96" label="Loading 3D graph" />,
   },
 );
 
@@ -185,7 +186,7 @@ function GraphPageInner() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <LoadingState rows={1} rowHeight="h-96" label="Loading graph" />
         ) : !data ? (
           <p className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
             No graph data.

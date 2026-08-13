@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { Markdown } from "../../components/markdown";
+import LoadingState from "../../components/ui/loading-state";
 import { apiFetch } from "../../lib/api";
 import { useT } from "../../lib/i18n";
 import { queryKeys } from "../../lib/query-keys";
@@ -206,7 +207,7 @@ function BriefingView() {
           onClick={regenerate}
           disabled={generating}
           aria-label={content ? "Regenerate briefing" : "Generate briefing"}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 transition active:bg-slate-100 disabled:opacity-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 transition active:bg-slate-100 disabled:opacity-50 focus-ring min-h-11"
         >
           <svg
             aria-hidden="true"
@@ -254,7 +255,7 @@ function BriefingView() {
           type="button"
           onClick={regenerate}
           disabled={generating}
-          className="glow-primary ease-strong inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+          className="glow-primary ease-strong inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring min-h-11"
         >
           <svg
             aria-hidden="true"
@@ -288,7 +289,7 @@ function BriefingView() {
         </div>
       )}
 
-      {loading && <p className="text-sm text-slate-400">Loading...</p>}
+      {loading && <LoadingState rows={3} label="Loading briefing" />}
 
       {(error || briefingLoadError) && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -313,7 +314,7 @@ function BriefingView() {
             type="button"
             onClick={regenerate}
             disabled={generating}
-            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring min-h-11"
           >
             {generating ? "Generating..." : "Generate now"}
           </button>
@@ -353,7 +354,7 @@ function BriefingView() {
                             onClick={() => submitFeedback(action, option.choice)}
                             aria-pressed={selected}
                             disabled={savingRank === action.rank}
-                            className={`ease-strong h-8 rounded-lg border px-2 text-xs transition duration-150 active:scale-[0.97] disabled:opacity-50 ${
+                            className={`ease-strong h-8 rounded-lg border px-2 text-xs transition duration-150 active:scale-[0.97] disabled:opacity-50 focus-ring min-h-9 min-w-9 ${
                               selected
                                 ? "border-sky-300 bg-sky-500/10 font-medium text-sky-700"
                                 : "border-slate-200 bg-white/70 text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] hover:bg-white hover:text-slate-900"
@@ -425,7 +426,7 @@ function BriefingDeliveryStatus({ status }: { status: BriefingStatus }) {
           {guidance.action && (
             <Link
               href={guidance.action.href}
-              className="rounded-md border border-amber-300 px-2 py-0.5 font-medium text-amber-700 transition hover:bg-amber-100"
+              className="rounded-md border border-amber-300 px-2 py-0.5 font-medium text-amber-700 transition hover:bg-amber-100 focus-ring"
             >
               {guidance.action.label}
             </Link>

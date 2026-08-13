@@ -8,6 +8,7 @@
 import { useEffect, useRef } from "react";
 import AuthGuard from "../../components/auth-guard";
 import EventDraftCard from "../../components/event-draft-card";
+import LoadingState from "../../components/ui/loading-state";
 import VoiceButton from "../../components/voice-button";
 import { useT } from "../../lib/i18n";
 import {
@@ -75,7 +76,7 @@ function ChatView() {
 
       <div className="flex-1 space-y-3 overflow-y-auto pr-1" aria-live="polite">
         {messagesLoading ? (
-          <p className="text-sm text-slate-500">{t("chat.loadingConversation")}</p>
+          <LoadingState rows={3} rowHeight="h-12" label={t("chat.loadingConversation")} />
         ) : messages.length === 0 && !pendingText ? (
           <div className="mt-8 space-y-3">
             <p className="text-sm text-slate-500">{t("chat.emptyState")}</p>

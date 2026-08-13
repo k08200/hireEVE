@@ -29,6 +29,7 @@ import {
 } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { ComposeModal } from "../../components/compose-modal";
+import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { TrustDot, type TrustScoreData } from "../../components/trust-badge";
 import { apiFetch } from "../../lib/api";
@@ -1097,7 +1098,11 @@ function EmailView() {
           </Link>
         )}
 
-        {loading && <p className="px-1 py-3 text-sm text-slate-400">Loading...</p>}
+        {loading && (
+          <div className="mt-3">
+            <ListSkeleton />
+          </div>
+        )}
 
         {error && (
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

@@ -177,7 +177,7 @@ export function AttachmentAnalysis({
             type="button"
             onClick={downloadBrief}
             disabled={downloading === "brief"}
-            className="rounded border border-accent/25 bg-accent/10 px-2 py-1 text-[11px] text-accent-muted transition hover:bg-accent/15 disabled:opacity-50"
+            className="rounded border border-accent/25 bg-accent/10 px-2 py-1 text-[11px] text-accent-muted transition hover:bg-accent/15 disabled:opacity-50 focus-ring"
           >
             {downloading === "brief" ? "Creating..." : "Download brief"}
           </button>
@@ -185,7 +185,7 @@ export function AttachmentAnalysis({
             type="button"
             onClick={onReanalyze}
             disabled={reanalyzing}
-            className="rounded border border-slate-200 bg-slate-100 px-2 py-1 text-[11px] text-slate-500 transition hover:bg-slate-200 disabled:opacity-50"
+            className="rounded border border-slate-200 bg-slate-100 px-2 py-1 text-[11px] text-slate-500 transition hover:bg-slate-200 disabled:opacity-50 focus-ring"
           >
             {reanalyzing ? "Analyzing..." : "Reanalyze"}
           </button>
@@ -193,7 +193,7 @@ export function AttachmentAnalysis({
             type="button"
             onClick={onOcr}
             disabled={ocring}
-            className="rounded border border-accent/25 bg-accent/10 px-2 py-1 text-[11px] text-accent-muted transition hover:bg-accent/15 disabled:opacity-50"
+            className="rounded border border-accent/25 bg-accent/10 px-2 py-1 text-[11px] text-accent-muted transition hover:bg-accent/15 disabled:opacity-50 focus-ring"
           >
             {ocring ? "Running OCR..." : "OCR/vision"}
           </button>
@@ -226,7 +226,7 @@ export function AttachmentAnalysis({
                 type="button"
                 onClick={() => downloadAttachment(attachment)}
                 disabled={downloading === attachment.id}
-                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] text-slate-500 transition hover:border-slate-300 hover:text-slate-500 disabled:opacity-50"
+                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] text-slate-500 transition hover:border-slate-300 hover:text-slate-500 disabled:opacity-50 focus-ring"
               >
                 {downloading === attachment.id ? "Downloading" : "Download original"}
               </button>
@@ -255,7 +255,7 @@ export function AttachmentAnalysis({
                     converting ===
                     `${attachment.id}:${conversionTargets[attachment.id] ?? defaultConversionTarget(attachment)}`
                   }
-                  className="rounded bg-slate-600 px-2 py-0.5 text-[10px] font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
+                  className="rounded bg-slate-600 px-2 py-0.5 text-[10px] font-medium text-white transition hover:bg-slate-700 disabled:opacity-50 focus-ring"
                 >
                   {converting?.startsWith(`${attachment.id}:`) ? "Converting" : "Convert"}
                 </button>
@@ -315,7 +315,7 @@ export function AttachmentAnalysis({
               <button
                 type="button"
                 onClick={() => setEditingId(editingId === attachment.id ? null : attachment.id)}
-                className="rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-500 transition hover:border-accent/30 hover:text-accent-muted"
+                className="rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-500 transition hover:border-accent/30 hover:text-accent-muted focus-ring"
               >
                 {editingId === attachment.id ? "Close edit" : "Edit analysis"}
               </button>
@@ -474,7 +474,7 @@ function AttachmentCorrectionForm({
           <button
             type="button"
             onClick={() => setFields((prev) => [...prev, { key: "", value: "" }])}
-            className="text-[11px] text-slate-400 transition hover:text-slate-500"
+            className="text-[11px] text-slate-400 transition hover:text-slate-500 focus-ring"
           >
             Add field
           </button>
@@ -519,7 +519,7 @@ function AttachmentCorrectionForm({
                 onClick={() =>
                   setFields((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
                 }
-                className="rounded border border-slate-200 px-2 py-1.5 text-[11px] text-slate-400 transition hover:border-rose-400/30 hover:text-rose-200"
+                className="rounded border border-slate-200 px-2 py-1.5 text-[11px] text-slate-400 transition hover:border-rose-400/30 hover:text-rose-200 focus-ring"
               >
                 Delete
               </button>
@@ -533,7 +533,7 @@ function AttachmentCorrectionForm({
           type="button"
           onClick={save}
           disabled={saving}
-          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white transition hover:bg-sky-600 disabled:opacity-50"
+          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white transition hover:bg-sky-600 disabled:opacity-50 focus-ring"
         >
           {saving ? "Saving..." : "Save changes"}
         </button>
