@@ -73,7 +73,7 @@ jobs:
             echo "::notice::No provider key — skipping the model canary."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.key.outputs.present == 'true'
 
       - uses: actions/setup-node@v4
