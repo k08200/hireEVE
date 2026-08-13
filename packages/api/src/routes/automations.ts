@@ -29,6 +29,15 @@ function sanitizeAlwaysAllowedTools(value: unknown): string[] {
   return Array.from(new Set(list));
 }
 
+const agentLogsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    limit: { type: "string", maxLength: 500 },
+    offset: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export async function automationRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
 
@@ -211,7 +220,7 @@ export async function automationRoutes(app: FastifyInstance) {
   );
 
   // GET /api/automations/agent-logs — Get autonomous agent activity logs
-  app.get("/agent-logs", async (request) => {
+  app.get("/agent-logs", { schema: { querystring: agentLogsQuerySchema } }, async (request) => {
     const userId = getUserId(request);
     const { limit, offset } = (request.query || {}) as { limit?: string; offset?: string };
 

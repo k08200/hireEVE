@@ -70,6 +70,58 @@ function summarizeTrustFeedback(rows: FeedbackGroup[]) {
   };
 }
 
+const waitlistQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    status: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const llmUsageQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    userId: { type: "string", maxLength: 500 },
+    days: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const calibrationQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    userId: { type: "string", maxLength: 500 },
+    days: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const decisionMetricsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    userId: { type: "string", maxLength: 500 },
+    days: { type: "string", maxLength: 500 },
+    source: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const interactionGraphRebuildQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    userId: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const senderTraitsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    userId: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export async function adminRoutes(app: FastifyInstance) {
   // All admin routes require ADMIN role
   app.addHook("preHandler", requireAdmin);
@@ -357,7 +409,7 @@ export async function adminRoutes(app: FastifyInstance) {
   });
 
   // GET /api/admin/waitlist — Public waitlist entries (PENDING first)
-  app.get("/waitlist", async (request) => {
+  app.get("/waitlist", { schema: { querystring: waitlistQuerySchema } }, async (request) => {
     const { status } = request.query as { status?: string };
     const where =
       status === "APPROVED" || status === "REJECTED" ? { status: status as WaitlistStatus } : {};
@@ -496,21 +548,25 @@ export async function adminRoutes(app: FastifyInstance) {
   // chokepoint ledger: actual provider-reported tokens per call, with the
   // model that really served each request after failover.
   // Query: ?userId=<uuid> to scope to one user, ?days=1..90 (default 7).
-  app.get("/llm-usage", async (request, reply) => {
-    const { userId, days } = request.query as { userId?: string; days?: string };
-    const sinceDays = days === undefined ? 7 : Number.parseInt(days, 10);
-    if (!Number.isInteger(sinceDays) || sinceDays < 1 || sinceDays > 90) {
-      return reply.code(400).send({ error: "days must be an integer between 1 and 90" });
-    }
-    return await getUsageSummary(userId || undefined, sinceDays);
-  });
+  app.get(
+    "/llm-usage",
+    { schema: { querystring: llmUsageQuerySchema } },
+    async (request, reply) => {
+      const { userId, days } = request.query as { userId?: string; days?: string };
+      const sinceDays = days === undefined ? 7 : Number.parseInt(days, 10);
+      if (!Number.isInteger(sinceDays) || sinceDays < 1 || sinceDays > 90) {
+        return reply.code(400).send({ error: "days must be an integer between 1 and 90" });
+      }
+      return await getUsageSummary(userId || undefined, sinceDays);
+    },
+  );
 
   // GET /api/admin/calibration — classification-quality KPIs over time.
   //   ?userId=&days=N → daily series (+ latest full payload) for one user
   //   no userId      → latest snapshot per user (overview)
   // Reads CalibrationSnapshot rows written by the scheduler's daily job —
   // never recomputes live, so the endpoint stays cheap and consistent.
-  app.get("/calibration", async (request) => {
+  app.get("/calibration", { schema: { querystring: calibrationQuerySchema } }, async (request) => {
     const q = request.query as { userId?: string; days?: string };
     const days = Math.min(90, Math.max(1, Number(q.days ?? "14") || 14));
 
@@ -547,24 +603,28 @@ export async function adminRoutes(app: FastifyInstance) {
   // ledger. PUSH recall (upper bound) + SILENT over-suppression (lower bound)
   // from real overrides; null outcomes are never counted as agreement.
   // Optional ?userId= narrows to one inbox (the dogfood account).
-  app.get("/decision-metrics", async (request) => {
-    const { userId, days, source } = request.query as {
-      userId?: string;
-      days?: string;
-      source?: string;
-    };
-    const sinceDays = days ? Number(days) : undefined;
-    // EMAIL and GITHUB are the only inbound channels that carry a firewall
-    // decision; default to EMAIL and ignore anything else so a stray query
-    // param can't read an unrelated source. ?source=GITHUB reads the GitHub
-    // firewall accuracy (the no-OAuth dogfood channel).
-    const channel = source === "GITHUB" ? "GITHUB" : "EMAIL";
-    return getDecisionMetrics({
-      ...(userId ? { userId } : {}),
-      ...(sinceDays !== undefined && Number.isFinite(sinceDays) ? { sinceDays } : {}),
-      source: channel,
-    });
-  });
+  app.get(
+    "/decision-metrics",
+    { schema: { querystring: decisionMetricsQuerySchema } },
+    async (request) => {
+      const { userId, days, source } = request.query as {
+        userId?: string;
+        days?: string;
+        source?: string;
+      };
+      const sinceDays = days ? Number(days) : undefined;
+      // EMAIL and GITHUB are the only inbound channels that carry a firewall
+      // decision; default to EMAIL and ignore anything else so a stray query
+      // param can't read an unrelated source. ?source=GITHUB reads the GitHub
+      // firewall accuracy (the no-OAuth dogfood channel).
+      const channel = source === "GITHUB" ? "GITHUB" : "EMAIL";
+      return getDecisionMetrics({
+        ...(userId ? { userId } : {}),
+        ...(sinceDays !== undefined && Number.isFinite(sinceDays) ? { sinceDays } : {}),
+        source: channel,
+      });
+    },
+  );
 
   // POST /api/admin/interaction-graph/rebuild — force-rebuild the interaction
   // graph NOW. The judge reads a CACHED graph (getCachedInteractionGraph, never
@@ -575,27 +635,31 @@ export async function adminRoutes(app: FastifyInstance) {
   // consume (the runbook's "is anything learned yet?" check). Defaults to the
   // acting admin's own account; ?userId= targets another (support/dogfood).
   // Counts only — no contact addresses (see the per-user /graph page for those).
-  app.post("/interaction-graph/rebuild", async (request) => {
-    const { userId: q } = request.query as { userId?: string };
-    const userId = q || getUserId(request);
-    const graph = await buildInteractionGraph(userId);
-    const directlyEngaged = graph.nodes.filter(
-      (n) => n.learnedImportance != null && (n.outboundCount ?? 0) > 0,
-    ).length;
-    const orgPropagated = graph.nodes.filter((n) => n.propagatedImportance != null).length;
-    return {
-      userId,
-      builtAt: graph.builtAt,
-      nodeCount: graph.nodes.length,
-      // Direct measured engagement present in the freshly-built graph. If this is
-      // 0, the flip is inert for this user — no replies have accrued yet.
-      directlyEngaged,
-      // Quiet peers that inherited a soft org prior (cold-start propagation).
-      orgPropagated,
-      // How many org domains carry an engagement signal (≥2 engaged contacts).
-      orgImportanceDomains: Object.keys(graph.orgImportance ?? {}).length,
-    };
-  });
+  app.post(
+    "/interaction-graph/rebuild",
+    { schema: { querystring: interactionGraphRebuildQuerySchema } },
+    async (request) => {
+      const { userId: q } = request.query as { userId?: string };
+      const userId = q || getUserId(request);
+      const graph = await buildInteractionGraph(userId);
+      const directlyEngaged = graph.nodes.filter(
+        (n) => n.learnedImportance != null && (n.outboundCount ?? 0) > 0,
+      ).length;
+      const orgPropagated = graph.nodes.filter((n) => n.propagatedImportance != null).length;
+      return {
+        userId,
+        builtAt: graph.builtAt,
+        nodeCount: graph.nodes.length,
+        // Direct measured engagement present in the freshly-built graph. If this is
+        // 0, the flip is inert for this user — no replies have accrued yet.
+        directlyEngaged,
+        // Quiet peers that inherited a soft org prior (cold-start propagation).
+        orgPropagated,
+        // How many org domains carry an engagement signal (≥2 engaged contacts).
+        orgImportanceDomains: Object.keys(graph.orgImportance ?? {}).length,
+      };
+    },
+  );
 
   // GET /api/admin/judge-health — fleet-wide judge health: the rolling rate at
   // which the judge fell back to the keyword pipeline (which caps PUSH recall
@@ -826,31 +890,35 @@ export async function adminRoutes(app: FastifyInstance) {
   // is verbatim email quotes) is withheld — a cross-user dump would leak one
   // user's mail to an admin scoped to another, violating CASA data-min even
   // behind the admin gate.
-  app.get("/sender-traits", async (request, reply) => {
-    const userId = (request.query as { userId?: string }).userId;
-    if (userId !== undefined && !/^[0-9a-fA-F-]{10,40}$/.test(userId)) {
-      return reply.code(400).send({ error: "Invalid userId" });
-    }
-    const metrics = await getTraitMetrics(prisma, userId);
-    // Per-trait evidence (verbatim email quotes) only for an explicit user —
-    // never a cross-user dump, even behind the admin gate (CASA data-min).
-    const traits = userId
-      ? await prisma.senderTrait.findMany({
-          where: { userId },
-          orderBy: [{ sender: "asc" }, { factKind: "asc" }],
-          take: 200,
-          select: {
-            sender: true,
-            factKind: true,
-            factValue: true,
-            confidence: true,
-            evidenceText: true,
-            status: true,
-            conflictValue: true,
-            observedCount: true,
-          },
-        })
-      : [];
-    return { metrics, traits };
-  });
+  app.get(
+    "/sender-traits",
+    { schema: { querystring: senderTraitsQuerySchema } },
+    async (request, reply) => {
+      const userId = (request.query as { userId?: string }).userId;
+      if (userId !== undefined && !/^[0-9a-fA-F-]{10,40}$/.test(userId)) {
+        return reply.code(400).send({ error: "Invalid userId" });
+      }
+      const metrics = await getTraitMetrics(prisma, userId);
+      // Per-trait evidence (verbatim email quotes) only for an explicit user —
+      // never a cross-user dump, even behind the admin gate (CASA data-min).
+      const traits = userId
+        ? await prisma.senderTrait.findMany({
+            where: { userId },
+            orderBy: [{ sender: "asc" }, { factKind: "asc" }],
+            take: 200,
+            select: {
+              sender: true,
+              factKind: true,
+              factValue: true,
+              confidence: true,
+              evidenceText: true,
+              status: true,
+              conflictValue: true,
+              observedCount: true,
+            },
+          })
+        : [];
+      return { metrics, traits };
+    },
+  );
 }

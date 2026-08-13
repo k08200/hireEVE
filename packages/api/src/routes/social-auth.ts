@@ -67,6 +67,21 @@ export const naverAuthProvider: SocialAuthProvider = {
  * byte-for-byte body as routes/imap-connect.ts, so a scanner cannot tell a
  * dark provider from a route that doesn't exist.
  */
+// Only the GET (Naver) callback reads request.query — the POST (Apple)
+// callback reads request.body instead (see handleCallback below), so this
+// schema is attached to the GET registration only.
+// OAuth authorization codes routinely exceed 500 chars (Azure AD ~800), so the
+// callback params get 2048 instead of the blanket 500 used elsewhere.
+const socialCallbackQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    code: { type: "string", maxLength: 2048 },
+    state: { type: "string", maxLength: 2048 },
+    error: { type: "string", maxLength: 2048 },
+  },
+} as const;
+
 export function socialAuthRoutes(
   provider: SocialAuthProvider,
 ): (app: FastifyInstance) => Promise<void> {
@@ -159,9 +174,16 @@ export function socialAuthRoutes(
     // round trip, so it must not ride the looser app-wide default limiter.
     const callbackOpts = { config: { rateLimit: { max: 20, timeWindow: "15 minutes" } } };
     if (provider.callbackMethod === "POST") {
+      // Apple's callback reads request.body (form_post), never request.query,
+      // so no querystring schema is attached here — see rule 6 in the
+      // querystring-schemas hardening audit for why this route is exempt.
       app.post("/callback", callbackOpts, handleCallback);
     } else {
-      app.get("/callback", callbackOpts, handleCallback);
+      app.get(
+        "/callback",
+        { ...callbackOpts, schema: { querystring: socialCallbackQuerySchema } },
+        handleCallback,
+      );
     }
   };
 }

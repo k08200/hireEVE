@@ -639,42 +639,54 @@ export async function ensureDailyBriefingNotification(
   return notification;
 }
 
+const briefingFeedbackSummaryQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    days: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export function briefingRoutes(app: FastifyInstance) {
   // GET /api/briefing/feedback/summary — dogfood trust metric for Top 3 quality
-  app.get("/feedback/summary", async (request) => {
-    const userId = getUserId(request);
-    const { days } = request.query as { days?: string };
-    const parsedDays = days ? Number.parseInt(days, 10) : 7;
-    const windowDays = Number.isFinite(parsedDays) ? Math.min(Math.max(parsedDays, 1), 90) : 7;
-    const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
+  app.get(
+    "/feedback/summary",
+    { schema: { querystring: briefingFeedbackSummaryQuerySchema } },
+    async (request) => {
+      const userId = getUserId(request);
+      const { days } = request.query as { days?: string };
+      const parsedDays = days ? Number.parseInt(days, 10) : 7;
+      const windowDays = Number.isFinite(parsedDays) ? Math.min(Math.max(parsedDays, 1), 90) : 7;
+      const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
 
-    const rows = await prisma.feedbackEvent.groupBy({
-      by: ["signal"],
-      where: {
-        userId,
-        source: "ATTENTION_ITEM",
-        toolName: BRIEFING_TOP_ACTION_TOOL,
-        createdAt: { gte: since },
-      },
-      _count: { signal: true },
-    });
+      const rows = await prisma.feedbackEvent.groupBy({
+        by: ["signal"],
+        where: {
+          userId,
+          source: "ATTENTION_ITEM",
+          toolName: BRIEFING_TOP_ACTION_TOOL,
+          createdAt: { gte: since },
+        },
+        _count: { signal: true },
+      });
 
-    const counts = { useful: 0, wrong: 0, later: 0, done: 0 };
-    for (const row of rows) {
-      const choice =
-        BRIEFING_CHOICE_BY_SIGNAL[row.signal as keyof typeof BRIEFING_CHOICE_BY_SIGNAL];
-      if (choice) counts[choice] = row._count.signal;
-    }
-    const total = counts.useful + counts.wrong + counts.later + counts.done;
+      const counts = { useful: 0, wrong: 0, later: 0, done: 0 };
+      for (const row of rows) {
+        const choice =
+          BRIEFING_CHOICE_BY_SIGNAL[row.signal as keyof typeof BRIEFING_CHOICE_BY_SIGNAL];
+        if (choice) counts[choice] = row._count.signal;
+      }
+      const total = counts.useful + counts.wrong + counts.later + counts.done;
 
-    return {
-      since: since.toISOString(),
-      days: windowDays,
-      total,
-      counts,
-      usefulRate: total > 0 ? counts.useful / total : null,
-    };
-  });
+      return {
+        since: since.toISOString(),
+        days: windowDays,
+        total,
+        counts,
+        usefulRate: total > 0 ? counts.useful / total : null,
+      };
+    },
+  );
 
   // POST /api/briefing/generate — Generate daily briefing
   app.post(

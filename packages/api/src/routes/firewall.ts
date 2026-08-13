@@ -129,6 +129,22 @@ function healStaleAttentionItem(userId: string, emailDbId: string): void {
   })();
 }
 
+const firewallGraphQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    mode: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const firewallListQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    inbox: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export async function firewallRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
   // Usable free tier: the firewall graph/classification view is core, read-only
@@ -144,7 +160,7 @@ export async function firewallRoutes(app: FastifyInstance) {
   //     (the tierFromFeatures rule), with your override signal (decision-metrics)
   //     overlaid on each tier. Always populated (it's the policy structure), so
   //     it renders even on a thin account.
-  app.get("/graph", async (request) => {
+  app.get("/graph", { schema: { querystring: firewallGraphQuerySchema } }, async (request) => {
     const userId = getUserId(request);
     const mode =
       (request.query as { mode?: string }).mode === "decisions" ? "decisions" : "relationships";
@@ -309,334 +325,338 @@ export async function firewallRoutes(app: FastifyInstance) {
     return { nodes, edges, builtAt: interaction.builtAt };
   });
 
-  app.get("/", async (request): Promise<FirewallResponse> => {
-    const userId = getUserId(request);
-    // Deterministic reasons are stored as keys (tier-reason-strings.ts) and
-    // rendered here, so switching language re-reads existing rows instead of
-    // leaving them frozen in the language they were written in. Resolved once
-    // per request, not per row.
-    const reasonLanguage = await getUserNotificationLanguage(userId);
-    // Per-inbox scope (mirrors routes/email.ts's `inbox=` param): absent/"all"
-    // → every inbox (100% backward compatible); "primary" → primary-account
-    // mail plus items with no email at all (GitHub etc. — the primary is the
-    // home workspace); a linked id → only that inbox's mail. The userId scope
-    // on every query below is the IDOR guard — a foreign or malformed id can
-    // only ever match the caller's own rows (zero).
-    const { inbox } = request.query as { inbox?: string };
+  app.get(
+    "/",
+    { schema: { querystring: firewallListQuerySchema } },
+    async (request): Promise<FirewallResponse> => {
+      const userId = getUserId(request);
+      // Deterministic reasons are stored as keys (tier-reason-strings.ts) and
+      // rendered here, so switching language re-reads existing rows instead of
+      // leaving them frozen in the language they were written in. Resolved once
+      // per request, not per row.
+      const reasonLanguage = await getUserNotificationLanguage(userId);
+      // Per-inbox scope (mirrors routes/email.ts's `inbox=` param): absent/"all"
+      // → every inbox (100% backward compatible); "primary" → primary-account
+      // mail plus items with no email at all (GitHub etc. — the primary is the
+      // home workspace); a linked id → only that inbox's mail. The userId scope
+      // on every query below is the IDOR guard — a foreign or malformed id can
+      // only ever match the caller's own rows (zero).
+      const { inbox } = request.query as { inbox?: string };
 
-    // Activity-driven self-heal: the firewall view is the app's front door,
-    // so opening it re-registers an expired Gmail watch even when the
-    // in-process renewal scheduler slept through the expiry (free-tier
-    // dynos). Fire-and-forget — never blocks or fails the queue response.
-    void ensureFreshGmailWatch(userId);
-    // Activity-driven mail pull: the scheduler's sync sits behind gates a user
-    // can silently fall out of (no AutomationConfig row, flag off, token
-    // dropped from the connected set), and with Gmail push unconfigured there
-    // is no second path — mail simply stops with no in-app signal (observed
-    // 2026-08-04 → 08-10). Opening the app now always pulls. Debounced 60 s
-    // per user inside the helper; never blocks or fails this response.
-    void ensureRecentMailSync(userId);
+      // Activity-driven self-heal: the firewall view is the app's front door,
+      // so opening it re-registers an expired Gmail watch even when the
+      // in-process renewal scheduler slept through the expiry (free-tier
+      // dynos). Fire-and-forget — never blocks or fails the queue response.
+      void ensureFreshGmailWatch(userId);
+      // Activity-driven mail pull: the scheduler's sync sits behind gates a user
+      // can silently fall out of (no AutomationConfig row, flag off, token
+      // dropped from the connected set), and with Gmail push unconfigured there
+      // is no second path — mail simply stops with no in-app signal (observed
+      // 2026-08-04 → 08-10). Opening the app now always pulls. Debounced 60 s
+      // per user inside the helper; never blocks or fails this response.
+      void ensureRecentMailSync(userId);
 
-    // Pull OPEN items only — resolved/dismissed don't belong in the live queue.
-    // tier is nullable on AttentionItem because the migration backfill is
-    // lazy; anything still null gets bucketed as QUEUE so it's visible.
-    // inputHash is also nullable (legacy rows pre-PR #468) and is verified
-    // soft-mode below; null hash short-circuits the check.
-    const recentItems = await (
-      prisma.attentionItem as unknown as {
-        findMany: (args: unknown) => Promise<
-          Array<{
-            id: string;
-            source: string;
-            sourceId: string;
-            type: string;
-            title: string;
-            tier: string | null;
-            tierReason: string | null;
-            priority: number;
-            surfacedAt: Date;
-            inputHash: string | null;
-          }>
-        >;
-      }
-    ).findMany({
-      where: { userId, status: "OPEN" },
-      select: {
-        id: true,
-        source: true,
-        sourceId: true,
-        type: true,
-        title: true,
-        tier: true,
-        tierReason: true,
-        priority: true,
-        surfacedAt: true,
-        inputHash: true,
-      },
-      // Window by RECENCY, rank by priority below. Windowing by priority was
-      // the board-freeze bug: email items are never auto-resolved, so once
-      // the OPEN pool passed 200 the query returned the same high-priority
-      // set forever and every newer (lower-priority) mail was invisible in
-      // all four lanes — the board pinned itself to the saturation date
-      // (observed in production 2026-08-07, frozen at 07-21 with lane counts
-      // summing to exactly the window size).
-      orderBy: [{ surfacedAt: "desc" }],
-      take: 200,
-    });
-    // NEWEST FIRST inside every lane. Priority ordering here buried today's
-    // mail in the middle of an 88-row Queue while 8/4 items held the top —
-    // the founder read that as "mail stopped arriving" three times running
-    // (2026-08-10). The TIER is the priority signal; a list of mail must be
-    // a list of mail, ordered the way every mail client orders one. Priority
-    // stays as the tie-break for items surfaced in the same instant.
-    const items = [...recentItems].sort(
-      (a, b) => b.surfacedAt.getTime() - a.surfacedAt.getTime() || b.priority - a.priority,
-    );
+      // Pull OPEN items only — resolved/dismissed don't belong in the live queue.
+      // tier is nullable on AttentionItem because the migration backfill is
+      // lazy; anything still null gets bucketed as QUEUE so it's visible.
+      // inputHash is also nullable (legacy rows pre-PR #468) and is verified
+      // soft-mode below; null hash short-circuits the check.
+      const recentItems = await (
+        prisma.attentionItem as unknown as {
+          findMany: (args: unknown) => Promise<
+            Array<{
+              id: string;
+              source: string;
+              sourceId: string;
+              type: string;
+              title: string;
+              tier: string | null;
+              tierReason: string | null;
+              priority: number;
+              surfacedAt: Date;
+              inputHash: string | null;
+            }>
+          >;
+        }
+      ).findMany({
+        where: { userId, status: "OPEN" },
+        select: {
+          id: true,
+          source: true,
+          sourceId: true,
+          type: true,
+          title: true,
+          tier: true,
+          tierReason: true,
+          priority: true,
+          surfacedAt: true,
+          inputHash: true,
+        },
+        // Window by RECENCY, rank by priority below. Windowing by priority was
+        // the board-freeze bug: email items are never auto-resolved, so once
+        // the OPEN pool passed 200 the query returned the same high-priority
+        // set forever and every newer (lower-priority) mail was invisible in
+        // all four lanes — the board pinned itself to the saturation date
+        // (observed in production 2026-08-07, frozen at 07-21 with lane counts
+        // summing to exactly the window size).
+        orderBy: [{ surfacedAt: "desc" }],
+        take: 200,
+      });
+      // NEWEST FIRST inside every lane. Priority ordering here buried today's
+      // mail in the middle of an 88-row Queue while 8/4 items held the top —
+      // the founder read that as "mail stopped arriving" three times running
+      // (2026-08-10). The TIER is the priority signal; a list of mail must be
+      // a list of mail, ordered the way every mail client orders one. Priority
+      // stays as the tie-break for items surfaced in the same instant.
+      const items = [...recentItems].sort(
+        (a, b) => b.surfacedAt.getTime() - a.surfacedAt.getTime() || b.priority - a.priority,
+      );
 
-    // Batch-fetch PendingActions referenced by the PENDING_ACTION items —
-    // gives us toolName / toolArgs / reasoning to render in the card.
-    const pendingActionIds = items
-      .filter((row) => row.source === "PENDING_ACTION")
-      .map((row) => row.sourceId);
-    const pendingActions = pendingActionIds.length
-      ? await prisma.pendingAction.findMany({
-          where: { id: { in: pendingActionIds } },
-          select: { id: true, toolName: true, toolArgs: true },
-        })
-      : [];
-    const paById = new Map(pendingActions.map((pa) => [pa.id, pa]));
-
-    // Batch-fetch EmailMessage rows for any PA that references an email
-    // (by Gmail id) AND for any EMAIL-source AttentionItem (by EmailMessage id).
-    const gmailIdsNeeded = new Set<string>();
-    for (const pa of pendingActions) {
-      const args = safeRecord(pa.toolArgs);
-      const emailId = extractEmailId(pa.toolName, args);
-      if (emailId) gmailIdsNeeded.add(emailId);
-    }
-    const emailRowIds = items.filter((row) => row.source === "EMAIL").map((row) => row.sourceId);
-
-    const [emailRowsByGmailId, emailRowsById] = await Promise.all([
-      gmailIdsNeeded.size
-        ? prisma.emailMessage.findMany({
-            where: { userId, gmailId: { in: [...gmailIdsNeeded] } },
-            select: {
-              id: true,
-              gmailId: true,
-              subject: true,
-              from: true,
-              snippet: true,
-              linkedInboxAccountId: true,
-            },
+      // Batch-fetch PendingActions referenced by the PENDING_ACTION items —
+      // gives us toolName / toolArgs / reasoning to render in the card.
+      const pendingActionIds = items
+        .filter((row) => row.source === "PENDING_ACTION")
+        .map((row) => row.sourceId);
+      const pendingActions = pendingActionIds.length
+        ? await prisma.pendingAction.findMany({
+            where: { id: { in: pendingActionIds } },
+            select: { id: true, toolName: true, toolArgs: true },
           })
-        : Promise.resolve([] as never[]),
-      emailRowIds.length
-        ? prisma.emailMessage.findMany({
-            where: { userId, id: { in: emailRowIds } },
-            // labels is needed for the hash-verify integration — it's one
-            // of the four hashed fields (see attention-input-hash.ts).
-            select: {
-              id: true,
-              gmailId: true,
-              subject: true,
-              from: true,
-              snippet: true,
-              labels: true,
-              // Gmail thread id — used to collapse a multi-message conversation
-              // (N EmailMessage rows) to a single firewall card. See below.
-              threadId: true,
-              // Which mailbox the message lives on — drives the `inbox=` scope.
-              linkedInboxAccountId: true,
-            },
-          })
-        : Promise.resolve([] as never[]),
-    ]);
-    const emailByGmailId = new Map(emailRowsByGmailId.map((e) => [e.gmailId, e]));
-    const emailById = new Map(emailRowsById.map((e) => [e.id, e]));
+        : [];
+      const paById = new Map(pendingActions.map((pa) => [pa.id, pa]));
 
-    // Batch-fetch trust scores for every distinct sender address surfaced
-    // by this page. One round-trip; the bulk helper returns a Map keyed by
-    // normalized lowercase email.
-    const senderAddrs = new Set<string>();
-    for (const e of emailRowsByGmailId) {
-      const addr = senderEmail(e.from);
-      if (addr) senderAddrs.add(addr);
-    }
-    for (const e of emailRowsById) {
-      const addr = senderEmail(e.from);
-      if (addr) senderAddrs.add(addr);
-    }
-    const trustMap = senderAddrs.size
-      ? await getTrustScoresBulk(userId, [...senderAddrs])
-      : new Map();
-
-    const tiers: Record<Tier, FirewallItem[]> = {
-      SILENT: [],
-      QUEUE: [],
-      PUSH: [],
-      AUTO: [],
-    };
-
-    // Apply the per-inbox scope. An item's mailbox is its linked email's
-    // linkedInboxAccountId; items with no email at all (GITHUB source, or a
-    // PENDING_ACTION whose tool doesn't reference mail) have none and belong
-    // to "primary" and "all" only. undefined = no email; null = primary mail.
-    const linkedInboxIdOf = (row: (typeof items)[number]): string | null | undefined => {
-      if (row.source === "EMAIL") {
-        return emailById.get(row.sourceId)?.linkedInboxAccountId;
+      // Batch-fetch EmailMessage rows for any PA that references an email
+      // (by Gmail id) AND for any EMAIL-source AttentionItem (by EmailMessage id).
+      const gmailIdsNeeded = new Set<string>();
+      for (const pa of pendingActions) {
+        const args = safeRecord(pa.toolArgs);
+        const emailId = extractEmailId(pa.toolName, args);
+        if (emailId) gmailIdsNeeded.add(emailId);
       }
-      if (row.source === "PENDING_ACTION") {
-        const pa = paById.get(row.sourceId);
-        const emailId = pa ? extractEmailId(pa.toolName, safeRecord(pa.toolArgs)) : undefined;
-        return emailId ? emailByGmailId.get(emailId)?.linkedInboxAccountId : undefined;
+      const emailRowIds = items.filter((row) => row.source === "EMAIL").map((row) => row.sourceId);
+
+      const [emailRowsByGmailId, emailRowsById] = await Promise.all([
+        gmailIdsNeeded.size
+          ? prisma.emailMessage.findMany({
+              where: { userId, gmailId: { in: [...gmailIdsNeeded] } },
+              select: {
+                id: true,
+                gmailId: true,
+                subject: true,
+                from: true,
+                snippet: true,
+                linkedInboxAccountId: true,
+              },
+            })
+          : Promise.resolve([] as never[]),
+        emailRowIds.length
+          ? prisma.emailMessage.findMany({
+              where: { userId, id: { in: emailRowIds } },
+              // labels is needed for the hash-verify integration — it's one
+              // of the four hashed fields (see attention-input-hash.ts).
+              select: {
+                id: true,
+                gmailId: true,
+                subject: true,
+                from: true,
+                snippet: true,
+                labels: true,
+                // Gmail thread id — used to collapse a multi-message conversation
+                // (N EmailMessage rows) to a single firewall card. See below.
+                threadId: true,
+                // Which mailbox the message lives on — drives the `inbox=` scope.
+                linkedInboxAccountId: true,
+              },
+            })
+          : Promise.resolve([] as never[]),
+      ]);
+      const emailByGmailId = new Map(emailRowsByGmailId.map((e) => [e.gmailId, e]));
+      const emailById = new Map(emailRowsById.map((e) => [e.id, e]));
+
+      // Batch-fetch trust scores for every distinct sender address surfaced
+      // by this page. One round-trip; the bulk helper returns a Map keyed by
+      // normalized lowercase email.
+      const senderAddrs = new Set<string>();
+      for (const e of emailRowsByGmailId) {
+        const addr = senderEmail(e.from);
+        if (addr) senderAddrs.add(addr);
       }
-      return undefined;
-    };
-    const scopedItems =
-      !inbox || inbox === "all"
-        ? items
-        : items.filter((row) => {
-            const linkedId = linkedInboxIdOf(row);
-            // == null covers both "primary mail" (null) and "no email" (undefined).
-            return inbox === "primary" ? linkedId == null : linkedId === inbox;
-          });
+      for (const e of emailRowsById) {
+        const addr = senderEmail(e.from);
+        if (addr) senderAddrs.add(addr);
+      }
+      const trustMap = senderAddrs.size
+        ? await getTrustScoresBulk(userId, [...senderAddrs])
+        : new Map();
 
-    // Collapse a multi-message email conversation to one card. Items are ordered
-    // [priority desc, surfacedAt desc], so the kept row is the thread's
-    // highest-priority (newest on ties) message. Without this, a reschedule
-    // thread or a repeated "Deployment failed" shows once per message, each with
-    // a different judge-authored tierReason (the duplicate seen in dogfooding).
-    const dedupedItems = collapseEmailThreads(
-      scopedItems,
-      (row) => emailById.get(row.sourceId)?.threadId ?? null,
-    );
-
-    for (const row of dedupedItems) {
-      // normalizeTier maps legacy CALL rows → PUSH (not QUEUE) and any
-      // unknown/null tier → QUEUE. See tiers.ts.
-      const tier = normalizeTier(row.tier);
-      const item: FirewallItem = {
-        id: row.id,
-        source: row.source,
-        sourceId: row.sourceId,
-        type: row.type,
-        title: row.title,
-        tier,
-        tierReason: resolveTierReason(row.tierReason, reasonLanguage),
-        priority: row.priority,
-        surfacedAt: row.surfacedAt.toISOString(),
+      const tiers: Record<Tier, FirewallItem[]> = {
+        SILENT: [],
+        QUEUE: [],
+        PUSH: [],
+        AUTO: [],
       };
 
-      // Enrich PENDING_ACTION items with tool context + maybe email
-      if (row.source === "PENDING_ACTION") {
-        const pa = paById.get(row.sourceId);
-        if (pa) {
-          item.toolName = pa.toolName;
-          const args = safeRecord(pa.toolArgs);
-          if (args) item.toolArgs = args;
-          const emailId = extractEmailId(pa.toolName, args);
-          if (emailId) {
-            const email = emailByGmailId.get(emailId);
-            if (email) {
-              const addr = senderEmail(email.from);
-              const trust = addr ? trustMap.get(addr) : null;
-              item.email = {
-                emailDbId: email.id,
-                subject: email.subject ?? null,
-                from: email.from ?? null,
-                snippet: email.snippet ?? null,
-                trust: trust
-                  ? {
-                      badge: trust.badge,
-                      label: trust.label,
-                      onTimeRate: trust.onTimeRate,
-                      totalCount: trust.totalCount,
-                    }
-                  : null,
-              };
-              item.href = `/email/${email.id}`;
+      // Apply the per-inbox scope. An item's mailbox is its linked email's
+      // linkedInboxAccountId; items with no email at all (GITHUB source, or a
+      // PENDING_ACTION whose tool doesn't reference mail) have none and belong
+      // to "primary" and "all" only. undefined = no email; null = primary mail.
+      const linkedInboxIdOf = (row: (typeof items)[number]): string | null | undefined => {
+        if (row.source === "EMAIL") {
+          return emailById.get(row.sourceId)?.linkedInboxAccountId;
+        }
+        if (row.source === "PENDING_ACTION") {
+          const pa = paById.get(row.sourceId);
+          const emailId = pa ? extractEmailId(pa.toolName, safeRecord(pa.toolArgs)) : undefined;
+          return emailId ? emailByGmailId.get(emailId)?.linkedInboxAccountId : undefined;
+        }
+        return undefined;
+      };
+      const scopedItems =
+        !inbox || inbox === "all"
+          ? items
+          : items.filter((row) => {
+              const linkedId = linkedInboxIdOf(row);
+              // == null covers both "primary mail" (null) and "no email" (undefined).
+              return inbox === "primary" ? linkedId == null : linkedId === inbox;
+            });
+
+      // Collapse a multi-message email conversation to one card. Items are ordered
+      // [priority desc, surfacedAt desc], so the kept row is the thread's
+      // highest-priority (newest on ties) message. Without this, a reschedule
+      // thread or a repeated "Deployment failed" shows once per message, each with
+      // a different judge-authored tierReason (the duplicate seen in dogfooding).
+      const dedupedItems = collapseEmailThreads(
+        scopedItems,
+        (row) => emailById.get(row.sourceId)?.threadId ?? null,
+      );
+
+      for (const row of dedupedItems) {
+        // normalizeTier maps legacy CALL rows → PUSH (not QUEUE) and any
+        // unknown/null tier → QUEUE. See tiers.ts.
+        const tier = normalizeTier(row.tier);
+        const item: FirewallItem = {
+          id: row.id,
+          source: row.source,
+          sourceId: row.sourceId,
+          type: row.type,
+          title: row.title,
+          tier,
+          tierReason: resolveTierReason(row.tierReason, reasonLanguage),
+          priority: row.priority,
+          surfacedAt: row.surfacedAt.toISOString(),
+        };
+
+        // Enrich PENDING_ACTION items with tool context + maybe email
+        if (row.source === "PENDING_ACTION") {
+          const pa = paById.get(row.sourceId);
+          if (pa) {
+            item.toolName = pa.toolName;
+            const args = safeRecord(pa.toolArgs);
+            if (args) item.toolArgs = args;
+            const emailId = extractEmailId(pa.toolName, args);
+            if (emailId) {
+              const email = emailByGmailId.get(emailId);
+              if (email) {
+                const addr = senderEmail(email.from);
+                const trust = addr ? trustMap.get(addr) : null;
+                item.email = {
+                  emailDbId: email.id,
+                  subject: email.subject ?? null,
+                  from: email.from ?? null,
+                  snippet: email.snippet ?? null,
+                  trust: trust
+                    ? {
+                        badge: trust.badge,
+                        label: trust.label,
+                        onTimeRate: trust.onTimeRate,
+                        totalCount: trust.totalCount,
+                      }
+                    : null,
+                };
+                item.href = `/email/${email.id}`;
+              }
             }
           }
         }
-      }
 
-      // Enrich EMAIL items directly from EmailMessage. sourceId is the
-      // EmailMessage.id, set by poc-judge when the email syncs.
-      if (row.source === "EMAIL") {
-        const email = emailById.get(row.sourceId);
-        if (email) {
-          // Hash-verify integration (the read-side half of PR #468). For each
-          // row that has a stored inputHash, recompute the hash of the email's
-          // current bytes and compare. Mismatch means something mutated the
-          // input after classification — the cached tier is stale. Soft mode
-          // (checkAttentionInputHash, not verify) so the page still renders,
-          // and clients see hashStale=true to either re-classify or warn.
-          const hashCheck = checkAttentionInputHash(row.inputHash, {
-            from: email.from,
-            subject: email.subject,
-            snippet: email.snippet,
-            labels: email.labels,
-          });
-          if (!hashCheck.ok) {
-            item.hashStale = true;
-            // Alert + heal exactly ONCE per (row, storedHash). Repeats stay
-            // silent: hashStale on the wire already tells clients, and the
-            // desktop's 60s poll would otherwise re-page the same benign
-            // mutation (e.g. reading a mail flips its UNREAD label — one of
-            // the four hashed fields) forever. Measured before this guard:
-            // 333 Sentry events in the first 12 minutes of DSN going live.
-            if (registerHashMismatch(hashMismatchesSeen, row.id, hashCheck.storedHash)) {
-              captureError(
-                new Error(
-                  `AttentionItem hash mismatch — stored=${hashCheck.storedHash.slice(0, 12)}… current=${hashCheck.currentHash.slice(0, 12)}…`,
-                ),
-                {
-                  tags: { scope: "firewall.hashVerify" },
-                  extra: {
-                    attentionItemId: row.id,
-                    emailDbId: email.id,
-                    storedTier: row.tier,
+        // Enrich EMAIL items directly from EmailMessage. sourceId is the
+        // EmailMessage.id, set by poc-judge when the email syncs.
+        if (row.source === "EMAIL") {
+          const email = emailById.get(row.sourceId);
+          if (email) {
+            // Hash-verify integration (the read-side half of PR #468). For each
+            // row that has a stored inputHash, recompute the hash of the email's
+            // current bytes and compare. Mismatch means something mutated the
+            // input after classification — the cached tier is stale. Soft mode
+            // (checkAttentionInputHash, not verify) so the page still renders,
+            // and clients see hashStale=true to either re-classify or warn.
+            const hashCheck = checkAttentionInputHash(row.inputHash, {
+              from: email.from,
+              subject: email.subject,
+              snippet: email.snippet,
+              labels: email.labels,
+            });
+            if (!hashCheck.ok) {
+              item.hashStale = true;
+              // Alert + heal exactly ONCE per (row, storedHash). Repeats stay
+              // silent: hashStale on the wire already tells clients, and the
+              // desktop's 60s poll would otherwise re-page the same benign
+              // mutation (e.g. reading a mail flips its UNREAD label — one of
+              // the four hashed fields) forever. Measured before this guard:
+              // 333 Sentry events in the first 12 minutes of DSN going live.
+              if (registerHashMismatch(hashMismatchesSeen, row.id, hashCheck.storedHash)) {
+                captureError(
+                  new Error(
+                    `AttentionItem hash mismatch — stored=${hashCheck.storedHash.slice(0, 12)}… current=${hashCheck.currentHash.slice(0, 12)}…`,
+                  ),
+                  {
+                    tags: { scope: "firewall.hashVerify" },
+                    extra: {
+                      attentionItemId: row.id,
+                      emailDbId: email.id,
+                      storedTier: row.tier,
+                    },
                   },
-                },
-              );
-              healStaleAttentionItem(userId, email.id);
+                );
+                healStaleAttentionItem(userId, email.id);
+              }
             }
-          }
 
-          const addr = senderEmail(email.from);
-          const trust = addr ? trustMap.get(addr) : null;
-          item.email = {
-            emailDbId: email.id,
-            subject: email.subject ?? null,
-            from: email.from ?? null,
-            snippet: email.snippet ?? null,
-            trust: trust
-              ? {
-                  badge: trust.badge,
-                  label: trust.label,
-                  onTimeRate: trust.onTimeRate,
-                  totalCount: trust.totalCount,
-                }
-              : null,
-          };
-          item.href = `/email/${email.id}`;
+            const addr = senderEmail(email.from);
+            const trust = addr ? trustMap.get(addr) : null;
+            item.email = {
+              emailDbId: email.id,
+              subject: email.subject ?? null,
+              from: email.from ?? null,
+              snippet: email.snippet ?? null,
+              trust: trust
+                ? {
+                    badge: trust.badge,
+                    label: trust.label,
+                    onTimeRate: trust.onTimeRate,
+                    totalCount: trust.totalCount,
+                  }
+                : null,
+            };
+            item.href = `/email/${email.id}`;
+          }
         }
+
+        tiers[tier].push(item);
       }
 
-      tiers[tier].push(item);
-    }
-
-    return {
-      tiers,
-      summary: {
-        SILENT: tiers.SILENT.length,
-        QUEUE: tiers.QUEUE.length,
-        PUSH: tiers.PUSH.length,
-        AUTO: tiers.AUTO.length,
-        total: scopedItems.length,
-      },
-    };
-  });
+      return {
+        tiers,
+        summary: {
+          SILENT: tiers.SILENT.length,
+          QUEUE: tiers.QUEUE.length,
+          PUSH: tiers.PUSH.length,
+          AUTO: tiers.AUTO.length,
+          total: scopedItems.length,
+        },
+      };
+    },
+  );
 
   // POST /api/inbox/firewall/:id — manual tier override.
   // Sets the tier directly and stamps a tierReason explaining it was a

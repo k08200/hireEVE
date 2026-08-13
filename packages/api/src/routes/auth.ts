@@ -191,6 +191,36 @@ const tokenQuerySchema = {
   },
 } as const;
 
+const desktopNonceQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    challenge: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const googleLoginQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    source: { type: "string", maxLength: 500 },
+    nonce: { type: "string", maxLength: 500 },
+    appScheme: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+// OAuth authorization codes routinely exceed 500 chars (Azure AD ~800), so the
+// callback params get 2048 instead of the blanket 500 used elsewhere.
+const googleCallbackQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    code: { type: "string", maxLength: 2048 },
+    state: { type: "string", maxLength: 2048 },
+    error: { type: "string", maxLength: 2048 },
+  },
+} as const;
+
 const forgotPasswordBodySchema = {
   type: "object",
   additionalProperties: false,
@@ -796,62 +826,70 @@ export function authRoutes(app: FastifyInstance) {
   // server-generated nonce before opening the browser for Google login. Calling
   // /desktop-token with a nonce that was never issued here returns 404, so
   // attackers cannot enumerate or poll for arbitrary nonces.
-  app.get("/desktop-nonce", async (request, reply) => {
-    // PKCE: the client sends a SHA-256 challenge of a locally-held verifier that
-    // never transits the browser/OAuth redirect. Binding token retrieval to that
-    // verifier stops anyone who merely observes the nonce (browser history,
-    // Referer, or server logs) from stealing the freshly minted session JWT.
-    const { challenge } = request.query as { challenge?: string };
-    // PKCE is now REQUIRED: every shipped client (desktop 0.4.80015+, mobile
-    // native-auth) sends a SHA-256 base64url challenge (43 chars). Refusing a
-    // challenge-less mint removes the legacy "no challenge -> skip verifier"
-    // path that left an observed nonce redeemable (security audit 2026-07-20,
-    // G4 closed). An out-of-date client that omits it is told to update.
-    if (typeof challenge !== "string" || challenge.length < 32) {
-      return reply
-        .code(400)
-        .send({ error: "Missing PKCE challenge. Please update your Klorn app." });
-    }
-    const nonce = crypto.randomBytes(32).toString("hex");
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 min window for user to complete login
-    desktopLoginTokens.set(nonce, { expiresAt, challenge });
-    setTimeout(() => desktopLoginTokens.delete(nonce), 10 * 60 * 1000);
-    return reply.send({ nonce });
-  });
+  app.get(
+    "/desktop-nonce",
+    { schema: { querystring: desktopNonceQuerySchema } },
+    async (request, reply) => {
+      // PKCE: the client sends a SHA-256 challenge of a locally-held verifier that
+      // never transits the browser/OAuth redirect. Binding token retrieval to that
+      // verifier stops anyone who merely observes the nonce (browser history,
+      // Referer, or server logs) from stealing the freshly minted session JWT.
+      const { challenge } = request.query as { challenge?: string };
+      // PKCE is now REQUIRED: every shipped client (desktop 0.4.80015+, mobile
+      // native-auth) sends a SHA-256 base64url challenge (43 chars). Refusing a
+      // challenge-less mint removes the legacy "no challenge -> skip verifier"
+      // path that left an observed nonce redeemable (security audit 2026-07-20,
+      // G4 closed). An out-of-date client that omits it is told to update.
+      if (typeof challenge !== "string" || challenge.length < 32) {
+        return reply
+          .code(400)
+          .send({ error: "Missing PKCE challenge. Please update your Klorn app." });
+      }
+      const nonce = crypto.randomBytes(32).toString("hex");
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 min window for user to complete login
+      desktopLoginTokens.set(nonce, { expiresAt, challenge });
+      setTimeout(() => desktopLoginTokens.delete(nonce), 10 * 60 * 1000);
+      return reply.send({ nonce });
+    },
+  );
 
   // GET /api/auth/google/login — Start Google social login flow
   // Desktop flow: call /desktop-nonce first, then open this URL with ?source=desktop&nonce=
-  app.get("/google/login", async (request, reply) => {
-    const { source, nonce, appScheme } = request.query as {
-      source?: string;
-      nonce?: string;
-      appScheme?: string;
-    };
-    const isDesktop = source === "desktop" && nonce;
-    if (isDesktop) {
-      const entry = desktopLoginTokens.get(nonce as string);
-      if (!entry || entry.jwt !== undefined || entry.relayed || entry.expiresAt < Date.now()) {
-        return reply
-          .code(400)
-          .send({ error: "Invalid or expired nonce. Call /api/auth/desktop-nonce first." });
+  app.get(
+    "/google/login",
+    { schema: { querystring: googleLoginQuerySchema } },
+    async (request, reply) => {
+      const { source, nonce, appScheme } = request.query as {
+        source?: string;
+        nonce?: string;
+        appScheme?: string;
+      };
+      const isDesktop = source === "desktop" && nonce;
+      if (isDesktop) {
+        const entry = desktopLoginTokens.get(nonce as string);
+        if (!entry || entry.jwt !== undefined || entry.relayed || entry.expiresAt < Date.now()) {
+          return reply
+            .code(400)
+            .send({ error: "Invalid or expired nonce. Call /api/auth/desktop-nonce first." });
+        }
       }
-    }
-    const loginState = signToken(
-      {
-        userId: isDesktop ? nonce : "__login__",
-        email: isDesktop ? "__google_login_desktop__" : "__google_login__",
-        // Carry an allowlisted native scheme so the callback can deep-link the
-        // token back to the user's own app instead of parking it for polling.
-        ...(isDesktop && isAllowedNativeScheme(appScheme) ? { appScheme } : {}),
-      },
-      // Same short replay window as every other OAuth-initiating route — an
-      // intercepted state URL must not be honored for the default 7-day
-      // token lifetime (security audit 2026-07-20, consistency with link flows).
-      "10m",
-    );
-    const url = getLoginAuthUrl(loginState);
-    return reply.redirect(url);
-  });
+      const loginState = signToken(
+        {
+          userId: isDesktop ? nonce : "__login__",
+          email: isDesktop ? "__google_login_desktop__" : "__google_login__",
+          // Carry an allowlisted native scheme so the callback can deep-link the
+          // token back to the user's own app instead of parking it for polling.
+          ...(isDesktop && isAllowedNativeScheme(appScheme) ? { appScheme } : {}),
+        },
+        // Same short replay window as every other OAuth-initiating route — an
+        // intercepted state URL must not be honored for the default 7-day
+        // token lifetime (security audit 2026-07-20, consistency with link flows).
+        "10m",
+      );
+      const url = getLoginAuthUrl(loginState);
+      return reply.redirect(url);
+    },
+  );
 
   // GET /api/auth/desktop-token/:nonce — Desktop app polls this after login.
   // Returns 404 for nonces that were not issued by /desktop-nonce so attackers
@@ -972,462 +1010,469 @@ export function authRoutes(app: FastifyInstance) {
   );
 
   // GET /api/auth/google/callback — OAuth callback (handles both login and integration)
-  app.get("/google/callback", async (request, reply) => {
-    const {
-      code,
-      state,
-      error: oauthError,
-    } = request.query as { code?: string; state?: string; error?: string };
+  app.get(
+    "/google/callback",
+    { schema: { querystring: googleCallbackQuerySchema } },
+    async (request, reply) => {
+      const {
+        code,
+        state,
+        error: oauthError,
+      } = request.query as { code?: string; state?: string; error?: string };
 
-    const webUrl = process.env.WEB_URL || "http://localhost:8001";
+      const webUrl = process.env.WEB_URL || "http://localhost:8001";
 
-    // Consent denied (or any provider-side error): Google redirects back with
-    // ?error=access_denied and no code. A raw JSON 400 here strands the user on
-    // an API URL — send them to the login page instead, where a friendly toast
-    // explains and retry is one click. The error value is attacker-influenced
-    // (it rides the redirect), so it is never reflected or logged verbatim —
-    // every variant maps to the fixed google_denied marker.
-    if (oauthError) {
-      console.warn(
-        `[OAUTH] callback returned provider error (access_denied=${oauthError === "access_denied"})`,
-      );
-      return reply.redirect(`${webUrl}/login?error=google_denied`);
-    }
-
-    if (!code) {
-      return reply.code(400).send({ error: "Missing authorization code" });
-    }
-
-    // Validate state parameter — must be a valid server-signed JWT
-    if (!state) {
-      return reply.code(400).send({ error: "Missing state parameter" });
-    }
-    let statePayload: { userId: string; email: string; appScheme?: string };
-    try {
-      statePayload = verifyToken(state);
-    } catch {
-      return reply.code(400).send({ error: "Invalid or expired OAuth state" });
-    }
-
-    try {
-      const oauth2 = getOAuth2Client();
-      const { tokens } = await oauth2.getToken(code);
-
-      // --- Link secondary calendar flow (state marker __link_calendar__) ---
-      // A DIFFERENT Google account is being attached to the ALREADY-logged-in
-      // user (statePayload.userId) purely for calendar free/busy. We do NOT
-      // resolve or switch the user by this Google email — the linked token only
-      // ever feeds checkConflicts.
-      if (statePayload.email === "__link_calendar__") {
-        if (!tokens.access_token) {
-          return reply.redirect(`${webUrl}/calendar?linked=failed`);
-        }
-        const profile = await getGoogleUserInfo(tokens.access_token);
-        if (profile.verified_email !== true) {
-          return reply.redirect(`${webUrl}/calendar?linked=unverified`);
-        }
-        // Re-verify entitlement at callback time. The initiate endpoint gates on
-        // requireEntitled, but the user could downgrade during the 10-min OAuth
-        // window — without this the lapsed user still links a Pro-only secondary
-        // calendar (TOCTOU). Inert while PAYWALL is off (entitled always true),
-        // load-bearing the moment it flips.
-        const calLinker = await prisma.user.findUnique({
-          where: { id: statePayload.userId },
-          select: { plan: true, role: true },
-        });
-        if (!calLinker || !isEntitled(calLinker.plan, calLinker.role)) {
-          return reply.redirect(`${webUrl}/calendar?linked=failed`);
-        }
-        const linkedEmail = normalizeEmail(profile.email);
-        const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
-        await prisma.linkedCalendarAccount.upsert({
-          where: { userId_email: { userId: statePayload.userId, email: linkedEmail } },
-          update: {
-            accessToken: encryptToken(tokens.access_token),
-            refreshToken: encryptOptional(tokens.refresh_token),
-            expiresAt,
-            // Re-linking a previously-revoked calendar clears the reconnect prompt.
-            needsReconnect: false,
-          },
-          create: {
-            userId: statePayload.userId,
-            email: linkedEmail,
-            accessToken: encryptToken(tokens.access_token),
-            refreshToken: encryptOptional(tokens.refresh_token),
-            expiresAt,
-          },
-        });
-        return reply.redirect(`${webUrl}/calendar?linked=success`);
+      // Consent denied (or any provider-side error): Google redirects back with
+      // ?error=access_denied and no code. A raw JSON 400 here strands the user on
+      // an API URL — send them to the login page instead, where a friendly toast
+      // explains and retry is one click. The error value is attacker-influenced
+      // (it rides the redirect), so it is never reflected or logged verbatim —
+      // every variant maps to the fixed google_denied marker.
+      if (oauthError) {
+        console.warn(
+          `[OAUTH] callback returned provider error (access_denied=${oauthError === "access_denied"})`,
+        );
+        return reply.redirect(`${webUrl}/login?error=google_denied`);
       }
 
-      // --- Link secondary inbox flow (state marker __link_inbox__) ---
-      // A DIFFERENT Google account is attached to the ALREADY-logged-in user
-      // (statePayload.userId) as an additional mail source. We NEVER resolve or
-      // switch the session user by this Google email — the linked token only
-      // feeds this user's own firewall. verified_email is checked verbatim (as
-      // the calendar flow does) to block the confused-deputy vector of linking
-      // an unverified/spoofed address.
-      if (statePayload.email === "__link_inbox__") {
-        if (!tokens.access_token) {
-          return reply.redirect(`${webUrl}/settings?inbox=failed`);
-        }
-        const profile = await getGoogleUserInfo(tokens.access_token);
-        if (profile.verified_email !== true) {
-          return reply.redirect(`${webUrl}/settings?inbox=unverified`);
-        }
-        // Re-verify entitlement at callback time (TOCTOU): a Pro user who
-        // downgraded during the 10-min OAuth window must not complete a Pro-only
-        // inbox link. Inert while PAYWALL is off; load-bearing once it flips.
-        const inboxLinker = await prisma.user.findUnique({
-          where: { id: statePayload.userId },
-          select: { plan: true, role: true },
-        });
-        if (!inboxLinker || !isEntitled(inboxLinker.plan, inboxLinker.role)) {
-          return reply.redirect(`${webUrl}/settings?inbox=failed`);
-        }
-        const linkedEmail = normalizeEmail(profile.email);
-        const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
-        // Cap NEW links only: a re-link (existing row → update path) must always
-        // be allowed so a user can never lock themselves out of reconnecting an
-        // inbox they already have.
-        const existingLink = await prisma.linkedInboxAccount.findUnique({
-          // The dedup key gained provider (Phase 0a): this route links Google
-          // accounts, so it addresses the GOOGLE slice of the key explicitly.
-          where: {
-            userId_provider_email: {
-              userId: statePayload.userId,
-              provider: "GOOGLE",
-              email: linkedEmail,
-            },
-          },
-          select: { id: true },
-        });
-        if (!existingLink) {
-          const linkedCount = await prisma.linkedInboxAccount.count({
-            // GOOGLE only: the cap governs Google links; Naver has its own
-            // cap on its own route (MAX_NAVER_ACCOUNTS).
-            where: { userId: statePayload.userId, provider: "GOOGLE" },
-          });
-          if (linkedCount >= MAX_LINKED_INBOXES) {
-            return reply.redirect(`${webUrl}/settings?inbox=limit`);
+      if (!code) {
+        return reply.code(400).send({ error: "Missing authorization code" });
+      }
+
+      // Validate state parameter — must be a valid server-signed JWT
+      if (!state) {
+        return reply.code(400).send({ error: "Missing state parameter" });
+      }
+      let statePayload: { userId: string; email: string; appScheme?: string };
+      try {
+        statePayload = verifyToken(state);
+      } catch {
+        return reply.code(400).send({ error: "Invalid or expired OAuth state" });
+      }
+
+      try {
+        const oauth2 = getOAuth2Client();
+        const { tokens } = await oauth2.getToken(code);
+
+        // --- Link secondary calendar flow (state marker __link_calendar__) ---
+        // A DIFFERENT Google account is being attached to the ALREADY-logged-in
+        // user (statePayload.userId) purely for calendar free/busy. We do NOT
+        // resolve or switch the user by this Google email — the linked token only
+        // ever feeds checkConflicts.
+        if (statePayload.email === "__link_calendar__") {
+          if (!tokens.access_token) {
+            return reply.redirect(`${webUrl}/calendar?linked=failed`);
           }
-        }
-        await prisma.linkedInboxAccount.upsert({
-          where: {
-            userId_provider_email: {
-              userId: statePayload.userId,
-              provider: "GOOGLE",
-              email: linkedEmail,
+          const profile = await getGoogleUserInfo(tokens.access_token);
+          if (profile.verified_email !== true) {
+            return reply.redirect(`${webUrl}/calendar?linked=unverified`);
+          }
+          // Re-verify entitlement at callback time. The initiate endpoint gates on
+          // requireEntitled, but the user could downgrade during the 10-min OAuth
+          // window — without this the lapsed user still links a Pro-only secondary
+          // calendar (TOCTOU). Inert while PAYWALL is off (entitled always true),
+          // load-bearing the moment it flips.
+          const calLinker = await prisma.user.findUnique({
+            where: { id: statePayload.userId },
+            select: { plan: true, role: true },
+          });
+          if (!calLinker || !isEntitled(calLinker.plan, calLinker.role)) {
+            return reply.redirect(`${webUrl}/calendar?linked=failed`);
+          }
+          const linkedEmail = normalizeEmail(profile.email);
+          const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
+          await prisma.linkedCalendarAccount.upsert({
+            where: { userId_email: { userId: statePayload.userId, email: linkedEmail } },
+            update: {
+              accessToken: encryptToken(tokens.access_token),
+              refreshToken: encryptOptional(tokens.refresh_token),
+              expiresAt,
+              // Re-linking a previously-revoked calendar clears the reconnect prompt.
+              needsReconnect: false,
             },
-          },
-          update: {
-            accessToken: encryptToken(tokens.access_token),
-            refreshToken: encryptOptional(tokens.refresh_token),
-            expiresAt,
-            // Re-linking a previously-revoked inbox clears the reconnect prompt.
-            needsReconnect: false,
-          },
-          create: {
-            userId: statePayload.userId,
-            email: linkedEmail,
-            accessToken: encryptToken(tokens.access_token),
-            refreshToken: encryptOptional(tokens.refresh_token),
-            expiresAt,
-          },
-        });
-        return reply.redirect(`${webUrl}/settings?inbox=success`);
-      }
-
-      // --- Google Social Login flow (state signed with __google_login__ or __google_login_desktop__ marker) ---
-      const isGoogleLogin =
-        statePayload.email === "__google_login__" ||
-        statePayload.email === "__google_login_desktop__";
-      const isDesktopLogin = statePayload.email === "__google_login_desktop__";
-      if (isGoogleLogin) {
-        if (!tokens.access_token) {
-          return reply.redirect(`${webUrl}/login?error=google_failed`);
+            create: {
+              userId: statePayload.userId,
+              email: linkedEmail,
+              accessToken: encryptToken(tokens.access_token),
+              refreshToken: encryptOptional(tokens.refresh_token),
+              expiresAt,
+            },
+          });
+          return reply.redirect(`${webUrl}/calendar?linked=success`);
         }
 
-        const profile = await getGoogleUserInfo(tokens.access_token);
-
-        // Trust this Google identity to resolve/link an account ONLY when
-        // Google itself verified the email. Without this, an OAuth token for an
-        // account whose (unverified) email equals a victim's existing
-        // password-based account would log straight in as the victim and stamp
-        // emailVerified:true — the same check the OIDC push path already
-        // enforces (gmail-push.ts). Consumer @gmail.com is always verified;
-        // this closes the Workspace/custom-domain unverified-alias vector.
-        if (profile.verified_email !== true) {
-          return reply.redirect(`${webUrl}/login?error=google_unverified`);
-        }
-
-        // Normalize to trimmed-lowercase like every email/password path — else a
-        // Workspace/custom-domain user whose Google email casing differs from
-        // their password-account email resolves to a DIFFERENT (or duplicate)
-        // row than the case-insensitive password lookups.
-        const email = normalizeEmail(profile.email);
-
-        // Find or create user by email. Wrapped with withDbRetry so a Neon
-        // cold-start during sign-in (suspended compute waking up) does not
-        // surface as a hard "Can't reach database server" failure to the
-        // user — silent retry covers the wake-up window.
-        let user = await withDbRetry(() => prisma.user.findUnique({ where: { email } }), {
-          label: "oauth.find_user_by_email",
-        });
-        const isNewGoogleUser = !user;
-        // Defense in depth: never let Google login resolve INTO the shared demo
-        // account (a legacy demo-user row left from before the demo lockout
-        // shipped). The password /login guard only covers its own path; the demo
-        // email is on the operator's own domain, so this is belt-and-suspenders.
-        if (user && isDemoUser(user.id) && !isDemoAccessEnabled()) {
-          return reply.redirect(`${webUrl}/login?error=google_failed`);
-        }
-        if (!user) {
-          // Beta gate: when BETA_GATE_ENABLED=true, the Google sign-in path
-          // can only create a new user if they have an APPROVED waitlist
-          // entry. This mirrors the email/password register endpoint so the
-          // two paths cannot diverge. Existing users always pass through.
-          const betaGateEnabled = process.env.BETA_GATE_ENABLED === "true";
-          if (betaGateEnabled) {
-            const waitlistEntry = await prisma.waitlist.findUnique({
-              where: { email },
-              select: { status: true },
+        // --- Link secondary inbox flow (state marker __link_inbox__) ---
+        // A DIFFERENT Google account is attached to the ALREADY-logged-in user
+        // (statePayload.userId) as an additional mail source. We NEVER resolve or
+        // switch the session user by this Google email — the linked token only
+        // feeds this user's own firewall. verified_email is checked verbatim (as
+        // the calendar flow does) to block the confused-deputy vector of linking
+        // an unverified/spoofed address.
+        if (statePayload.email === "__link_inbox__") {
+          if (!tokens.access_token) {
+            return reply.redirect(`${webUrl}/settings?inbox=failed`);
+          }
+          const profile = await getGoogleUserInfo(tokens.access_token);
+          if (profile.verified_email !== true) {
+            return reply.redirect(`${webUrl}/settings?inbox=unverified`);
+          }
+          // Re-verify entitlement at callback time (TOCTOU): a Pro user who
+          // downgraded during the 10-min OAuth window must not complete a Pro-only
+          // inbox link. Inert while PAYWALL is off; load-bearing once it flips.
+          const inboxLinker = await prisma.user.findUnique({
+            where: { id: statePayload.userId },
+            select: { plan: true, role: true },
+          });
+          if (!inboxLinker || !isEntitled(inboxLinker.plan, inboxLinker.role)) {
+            return reply.redirect(`${webUrl}/settings?inbox=failed`);
+          }
+          const linkedEmail = normalizeEmail(profile.email);
+          const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
+          // Cap NEW links only: a re-link (existing row → update path) must always
+          // be allowed so a user can never lock themselves out of reconnecting an
+          // inbox they already have.
+          const existingLink = await prisma.linkedInboxAccount.findUnique({
+            // The dedup key gained provider (Phase 0a): this route links Google
+            // accounts, so it addresses the GOOGLE slice of the key explicitly.
+            where: {
+              userId_provider_email: {
+                userId: statePayload.userId,
+                provider: "GOOGLE",
+                email: linkedEmail,
+              },
+            },
+            select: { id: true },
+          });
+          if (!existingLink) {
+            const linkedCount = await prisma.linkedInboxAccount.count({
+              // GOOGLE only: the cap governs Google links; Naver has its own
+              // cap on its own route (MAX_NAVER_ACCOUNTS).
+              where: { userId: statePayload.userId, provider: "GOOGLE" },
             });
-            if (waitlistEntry?.status !== "APPROVED") {
-              return reply.redirect(`${webUrl}/login?error=invite_only`);
+            if (linkedCount >= MAX_LINKED_INBOXES) {
+              return reply.redirect(`${webUrl}/settings?inbox=limit`);
             }
           }
-          const betaAutoProGrant = await evaluateBetaAutoPro();
-          user = await withDbRetry(
-            () =>
-              prisma.user.create({
-                data: {
-                  email,
-                  name: profile.name || email.split("@")[0],
-                  passwordHash: null, // Google-only user, no password
-                  emailVerified: true, // Google accounts are pre-verified
-                  ...(betaGateEnabled && { plan: "PRO" }),
-                  ...(betaAutoProGrant ?? {}),
-                },
-              }),
-            { label: "oauth.create_user" },
-          );
-        } else if (!user.emailVerified) {
-          // A Google login proves ownership of this address. If the existing row
-          // was created via self-serve password registration but never verified,
-          // it may be a pre-registration takeover — an attacker who set a
-          // password on the victim's address before they signed in with Google
-          // (security audit 2026-07-21). Invalidate that password AND all its
-          // sessions so only the Google-verified owner keeps control; the
-          // attacker can no longer log in with the password they set.
-          const wasUnverifiedPassword = Boolean(user!.passwordHash);
+          await prisma.linkedInboxAccount.upsert({
+            where: {
+              userId_provider_email: {
+                userId: statePayload.userId,
+                provider: "GOOGLE",
+                email: linkedEmail,
+              },
+            },
+            update: {
+              accessToken: encryptToken(tokens.access_token),
+              refreshToken: encryptOptional(tokens.refresh_token),
+              expiresAt,
+              // Re-linking a previously-revoked inbox clears the reconnect prompt.
+              needsReconnect: false,
+            },
+            create: {
+              userId: statePayload.userId,
+              email: linkedEmail,
+              accessToken: encryptToken(tokens.access_token),
+              refreshToken: encryptOptional(tokens.refresh_token),
+              expiresAt,
+            },
+          });
+          return reply.redirect(`${webUrl}/settings?inbox=success`);
+        }
+
+        // --- Google Social Login flow (state signed with __google_login__ or __google_login_desktop__ marker) ---
+        const isGoogleLogin =
+          statePayload.email === "__google_login__" ||
+          statePayload.email === "__google_login_desktop__";
+        const isDesktopLogin = statePayload.email === "__google_login_desktop__";
+        if (isGoogleLogin) {
+          if (!tokens.access_token) {
+            return reply.redirect(`${webUrl}/login?error=google_failed`);
+          }
+
+          const profile = await getGoogleUserInfo(tokens.access_token);
+
+          // Trust this Google identity to resolve/link an account ONLY when
+          // Google itself verified the email. Without this, an OAuth token for an
+          // account whose (unverified) email equals a victim's existing
+          // password-based account would log straight in as the victim and stamp
+          // emailVerified:true — the same check the OIDC push path already
+          // enforces (gmail-push.ts). Consumer @gmail.com is always verified;
+          // this closes the Workspace/custom-domain unverified-alias vector.
+          if (profile.verified_email !== true) {
+            return reply.redirect(`${webUrl}/login?error=google_unverified`);
+          }
+
+          // Normalize to trimmed-lowercase like every email/password path — else a
+          // Workspace/custom-domain user whose Google email casing differs from
+          // their password-account email resolves to a DIFFERENT (or duplicate)
+          // row than the case-insensitive password lookups.
+          const email = normalizeEmail(profile.email);
+
+          // Find or create user by email. Wrapped with withDbRetry so a Neon
+          // cold-start during sign-in (suspended compute waking up) does not
+          // surface as a hard "Can't reach database server" failure to the
+          // user — silent retry covers the wake-up window.
+          let user = await withDbRetry(() => prisma.user.findUnique({ where: { email } }), {
+            label: "oauth.find_user_by_email",
+          });
+          const isNewGoogleUser = !user;
+          // Defense in depth: never let Google login resolve INTO the shared demo
+          // account (a legacy demo-user row left from before the demo lockout
+          // shipped). The password /login guard only covers its own path; the demo
+          // email is on the operator's own domain, so this is belt-and-suspenders.
+          if (user && isDemoUser(user.id) && !isDemoAccessEnabled()) {
+            return reply.redirect(`${webUrl}/login?error=google_failed`);
+          }
+          if (!user) {
+            // Beta gate: when BETA_GATE_ENABLED=true, the Google sign-in path
+            // can only create a new user if they have an APPROVED waitlist
+            // entry. This mirrors the email/password register endpoint so the
+            // two paths cannot diverge. Existing users always pass through.
+            const betaGateEnabled = process.env.BETA_GATE_ENABLED === "true";
+            if (betaGateEnabled) {
+              const waitlistEntry = await prisma.waitlist.findUnique({
+                where: { email },
+                select: { status: true },
+              });
+              if (waitlistEntry?.status !== "APPROVED") {
+                return reply.redirect(`${webUrl}/login?error=invite_only`);
+              }
+            }
+            const betaAutoProGrant = await evaluateBetaAutoPro();
+            user = await withDbRetry(
+              () =>
+                prisma.user.create({
+                  data: {
+                    email,
+                    name: profile.name || email.split("@")[0],
+                    passwordHash: null, // Google-only user, no password
+                    emailVerified: true, // Google accounts are pre-verified
+                    ...(betaGateEnabled && { plan: "PRO" }),
+                    ...(betaAutoProGrant ?? {}),
+                  },
+                }),
+              { label: "oauth.create_user" },
+            );
+          } else if (!user.emailVerified) {
+            // A Google login proves ownership of this address. If the existing row
+            // was created via self-serve password registration but never verified,
+            // it may be a pre-registration takeover — an attacker who set a
+            // password on the victim's address before they signed in with Google
+            // (security audit 2026-07-21). Invalidate that password AND all its
+            // sessions so only the Google-verified owner keeps control; the
+            // attacker can no longer log in with the password they set.
+            const wasUnverifiedPassword = Boolean(user!.passwordHash);
+            await withDbRetry(
+              () =>
+                prisma.user.update({
+                  where: { id: user!.id },
+                  data: {
+                    emailVerified: true,
+                    ...(wasUnverifiedPassword
+                      ? { passwordHash: null, sessionsInvalidatedAt: new Date() }
+                      : {}),
+                  },
+                }),
+              { label: "oauth.verify_user" },
+            );
+            if (wasUnverifiedPassword) {
+              await prisma.device.deleteMany({ where: { userId: user!.id } }).catch(() => {});
+            }
+          }
+
+          // Incremental auth: login requests identity scopes only, so there is
+          // no Gmail/Calendar grant to persist here. The primary Google token is
+          // stored exclusively by the connect flow (__oauth_state__ branch
+          // below) — saving the identity-only token would make every
+          // "has a UserToken row ⇒ has Gmail" consumer (connection status,
+          // watch renewal, sync schedulers) treat this user as connected and
+          // 403 forever.
+
+          // Auto-create AutomationConfig with defaults
           await withDbRetry(
             () =>
-              prisma.user.update({
-                where: { id: user!.id },
-                data: {
-                  emailVerified: true,
-                  ...(wasUnverifiedPassword
-                    ? { passwordHash: null, sessionsInvalidatedAt: new Date() }
-                    : {}),
-                },
+              prisma.automationConfig.upsert({
+                where: { userId: user!.id },
+                create: { userId: user!.id },
+                update: {},
               }),
-            { label: "oauth.verify_user" },
+            { label: "oauth.upsert_automation_config" },
           );
-          if (wasUnverifiedPassword) {
-            await prisma.device.deleteMany({ where: { userId: user!.id } }).catch(() => {});
-          }
-        }
 
-        // Incremental auth: login requests identity scopes only, so there is
-        // no Gmail/Calendar grant to persist here. The primary Google token is
-        // stored exclusively by the connect flow (__oauth_state__ branch
-        // below) — saving the identity-only token would make every
-        // "has a UserToken row ⇒ has Gmail" consumer (connection status,
-        // watch renewal, sync schedulers) treat this user as connected and
-        // 403 forever.
-
-        // Auto-create AutomationConfig with defaults
-        await withDbRetry(
-          () =>
-            prisma.automationConfig.upsert({
-              where: { userId: user!.id },
-              create: { userId: user!.id },
-              update: {},
-            }),
-          { label: "oauth.upsert_automation_config" },
-        );
-
-        // First Google sign-in for this address → founder welcome (once per
-        // user, enforced inside the helper). Google profiles are pre-verified,
-        // so the address is real. Fire-and-forget so it never delays the
-        // redirect, but log on rejection — never silent.
-        if (isNewGoogleUser) {
-          void maybeSendWelcomeEmail({ id: user.id, email: user.email, name: user.name }).catch(
-            (err) => console.error(`[WELCOME] google sign-in welcome failed for ${user!.id}:`, err),
-          );
-        }
-
-        const token = signToken({ userId: user.id, email: user.email });
-
-        // Register device session for Google login
-        const ip =
-          (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || request.ip;
-        const ua = request.headers["user-agent"] || "";
-        await registerDevice(user.id, token, {
-          deviceName: parseDeviceName(ua),
-          deviceType: parseDeviceType(ua),
-          ipAddress: ip,
-        });
-        triggerDueLoginBriefing(user.id, 10_000);
-
-        // Desktop app: update the server-side nonce entry with the JWT
-        if (isDesktopLogin) {
-          const nonce = statePayload.userId; // nonce was stored in userId field
-          // App-scheme relay (RFC 8252): when the client registered an
-          // allowlisted native scheme, deliver the JWT via a one-time exchange
-          // code deep-linked to THAT app on the user's device. This closes
-          // login-CSRF — the token reaches whoever holds the app on the device
-          // that completed OAuth, not whoever polls the nonce. No scheme → the
-          // legacy poll flow (kept for clients that haven't adopted the relay).
-          if (isAllowedNativeScheme(statePayload.appScheme)) {
-            const relayCode = crypto.randomBytes(20).toString("hex");
-            exchangeCodes.set(relayCode, { jwt: token, expiresAt: Date.now() + 60_000 });
-            setTimeout(() => exchangeCodes.delete(relayCode), 60_000);
-            // Keep the entry, still WITHOUT a jwt — deleting it made the app's
-            // poll answer "nonce not recognized" (404) the moment the browser
-            // blocked the scheme launch, turning a recoverable state into a
-            // hard sign-in failure. `relayed` burns the nonce for starting
-            // another login; the JWT is still never parked, so an attacker who
-            // knows the nonce can never poll out the victim's session.
-            const relayedEntry = desktopLoginTokens.get(nonce);
-            if (relayedEntry) {
-              desktopLoginTokens.set(nonce, { ...relayedEntry, relayed: true });
-            }
-            reply.header("Cache-Control", "no-store");
-            reply.type("text/html");
-            return reply.send(
-              desktopHandoffPage(`${statePayload.appScheme}://oauth-callback?code=${relayCode}`),
+          // First Google sign-in for this address → founder welcome (once per
+          // user, enforced inside the helper). Google profiles are pre-verified,
+          // so the address is real. Fire-and-forget so it never delays the
+          // redirect, but log on rejection — never silent.
+          if (isNewGoogleUser) {
+            void maybeSendWelcomeEmail({ id: user.id, email: user.email, name: user.name }).catch(
+              (err) =>
+                console.error(`[WELCOME] google sign-in welcome failed for ${user!.id}:`, err),
             );
           }
-          const existing = desktopLoginTokens.get(nonce);
-          if (existing) {
-            desktopLoginTokens.set(nonce, { ...existing, jwt: token });
-          }
-          reply.type("text/html");
-          return reply.send(`<!DOCTYPE html>
+
+          const token = signToken({ userId: user.id, email: user.email });
+
+          // Register device session for Google login
+          const ip =
+            (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || request.ip;
+          const ua = request.headers["user-agent"] || "";
+          await registerDevice(user.id, token, {
+            deviceName: parseDeviceName(ua),
+            deviceType: parseDeviceType(ua),
+            ipAddress: ip,
+          });
+          triggerDueLoginBriefing(user.id, 10_000);
+
+          // Desktop app: update the server-side nonce entry with the JWT
+          if (isDesktopLogin) {
+            const nonce = statePayload.userId; // nonce was stored in userId field
+            // App-scheme relay (RFC 8252): when the client registered an
+            // allowlisted native scheme, deliver the JWT via a one-time exchange
+            // code deep-linked to THAT app on the user's device. This closes
+            // login-CSRF — the token reaches whoever holds the app on the device
+            // that completed OAuth, not whoever polls the nonce. No scheme → the
+            // legacy poll flow (kept for clients that haven't adopted the relay).
+            if (isAllowedNativeScheme(statePayload.appScheme)) {
+              const relayCode = crypto.randomBytes(20).toString("hex");
+              exchangeCodes.set(relayCode, { jwt: token, expiresAt: Date.now() + 60_000 });
+              setTimeout(() => exchangeCodes.delete(relayCode), 60_000);
+              // Keep the entry, still WITHOUT a jwt — deleting it made the app's
+              // poll answer "nonce not recognized" (404) the moment the browser
+              // blocked the scheme launch, turning a recoverable state into a
+              // hard sign-in failure. `relayed` burns the nonce for starting
+              // another login; the JWT is still never parked, so an attacker who
+              // knows the nonce can never poll out the victim's session.
+              const relayedEntry = desktopLoginTokens.get(nonce);
+              if (relayedEntry) {
+                desktopLoginTokens.set(nonce, { ...relayedEntry, relayed: true });
+              }
+              reply.header("Cache-Control", "no-store");
+              reply.type("text/html");
+              return reply.send(
+                desktopHandoffPage(`${statePayload.appScheme}://oauth-callback?code=${relayCode}`),
+              );
+            }
+            const existing = desktopLoginTokens.get(nonce);
+            if (existing) {
+              desktopLoginTokens.set(nonce, { ...existing, jwt: token });
+            }
+            reply.type("text/html");
+            return reply.send(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Klorn Login</title>
 <style>body{font-family:system-ui;background:#0a0a0a;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
 .box{text-align:center;padding:40px}.ok{font-size:48px;margin-bottom:16px}.t{font-size:14px;color:#9ca3af;margin-top:12px}</style>
 </head><body><div class="box"><div class="ok">✓</div><h2>Login Successful</h2>
 <p class="t">Return to the Klorn desktop app.<br>You can close this tab.</p>
 </div></body></html>`);
+          }
+
+          // Issue a short-lived exchange code instead of putting the JWT in the URL.
+          // The frontend exchanges it via POST /api/auth/exchange-code (60 s window).
+          // No integration flag: login is identity-only now, so it has nothing
+          // truthful to say about the Gmail/Calendar connection state.
+          const xcode = crypto.randomBytes(20).toString("hex");
+          exchangeCodes.set(xcode, { jwt: token, expiresAt: Date.now() + 60_000 });
+          setTimeout(() => exchangeCodes.delete(xcode), 60_000);
+          return reply.redirect(`${webUrl}/auth/callback?code=${xcode}`);
         }
 
-        // Issue a short-lived exchange code instead of putting the JWT in the URL.
-        // The frontend exchanges it via POST /api/auth/exchange-code (60 s window).
-        // No integration flag: login is identity-only now, so it has nothing
-        // truthful to say about the Gmail/Calendar connection state.
-        const xcode = crypto.randomBytes(20).toString("hex");
-        exchangeCodes.set(xcode, { jwt: token, expiresAt: Date.now() + 60_000 });
-        setTimeout(() => exchangeCodes.delete(xcode), 60_000);
-        return reply.redirect(`${webUrl}/auth/callback?code=${xcode}`);
-      }
+        // --- Gmail/Calendar integration flow (state signed with __oauth_state__ marker) ---
+        if (statePayload.email !== "__oauth_state__") {
+          return reply.code(400).send({ error: "Invalid OAuth state" });
+        }
+        const userId = statePayload.userId;
+        const user = await withDbRetry(() => prisma.user.findUnique({ where: { id: userId } }), {
+          label: "oauth.integration.find_user",
+        });
+        if (!user) {
+          return reply.code(404).send({ error: "User not found" });
+        }
 
-      // --- Gmail/Calendar integration flow (state signed with __oauth_state__ marker) ---
-      if (statePayload.email !== "__oauth_state__") {
-        return reply.code(400).send({ error: "Invalid OAuth state" });
-      }
-      const userId = statePayload.userId;
-      const user = await withDbRetry(() => prisma.user.findUnique({ where: { id: userId } }), {
-        label: "oauth.integration.find_user",
-      });
-      if (!user) {
-        return reply.code(404).send({ error: "User not found" });
-      }
-
-      // Refuse partial token. See the matching guard in the Google login flow
-      // above for the full reasoning — G Suite + unverified-app sometimes
-      // strips refresh_token, and a 1-hour-then-fail loop is worse than a
-      // visible error.
-      const existingIntegrationToken = await withDbRetry(
-        () =>
-          prisma.userToken.findUnique({
-            where: { userId_provider: { userId: user.id, provider: "google" } },
-            select: { refreshToken: true },
-          }),
-        { label: "oauth.integration.find_existing_token" },
-      );
-      const integrationHasUsableRefreshToken =
-        !!tokens.refresh_token || !!existingIntegrationToken?.refreshToken;
-      if (!integrationHasUsableRefreshToken) {
-        console.warn(
-          `[GOOGLE] Refusing to save partial integration token for ${user.email} — refresh_token missing, no prior token to preserve`,
+        // Refuse partial token. See the matching guard in the Google login flow
+        // above for the full reasoning — G Suite + unverified-app sometimes
+        // strips refresh_token, and a 1-hour-then-fail loop is worse than a
+        // visible error.
+        const existingIntegrationToken = await withDbRetry(
+          () =>
+            prisma.userToken.findUnique({
+              where: { userId_provider: { userId: user.id, provider: "google" } },
+              select: { refreshToken: true },
+            }),
+          { label: "oauth.integration.find_existing_token" },
         );
-        return reply.redirect(`${webUrl}/settings?google=offline_access_denied`);
-      }
+        const integrationHasUsableRefreshToken =
+          !!tokens.refresh_token || !!existingIntegrationToken?.refreshToken;
+        if (!integrationHasUsableRefreshToken) {
+          console.warn(
+            `[GOOGLE] Refusing to save partial integration token for ${user.email} — refresh_token missing, no prior token to preserve`,
+          );
+          return reply.redirect(`${webUrl}/settings?google=offline_access_denied`);
+        }
 
-      await withDbRetry(
-        () =>
-          prisma.userToken.upsert({
-            where: { userId_provider: { userId: user.id, provider: "google" } },
-            create: {
-              userId: user.id,
-              provider: "google",
-              accessToken: encryptToken(tokens.access_token ?? ""),
-              refreshToken: encryptOptional(tokens.refresh_token),
-              expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-            },
-            update: {
-              accessToken: encryptToken(tokens.access_token ?? ""),
-              // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
-              ...(tokens.refresh_token ? { refreshToken: encryptToken(tokens.refresh_token) } : {}),
-              expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-            },
-          }),
-        { label: "oauth.integration.upsert_user_token" },
-      );
+        await withDbRetry(
+          () =>
+            prisma.userToken.upsert({
+              where: { userId_provider: { userId: user.id, provider: "google" } },
+              create: {
+                userId: user.id,
+                provider: "google",
+                accessToken: encryptToken(tokens.access_token ?? ""),
+                refreshToken: encryptOptional(tokens.refresh_token),
+                expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+              },
+              update: {
+                accessToken: encryptToken(tokens.access_token ?? ""),
+                // Only overwrite refreshToken if Google returned a new one — preserve existing otherwise
+                ...(tokens.refresh_token
+                  ? { refreshToken: encryptToken(tokens.refresh_token) }
+                  : {}),
+                expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+              },
+            }),
+          { label: "oauth.integration.upsert_user_token" },
+        );
 
-      // Register the Gmail Pub/Sub watch so new mail pushes in near-real-time
-      // from the moment the account is connected. This used to live only on
-      // the login path; now that connect is the sole place the primary grant
-      // is stored, a fresh connect would otherwise have NO watch until the
-      // hourly renewal sweep — the "why isn't mail instant?" gap. No-ops
-      // cleanly when GMAIL_PUBSUB_TOPIC is unset; fire-and-forget so it never
-      // delays the OAuth redirect.
-      void registerGmailWatch(user.id).catch((err) => {
-        // Connect is now the ONLY place a fresh watch is registered — a silent
-        // failure here leaves a brand-new connection push-less until the next
-        // renewal sweep, so alert like the sweep does instead of stdout-only.
-        console.warn(`[GMAIL-WATCH] register on connect failed for ${user.id}:`, err);
-        captureError(err, { tags: { scope: "auth.oauth.connect.watch" } });
-      });
+        // Register the Gmail Pub/Sub watch so new mail pushes in near-real-time
+        // from the moment the account is connected. This used to live only on
+        // the login path; now that connect is the sole place the primary grant
+        // is stored, a fresh connect would otherwise have NO watch until the
+        // hourly renewal sweep — the "why isn't mail instant?" gap. No-ops
+        // cleanly when GMAIL_PUBSUB_TOPIC is unset; fire-and-forget so it never
+        // delays the OAuth redirect.
+        void registerGmailWatch(user.id).catch((err) => {
+          // Connect is now the ONLY place a fresh watch is registered — a silent
+          // failure here leaves a brand-new connection push-less until the next
+          // renewal sweep, so alert like the sweep does instead of stdout-only.
+          console.warn(`[GMAIL-WATCH] register on connect failed for ${user.id}:`, err);
+          captureError(err, { tags: { scope: "auth.oauth.connect.watch" } });
+        });
 
-      return reply.redirect(`${webUrl}/settings?google=connected`);
-    } catch (err) {
-      // Never reflect the raw provider/library error to the client — it can leak
-      // internal infrastructure detail (hostnames, library internals, stack
-      // fragments). Log the real error server-side; show a generic message. The
-      // message is now a constant, so the desktop HTML needs no escaping.
-      console.error("[OAUTH] callback failed:", err instanceof Error ? err.message : String(err));
-      captureError(err, { tags: { scope: "auth.oauth.callback" } });
-      const message = "Google authorization failed. Please try again.";
-      if (statePayload.email === "__google_login__") {
-        return reply.redirect(`${webUrl}/login?error=${encodeURIComponent(message)}`);
-      }
-      if (statePayload.email === "__google_login_desktop__") {
-        reply.type("text/html");
-        return reply.send(`<!DOCTYPE html>
+        return reply.redirect(`${webUrl}/settings?google=connected`);
+      } catch (err) {
+        // Never reflect the raw provider/library error to the client — it can leak
+        // internal infrastructure detail (hostnames, library internals, stack
+        // fragments). Log the real error server-side; show a generic message. The
+        // message is now a constant, so the desktop HTML needs no escaping.
+        console.error("[OAUTH] callback failed:", err instanceof Error ? err.message : String(err));
+        captureError(err, { tags: { scope: "auth.oauth.callback" } });
+        const message = "Google authorization failed. Please try again.";
+        if (statePayload.email === "__google_login__") {
+          return reply.redirect(`${webUrl}/login?error=${encodeURIComponent(message)}`);
+        }
+        if (statePayload.email === "__google_login_desktop__") {
+          reply.type("text/html");
+          return reply.send(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Klorn Login</title>
 <style>body{font-family:system-ui;background:#0a0a0a;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
 .box{text-align:center;padding:40px}.err{font-size:48px;margin-bottom:16px;color:#ef4444}.t{font-size:14px;color:#9ca3af;margin-top:12px}</style>
 </head><body><div class="box"><div class="err">✕</div><h2>Login Failed</h2>
 <p class="t">${message}<br>Please try again in Klorn Desktop.</p>
 </div></body></html>`);
+        }
+        return reply.code(500).send({ error: message });
       }
-      return reply.code(500).send({ error: message });
-    }
-  });
+    },
+  );
 
   // DELETE /api/auth/google — Disconnect Google account
   app.delete("/google", { preHandler: requireAuth }, async (request, reply) => {

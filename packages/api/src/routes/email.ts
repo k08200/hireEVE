@@ -582,6 +582,46 @@ export function safeAttachmentFilename(filename: string): string {
   return trimmed || "attachment";
 }
 
+const listEmailsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    filter: { type: "string", maxLength: 500 },
+    search: { type: "string", maxLength: 500 },
+    category: { type: "string", maxLength: 500 },
+    page: { type: "string", maxLength: 500 },
+    inbox: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const listThreadsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    search: { type: "string", maxLength: 500 },
+    priority: { type: "string", maxLength: 500 },
+    unread: { type: "string", maxLength: 500 },
+    category: { type: "string", maxLength: 500 },
+    page: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const emailNextQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    queue: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const emailDetailQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    markRead: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export async function emailRoutes(app: FastifyInstance) {
   // Every email route is private user mail. Gate the whole plugin (including
   // the sub-route groups registered below, which share this encapsulation
@@ -611,285 +651,297 @@ export async function emailRoutes(app: FastifyInstance) {
 
   // ─── Sync & List Emails ───────────────────────────────────────────────
   // GET /api/email?filter=unread|urgent|reply-needed|attachments|candidates&search=keyword&category=billing&page=1
-  app.get("/", async (request): Promise<EmailListResponse> => {
-    const { filter, search, category, page, inbox } = request.query as {
-      filter?: string;
-      search?: string;
-      category?: string;
-      page?: string;
-      // Multi-account: "all"/absent = every inbox, "primary" = the user's own
-      // Google inbox, or a specific LinkedInboxAccount id. Always userId-scoped
-      // below, so a foreign/garbage id yields zero rows — never a cross-user leak.
-      inbox?: string;
-    };
-    const uid = getUserId(request);
-    const pageNum = parsePageNum(page);
-    // Heavy-email users (~200/day) clicking "Load more" 10 times to see one
-    // morning's intake was the #1 dogfood friction. 50 keeps the first
-    // payload under ~25 KB once joined with attachment summaries and trust
-    // scores; the cap stays as a Gmail throttle guardrail.
-    const pageSize = 50;
+  app.get(
+    "/",
+    { schema: { querystring: listEmailsQuerySchema } },
+    async (request): Promise<EmailListResponse> => {
+      const { filter, search, category, page, inbox } = request.query as {
+        filter?: string;
+        search?: string;
+        category?: string;
+        page?: string;
+        // Multi-account: "all"/absent = every inbox, "primary" = the user's own
+        // Google inbox, or a specific LinkedInboxAccount id. Always userId-scoped
+        // below, so a foreign/garbage id yields zero rows — never a cross-user leak.
+        inbox?: string;
+      };
+      const uid = getUserId(request);
+      const pageNum = parsePageNum(page);
+      // Heavy-email users (~200/day) clicking "Load more" 10 times to see one
+      // morning's intake was the #1 dogfood friction. 50 keeps the first
+      // payload under ~25 KB once joined with attachment summaries and trust
+      // scores; the cap stays as a Gmail throttle guardrail.
+      const pageSize = 50;
 
-    // Check if Gmail is connected
-    const token = await prisma.userToken.findFirst({ where: { userId: uid, provider: "google" } });
+      // Check if Gmail is connected
+      const token = await prisma.userToken.findFirst({
+        where: { userId: uid, provider: "google" },
+      });
 
-    if (!token) {
-      // Demo mode
-      let emails = [...DEMO_EMAILS];
-      if (filter === "unread") emails = emails.filter((e) => !e.isRead);
-      if (filter === "urgent") emails = emails.filter((e) => e.priority === "URGENT");
+      if (!token) {
+        // Demo mode
+        let emails = [...DEMO_EMAILS];
+        if (filter === "unread") emails = emails.filter((e) => !e.isRead);
+        if (filter === "urgent") emails = emails.filter((e) => e.priority === "URGENT");
+        if (filter === "reply-needed") {
+          emails = emails.filter((e) =>
+            looksReplyNeeded({
+              priority: e.priority,
+              category: e.category,
+              actionItems: e.actionItems,
+              from: e.from,
+            }),
+          );
+        }
+        if (filter === "attachments" || filter === "candidates") emails = [];
+        if (search) {
+          const s = search.toLowerCase();
+          emails = emails.filter(
+            (e) =>
+              e.subject.toLowerCase().includes(s) ||
+              e.from.toLowerCase().includes(s) ||
+              e.snippet.toLowerCase().includes(s),
+          );
+        }
+        if (category) emails = emails.filter((e) => e.category === category);
+        return {
+          emails: emails.map((e) => ({
+            ...e,
+            linkedInboxAccountId: null,
+            senderEmail: senderEmail(e.from) || null,
+            trust: null,
+            needsReply: looksReplyNeeded({
+              priority: e.priority,
+              category: e.category,
+              actionItems: e.actionItems,
+              from: e.from,
+            }),
+            attachmentCount: 0,
+            attachmentCandidateCount: 0,
+            attachmentPendingCount: 0,
+            attachmentFallbackCount: 0,
+            attachmentUnsupportedCount: 0,
+            attachmentCategories: [],
+            candidateProfilePreview: null,
+            candidateIntake: null,
+          })),
+          source: "demo",
+          total: emails.length,
+          unread: emails.filter((e) => !e.isRead).length,
+          page: 1,
+        };
+      }
+
+      // Build query (reads from DB only — sync via POST /api/email/sync)
+      // biome-ignore lint/suspicious/noExplicitAny: dynamic Prisma where clause
+      const where: Record<string, any> = { userId: uid };
+      if (filter === "unread") where.isRead = false;
+      if (filter === "urgent") where.priority = "URGENT";
       if (filter === "reply-needed") {
-        emails = emails.filter((e) =>
-          looksReplyNeeded({
-            priority: e.priority,
-            category: e.category,
-            actionItems: e.actionItems,
-            from: e.from,
-          }),
-        );
+        where.needsReply = true;
       }
-      if (filter === "attachments" || filter === "candidates") emails = [];
+      if (filter === "attachments") {
+        where.attachments = { some: {} };
+      }
+      if (filter === "candidates") {
+        where.attachments = {
+          some: {
+            OR: [
+              { category: { in: ["resume", "profile", "portfolio", "audition"] } },
+              { filename: { contains: "resume", mode: "insensitive" } },
+              { filename: { contains: "cv", mode: "insensitive" } },
+              { filename: { contains: "profile", mode: "insensitive" } },
+              { filename: { contains: "portfolio", mode: "insensitive" } },
+              { filename: { contains: "audition", mode: "insensitive" } },
+              { filename: { contains: "casting", mode: "insensitive" } },
+              { filename: { contains: "showreel", mode: "insensitive" } },
+              { filename: { contains: "reel", mode: "insensitive" } },
+              { filename: { contains: "headshot", mode: "insensitive" } },
+              { filename: { contains: "comp card", mode: "insensitive" } },
+              { filename: { contains: "comp-card", mode: "insensitive" } },
+              { filename: { contains: "self tape", mode: "insensitive" } },
+              { filename: { contains: "self-tape", mode: "insensitive" } },
+              { filename: { contains: "actor", mode: "insensitive" } },
+              { filename: { contains: "model", mode: "insensitive" } },
+              { filename: { contains: "이력서" } },
+              { filename: { contains: "프로필" } },
+              { filename: { contains: "오디션" } },
+              { filename: { contains: "캐스팅" } },
+              { filename: { contains: "포트폴리오" } },
+              { filename: { contains: "배우" } },
+              { filename: { contains: "모델" } },
+              { filename: { contains: "지원서" } },
+              { filename: { contains: "상반신" } },
+              { filename: { contains: "전신" } },
+            ],
+          },
+        };
+      }
+      if (category) where.category = category;
       if (search) {
-        const s = search.toLowerCase();
-        emails = emails.filter(
-          (e) =>
-            e.subject.toLowerCase().includes(s) ||
-            e.from.toLowerCase().includes(s) ||
-            e.snippet.toLowerCase().includes(s),
-        );
+        where.OR = emailSearchOr(search);
       }
-      if (category) emails = emails.filter((e) => e.category === category);
-      return {
-        emails: emails.map((e) => ({
-          ...e,
-          linkedInboxAccountId: null,
-          senderEmail: senderEmail(e.from) || null,
-          trust: null,
-          needsReply: looksReplyNeeded({
-            priority: e.priority,
-            category: e.category,
-            actionItems: e.actionItems,
-            from: e.from,
-          }),
-          attachmentCount: 0,
-          attachmentCandidateCount: 0,
-          attachmentPendingCount: 0,
-          attachmentFallbackCount: 0,
-          attachmentUnsupportedCount: 0,
-          attachmentCategories: [],
-          candidateProfilePreview: null,
-          candidateIntake: null,
-        })),
-        source: "demo",
-        total: emails.length,
-        unread: emails.filter((e) => !e.isRead).length,
-        page: 1,
-      };
-    }
+      // Per-inbox scoping. `where.userId` is always set, so even a foreign or
+      // malformed id can only ever match the caller's own rows (zero) — the userId
+      // scope is the IDOR guard, no separate ownership check needed.
+      if (inbox === "primary") {
+        where.linkedInboxAccountId = null;
+      } else if (inbox && inbox !== "all") {
+        where.linkedInboxAccountId = inbox;
+      }
 
-    // Build query (reads from DB only — sync via POST /api/email/sync)
-    // biome-ignore lint/suspicious/noExplicitAny: dynamic Prisma where clause
-    const where: Record<string, any> = { userId: uid };
-    if (filter === "unread") where.isRead = false;
-    if (filter === "urgent") where.priority = "URGENT";
-    if (filter === "reply-needed") {
-      where.needsReply = true;
-    }
-    if (filter === "attachments") {
-      where.attachments = { some: {} };
-    }
-    if (filter === "candidates") {
-      where.attachments = {
-        some: {
-          OR: [
-            { category: { in: ["resume", "profile", "portfolio", "audition"] } },
-            { filename: { contains: "resume", mode: "insensitive" } },
-            { filename: { contains: "cv", mode: "insensitive" } },
-            { filename: { contains: "profile", mode: "insensitive" } },
-            { filename: { contains: "portfolio", mode: "insensitive" } },
-            { filename: { contains: "audition", mode: "insensitive" } },
-            { filename: { contains: "casting", mode: "insensitive" } },
-            { filename: { contains: "showreel", mode: "insensitive" } },
-            { filename: { contains: "reel", mode: "insensitive" } },
-            { filename: { contains: "headshot", mode: "insensitive" } },
-            { filename: { contains: "comp card", mode: "insensitive" } },
-            { filename: { contains: "comp-card", mode: "insensitive" } },
-            { filename: { contains: "self tape", mode: "insensitive" } },
-            { filename: { contains: "self-tape", mode: "insensitive" } },
-            { filename: { contains: "actor", mode: "insensitive" } },
-            { filename: { contains: "model", mode: "insensitive" } },
-            { filename: { contains: "이력서" } },
-            { filename: { contains: "프로필" } },
-            { filename: { contains: "오디션" } },
-            { filename: { contains: "캐스팅" } },
-            { filename: { contains: "포트폴리오" } },
-            { filename: { contains: "배우" } },
-            { filename: { contains: "모델" } },
-            { filename: { contains: "지원서" } },
-            { filename: { contains: "상반신" } },
-            { filename: { contains: "전신" } },
-          ],
-        },
-      };
-    }
-    if (category) where.category = category;
-    if (search) {
-      where.OR = emailSearchOr(search);
-    }
-    // Per-inbox scoping. `where.userId` is always set, so even a foreign or
-    // malformed id can only ever match the caller's own rows (zero) — the userId
-    // scope is the IDOR guard, no separate ownership check needed.
-    if (inbox === "primary") {
-      where.linkedInboxAccountId = null;
-    } else if (inbox && inbox !== "all") {
-      where.linkedInboxAccountId = inbox;
-    }
-
-    const [emails, total, unreadCount] = await Promise.all([
-      prisma.emailMessage.findMany({
-        where,
-        orderBy: { receivedAt: "desc" },
-        skip: (pageNum - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.emailMessage.count({ where }),
-      prisma.emailMessage.count({ where: { userId: uid, isRead: false } }),
-    ]);
-
-    // Map to API format
-    const emailIds = emails.map((email) => email.id);
-    const attachmentSummaries = await summarizeEmailAttachmentsByEmail(emailIds, uid);
-    const candidateProfiles = await listCandidateProfilesByEmail(emailIds, uid);
-    const candidateIntakes = await listCandidateIntakesByEmail(emailIds, uid);
-    // Backfill candidate intake for résumé/candidate emails that have a
-    // profile but no intake row yet. Run these concurrently instead of
-    // awaiting each in sequence — the old loop added up to ~2 DB round trips
-    // × pageSize serial hops to a single inbox page-load. Each sync writes its
-    // own emailId key so concurrent writes don't race; Prisma's pool provides
-    // backpressure on the fan-out.
-    await Promise.all(
-      emailIds
-        .filter((emailId) => candidateProfiles[emailId] && !candidateIntakes[emailId])
-        .map(async (emailId) => {
-          const intake = await syncCandidateIntakeForEmail({ userId: uid, emailId });
-          if (intake) candidateIntakes[emailId] = intake;
+      const [emails, total, unreadCount] = await Promise.all([
+        prisma.emailMessage.findMany({
+          where,
+          orderBy: { receivedAt: "desc" },
+          skip: (pageNum - 1) * pageSize,
+          take: pageSize,
         }),
-    );
-    // Bulk-fetch Trust Scores for every unique sender on this page so the
-    // inbox row can render a dot without an N+1 query per email.
-    const senderAddresses = Array.from(
-      new Set(emails.map((e) => senderEmail(e.from)).filter(Boolean)),
-    );
-    const trustMap = await getTrustScoresBulk(uid, senderAddresses);
-    const mapped = emails.map((e) => {
-      const actionItems = parseJsonArray(e.actionItems);
-      const candidateProfile = candidateProfiles[e.id] ?? null;
-      const candidateIntake = candidateIntakes[e.id] ?? null;
-      const addr = senderEmail(e.from);
-      return {
-        id: e.id,
-        gmailId: e.gmailId,
-        threadId: e.threadId,
-        // null = the primary Google inbox; a string = the LinkedInboxAccount the
-        // message belongs to. The client maps this to an inbox label/badge.
-        linkedInboxAccountId: e.linkedInboxAccountId,
-        from: e.from,
-        senderEmail: addr || null,
-        trust: trustToWire(addr ? trustMap.get(addr) : null),
-        to: e.to,
-        subject: e.subject,
-        snippet: e.snippet,
-        date: e.receivedAt.toISOString(),
-        labels: e.labels,
-        isRead: e.isRead,
-        isStarred: e.isStarred,
-        priority: e.priority,
-        category: e.category,
-        summary: e.summary,
-        keyPoints: parseJsonArray(e.keyPoints),
-        actionItems,
-        sentiment: e.sentiment,
-        needsReply: looksReplyNeeded({
-          needsReply: e.needsReply,
+        prisma.emailMessage.count({ where }),
+        prisma.emailMessage.count({ where: { userId: uid, isRead: false } }),
+      ]);
+
+      // Map to API format
+      const emailIds = emails.map((email) => email.id);
+      const attachmentSummaries = await summarizeEmailAttachmentsByEmail(emailIds, uid);
+      const candidateProfiles = await listCandidateProfilesByEmail(emailIds, uid);
+      const candidateIntakes = await listCandidateIntakesByEmail(emailIds, uid);
+      // Backfill candidate intake for résumé/candidate emails that have a
+      // profile but no intake row yet. Run these concurrently instead of
+      // awaiting each in sequence — the old loop added up to ~2 DB round trips
+      // × pageSize serial hops to a single inbox page-load. Each sync writes its
+      // own emailId key so concurrent writes don't race; Prisma's pool provides
+      // backpressure on the fan-out.
+      await Promise.all(
+        emailIds
+          .filter((emailId) => candidateProfiles[emailId] && !candidateIntakes[emailId])
+          .map(async (emailId) => {
+            const intake = await syncCandidateIntakeForEmail({ userId: uid, emailId });
+            if (intake) candidateIntakes[emailId] = intake;
+          }),
+      );
+      // Bulk-fetch Trust Scores for every unique sender on this page so the
+      // inbox row can render a dot without an N+1 query per email.
+      const senderAddresses = Array.from(
+        new Set(emails.map((e) => senderEmail(e.from)).filter(Boolean)),
+      );
+      const trustMap = await getTrustScoresBulk(uid, senderAddresses);
+      const mapped = emails.map((e) => {
+        const actionItems = parseJsonArray(e.actionItems);
+        const candidateProfile = candidateProfiles[e.id] ?? null;
+        const candidateIntake = candidateIntakes[e.id] ?? null;
+        const addr = senderEmail(e.from);
+        return {
+          id: e.id,
+          gmailId: e.gmailId,
+          threadId: e.threadId,
+          // null = the primary Google inbox; a string = the LinkedInboxAccount the
+          // message belongs to. The client maps this to an inbox label/badge.
+          linkedInboxAccountId: e.linkedInboxAccountId,
+          from: e.from,
+          senderEmail: addr || null,
+          trust: trustToWire(addr ? trustMap.get(addr) : null),
+          to: e.to,
+          subject: e.subject,
+          snippet: e.snippet,
+          date: e.receivedAt.toISOString(),
+          labels: e.labels,
+          isRead: e.isRead,
+          isStarred: e.isStarred,
           priority: e.priority,
           category: e.category,
+          summary: e.summary,
+          keyPoints: parseJsonArray(e.keyPoints),
           actionItems,
-          from: e.from,
-        }),
-        attachmentCount: attachmentSummaries[e.id]?.attachmentCount ?? 0,
-        attachmentCandidateCount: attachmentSummaries[e.id]?.candidateAttachmentCount ?? 0,
-        attachmentPendingCount: attachmentSummaries[e.id]?.pendingAttachmentCount ?? 0,
-        attachmentFallbackCount: attachmentSummaries[e.id]?.fallbackAttachmentCount ?? 0,
-        attachmentUnsupportedCount: attachmentSummaries[e.id]?.unsupportedAttachmentCount ?? 0,
-        attachmentCategories: attachmentSummaries[e.id]?.categories ?? [],
-        candidateProfilePreview: candidateProfile
-          ? {
-              name: candidateProfile.name,
-              role: candidateProfile.role,
-              contact: candidateProfile.contact,
-              summary: candidateProfile.summary,
-              missingFields: candidateProfile.missingFields,
-              confidence: candidateProfile.confidence,
-              evidenceCount: candidateProfile.evidenceFiles.length,
-              intakeStatus: candidateIntake?.status ?? null,
-            }
-          : null,
-        candidateIntake,
-      };
-    });
+          sentiment: e.sentiment,
+          needsReply: looksReplyNeeded({
+            needsReply: e.needsReply,
+            priority: e.priority,
+            category: e.category,
+            actionItems,
+            from: e.from,
+          }),
+          attachmentCount: attachmentSummaries[e.id]?.attachmentCount ?? 0,
+          attachmentCandidateCount: attachmentSummaries[e.id]?.candidateAttachmentCount ?? 0,
+          attachmentPendingCount: attachmentSummaries[e.id]?.pendingAttachmentCount ?? 0,
+          attachmentFallbackCount: attachmentSummaries[e.id]?.fallbackAttachmentCount ?? 0,
+          attachmentUnsupportedCount: attachmentSummaries[e.id]?.unsupportedAttachmentCount ?? 0,
+          attachmentCategories: attachmentSummaries[e.id]?.categories ?? [],
+          candidateProfilePreview: candidateProfile
+            ? {
+                name: candidateProfile.name,
+                role: candidateProfile.role,
+                contact: candidateProfile.contact,
+                summary: candidateProfile.summary,
+                missingFields: candidateProfile.missingFields,
+                confidence: candidateProfile.confidence,
+                evidenceCount: candidateProfile.evidenceFiles.length,
+                intakeStatus: candidateIntake?.status ?? null,
+              }
+            : null,
+          candidateIntake,
+        };
+      });
 
-    return { emails: mapped, source: "gmail", total, unread: unreadCount, page: pageNum };
-  });
+      return { emails: mapped, source: "gmail", total, unread: unreadCount, page: pageNum };
+    },
+  );
 
   // ─── Thread View ──────────────────────────────────────────────────────
   // GET /api/email/threads?search=keyword&priority=URGENT&unread=true&page=1
-  app.get("/threads", async (request): Promise<EmailThreadListResponse> => {
-    const { search, priority, unread, category, page } = request.query as {
-      search?: string;
-      priority?: string;
-      unread?: string;
-      category?: string;
-      page?: string;
-    };
-    const uid = getUserId(request);
+  app.get(
+    "/threads",
+    { schema: { querystring: listThreadsQuerySchema } },
+    async (request): Promise<EmailThreadListResponse> => {
+      const { search, priority, unread, category, page } = request.query as {
+        search?: string;
+        priority?: string;
+        unread?: string;
+        category?: string;
+        page?: string;
+      };
+      const uid = getUserId(request);
 
-    const token = await prisma.userToken.findFirst({ where: { userId: uid, provider: "google" } });
-    if (!token) {
-      // Demo thread view
-      const threads = DEMO_EMAILS.map((e) => ({
-        threadId: e.threadId,
-        subject: e.subject,
-        participants: [e.from],
-        messageCount: 1,
-        lastMessage: {
-          id: e.id,
-          from: e.from,
-          snippet: e.snippet,
-          receivedAt: e.receivedAt,
-          isRead: e.isRead,
-        },
-        hasUnread: !e.isRead,
-        latestPriority: e.priority,
-        summary: e.summary,
-      }));
-      return { threads, total: threads.length, source: "demo", page: 1 };
-    }
+      const token = await prisma.userToken.findFirst({
+        where: { userId: uid, provider: "google" },
+      });
+      if (!token) {
+        // Demo thread view
+        const threads = DEMO_EMAILS.map((e) => ({
+          threadId: e.threadId,
+          subject: e.subject,
+          participants: [e.from],
+          messageCount: 1,
+          lastMessage: {
+            id: e.id,
+            from: e.from,
+            snippet: e.snippet,
+            receivedAt: e.receivedAt,
+            isRead: e.isRead,
+          },
+          hasUnread: !e.isRead,
+          latestPriority: e.priority,
+          summary: e.summary,
+        }));
+        return { threads, total: threads.length, source: "demo", page: 1 };
+      }
 
-    const pageNum = parsePageNum(page);
-    // Match the /api/email pageSize bump (heavy-user friction). Threads
-    // are heavier per row but a single page still fits in the same envelope.
-    const pageSize = 50;
-    const result = await getEmailThreads(uid, {
-      search,
-      priority,
-      unreadOnly: unread === "true",
-      category,
-      skip: (pageNum - 1) * pageSize,
-      take: pageSize,
-    });
+      const pageNum = parsePageNum(page);
+      // Match the /api/email pageSize bump (heavy-user friction). Threads
+      // are heavier per row but a single page still fits in the same envelope.
+      const pageSize = 50;
+      const result = await getEmailThreads(uid, {
+        search,
+        priority,
+        unreadOnly: unread === "true",
+        category,
+        skip: (pageNum - 1) * pageSize,
+        take: pageSize,
+      });
 
-    return { ...result, source: "gmail", page: pageNum };
-  });
+      return { ...result, source: "gmail", page: pageNum };
+    },
+  );
 
   // ─── Thread Detail ────────────────────────────────────────────────────
   // GET /api/email/thread/:threadId
@@ -942,65 +994,69 @@ export async function emailRoutes(app: FastifyInstance) {
 
   // ─── Triage Continuation ──────────────────────────────────────────────
   // GET /api/email/:id/next?queue=unread
-  app.get("/:id/next", { preHandler: requireAuth }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const { queue } = request.query as { queue?: string };
-    const queueKey = normalizeEmailQueue(queue);
-    const uid = getUserId(request);
+  app.get(
+    "/:id/next",
+    { preHandler: requireAuth, schema: { querystring: emailNextQuerySchema } },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { queue } = request.query as { queue?: string };
+      const queueKey = normalizeEmailQueue(queue);
+      const uid = getUserId(request);
 
-    if (id.startsWith("demo-")) {
-      const currentIndex = DEMO_EMAILS.findIndex((email) => email.id === id);
-      if (currentIndex === -1) return reply.code(404).send({ error: "Email not found" });
-      const next = DEMO_EMAILS.slice(currentIndex + 1).find((email) =>
-        demoEmailMatchesQueue(email, queueKey),
-      );
-      return {
-        queue: queueKey,
-        next: next
-          ? {
-              id: next.id,
-              from: next.from,
-              subject: next.subject,
-              date: next.receivedAt,
-              isRead: next.isRead,
-              priority: next.priority,
-              needsReply: looksReplyNeeded({
-                priority: next.priority,
-                category: next.category,
-                actionItems: next.actionItems,
+      if (id.startsWith("demo-")) {
+        const currentIndex = DEMO_EMAILS.findIndex((email) => email.id === id);
+        if (currentIndex === -1) return reply.code(404).send({ error: "Email not found" });
+        const next = DEMO_EMAILS.slice(currentIndex + 1).find((email) =>
+          demoEmailMatchesQueue(email, queueKey),
+        );
+        return {
+          queue: queueKey,
+          next: next
+            ? {
+                id: next.id,
                 from: next.from,
-              }),
-            }
-          : null,
-      };
-    }
+                subject: next.subject,
+                date: next.receivedAt,
+                isRead: next.isRead,
+                priority: next.priority,
+                needsReply: looksReplyNeeded({
+                  priority: next.priority,
+                  category: next.category,
+                  actionItems: next.actionItems,
+                  from: next.from,
+                }),
+              }
+            : null,
+        };
+      }
 
-    const current = await prisma.emailMessage.findFirst({
-      where: { userId: uid, OR: [{ id }, { gmailId: id }] },
-    });
-    if (!current) return reply.code(404).send({ error: "Email not found" });
+      const current = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      });
+      if (!current) return reply.code(404).send({ error: "Email not found" });
 
-    const next = await prisma.emailMessage.findFirst({
-      where: {
-        AND: [
-          buildQueueWhere(uid, queueKey),
-          {
-            OR: [
-              { receivedAt: { lt: current.receivedAt } },
-              { receivedAt: current.receivedAt, id: { lt: current.id } },
-            ],
-          },
-        ],
-      },
-      orderBy: [{ receivedAt: "desc" }, { id: "desc" }],
-    });
+      const next = await prisma.emailMessage.findFirst({
+        where: {
+          AND: [
+            buildQueueWhere(uid, queueKey),
+            {
+              OR: [
+                { receivedAt: { lt: current.receivedAt } },
+                { receivedAt: current.receivedAt, id: { lt: current.id } },
+              ],
+            },
+          ],
+        },
+        orderBy: [{ receivedAt: "desc" }, { id: "desc" }],
+      });
 
-    return { queue: queueKey, next: next ? serializeQueueEmail(next) : null };
-  });
+      return { queue: queueKey, next: next ? serializeQueueEmail(next) : null };
+    },
+  );
 
   // ─── Single Email Detail ──────────────────────────────────────────────
   // GET /api/email/:id
-  app.get("/:id", async (request) => {
+  app.get("/:id", { schema: { querystring: emailDetailQuerySchema } }, async (request) => {
     const { id } = request.params as { id: string };
     const { markRead } = request.query as { markRead?: string };
     const uid = getUserId(request);

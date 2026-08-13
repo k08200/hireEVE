@@ -91,6 +91,14 @@ function hasMeaningfulText(value: string | undefined): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+const pendingActionsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    status: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export async function chatRoutes(app: FastifyInstance) {
   // Every route here is per-user (pending actions, run/dismiss). Gate the whole
   // plugin so revoked/kicked tokens are rejected — bare getUserId() skips the
@@ -101,60 +109,64 @@ export async function chatRoutes(app: FastifyInstance) {
 
   // GET /api/chat/pending-actions — All pending actions for the current user across conversations.
   // Powers the mobile inbox so users can see & act on every "needs your attention" item in one place.
-  app.get("/pending-actions", async (request) => {
-    const userId = getUserId(request);
-    const { status } = request.query as { status?: string };
-    const statusFilter = status === "all" ? undefined : status || "PENDING";
+  app.get(
+    "/pending-actions",
+    { schema: { querystring: pendingActionsQuerySchema } },
+    async (request) => {
+      const userId = getUserId(request);
+      const { status } = request.query as { status?: string };
+      const statusFilter = status === "all" ? undefined : status || "PENDING";
 
-    type PendingActionRow = {
-      id: string;
-      conversationId: string;
-      status: string;
-      toolName: string;
-      toolArgs: string;
-      reasoning: string | null;
-      result: string | null;
-      createdAt: Date;
-      conversation?: { id: string; title: string | null } | null;
-    };
-    const actions = (await db.pendingAction.findMany({
-      where: { userId, ...(statusFilter ? { status: statusFilter as ActionStatus } : {}) },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: {
-        conversation: { select: { id: true, title: true } },
-      },
-    })) as PendingActionRow[];
+      type PendingActionRow = {
+        id: string;
+        conversationId: string;
+        status: string;
+        toolName: string;
+        toolArgs: string;
+        reasoning: string | null;
+        result: string | null;
+        createdAt: Date;
+        conversation?: { id: string; title: string | null } | null;
+      };
+      const actions = (await db.pendingAction.findMany({
+        where: { userId, ...(statusFilter ? { status: statusFilter as ActionStatus } : {}) },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          conversation: { select: { id: true, title: true } },
+        },
+      })) as PendingActionRow[];
 
-    // Resolve a human-readable target label for each action (title/name instead of raw UUID).
-    const enriched = await Promise.all(
-      actions.map(async (a) => {
-        let targetLabel: string | null = null;
-        try {
-          const parsed = (
-            typeof a.toolArgs === "string" ? JSON.parse(a.toolArgs) : (a.toolArgs ?? {})
-          ) as Record<string, unknown>;
-          targetLabel = await resolveActionTarget(a.toolName, parsed);
-        } catch {
-          // Malformed toolArgs — leave label null
-        }
-        return {
-          id: a.id,
-          conversationId: a.conversationId,
-          conversationTitle: a.conversation?.title ?? null,
-          status: a.status,
-          toolName: a.toolName,
-          toolArgs: a.toolArgs,
-          targetLabel,
-          reasoning: a.reasoning,
-          result: a.result,
-          createdAt: a.createdAt.toISOString(),
-        };
-      }),
-    );
+      // Resolve a human-readable target label for each action (title/name instead of raw UUID).
+      const enriched = await Promise.all(
+        actions.map(async (a) => {
+          let targetLabel: string | null = null;
+          try {
+            const parsed = (
+              typeof a.toolArgs === "string" ? JSON.parse(a.toolArgs) : (a.toolArgs ?? {})
+            ) as Record<string, unknown>;
+            targetLabel = await resolveActionTarget(a.toolName, parsed);
+          } catch {
+            // Malformed toolArgs — leave label null
+          }
+          return {
+            id: a.id,
+            conversationId: a.conversationId,
+            conversationTitle: a.conversation?.title ?? null,
+            status: a.status,
+            toolName: a.toolName,
+            toolArgs: a.toolArgs,
+            targetLabel,
+            reasoning: a.reasoning,
+            result: a.result,
+            createdAt: a.createdAt.toISOString(),
+          };
+        }),
+      );
 
-    return { actions: enriched };
-  });
+      return { actions: enriched };
+    },
+  );
 
   // GET /api/chat/conversations/:id/pending-actions — Get pending actions for a conversation
   app.get(

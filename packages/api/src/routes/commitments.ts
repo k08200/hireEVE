@@ -26,13 +26,22 @@ import {
 
 const ALLOWED_STATUSES = new Set(["OPEN", "DONE", "DISMISSED", "SNOOZED"]);
 
+const listCommitmentsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    status: { type: "string", maxLength: 500 },
+    limit: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export async function commitmentRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
   // Paywall: refuse non-entitled users at the paid surface (no-op pre-launch).
   app.addHook("preHandler", requireEntitled);
 
   // GET /api/commitments — list, optionally filtered by status
-  app.get("/", async (request) => {
+  app.get("/", { schema: { querystring: listCommitmentsQuerySchema } }, async (request) => {
     const userId = getUserId(request);
     const { status, limit } = request.query as { status?: string; limit?: string };
     const filterStatus =

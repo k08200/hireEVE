@@ -21,6 +21,16 @@ import { buildMeetingPrepPack } from "../pim/meeting-prep-pack.js";
 import { captureError } from "../sentry.js";
 import { normalizeTimeZone } from "../time-zone.js";
 
+const listEventsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    days: { type: "string", maxLength: 500 },
+    start: { type: "string", maxLength: 500 },
+    end: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export async function calendarRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
   // Usable free tier: reading the calendar + conflict/prep views is core free
@@ -30,7 +40,7 @@ export async function calendarRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAppAccess);
 
   // List events — supports ?start=ISO&end=ISO or ?days=N (from today)
-  app.get("/", async (request) => {
+  app.get("/", { schema: { querystring: listEventsQuerySchema } }, async (request) => {
     const uid = getUserId(request);
     const { days, start, end } = request.query as { days?: string; start?: string; end?: string };
 

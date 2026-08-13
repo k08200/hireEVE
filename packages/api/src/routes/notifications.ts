@@ -16,6 +16,24 @@ import { getPushDeliveryStats, recordPushReceipt } from "../notify/push-delivery
 import { sendDevicePush } from "../notify/push-device.js";
 import { isAllowedPushOrigin } from "../notify/push-origin-allowlist.js";
 
+const listNotificationsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    unread: { type: "string", maxLength: 500 },
+    limit: { type: "string", maxLength: 500 },
+  },
+} as const;
+
+const pushDeliveryStatsQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    hours: { type: "string", maxLength: 500 },
+    limit: { type: "string", maxLength: 500 },
+  },
+} as const;
+
 export async function notificationRoutes(app: FastifyInstance) {
   // POST /api/notifications/push/receipts/:deliveryId — public, high-entropy
   // receipt from the service worker (which has no session cookie). The 128-bit
@@ -89,7 +107,7 @@ export async function notificationRoutes(app: FastifyInstance) {
   });
 
   // GET /api/notifications — Get notifications (supports ?unread=true&limit=50)
-  app.get("/", async (request) => {
+  app.get("/", { schema: { querystring: listNotificationsQuerySchema } }, async (request) => {
     const userId = getUserId(request);
     const { unread, limit } = request.query as { unread?: string; limit?: string };
     const notifs = await getNotifications(userId, {
@@ -284,14 +302,18 @@ export async function notificationRoutes(app: FastifyInstance) {
   });
 
   // GET /api/notifications/push/delivery-stats — Push delivery observability
-  app.get("/push/delivery-stats", async (request) => {
-    const userId = getUserId(request);
-    const { hours, limit } = request.query as { hours?: string; limit?: string };
-    return getPushDeliveryStats(userId, {
-      hours: parseOptionalInteger(hours),
-      limit: parseOptionalInteger(limit),
-    });
-  });
+  app.get(
+    "/push/delivery-stats",
+    { schema: { querystring: pushDeliveryStatsQuerySchema } },
+    async (request) => {
+      const userId = getUserId(request);
+      const { hours, limit } = request.query as { hours?: string; limit?: string };
+      return getPushDeliveryStats(userId, {
+        hours: parseOptionalInteger(hours),
+        limit: parseOptionalInteger(limit),
+      });
+    },
+  );
 
   // DELETE /api/notifications/push/unsubscribe — Remove push subscription
   app.delete("/push/unsubscribe", async (request, reply) => {
