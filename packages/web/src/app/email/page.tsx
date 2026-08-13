@@ -706,7 +706,7 @@ function EmailView() {
       <div className="px-4 pb-28 pt-3 md:hidden">
         <header className="mb-4 flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-[28px] font-bold leading-none tracking-tight text-slate-900">
+            <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
               {t("nav.mail")}
             </h1>
             <p className="mt-1.5 text-sm text-slate-500">
