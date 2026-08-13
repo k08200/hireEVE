@@ -95,3 +95,101 @@ export function coercePlainBody(body: string | null, htmlBody: string | null): s
   if (!body || !looksLikeRawHtml(body)) return body;
   return htmlToPlainText(htmlBody || body);
 }
+
+/**
+ * Sanitized HTML for RENDERING mail as the sender designed it (the plain
+ * projection above stays the source for summaries/snippets). Allowlist is
+ * the layout vocabulary real email uses — tables, inline styles, images —
+ * with everything executable removed: no scripts, no event handlers, no
+ * iframes/forms, http(s)/mailto links only, images over http(s)/data.
+ * Clients render this in a JS-disabled webview; this sanitizer is the
+ * second wall, not the only one.
+ */
+export function renderableEmailHtml(html: string | null | undefined): string | null {
+  if (!html || !html.trim()) return null;
+  const out = sanitizeHtml(html.slice(0, MAX_HTML_INPUT), {
+    allowedTags: [
+      "a",
+      "b",
+      "i",
+      "u",
+      "s",
+      "em",
+      "strong",
+      "small",
+      "big",
+      "span",
+      "font",
+      "p",
+      "div",
+      "br",
+      "hr",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "ul",
+      "ol",
+      "li",
+      "dl",
+      "dt",
+      "dd",
+      "blockquote",
+      "pre",
+      "code",
+      "table",
+      "thead",
+      "tbody",
+      "tfoot",
+      "tr",
+      "td",
+      "th",
+      "caption",
+      "img",
+      "center",
+      "sub",
+      "sup",
+      "figure",
+      "figcaption",
+    ],
+    allowedAttributes: {
+      "*": ["style", "align", "valign", "width", "height", "dir"],
+      a: ["href", "title", "style"],
+      img: ["src", "alt", "title", "width", "height", "style"],
+      table: [
+        "style",
+        "width",
+        "height",
+        "align",
+        "cellpadding",
+        "cellspacing",
+        "border",
+        "bgcolor",
+      ],
+      td: ["style", "width", "height", "align", "valign", "colspan", "rowspan", "bgcolor"],
+      th: ["style", "width", "height", "align", "valign", "colspan", "rowspan", "bgcolor"],
+      font: ["color", "size", "face"],
+    },
+    allowedSchemes: ["http", "https", "mailto"],
+    allowedSchemesByTag: { img: ["http", "https", "data", "cid"] },
+    allowProtocolRelative: false,
+  });
+  return out.trim() ? out : null;
+}
+
+/**
+ * The render source for a stored row: the html part when present, else the
+ * plain part when it is actually raw HTML (the Paddle case coercePlainBody
+ * heals for text). Genuinely-plain mail returns null — clients keep showing
+ * the plain body.
+ */
+export function renderableEmailHtmlFor(
+  body: string | null,
+  htmlBody: string | null,
+): string | null {
+  if (htmlBody?.trim()) return renderableEmailHtml(htmlBody);
+  if (body && looksLikeRawHtml(body)) return renderableEmailHtml(body);
+  return null;
+}

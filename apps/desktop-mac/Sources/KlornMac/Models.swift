@@ -165,6 +165,9 @@ struct EmailDetail: Codable, Sendable, Identifiable {
     /// Klorn's category ("meeting", "business", …) — gates the calendar
     /// cross-reference fetch so ordinary mail costs nothing extra.
     let category: String?
+    /// Server-sanitized HTML for rendering mail as the sender designed it
+    /// (EmailHtmlView, JS-disabled). null for genuinely-plain mail.
+    let renderHtml: String?
     let needsReply: Bool?
     let needsReplyReason: String?
     /// Learned engagement: how often the user has replied to/written this sender.

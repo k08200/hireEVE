@@ -92,3 +92,61 @@ describe("coercePlainBody", () => {
     expect(coercePlainBody("", "<p>x</p>")).toBe("");
   });
 });
+
+describe("renderableEmailHtml — sanitized HTML for real mail rendering", () => {
+  it("keeps the structural/layout markup email actually uses", async () => {
+    const { renderableEmailHtml } = await import("../mail/email-text.js");
+    const html = `<table width="600"><tr><td style="padding:16px;color:#333">
+      <h1 style="font-size:20px">Hello</h1>
+      <p>Body <strong>bold</strong> <a href="https://example.com/verify">verify</a></p>
+      <img src="https://cdn.example.com/logo.png" alt="logo" width="120">
+    </td></tr></table>`;
+    const out = renderableEmailHtml(html);
+    expect(out).toContain("<table");
+    expect(out).toContain("<td");
+    expect(out).toContain('href="https://example.com/verify"');
+    expect(out).toContain('src="https://cdn.example.com/logo.png"');
+    expect(out).toContain("padding:16px");
+  });
+
+  it("strips scripts, event handlers, javascript: urls and iframes", async () => {
+    const { renderableEmailHtml } = await import("../mail/email-text.js");
+    const out = renderableEmailHtml(`<p onclick="steal()">x</p>
+      <script>alert(1)</script>
+      <iframe src="https://evil.example"></iframe>
+      <a href="javascript:alert(1)">click</a>
+      <img src="x" onerror="alert(1)">`);
+    expect(out).not.toContain("script");
+    expect(out).not.toContain("onclick");
+    expect(out).not.toContain("onerror");
+    expect(out).not.toContain("iframe");
+    expect(out).not.toContain("javascript:");
+  });
+
+  it("allows data: images but not data: links", async () => {
+    const { renderableEmailHtml } = await import("../mail/email-text.js");
+    const out = renderableEmailHtml(
+      '<img src="data:image/png;base64,AAAA"><a href="data:text/html,x">a</a>',
+    );
+    expect(out).toContain('src="data:image/png;base64,AAAA"');
+    expect(out).not.toContain('href="data:');
+  });
+
+  it("returns null for empty/whitespace input", async () => {
+    const { renderableEmailHtml } = await import("../mail/email-text.js");
+    expect(renderableEmailHtml(null)).toBeNull();
+    expect(renderableEmailHtml("   ")).toBeNull();
+  });
+});
+
+describe("renderableEmailHtmlFor — render-source selection", () => {
+  it("prefers the html part, falls back to a raw-html plain part, else null", async () => {
+    const { renderableEmailHtmlFor } = await import("../mail/email-text.js");
+    expect(renderableEmailHtmlFor("plain text", "<p>rich</p>")).toContain("<p>rich</p>");
+    const rawHtmlPlain =
+      '<table><tr><td style="padding:8px"><a href="https://x.example/verify">Verify</a></td></tr></table>' +
+      '<div style="color:#333"><p>hello</p><p>world</p></div>';
+    expect(renderableEmailHtmlFor(rawHtmlPlain, null)).toContain("<td");
+    expect(renderableEmailHtmlFor("just words, no markup", null)).toBeNull();
+  });
+});

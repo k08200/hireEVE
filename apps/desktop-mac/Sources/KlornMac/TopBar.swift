@@ -2062,18 +2062,29 @@ struct ReadingPane: View {
             if let item, !replying {
                 quickReplyStrip(item)
             }
-            ScrollView {
-                // Reading typography: measured line length (~640pt) and open
-                // line spacing — a mail body should read like a document, not
-                // a log dump stretched across the pane.
-                Text(email.text.isEmpty ? L("reading.noContent") : email.text)
-                    .font(.callout)
-                    .lineSpacing(4)
-                    .foregroundStyle(Theme.text.opacity(0.92))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: 640, alignment: .leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(Theme.s6)
+            if let renderHtml = email.renderHtml, !renderHtml.isEmpty {
+                // Designed (HTML) mail renders as the sender built it — the
+                // webview scrolls itself. Plain mail keeps the text path below.
+                // .id ties the webview's lifetime to ONE message: a fresh
+                // ephemeral cookie store per email, so tracker cookies set by
+                // sender A's pixel never ride along to sender B's mail.
+                EmailHtmlView(html: renderHtml)
+                    .id(email.id)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    // Reading typography: measured line length (~640pt) and open
+                    // line spacing — a mail body should read like a document, not
+                    // a log dump stretched across the pane.
+                    Text(email.text.isEmpty ? L("reading.noContent") : email.text)
+                        .font(.callout)
+                        .lineSpacing(4)
+                        .foregroundStyle(Theme.text.opacity(0.92))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: 640, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(Theme.s6)
+                }
             }
             if replying, let item {
                 Divider().overlay(Theme.line)

@@ -48,7 +48,7 @@ import {
   syncEmails,
   syncLinkedInboxesForUser,
 } from "../mail/email-sync.js";
-import { coercePlainBody, htmlToPlainText } from "../mail/email-text.js";
+import { coercePlainBody, htmlToPlainText, renderableEmailHtmlFor } from "../mail/email-text.js";
 import { getLinkedInboxClients } from "../mail/gmail.js";
 import { getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
@@ -1152,6 +1152,17 @@ export async function emailRoutes(app: FastifyInstance) {
         // instead of tag soup or the snippet stub. A pathological row must
         // degrade to the snippet, not 500 the whole detail view.
         body: serveBody(dbEmail.body, dbEmail.htmlBody, dbEmail.id, uid),
+        // Sanitized HTML for clients that render mail as the sender designed
+        // it (JS-disabled webview). null for genuinely-plain mail — the plain
+        // body above stays authoritative there. Failure degrades to null.
+        renderHtml: (() => {
+          try {
+            return renderableEmailHtmlFor(dbEmail.body, dbEmail.htmlBody);
+          } catch (err) {
+            console.error("[EMAIL] renderHtml sanitize failed:", { emailId: dbEmail.id }, err);
+            return null;
+          }
+        })(),
         date: dbEmail.receivedAt.toISOString(),
         labels: dbEmail.labels,
         isRead: dbEmail.isRead,
