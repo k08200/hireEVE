@@ -290,10 +290,10 @@ function CandidateIntakeView() {
     <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-6 md:py-10">
       <header className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
             Candidates
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-ink-mid">
             Resumes, portfolios, and audition materials from email attachments, grouped by review
             state
           </p>
@@ -311,13 +311,13 @@ function CandidateIntakeView() {
             type="button"
             onClick={exportCsv}
             disabled={exporting}
-            className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50 focus-ring"
+            className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50 focus-ring"
           >
             {exporting ? "Exporting…" : "Export CSV"}
           </button>
           <Link
             href="/email"
-            className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
+            className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
           >
             Email list
           </Link>
@@ -354,7 +354,7 @@ function CandidateIntakeView() {
       )}
 
       <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
-        <span className="mr-0.5 shrink-0 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+        <span className="mr-0.5 shrink-0 text-[11px] font-medium uppercase tracking-wider text-ink-dim">
           Status
         </span>
         {STATUS_FILTERS.map((filter) => {
@@ -367,7 +367,7 @@ function CandidateIntakeView() {
               className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition duration-150 active:scale-[0.97] focus-ring ${
                 active
                   ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
-                  : "text-slate-500 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm"
+                  : "text-ink-mid hover:bg-surface-panel/80 hover:text-ink hover:shadow-sm"
               }`}
             >
               {active && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />}
@@ -378,7 +378,7 @@ function CandidateIntakeView() {
       </div>
 
       <div className="-mx-4 mt-1 flex items-center gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
-        <span className="mr-0.5 shrink-0 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+        <span className="mr-0.5 shrink-0 text-[11px] font-medium uppercase tracking-wider text-ink-dim">
           Focus
         </span>
         {ATTENTION_FILTERS.map((filter) => {
@@ -391,7 +391,7 @@ function CandidateIntakeView() {
               className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition duration-150 active:scale-[0.97] focus-ring ${
                 active
                   ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
-                  : "text-slate-500 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm"
+                  : "text-ink-mid hover:bg-surface-panel/80 hover:text-ink hover:shadow-sm"
               }`}
             >
               {active && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />}
@@ -402,12 +402,12 @@ function CandidateIntakeView() {
       </div>
 
       {!loading && candidates.length > 0 && (
-        <div className="panel-elevated mt-3 flex flex-col gap-2 rounded-xl border border-slate-200/70 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="panel-elevated mt-3 flex flex-col gap-2 rounded-xl border border-line/70 bg-surface-panel p-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={toggleAllVisible}
-              className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
+              className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
             >
               {selectedCount > 0 ? `${selectedCount} selected` : "Select visible"}
             </button>
@@ -415,7 +415,7 @@ function CandidateIntakeView() {
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
-                className="ease-strong rounded-lg px-3 py-1.5 text-xs text-slate-400 transition duration-150 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97] focus-ring"
+                className="ease-strong rounded-lg px-3 py-1.5 text-xs text-ink-dim transition duration-150 hover:bg-surface-hover hover:text-ink active:scale-[0.97] focus-ring"
               >
                 Clear
               </button>
@@ -455,9 +455,9 @@ function CandidateIntakeView() {
       {error && <ErrorAlert className="mt-3">{error}</ErrorAlert>}
 
       {!loading && !error && candidates.length === 0 && (
-        <div className="panel-elevated mt-4 rounded-2xl border border-slate-200/70 bg-white p-6 text-center">
-          <p className="text-sm text-slate-500">No candidate materials yet.</p>
-          <p className="mt-1 text-xs text-slate-400">
+        <div className="panel-elevated mt-4 rounded-2xl border border-line/70 bg-surface-panel p-6 text-center">
+          <p className="text-sm text-ink-mid">No candidate materials yet.</p>
+          <p className="mt-1 text-xs text-ink-dim">
             After Gmail sync and attachment analysis, candidate signals appear here automatically.
           </p>
         </div>
@@ -501,15 +501,15 @@ function QualityIssuesStrip({ issues }: { issues: NonNullable<AttachmentQuality[
         </button>
       </div>
       {expanded && (
-        <ul className="divide-y divide-amber-200/50 border-t border-amber-200/50 bg-white/60">
+        <ul className="divide-y divide-amber-200/50 border-t border-amber-200/50 bg-surface-panel/60">
           {issues.slice(0, 4).map((issue) => (
             <li key={issue.attachmentId}>
               <Link
                 href={`/email/${issue.emailId}`}
                 className="ease-strong flex items-baseline gap-2 px-3 py-2 text-[11px] transition duration-150 hover:bg-amber-50 focus-ring"
               >
-                <span className="truncate font-medium text-slate-700">{issue.filename}</span>
-                <span className="min-w-0 truncate text-slate-400">{issue.reason}</span>
+                <span className="truncate font-medium text-ink-soft">{issue.filename}</span>
+                <span className="min-w-0 truncate text-ink-dim">{issue.reason}</span>
               </Link>
             </li>
           ))}
@@ -525,14 +525,12 @@ function QueueStat({ label, value }: { label: string; value: number | string }) 
   const isZero = value === 0 || value === "0";
   return (
     <span
-      className={`inline-flex h-7 items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3 text-[11px] font-medium tabular-nums ${
-        isZero ? "text-slate-400 opacity-60" : "text-slate-500"
+      className={`inline-flex h-7 items-center gap-1.5 rounded-full border border-line bg-surface-panel/70 px-3 text-[11px] font-medium tabular-nums ${
+        isZero ? "text-ink-dim opacity-60" : "text-ink-mid"
       }`}
     >
       {label}
-      <span
-        className={`font-semibold tabular-nums ${isZero ? "text-slate-400" : "text-slate-900"}`}
-      >
+      <span className={`font-semibold tabular-nums ${isZero ? "text-ink-dim" : "text-ink"}`}>
         {value}
       </span>
     </span>
@@ -553,7 +551,7 @@ function BulkStatusButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+      className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
     >
       {label}
     </button>
@@ -573,10 +571,10 @@ function CandidateCard({
   const displayName = candidate.name || senderName(candidate.email.from);
   return (
     <article
-      className={`panel-elevated relative overflow-hidden rounded-2xl border bg-white p-4 transition duration-150 ease-out ${
+      className={`panel-elevated relative overflow-hidden rounded-2xl border bg-surface-panel p-4 transition duration-150 ease-out ${
         selected
           ? "border-accent-muted ring-2 ring-accent/20"
-          : "border-slate-200/70 hover:border-sky-200"
+          : "border-line/70 hover:border-sky-200"
       }`}
     >
       {selected && (
@@ -587,7 +585,7 @@ function CandidateCard({
           type="checkbox"
           checked={selected}
           onChange={onToggle}
-          className="mt-1 h-4 w-4 rounded border-slate-300 bg-white text-accent"
+          className="mt-1 h-4 w-4 rounded border-slate-300 bg-surface-panel text-accent"
           aria-label={`Select ${title}`}
         />
         <span
@@ -601,7 +599,7 @@ function CandidateCard({
             <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-accent/20">
               {candidateStatusLabel(candidate.status)}
             </span>
-            <span className="text-[10px] tabular-nums text-slate-400">
+            <span className="text-[10px] tabular-nums text-ink-dim">
               {Math.round(candidate.confidence * 100)}%
             </span>
             {candidate.duplicateCount > 1 && (
@@ -610,14 +608,14 @@ function CandidateCard({
               </span>
             )}
           </div>
-          <h2 className="mt-1.5 truncate text-sm font-semibold text-slate-900">{title}</h2>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{candidate.summary}</p>
+          <h2 className="mt-1.5 truncate text-sm font-semibold text-ink">{title}</h2>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-mid">{candidate.summary}</p>
         </div>
-        <time className="shrink-0 text-[11px] tabular-nums text-slate-400">
+        <time className="shrink-0 text-[11px] tabular-nums text-ink-dim">
           {formatRelative(candidate.email.receivedAt)}
         </time>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-slate-400">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-ink-dim">
         {candidate.contact && <span className="truncate">Contact {candidate.contact}</span>}
         <span className="tabular-nums">{candidate.evidenceFiles.length} files</span>
         {candidate.evidenceFiles.some((file) => file.needsManualReview) && (
@@ -626,36 +624,34 @@ function CandidateCard({
           </span>
         )}
         {candidate.duplicateCount > 1 && (
-          <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 ring-1 ring-inset ring-slate-200">
+          <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-ink-mid ring-1 ring-inset ring-slate-200">
             Duplicate match {candidate.duplicateReasons.map(candidateDuplicateLabel).join(", ")}
           </span>
         )}
         {candidate.missingFields.length > 0 && (
-          <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-slate-500 ring-1 ring-inset ring-slate-200">
+          <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-ink-mid ring-1 ring-inset ring-slate-200">
             {formatMissingBadge(candidate.missingFields)}
           </span>
         )}
       </div>
-      <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
+      <div className="mt-3 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
         <p className="truncate text-xs text-slate-600">{candidate.email.subject || "Untitled"}</p>
-        <p className="mt-1 truncate text-[11px] text-slate-400">
-          {senderName(candidate.email.from)}
-        </p>
+        <p className="mt-1 truncate text-[11px] text-ink-dim">{senderName(candidate.email.from)}</p>
       </div>
       {candidate.notes && (
-        <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-slate-400">
+        <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-ink-dim">
           Notes: {candidate.notes}
         </p>
       )}
       <Link
         href={`/email/candidates/${candidate.emailId}`}
-        className="ease-strong mt-3 inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
+        className="ease-strong mt-3 inline-flex h-8 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
       >
         Candidate details
       </Link>
       <Link
         href={`/email/${candidate.emailId}`}
-        className="ease-strong ml-2 mt-3 inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-400 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
+        className="ease-strong ml-2 mt-3 inline-flex h-8 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-dim transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
       >
         Email
       </Link>

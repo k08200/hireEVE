@@ -11,7 +11,7 @@ export default function Loading() {
           <span className="w-2.5 h-2.5 bg-accent rounded-full animate-bounce [animation-delay:150ms]" />
           <span className="w-2.5 h-2.5 bg-accent rounded-full animate-bounce [animation-delay:300ms]" />
         </div>
-        <p className="text-sm text-slate-400">Preparing context...</p>
+        <p className="text-sm text-ink-dim">Preparing context...</p>
       </div>
     </main>
   );

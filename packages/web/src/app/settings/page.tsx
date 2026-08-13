@@ -67,8 +67,8 @@ interface UserProfile {
 // v2 light-surface equivalents of agentModeClasses (the helper keeps the
 // legacy dark palette; presentation-only mapping, same mode semantics).
 function agentModeLightClasses(mode: AgentMode, active: boolean): string {
-  if (!active) return "border-slate-200 bg-white/70 text-slate-500 hover:border-slate-300";
-  if (mode === "SHADOW") return "border-slate-300 bg-slate-100 text-slate-700";
+  if (!active) return "border-line bg-surface-panel/70 text-ink-mid hover:border-slate-300";
+  if (mode === "SHADOW") return "border-slate-300 bg-surface-hover text-ink-soft";
   if (mode === "AUTO") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
@@ -78,11 +78,11 @@ function agentModeLightClasses(mode: AgentMode, active: boolean): string {
 const PRIMARY_BTN =
   "glow-primary ease-strong inline-flex min-h-10 items-center justify-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40";
 const SECONDARY_BTN =
-  "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white/70 px-4 text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50";
+  "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-line bg-surface-panel/70 px-4 text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50";
 const DANGER_BTN =
   "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-50";
-const SECTION_TITLE = "mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400";
-const PANEL = "panel-elevated rounded-2xl border border-slate-200/70 bg-white";
+const SECTION_TITLE = "mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-dim";
+const PANEL = "panel-elevated rounded-2xl border border-line/70 bg-surface-panel";
 
 export default function SettingsPage() {
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -934,10 +934,10 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-3 sm:px-6 md:py-10">
         {/* Flat v2 header — plain text on the canvas, no boxed hero. */}
         <header className="mb-8">
-          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
             Settings
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-ink-mid">
             Profile, notifications, execution boundaries, and data
           </p>
         </header>
@@ -956,7 +956,7 @@ export default function SettingsPage() {
           <h2 className={SECTION_TITLE}>Operator profile</h2>
           <div className={`${PANEL} p-5 space-y-4`}>
             <div>
-              <label htmlFor="profile-name" className="block text-sm text-slate-500 mb-1">
+              <label htmlFor="profile-name" className="block text-sm text-ink-mid mb-1">
                 Display name
               </label>
               <input
@@ -965,12 +965,12 @@ export default function SettingsPage() {
                 value={profile.name}
                 onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
                 placeholder="Name"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-slate-400"
+                className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-ink-dim"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="profile-lang" className="block text-sm text-slate-500 mb-1">
+                <label htmlFor="profile-lang" className="block text-sm text-ink-mid mb-1">
                   Language
                 </label>
                 <select
@@ -982,21 +982,21 @@ export default function SettingsPage() {
                       language: e.target.value as UserProfile["language"],
                     }))
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition"
+                  className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition"
                 >
                   <option value="en">English</option>
                   <option value="ko">한국어</option>
                 </select>
               </div>
               <div>
-                <label htmlFor="profile-tz" className="block text-sm text-slate-500 mb-1">
+                <label htmlFor="profile-tz" className="block text-sm text-ink-mid mb-1">
                   Time zone
                 </label>
                 <select
                   id="profile-tz"
                   value={profile.timezone}
                   onChange={(e) => setProfile((p) => ({ ...p, timezone: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition"
+                  className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition"
                 >
                   {TIMEZONES.map((tz) => (
                     <option key={tz} value={tz}>
@@ -1029,7 +1029,7 @@ export default function SettingsPage() {
             {hasPassword ? (
               <>
                 <div>
-                  <label htmlFor="current-pw" className="block text-sm text-slate-500 mb-1">
+                  <label htmlFor="current-pw" className="block text-sm text-ink-mid mb-1">
                     Current password
                   </label>
                   <input
@@ -1038,11 +1038,11 @@ export default function SettingsPage() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Current password"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-slate-400"
+                    className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-ink-dim"
                   />
                 </div>
                 <div>
-                  <label htmlFor="new-pw" className="block text-sm text-slate-500 mb-1">
+                  <label htmlFor="new-pw" className="block text-sm text-ink-mid mb-1">
                     New password
                   </label>
                   <input
@@ -1052,7 +1052,7 @@ export default function SettingsPage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 6 characters"
                     minLength={6}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-slate-400"
+                    className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-ink-dim"
                   />
                 </div>
                 <div className="flex justify-end">
@@ -1068,15 +1068,15 @@ export default function SettingsPage() {
               </>
             ) : (
               <>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   You are signed in with Google. Set a password to also use email login.
                   <br />
-                  <span className="text-slate-400">
+                  <span className="text-ink-dim">
                     Once saved, this account can sign in with email and password.
                   </span>
                 </p>
                 <div>
-                  <label htmlFor="set-pw" className="block text-sm text-slate-500 mb-1">
+                  <label htmlFor="set-pw" className="block text-sm text-ink-mid mb-1">
                     New password
                   </label>
                   <input
@@ -1086,7 +1086,7 @@ export default function SettingsPage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 6 characters"
                     minLength={6}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-slate-400"
+                    className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-ink-dim"
                   />
                 </div>
                 <div className="flex justify-end">
@@ -1109,13 +1109,13 @@ export default function SettingsPage() {
             had no picker, so the same account read differently per client. */}
         <section className="mb-8">
           <h2 className={SECTION_TITLE}>Replies</h2>
-          <div className={`${PANEL} divide-y divide-slate-100`}>
+          <div className={`${PANEL} divide-y divide-line-soft`}>
             <div className="p-5 space-y-3">
               <div>
                 <label htmlFor="reply-tone" className="font-medium block">
                   Reply tone
                 </label>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   How Klorn's drafts sound. It changes the wording, not what the reply says — and
                   never the language: a reply is always written in the language of the mail it
                   answers.
@@ -1125,7 +1125,7 @@ export default function SettingsPage() {
                 id="reply-tone"
                 value={replyTone}
                 onChange={(e) => updateReplyTone(e.target.value)}
-                className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                className="min-h-11 w-full rounded-lg border border-slate-300 bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
               >
                 {(replyTones.length > 0
                   ? replyTones
@@ -1151,7 +1151,7 @@ export default function SettingsPage() {
                 <label htmlFor="notification-language" className="font-medium block">
                   Notification language
                 </label>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   The language Klorn writes its own notifications in ("Draft ready"). Separate from
                   the app language above, because a notification is composed on the server.
                 </p>
@@ -1160,7 +1160,7 @@ export default function SettingsPage() {
                 id="notification-language"
                 value={notificationLanguage}
                 onChange={(e) => updateNotificationLanguage(e.target.value)}
-                className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                className="min-h-11 w-full rounded-lg border border-slate-300 bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
               >
                 <option value="en">English</option>
                 <option value="ko">한국어</option>
@@ -1172,15 +1172,15 @@ export default function SettingsPage() {
         {/* Notifications */}
         <section className="mb-8">
           <h2 className={SECTION_TITLE}>Signal rhythm</h2>
-          <div className={`${PANEL} divide-y divide-slate-100`}>
+          <div className={`${PANEL} divide-y divide-line-soft`}>
             <div className="p-5 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="font-medium">Morning briefing</h3>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-ink-mid">
                     Sends one daily decision briefing in your time zone, even when you are away.
                   </p>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-ink-dim">
                     Time zone: {profile.timezone}. Change it in the profile section above.
                   </p>
                 </div>
@@ -1192,8 +1192,8 @@ export default function SettingsPage() {
                   className="shrink-0"
                 />
               </div>
-              <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
-                <label htmlFor="briefing-time" className="text-sm font-medium text-slate-900">
+              <div className="flex items-center gap-3 border-t border-line-soft pt-3">
+                <label htmlFor="briefing-time" className="text-sm font-medium text-ink">
                   Delivery time
                 </label>
                 <input
@@ -1202,15 +1202,15 @@ export default function SettingsPage() {
                   value={briefingTime}
                   disabled={!dailyBriefingEnabled}
                   onChange={(e) => updateBriefingTime(e.target.value)}
-                  className="min-h-11 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
+                  className="min-h-11 rounded border border-line bg-surface-raised px-3 py-2 text-sm text-ink disabled:opacity-50"
                 />
-                <span className="text-xs text-slate-400">Default is 06:00.</span>
+                <span className="text-xs text-ink-dim">Default is 06:00.</span>
               </div>
             </div>
             <div className="p-5 flex items-center justify-between gap-4">
               <div>
                 <h3 className="font-medium">Push notifications</h3>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   {pushStatus === "unsupported"
                     ? "This browser does not support push notifications."
                     : pushStatus === "granted"
@@ -1221,7 +1221,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               {pushStatus === "unsupported" || pushStatus === "denied" ? (
-                <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
                   {pushStatus === "denied" ? "Blocked" : "Unsupported"}
                 </span>
               ) : pushStatus === "granted" ? (
@@ -1239,10 +1239,10 @@ export default function SettingsPage() {
             <div className="p-5 space-y-3">
               <fieldset className="space-y-2">
                 <legend className="w-full">
-                  <span className="block font-medium text-slate-900">
+                  <span className="block font-medium text-ink">
                     Which signals are worth interrupting you?
                   </span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
+                  <span className="mt-0.5 block text-xs text-ink-mid">
                     Disabled categories stay quiet across push and in-app notifications.
                   </span>
                 </legend>
@@ -1258,11 +1258,11 @@ export default function SettingsPage() {
                       !notifPrefs.notifyDailyBriefing &&
                       !notifPrefs.notifyEmailCandidate
                     }
-                    className="ease-strong min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition duration-150 hover:bg-slate-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent"
+                    className="ease-strong min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm text-ink-soft transition duration-150 hover:bg-surface-hover active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent"
                   >
                     Essentials only
                   </button>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-ink-mid">
                     Mail that needs an answer, plus anything on your calendar. Everything else stays
                     in the app without a notification.
                   </span>
@@ -1296,24 +1296,24 @@ export default function SettingsPage() {
                 ].map((row) => (
                   <label
                     key={row.key}
-                    className="flex items-start gap-3 py-2 cursor-pointer hover:bg-slate-100 rounded-lg px-2 transition"
+                    className="flex items-start gap-3 py-2 cursor-pointer hover:bg-surface-hover rounded-lg px-2 transition"
                   >
                     <input
                       type="checkbox"
                       checked={notifPrefs[row.key]}
                       onChange={(e) => updateNotifPref(row.key, e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-slate-300 bg-slate-50 text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
+                      className="mt-0.5 w-4 h-4 rounded border-slate-300 bg-surface-raised text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
                     />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">{row.label}</p>
-                      <p className="text-xs text-slate-500">{row.desc}</p>
+                      <p className="text-sm font-medium text-ink">{row.label}</p>
+                      <p className="text-xs text-ink-mid">{row.desc}</p>
                     </div>
                   </label>
                 ))}
               </fieldset>
-              <div className="pt-3 border-t border-slate-100">
-                <p className="text-sm font-medium text-slate-900 mb-1">Quiet hours</p>
-                <p className="text-xs text-slate-500 mb-3">
+              <div className="pt-3 border-t border-line-soft">
+                <p className="text-sm font-medium text-ink mb-1">Quiet hours</p>
+                <p className="text-xs text-ink-mid mb-3">
                   Pause push notifications during this window. Leave blank for no limit.
                 </p>
                 <div className="flex items-center gap-3">
@@ -1326,9 +1326,9 @@ export default function SettingsPage() {
                     aria-label="Quiet hours start"
                     value={notifPrefs.quietHoursStart || ""}
                     onChange={(e) => updateNotifPref("quietHoursStart", e.target.value || null)}
-                    className="min-h-11 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-sm text-slate-900 focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25"
+                    className="min-h-11 rounded border border-line bg-surface-raised px-2 py-1 text-sm text-ink focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25"
                   />
-                  <span className="text-slate-500 text-sm">to</span>
+                  <span className="text-ink-mid text-sm">to</span>
                   <label htmlFor="quiet-hours-end" className="sr-only">
                     Quiet hours end time
                   </label>
@@ -1338,15 +1338,15 @@ export default function SettingsPage() {
                     aria-label="Quiet hours end"
                     value={notifPrefs.quietHoursEnd || ""}
                     onChange={(e) => updateNotifPref("quietHoursEnd", e.target.value || null)}
-                    className="min-h-11 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-sm text-slate-900 focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25"
+                    className="min-h-11 rounded border border-line bg-surface-raised px-2 py-1 text-sm text-ink focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25"
                   />
                 </div>
               </div>
-              <div className="pt-3 border-t border-slate-100">
+              <div className="pt-3 border-t border-line-soft">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Phone escalation</p>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-sm font-medium text-ink">Phone escalation</p>
+                    <p className="text-xs text-ink-dim mt-1">
                       Calls you once when an urgent notification goes unacknowledged for 5 minutes.
                       Max 3 calls/day. Quiet hours always win. Requires a verified phone number and
                       server-side Twilio setup.
@@ -1372,7 +1372,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Execution boundary</h3>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   Let Klorn watch work, calendar, and mail in the background within approval limits.
                 </p>
               </div>
@@ -1389,7 +1389,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 {/* Agent Mode */}
                 <div>
-                  <div className="text-sm text-slate-500 mb-2">Agent mode</div>
+                  <div className="text-sm text-ink-mid mb-2">Agent mode</div>
                   <div className="grid grid-cols-3 gap-2">
                     {agentModeOptions.map((option) => (
                       <button
@@ -1410,7 +1410,7 @@ export default function SettingsPage() {
                     ))}
                   </div>
                   {agentMode === "SHADOW" && (
-                    <p className="text-[10px] text-slate-500 mt-2">
+                    <p className="text-[10px] text-ink-mid mt-2">
                       Klorn quietly prepares drafts and approval-ready work, then queues it.
                     </p>
                   )}
@@ -1425,9 +1425,7 @@ export default function SettingsPage() {
                 {/* Pre-approved tools — skip approval for specific MEDIUM-risk tools */}
                 {agentMode === "AUTO" && preApprovableTools.length > 0 && (
                   <div>
-                    <label className="block text-sm text-slate-500 mb-2">
-                      Always-allowed tools
-                    </label>
+                    <label className="block text-sm text-ink-mid mb-2">Always-allowed tools</label>
                     <div className="space-y-2">
                       {preApprovableTools.map((tool) => {
                         const enabled = alwaysAllowedTools.includes(tool);
@@ -1439,7 +1437,7 @@ export default function SettingsPage() {
                             className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                               enabled
                                 ? "bg-sky-50 border-sky-200 text-sky-700"
-                                : "bg-white/70 border-slate-200 text-slate-500 hover:border-slate-300"
+                                : "bg-surface-panel/70 border-line text-ink-mid hover:border-slate-300"
                             }`}
                             aria-pressed={enabled}
                           >
@@ -1451,7 +1449,7 @@ export default function SettingsPage() {
                         );
                       })}
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-2">
+                    <p className="text-[10px] text-ink-dim mt-2">
                       Enabled tools still run only within policy. Mail replies and destructive work
                       cannot be pre-approved here.
                     </p>
@@ -1460,14 +1458,14 @@ export default function SettingsPage() {
 
                 {/* Check Interval */}
                 <div>
-                  <label htmlFor="agent-interval" className="block text-sm text-slate-500 mb-1">
+                  <label htmlFor="agent-interval" className="block text-sm text-ink-mid mb-1">
                     Check interval
                   </label>
                   <select
                     id="agent-interval"
                     value={agentInterval}
                     onChange={(e) => updateAgentInterval(Number(e.target.value))}
-                    className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm transition focus:border-accent-muted focus:outline-none"
+                    className="min-h-11 rounded-lg border border-line bg-surface-raised px-4 py-2 text-sm transition focus:border-accent-muted focus:outline-none"
                   >
                     <option value={3}>Every 3 min</option>
                     <option value={5}>Every 5 min (default)</option>
@@ -1485,7 +1483,7 @@ export default function SettingsPage() {
                     className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                       autoMarkReadEnabled
                         ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                        : "bg-white/70 border-slate-200 text-slate-500 hover:border-slate-300"
+                        : "bg-surface-panel/70 border-line text-ink-mid hover:border-slate-300"
                     }`}
                     aria-pressed={autoMarkReadEnabled}
                   >
@@ -1494,7 +1492,7 @@ export default function SettingsPage() {
                       {autoMarkReadEnabled ? "On" : "Off"}
                     </span>
                   </button>
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-ink-dim mt-1">
                     In auto mode, Klorn can mark the original Gmail thread as read after sending a
                     reply. Default is off so unread mail remains a fallback.
                   </p>
@@ -1526,7 +1524,7 @@ export default function SettingsPage() {
                     className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                       proactiveActionsEnabled
                         ? "bg-sky-50 border-sky-200 text-sky-700"
-                        : "bg-white/70 border-slate-200 text-slate-500 hover:border-slate-300"
+                        : "bg-surface-panel/70 border-line text-ink-mid hover:border-slate-300"
                     }`}
                     aria-pressed={proactiveActionsEnabled}
                   >
@@ -1535,7 +1533,7 @@ export default function SettingsPage() {
                       {proactiveActionsEnabled ? "On" : "Off"}
                     </span>
                   </button>
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-ink-dim mt-1">
                     Klorn watches for unanswered emails, overdue tasks, upcoming meetings, and
                     follow-up opportunities — and alerts you before they slip.
                   </p>
@@ -1553,7 +1551,7 @@ export default function SettingsPage() {
                   >
                     {runningAgent ? "Running..." : "Run agent now"}
                   </button>
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-ink-dim mt-1">
                     Check signals now without waiting for the next cycle.
                   </p>
                 </div>
@@ -1574,7 +1572,7 @@ export default function SettingsPage() {
                   {agentLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="bg-slate-50/60 border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                      className="bg-surface-raised/60 border border-line rounded-lg px-3 py-2 text-sm"
                     >
                       <div className="flex items-center gap-2">
                         <span
@@ -1590,8 +1588,8 @@ export default function SettingsPage() {
                                     : "bg-slate-300"
                           }`}
                         />
-                        <span className="text-slate-500 flex-1 truncate">{log.summary}</span>
-                        <span className="text-slate-500 text-xs shrink-0">
+                        <span className="text-ink-mid flex-1 truncate">{log.summary}</span>
+                        <span className="text-ink-mid text-xs shrink-0">
                           {new Date(log.createdAt).toLocaleString("en-US", {
                             month: "short",
                             day: "numeric",
@@ -1601,7 +1599,7 @@ export default function SettingsPage() {
                         </span>
                       </div>
                       {log.tool && (
-                        <span className="text-xs text-slate-400 ml-3.5">Tool: {log.tool}</span>
+                        <span className="text-xs text-ink-dim ml-3.5">Tool: {log.tool}</span>
                       )}
                     </div>
                   ))}
@@ -1626,7 +1624,7 @@ export default function SettingsPage() {
               {patternsLoaded && (
                 <div className="mt-3">
                   {learnedPatterns.length === 0 ? (
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-ink-dim">
                       Not enough data yet — patterns emerge after a few days of use.
                     </p>
                   ) : (
@@ -1645,17 +1643,15 @@ export default function SettingsPage() {
                         return (
                           <div
                             key={i}
-                            className="bg-slate-50/60 border border-slate-200 rounded-lg px-3 py-2 text-sm flex items-start gap-2"
+                            className="bg-surface-raised/60 border border-line rounded-lg px-3 py-2 text-sm flex items-start gap-2"
                           >
                             <span
                               className={`shrink-0 rounded border px-1 py-0.5 text-[10px] font-medium ${typeColor}`}
                             >
                               {confidenceLabel}
                             </span>
-                            <span className="text-slate-500 flex-1">{p.description}</span>
-                            <span className="shrink-0 text-[11px] text-slate-400">
-                              {p.evidence}×
-                            </span>
+                            <span className="text-ink-mid flex-1">{p.description}</span>
+                            <span className="shrink-0 text-[11px] text-ink-dim">{p.evidence}×</span>
                           </div>
                         );
                       })}
@@ -1674,7 +1670,7 @@ export default function SettingsPage() {
           <Suspense>
             <OAuthErrorBanner />
           </Suspense>
-          <div className={`${PANEL} divide-y divide-slate-100`}>
+          <div className={`${PANEL} divide-y divide-line-soft`}>
             {loading ? (
               <div className="p-4">
                 <ListSkeleton count={3} />
@@ -1684,7 +1680,7 @@ export default function SettingsPage() {
                 <div key={int.name} className="flex items-center justify-between gap-4 p-4">
                   <div>
                     <h3 className="font-medium">{int.name}</h3>
-                    <p className="text-sm text-slate-500">{int.description}</p>
+                    <p className="text-sm text-ink-mid">{int.description}</p>
                   </div>
                   {int.connected ? (
                     <div className="flex items-center gap-3">
@@ -1703,18 +1699,18 @@ export default function SettingsPage() {
                           type="button"
                           onClick={testSlack}
                           disabled={slackTesting}
-                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-accent transition duration-150 hover:bg-white hover:border-accent/50 active:scale-[0.97] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-accent transition duration-150 hover:bg-surface-panel hover:border-accent/50 active:scale-[0.97] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                         >
                           {slackTesting ? "Sending..." : "Send test"}
                         </button>
                       )}
                     </div>
                   ) : int.connectUrl?.endsWith("-admin-only") ? (
-                    <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                    <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
                       Admin setup
                     </span>
                   ) : int.connectUrl?.endsWith("-coming-soon") ? (
-                    <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                    <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
                       Coming soon
                     </span>
                   ) : int.connectUrl === "google-oauth-start" ? (
@@ -1732,7 +1728,7 @@ export default function SettingsPage() {
                       Connect
                     </a>
                   ) : (
-                    <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                    <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
                       Coming soon
                     </span>
                   )}
@@ -1745,7 +1741,7 @@ export default function SettingsPage() {
             <div className={`mt-3 ${PANEL} p-4 flex items-center justify-between gap-4`}>
               <div>
                 <h3 className="font-medium">Real-time mail sync</h3>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   {gmailPushConfigured
                     ? gmailPushEnabled
                       ? gmailPushExpiresAt
@@ -1776,7 +1772,7 @@ export default function SettingsPage() {
                   </button>
                 )
               ) : (
-                <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
                   Unavailable
                 </span>
               )}
@@ -1823,7 +1819,7 @@ export default function SettingsPage() {
             <div className={`${PANEL} p-4 flex items-center justify-between gap-4`}>
               <div>
                 <h3 className="font-medium">Daily briefing</h3>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   Build a priority briefing from tasks, calendar, and mail signals.
                 </p>
               </div>
@@ -1841,7 +1837,7 @@ export default function SettingsPage() {
             <div className={`${PANEL} p-4 flex items-center justify-between gap-4`}>
               <div>
                 <h3 className="font-medium">Export workspace data</h3>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   Download decision threads, signals, memory, and execution history as JSON.
                 </p>
               </div>
@@ -1857,11 +1853,11 @@ export default function SettingsPage() {
           <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-red-400">
             Workspace reset
           </h2>
-          <div className="panel-elevated rounded-2xl border border-red-200 bg-white divide-y divide-red-100">
+          <div className="panel-elevated rounded-2xl border border-red-200 bg-surface-panel divide-y divide-red-100">
             <div className="flex items-center justify-between gap-4 p-4">
               <div>
                 <h3 className="font-medium">Delete workspace data</h3>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-mid">
                   Permanently delete decision threads, tasks, memories, contacts, and reminders.
                 </p>
               </div>
@@ -1872,7 +1868,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between gap-4 p-4">
               <div>
                 <h3 className="font-medium">Delete account</h3>
-                <p className="text-sm text-slate-500 mt-0.5">
+                <p className="text-sm text-ink-mid mt-0.5">
                   Permanently delete your account, Google access, and all data. This cannot be
                   undone.
                 </p>
@@ -1888,13 +1884,13 @@ export default function SettingsPage() {
         <section>
           <h2 className={SECTION_TITLE}>About</h2>
           <div className={`${PANEL} p-4`}>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-ink-mid">
               <span className="text-sky-600 font-medium">Klorn</span> · Decision OS
             </p>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-ink-dim mt-1">
               Built to reduce scattered tabs and make the next decision clearer.
             </p>
-            <p className="text-xs text-slate-500 mt-3">v0.2.0 — MVP</p>
+            <p className="text-xs text-ink-mid mt-3">v0.2.0 — MVP</p>
           </div>
         </section>
       </div>

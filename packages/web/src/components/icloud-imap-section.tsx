@@ -127,11 +127,11 @@ export function ICloudImapSection() {
   if (loading && !status) return null;
 
   return (
-    <section className="panel-elevated mb-8 rounded-2xl border border-slate-200/70 bg-white p-5">
+    <section className="panel-elevated mb-8 rounded-2xl border border-line/70 bg-surface-panel p-5">
       <header className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">iCloud Mail</h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <h2 className="text-base font-semibold text-ink">iCloud Mail</h2>
+          <p className="mt-1 text-xs text-ink-mid">
             Connect an iCloud mailbox via IMAP. Klorn classifies every incoming message into the
             same 4-tier firewall as Gmail.
           </p>
@@ -140,14 +140,14 @@ export function ICloudImapSection() {
       </header>
 
       {loading ? (
-        <div className="text-xs text-slate-400">Loading…</div>
+        <div className="text-xs text-ink-dim">Loading…</div>
       ) : status?.connected ? (
         <div className="space-y-3">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm text-slate-900">
+          <div className="rounded-xl border border-line-soft bg-surface-raised/70 p-3 text-sm text-ink">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-medium">{status.email}</p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-ink-dim">
                   Host: {status.host} · since{" "}
                   {status.connectedAt ? new Date(status.connectedAt).toLocaleString("en-US") : "—"}
                 </p>
@@ -171,11 +171,11 @@ export function ICloudImapSection() {
         </div>
       ) : !entitled ? (
         <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-4">
-          <p className="text-sm text-slate-900">
+          <p className="text-sm text-ink">
             Connecting a second inbox is a <span className="font-semibold text-sky-600">Pro</span>{" "}
             feature.
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-ink-mid">
             Free covers your primary Google account. Upgrade in the Subscription section to run the
             firewall across an iCloud mailbox too.
           </p>
@@ -203,13 +203,13 @@ export function ICloudImapSection() {
               required
               autoComplete="off"
             />
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-ink-mid">
               This is NOT your Apple ID password. Generate an app-specific password at{" "}
               <a
                 href={APP_PASSWORD_HELP_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="underline hover:text-slate-700"
+                className="underline hover:text-ink-soft"
               >
                 account.apple.com → Sign-In and Security
               </a>{" "}

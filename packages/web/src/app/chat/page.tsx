@@ -60,16 +60,16 @@ function ChatView() {
     <section className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-3xl flex-col px-4 pb-24 pt-4 md:pb-6">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
             {t("nav.assistant")}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">Ask about your mail, calendar, and briefing</p>
+          <p className="mt-2 text-sm text-ink-mid">Ask about your mail, calendar, and briefing</p>
         </div>
         <button
           type="button"
           onClick={newChat}
           disabled={!activeId || sending}
-          className="focus-ring ease-strong inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-40 md:min-h-9"
+          className="focus-ring ease-strong inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-40 md:min-h-9"
         >
           {t("chat.newChat")}
         </button>
@@ -80,14 +80,14 @@ function ChatView() {
           <LoadingState rows={3} rowHeight="h-12" label={t("chat.loadingConversation")} />
         ) : messages.length === 0 && !pendingText ? (
           <div className="mt-8 space-y-3">
-            <p className="text-sm text-slate-500">{t("chat.emptyState")}</p>
+            <p className="text-sm text-ink-mid">{t("chat.emptyState")}</p>
             <ul className="space-y-2">
               {SUGGESTION_KEYS.map((key) => (
                 <li key={key}>
                   <button
                     type="button"
                     onClick={() => send(t(key))}
-                    className="focus-ring ease-strong row-wash min-h-[44px] w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-2.5 text-left text-sm text-slate-600 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:text-slate-900 active:scale-[0.99]"
+                    className="focus-ring ease-strong row-wash min-h-[44px] w-full rounded-xl border border-line bg-surface-panel/70 px-4 py-2.5 text-left text-sm text-slate-600 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:text-ink active:scale-[0.99]"
                   >
                     {t(key)}
                   </button>
@@ -115,7 +115,7 @@ function ChatView() {
                 >
                   K
                 </span>
-                <p className="text-sm text-slate-500">{t("chat.thinking")}</p>
+                <p className="text-sm text-ink-mid">{t("chat.thinking")}</p>
               </div>
             )}
           </>
@@ -131,7 +131,7 @@ function ChatView() {
           send(input);
         }}
       >
-        <div className="panel-elevated flex min-h-[44px] flex-1 items-center gap-2 rounded-2xl border border-slate-200/70 bg-white px-3.5 py-2 transition duration-150 ease-out focus-within:border-accent-muted/70 focus-within:ring-2 focus-within:ring-accent/15">
+        <div className="panel-elevated flex min-h-[44px] flex-1 items-center gap-2 rounded-2xl border border-line/70 bg-surface-panel px-3.5 py-2 transition duration-150 ease-out focus-within:border-accent-muted/70 focus-within:ring-2 focus-within:ring-accent/15">
           <textarea
             ref={inputRef}
             value={input}
@@ -146,7 +146,7 @@ function ChatView() {
             maxLength={4000}
             placeholder={t("chat.inputPlaceholder")}
             aria-label="Message the assistant"
-            className="max-h-32 flex-1 resize-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            className="max-h-32 flex-1 resize-none bg-transparent text-sm text-ink outline-none placeholder:text-ink-dim"
           />
           <VoiceButton
             onTranscript={(text) =>
@@ -186,7 +186,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       >
         K
       </span>
-      <div className="max-w-[85%] rounded-2xl rounded-tl-md border border-slate-200/70 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+      <div className="max-w-[85%] rounded-2xl rounded-tl-md border border-line/70 bg-surface-panel px-4 py-2.5 text-sm text-ink-strong shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
         <p className="whitespace-pre-wrap">{message.content}</p>
         {draft && <EventDraftCard draft={draft} />}
       </div>

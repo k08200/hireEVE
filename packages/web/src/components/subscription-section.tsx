@@ -95,22 +95,22 @@ export function SubscriptionSection() {
 
   return (
     <section className="mb-8">
-      <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+      <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
         Subscription
       </h2>
-      <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
+      <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
         {isPro ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-base font-semibold text-slate-900">Klorn Pro</p>
-              <p className="mt-0.5 text-xs text-slate-400">Active — thanks for supporting Klorn.</p>
+              <p className="text-base font-semibold text-ink">Klorn Pro</p>
+              <p className="mt-0.5 text-xs text-ink-dim">Active — thanks for supporting Klorn.</p>
             </div>
             {native ? (
               <button
                 type="button"
                 onClick={restore}
                 disabled={loading}
-                className="ease-strong min-h-10 rounded-lg border border-slate-200 bg-white/70 px-4 text-sm text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+                className="ease-strong min-h-10 rounded-lg border border-line bg-surface-panel/70 px-4 text-sm text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50"
               >
                 Restore purchase
               </button>
@@ -119,7 +119,7 @@ export function SubscriptionSection() {
                 type="button"
                 onClick={manageWeb}
                 disabled={loading}
-                className="ease-strong min-h-10 rounded-lg border border-slate-200 bg-white/70 px-4 text-sm text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+                className="ease-strong min-h-10 rounded-lg border border-line bg-surface-panel/70 px-4 text-sm text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50"
               >
                 Manage subscription
               </button>
@@ -128,17 +128,17 @@ export function SubscriptionSection() {
         ) : (
           <div>
             <div className="flex items-baseline justify-between gap-3">
-              <p className="text-base font-semibold text-slate-900">Klorn Pro</p>
-              <p className="text-sm text-slate-500">
-                <span className="text-xl font-bold text-slate-900">{price}</span>/mo
+              <p className="text-base font-semibold text-ink">Klorn Pro</p>
+              <p className="text-sm text-ink-mid">
+                <span className="text-xl font-bold text-ink">{price}</span>/mo
               </p>
             </div>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-ink-dim">
               7 days free, then {price}/month. Cancel anytime.
             </p>
             <ul className="mt-4 space-y-2">
               {VALUE_PROPS.map((prop) => (
-                <li key={prop} className="flex items-start gap-2.5 text-sm text-slate-500">
+                <li key={prop} className="flex items-start gap-2.5 text-sm text-ink-mid">
                   <svg
                     aria-hidden="true"
                     width="16"
@@ -161,7 +161,7 @@ export function SubscriptionSection() {
               <button
                 type="button"
                 disabled
-                className="mt-5 flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-sm font-semibold text-slate-400"
+                className="mt-5 flex min-h-11 w-full items-center justify-center rounded-lg border border-line bg-surface-hover text-sm font-semibold text-ink-dim"
               >
                 Subscription coming soon
               </button>

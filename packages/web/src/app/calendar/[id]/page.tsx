@@ -232,8 +232,8 @@ function CalendarEventDetail({ id }: { id: string }) {
   if (loading) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-8">
-        <div className="h-32 animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
-        <div className="mt-4 h-40 animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+        <div className="h-32 animate-pulse rounded-xl border border-line bg-surface-raised" />
+        <div className="mt-4 h-40 animate-pulse rounded-xl border border-line bg-surface-raised" />
       </div>
     );
   }
@@ -241,7 +241,7 @@ function CalendarEventDetail({ id }: { id: string }) {
   if (error || !event) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-12 text-center">
-        <p className="text-sm text-slate-500">{error ?? "Event not found."}</p>
+        <p className="text-sm text-ink-mid">{error ?? "Event not found."}</p>
         <Link
           href="/calendar"
           className="mt-3 inline-block text-[12px] text-sky-600 hover:underline"
@@ -259,7 +259,7 @@ function CalendarEventDetail({ id }: { id: string }) {
       <div className="mx-auto max-w-3xl px-6 py-6">
         <Link
           href="/calendar"
-          className="mb-4 inline-flex items-center gap-1 text-[12px] text-slate-400 hover:text-slate-500"
+          className="mb-4 inline-flex items-center gap-1 text-[12px] text-ink-dim hover:text-ink-mid"
         >
           <svg
             width="12"
@@ -278,15 +278,15 @@ function CalendarEventDetail({ id }: { id: string }) {
         </Link>
 
         {/* Header */}
-        <section className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
+        <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="break-words text-xl font-semibold text-slate-900">{event.title}</h1>
-              <p className="mt-1 text-[13px] text-slate-500">
+              <h1 className="break-words text-xl font-semibold text-ink">{event.title}</h1>
+              <p className="mt-1 text-[13px] text-ink-mid">
                 {formatRange(event.startTime, event.endTime, event.allDay, userTimezone)}
               </p>
               {event.location && (
-                <p className="mt-1 break-words text-[12px] text-slate-400">📍 {event.location}</p>
+                <p className="mt-1 break-words text-[12px] text-ink-dim">📍 {event.location}</p>
               )}
               {event.meetingLink && (
                 <a
@@ -307,7 +307,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(false)}
-                    className="ease-strong rounded-md px-2 py-1 text-[11px] text-slate-400 transition duration-150 hover:text-slate-600 focus-ring min-h-9 min-w-9"
+                    className="ease-strong rounded-md px-2 py-1 text-[11px] text-ink-dim transition duration-150 hover:text-slate-600 focus-ring min-h-9 min-w-9"
                   >
                     Cancel
                   </button>
@@ -347,7 +347,7 @@ function CalendarEventDetail({ id }: { id: string }) {
           </div>
 
           {event.description && (
-            <p className="mt-4 whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 text-[13px] leading-6 text-slate-500">
+            <p className="mt-4 whitespace-pre-wrap rounded-lg border border-line bg-surface-raised p-3 text-[13px] leading-6 text-ink-mid">
               {event.description}
             </p>
           )}
@@ -355,13 +355,13 @@ function CalendarEventDetail({ id }: { id: string }) {
 
         {/* Prep pack */}
         {pack && (
-          <section className="panel-elevated mt-6 rounded-2xl border border-slate-200/70 bg-white p-5">
+          <section className="panel-elevated mt-6 rounded-2xl border border-line/70 bg-surface-panel p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-600">
                   Prep pack
                 </p>
-                <p className="mt-0.5 text-[11px] text-slate-500">
+                <p className="mt-0.5 text-[11px] text-ink-mid">
                   Mail {pack.relatedEmails.length} · Tasks {pack.openTasks.length} · Commitments{" "}
                   {pack.openCommitments.length}
                 </p>
@@ -376,9 +376,9 @@ function CalendarEventDetail({ id }: { id: string }) {
             </div>
 
             {pack.checklist.length > 0 && (
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100">
+              <ul className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line-soft">
                 {pack.checklist.map((item) => (
-                  <li key={item} className="row-wash px-3 py-2 text-[12px] text-slate-500">
+                  <li key={item} className="row-wash px-3 py-2 text-[12px] text-ink-mid">
                     {item}
                   </li>
                 ))}
@@ -387,10 +387,10 @@ function CalendarEventDetail({ id }: { id: string }) {
 
             {pack.relatedEmails.length > 0 && (
               <div className="mt-5">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-ink-dim">
                   Related mail
                 </p>
-                <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100">
+                <ul className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line-soft">
                   {pack.relatedEmails.map((m) => {
                     const name = senderName(m.from);
                     return (
@@ -412,14 +412,14 @@ function CalendarEventDetail({ id }: { id: string }) {
                             {senderInitials(name)}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block break-words font-medium text-slate-900">
+                            <span className="block break-words font-medium text-ink">
                               {m.subject}
                             </span>
-                            <span className="mt-0.5 block truncate text-[11px] text-slate-400">
+                            <span className="mt-0.5 block truncate text-[11px] text-ink-dim">
                               {name}
                             </span>
                             {m.snippet && (
-                              <span className="mt-1 line-clamp-2 block text-[11px] text-slate-400">
+                              <span className="mt-1 line-clamp-2 block text-[11px] text-ink-dim">
                                 {m.snippet}
                               </span>
                             )}
@@ -434,12 +434,12 @@ function CalendarEventDetail({ id }: { id: string }) {
 
             {pack.openTasks.length > 0 && (
               <div className="mt-5">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-ink-dim">
                   Open tasks
                 </p>
-                <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100">
+                <ul className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line-soft">
                   {pack.openTasks.map((t) => (
-                    <li key={t.id} className="row-wash px-3 py-2 text-[12px] text-slate-500">
+                    <li key={t.id} className="row-wash px-3 py-2 text-[12px] text-ink-mid">
                       {t.title}
                     </li>
                   ))}
@@ -449,17 +449,17 @@ function CalendarEventDetail({ id }: { id: string }) {
 
             {pack.openCommitments.length > 0 && (
               <div className="mt-5">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-ink-dim">
                   Open commitments
                 </p>
-                <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100">
+                <ul className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line-soft">
                   {pack.openCommitments.map((c) => (
-                    <li key={c.id} className="row-wash px-3 py-2 text-[12px] text-slate-500">
+                    <li key={c.id} className="row-wash px-3 py-2 text-[12px] text-ink-mid">
                       <span
                         className={`mr-2 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ${
                           c.owner === "USER"
                             ? "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20"
-                            : "bg-slate-100 text-slate-500"
+                            : "bg-surface-hover text-ink-mid"
                         }`}
                       >
                         {c.owner === "USER"

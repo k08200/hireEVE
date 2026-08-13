@@ -67,12 +67,12 @@ function formatDay(iso: string): string {
 
 function StatTile({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
-    <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{label}</p>
-      <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.02em] text-slate-900 tabular-nums">
+    <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-dim">{label}</p>
+      <p className="mt-2 text-[26px] font-semibold leading-none tracking-[-0.02em] text-ink tabular-nums">
         {value}
       </p>
-      {detail && <p className="mt-2 text-xs text-slate-500 tabular-nums">{detail}</p>}
+      {detail && <p className="mt-2 text-xs text-ink-mid tabular-nums">{detail}</p>}
     </div>
   );
 }
@@ -80,24 +80,24 @@ function StatTile({ label, value, detail }: { label: string; value: string; deta
 function DailyActivity({ daily }: { daily: DailyUsage[] }) {
   const maxTokens = Math.max(...daily.map((d) => d.tokens), 1);
   return (
-    <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
-      <h2 className="text-sm font-semibold text-slate-900">Daily activity</h2>
-      <p className="mt-1 text-xs text-slate-500">Tokens per day, newest first.</p>
+    <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
+      <h2 className="text-sm font-semibold text-ink">Daily activity</h2>
+      <p className="mt-1 text-xs text-ink-mid">Tokens per day, newest first.</p>
       <ul className="mt-4 space-y-1">
         {daily.map((d) => (
           <li
             key={d.date}
-            className="grid grid-cols-[64px_1fr_72px_64px] items-center gap-3 rounded-md px-2 py-1.5 text-xs transition hover:bg-slate-50"
+            className="grid grid-cols-[64px_1fr_72px_64px] items-center gap-3 rounded-md px-2 py-1.5 text-xs transition hover:bg-surface-raised"
           >
-            <span className="text-slate-500">{formatDay(d.date)}</span>
-            <span className="h-2 overflow-hidden rounded-full bg-slate-100">
+            <span className="text-ink-mid">{formatDay(d.date)}</span>
+            <span className="h-2 overflow-hidden rounded-full bg-surface-hover">
               <span
                 className="block h-full rounded-full bg-accent"
                 style={{ width: `${Math.max((d.tokens / maxTokens) * 100, 1.5)}%` }}
               />
             </span>
-            <span className="text-right text-slate-900 tabular-nums">{formatTokens(d.tokens)}</span>
-            <span className="text-right text-slate-500 tabular-nums">{formatUsd(d.cost)}</span>
+            <span className="text-right text-ink tabular-nums">{formatTokens(d.tokens)}</span>
+            <span className="text-right text-ink-mid tabular-nums">{formatUsd(d.cost)}</span>
           </li>
         ))}
       </ul>
@@ -107,15 +107,15 @@ function DailyActivity({ daily }: { daily: DailyUsage[] }) {
 
 function ConversationsTable({ conversations }: { conversations: ConversationUsage[] }) {
   return (
-    <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
-      <h2 className="text-sm font-semibold text-slate-900">Top conversations</h2>
-      <p className="mt-1 text-xs text-slate-500">
+    <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
+      <h2 className="text-sm font-semibold text-ink">Top conversations</h2>
+      <p className="mt-1 text-xs text-ink-mid">
         The 20 assistant conversations that used the most tokens, all time.
       </p>
       <ResponsiveTable className="mt-4">
         <table className="min-w-[520px] w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-xs text-slate-400">
+            <tr className="border-b border-line text-xs text-ink-dim">
               <th scope="col" className="py-2 pr-4 font-medium">
                 Conversation
               </th>
@@ -132,17 +132,15 @@ function ConversationsTable({ conversations }: { conversations: ConversationUsag
           </thead>
           <tbody>
             {conversations.map((c) => (
-              <tr key={c.conversationId} className="border-b border-slate-100 last:border-0">
-                <td className="max-w-[280px] truncate py-2 pr-4 text-slate-900">
+              <tr key={c.conversationId} className="border-b border-line-soft last:border-0">
+                <td className="max-w-[280px] truncate py-2 pr-4 text-ink">
                   {c.title || "Untitled conversation"}
                 </td>
-                <td className="py-2 pr-4 text-right text-slate-500 tabular-nums">
-                  {c.messageCount}
-                </td>
-                <td className="py-2 pr-4 text-right text-slate-900 tabular-nums">
+                <td className="py-2 pr-4 text-right text-ink-mid tabular-nums">{c.messageCount}</td>
+                <td className="py-2 pr-4 text-right text-ink tabular-nums">
                   {formatTokens(c.totalTokens)}
                 </td>
-                <td className="py-2 text-right text-slate-500 tabular-nums">
+                <td className="py-2 text-right text-ink-mid tabular-nums">
                   {formatUsd(c.estimatedCost)}
                 </td>
               </tr>
@@ -188,10 +186,10 @@ function UsageView() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 md:py-10">
       <header className="mb-6">
-        <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+        <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
           Usage
         </h1>
-        <p className="mt-2 max-w-3xl text-sm text-slate-500">
+        <p className="mt-2 max-w-3xl text-sm text-ink-mid">
           What the assistant actually spent — tokens, messages, and estimated model cost. Plan
           limits live on{" "}
           <Link href="/billing" className="focus-ring rounded text-accent hover:underline">
@@ -219,7 +217,7 @@ function UsageView() {
       {loading && <LoadingState rows={3} />}
 
       {!loading && !error && summary && !hasActivity && (
-        <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white">
+        <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel">
           <EmptyState
             title="No model usage in this period"
             description="When the assistant classifies mail, drafts replies, or answers chat, the spend shows up here."

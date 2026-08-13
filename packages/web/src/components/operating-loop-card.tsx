@@ -120,30 +120,30 @@ export default function OperatingLoopCard() {
 
   return (
     <section
-      className="panel-elevated mb-6 overflow-hidden rounded-2xl border border-slate-200/70 bg-white"
+      className="panel-elevated mb-6 overflow-hidden rounded-2xl border border-line/70 bg-surface-panel"
       aria-label="Klorn operating loop"
     >
-      <div className="border-b border-slate-100 bg-gradient-to-br from-white via-white to-sky-50 p-4 md:p-5">
+      <div className="border-b border-line-soft bg-gradient-to-br from-white via-white to-sky-50 p-4 md:p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">
               Operating loop
             </p>
-            <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-ink">
               {modeLabel(plan.mode)}
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-mid">
               {displayText(plan.headline)}
             </p>
           </div>
-          <div className="grid grid-cols-4 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] md:min-w-[320px]">
+          <div className="grid grid-cols-4 overflow-hidden rounded-xl border border-line/70 bg-surface-panel shadow-[0_1px_2px_rgba(15,23,42,0.04)] md:min-w-[320px]">
             {plan.metrics.map((metric) => (
               <LoopMetric key={metric.label} metric={metric} />
             ))}
           </div>
         </div>
-        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
+        <div className="mt-4 rounded-xl border border-line bg-surface-raised px-3 py-2.5">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-dim">
             First move
           </p>
           <p className="mt-1 text-sm font-medium text-sky-700">{displayText(plan.primaryAction)}</p>
@@ -153,8 +153,8 @@ export default function OperatingLoopCard() {
       <div className="grid gap-3 p-3 md:grid-cols-[1.4fr_1fr] md:p-4">
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">Next moves</h3>
-            <span className="text-[11px] text-slate-500">{plan.nextMoves.length}</span>
+            <h3 className="text-sm font-semibold text-ink">Next moves</h3>
+            <span className="text-[11px] text-ink-mid">{plan.nextMoves.length}</span>
           </div>
           <ul className="space-y-2">
             {plan.nextMoves.map((move) => (
@@ -168,12 +168,12 @@ export default function OperatingLoopCard() {
         <section className="space-y-3">
           {plan.decisionPulse.latest.length > 0 && <DecisionPulseCard pulse={plan.decisionPulse} />}
           {plan.playbookNudge && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="rounded-xl border border-line bg-surface-raised p-3">
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-sky-600">
                 Playbook
               </p>
-              <p className="mt-2 text-sm font-medium text-slate-900">{plan.playbookNudge.name}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-400">
+              <p className="mt-2 text-sm font-medium text-ink">{plan.playbookNudge.name}</p>
+              <p className="mt-1 text-xs leading-5 text-ink-dim">
                 {plan.playbookNudge.active ? "Active" : "Recommended"} · Confidence{" "}
                 {Math.round(plan.playbookNudge.confidence * 100)}%
                 {plan.playbookNudge.nextStep ? ` · ${plan.playbookNudge.nextStep}` : ""}
@@ -181,8 +181,8 @@ export default function OperatingLoopCard() {
             </div>
           )}
           {plan.watchlist.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400">
+            <div className="rounded-xl border border-line bg-surface-raised p-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-dim">
                 Watchlist
               </p>
               <ul className="mt-2 space-y-2">
@@ -200,20 +200,20 @@ export default function OperatingLoopCard() {
 
 function DecisionPulseCard({ pulse }: { pulse: OperatingPlanDecisionPulse }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div className="rounded-xl border border-line bg-surface-raised p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-600">
             Recent decisions
           </p>
-          <p className="mt-1 text-xs text-slate-400">Last {pulse.windowHours}h results</p>
+          <p className="mt-1 text-xs text-ink-dim">Last {pulse.windowHours}h results</p>
         </div>
-        <div className="shrink-0 text-right text-[11px] leading-5 text-slate-400">
+        <div className="shrink-0 text-right text-[11px] leading-5 text-ink-dim">
           <p>
             Done <span className="font-semibold text-emerald-600">{pulse.executed}</span>
           </p>
           <p>
-            Rejected <span className="font-semibold text-slate-700">{pulse.rejected}</span> · Failed{" "}
+            Rejected <span className="font-semibold text-ink-soft">{pulse.rejected}</span> · Failed{" "}
             <span className="font-semibold text-rose-600">{pulse.failed}</span>
           </p>
         </div>
@@ -232,17 +232,17 @@ function DecisionOutcomeRow({ outcome }: { outcome: OperatingPlanOutcome }) {
     <li>
       <Link
         href={outcome.href ?? "/inbox"}
-        className="block rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 transition hover:border-emerald-300/25 hover:bg-slate-100"
+        className="block rounded-lg border border-line bg-surface-raised px-2.5 py-2 transition hover:border-emerald-300/25 hover:bg-surface-hover"
       >
         <div className="flex items-center justify-between gap-2">
-          <p className="min-w-0 truncate text-xs font-medium text-slate-700">
+          <p className="min-w-0 truncate text-xs font-medium text-ink-soft">
             {displayText(outcome.title)}
           </p>
           <span className={`shrink-0 text-[10px] ${outcomeStatusClass(outcome.status)}`}>
             {outcomeStatusLabel(outcome.status)}
           </span>
         </div>
-        <p className="mt-1 truncate text-[11px] text-slate-500">
+        <p className="mt-1 truncate text-[11px] text-ink-mid">
           {outcome.toolName && outcome.toolName !== "decision"
             ? outcome.toolName.replace(/_/g, " ")
             : "Decision"}
@@ -256,26 +256,19 @@ function DecisionOutcomeRow({ outcome }: { outcome: OperatingPlanOutcome }) {
 function MoveRow({ move }: { move: OperatingPlanMove }) {
   const chatHref = `/chat?prefill=${encodeURIComponent(displayText(move.prompt))}`;
   const body = (
-    <article className="rounded-xl border border-slate-200 bg-slate-50 p-3 transition hover:border-accent-light/25 hover:bg-slate-100">
+    <article className="rounded-xl border border-line bg-surface-raised p-3 transition hover:border-accent-light/25 hover:bg-surface-hover">
       <div className="flex flex-wrap items-center gap-2">
         <ToneBadge tone={move.tone} label={displayText(move.label)} />
-        <span className="text-[11px] text-slate-500">{sourceLabel(move.source)}</span>
+        <span className="text-[11px] text-ink-mid">{sourceLabel(move.source)}</span>
       </div>
       {move.href ? (
-        <Link
-          href={move.href}
-          className="mt-2 block break-words text-sm font-medium text-slate-900"
-        >
+        <Link href={move.href} className="mt-2 block break-words text-sm font-medium text-ink">
           {displayText(move.title)}
         </Link>
       ) : (
-        <p className="mt-2 break-words text-sm font-medium text-slate-900">
-          {displayText(move.title)}
-        </p>
+        <p className="mt-2 break-words text-sm font-medium text-ink">{displayText(move.title)}</p>
       )}
-      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">
-        {displayText(move.reason)}
-      </p>
+      <p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-dim">{displayText(move.reason)}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Link
           href={chatHref}
@@ -286,7 +279,7 @@ function MoveRow({ move }: { move: OperatingPlanMove }) {
         {move.href && (
           <Link
             href={move.href}
-            className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-2.5 py-1.5 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+            className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-2.5 py-1.5 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
           >
             View source
           </Link>
@@ -299,14 +292,14 @@ function MoveRow({ move }: { move: OperatingPlanMove }) {
 
 function WatchRow({ context }: { context: OperatingPlanWatchContext }) {
   const body = (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+    <div className="rounded-lg border border-line bg-surface-raised px-2.5 py-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-xs font-medium text-slate-700">
+        <p className="min-w-0 truncate text-xs font-medium text-ink-soft">
           {displayText(context.title)}
         </p>
-        <span className="shrink-0 text-[10px] text-slate-500">{riskLabel(context.risk)}</span>
+        <span className="shrink-0 text-[10px] text-ink-mid">{riskLabel(context.risk)}</span>
       </div>
-      <p className="mt-1 line-clamp-1 text-[11px] text-slate-500">{displayText(context.reason)}</p>
+      <p className="mt-1 line-clamp-1 text-[11px] text-ink-mid">{displayText(context.reason)}</p>
     </div>
   );
   return context.href ? (
@@ -322,11 +315,11 @@ function WatchRow({ context }: { context: OperatingPlanWatchContext }) {
 
 function LoopMetric({ metric }: { metric: OperatingPlanMetric }) {
   return (
-    <div className="border-r border-slate-100 px-2 py-2 last:border-r-0">
+    <div className="border-r border-line-soft px-2 py-2 last:border-r-0">
       <p className={`text-lg font-semibold tabular-nums ${metricColor(metric.tone)}`}>
         {metric.value}
       </p>
-      <p className="mt-0.5 truncate text-[10px] text-slate-500">{displayText(metric.label)}</p>
+      <p className="mt-0.5 truncate text-[10px] text-ink-mid">{displayText(metric.label)}</p>
     </div>
   );
 }
@@ -383,18 +376,18 @@ function outcomeStatusLabel(status: OperatingPlanOutcome["status"]): string {
 
 function outcomeStatusClass(status: OperatingPlanOutcome["status"]): string {
   if (status === "executed") return "text-emerald-600";
-  if (status === "rejected") return "text-slate-400";
+  if (status === "rejected") return "text-ink-dim";
   return "text-rose-600";
 }
 
 function toneClass(tone: OperatingPlanTone): string {
   if (tone === "critical") return "bg-rose-500/10 text-rose-600 ring-1 ring-inset ring-rose-500/20";
   if (tone === "warn") return "bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20";
-  return "bg-slate-100 text-slate-500";
+  return "bg-surface-hover text-ink-mid";
 }
 
 function metricColor(tone: OperatingPlanTone): string {
   if (tone === "critical") return "text-rose-600";
   if (tone === "warn") return "text-amber-600";
-  return "text-slate-900";
+  return "text-ink";
 }

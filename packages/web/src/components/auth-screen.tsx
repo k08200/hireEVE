@@ -41,23 +41,23 @@ export default function AuthScreen({
   ];
   const resolvedNavCtaLabel = navCtaLabel ?? t("nav.earlyAccess");
   return (
-    <main id="main" className="min-h-screen overflow-x-hidden sky-bg text-slate-900">
+    <main id="main" className="min-h-screen overflow-x-hidden sky-bg text-ink">
       <nav className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-6">
         <Link href="/" className="flex items-center gap-3">
           <img src="/brand/mark.svg?v=matte2" alt="" className="h-8 w-8" />
-          <span className="text-sm font-semibold tracking-[0.14em] text-slate-900">Klorn</span>
+          <span className="text-sm font-semibold tracking-[0.14em] text-ink">Klorn</span>
         </Link>
         {/* Landing nav (Home / Early access) is noise on the app login —
             hide it on phones; the logo stays. */}
         <div className="hidden items-center gap-3 text-sm sm:flex">
           <Link
-            className="inline-flex min-h-11 items-center whitespace-nowrap text-slate-500 transition hover:text-slate-900"
+            className="inline-flex min-h-11 items-center whitespace-nowrap text-ink-mid transition hover:text-ink"
             href="/"
           >
             {t("nav.home")}
           </Link>
           <Link
-            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md border border-slate-200 px-3 py-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md border border-line px-3 py-2 text-ink-mid transition hover:border-slate-300 hover:text-ink"
             href={navCtaHref}
           >
             {resolvedNavCtaLabel}
@@ -68,27 +68,27 @@ export default function AuthScreen({
       <section className="relative z-10 mx-auto grid min-h-[calc(100svh-76px)] max-w-6xl items-start gap-8 px-5 pb-16 pt-6 sm:px-6 lg:grid-cols-[1fr_0.9fr] lg:items-center">
         <aside className="hidden lg:block">
           <div className="max-w-xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-dim">
               {t("nav.decisionQueue")}
             </p>
-            <h2 className="mt-4 text-5xl font-semibold leading-[1.02] tracking-tight text-slate-900">
+            <h2 className="mt-4 text-5xl font-semibold leading-[1.02] tracking-tight text-ink">
               {resolvedAsideTitle}
             </h2>
-            <p className="mt-5 max-w-lg text-base leading-7 text-slate-500">{resolvedAsideBody}</p>
+            <p className="mt-5 max-w-lg text-base leading-7 text-ink-mid">{resolvedAsideBody}</p>
           </div>
-          <div className="mt-9 max-w-xl overflow-hidden rounded-lg border border-slate-200 bg-surface-panel shadow-[0_18px_44px_-26px_rgba(2,60,110,0.28)]">
+          <div className="mt-9 max-w-xl overflow-hidden rounded-lg border border-line bg-surface-panel shadow-[0_18px_44px_-26px_rgba(2,60,110,0.28)]">
             {resolvedAsideItems.map((item, index) => (
               <div
                 key={item.label}
-                className="grid grid-cols-[72px_1fr] gap-4 border-b border-slate-200 px-4 py-4 last:border-b-0"
+                className="grid grid-cols-[72px_1fr] gap-4 border-b border-line px-4 py-4 last:border-b-0"
               >
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-ink-mid">
                     0{index + 1}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-slate-900">{item.label}</p>
+                  <p className="mt-1 text-sm font-medium text-ink">{item.label}</p>
                 </div>
-                <p className="text-sm leading-6 text-slate-500">{item.value}</p>
+                <p className="text-sm leading-6 text-ink-mid">{item.value}</p>
               </div>
             ))}
           </div>
@@ -96,35 +96,35 @@ export default function AuthScreen({
 
         <div className="mx-auto w-full max-w-md">
           <div className="mb-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
               {eyebrow}
             </p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{title}</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-500">{description}</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink">{title}</h1>
+            <p className="mt-3 text-sm leading-6 text-ink-mid">{description}</p>
           </div>
 
           {/* Condensed reassurance for mobile + WebView users — the full <aside>
               is hidden below lg, so surface the same three signals compactly
               above the form so phone visitors still get context. */}
-          <div className="mb-5 overflow-hidden rounded-lg border border-slate-200 bg-surface-panel lg:hidden">
-            <p className="border-b border-slate-200 px-4 py-3 text-sm font-medium text-slate-900">
+          <div className="mb-5 overflow-hidden rounded-lg border border-line bg-surface-panel lg:hidden">
+            <p className="border-b border-line px-4 py-3 text-sm font-medium text-ink">
               {resolvedAsideTitle}
             </p>
-            <ul className="divide-y divide-slate-200">
+            <ul className="divide-y divide-line">
               {resolvedAsideItems.map((item) => (
                 <li key={item.label} className="flex gap-3 px-4 py-2.5">
-                  <span className="shrink-0 text-xs font-medium text-slate-500">{item.label}</span>
-                  <span className="text-xs leading-5 text-slate-500">{item.value}</span>
+                  <span className="shrink-0 text-xs font-medium text-ink-mid">{item.label}</span>
+                  <span className="text-xs leading-5 text-ink-mid">{item.value}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-surface-panel p-4 shadow-[0_28px_64px_-28px_rgba(2,60,110,0.32)] sm:p-5">
+          <div className="rounded-lg border border-line bg-surface-panel p-4 shadow-[0_28px_64px_-28px_rgba(2,60,110,0.32)] sm:p-5">
             {children}
           </div>
 
-          {footer && <div className="mt-5 text-center text-xs text-slate-400">{footer}</div>}
+          {footer && <div className="mt-5 text-center text-xs text-ink-dim">{footer}</div>}
         </div>
       </section>
     </main>

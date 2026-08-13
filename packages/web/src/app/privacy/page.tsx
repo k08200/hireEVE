@@ -31,8 +31,8 @@ const SECTIONS = [
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section id={slug(title)} className="scroll-mt-24 space-y-3">
-      <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
-      <div className="space-y-3 text-base leading-7 text-slate-500">{children}</div>
+      <h2 className="text-xl font-semibold text-ink">{title}</h2>
+      <div className="space-y-3 text-base leading-7 text-ink-mid">{children}</div>
     </section>
   );
 }
@@ -41,15 +41,15 @@ function TableOfContents({ sections }: { sections: string[] }) {
   return (
     <nav
       aria-label="On this page"
-      className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-5"
+      className="mt-10 rounded-xl border border-line bg-surface-raised p-5"
     >
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">On this page</p>
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-mid">On this page</p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {sections.map((title) => (
           <li key={title}>
             <a
               href={`#${slug(title)}`}
-              className="inline-flex min-h-11 items-center text-sm text-slate-500 transition hover:text-sky-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white rounded"
+              className="inline-flex min-h-11 items-center text-sm text-ink-mid transition hover:text-sky-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white rounded"
             >
               {title}
             </a>
@@ -62,7 +62,7 @@ function TableOfContents({ sections }: { sections: string[] }) {
 
 export default function PrivacyPage() {
   return (
-    <main id="main" className="min-h-screen sky-bg text-slate-900">
+    <main id="main" className="min-h-screen sky-bg text-ink">
       <nav className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-[#f5f0e8]">
@@ -70,11 +70,11 @@ export default function PrivacyPage() {
           </div>
           <span className="text-lg font-bold tracking-tight">Klorn</span>
         </Link>
-        <div className="flex items-center gap-5 text-sm text-slate-500">
-          <Link href="/terms" className="transition hover:text-slate-900">
+        <div className="flex items-center gap-5 text-sm text-ink-mid">
+          <Link href="/terms" className="transition hover:text-ink">
             Terms
           </Link>
-          <Link href="/login" className="transition hover:text-slate-900">
+          <Link href="/login" className="transition hover:text-ink">
             Log in
           </Link>
         </div>
@@ -84,10 +84,10 @@ export default function PrivacyPage() {
         <p className="text-sm font-medium uppercase tracking-[0.18em] text-sky-600">
           PRIVACY POLICY
         </p>
-        <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
+        <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-ink md:text-5xl">
           How Klorn handles work data
         </h1>
-        <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-500">
+        <p className="mt-5 max-w-2xl text-sm leading-6 text-ink-mid">
           Last updated: {updatedAt}. Klorn is currently a beta product. This policy explains what
           data Klorn can access, why it needs that access, and how you can request deletion.
         </p>
@@ -161,8 +161,8 @@ export default function PrivacyPage() {
               replies without your awareness. Email actions require your approval before sending.
             </p>
             <p>
-              <strong className="text-slate-900">Limited Use disclosure.</strong> Klorn's use and
-              transfer to any other app of information received from Google APIs will adhere to{" "}
+              <strong className="text-ink">Limited Use disclosure.</strong> Klorn's use and transfer
+              to any other app of information received from Google APIs will adhere to{" "}
               <a
                 className="text-sky-600 hover:text-sky-700"
                 href="https://developers.google.com/terms/api-services-user-data-policy"
@@ -184,40 +184,39 @@ export default function PrivacyPage() {
               basis, and is not used to train the AI providers' models.
             </p>
             <p>
-              <strong className="text-slate-900">Scopes Klorn requests and why.</strong>
+              <strong className="text-ink">Scopes Klorn requests and why.</strong>
             </p>
             <ul className="list-disc space-y-2 pl-5">
               <li>
-                <code className="text-slate-900">gmail.readonly</code> — read message metadata and
-                bodies to classify priority, detect reply-needed signals, extract commitments and
+                <code className="text-ink">gmail.readonly</code> — read message metadata and bodies
+                to classify priority, detect reply-needed signals, extract commitments and
                 deadlines, and prepare daily briefings.
               </li>
               <li>
-                <code className="text-slate-900">gmail.modify</code> — toggle read/star labels,
-                archive, and move messages to trash (reversible) on commands you initiate or
-                approve.
+                <code className="text-ink">gmail.modify</code> — toggle read/star labels, archive,
+                and move messages to trash (reversible) on commands you initiate or approve.
               </li>
               <li>
-                <code className="text-slate-900">gmail.send</code> — send a reply only after you
+                <code className="text-ink">gmail.send</code> — send a reply only after you
                 explicitly approve it. Every send is verified against a receipt of the exact content
                 you approved.
               </li>
               <li>
-                <code className="text-slate-900">calendar.events</code> — read upcoming events to
-                surface meetings, link commitment due dates, and prepare meeting context. Edits
-                require user approval.
+                <code className="text-ink">calendar.events</code> — read upcoming events to surface
+                meetings, link commitment due dates, and prepare meeting context. Edits require user
+                approval.
               </li>
               <li>
-                <code className="text-slate-900">calendar.readonly</code> — check availability
-                across all your calendars to detect scheduling conflicts. When you link a secondary
-                Google account for calendar visibility, this read-only scope is the only calendar
-                access requested for it.
+                <code className="text-ink">calendar.readonly</code> — check availability across all
+                your calendars to detect scheduling conflicts. When you link a secondary Google
+                account for calendar visibility, this read-only scope is the only calendar access
+                requested for it.
               </li>
               <li>
-                <code className="text-slate-900">openid</code>,{" "}
-                <code className="text-slate-900">userinfo.email</code>,{" "}
-                <code className="text-slate-900">userinfo.profile</code> — sign you in and show
-                which Google account is connected.
+                <code className="text-ink">openid</code>,{" "}
+                <code className="text-ink">userinfo.email</code>,{" "}
+                <code className="text-ink">userinfo.profile</code> — sign you in and show which
+                Google account is connected.
               </li>
             </ul>
           </Section>
@@ -269,19 +268,19 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc space-y-2 pl-5">
               <li>
-                <strong className="text-slate-900">Self-service deletion.</strong> You can delete
-                your account and all associated data from Settings at any time. Deletion takes
-                effect immediately: all Google-derived data — messages, summaries, calendar events,
-                and OAuth tokens — is permanently removed from Klorn&apos;s database in the same
+                <strong className="text-ink">Self-service deletion.</strong> You can delete your
+                account and all associated data from Settings at any time. Deletion takes effect
+                immediately: all Google-derived data — messages, summaries, calendar events, and
+                OAuth tokens — is permanently removed from Klorn&apos;s database in the same
                 operation.
               </li>
               <li>
-                <strong className="text-slate-900">Export and workspace reset.</strong> Settings
-                also offers a full data export and a workspace reset that deletes all synced and
-                derived data while keeping your account.
+                <strong className="text-ink">Export and workspace reset.</strong> Settings also
+                offers a full data export and a workspace reset that deletes all synced and derived
+                data while keeping your account.
               </li>
               <li>
-                <strong className="text-slate-900">Operational logs.</strong> Logs are deleted
+                <strong className="text-ink">Operational logs.</strong> Logs are deleted
                 automatically on a fixed schedule: agent, email-processing, and
                 notification-delivery logs after 90 days; push rate-limit records after 30 days;
                 billing webhook records after 90 days; aggregate AI usage accounting after 180 days.

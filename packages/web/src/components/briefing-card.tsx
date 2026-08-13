@@ -81,8 +81,8 @@ export default function BriefingCard() {
 
   if (loading) {
     return (
-      <section className="panel-elevated mb-6 rounded-2xl border border-slate-200/70 bg-white p-4">
-        <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
+      <section className="panel-elevated mb-6 rounded-2xl border border-line/70 bg-surface-panel p-4">
+        <div className="h-16 animate-pulse rounded-lg bg-surface-hover" />
       </section>
     );
   }
@@ -94,27 +94,27 @@ export default function BriefingCard() {
       : status.automation.briefingTime;
 
   return (
-    <section className="panel-elevated mb-6 rounded-2xl border border-slate-200/70 bg-white p-4">
+    <section className="panel-elevated mb-6 rounded-2xl border border-line/70 bg-surface-panel p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-900">Today's briefing</h2>
+            <h2 className="text-sm font-semibold text-ink">Today's briefing</h2>
             <span className={`inline-flex items-center gap-1 text-[11px] ${push.className}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${push.dotClassName}`} />
               {push.label}
             </span>
           </div>
-          <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+          <p className="mt-1 line-clamp-2 text-sm text-ink-mid">
             {status.note?.preview || emptyMessage(status)}
           </p>
-          {time && <p className="mt-2 text-[11px] text-slate-500">{time}</p>}
+          {time && <p className="mt-2 text-[11px] text-ink-mid">{time}</p>}
           {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
         </div>
 
         {status.generated ? (
           <Link
             href="/briefing"
-            className="ease-strong shrink-0 rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+            className="ease-strong shrink-0 rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
           >
             Open
           </Link>
@@ -150,7 +150,7 @@ function pushMeta(
     case "received":
       return { label: "Received", className: "text-emerald-600", dotClassName: "bg-emerald-500" };
     case "accepted":
-      return { label: "Sent", className: "text-slate-500", dotClassName: "bg-slate-400" };
+      return { label: "Sent", className: "text-ink-mid", dotClassName: "bg-slate-400" };
     case "failed":
       return { label: "Failed", className: "text-red-700", dotClassName: "bg-red-500" };
     case "skipped":
@@ -160,13 +160,13 @@ function pushMeta(
         dotClassName: "bg-amber-400",
       };
     case "pending":
-      return { label: "Pending", className: "text-slate-500", dotClassName: "bg-slate-400" };
+      return { label: "Pending", className: "text-ink-mid", dotClassName: "bg-slate-400" };
     case "not_sent":
-      return { label: "Not sent", className: "text-slate-400", dotClassName: "bg-slate-300" };
+      return { label: "Not sent", className: "text-ink-dim", dotClassName: "bg-slate-300" };
     case "no_subscription":
       return {
         label: "No browser subscription",
-        className: "text-slate-400",
+        className: "text-ink-dim",
         dotClassName: "bg-slate-300",
       };
   }

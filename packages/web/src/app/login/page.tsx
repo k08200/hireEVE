@@ -201,7 +201,7 @@ function LoginForm() {
       title={mode === "login" ? t("auth.titleLogin") : t("auth.titleRegister")}
       description={mode === "login" ? t("auth.descLogin") : t("auth.descRegister")}
       footer={
-        <Link href="/" className="transition hover:text-slate-700">
+        <Link href="/" className="transition hover:text-ink-soft">
           {t("auth.backHome")}
         </Link>
       }
@@ -233,7 +233,7 @@ function LoginForm() {
           <a
             href={`${API_BASE}/api/auth/google/login`}
             onClick={handleGoogleClick}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-200 bg-transparent text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-900 focus-ring"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-transparent text-sm font-medium text-ink-mid transition hover:border-slate-300 hover:text-ink focus-ring"
           >
             <GoogleMark />
             {t("auth.googleApprovedSignIn")}
@@ -244,7 +244,7 @@ function LoginForm() {
           <a
             href={`${API_BASE}/api/auth/google/login`}
             onClick={handleGoogleClick}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-md bg-stone-100 text-sm font-semibold text-stone-900 shadow-sm transition hover:bg-white focus-ring"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-md bg-stone-100 text-sm font-semibold text-stone-900 shadow-sm transition hover:bg-surface-panel focus-ring"
           >
             <GoogleMark />
             {t("auth.continueWithGoogle")}
@@ -253,7 +253,7 @@ function LoginForm() {
             <a
               key={provider.id}
               href={`${API_BASE}/api/auth/${provider.id}/login`}
-              className="mt-3 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-200 bg-transparent text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 focus-ring"
+              className="mt-3 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-transparent text-sm font-medium text-ink-soft transition hover:border-slate-300 hover:text-ink focus-ring"
             >
               {provider.id === "apple" ? <AppleMark /> : <NaverMark />}
               {provider.id === "apple" ? t("auth.continueWithApple") : t("auth.continueWithNaver")}
@@ -261,7 +261,7 @@ function LoginForm() {
           ))}
           {/* Marketing/doctrine copy is landing-page context — hide it on the app
               (mobile) for a clean login; keep it on desktop. */}
-          <div className="mt-3 hidden space-y-2 text-center text-[11px] leading-5 text-slate-500 md:block">
+          <div className="mt-3 hidden space-y-2 text-center text-[11px] leading-5 text-ink-mid md:block">
             <p>{t("auth.betaScope")}</p>
             <p>{t("auth.noSilentActions")}</p>
             <p>
@@ -273,7 +273,7 @@ function LoginForm() {
               >
                 {t("auth.readDoctrine")}
               </a>
-              <span className="ml-2 text-slate-400">{t("auth.openSourceVersion")}</span>
+              <span className="ml-2 text-ink-dim">{t("auth.openSourceVersion")}</span>
             </p>
           </div>
         </>
@@ -281,7 +281,7 @@ function LoginForm() {
 
       <div className="my-5 flex items-center gap-3">
         <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-ink-mid">
           {signupOpen ? t("auth.orContinueEmail") : t("auth.orSignInEmail")}
         </span>
         <div className="h-px flex-1 bg-slate-200" />
@@ -291,7 +291,7 @@ function LoginForm() {
         <div
           role="group"
           aria-label={t("auth.formGroupLabel")}
-          className="mb-5 grid grid-cols-2 rounded-md border border-slate-200 bg-slate-50 p-1"
+          className="mb-5 grid grid-cols-2 rounded-md border border-line bg-surface-raised p-1"
         >
           <button
             type="button"
@@ -299,8 +299,8 @@ function LoginForm() {
             onClick={() => changeMode("login")}
             className={`h-11 rounded px-3 text-sm font-medium transition focus-ring ${
               mode === "login"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-900"
+                ? "bg-surface-panel text-ink shadow-sm"
+                : "text-ink-mid hover:text-ink"
             }`}
           >
             {t("nav.logIn")}
@@ -311,8 +311,8 @@ function LoginForm() {
             onClick={() => changeMode("register")}
             className={`h-11 rounded px-3 text-sm font-medium transition focus-ring ${
               mode === "register"
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-900"
+                ? "bg-surface-panel text-ink shadow-sm"
+                : "text-ink-mid hover:text-ink"
             }`}
           >
             {t("auth.signUpShort")}
@@ -350,13 +350,13 @@ function LoginForm() {
 
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-3">
-            <label htmlFor="password" className="block text-xs font-medium text-slate-500">
+            <label htmlFor="password" className="block text-xs font-medium text-ink-mid">
               {t("auth.password")}
             </label>
             {mode === "login" && (
               <Link
                 href="/reset-password"
-                className="inline-flex min-h-10 items-center text-xs text-slate-500 transition hover:text-sky-600"
+                className="inline-flex min-h-10 items-center text-xs text-ink-mid transition hover:text-sky-600"
               >
                 {t("auth.resetPassword")}
               </Link>
@@ -380,7 +380,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-ink-dim focus-ring"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -395,7 +395,7 @@ function LoginForm() {
         </button>
       </form>
 
-      <div className="mt-5 border-t border-slate-200 pt-4 text-center text-xs text-slate-400">
+      <div className="mt-5 border-t border-line pt-4 text-center text-xs text-ink-dim">
         {signupOpen ? (
           <>
             {mode === "login" ? t("auth.needAccount") : t("auth.haveAccount")}{" "}

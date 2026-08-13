@@ -118,12 +118,12 @@ function GraphPageInner() {
     : [];
 
   return (
-    <div className="h-full overflow-y-auto bg-surface-app px-4 pb-28 pt-6 text-slate-900 sm:px-6 md:py-10">
+    <div className="h-full overflow-y-auto bg-surface-app px-4 pb-28 pt-6 text-ink sm:px-6 md:py-10">
       <div className="mx-auto max-w-5xl">
         <div
           role="group"
           aria-label="Graph view"
-          className="mb-4 inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1"
+          className="mb-4 inline-flex rounded-xl border border-line bg-surface-raised p-1"
         >
           {(["relationships", "decisions"] as Mode[]).map((mKey) => (
             <button
@@ -132,9 +132,7 @@ function GraphPageInner() {
               aria-pressed={mode === mKey}
               onClick={() => setMode(mKey)}
               className={`rounded-lg px-3 py-1.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                mode === mKey
-                  ? "bg-accent font-semibold text-white"
-                  : "text-slate-500 hover:text-slate-900"
+                mode === mKey ? "bg-accent font-semibold text-white" : "text-ink-mid hover:text-ink"
               }`}
             >
               {mKey === "relationships" ? "Relationships" : "Decision brain"}
@@ -142,15 +140,13 @@ function GraphPageInner() {
           ))}
         </div>
 
-        <header className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-black/20">
+        <header className="mb-6 rounded-2xl border border-line bg-surface-panel p-5 shadow-sm shadow-black/20">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
             {copy.eyebrow}
           </p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
-            {copy.title}
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{copy.body}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink">{copy.title}</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-mid">{copy.body}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-dim">
             {mode === "relationships" ? (
               <>
                 <span>{contactCount} contacts</span>
@@ -174,7 +170,7 @@ function GraphPageInner() {
 
         <div className="mb-4 flex flex-wrap gap-x-4 gap-y-2">
           {legend.map((l) => (
-            <span key={l.label} className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span key={l.label} className="flex items-center gap-1.5 text-xs text-ink-mid">
               <span
                 aria-hidden="true"
                 className={`inline-block h-2.5 w-2.5 shrink-0 ${SWATCH_CLASS[l.shape]}`}
@@ -188,7 +184,7 @@ function GraphPageInner() {
         {loading ? (
           <LoadingState rows={1} rowHeight="h-96" label="Loading graph" />
         ) : !data ? (
-          <p className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+          <p className="rounded-xl border border-line bg-surface-raised p-6 text-sm text-ink-mid">
             No graph data.
           </p>
         ) : (
@@ -208,11 +204,11 @@ function TopNodesFallback({ nodes, mode }: { nodes: GraphNode[]; mode: Mode }) {
   if (nodes.length === 0) return null;
   const scoreLabel = mode === "decisions" ? "weight" : "interaction score";
   return (
-    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 className="text-sm font-semibold text-slate-900">
+    <section className="mt-6 rounded-2xl border border-line bg-surface-panel p-5">
+      <h2 className="text-sm font-semibold text-ink">
         {mode === "decisions" ? "Top decision signals" : "Top contacts"}
       </h2>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 text-xs text-ink-dim">
         A text view of the graph for keyboard and screen-reader users — the same ranked nodes shown
         visually above ({scoreLabel}, highest first).
       </p>
@@ -220,10 +216,10 @@ function TopNodesFallback({ nodes, mode }: { nodes: GraphNode[]; mode: Mode }) {
         {nodes.map((n) => (
           <li
             key={n.id}
-            className="flex items-baseline justify-between gap-3 border-b border-slate-100 pb-1.5 text-sm text-slate-500 last:border-0"
+            className="flex items-baseline justify-between gap-3 border-b border-line-soft pb-1.5 text-sm text-ink-mid last:border-0"
           >
             <span className="min-w-0 truncate">{n.label}</span>
-            <span className="shrink-0 tabular-nums text-xs text-slate-400">
+            <span className="shrink-0 tabular-nums text-xs text-ink-dim">
               {Math.round(n.score)}
             </span>
           </li>

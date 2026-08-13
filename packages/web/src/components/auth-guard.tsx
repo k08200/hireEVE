@@ -167,17 +167,17 @@ function ApiOfflineScreen() {
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
         Connection issue
       </p>
-      <h1 className="mt-3 text-2xl font-semibold text-slate-900">
+      <h1 className="mt-3 text-2xl font-semibold text-ink">
         {exhausted ? "Couldn't reach the API." : "Waking the API up…"}
       </h1>
-      <p className="mt-3 text-sm leading-6 text-slate-500">
+      <p className="mt-3 text-sm leading-6 text-ink-mid">
         {exhausted
           ? "Render free tier may be down. Your session is still saved — tap Retry to try again, or check Render."
           : `First request after idle wakes the server (≈${totalSec}s). Your session is still saved.`}
       </p>
 
       {!exhausted && (
-        <div className="mt-5 flex items-center gap-3 text-xs text-slate-400">
+        <div className="mt-5 flex items-center gap-3 text-xs text-ink-dim">
           <span
             aria-hidden="true"
             className="h-4 w-4 animate-spin rounded-full border-2 border-accent-muted border-t-transparent"

@@ -81,18 +81,18 @@ export default function EventDraftCard({ draft }: { draft: EventDraft }) {
   };
 
   return (
-    <div className="mt-2 rounded-xl border border-slate-200/70 bg-white p-3 text-sm shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <div className="mt-2 rounded-xl border border-line/70 bg-surface-panel p-3 text-sm shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <span className="inline-flex rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-accent/20">
         {t("draft.title")}
       </span>
-      <p className="mt-1.5 font-medium text-slate-900">{draft.title}</p>
-      <p className="mt-0.5 text-slate-500">{formatRange(draft.startTime, draft.endTime)}</p>
-      {draft.location && <p className="mt-0.5 text-slate-500">{draft.location}</p>}
+      <p className="mt-1.5 font-medium text-ink">{draft.title}</p>
+      <p className="mt-0.5 text-ink-mid">{formatRange(draft.startTime, draft.endTime)}</p>
+      {draft.location && <p className="mt-0.5 text-ink-mid">{draft.location}</p>}
 
       {state === "saved" ? (
         <p className="mt-2 text-emerald-600">{t("draft.saved")}</p>
       ) : state === "paywalled" ? (
-        <p className="mt-2 text-slate-500">
+        <p className="mt-2 text-ink-mid">
           {t("draft.paywall")}{" "}
           <Link href="/billing" className="focus-ring text-sky-600 underline">
             {t("draft.seePlans")}

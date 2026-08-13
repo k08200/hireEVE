@@ -45,7 +45,7 @@ export default function ErrorAlert({
         <button
           type="button"
           onClick={onRetry}
-          className="ease-strong mt-3 inline-flex min-h-11 items-center rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+          className="ease-strong mt-3 inline-flex min-h-11 items-center rounded-md border border-red-200 bg-surface-panel px-3 py-1.5 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
         >
           Try again
         </button>

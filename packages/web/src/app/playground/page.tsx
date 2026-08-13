@@ -274,14 +274,14 @@ export default function PlaygroundPage() {
   }
 
   return (
-    <main id="main" className="min-h-screen sky-bg text-slate-900">
+    <main id="main" className="min-h-screen sky-bg text-ink">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-        <Link href="/" className="text-sm font-semibold tracking-tight text-slate-900">
+        <Link href="/" className="text-sm font-semibold tracking-tight text-ink">
           Klorn
         </Link>
         <Link
           href="/early-access"
-          className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:border-slate-300"
+          className="rounded-md border border-line px-3 py-1.5 text-xs font-medium text-ink-mid transition hover:border-slate-300"
         >
           Get early access
         </Link>
@@ -289,13 +289,13 @@ export default function PlaygroundPage() {
 
       <div className="mx-auto max-w-5xl px-6 pb-24">
         <header className="mb-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-dim">
             Playground
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
             See what Klorn would interrupt you for
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-mid">
             No login. Paste an email, bring your own LLM key, and watch the same classifier the
             firewall uses sort it into one of four tiers. Your key stays in this browser and is used
             only for this one call — it is never stored on our servers.
@@ -304,43 +304,43 @@ export default function PlaygroundPage() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
           {/* Left: input */}
-          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-xl shadow-black/20">
+          <section className="rounded-lg border border-line bg-surface-panel p-5 shadow-xl shadow-black/20">
             <div className="mb-4 flex flex-wrap gap-2">
               {SAMPLES.map((s) => (
                 <button
                   key={s.label}
                   type="button"
                   onClick={() => applySample(s)}
-                  className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-500 transition hover:border-accent-muted/50 hover:text-sky-600"
+                  className="rounded-md border border-line px-2.5 py-1 text-xs text-ink-mid transition hover:border-accent-muted/50 hover:text-sky-600"
                 >
                   {s.label}
                 </button>
               ))}
             </div>
 
-            <label className="mb-1.5 block text-xs font-medium text-slate-500" htmlFor="pg-from">
+            <label className="mb-1.5 block text-xs font-medium text-ink-mid" htmlFor="pg-from">
               From
             </label>
             <input
               id="pg-from"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="mb-3 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
+              className="mb-3 w-full rounded-md border border-line bg-surface-raised px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink-dim focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
               placeholder="Jane Park <jane@sequoia.com>"
             />
 
-            <label className="mb-1.5 block text-xs font-medium text-slate-500" htmlFor="pg-subject">
+            <label className="mb-1.5 block text-xs font-medium text-ink-mid" htmlFor="pg-subject">
               Subject
             </label>
             <input
               id="pg-subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="mb-3 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
+              className="mb-3 w-full rounded-md border border-line bg-surface-raised px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink-dim focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
               placeholder="Can we talk today?"
             />
 
-            <label className="mb-1.5 block text-xs font-medium text-slate-500" htmlFor="pg-snippet">
+            <label className="mb-1.5 block text-xs font-medium text-ink-mid" htmlFor="pg-snippet">
               Body / snippet
             </label>
             <textarea
@@ -348,14 +348,14 @@ export default function PlaygroundPage() {
               value={snippet}
               onChange={(e) => setSnippet(e.target.value)}
               rows={4}
-              className="mb-4 w-full resize-y rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
+              className="mb-4 w-full resize-y rounded-md border border-line bg-surface-raised px-4 py-3 text-sm text-ink outline-none transition placeholder:text-ink-dim focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
               placeholder="Paste the first lines of the email…"
             />
 
             <div className="mb-4 grid grid-cols-2 gap-3">
               <div>
                 <label
-                  className="mb-1.5 block text-xs font-medium text-slate-500"
+                  className="mb-1.5 block text-xs font-medium text-ink-mid"
                   htmlFor="pg-provider"
                 >
                   Provider
@@ -364,7 +364,7 @@ export default function PlaygroundPage() {
                   id="pg-provider"
                   value={provider}
                   onChange={(e) => onProviderChange(e.target.value as ProviderId)}
-                  className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus-visible:border-accent-muted"
+                  className="w-full rounded-md border border-line bg-surface-raised px-3 py-2.5 text-sm text-ink outline-none focus-visible:border-accent-muted"
                 >
                   {(Object.keys(PROVIDER_META) as ProviderId[]).map((id) => (
                     <option key={id} value={id}>
@@ -374,17 +374,14 @@ export default function PlaygroundPage() {
                 </select>
               </div>
               <div>
-                <label
-                  className="mb-1.5 block text-xs font-medium text-slate-500"
-                  htmlFor="pg-model"
-                >
+                <label className="mb-1.5 block text-xs font-medium text-ink-mid" htmlFor="pg-model">
                   Model
                 </label>
                 <select
                   id="pg-model"
                   value={PROVIDER_META[provider].models.includes(model) ? model : "__custom__"}
                   onChange={(e) => setModel(e.target.value === "__custom__" ? "" : e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-900 outline-none focus-visible:border-accent-muted"
+                  className="w-full rounded-md border border-line bg-surface-raised px-3 py-2.5 font-mono text-xs text-ink outline-none focus-visible:border-accent-muted"
                 >
                   {PROVIDER_META[provider].models.map((m) => (
                     <option key={m} value={m}>
@@ -402,21 +399,21 @@ export default function PlaygroundPage() {
                     autoCapitalize="off"
                     spellCheck={false}
                     placeholder="vendor/model-id"
-                    className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-900 outline-none placeholder:text-slate-400 focus-visible:border-accent-muted"
+                    className="mt-2 w-full rounded-md border border-line bg-surface-raised px-3 py-2.5 font-mono text-xs text-ink outline-none placeholder:text-ink-dim focus-visible:border-accent-muted"
                   />
                 )}
               </div>
             </div>
-            <p className="mb-4 text-[11px] text-slate-400">{PROVIDER_META[provider].hint}</p>
+            <p className="mb-4 text-[11px] text-ink-dim">{PROVIDER_META[provider].hint}</p>
 
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="block text-xs font-medium text-slate-500" htmlFor="pg-key">
+              <label className="block text-xs font-medium text-ink-mid" htmlFor="pg-key">
                 Your {PROVIDER_META[provider].label} API key
               </label>
               <button
                 type="button"
                 onClick={() => setShowKey((v) => !v)}
-                className="text-[11px] text-slate-500 transition hover:text-sky-600"
+                className="text-[11px] text-ink-mid transition hover:text-sky-600"
               >
                 {showKey ? "Hide" : "Show"}
               </button>
@@ -430,10 +427,10 @@ export default function PlaygroundPage() {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              className="mb-1.5 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
+              className="mb-1.5 w-full rounded-md border border-line bg-surface-raised px-4 py-3 font-mono text-sm text-ink outline-none transition placeholder:text-ink-dim focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
               placeholder={PROVIDER_META[provider].keyPlaceholder}
             />
-            <p className="mb-4 text-[11px] text-slate-400">
+            <p className="mb-4 text-[11px] text-ink-dim">
               Stored only in this browser (localStorage), per provider. Sent once per classify,
               never saved on our servers.
             </p>
@@ -442,7 +439,7 @@ export default function PlaygroundPage() {
               type="button"
               onClick={classify}
               disabled={loading}
-              className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:bg-slate-100 disabled:text-slate-400"
+              className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:bg-surface-hover disabled:text-ink-dim"
             >
               {loading ? "Classifying…" : "Classify"}
             </button>
@@ -458,9 +455,9 @@ export default function PlaygroundPage() {
           </section>
 
           {/* Right: result */}
-          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-xl shadow-black/20">
+          <section className="rounded-lg border border-line bg-surface-panel p-5 shadow-xl shadow-black/20">
             {!result ? (
-              <div className="flex h-full min-h-[300px] items-center justify-center text-center text-sm text-slate-400">
+              <div className="flex h-full min-h-[300px] items-center justify-center text-center text-sm text-ink-dim">
                 The tier and the four scores behind it will appear here.
               </div>
             ) : (
@@ -472,12 +469,12 @@ export default function PlaygroundPage() {
                     >
                       {TIER_VISUAL[result.tier].label}
                     </span>
-                    <span className="text-[11px] uppercase tracking-wide text-slate-400">
+                    <span className="text-[11px] uppercase tracking-wide text-ink-dim">
                       via {result.source}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">{TIER_VISUAL[result.tier].blurb}</p>
-                  <p className="mt-3 text-sm text-slate-900">“{result.reason}”</p>
+                  <p className="mt-1 text-xs text-ink-mid">{TIER_VISUAL[result.tier].blurb}</p>
+                  <p className="mt-3 text-sm text-ink">“{result.reason}”</p>
                 </div>
 
                 <div className="mt-5 space-y-3">
@@ -490,11 +487,11 @@ export default function PlaygroundPage() {
                     ] as Array<[string, number]>
                   ).map(([label, value]) => (
                     <div key={label}>
-                      <div className="mb-1 flex justify-between text-xs text-slate-500">
+                      <div className="mb-1 flex justify-between text-xs text-ink-mid">
                         <span>{label}</span>
-                        <span className="tabular-nums text-slate-500">{value.toFixed(2)}</span>
+                        <span className="tabular-nums text-ink-mid">{value.toFixed(2)}</span>
                       </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-hover">
                         <div
                           className="h-full rounded-full bg-accent-muted/70"
                           style={{ width: `${Math.round(value * 100)}%` }}
@@ -504,14 +501,12 @@ export default function PlaygroundPage() {
                   ))}
                 </div>
 
-                <div className="mt-6 border-t border-slate-200 pt-4">
+                <div className="mt-6 border-t border-line pt-4">
                   {feedbackSent ? (
-                    <p className="text-xs text-slate-400">
-                      Thanks — noted. That helps us calibrate.
-                    </p>
+                    <p className="text-xs text-ink-dim">Thanks — noted. That helps us calibrate.</p>
                   ) : (
                     <>
-                      <p className="mb-2 text-xs text-slate-500">
+                      <p className="mb-2 text-xs text-ink-mid">
                         Wrong tier? Tell us the right one:
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -520,7 +515,7 @@ export default function PlaygroundPage() {
                             key={t}
                             type="button"
                             onClick={() => sendFeedback(t)}
-                            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-500 transition hover:border-accent-muted/50 hover:text-sky-600"
+                            className="rounded-md border border-line px-2.5 py-1 text-xs text-ink-mid transition hover:border-accent-muted/50 hover:text-sky-600"
                           >
                             Should be {t}
                           </button>
@@ -534,7 +529,7 @@ export default function PlaygroundPage() {
           </section>
         </div>
 
-        <p className="mx-auto mt-10 max-w-2xl text-center text-xs leading-relaxed text-slate-500">
+        <p className="mx-auto mt-10 max-w-2xl text-center text-xs leading-relaxed text-ink-mid">
           This is a demo of the classifier on a single email you pick. The real product runs on your
           live inbox and learns your corrections over time — that's where it gets good.
         </p>

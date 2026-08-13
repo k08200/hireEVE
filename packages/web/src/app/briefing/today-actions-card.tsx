@@ -35,8 +35,8 @@ export function TodayActionsCard() {
 
   if (query.isLoading) {
     return (
-      <section className="panel-elevated mb-4 rounded-2xl border border-slate-200/70 bg-white p-4">
-        <p className="text-xs text-slate-400">Loading today's activity…</p>
+      <section className="panel-elevated mb-4 rounded-2xl border border-line/70 bg-surface-panel p-4">
+        <p className="text-xs text-ink-dim">Loading today's activity…</p>
       </section>
     );
   }
@@ -52,12 +52,12 @@ export function TodayActionsCard() {
 
   if (idle) {
     return (
-      <section className="panel-elevated mb-4 rounded-2xl border border-slate-200/70 bg-white p-4">
+      <section className="panel-elevated mb-4 rounded-2xl border border-line/70 bg-surface-panel p-4">
         <header className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">What Klorn did today</h2>
-          <span className="text-[11px] text-slate-400">Since UTC midnight</span>
+          <h2 className="text-sm font-semibold text-ink">What Klorn did today</h2>
+          <span className="text-[11px] text-ink-dim">Since UTC midnight</span>
         </header>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-ink-dim">
           Nothing to decide and nothing to run yet today. When a mail sync or decision card lands, a
           summary appears here.
         </p>
@@ -66,10 +66,10 @@ export function TodayActionsCard() {
   }
 
   return (
-    <section className="panel-elevated mb-4 rounded-2xl border border-slate-200/70 bg-white p-4">
+    <section className="panel-elevated mb-4 rounded-2xl border border-line/70 bg-surface-panel p-4">
       <header className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-900">What Klorn did today</h2>
-        <span className="text-[11px] text-slate-400">Since UTC midnight</span>
+        <h2 className="text-sm font-semibold text-ink">What Klorn did today</h2>
+        <span className="text-[11px] text-ink-dim">Since UTC midnight</span>
       </header>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -115,7 +115,7 @@ export function TodayActionsCard() {
       </div>
 
       {data.totals.pending > 0 && (
-        <div className="mt-3 border-t border-slate-200 pt-3">
+        <div className="mt-3 border-t border-line pt-3">
           <Link
             href="/inbox"
             className="text-[11px] text-amber-300 transition hover:text-amber-200"
@@ -141,7 +141,7 @@ function TodayStat({
     good: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
     warn: "border-amber-300/30 bg-amber-300/10 text-amber-100",
     hot: "border-rose-400/30 bg-rose-400/10 text-rose-100",
-    idle: "border-slate-200 bg-white text-slate-500",
+    idle: "border-line bg-surface-panel text-ink-mid",
   }[tone];
   return (
     <div className={`rounded-lg border px-2.5 py-2 ${toneClasses}`}>
@@ -173,24 +173,24 @@ function TodayRow({
     urgent: "Urgent",
   }[tone];
   const inner = (
-    <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+    <div className="flex items-start gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2">
       <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} aria-hidden />
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium text-slate-500">
+        <p className="text-[11px] font-medium text-ink-mid">
           <span className="opacity-60">{label}</span>
           {tool && (
             <>
               <span className="mx-1.5 opacity-40">·</span>
-              <code className="text-slate-500">{tool}</code>
+              <code className="text-ink-mid">{tool}</code>
             </>
           )}
         </p>
-        <p className="mt-0.5 truncate text-xs leading-snug text-slate-500">{text}</p>
+        <p className="mt-0.5 truncate text-xs leading-snug text-ink-mid">{text}</p>
       </div>
     </div>
   );
   return href ? (
-    <Link href={href} className="block transition hover:[&>div]:border-slate-200">
+    <Link href={href} className="block transition hover:[&>div]:border-line">
       {inner}
     </Link>
   ) : (

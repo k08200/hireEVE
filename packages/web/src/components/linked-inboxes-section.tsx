@@ -108,28 +108,28 @@ export function LinkedInboxesSection() {
   });
 
   return (
-    <section className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
-      <h2 className="text-base font-semibold text-slate-900">Connected inboxes</h2>
-      <p className="mt-1 text-xs text-slate-500">
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
+      <h2 className="text-base font-semibold text-ink">Connected inboxes</h2>
+      <p className="mt-1 text-xs text-ink-mid">
         An inbox is one connected mail account. Add a second Google account (e.g. work) so Klorn
         runs the same 4-tier firewall across all your mail, not just your primary account.
       </p>
 
       {accounts.length > 0 && (
-        <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/70">
+        <ul className="mt-3 divide-y divide-line-soft rounded-xl border border-line-soft bg-surface-raised/70">
           {accounts.map((account) => (
             <li
               key={account.id}
               className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
             >
               <div className="min-w-0">
-                <span className="block truncate text-slate-900">{account.email}</span>
+                <span className="block truncate text-ink">{account.email}</span>
                 {account.needsReconnect ? (
                   <span className="block truncate text-[11px] text-amber-600">
                     Reconnect needed — access was revoked
                   </span>
                 ) : (
-                  <span className="block truncate text-[11px] text-slate-400">
+                  <span className="block truncate text-[11px] text-ink-dim">
                     {formatLastSynced(account.lastSyncedAt)}
                   </span>
                 )}
@@ -170,10 +170,10 @@ export function LinkedInboxesSection() {
         </button>
       ) : (
         <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50/60 p-4">
-          <p className="text-sm text-slate-900">
+          <p className="text-sm text-ink">
             Multiple inboxes is a <span className="font-semibold text-sky-600">Pro</span> feature.
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-ink-mid">
             Free covers your primary Google account. Upgrade in the Subscription section to run the
             firewall across a second inbox.
           </p>

@@ -62,12 +62,12 @@ function ForgotPasswordForm() {
         title="Check your email"
         description="If that email account exists, we sent a password reset link."
         footer={
-          <Link href="/login" className="transition hover:text-slate-900">
+          <Link href="/login" className="transition hover:text-ink">
             Back to login
           </Link>
         }
       >
-        <div className="border-y border-slate-200 py-5 text-sm leading-6 text-slate-500">
+        <div className="border-y border-line py-5 text-sm leading-6 text-ink-mid">
           The link is only valid for a limited time. Check spam if it does not appear.
         </div>
         <Link
@@ -86,7 +86,7 @@ function ForgotPasswordForm() {
       title="Reset password"
       description="Enter your account email and we will send a secure reset link."
       footer={
-        <Link href="/login" className="transition hover:text-slate-900">
+        <Link href="/login" className="transition hover:text-ink">
           Back to login
         </Link>
       }
@@ -109,7 +109,7 @@ function ForgotPasswordForm() {
         <button
           type="submit"
           disabled={loading || !email}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
         >
           {loading ? "Sending..." : "Send reset link"}
         </button>
@@ -179,7 +179,7 @@ function NewPasswordForm({ token }: { token: string }) {
       title="Set a new password"
       description="Enter the password you will use for your next login."
       footer={
-        <Link href="/login" className="transition hover:text-slate-900">
+        <Link href="/login" className="transition hover:text-ink">
           Back to login
         </Link>
       }
@@ -218,7 +218,7 @@ function NewPasswordForm({ token }: { token: string }) {
         <button
           type="submit"
           disabled={loading || !password || !confirm}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
         >
           {loading ? "Resetting..." : "Reset password"}
         </button>

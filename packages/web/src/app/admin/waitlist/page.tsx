@@ -112,13 +112,13 @@ function WaitlistPageInner() {
   };
 
   return (
-    <div className="min-h-dvh px-4 pb-28 pt-6 text-slate-900 sm:px-6 md:py-10">
+    <div className="min-h-dvh px-4 pb-28 pt-6 text-ink sm:px-6 md:py-10">
       <div className="mx-auto max-w-5xl">
         <header className="mb-6">
-          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
             Early access waitlist
           </h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-500">
+          <p className="mt-2 max-w-3xl text-sm text-ink-mid">
             Review new requests, move approved candidates into testing, and keep access status
             clear.
           </p>
@@ -161,8 +161,8 @@ function WaitlistPageInner() {
                 onClick={() => setFilter(f.key)}
                 className={`ease-strong rounded-xl border px-4 py-3 text-left transition duration-150 active:scale-[0.97] ${
                   isActive
-                    ? "panel-elevated border-accent-muted bg-sky-50 text-slate-900"
-                    : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
+                    ? "panel-elevated border-accent-muted bg-sky-50 text-ink"
+                    : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
                 }`}
               >
                 <div className="text-xs uppercase tracking-wide">{f.label}</div>
@@ -173,14 +173,14 @@ function WaitlistPageInner() {
         </section>
 
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <p className="text-sm text-ink-dim">Loading...</p>
         ) : entries.length === 0 ? (
-          <p className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-6 text-sm text-slate-500">
+          <p className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-6 text-sm text-ink-mid">
             No requests in this state.
           </p>
         ) : (
-          <section className="panel-elevated overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
-            <ul className="divide-y divide-slate-100">
+          <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
+            <ul className="divide-y divide-line-soft">
               {entries.map((entry) => (
                 <li key={entry.id} className="row-wash p-4 md:p-5">
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
@@ -196,7 +196,7 @@ function WaitlistPageInner() {
                           <button
                             type="button"
                             onClick={() => copyEmail(entry)}
-                            className="break-all text-base font-semibold text-slate-900 transition duration-150 hover:text-sky-600"
+                            className="break-all text-base font-semibold text-ink transition duration-150 hover:text-sky-600"
                             title="Copy email"
                           >
                             {entry.email}
@@ -206,13 +206,13 @@ function WaitlistPageInner() {
                             <span className="text-xs text-sky-600">Copied</span>
                           )}
                         </div>
-                        <div className="mt-1 text-xs tabular-nums text-slate-400">
+                        <div className="mt-1 text-xs tabular-nums text-ink-dim">
                           {entry.name ? `${entry.name} · ` : ""}
                           {formatDate(entry.createdAt)}
                           {entry.approvedAt ? ` · approved ${formatDate(entry.approvedAt)}` : ""}
                         </div>
                         {entry.useCase && (
-                          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+                          <p className="mt-3 max-w-3xl text-sm leading-6 text-ink-mid">
                             {entry.useCase}
                           </p>
                         )}
@@ -245,7 +245,7 @@ function WaitlistPageInner() {
                           type="button"
                           onClick={() => updateStatus(entry.id, "PENDING")}
                           disabled={updating === entry.id}
-                          className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-sm text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-60"
+                          className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-sm text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-60"
                         >
                           Move to pending
                         </button>
@@ -266,7 +266,7 @@ function StatusBadge({ status }: { status: WaitlistEntry["status"] }) {
   const map: Record<WaitlistEntry["status"], { label: string; cls: string }> = {
     PENDING: { label: "Pending", cls: "bg-amber-500/10 text-amber-600 ring-amber-500/20" },
     APPROVED: { label: "Approved", cls: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20" },
-    REJECTED: { label: "Rejected", cls: "bg-slate-100 text-slate-500 ring-slate-200" },
+    REJECTED: { label: "Rejected", cls: "bg-surface-hover text-ink-mid ring-slate-200" },
   };
   const s = map[status];
   return (

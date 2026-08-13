@@ -96,19 +96,19 @@ function ReceiptView() {
       <header className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+            <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
               What Klorn did today
             </h1>
-            <p className="mt-2 text-sm text-slate-500">{receipt.summary.narrative}</p>
+            <p className="mt-2 text-sm text-ink-mid">{receipt.summary.narrative}</p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <p className="hidden text-xs text-slate-400 sm:block">
+            <p className="hidden text-xs text-ink-dim sm:block">
               {formatReceiptDate(receipt.date)}
             </p>
             <button
               type="button"
               onClick={() => receiptQuery.refetch()}
-              className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring min-h-11"
+              className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring min-h-11"
             >
               Refresh
             </button>
@@ -116,16 +116,12 @@ function ReceiptView() {
         </div>
 
         {/* Summary row — one elevated panel */}
-        <div className="panel-elevated mt-5 grid grid-cols-4 overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
-          <SummaryMetric
-            label="Signals seen"
-            value={receipt.summary.totalSeen}
-            color="text-slate-900"
-          />
+        <div className="panel-elevated mt-5 grid grid-cols-4 overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
+          <SummaryMetric label="Signals seen" value={receipt.summary.totalSeen} color="text-ink" />
           <SummaryMetric
             label="Silenced"
             value={receipt.summary.savedFromInbox}
-            color="text-slate-500"
+            color="text-ink-mid"
           />
           <SummaryMetric
             label="Pushed"
@@ -154,7 +150,7 @@ function ReceiptView() {
                 type="button"
                 onClick={() => handleUndo(item.id)}
                 disabled={!!undoLoading[item.id]}
-                className="text-[11px] text-slate-400 transition duration-150 hover:text-sky-700 disabled:opacity-50 focus-ring min-h-9 min-w-9"
+                className="text-[11px] text-ink-dim transition duration-150 hover:text-sky-700 disabled:opacity-50 focus-ring min-h-9 min-w-9"
               >
                 {undoLoading[item.id] ? "Creating undo..." : "Request undo"}
               </button>
@@ -195,15 +191,15 @@ function ReceiptView() {
             title="Silenced"
             description="Signals Klorn filtered out to protect your focus"
             accentBar={null}
-            labelClass="text-slate-500"
+            labelClass="text-ink-mid"
             items={receipt.silenced}
           />
         )}
 
         {receipt.summary.totalSeen === 0 && (
-          <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-8 text-center">
-            <p className="text-sm text-slate-500">No signals processed today yet.</p>
-            <p className="mt-1 text-xs text-slate-500">
+          <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-8 text-center">
+            <p className="text-sm text-ink-mid">No signals processed today yet.</p>
+            <p className="mt-1 text-xs text-ink-mid">
               Come back later — Klorn processes your mail and meetings continuously.
             </p>
           </div>
@@ -213,7 +209,7 @@ function ReceiptView() {
       <div className="mt-8 flex justify-center">
         <Link
           href="/inbox"
-          className="text-sm text-slate-400 transition duration-150 hover:text-slate-600"
+          className="text-sm text-ink-dim transition duration-150 hover:text-slate-600"
         >
           ← Back to Decision Queue
         </Link>
@@ -244,12 +240,12 @@ function ReceiptSection({
       <div className="mb-2 flex items-center justify-between">
         <div>
           <h2 className={`text-sm font-semibold ${labelClass}`}>{title}</h2>
-          <p className="text-xs text-slate-500">{description}</p>
+          <p className="text-xs text-ink-mid">{description}</p>
         </div>
-        <span className="text-[11px] tabular-nums text-slate-400">{items.length}</span>
+        <span className="text-[11px] tabular-nums text-ink-dim">{items.length}</span>
       </div>
-      <div className="panel-elevated overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
-        <ul className="divide-y divide-slate-100">
+      <div className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
+        <ul className="divide-y divide-line-soft">
           {items.map((item) => (
             <li key={item.id} className="row-wash relative">
               {accentBar && (
@@ -261,16 +257,16 @@ function ReceiptSection({
               <div className="px-4 py-3 pl-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900">{item.title}</p>
+                    <p className="truncate text-sm font-medium text-ink">{item.title}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <SourceBadge source={item.source} type={item.type} />
                       {item.tierReason && (
-                        <span className="text-[11px] text-slate-500">{item.tierReason}</span>
+                        <span className="text-[11px] text-ink-mid">{item.tierReason}</span>
                       )}
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="text-[11px] tabular-nums text-slate-400">
+                    <span className="text-[11px] tabular-nums text-ink-dim">
                       {formatTime(item.surfacedAt)}
                     </span>
                     {renderExtra?.(item)}
@@ -288,9 +284,9 @@ function ReceiptSection({
 
 function SummaryMetric({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="border-r border-slate-100 px-4 py-3 last:border-r-0">
+    <div className="border-r border-line-soft px-4 py-3 last:border-r-0">
       <p className={`text-2xl font-semibold tabular-nums ${color}`}>{value}</p>
-      <p className="mt-1 text-[11px] text-slate-400">{label}</p>
+      <p className="mt-1 text-[11px] text-ink-dim">{label}</p>
     </div>
   );
 }
@@ -298,7 +294,7 @@ function SummaryMetric({ label, value, color }: { label: string; value: number; 
 function SourceBadge({ source, type }: { source: string; type: string }) {
   const label = sourceLabel(source, type);
   return (
-    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-slate-500">
+    <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ink-mid">
       {label}
     </span>
   );

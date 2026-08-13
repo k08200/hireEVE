@@ -71,7 +71,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-white text-slate-900">
+    <div className="flex h-dvh overflow-hidden bg-surface-panel text-ink">
       {/* Skip link (WCAG 2.4.1) — the first focusable element, hidden until a
           keyboard user tabs to it, so they can jump past the whole sidebar to
           the content on every route. */}
@@ -85,10 +85,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="relative flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile header — pt-safe respects iPhone notch in PWA. The hamburger
             is gone: the bottom tab bar + account sheet are the whole mobile nav. */}
-        <div className="relative z-10 md:hidden flex items-center gap-3 px-4 h-12 pt-safe border-b border-slate-200 bg-white/95 backdrop-blur-xl shrink-0 box-content">
+        <div className="relative z-10 md:hidden flex items-center gap-3 px-4 h-12 pt-safe border-b border-line bg-surface-panel/95 backdrop-blur-xl shrink-0 box-content">
           <img src="/brand/mark.svg?v=matte2" alt="" className="h-6 w-6" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold leading-none text-slate-900">Klorn</p>
+            <p className="text-sm font-semibold leading-none text-ink">Klorn</p>
             {/* The section name is redundant with each screen's large title, so
                 it's visually hidden — kept in the DOM (sr-only) for screen
                 readers and the navigation e2e checks. */}
@@ -117,14 +117,14 @@ function SessionTransition({ label }: { label: string }) {
   return (
     <main
       id="main"
-      className="flex min-h-dvh items-center justify-center bg-white px-6 text-slate-900"
+      className="flex min-h-dvh items-center justify-center bg-surface-panel px-6 text-ink"
       role="status"
       aria-live="polite"
     >
       <div className="flex flex-col items-center gap-4 text-center">
         <img src="/brand/mark.svg?v=matte2" alt="" className="h-10 w-10" />
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent-muted border-t-transparent" />
-        <p className="text-sm text-slate-500">{label}...</p>
+        <p className="text-sm text-ink-mid">{label}...</p>
       </div>
     </main>
   );

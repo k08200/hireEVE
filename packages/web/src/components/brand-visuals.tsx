@@ -19,14 +19,14 @@ export function EveSignalField({ className = "", tone = "panel" }: EveSignalFiel
       aria-hidden="true"
       className={`pointer-events-none relative overflow-hidden border ${
         isHero
-          ? "border-slate-200 bg-[#f4f8fc]/72 shadow-xl shadow-black/20"
-          : "border-slate-200 bg-[#f4f8fc]"
+          ? "border-line bg-[#f4f8fc]/72 shadow-xl shadow-black/20"
+          : "border-line bg-[#f4f8fc]"
       } ${className}`}
     >
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent)]" />
       <div className="relative flex h-full min-h-32 flex-col justify-between p-4">
-        <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+        <div className="flex items-center justify-between gap-4 border-b border-line-soft pb-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-dim">
             Work signals
           </span>
           <span className="rounded-full border border-emerald-400/20 px-2 py-0.5 text-[10px] text-emerald-200">
@@ -37,7 +37,7 @@ export function EveSignalField({ className = "", tone = "panel" }: EveSignalFiel
           {SIGNAL_POINTS.slice(0, 4).map((point, index) => (
             <div key={point.label} className="flex items-center gap-2.5">
               <span className={`h-2 w-2 rounded-full ${point.accent}`} />
-              <span className="w-14 text-[10px] font-medium uppercase tracking-[0.1em] text-slate-400">
+              <span className="w-14 text-[10px] font-medium uppercase tracking-[0.1em] text-ink-dim">
                 {point.label}
               </span>
               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
@@ -49,8 +49,8 @@ export function EveSignalField({ className = "", tone = "panel" }: EveSignalFiel
             </div>
           ))}
         </div>
-        <div className="mt-4 rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
-          <p className="text-[11px] leading-5 text-slate-500">
+        <div className="mt-4 rounded-md border border-line-soft bg-surface-raised px-3 py-2">
+          <p className="text-[11px] leading-5 text-ink-mid">
             Only items that need attention enter the decision queue with context and approval state.
           </p>
         </div>
@@ -63,7 +63,7 @@ export function EveBrandRail({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute overflow-hidden border border-accent-muted/10 bg-slate-50 ${className}`}
+      className={`pointer-events-none absolute overflow-hidden border border-accent-muted/10 bg-surface-raised ${className}`}
     >
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,165,233,0.26),transparent_34%,rgba(45,212,191,0.16)_74%,transparent)]" />
       <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-accent-muted/55 to-transparent" />

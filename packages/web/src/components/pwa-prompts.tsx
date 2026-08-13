@@ -160,11 +160,11 @@ export default function PwaPrompts() {
       {/* Update available banner */}
       {updateAvailable && (
         <div
-          className="fixed bottom-20 left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-2xl shadow-slate-900/15 animate-slide-up"
+          className="fixed bottom-20 left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border border-line bg-surface-panel px-4 py-3 shadow-2xl shadow-slate-900/15 animate-slide-up"
           role="region"
           aria-label="App update available"
         >
-          <div className="text-sm text-slate-900">A new Klorn build is ready.</div>
+          <div className="text-sm text-ink">A new Klorn build is ready.</div>
           <button
             type="button"
             onClick={handleUpdate}
@@ -175,7 +175,7 @@ export default function PwaPrompts() {
           <button
             type="button"
             onClick={() => setUpdateAvailable(false)}
-            className="min-h-10 px-2 text-slate-400 hover:text-slate-500 transition text-sm"
+            className="min-h-10 px-2 text-ink-dim hover:text-ink-mid transition text-sm"
             aria-label="Dismiss update prompt"
           >
             Later
@@ -186,7 +186,7 @@ export default function PwaPrompts() {
       {/* Install prompt */}
       {showInstall && (
         <div
-          className="fixed bottom-20 left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border border-accent-muted/20 bg-white px-4 py-3 shadow-2xl shadow-slate-900/15 animate-slide-up sm:max-w-md"
+          className="fixed bottom-20 left-1/2 z-[100] flex max-w-[92vw] -translate-x-1/2 items-center gap-3 rounded-xl border border-accent-muted/20 bg-surface-panel px-4 py-3 shadow-2xl shadow-slate-900/15 animate-slide-up sm:max-w-md"
           role="region"
           aria-label="Install Klorn"
         >
@@ -200,8 +200,8 @@ export default function PwaPrompts() {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-slate-900">Install Klorn</p>
-            <p className="text-xs text-slate-400">Open the decision queue from your home screen.</p>
+            <p className="text-sm font-medium text-ink">Install Klorn</p>
+            <p className="text-xs text-ink-dim">Open the decision queue from your home screen.</p>
           </div>
           <button
             type="button"
@@ -213,7 +213,7 @@ export default function PwaPrompts() {
           <button
             type="button"
             onClick={dismissInstall}
-            className="min-h-10 min-w-10 text-slate-400 hover:text-slate-500 transition text-lg leading-none"
+            className="min-h-10 min-w-10 text-ink-dim hover:text-ink-mid transition text-lg leading-none"
             aria-label="Dismiss install prompt"
           >
             x
@@ -224,7 +224,7 @@ export default function PwaPrompts() {
       {/* iOS Safari install instructions — push notifications require PWA on iOS */}
       {showIosInstall && (
         <div
-          className="fixed bottom-20 left-1/2 z-[100] w-[min(94vw,420px)] -translate-x-1/2 rounded-2xl border border-accent-muted/25 bg-white px-4 py-3.5 shadow-2xl shadow-slate-900/15 animate-slide-up pb-safe"
+          className="fixed bottom-20 left-1/2 z-[100] w-[min(94vw,420px)] -translate-x-1/2 rounded-2xl border border-accent-muted/25 bg-surface-panel px-4 py-3.5 shadow-2xl shadow-slate-900/15 animate-slide-up pb-safe"
           role="region"
           aria-label="Install Klorn on iPhone for push notifications"
         >
@@ -239,25 +239,23 @@ export default function PwaPrompts() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-900">
-                Get the morning briefing on iPhone
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="text-sm font-medium text-ink">Get the morning briefing on iPhone</p>
+              <p className="mt-0.5 text-xs text-ink-mid">
                 iOS only delivers Klorn push from an installed app. Add to Home Screen to enable it.
               </p>
             </div>
             <button
               type="button"
               onClick={dismissIosInstall}
-              className="-mr-1 -mt-0.5 text-lg leading-none text-slate-400 transition hover:text-slate-900"
+              className="-mr-1 -mt-0.5 text-lg leading-none text-ink-dim transition hover:text-ink"
               aria-label="Dismiss iOS install prompt"
             >
               ×
             </button>
           </div>
-          <ol className="mt-3 space-y-1.5 text-xs text-slate-500">
+          <ol className="mt-3 space-y-1.5 text-xs text-ink-mid">
             <li className="flex items-center gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[10px] font-semibold text-slate-500">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line text-[10px] font-semibold text-ink-mid">
                 1
               </span>
               <span>
@@ -269,13 +267,13 @@ export default function PwaPrompts() {
               </span>
             </li>
             <li className="flex items-center gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[10px] font-semibold text-slate-500">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line text-[10px] font-semibold text-ink-mid">
                 2
               </span>
               <span>Scroll down and choose "Add to Home Screen"</span>
             </li>
             <li className="flex items-center gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[10px] font-semibold text-slate-500">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line text-[10px] font-semibold text-ink-mid">
                 3
               </span>
               <span>Open Klorn from the new home-screen icon, then allow notifications</span>

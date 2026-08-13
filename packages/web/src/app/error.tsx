@@ -13,11 +13,11 @@ function ErrorPage({
         Screen paused
       </p>
       <h1 className="text-xl font-semibold mb-2">Something went wrong on this screen.</h1>
-      <p className="text-slate-500 text-sm mb-2 text-center max-w-md">
+      <p className="text-ink-mid text-sm mb-2 text-center max-w-md">
         Reload the latest context and continue from there.
       </p>
       {error.message && (
-        <p className="text-xs text-slate-500 mb-6 font-mono bg-slate-50 border border-slate-200 rounded px-3 py-1.5 max-w-md truncate">
+        <p className="text-xs text-ink-mid mb-6 font-mono bg-surface-raised border border-line rounded px-3 py-1.5 max-w-md truncate">
           {error.message}
         </p>
       )}

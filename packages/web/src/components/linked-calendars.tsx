@@ -84,22 +84,22 @@ export function LinkedCalendars() {
   });
 
   return (
-    <section className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-4 text-slate-600">
-      <h3 className="text-sm font-medium text-slate-900">Connected calendars</h3>
-      <p className="mt-1 text-xs text-slate-500">
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4 text-slate-600">
+      <h3 className="text-sm font-medium text-ink">Connected calendars</h3>
+      <p className="mt-1 text-xs text-ink-mid">
         Add a work Google account so conflict checks cover a calendar that lives on a different
         account.
       </p>
 
       {accounts.length > 0 && (
-        <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/70">
+        <ul className="mt-3 divide-y divide-line-soft rounded-xl border border-line-soft bg-surface-raised/70">
           {accounts.map((account) => (
             <li
               key={account.id}
               className="flex items-center justify-between gap-3 px-3 py-2.5 text-sm"
             >
               <div className="min-w-0">
-                <span className="block truncate text-slate-900">{account.email}</span>
+                <span className="block truncate text-ink">{account.email}</span>
                 {account.needsReconnect && (
                   <span className="block truncate text-[11px] text-amber-600">
                     Reconnect needed — access was revoked

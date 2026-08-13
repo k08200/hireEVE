@@ -74,8 +74,8 @@ export default function PlaybookRecommendations() {
   return (
     <section className="mb-6" aria-label="Klorn recommended playbooks">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-900">Recommended Playbooks</h2>
-        <span className="text-[11px] text-slate-400">{data.recommendations.length}</span>
+        <h2 className="text-sm font-semibold text-ink">Recommended Playbooks</h2>
+        <span className="text-[11px] text-ink-dim">{data.recommendations.length}</span>
       </div>
       <div className="space-y-2">
         {data.recommendations.map((recommendation) => (
@@ -107,7 +107,7 @@ function PlaybookCard({
   const active = Boolean(recommendation.playbook.active);
 
   return (
-    <article className="panel-elevated ease-strong rounded-2xl border border-slate-200/70 bg-white p-4 transition duration-150">
+    <article className="panel-elevated ease-strong rounded-2xl border border-line/70 bg-surface-panel p-4 transition duration-150">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -116,7 +116,7 @@ function PlaybookCard({
             >
               {domain.label}
             </span>
-            <span className="text-[11px] tabular-nums text-slate-400">
+            <span className="text-[11px] tabular-nums text-ink-dim">
               {Math.round(recommendation.confidence * 100)}%
             </span>
             {active && (
@@ -125,14 +125,14 @@ function PlaybookCard({
               </span>
             )}
           </div>
-          <p className="mt-2 truncate text-sm font-medium text-slate-900">
+          <p className="mt-2 truncate text-sm font-medium text-ink">
             {displayText(recommendation.playbook.name)}
           </p>
-          <p className="mt-1 line-clamp-1 text-xs text-slate-500">
+          <p className="mt-1 line-clamp-1 text-xs text-ink-mid">
             {displayText(recommendation.reasons[0] || recommendation.playbook.bestFor)}
           </p>
         </div>
-        <span className="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] tabular-nums text-slate-500">
+        <span className="shrink-0 rounded-md border border-line bg-surface-raised px-2 py-1 text-[11px] tabular-nums text-ink-mid">
           {recommendation.score}
         </span>
       </div>
@@ -143,7 +143,7 @@ function PlaybookCard({
         {recommendation.suggestedFirstActions.slice(0, 2).map((step) => (
           <span
             key={step.id}
-            className="rounded border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-500"
+            className="rounded border border-line px-1.5 py-0.5 text-[11px] text-ink-mid"
           >
             {displayText(step.title)}
           </span>
@@ -155,7 +155,7 @@ function PlaybookCard({
         disabled={updating}
         className={`ease-strong mt-3 h-8 rounded-md border px-3 text-xs font-medium transition duration-150 active:scale-[0.97] disabled:opacity-50 ${
           active
-            ? "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
+            ? "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
             : "border-sky-200 bg-sky-50 text-sky-700 hover:bg-accent-dim"
         }`}
       >
@@ -167,12 +167,12 @@ function PlaybookCard({
 
 function ContextLink({ context }: { context: PlaybookContextHit }) {
   const content = (
-    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+    <div className="mt-3 rounded-lg border border-line bg-surface-raised px-3 py-2">
       <div className="flex items-center gap-2">
         <RiskDot risk={context.risk} />
-        <p className="min-w-0 truncate text-xs text-slate-500">{context.title}</p>
+        <p className="min-w-0 truncate text-xs text-ink-mid">{context.title}</p>
       </div>
-      <p className="mt-1 line-clamp-1 text-[11px] text-slate-400">
+      <p className="mt-1 line-clamp-1 text-[11px] text-ink-dim">
         {context.matchedKeywords.slice(0, 3).map(displayText).join(" · ")}
       </p>
     </div>

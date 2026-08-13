@@ -166,13 +166,13 @@ export function AttachmentAnalysis({
   };
 
   return (
-    <section className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <section className="mt-5 rounded-xl border border-line bg-surface-raised p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
           Attachment analysis
         </h2>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-slate-400">{attachments.length} files</span>
+          <span className="text-[11px] text-ink-dim">{attachments.length} files</span>
           <button
             type="button"
             onClick={downloadBrief}
@@ -185,7 +185,7 @@ export function AttachmentAnalysis({
             type="button"
             onClick={onReanalyze}
             disabled={reanalyzing}
-            className="rounded border border-slate-200 bg-slate-100 px-2 py-1 text-[11px] text-slate-500 transition hover:bg-slate-200 disabled:opacity-50 focus-ring"
+            className="rounded border border-line bg-surface-hover px-2 py-1 text-[11px] text-ink-mid transition hover:bg-slate-200 disabled:opacity-50 focus-ring"
           >
             {reanalyzing ? "Analyzing..." : "Reanalyze"}
           </button>
@@ -203,18 +203,18 @@ export function AttachmentAnalysis({
         {attachments.map((attachment) => (
           <div
             key={attachment.id}
-            className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0"
+            className="border-t border-line pt-3 first:border-t-0 first:pt-0"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <span className="max-w-full truncate text-sm font-medium text-slate-900">
+              <span className="max-w-full truncate text-sm font-medium text-ink">
                 {attachment.filename}
               </span>
               {attachment.category && (
-                <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+                <span className="rounded border border-line bg-surface-hover px-1.5 py-0.5 text-[10px] text-ink-mid">
                   {attachmentCategoryLabel(attachment.category)}
                 </span>
               )}
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-ink-mid">
                 {formatBytes(attachment.size)} · {attachmentStatusLabel(attachment.analysisStatus)}
               </span>
               {attachmentNeedsManualReview(attachment) && (
@@ -226,11 +226,11 @@ export function AttachmentAnalysis({
                 type="button"
                 onClick={() => downloadAttachment(attachment)}
                 disabled={downloading === attachment.id}
-                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] text-slate-500 transition hover:border-slate-300 hover:text-slate-500 disabled:opacity-50 focus-ring"
+                className="rounded border border-line bg-surface-panel px-2 py-0.5 text-[10px] text-ink-mid transition hover:border-slate-300 hover:text-ink-mid disabled:opacity-50 focus-ring"
               >
                 {downloading === attachment.id ? "Downloading" : "Download original"}
               </button>
-              <div className="flex items-center gap-1 rounded border border-slate-200 bg-white p-0.5">
+              <div className="flex items-center gap-1 rounded border border-line bg-surface-panel p-0.5">
                 <select
                   value={conversionTargets[attachment.id] ?? defaultConversionTarget(attachment)}
                   onChange={(event) =>
@@ -239,7 +239,7 @@ export function AttachmentAnalysis({
                       [attachment.id]: event.target.value as AttachmentConversionTarget,
                     }))
                   }
-                  className="max-w-20 bg-transparent px-1 py-0.5 text-[10px] text-slate-500 outline-none"
+                  className="max-w-20 bg-transparent px-1 py-0.5 text-[10px] text-ink-mid outline-none"
                   aria-label={`${attachment.filename} conversion format`}
                 >
                   {ATTACHMENT_CONVERSION_TARGETS.map((target) => (
@@ -262,7 +262,7 @@ export function AttachmentAnalysis({
               </div>
             </div>
             {attachment.summary && (
-              <p className="mt-2 text-xs leading-relaxed text-slate-500">{attachment.summary}</p>
+              <p className="mt-2 text-xs leading-relaxed text-ink-mid">{attachment.summary}</p>
             )}
             {attachmentNeedsManualReview(attachment) && (
               <p className="mt-2 text-[11px] leading-relaxed text-rose-200/80">
@@ -274,7 +274,7 @@ export function AttachmentAnalysis({
                 {attachment.keyPoints.map((point, index) => (
                   <li
                     key={`${attachment.id}-${index}`}
-                    className="flex gap-1.5 text-xs text-slate-500"
+                    className="flex gap-1.5 text-xs text-ink-mid"
                   >
                     <span className="text-slate-300">•</span>
                     <span>{point}</span>
@@ -288,7 +288,7 @@ export function AttachmentAnalysis({
                   value === null || value === "" ? null : (
                     <span
                       key={key}
-                      className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-500"
+                      className="rounded border border-line bg-surface-panel px-2 py-1 text-[11px] text-ink-mid"
                     >
                       {fieldLabel(key)}: {String(value)}
                     </span>
@@ -297,11 +297,11 @@ export function AttachmentAnalysis({
               </div>
             )}
             {attachment.textPreview && (
-              <details className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <summary className="cursor-pointer text-[11px] font-medium text-slate-400">
+              <details className="mt-2 rounded-lg border border-line bg-surface-raised px-3 py-2">
+                <summary className="cursor-pointer text-[11px] font-medium text-ink-dim">
                   Converted text preview
                 </summary>
-                <pre className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap break-words font-sans text-[11px] leading-relaxed text-slate-400">
+                <pre className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap break-words font-sans text-[11px] leading-relaxed text-ink-dim">
                   {attachment.textPreview}
                 </pre>
               </details>
@@ -315,7 +315,7 @@ export function AttachmentAnalysis({
               <button
                 type="button"
                 onClick={() => setEditingId(editingId === attachment.id ? null : attachment.id)}
-                className="rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-500 transition hover:border-accent/30 hover:text-accent-muted focus-ring"
+                className="rounded border border-line bg-surface-panel px-2 py-1 text-[10px] text-ink-mid transition hover:border-accent/30 hover:text-accent-muted focus-ring"
               >
                 {editingId === attachment.id ? "Close edit" : "Edit analysis"}
               </button>
@@ -428,23 +428,23 @@ function AttachmentCorrectionForm({
     <div className="mt-3 rounded-lg border border-accent/15 bg-accent/5 p-3">
       <div className="grid gap-2 sm:grid-cols-[1fr_160px]">
         <label className="block">
-          <span className="mb-1 block text-[10px] uppercase tracking-wider text-slate-500">
+          <span className="mb-1 block text-[10px] uppercase tracking-wider text-ink-mid">
             Summary
           </span>
           <input
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
-            className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-accent/40"
+            className="w-full rounded border border-line bg-surface-raised px-2 py-1.5 text-xs text-ink-mid outline-none focus:border-accent/40"
           />
         </label>
         <label className="block">
-          <span className="mb-1 block text-[10px] uppercase tracking-wider text-slate-500">
+          <span className="mb-1 block text-[10px] uppercase tracking-wider text-ink-mid">
             Category
           </span>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-accent/40"
+            className="w-full rounded border border-line bg-surface-raised px-2 py-1.5 text-xs text-ink-mid outline-none focus:border-accent/40"
           >
             {[
               "resume",
@@ -468,20 +468,20 @@ function AttachmentCorrectionForm({
       </div>
       <div className="mt-2">
         <div className="mb-1 flex items-center justify-between gap-2">
-          <span className="block text-[10px] uppercase tracking-wider text-slate-500">
+          <span className="block text-[10px] uppercase tracking-wider text-ink-mid">
             Extracted fields
           </span>
           <button
             type="button"
             onClick={() => setFields((prev) => [...prev, { key: "", value: "" }])}
-            className="text-[11px] text-slate-400 transition hover:text-slate-500 focus-ring"
+            className="text-[11px] text-ink-dim transition hover:text-ink-mid focus-ring"
           >
             Add field
           </button>
         </div>
         <div className="space-y-1.5">
           {fields.length === 0 && (
-            <p className="rounded border border-slate-200 bg-slate-50 px-2 py-2 text-[11px] text-slate-400">
+            <p className="rounded border border-line bg-surface-raised px-2 py-2 text-[11px] text-ink-dim">
               No extracted fields yet. Add any needed value manually.
             </p>
           )}
@@ -500,7 +500,7 @@ function AttachmentCorrectionForm({
                   )
                 }
                 placeholder="Field"
-                className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-accent/40"
+                className="rounded border border-line bg-surface-raised px-2 py-1.5 text-xs text-ink-mid outline-none focus:border-accent/40"
               />
               <input
                 value={field.value}
@@ -512,14 +512,14 @@ function AttachmentCorrectionForm({
                   )
                 }
                 placeholder="Value"
-                className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-accent/40"
+                className="rounded border border-line bg-surface-raised px-2 py-1.5 text-xs text-ink-mid outline-none focus:border-accent/40"
               />
               <button
                 type="button"
                 onClick={() =>
                   setFields((prev) => prev.filter((_, itemIndex) => itemIndex !== index))
                 }
-                className="rounded border border-slate-200 px-2 py-1.5 text-[11px] text-slate-400 transition hover:border-rose-400/30 hover:text-rose-200 focus-ring"
+                className="rounded border border-line px-2 py-1.5 text-[11px] text-ink-dim transition hover:border-rose-400/30 hover:text-rose-200 focus-ring"
               >
                 Delete
               </button>

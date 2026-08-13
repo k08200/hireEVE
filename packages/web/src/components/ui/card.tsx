@@ -38,8 +38,10 @@ export default function Card({
 }: CardProps) {
   return (
     <div
-      className={`panel-elevated bg-white border border-slate-200/70 rounded-2xl ${paddings[padding]} ${variantStyles[variant]} ${
-        hover ? "hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer" : ""
+      className={`panel-elevated bg-surface-panel border border-line/70 rounded-2xl ${paddings[padding]} ${variantStyles[variant]} ${
+        hover
+          ? "hover:border-slate-300 hover:bg-surface-raised transition-colors cursor-pointer"
+          : ""
       } ${className}`}
       {...props}
     >
@@ -65,7 +67,7 @@ export function CardTitle({
   children: ReactNode;
   className?: string;
 }) {
-  return <h3 className={`font-semibold text-slate-900 ${className}`}>{children}</h3>;
+  return <h3 className={`font-semibold text-ink ${className}`}>{children}</h3>;
 }
 
 export function CardDescription({
@@ -75,5 +77,5 @@ export function CardDescription({
   children: ReactNode;
   className?: string;
 }) {
-  return <p className={`text-sm text-slate-500 ${className}`}>{children}</p>;
+  return <p className={`text-sm text-ink-mid ${className}`}>{children}</p>;
 }

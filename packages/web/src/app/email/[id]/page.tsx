@@ -617,7 +617,7 @@ function EmailDetailView() {
     <div className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 md:py-10">
       <Link
         href="/email"
-        className="ease-strong mb-5 inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
+        className="ease-strong mb-5 inline-flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
       >
         <svg
           aria-hidden="true"
@@ -663,11 +663,11 @@ function EmailDetailView() {
                 {senderInitials(senderName(email.from))}
               </span>
               <div className="min-w-0 flex-1">
-                <h1 className="break-words text-[24px] font-semibold leading-tight tracking-[-0.02em] text-slate-900 md:text-[28px]">
+                <h1 className="break-words text-[24px] font-semibold leading-tight tracking-[-0.02em] text-ink md:text-[28px]">
                   {email.subject || "No subject"}
                 </h1>
-                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
-                  <span className="max-w-full truncate font-medium text-slate-700">
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-mid">
+                  <span className="max-w-full truncate font-medium text-ink-soft">
                     {senderName(email.from)}
                   </span>
                   {email.trust && <TrustBadgeChip trust={email.trust} />}
@@ -685,7 +685,7 @@ function EmailDetailView() {
                     className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ring-1 ring-inset ${
                       email.priority === "URGENT"
                         ? "bg-rose-500/10 text-rose-600 ring-rose-500/20"
-                        : "bg-slate-100 text-slate-500 ring-transparent"
+                        : "bg-surface-hover text-ink-mid ring-transparent"
                     }`}
                   >
                     {PRIORITY_LABELS[email.priority]}
@@ -696,7 +696,7 @@ function EmailDetailView() {
                     </span>
                   )}
                   {email.category && (
-                    <span className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-slate-500">
+                    <span className="shrink-0 rounded-md bg-surface-hover px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ink-mid">
                       {categoryLabel(email.category)}
                     </span>
                   )}
@@ -773,17 +773,17 @@ function EmailDetailView() {
               beside it as supporting context. */}
           <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
             {email.body ? (
-              <section className="panel-elevated overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 md:p-6">
-                <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-5 md:p-6">
+                <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
                   Message
                 </h2>
-                <pre className="whitespace-pre-wrap break-words font-sans text-[15px] leading-7 text-slate-800">
+                <pre className="whitespace-pre-wrap break-words font-sans text-[15px] leading-7 text-ink-strong">
                   {linkifyText(email.body)}
                 </pre>
               </section>
             ) : email.snippet ? (
-              <section className="panel-elevated overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 md:p-6">
-                <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-5 md:p-6">
+                <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
                   Preview
                 </h2>
                 <p className="text-[15px] leading-7 text-slate-600">{linkifyText(email.snippet)}</p>
@@ -816,7 +816,7 @@ function CandidateProfileCard({
 }) {
   const status = intake?.status ?? candidatePipelineToIntakeStatus(profile.pipelineStatus);
   return (
-    <section className="panel-elevated relative mt-5 overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 md:p-5">
+    <section className="panel-elevated relative mt-5 overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-4 md:p-5">
       <span
         aria-hidden="true"
         className="absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b from-accent-muted to-accent"
@@ -825,16 +825,16 @@ function CandidateProfileCard({
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-sky-600">
           Candidate card
         </h2>
-        <span className="text-[11px] tabular-nums text-slate-400">
+        <span className="text-[11px] tabular-nums text-ink-dim">
           Confidence {Math.round(profile.confidence * 100)}%
         </span>
       </div>
-      <div className="mb-3 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Pipeline</p>
+      <div className="mb-3 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-ink-dim">Pipeline</p>
         <p className="mt-1 text-xs font-semibold text-sky-700">
           {candidatePipelineLabel(profile.pipelineStatus)}
         </p>
-        <p className="mt-1 text-[11px] leading-5 text-slate-500">{profile.nextAction}</p>
+        <p className="mt-1 text-[11px] leading-5 text-ink-mid">{profile.nextAction}</p>
       </div>
       <div className="mb-3 flex flex-wrap gap-1.5">
         {CANDIDATE_STATUS_OPTIONS.map((option) => (
@@ -846,14 +846,14 @@ function CandidateProfileCard({
             className={`ease-strong rounded-lg border px-2 py-1 text-[11px] font-medium transition duration-150 active:scale-[0.97] disabled:cursor-default focus-ring ${
               status === option.status
                 ? "border-accent-muted bg-accent/10 text-sky-700"
-                : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
+                : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
             }`}
           >
             {option.label}
           </button>
         ))}
       </div>
-      <p className="text-sm font-medium leading-relaxed text-slate-900">{profile.summary}</p>
+      <p className="text-sm font-medium leading-relaxed text-ink">{profile.summary}</p>
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-3">
         <ProfileFact label="Name" value={profile.name} />
         <ProfileFact label="Role" value={profile.role} />
@@ -867,7 +867,7 @@ function CandidateProfileCard({
           {profile.skills.map((skill) => (
             <span
               key={skill}
-              className="rounded-full border border-slate-200 bg-white/70 px-2 py-1 text-[11px] text-slate-600"
+              className="rounded-full border border-line bg-surface-panel/70 px-2 py-1 text-[11px] text-slate-600"
             >
               {skill}
             </span>
@@ -901,14 +901,14 @@ function CandidateProfileCard({
         </div>
       )}
       <label className="mt-3 block">
-        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-slate-500">
+        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-mid">
           Review note
         </span>
         <textarea
           defaultValue={intake?.notes ?? ""}
           rows={2}
           onBlur={(e) => onUpdate({ notes: e.target.value || null })}
-          className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-xs leading-5 text-slate-700 outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/15"
+          className="w-full rounded-lg border border-line bg-surface-panel/80 px-3 py-2 text-xs leading-5 text-ink-soft outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15"
           placeholder="Review note"
         />
       </label>
@@ -943,14 +943,14 @@ function ThreadContextPanel({
   currentEmailId: string;
 }) {
   return (
-    <section className="panel-elevated mb-5 overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
-      <div className="border-b border-slate-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-slate-900">Thread context</h2>
-        <p className="mt-0.5 text-xs text-slate-400">
+    <section className="panel-elevated mb-5 overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
+      <div className="border-b border-line-soft px-4 py-3">
+        <h2 className="text-sm font-semibold text-ink">Thread context</h2>
+        <p className="mt-0.5 text-xs text-ink-dim">
           Review {thread.messageCount} earlier messages to understand the reply context.
         </p>
       </div>
-      <ol className="divide-y divide-slate-100">
+      <ol className="divide-y divide-line-soft">
         {thread.messages.map((message) => {
           const current = message.id === currentEmailId;
           return (
@@ -965,14 +965,14 @@ function ThreadContextPanel({
                 />
               )}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="min-w-0 truncate text-xs font-medium text-slate-900">
+                <p className="min-w-0 truncate text-xs font-medium text-ink">
                   {senderName(message.from)}
                 </p>
-                <time className="shrink-0 text-[10px] tabular-nums text-slate-400">
+                <time className="shrink-0 text-[10px] tabular-nums text-ink-dim">
                   {formatFull(message.date)}
                 </time>
               </div>
-              <p className="mt-1 truncate text-[11px] text-slate-500">
+              <p className="mt-1 truncate text-[11px] text-ink-mid">
                 {message.summary || message.snippet || message.subject || "No summary"}
               </p>
               {message.actionItems.length > 0 && (
@@ -1204,13 +1204,13 @@ function ReplyDraftBox({
   const quickIntents = buildQuickReplyIntents(candidateProfile, mode);
 
   return (
-    <section className="panel-elevated mt-5 overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 md:p-5">
+    <section className="panel-elevated mt-5 overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-4 md:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-mid">
             Reply draft
           </h2>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-ink-dim">
             Klorn drafts it. You approve before anything is sent.
           </p>
         </div>
@@ -1227,7 +1227,7 @@ function ReplyDraftBox({
         value={intent}
         onChange={(e) => onIntentChange(e.target.value)}
         placeholder="Example: confirm the profile was reviewed and ask for next audition availability"
-        className="mb-3 w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-xs text-slate-700 placeholder-slate-400 outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/15"
+        className="mb-3 w-full rounded-lg border border-line bg-surface-panel/80 px-3 py-2 text-xs text-ink-soft placeholder-ink-dim outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15"
       />
       <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
         {WORK_MODE_OPTIONS.map((option) => (
@@ -1238,7 +1238,7 @@ function ReplyDraftBox({
             className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium transition duration-150 active:scale-[0.97] focus-ring ${
               mode === option.value
                 ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                : "text-ink-mid hover:bg-surface-raised hover:text-ink"
             }`}
           >
             {mode === option.value && (
@@ -1255,7 +1255,7 @@ function ReplyDraftBox({
               key={item.label}
               type="button"
               onClick={() => onIntentChange(item.intent)}
-              className="ease-strong rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] text-slate-500 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] focus-ring"
+              className="ease-strong rounded-full border border-line bg-surface-panel/70 px-3 py-1.5 text-[11px] text-ink-mid transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] focus-ring"
             >
               {item.label}
             </button>
@@ -1266,23 +1266,23 @@ function ReplyDraftBox({
         <div className="space-y-2">
           <div className="grid gap-2 text-xs sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wider text-slate-500">
+              <span className="mb-1 block text-[10px] uppercase tracking-wider text-ink-mid">
                 To
               </span>
               <input
                 value={draft.to}
                 onChange={(e) => onDraftChange({ ...draft, to: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white/80 px-2 py-1.5 text-slate-700 outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/15"
+                className="w-full rounded-lg border border-line bg-surface-panel/80 px-2 py-1.5 text-ink-soft outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15"
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] uppercase tracking-wider text-slate-500">
+              <span className="mb-1 block text-[10px] uppercase tracking-wider text-ink-mid">
                 Subject
               </span>
               <input
                 value={draft.subject}
                 onChange={(e) => onDraftChange({ ...draft, subject: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white/80 px-2 py-1.5 text-slate-700 outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/15"
+                className="w-full rounded-lg border border-line bg-surface-panel/80 px-2 py-1.5 text-ink-soft outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15"
               />
             </label>
           </div>
@@ -1290,28 +1290,28 @@ function ReplyDraftBox({
             value={draft.body}
             onChange={(e) => onDraftChange({ ...draft, body: e.target.value })}
             rows={7}
-            className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm leading-6 text-slate-900 outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/15"
+            className="w-full rounded-lg border border-line bg-surface-panel/80 px-3 py-2 text-sm leading-6 text-ink outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15"
           />
           {attachments.length > 0 && (
-            <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
+            <div className="space-y-2 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
               <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-sky-200/70 bg-sky-50/60 px-2 py-1.5">
                 <input
                   type="checkbox"
                   checked={includeBriefAttachment}
                   onChange={(e) => onIncludeBriefAttachmentChange(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 bg-white text-accent focus:ring-accent focus:ring-offset-white"
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
                 />
                 <span>
                   <span className="block text-[11px] font-medium text-sky-700">
                     Attach the attachment analysis brief
                   </span>
-                  <span className="mt-0.5 block text-[10px] leading-4 text-slate-400">
+                  <span className="mt-0.5 block text-[10px] leading-4 text-ink-dim">
                     Converts the candidate card, key points, and extracted fields into a txt brief.
                   </span>
                 </span>
               </label>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-ink-mid">
                   Save original attachments too
                 </span>
                 <button
@@ -1323,7 +1323,7 @@ function ReplyDraftBox({
                         : attachments.map((attachment) => attachment.id),
                     )
                   }
-                  className="text-[11px] font-medium text-slate-400 transition duration-150 hover:text-sky-700 focus-ring"
+                  className="text-[11px] font-medium text-ink-dim transition duration-150 hover:text-sky-700 focus-ring"
                 >
                   {selectedCount === attachments.length ? "Clear all" : "Select all"}
                 </button>
@@ -1332,18 +1332,18 @@ function ReplyDraftBox({
                 {attachments.map((attachment) => (
                   <label
                     key={attachment.id}
-                    className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 transition duration-150 ease-out hover:border-sky-200"
+                    className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-panel px-2 py-1.5 transition duration-150 ease-out hover:border-sky-200"
                   >
                     <input
                       type="checkbox"
                       checked={selectedAttachmentIds.includes(attachment.id)}
                       onChange={() => toggleAttachment(attachment.id)}
-                      className="h-3.5 w-3.5 rounded border-slate-300 bg-white text-accent focus:ring-accent focus:ring-offset-white"
+                      className="h-3.5 w-3.5 rounded border-slate-300 bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
                     />
                     <span className="min-w-0 flex-1 truncate text-[11px] text-slate-600">
                       {attachment.filename}
                     </span>
-                    <span className="shrink-0 text-[10px] text-slate-400">
+                    <span className="shrink-0 text-[10px] text-ink-dim">
                       {formatBytes(attachment.size)}
                     </span>
                   </label>
@@ -1367,7 +1367,7 @@ function ReplyDraftBox({
                 type="button"
                 onClick={onSaveGmailDraft}
                 disabled={savingGmailDraft || !draft.to || !draft.subject || !draft.body}
-                className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50 focus-ring"
+                className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50 focus-ring"
               >
                 {savingGmailDraft
                   ? "Saving..."
@@ -1403,8 +1403,8 @@ function KlornAnalysis({
 
   if (!hasAnything) {
     return (
-      <section className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-4">
-        <p className="text-xs text-slate-400">
+      <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4">
+        <p className="text-xs text-ink-dim">
           Klorn has not analyzed this email yet. Sync, then check again shortly.
         </p>
       </section>
@@ -1412,7 +1412,7 @@ function KlornAnalysis({
   }
 
   return (
-    <section className="panel-elevated relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 md:p-5">
+    <section className="panel-elevated relative overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-4 md:p-5">
       <div className="absolute bottom-0 left-0 top-0 w-[3px] bg-gradient-to-b from-accent-muted to-accent" />
       <div className="pl-2">
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -1431,16 +1431,16 @@ function KlornAnalysis({
           />
         </div>
 
-        {email.summary && <p className="text-sm leading-relaxed text-slate-900">{email.summary}</p>}
+        {email.summary && <p className="text-sm leading-relaxed text-ink">{email.summary}</p>}
 
         {email.keyPoints.length > 0 && (
           <div className="mt-3">
-            <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+            <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-dim">
               Key points
             </p>
             <ul className="space-y-1">
               {email.keyPoints.map((k, i) => (
-                <li key={i} className="flex gap-1.5 text-xs text-slate-500">
+                <li key={i} className="flex gap-1.5 text-xs text-ink-mid">
                   <span className="text-accent/75">•</span>
                   <span>{k}</span>
                 </li>
@@ -1507,7 +1507,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
   return (
     <div className="mt-3">
       <div className="flex items-center justify-between mb-1.5">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-ink-dim">
           Action items
         </p>
         {!allCreated && (
@@ -1528,7 +1528,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
               {created.has(i) ? "✓" : "□"}
             </span>
             <span
-              className={`flex-1 ${created.has(i) ? "text-slate-400 line-through" : "text-slate-600"}`}
+              className={`flex-1 ${created.has(i) ? "text-ink-dim line-through" : "text-slate-600"}`}
             >
               {a}
             </span>
@@ -1537,7 +1537,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
                 type="button"
                 onClick={() => createTask(i)}
                 disabled={creating !== null}
-                className="ease-strong shrink-0 rounded-md border border-slate-200 bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:opacity-40 focus-ring"
+                className="ease-strong shrink-0 rounded-md border border-line bg-surface-panel/70 px-1.5 py-0.5 text-[10px] font-medium text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:opacity-40 focus-ring"
               >
                 {creating === i ? "…" : "+ task"}
               </button>
@@ -1624,7 +1624,7 @@ function LabelFeedbackControl({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-[11px] text-slate-400 underline-offset-2 hover:text-slate-500 hover:underline focus-ring"
+        className="text-[11px] text-ink-dim underline-offset-2 hover:text-ink-mid hover:underline focus-ring"
       >
         Wrong label
       </button>
@@ -1637,14 +1637,14 @@ function LabelFeedbackControl({
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] text-slate-400">Actual priority:</span>
+      <span className="text-[11px] text-ink-dim">Actual priority:</span>
       {options.map((p) => (
         <button
           key={p}
           type="button"
           onClick={() => submit(p)}
           disabled={!!submitting}
-          className="ease-strong rounded-md border border-slate-200 bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-slate-700 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50 focus-ring"
+          className="ease-strong rounded-md border border-line bg-surface-panel/70 px-1.5 py-0.5 text-[11px] font-medium text-ink-soft transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50 focus-ring"
         >
           {submitting === p ? "..." : PRIORITY_LABELS[p]}
         </button>
@@ -1656,7 +1656,7 @@ function LabelFeedbackControl({
           setError(null);
         }}
         disabled={!!submitting}
-        className="text-[11px] text-slate-400 hover:text-slate-500 focus-ring"
+        className="text-[11px] text-ink-dim hover:text-ink-mid focus-ring"
       >
         Cancel
       </button>
@@ -1723,9 +1723,9 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
   ];
 
   return (
-    <div className="mt-4 border-t border-slate-100 pt-3">
+    <div className="mt-4 border-t border-line-soft pt-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] text-slate-400">Reply-needed judgment:</span>
+        <span className="text-[11px] text-ink-dim">Reply-needed judgment:</span>
         {options.map((option) => {
           const selected = feedback?.choice === option.choice;
           return (
@@ -1738,7 +1738,7 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
               className={`h-7 rounded-lg border px-2 text-[11px] transition disabled:opacity-50 focus-ring ${
                 selected
                   ? "border-accent-muted bg-accent/10 text-sky-700"
-                  : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
+                  : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
               }`}
             >
               {submitting === option.choice ? "..." : option.label}
@@ -1755,7 +1755,7 @@ function PriorityPill({ priority }: { priority: EmailDetail["priority"] }) {
   if (priority === "NORMAL") return null;
   const styles = {
     URGENT: "bg-rose-500/10 text-rose-600 ring-rose-500/20",
-    LOW: "bg-slate-100 text-slate-500 ring-transparent",
+    LOW: "bg-surface-hover text-ink-mid ring-transparent",
   };
   const labels = { URGENT: "Urgent", LOW: "Low" };
   return (
@@ -1770,7 +1770,7 @@ function PriorityPill({ priority }: { priority: EmailDetail["priority"] }) {
 function CategoryPill({ category }: { category: string }) {
   const label = categoryLabel(category);
   return (
-    <span className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-slate-500">
+    <span className="shrink-0 rounded-md bg-surface-hover px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ink-mid">
       {label}
     </span>
   );

@@ -113,12 +113,12 @@ function WelcomeStep({
 }) {
   return (
     <div>
-      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-slate-900">
+      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink">
         Klorn surfaces only the
         <br />
         decisions worth acting on.
       </h1>
-      <p className="mt-4 text-sm leading-6 text-slate-500">
+      <p className="mt-4 text-sm leading-6 text-ink-mid">
         Connect Gmail and Google Calendar. Klorn pulls the items that need a decision and quiets the
         rest.
       </p>
@@ -136,7 +136,7 @@ function WelcomeStep({
         {/* Non-Google escape hatch: a user who signed in with Apple/Naver and
             lives in Naver Mail attaches it via IMAP in Settings instead —
             without this line the Google button reads as the only way in. */}
-        <p className="text-center text-xs leading-5 text-slate-400">
+        <p className="text-center text-xs leading-5 text-ink-dim">
           Prefer Naver Mail?{" "}
           <Link
             href="/settings"
@@ -155,18 +155,18 @@ function WelcomeStep({
         ].map((item) => (
           <div
             key={item.label}
-            className="panel-elevated rounded-xl border border-slate-200/70 bg-white p-3 text-center"
+            className="panel-elevated rounded-xl border border-line/70 bg-surface-panel p-3 text-center"
           >
-            <p className="text-lg text-slate-500">{item.icon}</p>
-            <p className="mt-1 text-[11px] leading-4 text-slate-400">{item.label}</p>
+            <p className="text-lg text-ink-mid">{item.icon}</p>
+            <p className="mt-1 text-[11px] leading-4 text-ink-dim">{item.label}</p>
           </div>
         ))}
       </div>
 
       {/* Permissions disclosure — Klorn never sends without explicit approval. */}
-      <p className="mt-6 text-center text-[11px] leading-5 text-slate-400">
-        Klorn <span className="text-slate-500">only reads</span> Gmail and Calendar. Sending mail or
-        creating events always waits for <span className="text-slate-500">your approval</span>.
+      <p className="mt-6 text-center text-[11px] leading-5 text-ink-dim">
+        Klorn <span className="text-ink-mid">only reads</span> Gmail and Calendar. Sending mail or
+        creating events always waits for <span className="text-ink-mid">your approval</span>.
       </p>
     </div>
   );
@@ -195,16 +195,16 @@ function SyncingStep({ initSync, onContinue }: { initSync: SyncState; onContinue
 
   return (
     <div>
-      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-slate-900">
+      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink">
         {isDone ? "Sync complete." : "Setting up your workspace..."}
       </h1>
-      <p className="mt-4 text-sm leading-6 text-slate-500">
+      <p className="mt-4 text-sm leading-6 text-ink-mid">
         {isDone
           ? "Klorn has read your inbox and mapped your schedule."
           : "Reading your recent emails and calendar. This takes about 30 seconds."}
       </p>
 
-      <div className="panel-elevated mt-8 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
+      <div className="panel-elevated mt-8 divide-y divide-line-soft overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
         <SyncRow
           icon="✉"
           label={initSync.emails > 0 ? `${initSync.emails} emails processed` : "Reading emails..."}
@@ -256,11 +256,11 @@ function SyncRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      <span className="shrink-0 text-base text-slate-500">{icon}</span>
-      <p className="flex-1 text-sm text-slate-500">{label}</p>
+      <span className="shrink-0 text-base text-ink-mid">{icon}</span>
+      <p className="flex-1 text-sm text-ink-mid">{label}</p>
       {done && <span className="shrink-0 text-[11px] font-semibold text-emerald-600">✓</span>}
       {loading && (
-        <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-accent" />
+        <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" />
       )}
     </div>
   );
@@ -271,10 +271,10 @@ function SyncRow({
 function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => void }) {
   return (
     <div>
-      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-slate-900">
+      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink">
         You&apos;re set up.
       </h1>
-      <p className="mt-4 text-sm leading-6 text-slate-500">
+      <p className="mt-4 text-sm leading-6 text-ink-mid">
         Klorn is running. It&apos;ll surface decisions, track commitments, and prepare your morning
         briefing — all before you open your inbox.
       </p>
@@ -285,9 +285,9 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
         <StatCard value={initSync.contacts} label="Contacts" />
       </div>
 
-      <div className="panel-elevated mt-4 rounded-2xl border border-sky-200/70 bg-white p-4">
+      <div className="panel-elevated mt-4 rounded-2xl border border-sky-200/70 bg-surface-panel p-4">
         <p className="text-xs font-semibold text-sky-700">What happens next</p>
-        <ul className="mt-2 space-y-1.5 text-xs text-slate-500">
+        <ul className="mt-2 space-y-1.5 text-xs text-ink-mid">
           <li>Your morning briefing will be ready before you wake up.</li>
           <li>Decision cards appear when Klorn finds something that needs your approval.</li>
           <li>Commitments are tracked automatically from your emails.</li>
@@ -308,11 +308,9 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
 
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
-    <div className="panel-elevated rounded-xl border border-slate-200/70 bg-white p-3 text-center">
-      <p className="text-2xl font-semibold tabular-nums text-slate-900">
-        {value > 0 ? value : "—"}
-      </p>
-      <p className="mt-1 text-[11px] text-slate-400">{label}</p>
+    <div className="panel-elevated rounded-xl border border-line/70 bg-surface-panel p-3 text-center">
+      <p className="text-2xl font-semibold tabular-nums text-ink">{value > 0 ? value : "—"}</p>
+      <p className="mt-1 text-[11px] text-ink-dim">{label}</p>
     </div>
   );
 }

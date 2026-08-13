@@ -145,14 +145,14 @@ function CandidateDetailView() {
       <div className="mb-4 flex flex-wrap gap-2">
         <Link
           href="/email/candidates"
-          className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+          className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
         >
           Candidate queue
         </Link>
         {email && (
           <Link
             href={`/email/${email.id}`}
-            className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+            className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
           >
             Source email
           </Link>
@@ -174,10 +174,10 @@ function CandidateDetailView() {
         <>
           <header className="mb-6 flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+              <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
                 {[profile.name || "Unknown name", profile.role].filter(Boolean).join(" · ")}
               </h1>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-ink-mid">
                 {pipelineLabel(profile.pipelineStatus)}
                 <span className="mx-1.5 text-slate-300">·</span>
                 Confidence {Math.round(profile.confidence * 100)}%
@@ -188,7 +188,7 @@ function CandidateDetailView() {
           </header>
 
           <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
-            <section className="panel-elevated overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5">
+            <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-5">
               <p className="text-sm leading-6 text-slate-600">{profile.summary}</p>
 
               <div className="mt-5 grid gap-2 sm:grid-cols-2">
@@ -215,17 +215,17 @@ function CandidateDetailView() {
               )}
 
               <div className="mt-5 space-y-2">
-                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
                   Evidence files
                 </h2>
                 {profile.evidenceFiles.map((file) => (
                   <div
                     key={file.filename}
-                    className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2"
+                    className="rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2"
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-medium text-slate-900">{file.filename}</span>
-                      <span className="text-[10px] text-slate-500">
+                      <span className="text-xs font-medium text-ink">{file.filename}</span>
+                      <span className="text-[10px] text-ink-mid">
                         {file.category || "document"} · {file.analysisStatus}
                       </span>
                       {file.needsManualReview && (
@@ -235,15 +235,15 @@ function CandidateDetailView() {
                       )}
                     </div>
                     {file.summary && (
-                      <p className="mt-1 text-[11px] leading-5 text-slate-400">{file.summary}</p>
+                      <p className="mt-1 text-[11px] leading-5 text-ink-dim">{file.summary}</p>
                     )}
                   </div>
                 ))}
               </div>
             </section>
 
-            <aside className="panel-elevated h-fit rounded-2xl border border-slate-200/70 bg-white p-4">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <aside className="panel-elevated h-fit rounded-2xl border border-line/70 bg-surface-panel p-4">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-mid">
                 Review status
               </h2>
               <div className="mt-3 grid gap-2">
@@ -258,7 +258,7 @@ function CandidateDetailView() {
                       className={`ease-strong relative overflow-hidden rounded-lg border px-3 py-2 text-left text-xs font-medium transition duration-150 active:scale-[0.98] disabled:opacity-50 ${
                         active
                           ? "border-accent-muted bg-accent/10 text-sky-700"
-                          : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
+                          : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
                       }`}
                     >
                       {active && (
@@ -273,14 +273,14 @@ function CandidateDetailView() {
                 })}
               </div>
               <label className="mt-4 block">
-                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-slate-500">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-mid">
                   Notes
                 </span>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={6}
-                  className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-xs leading-5 text-slate-700 outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/15"
+                  className="w-full rounded-lg border border-line bg-surface-panel/80 px-3 py-2 text-xs leading-5 text-ink-soft outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15"
                 />
               </label>
               <button
@@ -291,20 +291,20 @@ function CandidateDetailView() {
               >
                 {saving ? "Saving..." : "Save notes"}
               </button>
-              <div className="mt-4 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
+              <div className="mt-4 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
                 <p className="text-xs text-slate-600">{email.subject || "Untitled"}</p>
-                <p className="mt-1 text-[11px] text-slate-400">{email.from}</p>
+                <p className="mt-1 text-[11px] text-ink-dim">{email.from}</p>
               </div>
             </aside>
           </section>
         </>
       )}
       {email && !profile && !loading && (
-        <section className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-6">
-          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-slate-900">
+        <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-6">
+          <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-ink">
             No candidate profile yet
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-mid">
             Klorn found this message, but the attachments have not produced a structured profile.
             Open the source email, reanalyze attachments, or add notes while the review state is
             still clear.
@@ -318,14 +318,14 @@ function CandidateDetailView() {
             </Link>
             <Link
               href="/email/candidates"
-              className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-slate-200 bg-white/70 px-4 text-sm text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+              className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-4 text-sm text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
             >
               Back to queue
             </Link>
           </div>
-          <div className="mt-5 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
+          <div className="mt-5 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
             <p className="text-xs text-slate-600">{email.subject || "Untitled"}</p>
-            <p className="mt-1 text-[11px] text-slate-400">{email.from}</p>
+            <p className="mt-1 text-[11px] text-ink-dim">{email.from}</p>
           </div>
         </section>
       )}
@@ -335,9 +335,9 @@ function CandidateDetailView() {
 
 function Fact({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="mt-1 truncate text-sm font-medium text-slate-900">{value || "-"}</p>
+    <div className="rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-ink-dim">{label}</p>
+      <p className="mt-1 truncate text-sm font-medium text-ink">{value || "-"}</p>
     </div>
   );
 }
@@ -345,12 +345,12 @@ function Fact({ label, value }: { label: string; value: string | null }) {
 function ChipBlock({ title, values }: { title: string; values: string[] }) {
   return (
     <div className="mt-5">
-      <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{title}</h2>
+      <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-dim">{title}</h2>
       <div className="mt-2 flex flex-wrap gap-2">
         {values.map((value) => (
           <span
             key={value}
-            className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-500"
+            className="rounded-full border border-line bg-surface-raised px-2 py-1 text-xs text-ink-mid"
           >
             {value}
           </span>

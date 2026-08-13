@@ -194,10 +194,10 @@ function BriefingView() {
       {/* MOBILE — native large-title header (desktop hero below, untouched) */}
       <header className="mb-5 flex items-end justify-between gap-3 md:hidden">
         <div className="min-w-0">
-          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
             {t("nav.briefing")}
           </h1>
-          <p className="mt-1.5 text-sm text-slate-500">
+          <p className="mt-1.5 text-sm text-ink-mid">
             {content
               ? `Today${formattedTime ? ` · ${formattedTime}` : ""}`
               : t("briefing.notGenerated")}
@@ -208,7 +208,7 @@ function BriefingView() {
           onClick={regenerate}
           disabled={generating}
           aria-label={content ? "Regenerate briefing" : "Generate briefing"}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 transition active:bg-slate-100 disabled:opacity-50 focus-ring min-h-11"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-raised text-ink-mid transition active:bg-surface-hover disabled:opacity-50 focus-ring min-h-11"
         >
           <svg
             aria-hidden="true"
@@ -232,15 +232,15 @@ function BriefingView() {
           the single filled primary action; the subtitle carries honest counts. */}
       <header className="mb-6 hidden items-start justify-between gap-4 md:flex">
         <div className="min-w-0">
-          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
             {t("nav.briefing")}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-ink-mid">
             {content ? (
               <>
                 Today{formattedTime ? ` · ${formattedTime}` : ""}
                 {topActions.length > 0 && (
-                  <span className="text-slate-400">
+                  <span className="text-ink-dim">
                     {" "}
                     <span className="mx-0.5 text-slate-300">·</span> {topActions.length}{" "}
                     {topActions.length === 1 ? "action" : "actions"} surfaced
@@ -295,12 +295,12 @@ function BriefingView() {
       {(error || briefingLoadError) && <ErrorAlert>{error ?? briefingLoadError}</ErrorAlert>}
 
       {!loading && !error && !briefingLoadError && !content && (
-        <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-6 text-center">
-          <p className="mb-3 text-sm text-slate-500">No briefing for today yet.</p>
-          <p className="mx-auto mb-4 max-w-md text-xs leading-5 text-slate-500">
+        <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-6 text-center">
+          <p className="mb-3 text-sm text-ink-mid">No briefing for today yet.</p>
+          <p className="mx-auto mb-4 max-w-md text-xs leading-5 text-ink-mid">
             {t("briefing.learningMode")}
           </p>
-          <p className="mb-4 text-xs text-slate-400">
+          <p className="mb-4 text-xs text-ink-dim">
             Change the automatic briefing time in{" "}
             <Link href="/settings" className="text-sky-600 hover:underline">
               Settings
@@ -321,25 +321,25 @@ function BriefingView() {
       {content && (
         <div className="space-y-4">
           {/* Core: the brief itself, on the single elevated panel. */}
-          <article className="panel-elevated relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 pl-6 md:p-6 md:pl-7">
+          <article className="panel-elevated relative overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-5 pl-6 md:p-6 md:pl-7">
             <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-accent-muted via-sky-200/40 to-transparent" />
             <Markdown content={content} />
           </article>
 
           {/* List: feedback rows inside one panel, not stacked cards. */}
           {noteId && topActions.length > 0 && (
-            <section className="panel-elevated overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <h2 className="text-sm font-semibold text-slate-900">Top 3 feedback</h2>
-                <p className="mt-1 text-xs text-slate-400">
+            <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
+              <div className="border-b border-line-soft px-4 py-3">
+                <h2 className="text-sm font-semibold text-ink">Top 3 feedback</h2>
+                <p className="mt-1 text-xs text-ink-dim">
                   Mark whether today's surfaced items were actually useful.
                 </p>
               </div>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-line-soft">
                 {topActions.map((action) => (
                   <li key={action.rank} className="row-wash px-4 py-3">
                     <p className="text-sm text-slate-600">
-                      <span className="text-slate-400">{action.rank}.</span> {action.label}
+                      <span className="text-ink-dim">{action.rank}.</span> {action.label}
                     </p>
                     <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {FEEDBACK_OPTIONS.map((option) => {
@@ -354,7 +354,7 @@ function BriefingView() {
                             className={`ease-strong h-8 rounded-lg border px-2 text-xs transition duration-150 active:scale-[0.97] disabled:opacity-50 focus-ring min-h-9 min-w-9 ${
                               selected
                                 ? "border-accent-muted bg-accent/10 font-medium text-sky-700"
-                                : "border-slate-200 bg-white/70 text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] hover:bg-white hover:text-slate-900"
+                                : "border-line bg-surface-panel/70 text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] hover:bg-surface-panel hover:text-ink"
                             }`}
                           >
                             {savingRank === action.rank && !selected ? "Saving" : option.label}
@@ -392,9 +392,9 @@ function BriefingDeliveryStatus({ status }: { status: BriefingStatus }) {
   const guidance = deliveryGuidance(status);
 
   return (
-    <section className="panel-elevated mb-4 rounded-2xl border border-slate-200/70 bg-white p-4">
+    <section className="panel-elevated mb-4 rounded-2xl border border-line/70 bg-surface-panel p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-slate-900">Briefing delivery</h2>
+        <h2 className="text-sm font-semibold text-ink">Briefing delivery</h2>
         <Link href="/settings" className="text-xs text-sky-600 hover:underline">
           Settings
         </Link>
@@ -512,7 +512,7 @@ function DeliveryFact({
   const toneClass = {
     ok: "border-emerald-200 bg-emerald-50 text-emerald-700",
     warn: "border-amber-200 bg-amber-50 text-amber-700",
-    muted: "border-slate-200 bg-slate-50 text-slate-500",
+    muted: "border-line bg-surface-raised text-ink-mid",
   }[tone];
   return (
     <div className={`rounded-lg border px-3 py-2 ${toneClass}`}>

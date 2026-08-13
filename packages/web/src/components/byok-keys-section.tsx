@@ -130,36 +130,36 @@ export function ByokKeysSection() {
   };
 
   return (
-    <section className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
       <header className="mb-3">
-        <h2 className="text-base font-semibold text-slate-900">Bring your own LLM key</h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <h2 className="text-base font-semibold text-ink">Bring your own LLM key</h2>
+        <p className="mt-1 text-xs text-ink-mid">
           By default your mail is classified on Klorn&apos;s shared key. Add your own provider key
-          and Klorn routes <span className="text-slate-500">your</span> mail to{" "}
-          <span className="text-slate-500">your</span> key and quota instead — handy if the shared
+          and Klorn routes <span className="text-ink-mid">your</span> mail to{" "}
+          <span className="text-ink-mid">your</span> key and quota instead — handy if the shared
           budget is busy. Keys are stored encrypted (AES-GCM); we never log the plaintext.
         </p>
         {status?.activeModel && (
-          <p className="mt-2 text-[11px] text-slate-400">
-            Active model: <span className="text-slate-500">{status.activeModel}</span>
+          <p className="mt-2 text-[11px] text-ink-dim">
+            Active model: <span className="text-ink-mid">{status.activeModel}</span>
           </p>
         )}
       </header>
 
       {loading ? (
-        <div className="text-xs text-slate-400">Loading…</div>
+        <div className="text-xs text-ink-dim">Loading…</div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+          <div className="rounded-xl border border-line-soft bg-surface-raised/70 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-slate-900">{OPENROUTER.label}</span>
+              <span className="text-sm font-medium text-ink">{OPENROUTER.label}</span>
               {status?.hasOpenRouterApiKey && (
                 <StatusChip status="connected" label="Using your key" />
               )}
             </div>
             {status?.hasOpenRouterApiKey ? (
               <div className="flex items-center justify-between gap-3">
-                <span className="font-mono text-xs text-slate-500">•••••••• stored</span>
+                <span className="font-mono text-xs text-ink-mid">•••••••• stored</span>
                 <Button
                   variant="danger"
                   size="sm"
@@ -195,14 +195,14 @@ export function ByokKeysSection() {
                 </Button>
               </div>
             )}
-            <p className="mt-1.5 text-[11px] text-slate-400">
+            <p className="mt-1.5 text-[11px] text-ink-dim">
               One key covers every model Klorn uses — OpenRouter routes them all. The key is
               verified with the provider before it&apos;s stored. Get one at{" "}
               <a
                 href={OPENROUTER.helpUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="underline hover:text-slate-700"
+                className="underline hover:text-ink-soft"
               >
                 {OPENROUTER.helpLabel}
               </a>
@@ -213,12 +213,12 @@ export function ByokKeysSection() {
           {status?.hasGeminiApiKey && (
             <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-slate-900">
+                <span className="text-sm font-medium text-ink">
                   Google Gemini <span className="text-[11px] text-amber-600">legacy</span>
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-ink-mid">
                   Direct Gemini keys are retired — a free-tier key here silently starves
                   classification when its daily quota runs out. Remove it and use one OpenRouter key
                   instead.
@@ -238,7 +238,7 @@ export function ByokKeysSection() {
           {(() => {
             const options = status?.availableModels ?? [];
             return (
-              <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <div className="rounded-xl border border-line-soft bg-surface-raised/70 p-3">
                 <Select
                   id="byok-model"
                   label="Assistant model"
@@ -252,7 +252,7 @@ export function ByokKeysSection() {
                     </option>
                   ))}
                 </Select>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[11px] text-ink-dim">
                   Frontier models only — this is the model your Klorn assistant talks in. It works
                   on your mail, calendar, and tasks and never searches the web. Runs under your
                   daily AI quota; add your own key above to use your own quota instead. The mail

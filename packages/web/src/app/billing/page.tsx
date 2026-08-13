@@ -167,10 +167,10 @@ function BillingContent() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 md:py-10">
       <header className="mb-8">
-        <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+        <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
           Billing
         </h1>
-        <p className="mt-2 max-w-3xl text-sm text-slate-500">
+        <p className="mt-2 max-w-3xl text-sm text-ink-mid">
           Review decision limits, model usage, execution modes, and the plan that fits your team.
         </p>
       </header>
@@ -195,17 +195,17 @@ function BillingContent() {
       )}
 
       {!loading && status && (
-        <div className="panel-elevated mb-8 rounded-2xl border border-slate-200/70 bg-white p-5">
+        <div className="panel-elevated mb-8 rounded-2xl border border-line/70 bg-surface-panel p-5">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-dim">
                 Current plan
               </p>
-              <p className="mt-1 text-xl font-semibold text-slate-900">{status.planName}</p>
+              <p className="mt-1 text-xl font-semibold text-ink">{status.planName}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {status.estimatedCost > 0 && (
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-500 tabular-nums">
+                <span className="rounded-full border border-line bg-surface-raised px-3 py-1 text-xs text-ink-mid tabular-nums">
                   About {formatUsd(status.estimatedCost)} this month
                 </span>
               )}
@@ -216,7 +216,7 @@ function BillingContent() {
                 <button
                   type="button"
                   onClick={handleManage}
-                  className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-4 py-2 text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring min-h-11"
+                  className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-4 py-2 text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring min-h-11"
                 >
                   Manage subscription
                 </button>
@@ -228,14 +228,14 @@ function BillingContent() {
             {/* Decision turns usage */}
             <div>
               <div className="mb-1 flex justify-between text-sm">
-                <span className="text-slate-500">Decisions</span>
-                <span className="text-slate-500 tabular-nums">
+                <span className="text-ink-mid">Decisions</span>
+                <span className="text-ink-mid tabular-nums">
                   {status.messageCount} /{" "}
                   {isFiniteLimit(status.messageLimit) ? status.messageLimit.toLocaleString() : "∞"}
                 </span>
               </div>
               {isFiniteLimit(status.messageLimit) && status.messageLimit > 0 && (
-                <div className="h-2 w-full rounded-full bg-slate-100">
+                <div className="h-2 w-full rounded-full bg-surface-hover">
                   <div
                     className={`h-2 rounded-full transition-[width] duration-500 ${
                       status.messageCount / status.messageLimit > 0.9
@@ -255,14 +255,14 @@ function BillingContent() {
             {/* Tokens usage */}
             <div>
               <div className="mb-1 flex justify-between text-sm">
-                <span className="text-slate-500">Tokens</span>
-                <span className="text-slate-500 tabular-nums">
+                <span className="text-ink-mid">Tokens</span>
+                <span className="text-ink-mid tabular-nums">
                   {formatTokens(status.tokenUsage)} /{" "}
                   {isFiniteLimit(status.tokenLimit) ? formatTokens(status.tokenLimit) : "∞"}
                 </span>
               </div>
               {isFiniteLimit(status.tokenLimit) && status.tokenLimit > 0 && (
-                <div className="h-2 w-full rounded-full bg-slate-100">
+                <div className="h-2 w-full rounded-full bg-surface-hover">
                   <div
                     className={`h-2 rounded-full transition-[width] duration-500 ${
                       status.tokenUsage / status.tokenLimit > 0.9
@@ -294,12 +294,12 @@ function BillingContent() {
           return (
             <div
               key={plan.key}
-              className={`panel-elevated flex flex-col rounded-2xl border bg-white p-6 ${
+              className={`panel-elevated flex flex-col rounded-2xl border bg-surface-panel p-6 ${
                 isCurrent
                   ? "border-accent-muted/70"
                   : plan.key === "PRO"
                     ? "border-accent-light/45 ring-1 ring-accent-light/15"
-                    : "border-slate-200/70"
+                    : "border-line/70"
               }`}
             >
               {plan.key === "PRO" && (
@@ -307,12 +307,12 @@ function BillingContent() {
                   Recommended
                 </span>
               )}
-              <p className="mb-1 text-lg font-semibold text-slate-900">{plan.name}</p>
-              <p className="mb-1 text-2xl font-semibold text-slate-900 tabular-nums">
+              <p className="mb-1 text-lg font-semibold text-ink">{plan.name}</p>
+              <p className="mb-1 text-2xl font-semibold text-ink tabular-nums">
                 {plan.price}
-                <span className="text-sm font-normal text-slate-400">{plan.period}</span>
+                <span className="text-sm font-normal text-ink-dim">{plan.period}</span>
               </p>
-              <p className="mb-1 text-sm text-slate-500">{plan.limit}</p>
+              <p className="mb-1 text-sm text-ink-mid">{plan.limit}</p>
               {"trialNote" in plan && plan.trialNote ? (
                 <p className="mb-4 text-xs font-medium text-emerald-600">{plan.trialNote}</p>
               ) : (
@@ -321,7 +321,7 @@ function BillingContent() {
 
               <ul className="mb-6 flex-1 space-y-2">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-slate-500">
+                  <li key={f} className="flex items-start gap-2 text-sm text-ink-mid">
                     <span aria-hidden="true" className="mt-0.5 text-emerald-500">
                       ✓
                     </span>
@@ -337,13 +337,13 @@ function BillingContent() {
               ) : plan.key === "FREE" ? (
                 // Non-current FREE card: render a neutral pill (not an empty div)
                 // so every plan card keeps the same footer height and alignment.
-                <div className="rounded-lg border border-slate-200 bg-slate-50 py-2 text-center text-sm font-medium text-slate-500">
+                <div className="rounded-lg border border-line bg-surface-raised py-2 text-center text-sm font-medium text-ink-mid">
                   Included with every plan
                 </div>
               ) : plan.key === "ENTERPRISE" ? (
                 <a
                   href="mailto:sales@klorn.ai"
-                  className="ease-strong block rounded-lg border border-slate-200 bg-white/70 py-2.5 text-center text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring min-h-11"
+                  className="ease-strong block rounded-lg border border-line bg-surface-panel/70 py-2.5 text-center text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring min-h-11"
                 >
                   Contact sales
                 </a>
@@ -357,7 +357,7 @@ function BillingContent() {
                 <button
                   type="button"
                   disabled
-                  className="rounded-lg border border-slate-200 bg-slate-100 py-2.5 text-sm font-semibold text-slate-400 min-h-11"
+                  className="rounded-lg border border-line bg-surface-hover py-2.5 text-sm font-semibold text-ink-dim min-h-11"
                 >
                   Subscription coming soon
                 </button>
@@ -407,17 +407,17 @@ const PLAN_FAQ = [
 function PlanDetails() {
   return (
     <section className="mt-10" aria-labelledby="plan-details-heading">
-      <h2 id="plan-details-heading" className="mb-4 text-lg font-semibold text-slate-900">
+      <h2 id="plan-details-heading" className="mb-4 text-lg font-semibold text-ink">
         Plan details
       </h2>
       <dl className="space-y-4">
         {PLAN_FAQ.map((item) => (
           <div
             key={item.q}
-            className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5"
+            className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5"
           >
-            <dt className="text-sm font-semibold text-slate-900">{item.q}</dt>
-            <dd className="mt-1.5 text-sm leading-relaxed text-slate-500">{item.a}</dd>
+            <dt className="text-sm font-semibold text-ink">{item.q}</dt>
+            <dd className="mt-1.5 text-sm leading-relaxed text-ink-mid">{item.a}</dd>
           </div>
         ))}
       </dl>

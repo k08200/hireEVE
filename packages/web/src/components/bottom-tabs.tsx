@@ -49,7 +49,7 @@ export default function BottomTabs() {
     <>
       <nav
         aria-label="Primary navigation"
-        className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-slate-200 bg-white/92 pb-safe shadow-[0_-16px_44px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+        className="md:hidden fixed bottom-0 inset-x-0 z-30 border-t border-line bg-surface-panel/92 pb-safe shadow-[0_-16px_44px_rgba(0,0,0,0.35)] backdrop-blur-xl"
       >
         <ul className="grid grid-cols-6">
           {TABS.map((tab) => {
@@ -60,7 +60,7 @@ export default function BottomTabs() {
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
                   className={`focus-ring flex min-h-[62px] flex-col items-center justify-center gap-1 py-2 text-[10px] transition ${
-                    active ? "text-accent" : "text-slate-500"
+                    active ? "text-accent" : "text-ink-mid"
                   }`}
                 >
                   <NavIcon type={tab.icon} size={22} strokeWidth={active ? 2 : 1.6} />
@@ -76,7 +76,7 @@ export default function BottomTabs() {
               aria-haspopup="dialog"
               aria-expanded={accountOpen}
               className={`focus-ring flex w-full min-h-[62px] flex-col items-center justify-center gap-1 py-2 text-[10px] transition ${
-                accountActive || accountOpen ? "text-accent" : "text-slate-500"
+                accountActive || accountOpen ? "text-accent" : "text-ink-mid"
               }`}
             >
               <span
@@ -159,7 +159,7 @@ function AccountSheet({ onClose, initials }: { onClose: () => void; initials: st
         aria-modal="true"
         aria-label="Account and settings"
         tabIndex={-1}
-        className="absolute inset-x-0 bottom-0 animate-slide-up rounded-t-2xl border-t border-slate-200 bg-white pb-safe shadow-2xl shadow-slate-900/15 focus:outline-none"
+        className="absolute inset-x-0 bottom-0 animate-slide-up rounded-t-2xl border-t border-line bg-surface-panel pb-safe shadow-2xl shadow-slate-900/15 focus:outline-none"
       >
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
 
@@ -172,15 +172,13 @@ function AccountSheet({ onClose, initials }: { onClose: () => void; initials: st
               {initials || "?"}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-900">
-                {user.name || user.email}
-              </p>
-              {user.name && <p className="truncate text-xs text-slate-400">{user.email}</p>}
+              <p className="truncate text-sm font-semibold text-ink">{user.name || user.email}</p>
+              {user.name && <p className="truncate text-xs text-ink-dim">{user.email}</p>}
             </div>
           </div>
         )}
 
-        <div className="border-t border-slate-200 px-2 py-2">
+        <div className="border-t border-line px-2 py-2">
           <SheetLink
             href="/settings"
             icon="settings"
@@ -237,9 +235,9 @@ function SheetLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className="focus-ring flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-900 transition hover:bg-slate-100"
+      className="focus-ring flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink transition hover:bg-surface-hover"
     >
-      <span className="flex h-5 w-5 items-center justify-center text-slate-500" aria-hidden="true">
+      <span className="flex h-5 w-5 items-center justify-center text-ink-mid" aria-hidden="true">
         <NavIcon type={icon} size={16} />
       </span>
       {label}

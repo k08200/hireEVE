@@ -111,30 +111,30 @@ export function ReviewStep({ onContinue }: { onContinue: () => void }) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold leading-tight tracking-tight text-slate-900">
+      <h1 className="text-3xl font-semibold leading-tight tracking-tight text-ink">
         Does this look right?
       </h1>
-      <p className="mt-4 text-sm leading-6 text-slate-500">
+      <p className="mt-4 text-sm leading-6 text-ink-mid">
         Klorn sorted your recent inbox into tiers. Confirm the calls it got right and fix the ones
         it didn&apos;t — a few is enough to teach it what matters to you.
       </p>
 
       {loading && items.length === 0 ? (
-        <div className="mt-8 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-accent motion-reduce:animate-none" />
-          <p className="text-sm text-slate-500">Reading your inbox…</p>
+        <div className="mt-8 flex items-center gap-3 rounded-xl border border-line bg-surface-raised px-4 py-3">
+          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent motion-reduce:animate-none" />
+          <p className="text-sm text-ink-mid">Reading your inbox…</p>
         </div>
       ) : null}
 
       {loadError && items.length === 0 ? (
-        <p className="mt-8 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+        <p className="mt-8 rounded-xl border border-line bg-surface-raised px-4 py-3 text-sm text-ink-mid">
           Couldn&apos;t load your classifications right now. You can review them anytime from your
           inbox.
         </p>
       ) : null}
 
       {!loading && !loadError && items.length === 0 ? (
-        <p className="mt-8 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+        <p className="mt-8 rounded-xl border border-line bg-surface-raised px-4 py-3 text-sm text-ink-mid">
           No mail to review yet — Klorn will sort new email as it arrives.
         </p>
       ) : null}
@@ -146,7 +146,7 @@ export function ReviewStep({ onContinue }: { onContinue: () => void }) {
               <span className={`text-xs font-semibold ${TIER_VISUAL[group.tier].accent}`}>
                 {TIER_VISUAL[group.tier].label}
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-ink-dim">
                 {TIER_VISUAL[group.tier].description}
               </span>
             </div>
@@ -174,7 +174,7 @@ export function ReviewStep({ onContinue }: { onContinue: () => void }) {
         {reviewedCount > 0 ? `Continue — ${reviewedCount} reviewed` : "Looks good — continue"}
         <span aria-hidden>→</span>
       </button>
-      <p className="mt-3 text-center text-[11px] leading-5 text-slate-400">
+      <p className="mt-3 text-center text-[11px] leading-5 text-ink-dim">
         Every confirm or fix teaches Klorn. You can refine any tier later from your inbox.
       </p>
     </div>
@@ -199,10 +199,10 @@ function ReviewCard({
   const snippet = item.email?.snippet ?? null;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
-      <p className="truncate text-xs text-slate-500">{sender}</p>
-      <p className="mt-0.5 truncate text-sm font-medium text-slate-900">{subject}</p>
-      {snippet ? <p className="mt-1 line-clamp-2 text-xs text-slate-400">{snippet}</p> : null}
+    <div className="rounded-xl border border-line bg-surface-panel p-3">
+      <p className="truncate text-xs text-ink-mid">{sender}</p>
+      <p className="mt-0.5 truncate text-sm font-medium text-ink">{subject}</p>
+      {snippet ? <p className="mt-1 line-clamp-2 text-xs text-ink-dim">{snippet}</p> : null}
 
       {labelState ? (
         <p className={`mt-3 text-xs font-semibold ${TIER_VISUAL[labelState.tier].accent}`}>
@@ -220,14 +220,14 @@ function ReviewCard({
           >
             Looks right
           </button>
-          <span className="text-[11px] text-slate-400">or move to</span>
+          <span className="text-[11px] text-ink-dim">or move to</span>
           {MOVE_TARGETS.filter((t) => t !== item.tier).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => onCorrect(t)}
               disabled={busy}
-              className={`min-h-11 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 ${TIER_VISUAL[t].accent}`}
+              className={`min-h-11 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-mid transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 ${TIER_VISUAL[t].accent}`}
             >
               {t}
             </button>

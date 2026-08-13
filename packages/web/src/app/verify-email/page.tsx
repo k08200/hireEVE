@@ -61,7 +61,7 @@ function VerifyEmailContent() {
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-surface-app">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         {status === "verifying" && (
-          <p className="text-sm text-slate-500" aria-live="polite">
+          <p className="text-sm text-ink-mid" aria-live="polite">
             Verifying your email…
           </p>
         )}
@@ -87,17 +87,15 @@ function VerifyEmailContent() {
             : "The link is expired or invalid. Sign in again and request a new verification email."
       }
       footer={
-        <Link href="/login" className="transition hover:text-slate-900">
+        <Link href="/login" className="transition hover:text-ink">
           Back to login
         </Link>
       }
     >
       <div className="space-y-4">
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-            Next step
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+        <div className="rounded-md border border-line bg-surface-raised p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-dim">Next step</p>
+          <p className="mt-2 text-sm leading-6 text-ink-mid">
             {status === "sent"
               ? "Open the Klorn verification email and follow the link. You can return to the decision queue after verification."
               : status === "pending"
@@ -117,7 +115,7 @@ function VerifyEmailContent() {
         ) : (
           <Link
             href="/login"
-            className="flex h-11 w-full items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-900 transition hover:border-slate-300 focus-ring"
+            className="flex h-11 w-full items-center justify-center rounded-md border border-line bg-surface-raised text-sm font-semibold text-ink transition hover:border-slate-300 focus-ring"
           >
             Back to login
           </Link>

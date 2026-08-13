@@ -116,11 +116,11 @@ export function NaverImapSection() {
   };
 
   return (
-    <section className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-5">
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
       <header className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Naver Mail</h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <h2 className="text-base font-semibold text-ink">Naver Mail</h2>
+          <p className="mt-1 text-xs text-ink-mid">
             Connect a Naver mailbox via IMAP. Klorn classifies every incoming message into the same
             4-tier firewall as Gmail.
           </p>
@@ -129,14 +129,14 @@ export function NaverImapSection() {
       </header>
 
       {loading ? (
-        <div className="text-xs text-slate-400">Loading…</div>
+        <div className="text-xs text-ink-dim">Loading…</div>
       ) : status?.connected ? (
         <div className="space-y-3">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm text-slate-900">
+          <div className="rounded-xl border border-line-soft bg-surface-raised/70 p-3 text-sm text-ink">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-medium">{status.email}</p>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-ink-dim">
                   Host: {status.host} · since{" "}
                   {status.connectedAt ? new Date(status.connectedAt).toLocaleString("en-US") : "—"}
                 </p>
@@ -160,11 +160,11 @@ export function NaverImapSection() {
         </div>
       ) : !entitled ? (
         <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-4">
-          <p className="text-sm text-slate-900">
+          <p className="text-sm text-ink">
             Connecting a second inbox is a <span className="font-semibold text-sky-600">Pro</span>{" "}
             feature.
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-ink-mid">
             Free covers your primary Google account. Upgrade in the Subscription section to run the
             firewall across a Naver mailbox too.
           </p>
@@ -192,20 +192,20 @@ export function NaverImapSection() {
               required
               autoComplete="off"
             />
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-[11px] text-ink-mid">
               This is NOT your Naver account password. Generate one at{" "}
               <a
                 href={PASSWORD_HELP_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="underline hover:text-slate-700"
+                className="underline hover:text-ink-soft"
               >
                 Naver Help → 외부 메일 비밀번호
               </a>
               . We store it encrypted (AES-GCM), never the plaintext.
             </p>
           </div>
-          <details className="text-xs text-slate-500">
+          <details className="text-xs text-ink-mid">
             <summary className="cursor-pointer">Advanced: IMAP host</summary>
             <div className="mt-2">
               <Input
