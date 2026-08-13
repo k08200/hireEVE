@@ -40,7 +40,10 @@
   --ink-strong: #e2e8f0;
   --ink-soft: #cbd5e1;
   --ink-mid: #94a3b8;
-  --ink-dim: #64748b;
+  /* NOT the mirror of light's slate-400: that lands at 3.6:1 on these
+     surfaces. 7d8ba1 clears the 4.5:1 AA text floor on panel AND raised
+     (5.0 / 4.6) while staying visibly quieter than ink-mid. */
+  --ink-dim: #7d8ba1;
   --line: #293a56;
   --line-soft: #1c2a40;
 }
@@ -148,6 +151,64 @@ body::before {
     100% 100%,
     100% 100%;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
+/* ── Dark counterparts for the hand-written surfaces ─────────────────
+   The token swap handles utility colors; these are the atmospheric layers
+   and shadows that hardcode light-world values. Same composition, night
+   palette: glows dim, shadows deepen, inset highlights go faint. */
+.dark body::before {
+  background:
+    radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 1px, transparent 1.5px),
+    radial-gradient(80% 60% at 12% -5%, rgba(14, 165, 233, 0.1), transparent 60%),
+    radial-gradient(70% 50% at 105% 0%, rgba(99, 102, 241, 0.09), transparent 55%),
+    radial-gradient(60% 45% at 50% 115%, rgba(56, 189, 248, 0.06), transparent 60%),
+    linear-gradient(180deg, #0d1526 0%, #0b1120 45%, #0a0f1c 100%);
+  background-size:
+    26px 26px,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
+.dark .sky-bg {
+  background-color: #0c1322;
+  background-image:
+    radial-gradient(62% 40% at 88% -4%, rgba(240, 203, 158, 0.08), transparent 68%),
+    radial-gradient(58% 44% at 2% 16%, rgba(240, 222, 226, 0.06), transparent 70%),
+    radial-gradient(64% 46% at 96% 66%, rgba(56, 120, 190, 0.14), transparent 68%),
+    radial-gradient(52% 40% at 20% 96%, rgba(99, 102, 241, 0.1), transparent 70%);
+}
+
+.dark .panel-elevated {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    0 18px 40px -20px rgba(0, 0, 0, 0.65);
+}
+
+.dark .row-wash:hover {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.09), rgba(56, 189, 248, 0.02));
+}
+
+.dark .glow-primary {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 10px 22px -8px rgba(14, 165, 233, 0.4);
+}
+
+.dark .seg-active {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.07) inset;
+}
+
+.dark .avatar-ring {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.09) inset;
 }
 
 /* Strong ease-out (Emil Kowalski's UI curve) — punchier than the built-in
