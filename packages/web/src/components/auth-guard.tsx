@@ -20,7 +20,14 @@ function isPaywallBypass(pathname: string): boolean {
 // so a user can upgrade BEFORE connecting (otherwise a paying customer is
 // bounced to onboarding and can never check out); any path under /auth or
 // /login is the sign-in flow.
-const MAIL_OPTIONAL_PREFIXES = ["/onboarding", "/settings", "/billing", "/login", "/auth"];
+const MAIL_OPTIONAL_PREFIXES = [
+  "/onboarding",
+  "/settings",
+  "/billing",
+  "/usage",
+  "/login",
+  "/auth",
+];
 
 function isMailOptional(pathname: string): boolean {
   return MAIL_OPTIONAL_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));

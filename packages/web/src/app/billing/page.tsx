@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
@@ -278,6 +279,12 @@ function BillingContent() {
               )}
             </div>
           </div>
+          <Link
+            href="/usage"
+            className="focus-ring mt-4 inline-block rounded text-sm text-accent hover:underline"
+          >
+            View detailed usage
+          </Link>
         </div>
       )}
 
