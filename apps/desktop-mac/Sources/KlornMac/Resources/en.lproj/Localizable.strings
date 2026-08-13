@@ -326,3 +326,27 @@
 "account.reconnect.failed" = "Couldn't start the reconnect. Try again.";
 "source.unknown" = "Klorn";
 "source.github" = "GitHub";
+
+/* Account section diagnostics (2026-08-13) */
+"diag.google" = "Google account";
+"diag.aiProvider" = "AI provider";
+"diag.automations" = "Automation config";
+"diag.push" = "Push notifications";
+"diag.db" = "Database";
+"diag.status.ok" = "OK";
+"diag.status.warning" = "Warning";
+"diag.status.error" = "Error";
+"update.updating" = "Updating…";
+"update.installVersion" = "Update to v%@";
+"update.a11y.updating" = "Updating to version %@";
+"update.a11y.available" = "Update available: version %@. Installs and relaunches.";
+"calendar.addedConfirm" = "✓ Added to calendar: %@";
+
+/* Meeting <-> calendar cross-reference (2026-08-13) */
+"meeting.proposedSlot" = "Proposed: %@";
+"meeting.slotFree" = "That slot is free on your calendar";
+"meeting.slotBusy" = "Clashes with an existing event";
+"meeting.slotUnknown" = "Calendar unavailable — availability unverified";
+
+/* Calendar list-column screen (2026-08-13) */
+"section.calendar" = "Calendar";

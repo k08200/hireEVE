@@ -20,7 +20,14 @@ function isPaywallBypass(pathname: string): boolean {
 // so a user can upgrade BEFORE connecting (otherwise a paying customer is
 // bounced to onboarding and can never check out); any path under /auth or
 // /login is the sign-in flow.
-const MAIL_OPTIONAL_PREFIXES = ["/onboarding", "/settings", "/billing", "/login", "/auth"];
+const MAIL_OPTIONAL_PREFIXES = [
+  "/onboarding",
+  "/settings",
+  "/billing",
+  "/usage",
+  "/login",
+  "/auth",
+];
 
 function isMailOptional(pathname: string): boolean {
   return MAIL_OPTIONAL_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -59,7 +66,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         aria-live="polite"
       >
         <div
-          className="w-6 h-6 border-2 border-sky-300 border-t-transparent rounded-full animate-spin"
+          className="w-6 h-6 border-2 border-accent-muted border-t-transparent rounded-full animate-spin"
           aria-hidden="true"
         />
         <span className="sr-only">Checking session...</span>
@@ -157,7 +164,7 @@ function ApiOfflineScreen() {
       role="status"
       aria-live="polite"
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-600">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
         Connection issue
       </p>
       <h1 className="mt-3 text-2xl font-semibold text-slate-900">
@@ -173,7 +180,7 @@ function ApiOfflineScreen() {
         <div className="mt-5 flex items-center gap-3 text-xs text-slate-400">
           <span
             aria-hidden="true"
-            className="h-4 w-4 animate-spin rounded-full border-2 border-sky-300 border-t-transparent"
+            className="h-4 w-4 animate-spin rounded-full border-2 border-accent-muted border-t-transparent"
           />
           <span className="tabular-nums">
             Attempt {attempt + 1} / {ATTEMPT_DELAYS_MS.length} · {elapsedSec}s elapsed
@@ -185,7 +192,7 @@ function ApiOfflineScreen() {
         <button
           type="button"
           onClick={retryNow}
-          className="mt-6 inline-flex min-h-11 items-center rounded-md bg-sky-500 px-5 text-sm font-semibold text-white transition hover:bg-sky-600"
+          className="mt-6 inline-flex min-h-11 items-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent/90 focus-ring"
         >
           Retry
         </button>

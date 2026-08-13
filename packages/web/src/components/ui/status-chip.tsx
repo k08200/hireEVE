@@ -29,19 +29,19 @@ interface StatusMeta {
 const STATUS_META: Record<Status, StatusMeta> = {
   connected: {
     label: "Connected",
-    chip: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25",
+    chip: "bg-emerald-50 text-emerald-700 border-emerald-200",
     // filled dot
     dot: "bg-emerald-400",
   },
   failed: {
     label: "Failed",
-    chip: "bg-rose-500/10 text-rose-300 border-rose-500/25",
+    chip: "bg-rose-50 text-rose-700 border-rose-200",
     // hollow ring — distinct shape, not just a different color
     dot: "bg-transparent border-2 border-rose-400",
   },
   pending: {
     label: "Pending",
-    chip: "bg-stone-800/60 text-stone-300 border-stone-600/40",
+    chip: "bg-stone-100 text-stone-600 border-stone-300",
     // pulsing dot signals in-progress without color reliance
     dot: "bg-stone-400 animate-pulse",
   },

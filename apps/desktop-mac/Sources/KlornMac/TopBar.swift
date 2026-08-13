@@ -584,6 +584,78 @@ private struct UpcomingSection: View {
 /// lightweight detail popover (title / time / location, Join when there's a
 /// meeting link) with "Open in Klorn" → the full view, which carries today and
 /// the week ahead.
+/// The list-column calendar screen (ListMode.calendar): today first — the
+/// running event marked NOW — then the coming week grouped by day. Reuses the
+/// sidebar's rows and the harness-pinned grouping helpers so the two calendar
+/// surfaces can never drift apart.
+private struct CalendarAgendaColumn: View {
+    @Environment(AppModel.self) private var model
+    let actions: TopBarActions
+
+    private var agenda: [AgendaDay] {
+        upcomingAgenda(now: Date(), events: model.weekAhead ?? [])
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar").font(.body).foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+                Text(L("section.calendar")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                if let events = model.weekAhead {
+                    Text("\(events.count)")
+                        .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 24).padding(.vertical, 18)
+
+            if model.weekAhead == nil && model.today == nil {
+                Text(L("bar.loading")).font(.caption).foregroundStyle(Theme.textDim)
+                    .padding(.horizontal, 24)
+            } else if (model.today?.total ?? 0) == 0 && agenda.isEmpty {
+                EmptyState(icon: "calendar", title: L("calendar.noEventsWeek"))
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let today = model.today, today.total > 0 {
+                            ColumnHeader(title: L("section.todayShort"))
+                                .padding(.horizontal, 20).padding(.bottom, 4)
+                            if let current = today.current {
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text(L("section.now"))
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(Theme.accent)
+                                        .padding(.horizontal, 6).padding(.vertical, 2)
+                                        .background(Theme.accent.opacity(0.12), in: Capsule())
+                                    UpcomingEventRow(event: current, actions: actions)
+                                }
+                                .padding(.leading, 12)
+                            }
+                            ForEach(today.upcoming) { event in
+                                UpcomingEventRow(event: event, actions: actions)
+                                    .padding(.horizontal, 12)
+                            }
+                        }
+                        ForEach(agenda) { day in
+                            ColumnHeader(title: day.label)
+                                .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 4)
+                            ForEach(day.events) { event in
+                                UpcomingEventRow(event: event, actions: actions)
+                                    .padding(.horizontal, 12)
+                            }
+                        }
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 private struct UpcomingEventRow: View {
     let event: CalendarEventWire
     let actions: TopBarActions
@@ -883,10 +955,12 @@ private struct AccountColumn: View {
                     Task { await model.reconnectPrimary() }
                 }
                 SubtleTextButton(title: L("account.add")) { Task { await model.addAccount() } }
+                Divider()
                 SubtleTextButton(title: L("menu.checkUpdates")) {
                     Task { await model.checkForUpdateNow() }
                 }
                 SubtleTextButton(title: L("menu.restart")) { AppRestart.relaunch() }
+                Divider()
                 SubtleTextButton(title: L("menu.diagnostics")) {
                     Task { await model.runDiagnostics() }
                 }
@@ -945,6 +1019,10 @@ enum ListMode: Equatable {
     /// Actions Klorn wants approved. Approving these used to require the web
     /// app, which is what kept the agent receipt linking out of Klorn.
     case proposals
+    /// The week as a first-class screen. The sidebar's TODAY/UPCOMING crumbs
+    /// stay, but "what does my week look like" deserves the list column
+    /// (founder, 2026-08-13: the calendar existed, it just wasn't visible).
+    case calendar
 }
 
 struct FullView: View {
@@ -1176,6 +1254,23 @@ private struct FullSidebar: View {
             .buttonStyle(.plain)
             .accessibilityLabel(L("section.assistant"))
 
+            // Calendar: the week as a full list-column screen, not just the
+            // TODAY/UPCOMING crumbs below.
+            Button { selected = .calendar } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "calendar").font(.caption)
+                        .foregroundStyle(Theme.accent).frame(width: 8)
+                        .accessibilityHidden(true)
+                    Text(L("section.calendar"))
+                        .font(.body.weight(selected == .calendar ? .semibold : .regular))
+                        .foregroundStyle(Theme.text)
+                    Spacer()
+                }
+                .modifier(SidebarRowChrome(selected: selected == .calendar))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("section.calendar"))
+
             // TODAY lives in the full view too — the biggest surface must not
             // know less about the day than the compact panel (dogfood 2026-07-16).
             // Briefing + today + UPCOMING mirror the panel's TodayColumn (same
@@ -1229,6 +1324,9 @@ private struct FullSidebar: View {
                 if let version = model.updateAvailable {
                     UpdateRow(version: version)
                 }
+                // Grouped: account identity / app lifecycle / diagnostics.
+                // A flat 6-row list read as one undifferentiated pile
+                // (founder, 2026-08-13).
                 sidebarAction(L("prefs.account.signOut"), dim: true) { actions.onSignOut() }
                 // Same reasoning as the expanded panel: reconnecting the
                 // PRIMARY Google account is a first-class in-app action.
@@ -1236,12 +1334,14 @@ private struct FullSidebar: View {
                     Task { await model.reconnectPrimary() }
                 }
                 sidebarAction(L("account.add"), dim: true) { Task { await model.addAccount() } }
+                Divider().padding(.horizontal, 16).padding(.vertical, 4)
                 // The full window had no way to ASK for an update — the row
                 // only appeared if a check had already found one.
                 sidebarAction(L("menu.checkUpdates"), dim: true) {
                     Task { await model.checkForUpdateNow() }
                 }
                 sidebarAction(L("menu.restart"), dim: true) { AppRestart.relaunch() }
+                Divider().padding(.horizontal, 16).padding(.vertical, 4)
                 // The app must be able to answer "why is mail stuck" itself.
                 sidebarAction(L("menu.diagnostics"), dim: true) {
                     Task { await model.runDiagnostics() }
@@ -1296,6 +1396,7 @@ private struct FullList: View {
         case .commitments: CommitmentsList()
         case .assistant: AssistantColumn()
         case .proposals: ProposalsList()
+        case .calendar: CalendarAgendaColumn(actions: actions)
         case .tier: tierList
         }
     }
@@ -2053,6 +2154,9 @@ struct ReadingPane: View {
                             .font(.caption).foregroundStyle(Theme.textDim)
                     }
                 }
+                if let context = model.meetingContext, let proposed = context.proposed {
+                    meetingContextRows(context, proposed)
+                }
                 if let engagement = email.engagement, engagement.outboundCount > 0 {
                     // Warm tint mirrors the web graph's "you engage" pink — the
                     // signal Klorn learned from the user's own replies. Pink lives
@@ -2080,6 +2184,62 @@ struct ReadingPane: View {
             .background(Theme.surfaceRaised)
             Divider().overlay(Theme.line)
         }
+    }
+
+    /// The meeting ↔ calendar cross-reference: the slot this email proposes,
+    /// whether it clashes with the user's real calendar, and what else sits
+    /// near it that day. Hue rides the dot only (signal-line rule above); the
+    /// verdict word carries the state so it is never color-alone.
+    @ViewBuilder
+    private func meetingContextRows(
+        _ context: MeetingContextWire, _ proposed: MeetingContextWire.Proposed
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Image(systemName: "calendar.badge.clock").font(.caption2)
+                    .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                Text(L("meeting.proposedSlot", meetingSlotLabel(proposed.startTime, proposed.endTime)))
+                    .font(.caption).foregroundStyle(Theme.textDim)
+            }
+            HStack(spacing: 6) {
+                Circle().fill(meetingVerdictColor(context.conflict))
+                    .frame(width: 7, height: 7).accessibilityHidden(true)
+                Text(meetingVerdictLabel(context.conflict))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(context.conflict?.hasConflicts == true ? Theme.text : Theme.textDim)
+            }
+            ForEach(context.nearby.prefix(3)) { event in
+                Text("\(meetingSlotLabel(event.startTime, event.endTime))  \(event.title)")
+                    .font(.caption2).foregroundStyle(Theme.textDim)
+                    .padding(.leading, 13)
+                    .lineLimit(1)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func meetingVerdictLabel(_ conflict: MeetingContextWire.Conflict?) -> String {
+        guard let conflict else { return L("meeting.slotUnknown") }
+        return conflict.hasConflicts ? L("meeting.slotBusy") : L("meeting.slotFree")
+    }
+
+    private func meetingVerdictColor(_ conflict: MeetingContextWire.Conflict?) -> Color {
+        guard let conflict else { return Theme.textDim }
+        return conflict.hasConflicts ? .red : .green
+    }
+
+    /// "Wed Aug 13 · 16:00–17:00" in the user's locale/zone, from the wire's
+    /// ISO strings. Malformed input degrades to the raw string, never crashes.
+    private func meetingSlotLabel(_ startIso: String, _ endIso: String) -> String {
+        let iso = ISO8601DateFormatter()
+        guard let start = iso.date(from: startIso), let end = iso.date(from: endIso) else {
+            return startIso
+        }
+        let day = DateFormatter()
+        day.setLocalizedDateFormatFromTemplate("EdMMM")
+        let time = DateFormatter()
+        time.setLocalizedDateFormatFromTemplate("HHmm")
+        return "\(day.string(from: start)) · \(time.string(from: start))–\(time.string(from: end))"
     }
 
     /// Slim strength meter for the 0…1 learned importance, with its qualitative
@@ -2224,7 +2384,7 @@ private struct DiagnosticsBlock: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 6) {
             if model.diagnosticsInFlight {
                 Text(L("diagnostics.checking")).font(.caption2).foregroundStyle(Theme.textDim)
             }
@@ -2233,12 +2393,49 @@ private struct DiagnosticsBlock: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             ForEach(model.diagnostics) { check in
-                // Status is never color-only: the word carries it too.
-                Text("\(check.label): \(check.status) — \(check.message)")
-                    .font(.caption2)
-                    .foregroundStyle(check.status == "ok" ? Theme.textDim : Theme.text)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Circle().fill(statusColor(check.status))
+                        .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 1) {
+                        // Status is never color-only: the localized word
+                        // carries it alongside the dot.
+                        Text("\(localizedLabel(check)) · \(statusWord(check.status))")
+                            .font(.caption2.weight(check.status == "ok" ? .regular : .semibold))
+                            .foregroundStyle(check.status == "ok" ? Theme.textDim : Theme.text)
+                        Text(check.message)
+                            .font(.caption2)
+                            .foregroundStyle(Theme.textDim)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityElement(children: .combine)
             }
+        }
+    }
+
+    /// The server sends English-only labels; known check keys render through
+    /// the catalogue and unknown ones fall back to the server label so a new
+    /// server-side check degrades to English instead of an L10n key.
+    private func localizedLabel(_ check: ReadinessCheck) -> String {
+        let key = "diag.\(check.key)"
+        let localized = L(key)
+        return localized == key ? check.label : localized
+    }
+
+    private func statusWord(_ status: String) -> String {
+        switch status {
+        case "ok": return L("diag.status.ok")
+        case "warning": return L("diag.status.warning")
+        default: return L("diag.status.error")
+        }
+    }
+
+    private func statusColor(_ status: String) -> Color {
+        switch status {
+        case "ok": return .green
+        case "warning": return .orange
+        default: return .red
         }
     }
 }
@@ -2269,7 +2466,7 @@ private struct UpdateRow: View {
                     }
                     Circle().fill(Theme.accent).frame(width: 7, height: 7)
                 }
-                Text(updating ? "Updating…" : "Update to v\(version)")
+                Text(updating ? L("update.updating") : L("update.installVersion", version))
                     .font(.body.weight(.medium))
                     .foregroundStyle(Theme.accent)
                 Spacer(minLength: 0)
@@ -2286,8 +2483,8 @@ private struct UpdateRow: View {
         .buttonStyle(.plain)
         .disabled(updating)
         .accessibilityLabel(updating
-            ? "Updating to version \(version)"
-            : "Update available: version \(version). Installs and relaunches.")
+            ? L("update.a11y.updating", version)
+            : L("update.a11y.available", version))
         .transition(.opacity.combined(with: .move(edge: .top)))
         .onAppear {
             guard !reduceMotion else { return }

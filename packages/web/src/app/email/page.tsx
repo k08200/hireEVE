@@ -29,8 +29,10 @@ import {
 } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { ComposeModal } from "../../components/compose-modal";
+import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { TrustDot, type TrustScoreData } from "../../components/trust-badge";
+import ErrorAlert from "../../components/ui/error-alert";
 import { apiFetch } from "../../lib/api";
 import { useT } from "../../lib/i18n";
 import { queryKeys } from "../../lib/query-keys";
@@ -704,7 +706,7 @@ function EmailView() {
       <div className="px-4 pb-28 pt-3 md:hidden">
         <header className="mb-4 flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-[28px] font-bold leading-none tracking-tight text-slate-900">
+            <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
               {t("nav.mail")}
             </h1>
             <p className="mt-1.5 text-sm text-slate-500">
@@ -774,11 +776,7 @@ function EmailView() {
           </div>
         )}
 
-        {error && (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <ErrorAlert className="mt-3">{error}</ErrorAlert>}
 
         {!loading && !error && filter !== "threads" && emails.length === 0 && (
           <div className="mt-6 rounded-2xl bg-slate-50 px-6 py-12 text-center">
@@ -1097,13 +1095,13 @@ function EmailView() {
           </Link>
         )}
 
-        {loading && <p className="px-1 py-3 text-sm text-slate-400">Loading...</p>}
-
-        {error && (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
+        {loading && (
+          <div className="mt-3">
+            <ListSkeleton />
           </div>
         )}
+
+        {error && <ErrorAlert className="mt-3">{error}</ErrorAlert>}
 
         {!loading && !error && filter !== "threads" && emails.length === 0 && (
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">

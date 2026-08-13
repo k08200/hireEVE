@@ -9,7 +9,7 @@ function ErrorPage({
 }) {
   return (
     <main className="flex flex-col items-center justify-center min-h-[60vh] px-6">
-      <p className="mb-4 rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1 text-xs font-semibold text-red-200">
+      <p className="mb-4 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
         Screen paused
       </p>
       <h1 className="text-xl font-semibold mb-2">Something went wrong on this screen.</h1>
@@ -24,7 +24,7 @@ function ErrorPage({
       <button
         type="button"
         onClick={reset}
-        className="bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition"
+        className="bg-accent hover:bg-accent/90 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition focus-ring"
       >
         Try again
       </button>

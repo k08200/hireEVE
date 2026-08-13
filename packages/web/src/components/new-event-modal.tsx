@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { apiFetch } from "../lib/api";
+import ErrorAlert from "./ui/error-alert";
 
 /**
  * Minimal create-event dialog for /calendar. POSTs to /api/calendar, which
@@ -274,11 +275,7 @@ export function NewEventModal({
             />
           </div>
 
-          {error && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {error}
-            </p>
-          )}
+          {error && <ErrorAlert>{error}</ErrorAlert>}
 
           <div className="flex items-center justify-end gap-2 pt-1">
             <button

@@ -50,9 +50,9 @@ export function EmailActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`h-8 rounded-md border px-2.5 text-xs font-medium transition disabled:opacity-50 ${
+      className={`focus-ring h-8 rounded-md border px-2.5 text-xs font-medium transition disabled:opacity-50 ${
         danger
-          ? "border-red-500/25 bg-red-500/10 text-red-200 hover:bg-red-500/15"
+          ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
           : "border-slate-200 bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-100"
       }`}
     >

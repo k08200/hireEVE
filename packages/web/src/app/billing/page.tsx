@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
@@ -204,7 +205,7 @@ function BillingContent() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {status.estimatedCost > 0 && (
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-500">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-500 tabular-nums">
                   About {formatUsd(status.estimatedCost)} this month
                 </span>
               )}
@@ -215,7 +216,7 @@ function BillingContent() {
                 <button
                   type="button"
                   onClick={handleManage}
-                  className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-4 py-2 text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+                  className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-4 py-2 text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring min-h-11"
                 >
                   Manage subscription
                 </button>
@@ -228,7 +229,7 @@ function BillingContent() {
             <div>
               <div className="mb-1 flex justify-between text-sm">
                 <span className="text-slate-500">Decisions</span>
-                <span className="text-slate-500">
+                <span className="text-slate-500 tabular-nums">
                   {status.messageCount} /{" "}
                   {isFiniteLimit(status.messageLimit) ? status.messageLimit.toLocaleString() : "∞"}
                 </span>
@@ -255,7 +256,7 @@ function BillingContent() {
             <div>
               <div className="mb-1 flex justify-between text-sm">
                 <span className="text-slate-500">Tokens</span>
-                <span className="text-slate-500">
+                <span className="text-slate-500 tabular-nums">
                   {formatTokens(status.tokenUsage)} /{" "}
                   {isFiniteLimit(status.tokenLimit) ? formatTokens(status.tokenLimit) : "∞"}
                 </span>
@@ -268,7 +269,7 @@ function BillingContent() {
                         ? "bg-red-500"
                         : status.tokenUsage / status.tokenLimit > 0.7
                           ? "bg-amber-400"
-                          : "bg-teal-400"
+                          : "bg-emerald-400"
                     }`}
                     style={{
                       width: `${Math.min((status.tokenUsage / status.tokenLimit) * 100, 100)}%`,
@@ -278,6 +279,12 @@ function BillingContent() {
               )}
             </div>
           </div>
+          <Link
+            href="/usage"
+            className="focus-ring mt-4 inline-block rounded text-sm text-accent hover:underline"
+          >
+            View detailed usage
+          </Link>
         </div>
       )}
 
@@ -301,7 +308,7 @@ function BillingContent() {
                 </span>
               )}
               <p className="mb-1 text-lg font-semibold text-slate-900">{plan.name}</p>
-              <p className="mb-1 text-2xl font-semibold text-slate-900">
+              <p className="mb-1 text-2xl font-semibold text-slate-900 tabular-nums">
                 {plan.price}
                 <span className="text-sm font-normal text-slate-400">{plan.period}</span>
               </p>
@@ -336,7 +343,7 @@ function BillingContent() {
               ) : plan.key === "ENTERPRISE" ? (
                 <a
                   href="mailto:sales@klorn.ai"
-                  className="ease-strong block rounded-lg border border-slate-200 bg-white/70 py-2.5 text-center text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+                  className="ease-strong block rounded-lg border border-slate-200 bg-white/70 py-2.5 text-center text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring min-h-11"
                 >
                   Contact sales
                 </a>
@@ -350,7 +357,7 @@ function BillingContent() {
                 <button
                   type="button"
                   disabled
-                  className="rounded-lg border border-slate-200 bg-slate-100 py-2.5 text-sm font-semibold text-slate-400"
+                  className="rounded-lg border border-slate-200 bg-slate-100 py-2.5 text-sm font-semibold text-slate-400 min-h-11"
                 >
                   Subscription coming soon
                 </button>
@@ -358,7 +365,7 @@ function BillingContent() {
                 <button
                   type="button"
                   onClick={() => handleUpgrade(plan.key as "PRO")}
-                  className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 py-2.5 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97]"
+                  className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 py-2.5 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] focus-ring min-h-11"
                 >
                   Start 7-day free trial
                 </button>

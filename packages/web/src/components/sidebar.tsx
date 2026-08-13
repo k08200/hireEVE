@@ -249,6 +249,13 @@ export default function Sidebar() {
                     {t("nav.billing")}
                   </Link>
                   <Link
+                    href="/usage"
+                    onClick={() => setShowUserMenu(false)}
+                    className="block px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-md mx-1 transition"
+                  >
+                    {t("nav.usage")}
+                  </Link>
+                  <Link
                     href="/settings"
                     onClick={() => setShowUserMenu(false)}
                     className="block px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-md mx-1 transition"

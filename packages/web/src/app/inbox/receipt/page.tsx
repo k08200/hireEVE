@@ -9,6 +9,8 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthGuard from "../../../components/auth-guard";
 import { useToast } from "../../../components/toast";
+import ErrorAlert from "../../../components/ui/error-alert";
+import LoadingState from "../../../components/ui/loading-state";
 import { apiFetch } from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
 import { captureClientError } from "../../../lib/sentry";
@@ -75,7 +77,7 @@ function ReceiptView() {
   if (loading) {
     return (
       <div className="mx-auto w-full max-w-4xl px-4 py-10">
-        <p className="text-sm text-slate-400 text-center">Loading today's receipt...</p>
+        <LoadingState rows={2} label="Loading today's receipt" />
       </div>
     );
   }
@@ -83,9 +85,7 @@ function ReceiptView() {
   if (error || !receipt) {
     return (
       <div className="mx-auto w-full max-w-4xl px-4 py-10">
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error ?? "No receipt available."}
-        </div>
+        <ErrorAlert>{error ?? "No receipt available."}</ErrorAlert>
       </div>
     );
   }
@@ -108,7 +108,7 @@ function ReceiptView() {
             <button
               type="button"
               onClick={() => receiptQuery.refetch()}
-              className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+              className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring min-h-11"
             >
               Refresh
             </button>
@@ -154,7 +154,7 @@ function ReceiptView() {
                 type="button"
                 onClick={() => handleUndo(item.id)}
                 disabled={!!undoLoading[item.id]}
-                className="text-[11px] text-slate-400 transition duration-150 hover:text-sky-700 disabled:opacity-50"
+                className="text-[11px] text-slate-400 transition duration-150 hover:text-sky-700 disabled:opacity-50 focus-ring min-h-9 min-w-9"
               >
                 {undoLoading[item.id] ? "Creating undo..." : "Request undo"}
               </button>

@@ -8,6 +8,8 @@
 import { useEffect, useRef } from "react";
 import AuthGuard from "../../components/auth-guard";
 import EventDraftCard from "../../components/event-draft-card";
+import ErrorAlert from "../../components/ui/error-alert";
+import LoadingState from "../../components/ui/loading-state";
 import VoiceButton from "../../components/voice-button";
 import { useT } from "../../lib/i18n";
 import {
@@ -75,7 +77,7 @@ function ChatView() {
 
       <div className="flex-1 space-y-3 overflow-y-auto pr-1" aria-live="polite">
         {messagesLoading ? (
-          <p className="text-sm text-slate-500">{t("chat.loadingConversation")}</p>
+          <LoadingState rows={3} rowHeight="h-12" label={t("chat.loadingConversation")} />
         ) : messages.length === 0 && !pendingText ? (
           <div className="mt-8 space-y-3">
             <p className="text-sm text-slate-500">{t("chat.emptyState")}</p>
@@ -118,14 +120,7 @@ function ChatView() {
             )}
           </>
         )}
-        {sendError && (
-          <p
-            role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          >
-            {t("chat.sendFailed")}
-          </p>
-        )}
+        {sendError && <ErrorAlert>{t("chat.sendFailed")}</ErrorAlert>}
         <div ref={threadEndRef} />
       </div>
 

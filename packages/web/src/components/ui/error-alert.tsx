@@ -16,7 +16,9 @@ interface ErrorAlertProps {
  * Shared error surface so every page does not invent its own
  * `rounded-lg border border-red-200 bg-red-50 ...` block.
  *
- * Audited 2026-05-19: at least 8 pages reimplemented this from scratch.
+ * Single error surface as of 2026-08-13 — all boxed inline reimplementations
+ * were migrated to this component. New error boxes should use it directly
+ * instead of hand-rolling the border/bg pattern again.
  * Relit for the light+sky v2 system 2026-07-22.
  */
 export default function ErrorAlert({

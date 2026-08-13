@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { captureClientError } from "../lib/sentry";
 import { useConfirm } from "./confirm-dialog";
 import Button from "./ui/button";
+import ErrorAlert from "./ui/error-alert";
 import { Input } from "./ui/input";
 import StatusChip from "./ui/status-chip";
 
@@ -216,14 +217,7 @@ export function ICloudImapSection() {
               (AES-GCM), never the plaintext.
             </p>
           </div>
-          {error && (
-            <div
-              role="alert"
-              className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-600"
-            >
-              {error}
-            </div>
-          )}
+          {error && <ErrorAlert>{error}</ErrorAlert>}
           <Button
             type="submit"
             variant="primary"

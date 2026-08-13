@@ -50,6 +50,7 @@ import {
 } from "../mail/email-sync.js";
 import { coercePlainBody, htmlToPlainText } from "../mail/email-text.js";
 import { getLinkedInboxClients } from "../mail/gmail.js";
+import { getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { senderEmail } from "../notify/notification-format.js";
 import { createTask } from "../pim/tasks.js";
@@ -1052,6 +1053,49 @@ export async function emailRoutes(app: FastifyInstance) {
       });
 
       return { queue: queueKey, next: next ? serializeQueueEmail(next) : null };
+    },
+  );
+
+  // ─── Meeting ↔ calendar cross-reference ──────────────────────────────
+  // GET /api/email/:id/meeting-context — for meeting-category mail: the
+  // proposed slot parsed from the email (anchored at receivedAt), a live
+  // conflict verdict, and nearby local events. Reading-pane data; the same
+  // (cached) context also grounds the reply drafts. Rate-limited because a
+  // cold call costs one LLM parse.
+  app.get(
+    "/:id/meeting-context",
+    {
+      schema: { querystring: { type: "object", additionalProperties: false, properties: {} } },
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const uid = getUserId(request);
+      const dbEmail = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      });
+      if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+
+      const context = await getMeetingContext(uid, {
+        id: dbEmail.id,
+        category: dbEmail.category,
+        summary: dbEmail.summary,
+        keyPoints: parseJsonArray(dbEmail.keyPoints),
+        body: dbEmail.body,
+        receivedAt: dbEmail.receivedAt,
+      });
+      if (context) return context;
+      // Non-meeting mail answers with an empty context rather than an error —
+      // the client treats "nothing to show" uniformly. Resolve the real zone
+      // so the response always satisfies the MeetingContext contract
+      // (timeZone: string, never null).
+      const { getUserTimeZone } = await import("../user-timezone.js");
+      return {
+        proposed: null,
+        conflict: null,
+        nearby: [],
+        timeZone: await getUserTimeZone(uid),
+      };
     },
   );
 

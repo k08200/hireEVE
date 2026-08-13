@@ -64,6 +64,9 @@ final class AppModel {
     // Reading pane (full view): the selected row + its loaded email content.
     private(set) var selectedItemId: String?
     private(set) var openedEmail: EmailDetail?
+    /// Calendar cross-reference for the opened meeting email (nil while
+    /// loading, for non-meeting mail, or when the server has nothing).
+    private(set) var meetingContext: MeetingContextWire?
     private(set) var isLoadingEmail = false
     private(set) var emailError: String?
     private(set) var replyError: String?
@@ -304,6 +307,7 @@ final class AppModel {
             // write. Fire-and-forget: a failed mark-read must not blank the
             // reading pane the user already has.
             Task { try? await api.patch("/api/email/\(emailDbId)/read", json: [:]) }
+            loadMeetingContext(for: emailDbId, guardId: item.id)
         } catch APIError.unauthorized {
             signOut()
         } catch {
@@ -311,9 +315,23 @@ final class AppModel {
         }
     }
 
+    /// Meeting mail only: fetch the calendar cross-reference (proposed slot,
+    /// conflict verdict, nearby events) without blocking the pane. The guard
+    /// keeps a slow response from painting over a different, newer selection.
+    private func loadMeetingContext(for emailDbId: String, guardId: String) {
+        meetingContext = nil
+        guard openedEmail?.category == "meeting" else { return }
+        Task {
+            let context = try? await api.get(
+                "/api/email/\(emailDbId)/meeting-context", as: MeetingContextWire.self)
+            if selectedItemId == guardId { meetingContext = context }
+        }
+    }
+
     func clearSelection() {
         selectedItemId = nil
         openedEmail = nil
+        meetingContext = nil
         emailError = nil
         replyError = nil
     }
@@ -336,7 +354,7 @@ final class AppModel {
             signOut()
             return nil
         } catch APIError.forbidden {
-            replyError = "AI reply drafts need Klorn Pro."
+            replyError = L("error.needsPro")
             return nil
         } catch {
             replyError = Self.describe(error)
@@ -444,7 +462,7 @@ final class AppModel {
             try await api.post("/api/calendar", json: body)
             clearEventDraft(messageId)
             chatMessages.append(ChatMessage(
-                role: .assistant, text: "✓ Added to calendar: \(eventDraftLabel(draft))"))
+                role: .assistant, text: L("calendar.addedConfirm", eventDraftLabel(draft))))
             Task { await refreshToday() }  // the TODAY column should show it now
         } catch APIError.unauthorized {
             signOut()

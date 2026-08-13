@@ -38,7 +38,7 @@ export default function Card({
 }: CardProps) {
   return (
     <div
-      className={`bg-white border border-slate-200 rounded-xl ${paddings[padding]} ${variantStyles[variant]} ${
+      className={`panel-elevated bg-white border border-slate-200/70 rounded-2xl ${paddings[padding]} ${variantStyles[variant]} ${
         hover ? "hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer" : ""
       } ${className}`}
       {...props}

@@ -29,6 +29,7 @@ const APP_SHELL_ROUTES = [
   "/graph",
   "/inbox",
   "/settings",
+  "/usage",
 ];
 
 function isAppShellRoute(pathname: string): boolean {

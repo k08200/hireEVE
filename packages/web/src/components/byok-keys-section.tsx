@@ -5,6 +5,7 @@ import { apiFetch } from "../lib/api";
 import { captureClientError } from "../lib/sentry";
 import { useConfirm } from "./confirm-dialog";
 import Button from "./ui/button";
+import ErrorAlert from "./ui/error-alert";
 import { Input, Select } from "./ui/input";
 import StatusChip from "./ui/status-chip";
 
@@ -260,14 +261,7 @@ export function ByokKeysSection() {
               </div>
             );
           })()}
-          {error && (
-            <div
-              role="alert"
-              className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700"
-            >
-              {error}
-            </div>
-          )}
+          {error && <ErrorAlert>{error}</ErrorAlert>}
         </div>
       )}
     </section>

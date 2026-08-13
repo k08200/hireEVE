@@ -7,6 +7,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { LinkedCalendars } from "../../components/linked-calendars";
 import { type NewEventInitial, NewEventModal } from "../../components/new-event-modal";
+import ErrorAlert from "../../components/ui/error-alert";
 import VoiceButton from "../../components/voice-button";
 import { apiFetch, startGoogleConnect } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
@@ -216,7 +217,7 @@ function CalendarView() {
       {/* MOBILE — native large-title header (desktop hero below, untouched) */}
       <header className="mb-5 flex items-end justify-between gap-3 md:hidden">
         <div className="min-w-0">
-          <h1 className="text-[28px] font-bold leading-none tracking-tight text-slate-900">
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
             {t("nav.calendar")}
           </h1>
           <p className="mt-1.5 truncate text-sm text-slate-500">
@@ -373,11 +374,7 @@ function CalendarView() {
         </div>
       )}
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mb-4">{error}</ErrorAlert>}
 
       {syncMessage && !error && (
         <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">

@@ -225,7 +225,7 @@ function LoginForm() {
 
           <Link
             href="/early-access"
-            className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white shadow-sm shadow-sky-300/20 transition hover:bg-sky-600"
+            className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white shadow-sm shadow-sky-300/20 transition hover:bg-sky-600 focus-ring"
           >
             {t("auth.requestEarlyAccess")}
           </Link>
@@ -233,7 +233,7 @@ function LoginForm() {
           <a
             href={`${API_BASE}/api/auth/google/login`}
             onClick={handleGoogleClick}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-200 bg-transparent text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-200 bg-transparent text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-900 focus-ring"
           >
             <GoogleMark />
             {t("auth.googleApprovedSignIn")}
@@ -244,7 +244,7 @@ function LoginForm() {
           <a
             href={`${API_BASE}/api/auth/google/login`}
             onClick={handleGoogleClick}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-md bg-stone-100 text-sm font-semibold text-stone-900 shadow-sm transition hover:bg-white"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-md bg-stone-100 text-sm font-semibold text-stone-900 shadow-sm transition hover:bg-white focus-ring"
           >
             <GoogleMark />
             {t("auth.continueWithGoogle")}
@@ -253,7 +253,7 @@ function LoginForm() {
             <a
               key={provider.id}
               href={`${API_BASE}/api/auth/${provider.id}/login`}
-              className="mt-3 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-200 bg-transparent text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+              className="mt-3 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-slate-200 bg-transparent text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900 focus-ring"
             >
               {provider.id === "apple" ? <AppleMark /> : <NaverMark />}
               {provider.id === "apple" ? t("auth.continueWithApple") : t("auth.continueWithNaver")}
@@ -297,7 +297,7 @@ function LoginForm() {
             type="button"
             aria-pressed={mode === "login"}
             onClick={() => changeMode("login")}
-            className={`h-11 rounded px-3 text-sm font-medium transition ${
+            className={`h-11 rounded px-3 text-sm font-medium transition focus-ring ${
               mode === "login"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-900"
@@ -309,7 +309,7 @@ function LoginForm() {
             type="button"
             aria-pressed={mode === "register"}
             onClick={() => changeMode("register")}
-            className={`h-11 rounded px-3 text-sm font-medium transition ${
+            className={`h-11 rounded px-3 text-sm font-medium transition focus-ring ${
               mode === "register"
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-900"
@@ -380,11 +380,11 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white shadow-sm shadow-sky-300/20 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white shadow-sm shadow-sky-300/20 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 focus-ring"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-stone-950 border-t-transparent" />
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
               {mode === "login" ? t("auth.signingIn") : t("auth.creatingAccount")}
             </span>
           ) : mode === "login" ? (
@@ -402,7 +402,7 @@ function LoginForm() {
             <button
               type="button"
               onClick={() => changeMode(mode === "login" ? "register" : "login")}
-              className="inline-flex min-h-10 items-center font-medium text-sky-600 transition hover:text-sky-500"
+              className="inline-flex min-h-10 items-center font-medium text-sky-600 transition hover:text-sky-500 focus-ring"
             >
               {mode === "login" ? t("auth.switchToSignUp") : t("auth.switchToLogIn")}
             </button>

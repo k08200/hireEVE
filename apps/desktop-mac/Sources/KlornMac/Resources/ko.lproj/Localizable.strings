@@ -325,3 +325,27 @@
 "account.reconnect.failed" = "다시 연결을 시작하지 못했어요. 다시 시도해 주세요.";
 "source.unknown" = "Klorn";
 "source.github" = "GitHub";
+
+/* Account section diagnostics (2026-08-13) */
+"diag.google" = "Google 계정";
+"diag.aiProvider" = "AI 프로바이더";
+"diag.automations" = "자동화 설정";
+"diag.push" = "푸시 알림";
+"diag.db" = "데이터베이스";
+"diag.status.ok" = "정상";
+"diag.status.warning" = "주의";
+"diag.status.error" = "오류";
+"update.updating" = "업데이트 중…";
+"update.installVersion" = "v%@ 업데이트";
+"update.a11y.updating" = "버전 %@(으)로 업데이트 중";
+"update.a11y.available" = "업데이트 가능: 버전 %@. 설치 후 재시작됩니다.";
+"calendar.addedConfirm" = "✓ 캘린더에 추가됨: %@";
+
+/* Meeting <-> calendar cross-reference (2026-08-13) */
+"meeting.proposedSlot" = "제안 시간: %@";
+"meeting.slotFree" = "캘린더에서 비어 있는 시간";
+"meeting.slotBusy" = "기존 일정과 겹침";
+"meeting.slotUnknown" = "캘린더 확인 불가 — 가용 여부 미검증";
+
+/* Calendar list-column screen (2026-08-13) */
+"section.calendar" = "캘린더";

@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import AuthGuard from "../../../components/auth-guard";
+import { ListSkeleton } from "../../../components/skeleton";
+import ErrorAlert from "../../../components/ui/error-alert";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
 import { captureClientError } from "../../../lib/sentry";
@@ -301,7 +303,7 @@ function CandidateIntakeView() {
             type="button"
             onClick={() => load(status, attention, true)}
             disabled={refreshing}
-            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
           >
             {refreshing ? "Refreshing…" : "Rescan"}
           </button>
@@ -309,13 +311,13 @@ function CandidateIntakeView() {
             type="button"
             onClick={exportCsv}
             disabled={exporting}
-            className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+            className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50 focus-ring"
           >
             {exporting ? "Exporting…" : "Export CSV"}
           </button>
           <Link
             href="/email"
-            className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+            className="ease-strong inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
           >
             Email list
           </Link>
@@ -362,7 +364,7 @@ function CandidateIntakeView() {
               key={filter.status}
               type="button"
               onClick={() => setStatus(filter.status)}
-              className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition duration-150 active:scale-[0.97] ${
+              className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition duration-150 active:scale-[0.97] focus-ring ${
                 active
                   ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
                   : "text-slate-500 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm"
@@ -388,7 +390,7 @@ function CandidateIntakeView() {
               key={filter.value}
               type="button"
               onClick={() => setAttention(filter.value)}
-              className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition duration-150 active:scale-[0.97] ${
+              className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition duration-150 active:scale-[0.97] focus-ring ${
                 active
                   ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
                   : "text-slate-500 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm"
@@ -409,7 +411,7 @@ function CandidateIntakeView() {
             <button
               type="button"
               onClick={toggleAllVisible}
-              className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+              className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
             >
               {selectedCount > 0 ? `${selectedCount} selected` : "Select visible"}
             </button>
@@ -417,7 +419,7 @@ function CandidateIntakeView() {
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
-                className="ease-strong rounded-lg px-3 py-1.5 text-xs text-slate-400 transition duration-150 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97]"
+                className="ease-strong rounded-lg px-3 py-1.5 text-xs text-slate-400 transition duration-150 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97] focus-ring"
               >
                 Clear
               </button>
@@ -448,13 +450,13 @@ function CandidateIntakeView() {
         </div>
       )}
 
-      {loading && <p className="px-1 py-3 text-sm text-slate-400">Loading...</p>}
-
-      {error && (
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
+      {loading && (
+        <div className="mt-3">
+          <ListSkeleton />
         </div>
       )}
+
+      {error && <ErrorAlert className="mt-3">{error}</ErrorAlert>}
 
       {!loading && !error && candidates.length === 0 && (
         <div className="panel-elevated mt-4 rounded-2xl border border-slate-200/70 bg-white p-6 text-center">
@@ -497,7 +499,7 @@ function QualityIssuesStrip({ issues }: { issues: NonNullable<AttachmentQuality[
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
-          className="ease-strong shrink-0 rounded-md px-2 py-1 text-[11px] font-medium text-amber-700 transition duration-150 hover:bg-amber-100 hover:text-amber-900 active:scale-[0.97]"
+          className="ease-strong shrink-0 rounded-md px-2 py-1 text-[11px] font-medium text-amber-700 transition duration-150 hover:bg-amber-100 hover:text-amber-900 active:scale-[0.97] focus-ring"
         >
           {expanded ? "Hide" : "Details"}
         </button>
@@ -508,7 +510,7 @@ function QualityIssuesStrip({ issues }: { issues: NonNullable<AttachmentQuality[
             <li key={issue.attachmentId}>
               <Link
                 href={`/email/${issue.emailId}`}
-                className="ease-strong flex items-baseline gap-2 px-3 py-2 text-[11px] transition duration-150 hover:bg-amber-50"
+                className="ease-strong flex items-baseline gap-2 px-3 py-2 text-[11px] transition duration-150 hover:bg-amber-50 focus-ring"
               >
                 <span className="truncate font-medium text-slate-700">{issue.filename}</span>
                 <span className="min-w-0 truncate text-slate-400">{issue.reason}</span>
@@ -555,7 +557,7 @@ function BulkStatusButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+      className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
     >
       {label}
     </button>
@@ -651,13 +653,13 @@ function CandidateCard({
       )}
       <Link
         href={`/email/candidates/${candidate.emailId}`}
-        className="ease-strong mt-3 inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+        className="ease-strong mt-3 inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
       >
         Candidate details
       </Link>
       <Link
         href={`/email/${candidate.emailId}`}
-        className="ease-strong ml-2 mt-3 inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-400 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+        className="ease-strong ml-2 mt-3 inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-400 transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] focus-ring"
       >
         Email
       </Link>

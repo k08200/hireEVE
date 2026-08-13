@@ -22,9 +22,9 @@ const intentStyles: Record<BadgeIntent, string> = {
   // accent color flows from the --color-accent token so retuning it here
   // repaints every accent badge; the rest stay on intent-stable hues.
   accent: "bg-accent/10 text-accent border-accent/20",
-  success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  danger: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+  success: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  warning: "bg-amber-50 text-amber-700 border-amber-200",
+  danger: "bg-rose-50 text-rose-700 border-rose-200",
   neutral: "bg-slate-100 text-slate-500 border-slate-200",
 };
 
