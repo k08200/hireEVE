@@ -35,7 +35,7 @@ export function TodayActionsCard() {
 
   if (query.isLoading) {
     return (
-      <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+      <section className="panel-elevated mb-4 rounded-2xl border border-slate-200/70 bg-white p-4">
         <p className="text-xs text-slate-400">Loading today's activity…</p>
       </section>
     );
@@ -52,7 +52,7 @@ export function TodayActionsCard() {
 
   if (idle) {
     return (
-      <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+      <section className="panel-elevated mb-4 rounded-2xl border border-slate-200/70 bg-white p-4">
         <header className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">What Klorn did today</h2>
           <span className="text-[11px] text-slate-400">Since UTC midnight</span>
@@ -66,7 +66,7 @@ export function TodayActionsCard() {
   }
 
   return (
-    <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4">
+    <section className="panel-elevated mb-4 rounded-2xl border border-slate-200/70 bg-white p-4">
       <header className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-slate-900">What Klorn did today</h2>
         <span className="text-[11px] text-slate-400">Since UTC midnight</span>

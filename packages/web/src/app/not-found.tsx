@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#ffffff] px-6 text-center text-slate-900">
       <img src="/brand/mark.svg?v=matte2" alt="" className="mb-6 h-10 w-10" />
-      <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-sky-600">
+      <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
         Page not found
       </p>
       <h1 className="text-2xl font-semibold tracking-tight md:text-4xl">
@@ -17,7 +17,7 @@ export default function NotFound() {
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <Link
           href="/inbox"
-          className="inline-flex min-h-11 items-center justify-center rounded-md bg-sky-500 px-5 text-sm font-semibold text-white transition hover:bg-sky-600"
+          className="inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-sm font-semibold text-white transition hover:bg-accent/90"
         >
           Open decision queue
         </Link>
