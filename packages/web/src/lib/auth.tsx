@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { apiFetch, clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from "./api";
+import { clearSensitiveStorage, revokeServerSession } from "./logout-cleanup";
 import { trackAppOpenOnce } from "./track";
 
 interface User {
@@ -235,7 +236,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // Order matters: revoke server-side BEFORE clearing the token (the call
+    // needs it), then wipe secrets from browser storage (CASA 2.2.1 / 6.6.1).
+    revokeServerSession();
     clearStoredAuthToken();
+    clearSensitiveStorage();
     setToken(null);
     setUser(null);
     setAuthError(null);
