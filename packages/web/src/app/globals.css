@@ -7,9 +7,8 @@
 /* ── Theme palettes ─────────────────────────────────────────────────
    Semantic tokens carry the theme: light values here are byte-identical to
    what the app hardcoded before dark mode, so the light theme cannot drift.
-   The .dark block swaps the same variables — components tokenized onto
-   surface-*/ ink-*/line-* need no dark: variants at all. *
-/
+   The .dark block swaps the same variables — components tokenized onto the
+   surface / ink / line families need no dark: variants at all. */
 :root {
   --surface-app: #f4f8fc;
   --surface-canvas: #ffffff;
