@@ -349,3 +349,8 @@
 
 /* Calendar list-column screen (2026-08-13) */
 "section.calendar" = "캘린더";
+
+/* Account maintenance disclosure (2026-08-14) */
+"account.maintenance" = "앱 관리 및 진단";
+"a11y.expanded" = "펼쳐짐";
+"a11y.collapsed" = "접힘";

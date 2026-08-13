@@ -933,6 +933,9 @@ private struct AccountColumn: View {
     @Environment(AppModel.self) private var model
     let actions: TopBarActions
     @State private var updating = false
+    /// Same stowing as the full sidebar: maintenance is occasional, the
+    /// 380pt panel column doubly so.
+    @State private var showMaintenance = false
 
     var body: some View {
         // The panel is a fixed 1140x380; this column grew past it when the
@@ -956,17 +959,32 @@ private struct AccountColumn: View {
                 }
                 SubtleTextButton(title: L("account.add")) { Task { await model.addAccount() } }
                 Divider()
-                SubtleTextButton(title: L("menu.checkUpdates")) {
-                    Task { await model.checkForUpdateNow() }
+                Button {
+                    withAnimation(.easeOut(duration: 0.15)) { showMaintenance.toggle() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(L("account.maintenance")).font(.callout).foregroundStyle(Theme.textDim)
+                        Image(systemName: "chevron.right").font(.caption2)
+                            .foregroundStyle(Theme.textDim)
+                            .rotationEffect(showMaintenance ? .degrees(90) : .zero)
+                            .accessibilityHidden(true)
+                    }
                 }
-                SubtleTextButton(title: L("menu.restart")) { AppRestart.relaunch() }
-                Divider()
-                SubtleTextButton(title: L("menu.diagnostics")) {
-                    Task { await model.runDiagnostics() }
-                }
-                DiagnosticsBlock()
-                if let result = model.updateCheckResult {
-                    Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("account.maintenance"))
+                .accessibilityValue(showMaintenance ? L("a11y.expanded") : L("a11y.collapsed"))
+                if showMaintenance {
+                    SubtleTextButton(title: L("menu.checkUpdates")) {
+                        Task { await model.checkForUpdateNow() }
+                    }
+                    SubtleTextButton(title: L("menu.restart")) { AppRestart.relaunch() }
+                    SubtleTextButton(title: L("menu.diagnostics")) {
+                        Task { await model.runDiagnostics() }
+                    }
+                    DiagnosticsBlock()
+                    if let result = model.updateCheckResult {
+                        Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                    }
                 }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
@@ -1143,6 +1161,10 @@ private struct FullSidebar: View {
     @Environment(AppModel.self) private var model
     @Binding var selected: ListMode
     let actions: TopBarActions
+    /// Maintenance actions + diagnostics live behind a disclosure — the
+    /// account section is daily-use identity actions; update/restart/health
+    /// are occasional and were crowding the sidebar (founder, 2026-08-14).
+    @State private var showMaintenance = false
 
     /// Compact event row for the 220pt sidebar: NOW badge or start time,
     /// title, and a click-through to the meeting link when present.
@@ -1335,21 +1357,23 @@ private struct FullSidebar: View {
                 }
                 sidebarAction(L("account.add"), dim: true) { Task { await model.addAccount() } }
                 Divider().padding(.horizontal, 16).padding(.vertical, 4)
-                // The full window had no way to ASK for an update — the row
-                // only appeared if a check had already found one.
-                sidebarAction(L("menu.checkUpdates"), dim: true) {
-                    Task { await model.checkForUpdateNow() }
-                }
-                sidebarAction(L("menu.restart"), dim: true) { AppRestart.relaunch() }
-                Divider().padding(.horizontal, 16).padding(.vertical, 4)
-                // The app must be able to answer "why is mail stuck" itself.
-                sidebarAction(L("menu.diagnostics"), dim: true) {
-                    Task { await model.runDiagnostics() }
-                }
-                DiagnosticsBlock().padding(.horizontal, 20)
-                if let result = model.updateCheckResult {
-                    Text(result).font(.caption2).foregroundStyle(Theme.textDim)
-                        .padding(.horizontal, 20)
+                maintenanceDisclosureRow
+                if showMaintenance {
+                    // The full window had no way to ASK for an update — the
+                    // row only appeared if a check had already found one.
+                    sidebarAction(L("menu.checkUpdates"), dim: true) {
+                        Task { await model.checkForUpdateNow() }
+                    }
+                    sidebarAction(L("menu.restart"), dim: true) { AppRestart.relaunch() }
+                    // The app must be able to answer "why is mail stuck" itself.
+                    sidebarAction(L("menu.diagnostics"), dim: true) {
+                        Task { await model.runDiagnostics() }
+                    }
+                    DiagnosticsBlock().padding(.horizontal, 20)
+                    if let result = model.updateCheckResult {
+                        Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                            .padding(.horizontal, 20)
+                    }
                 }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
@@ -1366,6 +1390,28 @@ private struct FullSidebar: View {
             .frame(maxHeight: 260)
         }
         .padding(.horizontal, 8).padding(.vertical, 18)
+    }
+
+    /// Disclosure row for the maintenance group — same chrome as the action
+    /// rows, plus a rotating chevron so the collapsed state is discoverable.
+    private var maintenanceDisclosureRow: some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.15)) { showMaintenance.toggle() }
+        } label: {
+            HStack(spacing: 6) {
+                Text(L("account.maintenance")).font(.body).foregroundStyle(Theme.textDim)
+                Image(systemName: "chevron.right").font(.caption2)
+                    .foregroundStyle(Theme.textDim)
+                    .rotationEffect(showMaintenance ? .degrees(90) : .zero)
+                    .accessibilityHidden(true)
+                Spacer()
+            }
+            .padding(.horizontal, 12).padding(.vertical, 5)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L("account.maintenance"))
+        .accessibilityValue(showMaintenance ? L("a11y.expanded") : L("a11y.collapsed"))
     }
 
     private func sidebarAction(_ title: String, dim: Bool = false, _ run: @escaping () -> Void) -> some View {
