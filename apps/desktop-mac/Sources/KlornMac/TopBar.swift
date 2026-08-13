@@ -883,10 +883,12 @@ private struct AccountColumn: View {
                     Task { await model.reconnectPrimary() }
                 }
                 SubtleTextButton(title: L("account.add")) { Task { await model.addAccount() } }
+                Divider()
                 SubtleTextButton(title: L("menu.checkUpdates")) {
                     Task { await model.checkForUpdateNow() }
                 }
                 SubtleTextButton(title: L("menu.restart")) { AppRestart.relaunch() }
+                Divider()
                 SubtleTextButton(title: L("menu.diagnostics")) {
                     Task { await model.runDiagnostics() }
                 }
@@ -1229,6 +1231,9 @@ private struct FullSidebar: View {
                 if let version = model.updateAvailable {
                     UpdateRow(version: version)
                 }
+                // Grouped: account identity / app lifecycle / diagnostics.
+                // A flat 6-row list read as one undifferentiated pile
+                // (founder, 2026-08-13).
                 sidebarAction(L("prefs.account.signOut"), dim: true) { actions.onSignOut() }
                 // Same reasoning as the expanded panel: reconnecting the
                 // PRIMARY Google account is a first-class in-app action.
@@ -1236,12 +1241,14 @@ private struct FullSidebar: View {
                     Task { await model.reconnectPrimary() }
                 }
                 sidebarAction(L("account.add"), dim: true) { Task { await model.addAccount() } }
+                Divider().padding(.horizontal, 16).padding(.vertical, 4)
                 // The full window had no way to ASK for an update — the row
                 // only appeared if a check had already found one.
                 sidebarAction(L("menu.checkUpdates"), dim: true) {
                     Task { await model.checkForUpdateNow() }
                 }
                 sidebarAction(L("menu.restart"), dim: true) { AppRestart.relaunch() }
+                Divider().padding(.horizontal, 16).padding(.vertical, 4)
                 // The app must be able to answer "why is mail stuck" itself.
                 sidebarAction(L("menu.diagnostics"), dim: true) {
                     Task { await model.runDiagnostics() }
@@ -2224,7 +2231,7 @@ private struct DiagnosticsBlock: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 6) {
             if model.diagnosticsInFlight {
                 Text(L("diagnostics.checking")).font(.caption2).foregroundStyle(Theme.textDim)
             }
@@ -2233,12 +2240,49 @@ private struct DiagnosticsBlock: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             ForEach(model.diagnostics) { check in
-                // Status is never color-only: the word carries it too.
-                Text("\(check.label): \(check.status) — \(check.message)")
-                    .font(.caption2)
-                    .foregroundStyle(check.status == "ok" ? Theme.textDim : Theme.text)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Circle().fill(statusColor(check.status))
+                        .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 1) {
+                        // Status is never color-only: the localized word
+                        // carries it alongside the dot.
+                        Text("\(localizedLabel(check)) · \(statusWord(check.status))")
+                            .font(.caption2.weight(check.status == "ok" ? .regular : .semibold))
+                            .foregroundStyle(check.status == "ok" ? Theme.textDim : Theme.text)
+                        Text(check.message)
+                            .font(.caption2)
+                            .foregroundStyle(Theme.textDim)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityElement(children: .combine)
             }
+        }
+    }
+
+    /// The server sends English-only labels; known check keys render through
+    /// the catalogue and unknown ones fall back to the server label so a new
+    /// server-side check degrades to English instead of an L10n key.
+    private func localizedLabel(_ check: ReadinessCheck) -> String {
+        let key = "diag.\(check.key)"
+        let localized = L(key)
+        return localized == key ? check.label : localized
+    }
+
+    private func statusWord(_ status: String) -> String {
+        switch status {
+        case "ok": return L("diag.status.ok")
+        case "warning": return L("diag.status.warning")
+        default: return L("diag.status.error")
+        }
+    }
+
+    private func statusColor(_ status: String) -> Color {
+        switch status {
+        case "ok": return .green
+        case "warning": return .orange
+        default: return .red
         }
     }
 }
@@ -2269,7 +2313,7 @@ private struct UpdateRow: View {
                     }
                     Circle().fill(Theme.accent).frame(width: 7, height: 7)
                 }
-                Text(updating ? "Updating…" : "Update to v\(version)")
+                Text(updating ? L("update.updating") : L("update.installVersion", version))
                     .font(.body.weight(.medium))
                     .foregroundStyle(Theme.accent)
                 Spacer(minLength: 0)
@@ -2286,8 +2330,8 @@ private struct UpdateRow: View {
         .buttonStyle(.plain)
         .disabled(updating)
         .accessibilityLabel(updating
-            ? "Updating to version \(version)"
-            : "Update available: version \(version). Installs and relaunches.")
+            ? L("update.a11y.updating", version)
+            : L("update.a11y.available", version))
         .transition(.opacity.combined(with: .move(edge: .top)))
         .onAppear {
             guard !reduceMotion else { return }
