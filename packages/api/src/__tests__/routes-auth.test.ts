@@ -796,6 +796,152 @@ describe("POST /api/auth/login", () => {
   });
 });
 
+// ── Per-account lockout (distributed brute force across IPs) ─────
+// The per-IP rate limit cannot see a botnet rotating source addresses
+// against one account; this window is keyed on the normalized email.
+describe("POST /api/auth/login — per-account lockout", () => {
+  beforeEach(async () => {
+    resetStores();
+    const { _resetLoginThrottleForTests } = await import("../security/login-throttle.js");
+    _resetLoginThrottleForTests();
+  });
+
+  async function failLogin(app: Awaited<ReturnType<typeof buildApp>>, email: string) {
+    return app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email, password: "definitely-wrong" },
+    });
+  }
+
+  it("locks the account after repeated failures, even with the correct password", async () => {
+    const { LOGIN_THROTTLE_MAX_FAILURES } = await import("../security/login-throttle.js");
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "victim@example.com", password: "correcthorsebattery" },
+    });
+
+    for (let i = 0; i < LOGIN_THROTTLE_MAX_FAILURES; i++) {
+      const res = await failLogin(app, "victim@example.com");
+      expect(res.statusCode).toBe(401);
+    }
+
+    const locked = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "victim@example.com", password: "correcthorsebattery" },
+    });
+    expect(locked.statusCode).toBe(429);
+    // Mirrors the per-IP limiter's shape — no account-existence oracle.
+    expect(locked.json().error).toBe("Rate limit exceeded, retry in 15 minutes");
+    expect(Number(locked.headers["retry-after"])).toBeGreaterThan(0);
+    await app.close();
+  });
+
+  it("counts unknown-email failures the same way (no existence oracle via lockout)", async () => {
+    const { LOGIN_THROTTLE_MAX_FAILURES } = await import("../security/login-throttle.js");
+    const app = await buildApp();
+
+    for (let i = 0; i < LOGIN_THROTTLE_MAX_FAILURES; i++) {
+      const res = await failLogin(app, "ghost@example.com");
+      expect(res.statusCode).toBe(401);
+    }
+    const locked = await failLogin(app, "ghost@example.com");
+    expect(locked.statusCode).toBe(429);
+    await app.close();
+  });
+
+  it("does not lock other accounts", async () => {
+    const { LOGIN_THROTTLE_MAX_FAILURES } = await import("../security/login-throttle.js");
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "bystander@example.com", password: "correcthorsebattery" },
+    });
+
+    for (let i = 0; i < LOGIN_THROTTLE_MAX_FAILURES; i++) {
+      await failLogin(app, "victim@example.com");
+    }
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "bystander@example.com", password: "correcthorsebattery" },
+    });
+    expect(res.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it("a successful login resets the failure count", async () => {
+    const { LOGIN_THROTTLE_MAX_FAILURES } = await import("../security/login-throttle.js");
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "resetme@example.com", password: "correcthorsebattery" },
+    });
+
+    for (let i = 0; i < LOGIN_THROTTLE_MAX_FAILURES - 1; i++) {
+      await failLogin(app, "resetme@example.com");
+    }
+    const ok = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "resetme@example.com", password: "correcthorsebattery" },
+    });
+    expect(ok.statusCode).toBe(200);
+
+    // The window restarted: the next single failure must not lock.
+    const failAgain = await failLogin(app, "resetme@example.com");
+    expect(failAgain.statusCode).toBe(401);
+    const okAgain = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "resetme@example.com", password: "correcthorsebattery" },
+    });
+    expect(okAgain.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it("normalizes the email key — case variants hit the same window", async () => {
+    const { LOGIN_THROTTLE_MAX_FAILURES } = await import("../security/login-throttle.js");
+    const app = await buildApp();
+
+    for (let i = 0; i < LOGIN_THROTTLE_MAX_FAILURES; i++) {
+      await failLogin(app, i % 2 === 0 ? "Victim@Example.com" : "victim@example.com");
+    }
+    const locked = await failLogin(app, "VICTIM@example.com  ");
+    expect(locked.statusCode).toBe(429);
+    await app.close();
+  });
+
+  it("a concurrent wave cannot slip past the threshold (no TOCTOU window)", async () => {
+    const { LOGIN_THROTTLE_MAX_FAILURES } = await import("../security/login-throttle.js");
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "victim@example.com", password: "correcthorsebattery" },
+    });
+
+    const WAVE_OVERSHOOT = 20;
+    const results = await Promise.all(
+      Array.from({ length: LOGIN_THROTTLE_MAX_FAILURES + WAVE_OVERSHOOT }, () =>
+        failLogin(app, "victim@example.com"),
+      ),
+    );
+    const unauthorized = results.filter((r) => r.statusCode === 401).length;
+    const throttled = results.filter((r) => r.statusCode === 429).length;
+    // The attempt is recorded in the same synchronous section as the check,
+    // so exactly MAX guesses reach verification — never more.
+    expect(unauthorized).toBe(LOGIN_THROTTLE_MAX_FAILURES);
+    expect(throttled).toBe(WAVE_OVERSHOOT);
+    await app.close();
+  });
+});
+
 // ── Demo account lockout (public fixed-credential auth bypass) ─────
 // The seeded demo-user (demo@klorn.ai / "demo") must not be a login target
 // unless demo access is explicitly enabled in a non-prod environment.

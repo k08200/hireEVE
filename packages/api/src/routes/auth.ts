@@ -37,6 +37,11 @@ import {
 } from "../mail/gmail.js";
 import { maybeSendWelcomeEmail } from "../notify/welcome-email.js";
 import { hashOneTimeToken, mintOneTimeToken } from "../one-time-token.js";
+import {
+  clearLoginAttempts,
+  loginThrottleRemainingMs,
+  recordLoginAttempt,
+} from "../security/login-throttle.js";
 import { captureError } from "../sentry.js";
 import { localMinuteOfDay, normalizeTimeZone } from "../time-zone.js";
 import { deleteUserAndAllData } from "../user-deletion.js";
@@ -444,6 +449,31 @@ export function authRoutes(app: FastifyInstance) {
         return reply.code(400).send({ error: "Email and password required" });
       }
 
+      // Per-account window on top of the per-IP limit: a distributed brute
+      // force rotating IPs still hits this. The check and the attempt record
+      // run back-to-back with no await between them, so a concurrent wave
+      // cannot slip past the threshold on a stale count. The 429 body matches
+      // what the central error handler renders for the per-IP limiter
+      // ({ error: <message> }) so the lockout is not an account-existence
+      // oracle, and each locked attempt is logged for lockout-DoS detection
+      // (email hashed — no PII in logs).
+      const throttleRemainingMs = loginThrottleRemainingMs(normalizedEmail);
+      if (throttleRemainingMs > 0) {
+        const retryAfterSec = Math.ceil(throttleRemainingMs / 1000);
+        const retryAfterMin = Math.ceil(retryAfterSec / 60);
+        request.log.warn(
+          { account: crypto.createHash("sha256").update(normalizedEmail).digest("hex").slice(0, 12) },
+          "per-account login throttle tripped",
+        );
+        return reply
+          .code(429)
+          .header("retry-after", String(retryAfterSec))
+          .send({
+            error: `Rate limit exceeded, retry in ${retryAfterMin} minute${retryAfterMin === 1 ? "" : "s"}`,
+          });
+      }
+      recordLoginAttempt(normalizedEmail);
+
       const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
       if (!user?.passwordHash) {
         return reply.code(401).send({ error: "Invalid email or password" });
@@ -463,6 +493,7 @@ export function authRoutes(app: FastifyInstance) {
         return reply.code(401).send({ error: "Invalid email or password" });
       }
 
+      clearLoginAttempts(normalizedEmail);
       const token = signToken({ userId: user.id, email: user.email });
 
       // Register device session
