@@ -78,7 +78,9 @@ describe("login throttle — per-account fixed window", () => {
     }
     expect(loginThrottleRemainingMs("a@example.com")).toBe(LOGIN_THROTTLE_WINDOW_MS);
     vi.advanceTimersByTime(5 * 60 * 1000);
-    expect(loginThrottleRemainingMs("a@example.com")).toBe(LOGIN_THROTTLE_WINDOW_MS - 5 * 60 * 1000);
+    expect(loginThrottleRemainingMs("a@example.com")).toBe(
+      LOGIN_THROTTLE_WINDOW_MS - 5 * 60 * 1000,
+    );
     expect(loginThrottleRemainingMs("b@example.com")).toBe(0);
   });
 
