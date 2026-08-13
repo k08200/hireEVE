@@ -19,7 +19,7 @@ remark an assessor may probe.
 | 5 | 1.3.1 | PASS | Password-reset token expires in 1 hour (`routes/auth.ts:1525`); email-verify token in 24 hours (`:370`); OAuth state JWTs in 10 minutes (`:889`); SPA token-exchange codes in 60 seconds (`:1298-1301`). | All out-of-band verifiers expire: password reset 1h, email verification 24h, OAuth state 10min, one-time login exchange codes 60s. |
 | 6 | 1.3.2 | PASS | Single-use enforced atomically: `updateMany` compare-and-swap on the token hash that also nulls the token (`routes/auth.ts:1573-1590` reset, `:1626-1645` verify); `count === 0` → 400. Exchange codes deleted before the JWT is returned (`:857-874`). | Verifiers are single-use: consumption is an atomic conditional update that invalidates the token in the same statement, so a second use fails even under concurrency. |
 | 7 | 1.3.3 | PASS | `crypto.randomBytes(32).toString("hex")` (`one-time-token.ts:13`), stored as SHA-256 (`:20`). | Verifiers are 256-bit CSPRNG values; only their SHA-256 hash is stored. |
-| 8 | 1.3.4 | PASS | Consuming endpoints rate limited: reset 5/15min (`routes/auth.ts:1543`), forgot 5/15min with enumeration-safe response (`:1510-1520`), resend-verification 3/15min + auth (`:1675`). Verify-email sits behind the global 100/min; grinding a 256-bit token is computationally infeasible. | Token-consuming endpoints are rate limited (5/15min); combined with 256-bit token entropy, brute force is infeasible. |
+| 8 | 1.3.4 | PASS | Consuming endpoints rate limited: reset 5/15min (`routes/auth.ts:1543`), forgot 5/15min with enumeration-safe response (`:1510-1520`), resend-verification 3/15min + auth (`:1675`). Verify-email has its own 30/15min route limit (sized for mail-scanner prefetch and NAT egress; `:1640-1650`); grinding a 256-bit token is computationally infeasible. | Token-consuming endpoints are rate limited (5/15min); combined with 256-bit token entropy, brute force is infeasible. |
 
 ## 2 — Session Management
 
@@ -91,7 +91,7 @@ remark an assessor may probe.
 Tracked separately; none of these change a verdict above:
 
 1. Per-account login throttle/lockout in addition to per-IP (1.1.1 hardening).
-2. Route-specific rate limit on `GET /verify-email` (1.3.4 symmetry).
+2. ~~Route-specific rate limit on `GET /verify-email` (1.3.4 symmetry).~~ Shipped.
 3. Remove the legacy WebSocket `?token=` fallback once native clients are confirmed on the subprotocol path (`websocket.ts:82-84`).
 4. Querystring schemas on remaining string params (turns polluted-param 500s into 400s).
 5. MIME allowlist on compose uploads (5.2.1 hardening; execution already impossible).

@@ -1638,7 +1638,15 @@ export function authRoutes(app: FastifyInstance) {
   // GET /api/auth/verify-email — Verify email with token
   app.get(
     "/verify-email",
-    { schema: { querystring: tokenQuerySchema } },
+    {
+      schema: { querystring: tokenQuerySchema },
+      // 1.3.4: the last token-consuming route without its own limit. Looser
+      // than the 5/15min of reset/forgot-password on purpose — this is a GET
+      // that corporate mail scanners (Safe Links etc.) prefetch and that NAT'd
+      // users hit from one egress IP, so 5 would trip legitimate flows.
+      // Tokens are 256-bit; the limit prices probing, it isn't the defense.
+      config: { rateLimit: { max: 30, timeWindow: "15 minutes" } },
+    },
     async (request, reply) => {
       const { token } = request.query as { token?: string };
 

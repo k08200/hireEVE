@@ -1503,6 +1503,31 @@ describe("GET /api/auth/verify-email", () => {
     expect(res.json().error).toMatch(/invalid or expired/i);
     await app.close();
   });
+
+  it("rate limits token probing per IP (1.3.4 symmetry with the other token routes)", async () => {
+    // buildApp() skips the rate-limit plugin, so register it here the way
+    // index.ts does — the route-level config only takes effect with the
+    // plugin present.
+    const rateLimit = (await import("@fastify/rate-limit")).default;
+    const { authRoutes } = await import("../routes/auth.js");
+    const app = Fastify();
+    await app.register(rateLimit, { max: 1000, timeWindow: "1 minute", global: false });
+    await app.register(authRoutes, { prefix: "/api/auth" });
+
+    for (let i = 0; i < 30; i++) {
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/auth/verify-email?token=probe-${i}`,
+      });
+      expect(res.statusCode).toBe(400);
+    }
+    const overLimit = await app.inject({
+      method: "GET",
+      url: "/api/auth/verify-email?token=probe-31",
+    });
+    expect(overLimit.statusCode).toBe(429);
+    await app.close();
+  });
 });
 
 // ── POST /api/auth/resend-verification ────────────────────────────
