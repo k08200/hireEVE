@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthGuard from "../../../components/auth-guard";
 import { useToast } from "../../../components/toast";
+import ErrorAlert from "../../../components/ui/error-alert";
 import LoadingState from "../../../components/ui/loading-state";
 import { apiFetch } from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
@@ -84,9 +85,7 @@ function ReceiptView() {
   if (error || !receipt) {
     return (
       <div className="mx-auto w-full max-w-4xl px-4 py-10">
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error ?? "No receipt available."}
-        </div>
+        <ErrorAlert>{error ?? "No receipt available."}</ErrorAlert>
       </div>
     );
   }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { Markdown } from "../../components/markdown";
+import ErrorAlert from "../../components/ui/error-alert";
 import LoadingState from "../../components/ui/loading-state";
 import { apiFetch } from "../../lib/api";
 import { useT } from "../../lib/i18n";
@@ -291,11 +292,7 @@ function BriefingView() {
 
       {loading && <LoadingState rows={3} label="Loading briefing" />}
 
-      {(error || briefingLoadError) && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error ?? briefingLoadError}
-        </div>
-      )}
+      {(error || briefingLoadError) && <ErrorAlert>{error ?? briefingLoadError}</ErrorAlert>}
 
       {!loading && !error && !briefingLoadError && !content && (
         <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-6 text-center">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthGuard from "../../../components/auth-guard";
 import { ListSkeleton } from "../../../components/skeleton";
+import ErrorAlert from "../../../components/ui/error-alert";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
 import { queryKeys } from "../../../lib/query-keys";
 import { captureClientError } from "../../../lib/sentry";
@@ -455,11 +456,7 @@ function CandidateIntakeView() {
         </div>
       )}
 
-      {error && (
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <ErrorAlert className="mt-3">{error}</ErrorAlert>}
 
       {!loading && !error && candidates.length === 0 && (
         <div className="panel-elevated mt-4 rounded-2xl border border-slate-200/70 bg-white p-6 text-center">

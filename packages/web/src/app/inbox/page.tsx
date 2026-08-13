@@ -11,6 +11,7 @@ import type { CommitmentItem } from "../../components/commitment-card";
 import { FirewallBoard } from "../../components/firewall-board";
 import { RejectReasonDialog } from "../../components/reject-reason-dialog";
 import { useToast } from "../../components/toast";
+import ErrorAlert from "../../components/ui/error-alert";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useT } from "../../lib/i18n";
@@ -469,11 +470,7 @@ function DecisionsBody({
           onPendingClick={() => setFilter("pending")}
         />
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <ErrorAlert className="mb-4">{error}</ErrorAlert>}
 
         {/* 2-column grid — decisions fill the wide column, reply rail on the right. */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { captureClientError } from "../lib/sentry";
 import { RelativeTime } from "./relative-time";
+import ErrorAlert from "./ui/error-alert";
 
 type EmailPriority = "URGENT" | "NORMAL" | "LOW";
 
@@ -105,11 +106,7 @@ export function EmailFeedbackList() {
         )}
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load correction logs.
-        </div>
-      )}
+      {error && <ErrorAlert>Could not load correction logs.</ErrorAlert>}
 
       {loading && (
         <div className="space-y-3">

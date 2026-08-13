@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { type AssistantChatMessage, useAssistantChat } from "../lib/use-assistant-chat";
 import EventDraftCard from "./event-draft-card";
+import ErrorAlert from "./ui/error-alert";
 import VoiceButton from "./voice-button";
 
 const SUGGESTION_KEYS = [
@@ -144,14 +145,7 @@ export default function AssistantDock() {
                 )}
               </>
             )}
-            {chat.sendError && (
-              <p
-                role="alert"
-                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700"
-              >
-                {t("chat.sendFailed")}
-              </p>
-            )}
+            {chat.sendError && <ErrorAlert>{t("chat.sendFailed")}</ErrorAlert>}
             <div ref={threadEndRef} />
           </div>
 
