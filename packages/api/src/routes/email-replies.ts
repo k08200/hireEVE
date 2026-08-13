@@ -24,6 +24,7 @@ import {
 } from "../mail/email-attachments.js";
 import { updateCandidateIntake } from "../mail/email-candidate-intake.js";
 import { type GmailDraftAttachment, resolveMailClient } from "../mail/gmail.js";
+import { formatCalendarFacts, getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { buildReplySystemPrompt } from "../mail/reply-prompt.js";
 import { captureError } from "../sentry.js";
@@ -95,6 +96,39 @@ function extractReplyAddress(raw: string): string {
   return (match?.[1] || raw).replace(/^["']|["']$/g, "").trim();
 }
 
+/**
+ * Calendar grounding for meeting emails: parse the proposed slot, verify it
+ * against the user's calendars, and hand the drafts the verified facts so
+ * "yes, 4 PM works" is a checked claim, not a guess. Fails open — drafting
+ * must never break because the calendar is unreachable.
+ */
+async function calendarFactsFor(
+  uid: string,
+  dbEmail: {
+    id: string;
+    category: string | null;
+    summary: string | null;
+    keyPoints: unknown;
+    body: string | null;
+    receivedAt: Date;
+  },
+): Promise<string | null> {
+  try {
+    const context = await getMeetingContext(uid, {
+      id: dbEmail.id,
+      category: dbEmail.category,
+      summary: dbEmail.summary,
+      keyPoints: parseJsonArray(dbEmail.keyPoints),
+      body: dbEmail.body,
+      receivedAt: dbEmail.receivedAt,
+    });
+    return context ? formatCalendarFacts(context) : null;
+  } catch (err) {
+    console.warn(`[EMAIL] calendar facts unavailable for ${dbEmail.id}:`, err);
+    return null;
+  }
+}
+
 async function generateReplyDraft(input: {
   userId: string;
   from: string;
@@ -104,6 +138,7 @@ async function generateReplyDraft(input: {
   actionItems: string[];
   candidateProfile: ReturnType<typeof buildAttachmentCandidateProfile>;
   intent?: string;
+  calendarFacts?: string | null;
 }): Promise<string> {
   const [credentials, voiceHint, toneHint] = await Promise.all([
     getUserLlmCredentials(input.userId),
@@ -148,7 +183,7 @@ Subject: ${wrapUntrusted(input.subject, "email:subject")}
 Klorn summary: ${wrapUntrusted(input.summary || "", "email:summary")}
 Action items: ${wrapUntrusted(input.actionItems.join("; "), "email:actions")}
 ${wrapUntrusted(candidateContext, "email:candidate")}
-
+${input.calendarFacts ? `\n${input.calendarFacts}\n` : ""}
 Email body:
 ${wrapUntrusted((input.body || "").slice(0, 3000), "email:body")}`,
         },
@@ -207,6 +242,7 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
       const actionItems = parseJsonArray(dbEmail.actionItems);
       const attachments = await listEmailAttachments([dbEmail.id], uid);
       const candidateProfile = buildAttachmentCandidateProfile(attachments);
+      const calendarFacts = await calendarFactsFor(uid, dbEmail);
 
       // The draft is one LLM call. Without this catch a provider outage / quota
       // lockout surfaced as a bare 500 and a generic "Could not draft a reply"
@@ -223,6 +259,7 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
           actionItems,
           candidateProfile,
           intent,
+          calendarFacts,
         });
       } catch (err) {
         // A per-user quota trip (quota-limiter self-throttling) is the user
@@ -303,6 +340,9 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
       const actionItems = parseJsonArray(dbEmail.actionItems);
       const attachments = await listEmailAttachments([dbEmail.id], uid);
       const candidateProfile = buildAttachmentCandidateProfile(attachments);
+      // Computed once, shared by all three presets (the meeting-context cache
+      // makes this a single parse per email regardless).
+      const calendarFacts = await calendarFactsFor(uid, dbEmail);
 
       let bodies: string[];
       try {
@@ -317,6 +357,7 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
               actionItems,
               candidateProfile,
               intent: preset.intent,
+              calendarFacts,
             }),
           ),
         );
