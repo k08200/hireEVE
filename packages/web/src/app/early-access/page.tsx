@@ -118,7 +118,7 @@ export default function EarlyAccessPage() {
     >
       {isDone ? (
         <div>
-          <div className="rounded-md border border-sky-300/25 bg-sky-300/10 p-4">
+          <div className="rounded-md border border-accent-muted/25 bg-accent-muted/10 p-4">
             <h2 className="text-base font-semibold text-slate-900">
               {status === "already"
                 ? "You're already on the list"
@@ -146,7 +146,7 @@ export default function EarlyAccessPage() {
                   you're approved — then{" "}
                   <Link
                     href="/login"
-                    className="underline decoration-sky-400/60 underline-offset-2 hover:text-sky-100"
+                    className="underline decoration-accent-light/60 underline-offset-2 hover:text-accent-dim"
                   >
                     Log in
                   </Link>{" "}
@@ -158,7 +158,7 @@ export default function EarlyAccessPage() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             <Link
               href="/"
-              className="flex min-h-11 items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white transition hover:bg-sky-600"
+              className="flex min-h-11 items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600"
             >
               Back home
             </Link>
@@ -231,7 +231,7 @@ export default function EarlyAccessPage() {
           <button
             type="submit"
             disabled={status === "submitting"}
-            className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition-all hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/40 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
+            className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all hover:bg-sky-600 hover:shadow-xl hover:shadow-accent/40 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
           >
             {status === "submitting" ? "Submitting..." : "Request early access"}
           </button>

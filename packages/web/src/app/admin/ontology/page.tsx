@@ -272,7 +272,7 @@ function Proposals({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-mono text-slate-900">{p.knob}</span>
-                  <span className="rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-sky-500/20">
+                  <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-accent/20">
                     {p.direction}
                   </span>
                   <span className="tabular-nums text-slate-900">
@@ -289,7 +289,7 @@ function Proposals({
                   type="button"
                   onClick={() => onApprove(p.id)}
                   disabled={busy}
-                  className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:opacity-60"
+                  className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-60"
                 >
                   Approve
                 </button>

@@ -183,7 +183,7 @@ function ReceiptView() {
           <ReceiptSection
             title="Queued in inbox"
             description="Items placed in your decision queue — no push sent"
-            accentBar="bg-sky-400"
+            accentBar="bg-accent-light"
             labelClass="text-sky-600"
             items={receipt.queued}
           />

@@ -77,7 +77,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           the content on every route. */}
       <a
         href="#main"
-        className="sr-only rounded-md bg-sky-500 px-4 py-2 text-sm font-semibold text-white focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-50"
+        className="sr-only rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-50"
       >
         Skip to content
       </a>
@@ -123,7 +123,7 @@ function SessionTransition({ label }: { label: string }) {
     >
       <div className="flex flex-col items-center gap-4 text-center">
         <img src="/brand/mark.svg?v=matte2" alt="" className="h-10 w-10" />
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-300 border-t-transparent" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent-muted border-t-transparent" />
         <p className="text-sm text-slate-500">{label}...</p>
       </div>
     </main>

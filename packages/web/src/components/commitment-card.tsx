@@ -171,7 +171,7 @@ export function CommitmentCard({
           type="button"
           onClick={onDone}
           disabled={!!loading}
-          className="glow-primary ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3 py-1.5 text-xs font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+          className="glow-primary ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-1.5 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading === "done" ? (
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -285,12 +285,12 @@ function commitmentOwnerEntry(owner: CommitmentItem["owner"]): {
     case "COUNTERPARTY":
       return {
         label: "Counterparty",
-        className: "bg-sky-500/10 text-sky-600 ring-1 ring-inset ring-sky-500/20",
+        className: "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20",
       };
     case "TEAM":
       return {
         label: "Team",
-        className: "bg-sky-500/10 text-sky-600 ring-1 ring-inset ring-sky-500/20",
+        className: "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20",
       };
     case "UNKNOWN":
       return {
@@ -399,7 +399,7 @@ function CommitmentPathPanel({
             <li
               key={`${step.dueIso}-${i}`}
               className={`flex items-start gap-3 rounded-lg border p-3 text-xs ${
-                isMaterialized ? "border-sky-500/20 bg-sky-500/5" : "border-slate-200 bg-slate-50"
+                isMaterialized ? "border-accent/20 bg-accent/5" : "border-slate-200 bg-slate-50"
               }`}
             >
               <span className="mt-0.5 w-4 shrink-0 text-center font-mono text-[10px] text-slate-400">

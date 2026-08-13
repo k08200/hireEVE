@@ -724,7 +724,7 @@ function EmailView() {
             onClick={() => setComposeOpen(true)}
             disabled={source === "demo"}
             aria-label="Compose"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white transition active:bg-sky-500 disabled:opacity-40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition active:bg-accent disabled:opacity-40"
           >
             <svg
               aria-hidden="true"
@@ -876,7 +876,7 @@ function EmailView() {
               onClick={() => setComposeOpen(true)}
               disabled={source === "demo"}
               title={source === "demo" ? "Connect Gmail to send email" : "Compose a new email"}
-              className="glow-primary ease-strong inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+              className="glow-primary ease-strong inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg
                 aria-hidden="true"
@@ -1036,7 +1036,7 @@ function EmailView() {
                 }`}
               >
                 {active && (
-                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
                 )}
                 {queue.title}
               </button>
@@ -1047,12 +1047,12 @@ function EmailView() {
         {candidateCount > 0 && (
           <Link
             href="/email/candidates"
-            className="group mb-4 flex items-center justify-between gap-3 overflow-hidden rounded-xl border border-sky-200/70 bg-gradient-to-r from-sky-50 to-white px-4 py-2.5 text-sm text-sky-800 shadow-[0_1px_2px_rgba(2,60,110,0.05)] transition duration-150 ease-out hover:from-sky-100/70"
+            className="group mb-4 flex items-center justify-between gap-3 overflow-hidden rounded-xl border border-sky-200/70 bg-gradient-to-r from-sky-50 to-white px-4 py-2.5 text-sm text-sky-800 shadow-[0_1px_2px_rgba(2,60,110,0.05)] transition duration-150 ease-out hover:from-accent-dim/70"
           >
             <span className="inline-flex items-center gap-2.5">
               <span
                 aria-hidden="true"
-                className="flex h-6 w-6 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600"
+                className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent/15 text-sky-600"
               >
                 <svg
                   width="13"
@@ -1551,7 +1551,7 @@ function InboxSelector({
                 role="img"
                 aria-label="Reconnect needed"
                 title="Reconnect needed"
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500"
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
               />
             )}
           </button>
@@ -1599,7 +1599,7 @@ function FilterTabs({
           >
             {f.labelKey ? t(f.labelKey) : f.label}
             {active && typeof activeCount === "number" && activeCount > 0 && (
-              <span className="rounded bg-sky-100 px-1 text-[10px] font-bold text-sky-700">
+              <span className="rounded bg-accent-dim px-1 text-[10px] font-bold text-sky-700">
                 {activeCount}
               </span>
             )}
@@ -1707,7 +1707,7 @@ function EmailRowItem({
         <span
           aria-hidden="true"
           className={`absolute left-0 top-0 h-full w-[3px] ${
-            urgent ? "bg-gradient-to-b from-rose-400 to-rose-500" : "bg-sky-400"
+            urgent ? "bg-gradient-to-b from-rose-400 to-rose-500" : "bg-accent-light"
           }`}
         />
       )}
@@ -1973,7 +1973,7 @@ function EmailBadges({ email, unread }: { email: EmailRow; unread: boolean }) {
     badges.push(
       <span
         key="fallback"
-        className="shrink-0 rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-sky-500/20"
+        className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-accent/20"
       >
         Fallback {email.attachmentFallbackCount}
       </span>,
@@ -2002,7 +2002,7 @@ function ThreadRowItem({ thread }: { thread: ThreadRow }) {
   return (
     <li className="row-wash group relative">
       {thread.hasUnread && (
-        <span aria-hidden="true" className="absolute left-0 top-0 h-full w-[3px] bg-sky-400" />
+        <span aria-hidden="true" className="absolute left-0 top-0 h-full w-[3px] bg-accent-light" />
       )}
       <Link
         href={`/email/${thread.lastMessage.id}?markRead=false`}
@@ -2056,7 +2056,7 @@ function CandidatePreview({ profile }: { profile: CandidateProfilePreview }) {
       ? `Needs: ${profile.missingFields.map(candidateMissingLabel).join(", ")}`
       : null;
   return (
-    <div className="mt-2 rounded-lg border border-sky-500/15 bg-sky-500/5 px-2.5 py-2">
+    <div className="mt-2 rounded-lg border border-accent/15 bg-accent/5 px-2.5 py-2">
       <div className="flex items-center justify-between gap-2">
         <p className="truncate text-[11px] font-medium text-accent-muted">{title}</p>
         <span className="shrink-0 text-[10px] tabular-nums text-accent-light/80">
@@ -2099,7 +2099,7 @@ function candidateMissingLabel(field: string): string {
 }
 function ReplyNeededBadge() {
   return (
-    <span className="shrink-0 rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-sky-500/20">
+    <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-accent/20">
       Needs reply
     </span>
   );
@@ -2107,7 +2107,7 @@ function ReplyNeededBadge() {
 
 function CandidateBadge() {
   return (
-    <span className="shrink-0 rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-sky-500/20">
+    <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-accent/20">
       Candidate
     </span>
   );
@@ -2174,7 +2174,7 @@ function senderInitials(name: string): string {
 // Deterministic gradient per sender so the same sender always gets the same
 // color (recognition over decoration). Simple 31-hash over the name.
 const AVATAR_GRADIENTS = [
-  "from-sky-400 to-blue-500",
+  "from-accent-light to-blue-500",
   "from-teal-400 to-emerald-500",
   "from-indigo-500 to-violet-600",
   "from-amber-400 to-orange-500",
@@ -2216,7 +2216,7 @@ function MobileEmailRow({
       >
         <span
           aria-hidden="true"
-          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? "bg-sky-500" : "bg-transparent"}`}
+          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? "bg-accent" : "bg-transparent"}`}
         />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">

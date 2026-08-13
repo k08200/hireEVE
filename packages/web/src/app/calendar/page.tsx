@@ -314,7 +314,7 @@ function CalendarView() {
               setVoiceInitial(null);
               setNewEventOpen(true);
             }}
-            className="glow-primary ease-strong inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97]"
+            className="glow-primary ease-strong inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97]"
           >
             <svg
               aria-hidden="true"
@@ -510,7 +510,7 @@ function AgendaList({
               })}
             </h3>
             {key === todayKey && (
-              <span className="rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-sky-500/20">
+              <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-accent/20">
                 Today
               </span>
             )}
@@ -522,7 +522,7 @@ function AgendaList({
                   {key === todayKey && (
                     <span
                       aria-hidden="true"
-                      className="absolute left-0 top-0 h-full w-[3px] bg-sky-400"
+                      className="absolute left-0 top-0 h-full w-[3px] bg-accent-light"
                     />
                   )}
                   <Link
@@ -677,7 +677,7 @@ function DayCell({
     if (events.length > 0) router.push(`/calendar/${events[0].id}`);
   };
   const dayNumberClass = `inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[11px] font-medium tabular-nums transition ${
-    isToday ? "bg-sky-500 text-white" : inMonth ? "text-slate-600" : "text-slate-400"
+    isToday ? "bg-accent text-white" : inMonth ? "text-slate-600" : "text-slate-400"
   }`;
 
   return (
@@ -692,7 +692,7 @@ function DayCell({
             type="button"
             onClick={openDay}
             aria-label={`${dayLabel} — ${events.length} event${events.length === 1 ? "" : "s"}`}
-            className={`${dayNumberClass} hover:ring-1 hover:ring-sky-300/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+            className={`${dayNumberClass} hover:ring-1 hover:ring-accent-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
           >
             {cell.dayNumber}
           </button>
@@ -735,12 +735,12 @@ function EventChip({
       className={`flex items-center gap-1 truncate rounded-md px-1 py-0.5 text-[11px] transition duration-150 ${
         dimmed
           ? "text-slate-400 hover:bg-slate-100 hover:text-slate-500"
-          : "text-slate-900 hover:bg-sky-500/10 hover:text-sky-700"
+          : "text-slate-900 hover:bg-accent/10 hover:text-sky-700"
       }`}
     >
       <span
         aria-hidden="true"
-        className={`h-1.5 w-1.5 shrink-0 rounded-full ${dimmed ? "bg-slate-300" : "bg-sky-400"}`}
+        className={`h-1.5 w-1.5 shrink-0 rounded-full ${dimmed ? "bg-slate-300" : "bg-accent-light"}`}
       />
       {timeLabel && <span className="shrink-0 tabular-nums text-slate-400">{timeLabel}</span>}
       <span className="truncate">{event.title || "Untitled"}</span>

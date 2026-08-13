@@ -161,7 +161,7 @@ function SmsContent() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="+821012345678"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-400/50 focus:outline-none"
+            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent-light/50 focus:outline-none"
           />
           <p className="text-[11px] text-slate-400">{E164_HINT}</p>
 
@@ -171,7 +171,7 @@ function SmsContent() {
             <button
               type="submit"
               disabled={saveMutation.isPending}
-              className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3 py-1.5 text-[12px] font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
+              className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-1.5 text-[12px] font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
             >
               {saveMutation.isPending ? "Saving…" : "Save"}
             </button>

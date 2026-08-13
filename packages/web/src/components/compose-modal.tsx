@@ -334,7 +334,7 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
               type="button"
               onClick={send}
               disabled={!canSend}
-              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-4 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sending ? "Sending…" : "Send"}
             </button>

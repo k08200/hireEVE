@@ -60,7 +60,7 @@ function NavCountBadge({ count, active }: { count: number; active: boolean }) {
   return (
     <span
       className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
-        active ? "bg-sky-500 text-white shadow-sm" : "bg-slate-100 text-slate-500"
+        active ? "bg-accent text-white shadow-sm" : "bg-slate-100 text-slate-500"
       }`}
     >
       {count > 99 ? "99+" : count}
@@ -142,14 +142,14 @@ export default function Sidebar() {
                   aria-current={active ? "page" : undefined}
                   className={`focus-ring relative flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition ${
                     active
-                      ? "bg-sky-50 font-medium text-sky-700 shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-sky-100"
+                      ? "bg-sky-50 font-medium text-sky-700 shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-accent-dim"
                       : "text-slate-500 hover:bg-slate-100/70 hover:text-slate-900"
                   }`}
                 >
                   {active && (
                     <span
                       aria-hidden="true"
-                      className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-sky-500"
+                      className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-accent"
                     />
                   )}
                   <NavIcon type={item.icon} size={16} />
@@ -164,14 +164,14 @@ export default function Sidebar() {
                 aria-current={pathname.startsWith("/admin") ? "page" : undefined}
                 className={`focus-ring relative flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition ${
                   pathname.startsWith("/admin")
-                    ? "bg-sky-50 font-medium text-sky-700 shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-sky-100"
+                    ? "bg-sky-50 font-medium text-sky-700 shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-accent-dim"
                     : "text-slate-500 hover:bg-slate-100/70 hover:text-slate-900"
                 }`}
               >
                 {pathname.startsWith("/admin") && (
                   <span
                     aria-hidden="true"
-                    className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-sky-500"
+                    className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-accent"
                   />
                 )}
                 <NavIcon type="settings" size={16} />
@@ -188,7 +188,7 @@ export default function Sidebar() {
             (the Gmail watch auto-registers on connect), so this is a true
             statement, not decoration. */}
         {user && googleConnected === true && (
-          <div className="mx-2 mb-2 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-3 shadow-[0_1px_2px_rgba(2,60,110,0.05)]">
+          <div className="mx-2 mb-2 rounded-xl border border-accent-dim bg-gradient-to-br from-sky-50 to-white p-3 shadow-[0_1px_2px_rgba(2,60,110,0.05)]">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-700">
               <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:animate-none" />
@@ -216,7 +216,7 @@ export default function Sidebar() {
                 onClick={() => setShowUserMenu((p) => !p)}
                 className="w-full flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-slate-100/70 transition text-left"
               >
-                <div className="avatar-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 text-[11px] font-bold text-white">
+                <div className="avatar-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-indigo-500 text-[11px] font-bold text-white">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">

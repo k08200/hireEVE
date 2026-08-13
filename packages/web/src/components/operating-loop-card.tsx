@@ -256,7 +256,7 @@ function DecisionOutcomeRow({ outcome }: { outcome: OperatingPlanOutcome }) {
 function MoveRow({ move }: { move: OperatingPlanMove }) {
   const chatHref = `/chat?prefill=${encodeURIComponent(displayText(move.prompt))}`;
   const body = (
-    <article className="rounded-xl border border-slate-200 bg-slate-50 p-3 transition hover:border-sky-400/25 hover:bg-slate-100">
+    <article className="rounded-xl border border-slate-200 bg-slate-50 p-3 transition hover:border-accent-light/25 hover:bg-slate-100">
       <div className="flex flex-wrap items-center gap-2">
         <ToneBadge tone={move.tone} label={displayText(move.label)} />
         <span className="text-[11px] text-slate-500">{sourceLabel(move.source)}</span>
@@ -279,7 +279,7 @@ function MoveRow({ move }: { move: OperatingPlanMove }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <Link
           href={chatHref}
-          className="ease-strong rounded-lg bg-sky-500/10 px-2.5 py-1.5 text-xs font-medium text-sky-700 ring-1 ring-inset ring-sky-500/20 transition duration-150 hover:bg-sky-500/15 active:scale-[0.97]"
+          className="ease-strong rounded-lg bg-accent/10 px-2.5 py-1.5 text-xs font-medium text-sky-700 ring-1 ring-inset ring-accent/20 transition duration-150 hover:bg-accent/15 active:scale-[0.97]"
         >
           Prepare thread
         </Link>

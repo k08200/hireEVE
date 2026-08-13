@@ -213,7 +213,7 @@ function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-300 border-t-transparent" />
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent-muted border-t-transparent" />
       </div>
     );
   }
@@ -282,7 +282,7 @@ function AdminDashboard() {
               type="button"
               onClick={runEval}
               disabled={evalLoading}
-              className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-xs font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-xs font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {evalLoading ? "Running..." : "Run eval"}
             </button>
@@ -745,7 +745,7 @@ function senderInitials(name: string): string {
 }
 
 const AVATAR_GRADIENTS = [
-  "from-sky-400 to-blue-500",
+  "from-accent-light to-blue-500",
   "from-teal-400 to-emerald-500",
   "from-indigo-500 to-violet-600",
   "from-amber-400 to-orange-500",

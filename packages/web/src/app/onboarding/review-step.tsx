@@ -121,7 +121,7 @@ export function ReviewStep({ onContinue }: { onContinue: () => void }) {
 
       {loading && items.length === 0 ? (
         <div className="mt-8 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500 motion-reduce:animate-none" />
+          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-accent motion-reduce:animate-none" />
           <p className="text-sm text-slate-500">Reading your inbox…</p>
         </div>
       ) : null}
@@ -169,7 +169,7 @@ export function ReviewStep({ onContinue }: { onContinue: () => void }) {
       <button
         type="button"
         onClick={onContinue}
-        className="mt-8 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+        className="mt-8 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-muted/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
       >
         {reviewedCount > 0 ? `Continue — ${reviewedCount} reviewed` : "Looks good — continue"}
         <span aria-hidden>→</span>

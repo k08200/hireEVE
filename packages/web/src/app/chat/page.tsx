@@ -111,7 +111,7 @@ function ChatView() {
               <div role="status" className="flex items-center gap-2.5">
                 <span
                   aria-hidden="true"
-                  className="avatar-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-[11px] font-semibold text-white"
+                  className="avatar-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[11px] font-semibold text-white"
                 >
                   K
                 </span>
@@ -131,7 +131,7 @@ function ChatView() {
           send(input);
         }}
       >
-        <div className="panel-elevated flex min-h-[44px] flex-1 items-center gap-2 rounded-2xl border border-slate-200/70 bg-white px-3.5 py-2 transition duration-150 ease-out focus-within:border-sky-300/70 focus-within:ring-2 focus-within:ring-accent/15">
+        <div className="panel-elevated flex min-h-[44px] flex-1 items-center gap-2 rounded-2xl border border-slate-200/70 bg-white px-3.5 py-2 transition duration-150 ease-out focus-within:border-accent-muted/70 focus-within:ring-2 focus-within:ring-accent/15">
           <textarea
             ref={inputRef}
             value={input}
@@ -157,7 +157,7 @@ function ChatView() {
         <button
           type="submit"
           disabled={!input.trim() || sending}
-          className="focus-ring glow-primary ease-strong inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-b from-sky-400 to-sky-500 px-4 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+          className="focus-ring glow-primary ease-strong inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {t("chat.send")}
         </button>
@@ -182,7 +182,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     <div className="flex justify-start gap-2.5 transition duration-150 ease-strong starting:translate-y-1 starting:opacity-0 motion-reduce:transition-none">
       <span
         aria-hidden="true"
-        className="avatar-ring mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-[11px] font-semibold text-white"
+        className="avatar-ring mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[11px] font-semibold text-white"
       >
         K
       </span>

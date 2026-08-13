@@ -156,7 +156,7 @@ function PlaybookCard({
         className={`ease-strong mt-3 h-8 rounded-md border px-3 text-xs font-medium transition duration-150 active:scale-[0.97] disabled:opacity-50 ${
           active
             ? "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
-            : "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+            : "border-sky-200 bg-sky-50 text-sky-700 hover:bg-accent-dim"
         }`}
       >
         {updating ? "Saving..." : active ? "Pause" : "Apply"}
@@ -201,7 +201,7 @@ function domainMeta(domain: KlornPlaybookDomain): { label: string; className: st
         className: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20",
       };
     case "customer_success":
-      return { label: "Customers", className: "bg-sky-500/10 text-sky-600 ring-sky-500/20" };
+      return { label: "Customers", className: "bg-accent/10 text-sky-600 ring-accent/20" };
     case "launch":
       return {
         label: "Launch",

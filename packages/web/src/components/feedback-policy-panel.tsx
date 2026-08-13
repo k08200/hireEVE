@@ -47,8 +47,8 @@ const KIND_COPY: Record<
 > = {
   ALLOW_AFTER_SUGGESTION: {
     label: "Repeated approvals",
-    tone: "bg-sky-500/10 text-sky-600 ring-sky-500/20",
-    dot: "bg-sky-500",
+    tone: "bg-accent/10 text-sky-600 ring-accent/20",
+    dot: "bg-accent",
     summary: "Suggest with more confidence",
   },
   REQUIRE_DRAFT_REVIEW: {

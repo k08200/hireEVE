@@ -256,7 +256,7 @@ function BriefingView() {
           type="button"
           onClick={regenerate}
           disabled={generating}
-          className="glow-primary ease-strong inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring min-h-11"
+          className="glow-primary ease-strong inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring min-h-11"
         >
           <svg
             aria-hidden="true"
@@ -311,7 +311,7 @@ function BriefingView() {
             type="button"
             onClick={regenerate}
             disabled={generating}
-            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring min-h-11"
+            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring min-h-11"
           >
             {generating ? "Generating..." : "Generate now"}
           </button>
@@ -322,7 +322,7 @@ function BriefingView() {
         <div className="space-y-4">
           {/* Core: the brief itself, on the single elevated panel. */}
           <article className="panel-elevated relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-5 pl-6 md:p-6 md:pl-7">
-            <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-sky-300 via-sky-200/40 to-transparent" />
+            <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-accent-muted via-sky-200/40 to-transparent" />
             <Markdown content={content} />
           </article>
 
@@ -353,7 +353,7 @@ function BriefingView() {
                             disabled={savingRank === action.rank}
                             className={`ease-strong h-8 rounded-lg border px-2 text-xs transition duration-150 active:scale-[0.97] disabled:opacity-50 focus-ring min-h-9 min-w-9 ${
                               selected
-                                ? "border-sky-300 bg-sky-500/10 font-medium text-sky-700"
+                                ? "border-accent-muted bg-accent/10 font-medium text-sky-700"
                                 : "border-slate-200 bg-white/70 text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] hover:bg-white hover:text-slate-900"
                             }`}
                           >

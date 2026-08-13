@@ -167,7 +167,7 @@ export default function FeedbackPolicyStudio() {
                     type="button"
                     onClick={() => setPreference(candidate, "ACTIVE")}
                     disabled={updating === candidate.id}
-                    className="ease-strong h-8 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-sky-100 active:scale-[0.97] disabled:opacity-50"
+                    className="ease-strong h-8 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-accent-dim active:scale-[0.97] disabled:opacity-50"
                   >
                     Apply
                   </button>
@@ -191,7 +191,7 @@ export default function FeedbackPolicyStudio() {
 
 function PolicyBadge({ kind }: { kind: PolicyKind }) {
   const meta = {
-    ALLOW_AFTER_SUGGESTION: ["Allow more often", "bg-sky-500/10 text-sky-600 ring-sky-500/20"],
+    ALLOW_AFTER_SUGGESTION: ["Allow more often", "bg-accent/10 text-sky-600 ring-accent/20"],
     REQUIRE_DRAFT_REVIEW: ["Keep draft review", "bg-slate-100 text-slate-500 ring-slate-200"],
     AVOID_SUGGESTION: ["Suggest less", "bg-rose-500/10 text-rose-600 ring-rose-500/20"],
     LOWER_PRIORITY: ["Lower priority", "bg-slate-100 text-slate-500 ring-slate-200"],

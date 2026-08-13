@@ -4,8 +4,8 @@ interface EveSignalFieldProps {
 }
 
 const SIGNAL_POINTS = [
-  { label: "Mail", x: 14, y: 26, accent: "bg-sky-500" },
-  { label: "Calendar", x: 40, y: 14, accent: "bg-sky-500" },
+  { label: "Mail", x: 14, y: 26, accent: "bg-accent" },
+  { label: "Calendar", x: 40, y: 14, accent: "bg-accent" },
   { label: "Tasks", x: 68, y: 30, accent: "bg-emerald-300" },
   { label: "Memory", x: 28, y: 68, accent: "bg-teal-300" },
   { label: "Review", x: 76, y: 72, accent: "bg-slate-400" },
@@ -63,11 +63,11 @@ export function EveBrandRail({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute overflow-hidden border border-sky-300/10 bg-slate-50 ${className}`}
+      className={`pointer-events-none absolute overflow-hidden border border-accent-muted/10 bg-slate-50 ${className}`}
     >
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(14,165,233,0.26),transparent_34%,rgba(45,212,191,0.16)_74%,transparent)]" />
-      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-sky-300/55 to-transparent" />
-      <div className="absolute left-1/2 top-[18%] h-2 w-2 -translate-x-1/2 rounded-full bg-sky-500" />
+      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-accent-muted/55 to-transparent" />
+      <div className="absolute left-1/2 top-[18%] h-2 w-2 -translate-x-1/2 rounded-full bg-accent" />
       <div className="absolute left-1/2 top-[48%] h-2 w-2 -translate-x-1/2 rounded-full bg-teal-300" />
       <div className="absolute left-1/2 top-[76%] h-2 w-2 -translate-x-1/2 rounded-full bg-slate-400" />
     </div>

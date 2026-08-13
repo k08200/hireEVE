@@ -103,7 +103,7 @@ export default function PaywallScreen() {
     <main className="flex min-h-dvh flex-col justify-center bg-white px-6 pb-safe pt-safe text-slate-900">
       <div className="mx-auto w-full max-w-sm">
         <img src="/brand/mark.svg?v=matte2" alt="" className="mb-6 h-12 w-12" />
-        <span className="inline-flex items-center rounded-full bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-600">
+        <span className="inline-flex items-center rounded-full bg-accent-light/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-600">
           Founding price
         </span>
         <h1 className="mt-3 text-[28px] font-bold leading-tight tracking-tight text-slate-900">
@@ -126,7 +126,7 @@ export default function PaywallScreen() {
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="mt-0.5 shrink-0 text-sky-500"
+                className="mt-0.5 shrink-0 text-accent"
               >
                 <polyline points="20 6 9 17 4 12" />
               </svg>
@@ -143,7 +143,7 @@ export default function PaywallScreen() {
             <button
               type="button"
               disabled
-              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-sky-400/60 text-[15px] font-semibold text-white"
+              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-light/60 text-[15px] font-semibold text-white"
             >
               Subscription coming soon
             </button>
@@ -152,7 +152,7 @@ export default function PaywallScreen() {
               type="button"
               onClick={native ? startAppPurchase : startWebTrial}
               disabled={loading}
-              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-sky-500 text-[15px] font-semibold text-white transition active:bg-sky-500 disabled:opacity-50"
+              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent text-[15px] font-semibold text-white transition active:bg-accent disabled:opacity-50"
             >
               {loading ? "Starting..." : "Start free trial"}
             </button>
