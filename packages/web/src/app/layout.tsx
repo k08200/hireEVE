@@ -62,8 +62,23 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="font-sans bg-surface-app text-slate-900 antialiased">
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Stamp .dark before first paint (stored override, else OS) — a
+            post-hydration toggle would flash the wrong theme. */}
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: static, no interpolation
+          dangerouslySetInnerHTML={{
+            __html:
+              '(function(){try{var t=localStorage.getItem("klorn-theme");var d=t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})()',
+          }}
+        />
+      </head>
+      <body className="font-sans bg-surface-app text-ink antialiased">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-[200] focus-visible:rounded-md focus-visible:bg-surface-elevated focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-medium focus-visible:text-accent focus-visible:ring-2 focus-visible:ring-accent"

@@ -1,5 +1,70 @@
 @import "tailwindcss";
 
+/* Class-based dark variant: `.dark` on <html>, set pre-hydration by the
+   inline script in layout.tsx (system preference or the stored override). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Theme palettes ─────────────────────────────────────────────────
+   Semantic tokens carry the theme: light values here are byte-identical to
+   what the app hardcoded before dark mode, so the light theme cannot drift.
+   The .dark block swaps the same variables — components tokenized onto
+   surface-*/ ink-*/line-* need no dark: variants at all. *
+/
+:root {
+  --surface-app: #f4f8fc;
+  --surface-canvas: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-panel: #ffffff;
+  --surface-translucent: rgba(255, 255, 255, 0.85);
+  --surface-raised: #f8fafc; /* slate-50 wells */
+  --surface-hover: #f1f5f9; /* slate-100 */
+  --ink: #0f172a; /* slate-900 — primary text */
+  --ink-strong: #1e293b; /* slate-800 */
+  --ink-soft: #334155; /* slate-700 */
+  --ink-mid: #64748b; /* slate-500 — secondary text */
+  --ink-dim: #94a3b8; /* slate-400 — tertiary/labels */
+  --line: #e2e8f0; /* slate-200 — borders */
+  --line-soft: #f1f5f9; /* slate-100 — hairlines */
+}
+
+/* Dark: deep navy-slate, never pure black. Text steps keep AA against
+   their surfaces (verified in the dark QA pass). */
+.dark {
+  --surface-app: #0b1120;
+  --surface-canvas: #0f172a;
+  --surface-elevated: #16213a;
+  --surface-panel: #111a2e;
+  --surface-translucent: rgba(15, 23, 42, 0.85);
+  --surface-raised: #16213a;
+  --surface-hover: #1e293b;
+  --ink: #f1f5f9;
+  --ink-strong: #e2e8f0;
+  --ink-soft: #cbd5e1;
+  --ink-mid: #94a3b8;
+  --ink-dim: #64748b;
+  --line: #293a56;
+  --line-soft: #1c2a40;
+}
+
+/* Theme-following utilities: `inline` makes each utility read the variable
+   at use time, so the .dark swap above applies everywhere. */
+@theme inline {
+  --color-surface-app: var(--surface-app);
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-panel: var(--surface-panel);
+  --color-surface-translucent: var(--surface-translucent);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-ink: var(--ink);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-mid: var(--ink-mid);
+  --color-ink-dim: var(--ink-dim);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+}
+
 @theme {
   /* Typography (2026-08-13): Geist, self-hosted via next/font (the CSS vars
      are stamped on <html> by layout.tsx). Korean glyphs fall through to the
@@ -17,15 +82,6 @@
   --color-accent-light: #38bdf8;
   --color-accent-muted: #7dd3fc;
   --color-accent-dim: #e0f2fe;
-
-  /* Surface tokens — extracted 2026-05-19 from inline bg-[#XXXXXX] usages
-     across the landing page and app shell. Use `bg-surface-app`, etc.
-     instead of bare hex values so the palette can be retuned in one spot. */
-  --color-surface-app: #f4f8fc;
-  --color-surface-canvas: #ffffff;
-  --color-surface-elevated: #ffffff;
-  --color-surface-panel: #ffffff;
-  --color-surface-translucent: rgba(255, 255, 255, 0.85);
 
   /* Text / brand tokens — gold accent and cream foreground used on the
      marketing surface. Same logic: rename here, not 30 className strings. */

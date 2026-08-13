@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
+import AppearanceSection from "../../components/appearance-section";
 import AuthGuard from "../../components/auth-guard";
 import { ByokKeysSection } from "../../components/byok-keys-section";
 import { useConfirm } from "../../components/confirm-dialog";
@@ -944,6 +945,13 @@ export default function SettingsPage() {
         <SubscriptionSection />
 
         {/* Profile */}
+        <section className="mb-8">
+          <h2 className={SECTION_TITLE}>Appearance</h2>
+          <div className={`${PANEL} p-5`}>
+            <AppearanceSection />
+          </div>
+        </section>
+
         <section className="mb-8">
           <h2 className={SECTION_TITLE}>Operator profile</h2>
           <div className={`${PANEL} p-5 space-y-4`}>
