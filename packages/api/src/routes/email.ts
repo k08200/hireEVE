@@ -48,7 +48,7 @@ import {
   syncEmails,
   syncLinkedInboxesForUser,
 } from "../mail/email-sync.js";
-import { htmlToPlainText } from "../mail/email-text.js";
+import { coercePlainBody, htmlToPlainText } from "../mail/email-text.js";
 import { getLinkedInboxClients } from "../mail/gmail.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { senderEmail } from "../notify/notification-format.js";
@@ -91,6 +91,29 @@ function projectHtmlBody(htmlBody: string | null, emailId: string, userId: strin
     captureError(err, { tags: { scope: "email.detail.html_project", userId }, extra: { emailId } });
     return null;
   }
+}
+
+/**
+ * Body for the detail view. Rows persisted before the coercePlainBody guard
+ * can still hold raw HTML in `body` (senders that ship HTML source inside the
+ * text/plain part — observed 2026-08-13, Paddle). Coercing at read time heals
+ * those rows without a backfill; failures degrade like projectHtmlBody.
+ */
+function serveBody(
+  body: string | null,
+  htmlBody: string | null,
+  emailId: string,
+  userId: string,
+): string | null {
+  try {
+    const coerced = coercePlainBody(body, htmlBody);
+    if (coerced !== null) return coerced;
+  } catch (err) {
+    console.error("[EMAIL] body coercion failed:", { emailId }, err);
+    captureError(err, { tags: { scope: "email.detail.body_coerce", userId }, extra: { emailId } });
+    if (body) return body;
+  }
+  return projectHtmlBody(htmlBody, emailId, userId);
 }
 
 function trustToWire(t: TrustScoreResult | undefined | null): TrustWire | null {
@@ -1029,11 +1052,12 @@ export async function emailRoutes(app: FastifyInstance) {
         cc: dbEmail.cc,
         subject: dbEmail.subject,
         snippet: dbEmail.snippet,
-        // Legacy HTML-only rows persisted body=null; project the stored HTML
-        // so the reader shows real content (incl. verification links) instead
-        // of the snippet stub. A pathological row must degrade to the snippet,
-        // not 500 the whole detail view.
-        body: dbEmail.body ?? projectHtmlBody(dbEmail.htmlBody, dbEmail.id, uid),
+        // Legacy HTML-only rows persisted body=null, and older rows may hold
+        // raw HTML in body (HTML-in-plain-part senders). serveBody projects /
+        // coerces so the reader shows real content (incl. verification links)
+        // instead of tag soup or the snippet stub. A pathological row must
+        // degrade to the snippet, not 500 the whole detail view.
+        body: serveBody(dbEmail.body, dbEmail.htmlBody, dbEmail.id, uid),
         date: dbEmail.receivedAt.toISOString(),
         labels: dbEmail.labels,
         isRead: markRead === "true" ? true : dbEmail.isRead,

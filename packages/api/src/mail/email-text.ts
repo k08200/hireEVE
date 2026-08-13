@@ -67,3 +67,31 @@ export function htmlToPlainText(html: string): string {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
+
+/**
+ * Some senders ship a text/plain MIME part that actually contains raw HTML
+ * source (observed 2026-08-13: Paddle's "Verify your identity" mail — Gmail
+ * renders its html part, our reader trusted the plain part and displayed
+ * tag soup). When the plain body is markup, the html part is the authority.
+ *
+ * The threshold is deliberately high: prose that merely mentions a couple of
+ * tags (e.g. a dev explaining `<div>` usage) must pass through untouched.
+ * Only bodies with a real density of block/table/style markup are coerced.
+ */
+const HTML_MARKUP_TOKEN = /<\/?(?:table|tbody|tr|td|div|p|span|h[1-6]|img|br|a\s)[^>]*>|style="/gi;
+const MIN_MARKUP_TOKENS = 5;
+
+function looksLikeRawHtml(text: string): boolean {
+  const matches = text.match(HTML_MARKUP_TOKEN);
+  return (matches?.length ?? 0) >= MIN_MARKUP_TOKENS;
+}
+
+/**
+ * Return the body to store/serve as plain text: the plain part when it is
+ * genuinely plain, otherwise the projection of the html part (or of the
+ * body itself when no html part exists).
+ */
+export function coercePlainBody(body: string | null, htmlBody: string | null): string | null {
+  if (!body || !looksLikeRawHtml(body)) return body;
+  return htmlToPlainText(htmlBody || body);
+}

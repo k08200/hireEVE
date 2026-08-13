@@ -18,6 +18,7 @@ import {
   upsertEmailAttachments,
 } from "../mail/email-attachments.js";
 import { classifyNeedsReplyFromSignals, classifyPriority } from "../mail/email-priority.js";
+import { coercePlainBody } from "../mail/email-text.js";
 import type { GmailRawEmail } from "../mail/gmail-fetch.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { notifyConversationsUpdated } from "../notify/conversations-updated.js";
@@ -103,7 +104,10 @@ export async function persistGmailEmail(
       cc: email.cc || null,
       subject: email.subject,
       snippet: email.snippet,
-      body: email.body || null,
+      // Some senders put raw HTML source into the text/plain part (observed
+      // 2026-08-13, Paddle) — coerce at the shared persist choke point so
+      // every provider path (Gmail, Outlook Graph, IMAP) stores real text.
+      body: coercePlainBody(email.body || null, email.htmlBody || null),
       htmlBody: email.htmlBody || null,
       labels: email.labels,
       isRead: email.isRead,
