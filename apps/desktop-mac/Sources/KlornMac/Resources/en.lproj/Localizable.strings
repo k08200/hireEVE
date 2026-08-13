@@ -326,3 +326,18 @@
 "account.reconnect.failed" = "Couldn't start the reconnect. Try again.";
 "source.unknown" = "Klorn";
 "source.github" = "GitHub";
+
+/* Account section diagnostics (2026-08-13) */
+"diag.google" = "Google account";
+"diag.aiProvider" = "AI provider";
+"diag.automations" = "Automation config";
+"diag.push" = "Push notifications";
+"diag.db" = "Database";
+"diag.status.ok" = "OK";
+"diag.status.warning" = "Warning";
+"diag.status.error" = "Error";
+"update.updating" = "Updating…";
+"update.installVersion" = "Update to v%@";
+"update.a11y.updating" = "Updating to version %@";
+"update.a11y.available" = "Update available: version %@. Installs and relaunches.";
+"calendar.addedConfirm" = "✓ Added to calendar: %@";

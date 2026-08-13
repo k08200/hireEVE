@@ -336,7 +336,7 @@ final class AppModel {
             signOut()
             return nil
         } catch APIError.forbidden {
-            replyError = "AI reply drafts need Klorn Pro."
+            replyError = L("error.needsPro")
             return nil
         } catch {
             replyError = Self.describe(error)
@@ -444,7 +444,7 @@ final class AppModel {
             try await api.post("/api/calendar", json: body)
             clearEventDraft(messageId)
             chatMessages.append(ChatMessage(
-                role: .assistant, text: "✓ Added to calendar: \(eventDraftLabel(draft))"))
+                role: .assistant, text: L("calendar.addedConfirm", eventDraftLabel(draft))))
             Task { await refreshToday() }  // the TODAY column should show it now
         } catch APIError.unauthorized {
             signOut()
