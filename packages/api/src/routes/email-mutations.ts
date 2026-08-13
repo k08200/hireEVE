@@ -31,6 +31,67 @@ const MAX_ATTACHMENT_MB = MAX_ATTACHMENT_BYTES / (1024 * 1024);
 // plain-text draft mid-send.
 const MAX_FIELD_BYTES = 2 * 1024 * 1024;
 
+/**
+ * Attachment MIME allowlist (5.2.1 hardening). The declared type is
+ * client-supplied and trivially spoofable, so this is hygiene, not the
+ * defense — attachments are never executed server-side and receiving mail
+ * providers rescan them. application/octet-stream stays allowed because it
+ * is the universal fallback for clients that don't sniff types; the list's
+ * job is to reject explicitly-declared executable/script types.
+ */
+const ALLOWED_ATTACHMENT_MIME_PREFIXES = [
+  "image/",
+  "video/",
+  "audio/",
+  "text/",
+  "font/",
+  // Office & OpenDocument families (docx/xlsx/pptx/odt/ods/odp…). Deliberately
+  // NOT the bare "application/vnd.ms-" prefix: that would also match the
+  // macro-enabled formats (.docm/.xlsm/.pptm — the classic phishing payload)
+  // and .chm, which are exactly what this list exists to reject.
+  "application/vnd.openxmlformats-officedocument.",
+  "application/vnd.oasis.opendocument.",
+] as const;
+
+const ALLOWED_ATTACHMENT_MIME_TYPES = new Set([
+  "application/octet-stream",
+  "application/pdf",
+  "application/json",
+  "application/xml",
+  "application/rtf",
+  "application/msword",
+  "application/vnd.ms-excel",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.ms-outlook",
+  "message/rfc822",
+  "application/zip",
+  "application/gzip",
+  "application/x-tar",
+  "application/x-7z-compressed",
+  "application/x-rar-compressed",
+  "application/vnd.rar",
+  "application/x-bzip2",
+  "application/epub+zip",
+  // iWork: modern canonical types + the legacy UTI-derived strings
+  "application/vnd.apple.pages",
+  "application/vnd.apple.numbers",
+  "application/vnd.apple.keynote",
+  "application/x-iwork-pages-sffpages",
+  "application/x-iwork-numbers-sffnumbers",
+  "application/x-iwork-keynote-sffkey",
+]);
+
+/** Lowercase and strip parameters: "TEXT/Plain; charset=utf-8" → "text/plain". */
+function normalizeAttachmentMime(raw: string | undefined): string {
+  const bare = (raw || "").split(";")[0].trim().toLowerCase();
+  return bare || "application/octet-stream";
+}
+
+function isAllowedAttachmentMime(mimeType: string): boolean {
+  if (ALLOWED_ATTACHMENT_MIME_TYPES.has(mimeType)) return true;
+  return ALLOWED_ATTACHMENT_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix));
+}
+
 interface EmailUndoBody {
   gmailId?: unknown;
   linkedInboxAccountId?: unknown;
@@ -131,6 +192,15 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
       try {
         for await (const part of request.parts()) {
           if (part.type === "file") {
+            const mimeType = normalizeAttachmentMime(part.mimetype);
+            if (!isAllowedAttachmentMime(mimeType)) {
+              // Drain the rejected part before replying — an unconsumed part
+              // backpressures busboy and can hang the connection until the
+              // idle timeout (same idiom as @fastify/multipart's own
+              // streamToNull on its internal rejections).
+              part.file.resume();
+              return reply.code(415).send({ error: `Attachment type not allowed: ${mimeType}` });
+            }
             // toBuffer() respects the fileSize limit and throws when exceeded.
             const content = await part.toBuffer();
             totalBytes += content.length;
@@ -141,7 +211,7 @@ export async function registerEmailMutationsRoutes(app: FastifyInstance) {
             }
             attachments.push({
               filename: safeAttachmentFilename(part.filename || "attachment"),
-              mimeType: part.mimetype || "application/octet-stream",
+              mimeType,
               content,
             });
           } else {
