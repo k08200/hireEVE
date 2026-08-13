@@ -43,9 +43,8 @@ export const WS_AUTH_SUBPROTOCOL = "klorn-ws-v1";
 /**
  * Pull the auth JWT from a Sec-WebSocket-Protocol header when the client used
  * the subprotocol relay (token as the value right after the marker). Returns
- * null if the marker is absent, so the caller can fall back to the legacy
- * ?token= query param. Keeping the JWT in a header rather than the URL stops
- * the long-lived credential from landing in proxy/LB access logs.
+ * null if the marker is absent. Keeping the JWT in a header rather than the
+ * URL stops the long-lived credential from landing in proxy/LB access logs.
  */
 export function extractWsSubprotocolToken(header: string | string[] | undefined): string | null {
   if (!header) return null;
@@ -66,7 +65,8 @@ export function initWebSocket(server: Server): WebSocketServer {
     // Accept the auth marker subprotocol so clients can carry the JWT in the
     // Sec-WebSocket-Protocol header instead of the URL. Only ever select the
     // marker back — never echo the token. Clients that offer no subprotocol
-    // (legacy query-param path) negotiate none and still connect.
+    // negotiate none and still connect (demo-user tokenless path only,
+    // gated by isDemoAccessEnabled in the connection handler).
     handleProtocols: (protocols: Set<string>) =>
       protocols.has(WS_AUTH_SUBPROTOCOL) ? WS_AUTH_SUBPROTOCOL : false,
   });
@@ -75,14 +75,12 @@ export function initWebSocket(server: Server): WebSocketServer {
     const url = new URL(req.url || "/", `http://${req.headers.host}`);
     const clientType = (url.searchParams.get("type") || "web") as WsClient["type"];
 
-    // Authenticate. Prefer the JWT from the Sec-WebSocket-Protocol subprotocol
-    // (keeps the credential out of the URL and access logs); fall back to the
-    // ?token= query param for native clients not yet migrated to the relay, and
-    // finally to userId for the demo-only backward-compat path.
+    // Authenticate. The JWT rides the Sec-WebSocket-Protocol subprotocol —
+    // never the URL, so the credential stays out of proxy/LB access logs. The
+    // legacy ?token= query fallback is gone (every shipped client offers the
+    // subprotocol); the only tokenless path left is the demo branch below.
     let userId: string;
-    const token =
-      extractWsSubprotocolToken(req.headers["sec-websocket-protocol"]) ||
-      url.searchParams.get("token");
+    const token = extractWsSubprotocolToken(req.headers["sec-websocket-protocol"]);
     if (token) {
       try {
         const payload = verifyToken(token);
@@ -114,7 +112,7 @@ export function initWebSocket(server: Server): WebSocketServer {
       const demoAllowed = isDemoAccessEnabled();
       const rawUserId = url.searchParams.get("userId");
       if (!demoAllowed || (rawUserId && rawUserId !== "demo-user")) {
-        ws.close(4001, "Authentication required — use token parameter");
+        ws.close(4001, "Authentication required — offer the auth subprotocol");
         return;
       }
       userId = "demo-user";

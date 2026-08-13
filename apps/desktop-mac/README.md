@@ -65,10 +65,12 @@ the JWT in the **Keychain**. The firewall then loads.
 ## Real-time
 
 New PUSH surfaces immediately, not on the next poll: the app connects to the API's
-existing WebSocket hub (`wss://<api>/ws?token=<JWT>&type=desktop`) and refetches
-the firewall on a server `notification`/`sync` event. A 60s poll stays as a
-backstop (reconnect gaps, keep-warm). The connection forces TLS for any remote
-host so the token never crosses plaintext.
+existing WebSocket hub (`wss://<api>/ws?type=desktop`, JWT offered via the
+`klorn-ws-v1` Sec-WebSocket-Protocol subprotocol — never in the URL, so the
+credential stays out of access logs) and refetches the firewall on a server
+`notification`/`sync` event. A 60s poll stays as a backstop (reconnect gaps,
+keep-warm). The connection forces TLS for any remote host so the token never
+crosses plaintext.
 
 ## Notifications & the .app bundle
 
