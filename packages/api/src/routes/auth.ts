@@ -462,7 +462,9 @@ export function authRoutes(app: FastifyInstance) {
         const retryAfterSec = Math.ceil(throttleRemainingMs / 1000);
         const retryAfterMin = Math.ceil(retryAfterSec / 60);
         request.log.warn(
-          { account: crypto.createHash("sha256").update(normalizedEmail).digest("hex").slice(0, 12) },
+          {
+            account: crypto.createHash("sha256").update(normalizedEmail).digest("hex").slice(0, 12),
+          },
           "per-account login throttle tripped",
         );
         return reply
