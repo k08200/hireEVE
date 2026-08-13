@@ -645,6 +645,52 @@ describe("email routes (demo mode)", () => {
     await app.close();
   });
 
+  it("GET /:id is side-effect free — legacy ?markRead=true no longer mutates", async () => {
+    // The read-flag mutation moved to the existing PATCH /:id/read; a GET
+    // must never write (semantic hygiene + link-prefetchers must not mark
+    // mail read). Old clients still sending ?markRead=true get it stripped
+    // by the querystring schema and see the true DB state.
+    const { prisma } = await import("../db.js");
+    // This file's mocks are not reset between tests — clear the update spy so
+    // earlier mutation tests (star toggle) don't leak into this assertion.
+    vi.mocked(prisma.emailMessage.update).mockClear();
+    vi.mocked(prisma.emailMessage.findFirst).mockResolvedValueOnce({
+      id: "email-1",
+      gmailId: "gmail-1",
+      userId: "user-1",
+      threadId: null,
+      from: "Sender <s@example.com>",
+      to: "me@example.com",
+      cc: null,
+      subject: "Hello",
+      snippet: "hi",
+      body: "hi",
+      htmlBody: null,
+      receivedAt: new Date("2026-05-03T12:00:00.000Z"),
+      labels: [],
+      isRead: false,
+      isStarred: false,
+      priority: "LATER",
+      category: null,
+      summary: null,
+      keyPoints: null,
+      actionItems: null,
+      linkedInboxAccountId: null,
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/email/email-1?markRead=true",
+      headers: auth(),
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().isRead).toBe(false);
+    expect(prisma.emailMessage.update).not.toHaveBeenCalled();
+    await app.close();
+  });
+
   it("requires auth for synced email detail mutations", async () => {
     const app = await buildApp();
     const res = await app.inject({

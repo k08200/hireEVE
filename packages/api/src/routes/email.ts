@@ -614,12 +614,13 @@ const emailNextQuerySchema = {
   },
 } as const;
 
+// No declared params: the legacy ?markRead= (and anything else) is stripped by
+// additionalProperties: false, so old clients degrade to a plain read-only GET.
+// The read-flag mutation lives on PATCH /:id/read (email-mutations.ts).
 const emailDetailQuerySchema = {
   type: "object",
   additionalProperties: false,
-  properties: {
-    markRead: { type: "string", maxLength: 500 },
-  },
+  properties: {},
 } as const;
 
 export async function emailRoutes(app: FastifyInstance) {
@@ -1058,7 +1059,6 @@ export async function emailRoutes(app: FastifyInstance) {
   // GET /api/email/:id
   app.get("/:id", { schema: { querystring: emailDetailQuerySchema } }, async (request) => {
     const { id } = request.params as { id: string };
-    const { markRead } = request.query as { markRead?: string };
     const uid = getUserId(request);
 
     // Check DB first
@@ -1067,15 +1067,9 @@ export async function emailRoutes(app: FastifyInstance) {
     });
 
     if (dbEmail) {
-      // Mark-as-read is explicit. Many users rely on unread as a work queue.
-      if (markRead === "true" && !dbEmail.isRead) {
-        mailActionsFor(uid, dbEmail.linkedInboxAccountId)
-          .then((actions) =>
-            actions.toggleRead(uid, dbEmail.gmailId, true, dbEmail.linkedInboxAccountId),
-          )
-          .catch((err) => console.warn(`[EMAIL] toggleRead failed for ${dbEmail.gmailId}`, err));
-        await prisma.emailMessage.update({ where: { id: dbEmail.id }, data: { isRead: true } });
-      }
+      // Reading a mail is side-effect free. Mark-as-read is explicit — many
+      // users rely on unread as a work queue — and it is a WRITE, so it lives
+      // on PATCH /:id/read, never on this GET (link prefetchers fetch GETs).
       const actionItems = parseJsonArray(dbEmail.actionItems);
       const attachments = await listEmailAttachments([dbEmail.id], uid);
       const candidateProfile = buildAttachmentCandidateProfile(attachments);
@@ -1116,7 +1110,7 @@ export async function emailRoutes(app: FastifyInstance) {
         body: serveBody(dbEmail.body, dbEmail.htmlBody, dbEmail.id, uid),
         date: dbEmail.receivedAt.toISOString(),
         labels: dbEmail.labels,
-        isRead: markRead === "true" ? true : dbEmail.isRead,
+        isRead: dbEmail.isRead,
         isStarred: dbEmail.isStarred,
         priority: dbEmail.priority,
         category: dbEmail.category,

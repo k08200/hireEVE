@@ -194,13 +194,22 @@ function EmailDetailView() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<EmailDetail | { error: string }>(
-        `/api/email/${id}${shouldMarkRead ? "?markRead=true" : "?markRead=false"}`,
-      );
+      const data = await apiFetch<EmailDetail | { error: string }>(`/api/email/${id}`);
       if ("error" in data) {
         setError(data.error);
       } else {
-        setEmail(data);
+        // Reading is a GET and side-effect free; marking read is an explicit
+        // write on PATCH /:id/read. Fire-and-forget: a failed mark-read must
+        // not break the reading pane, and the local state is set optimistically
+        // so the header doesn't flash "unread".
+        const markingRead = shouldMarkRead && !data.isRead;
+        if (markingRead) {
+          apiFetch(`/api/email/${id}/read`, {
+            method: "PATCH",
+            body: JSON.stringify({ isRead: true }),
+          }).catch((err) => captureClientError(err, { scope: "email.markRead", id }));
+        }
+        setEmail(markingRead ? { ...data, isRead: true } : data);
         setSelectedDraftAttachmentIds([]);
         setIncludeBriefAttachment((data.attachments?.length ?? 0) > 0);
         apiFetch<{ next: NextEmailSummary | null }>(

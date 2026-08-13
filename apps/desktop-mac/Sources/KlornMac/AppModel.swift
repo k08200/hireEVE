@@ -299,7 +299,11 @@ final class AppModel {
         defer { isLoadingEmail = false }
         do {
             openedEmail = try await api.get(
-                "/api/email/\(emailDbId)?markRead=true", as: EmailDetail.self)
+                "/api/email/\(emailDbId)", as: EmailDetail.self)
+            // Reading is a side-effect-free GET; marking read is an explicit
+            // write. Fire-and-forget: a failed mark-read must not blank the
+            // reading pane the user already has.
+            Task { try? await api.patch("/api/email/\(emailDbId)/read", json: [:]) }
         } catch APIError.unauthorized {
             signOut()
         } catch {
@@ -591,7 +595,10 @@ final class AppModel {
         defer { isLoadingEmail = false }
         do {
             openedEmail = try await api.get(
-                "/api/email/\(hit.id)?markRead=true", as: EmailDetail.self)
+                "/api/email/\(hit.id)", as: EmailDetail.self)
+            // Same contract as openItem: explicit PATCH write, never a GET
+            // side effect; failures degrade to leaving the mail unread.
+            Task { try? await api.patch("/api/email/\(hit.id)/read", json: [:]) }
         } catch APIError.unauthorized {
             signOut()
         } catch {
