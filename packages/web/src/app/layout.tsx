@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import AppShell from "../components/app-shell";
 import CommandPalette from "../components/command-palette";
 import KeyboardShortcuts from "../components/keyboard-shortcuts";
@@ -8,6 +9,20 @@ import PushRegister from "../components/push-register";
 import PwaPrompts from "../components/pwa-prompts";
 import ServiceWorkerRegister from "../components/sw-register";
 import "./globals.css";
+
+// Self-hosted at build time by next/font (no runtime request to Google —
+// the strict CSP stays intact). Korean text falls through to the system
+// stack (Apple SD Gothic Neo / Noto Sans KR), the standard pairing.
+const geistSans = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  display: "swap",
+});
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Klorn — The clear signal worth acting on",
@@ -47,8 +62,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="bg-surface-app text-slate-900 antialiased">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="font-sans bg-surface-app text-slate-900 antialiased">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-[200] focus-visible:rounded-md focus-visible:bg-surface-elevated focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-medium focus-visible:text-accent focus-visible:ring-2 focus-visible:ring-accent"

@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 @theme {
+  /* Typography (2026-08-13): Geist, self-hosted via next/font (the CSS vars
+     are stamped on <html> by layout.tsx). Korean glyphs fall through to the
+     system stack. Geist Mono backs `font-mono` for figures and code. */
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
   /* Unified app accent (2026-06-16): was coral #ff6b4a, now the same gold
      the rest of the app already used (inbox, firewall, login = Tailwind
      amber). Only the mail surface referenced these tokens, so re-pointing
