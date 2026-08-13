@@ -346,3 +346,6 @@
 "meeting.slotFree" = "캘린더에서 비어 있는 시간";
 "meeting.slotBusy" = "기존 일정과 겹침";
 "meeting.slotUnknown" = "캘린더 확인 불가 — 가용 여부 미검증";
+
+/* Calendar list-column screen (2026-08-13) */
+"section.calendar" = "캘린더";

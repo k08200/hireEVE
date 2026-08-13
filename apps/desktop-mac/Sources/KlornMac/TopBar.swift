@@ -584,6 +584,78 @@ private struct UpcomingSection: View {
 /// lightweight detail popover (title / time / location, Join when there's a
 /// meeting link) with "Open in Klorn" → the full view, which carries today and
 /// the week ahead.
+/// The list-column calendar screen (ListMode.calendar): today first — the
+/// running event marked NOW — then the coming week grouped by day. Reuses the
+/// sidebar's rows and the harness-pinned grouping helpers so the two calendar
+/// surfaces can never drift apart.
+private struct CalendarAgendaColumn: View {
+    @Environment(AppModel.self) private var model
+    let actions: TopBarActions
+
+    private var agenda: [AgendaDay] {
+        upcomingAgenda(now: Date(), events: model.weekAhead ?? [])
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar").font(.body).foregroundStyle(Theme.accent)
+                    .accessibilityHidden(true)
+                Text(L("section.calendar")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                if let events = model.weekAhead {
+                    Text("\(events.count)")
+                        .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 24).padding(.vertical, 18)
+
+            if model.weekAhead == nil && model.today == nil {
+                Text(L("bar.loading")).font(.caption).foregroundStyle(Theme.textDim)
+                    .padding(.horizontal, 24)
+            } else if (model.today?.total ?? 0) == 0 && agenda.isEmpty {
+                EmptyState(icon: "calendar", title: L("calendar.noEventsWeek"))
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let today = model.today, today.total > 0 {
+                            ColumnHeader(title: L("section.todayShort"))
+                                .padding(.horizontal, 20).padding(.bottom, 4)
+                            if let current = today.current {
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text(L("section.now"))
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(Theme.accent)
+                                        .padding(.horizontal, 6).padding(.vertical, 2)
+                                        .background(Theme.accent.opacity(0.12), in: Capsule())
+                                    UpcomingEventRow(event: current, actions: actions)
+                                }
+                                .padding(.leading, 12)
+                            }
+                            ForEach(today.upcoming) { event in
+                                UpcomingEventRow(event: event, actions: actions)
+                                    .padding(.horizontal, 12)
+                            }
+                        }
+                        ForEach(agenda) { day in
+                            ColumnHeader(title: day.label)
+                                .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 4)
+                            ForEach(day.events) { event in
+                                UpcomingEventRow(event: event, actions: actions)
+                                    .padding(.horizontal, 12)
+                            }
+                        }
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 private struct UpcomingEventRow: View {
     let event: CalendarEventWire
     let actions: TopBarActions
@@ -947,6 +1019,10 @@ enum ListMode: Equatable {
     /// Actions Klorn wants approved. Approving these used to require the web
     /// app, which is what kept the agent receipt linking out of Klorn.
     case proposals
+    /// The week as a first-class screen. The sidebar's TODAY/UPCOMING crumbs
+    /// stay, but "what does my week look like" deserves the list column
+    /// (founder, 2026-08-13: the calendar existed, it just wasn't visible).
+    case calendar
 }
 
 struct FullView: View {
@@ -1178,6 +1254,23 @@ private struct FullSidebar: View {
             .buttonStyle(.plain)
             .accessibilityLabel(L("section.assistant"))
 
+            // Calendar: the week as a full list-column screen, not just the
+            // TODAY/UPCOMING crumbs below.
+            Button { selected = .calendar } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "calendar").font(.caption)
+                        .foregroundStyle(Theme.accent).frame(width: 8)
+                        .accessibilityHidden(true)
+                    Text(L("section.calendar"))
+                        .font(.body.weight(selected == .calendar ? .semibold : .regular))
+                        .foregroundStyle(Theme.text)
+                    Spacer()
+                }
+                .modifier(SidebarRowChrome(selected: selected == .calendar))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("section.calendar"))
+
             // TODAY lives in the full view too — the biggest surface must not
             // know less about the day than the compact panel (dogfood 2026-07-16).
             // Briefing + today + UPCOMING mirror the panel's TodayColumn (same
@@ -1303,6 +1396,7 @@ private struct FullList: View {
         case .commitments: CommitmentsList()
         case .assistant: AssistantColumn()
         case .proposals: ProposalsList()
+        case .calendar: CalendarAgendaColumn(actions: actions)
         case .tier: tierList
         }
     }

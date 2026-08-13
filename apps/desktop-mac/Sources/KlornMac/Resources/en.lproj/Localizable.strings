@@ -347,3 +347,6 @@
 "meeting.slotFree" = "That slot is free on your calendar";
 "meeting.slotBusy" = "Clashes with an existing event";
 "meeting.slotUnknown" = "Calendar unavailable — availability unverified";
+
+/* Calendar list-column screen (2026-08-13) */
+"section.calendar" = "Calendar";
