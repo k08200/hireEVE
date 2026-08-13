@@ -161,7 +161,7 @@ function WaitlistPageInner() {
                 onClick={() => setFilter(f.key)}
                 className={`ease-strong rounded-xl border px-4 py-3 text-left transition duration-150 active:scale-[0.97] ${
                   isActive
-                    ? "panel-elevated border-sky-300 bg-sky-50 text-slate-900"
+                    ? "panel-elevated border-accent-muted bg-sky-50 text-slate-900"
                     : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
                 }`}
               >
@@ -225,7 +225,7 @@ function WaitlistPageInner() {
                           type="button"
                           onClick={() => updateStatus(entry.id, "APPROVED")}
                           disabled={updating === entry.id}
-                          className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:opacity-60"
+                          className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-60"
                         >
                           Approve
                         </button>
@@ -294,7 +294,7 @@ function senderInitials(name: string): string {
 }
 
 const AVATAR_GRADIENTS = [
-  "from-sky-400 to-blue-500",
+  "from-accent-light to-blue-500",
   "from-teal-400 to-emerald-500",
   "from-indigo-500 to-violet-600",
   "from-amber-400 to-orange-500",

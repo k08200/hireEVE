@@ -106,7 +106,7 @@ export default function PushOnboardingBanner() {
       aria-label="Enable push notifications"
       className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] w-[min(94vw,420px)] bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-900/15 px-4 py-3.5 flex items-start gap-3 animate-slide-up pb-safe"
     >
-      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-base shrink-0">
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-light to-sky-600 flex items-center justify-center text-base shrink-0">
         <span aria-hidden="true">🔔</span>
       </div>
       <div className="min-w-0 flex-1">
@@ -120,7 +120,7 @@ export default function PushOnboardingBanner() {
             type="button"
             onClick={enable}
             disabled={submitting}
-            className="px-3 py-1.5 text-xs font-medium bg-sky-500 hover:bg-sky-600 disabled:bg-slate-100 disabled:text-slate-400 text-white rounded-lg transition"
+            className="px-3 py-1.5 text-xs font-medium bg-accent hover:bg-sky-600 disabled:bg-slate-100 disabled:text-slate-400 text-white rounded-lg transition"
           >
             {submitting ? "Enabling..." : "Enable"}
           </button>

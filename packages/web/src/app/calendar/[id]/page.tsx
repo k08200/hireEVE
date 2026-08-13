@@ -100,7 +100,7 @@ function senderInitials(name: string): string {
 // Deterministic gradient per sender so the same sender always gets the same
 // color (recognition over decoration). Simple 31-hash over the name.
 const AVATAR_GRADIENTS = [
-  "from-sky-400 to-blue-500",
+  "from-accent-light to-blue-500",
   "from-teal-400 to-emerald-500",
   "from-indigo-500 to-violet-600",
   "from-amber-400 to-orange-500",
@@ -398,7 +398,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                         {!m.isRead && (
                           <span
                             aria-hidden="true"
-                            className="absolute left-0 top-0 h-full w-[3px] bg-sky-400"
+                            className="absolute left-0 top-0 h-full w-[3px] bg-accent-light"
                           />
                         )}
                         <Link
@@ -458,7 +458,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                       <span
                         className={`mr-2 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ${
                           c.owner === "USER"
-                            ? "bg-sky-500/10 text-sky-600 ring-1 ring-inset ring-sky-500/20"
+                            ? "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20"
                             : "bg-slate-100 text-slate-500"
                         }`}
                       >

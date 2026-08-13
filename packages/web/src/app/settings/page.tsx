@@ -75,7 +75,7 @@ function agentModeLightClasses(mode: AgentMode, active: boolean): string {
 // Shared v2 control recipes — one filled primary per screen, quiet secondary,
 // red-tinted destructive. Presentation only.
 const PRIMARY_BTN =
-  "glow-primary ease-strong inline-flex min-h-10 items-center justify-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-4 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40";
+  "glow-primary ease-strong inline-flex min-h-10 items-center justify-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40";
 const SECONDARY_BTN =
   "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white/70 px-4 text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50";
 const DANGER_BTN =
@@ -957,7 +957,7 @@ export default function SettingsPage() {
                 value={profile.name}
                 onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
                 placeholder="Name"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition placeholder-slate-400"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-slate-400"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -974,7 +974,7 @@ export default function SettingsPage() {
                       language: e.target.value as UserProfile["language"],
                     }))
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition"
                 >
                   <option value="en">English</option>
                   <option value="ko">한국어</option>
@@ -988,7 +988,7 @@ export default function SettingsPage() {
                   id="profile-tz"
                   value={profile.timezone}
                   onChange={(e) => setProfile((p) => ({ ...p, timezone: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition"
                 >
                   {TIMEZONES.map((tz) => (
                     <option key={tz} value={tz}>
@@ -1030,7 +1030,7 @@ export default function SettingsPage() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Current password"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition placeholder-slate-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-slate-400"
                   />
                 </div>
                 <div>
@@ -1044,7 +1044,7 @@ export default function SettingsPage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 6 characters"
                     minLength={6}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition placeholder-slate-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-slate-400"
                   />
                 </div>
                 <div className="flex justify-end">
@@ -1078,7 +1078,7 @@ export default function SettingsPage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 6 characters"
                     minLength={6}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition placeholder-slate-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-slate-400"
                   />
                 </div>
                 <div className="flex justify-end">
@@ -1459,7 +1459,7 @@ export default function SettingsPage() {
                     id="agent-interval"
                     value={agentInterval}
                     onChange={(e) => updateAgentInterval(Number(e.target.value))}
-                    className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm transition focus:border-sky-300 focus:outline-none"
+                    className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm transition focus:border-accent-muted focus:outline-none"
                   >
                     <option value={3}>Every 3 min</option>
                     <option value={5}>Every 5 min (default)</option>
@@ -1572,11 +1572,11 @@ export default function SettingsPage() {
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             log.action === "notify"
-                              ? "bg-sky-500"
+                              ? "bg-accent"
                               : log.action === "tool_call"
                                 ? "bg-emerald-400"
                                 : log.action === "auto_action"
-                                  ? "bg-sky-500"
+                                  ? "bg-accent"
                                   : log.action === "error"
                                     ? "bg-red-400"
                                     : "bg-slate-300"

@@ -691,7 +691,7 @@ function EmailDetailView() {
                     {PRIORITY_LABELS[email.priority]}
                   </span>
                   {email.needsReply && (
-                    <span className="shrink-0 rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-sky-500/20">
+                    <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-accent/20">
                       Needs reply
                     </span>
                   )}
@@ -819,7 +819,7 @@ function CandidateProfileCard({
     <section className="panel-elevated relative mt-5 overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 md:p-5">
       <span
         aria-hidden="true"
-        className="absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b from-sky-300 to-sky-500"
+        className="absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b from-accent-muted to-accent"
       />
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-sky-600">
@@ -845,7 +845,7 @@ function CandidateProfileCard({
             disabled={updating || status === option.status}
             className={`ease-strong rounded-lg border px-2 py-1 text-[11px] font-medium transition duration-150 active:scale-[0.97] disabled:cursor-default focus-ring ${
               status === option.status
-                ? "border-sky-300 bg-accent/10 text-sky-700"
+                ? "border-accent-muted bg-accent/10 text-sky-700"
                 : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
             }`}
           >
@@ -961,7 +961,7 @@ function ThreadContextPanel({
               {current && (
                 <span
                   aria-hidden="true"
-                  className="absolute left-0 top-0 h-full w-[3px] bg-sky-400"
+                  className="absolute left-0 top-0 h-full w-[3px] bg-accent-light"
                 />
               )}
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1242,7 +1242,7 @@ function ReplyDraftBox({
             }`}
           >
             {mode === option.value && (
-              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />
             )}
             {option.label}
           </button>
@@ -1379,7 +1379,7 @@ function ReplyDraftBox({
                 type="button"
                 onClick={onSend}
                 disabled={sending || !draft.to || !draft.subject || !draft.body}
-                className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-xs font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
+                className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
               >
                 {sending ? "Sending..." : "Send this reply"}
               </button>
@@ -1413,7 +1413,7 @@ function KlornAnalysis({
 
   return (
     <section className="panel-elevated relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 md:p-5">
-      <div className="absolute bottom-0 left-0 top-0 w-[3px] bg-gradient-to-b from-sky-300 to-sky-500" />
+      <div className="absolute bottom-0 left-0 top-0 w-[3px] bg-gradient-to-b from-accent-muted to-accent" />
       <div className="pl-2">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-600">
@@ -1551,7 +1551,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
 
 function ReplyNeededPill() {
   return (
-    <span className="shrink-0 rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-sky-500/20">
+    <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-accent/20">
       Needs reply
     </span>
   );
@@ -1737,7 +1737,7 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
               disabled={!!submitting}
               className={`h-7 rounded-lg border px-2 text-[11px] transition disabled:opacity-50 focus-ring ${
                 selected
-                  ? "border-sky-300 bg-accent/10 text-sky-700"
+                  ? "border-accent-muted bg-accent/10 text-sky-700"
                   : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
               }`}
             >
@@ -1812,7 +1812,7 @@ function candidatePipelineLabel(status: AttachmentCandidateProfile["pipelineStat
 // Monogram avatar helpers — local copy of the email list pattern so the
 // detail header shows the same deterministic per-sender gradient.
 const AVATAR_GRADIENTS = [
-  "from-sky-400 to-blue-500",
+  "from-accent-light to-blue-500",
   "from-teal-400 to-emerald-500",
   "from-indigo-500 to-violet-600",
   "from-amber-400 to-orange-500",

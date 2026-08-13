@@ -289,7 +289,7 @@ export function NewEventModal({
             <button
               type="submit"
               disabled={!canSave}
-              className="glow-primary ease-strong min-h-10 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-4 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+              className="glow-primary ease-strong min-h-10 rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {saving ? "Creating..." : "Create event"}
             </button>

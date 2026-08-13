@@ -117,7 +117,7 @@ export default function KeyboardShortcuts() {
         <button
           type="button"
           onClick={() => setShowHelp(false)}
-          className="mt-4 w-full min-h-11 rounded-lg border border-slate-200 text-sm text-slate-500 transition hover:border-sky-500/40 hover:text-sky-600"
+          className="mt-4 w-full min-h-11 rounded-lg border border-slate-200 text-sm text-slate-500 transition hover:border-accent/40 hover:text-sky-600"
         >
           Close
         </button>

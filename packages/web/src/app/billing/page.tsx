@@ -296,14 +296,14 @@ function BillingContent() {
               key={plan.key}
               className={`panel-elevated flex flex-col rounded-2xl border bg-white p-6 ${
                 isCurrent
-                  ? "border-sky-300/70"
+                  ? "border-accent-muted/70"
                   : plan.key === "PRO"
-                    ? "border-sky-400/45 ring-1 ring-sky-400/15"
+                    ? "border-accent-light/45 ring-1 ring-accent-light/15"
                     : "border-slate-200/70"
               }`}
             >
               {plan.key === "PRO" && (
-                <span className="mb-2 self-start rounded-full bg-sky-500 px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
+                <span className="mb-2 self-start rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
                   Recommended
                 </span>
               )}
@@ -365,7 +365,7 @@ function BillingContent() {
                 <button
                   type="button"
                   onClick={() => handleUpgrade(plan.key as "PRO")}
-                  className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 py-2.5 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] focus-ring min-h-11"
+                  className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-accent-light to-accent py-2.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring min-h-11"
                 >
                   Start 7-day free trial
                 </button>

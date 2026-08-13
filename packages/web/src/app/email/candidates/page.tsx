@@ -303,7 +303,7 @@ function CandidateIntakeView() {
             type="button"
             onClick={() => load(status, attention, true)}
             disabled={refreshing}
-            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3.5 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
+            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
           >
             {refreshing ? "Refreshing…" : "Rescan"}
           </button>
@@ -370,9 +370,7 @@ function CandidateIntakeView() {
                   : "text-slate-500 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm"
               }`}
             >
-              {active && (
-                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-              )}
+              {active && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />}
               {filter.label}
             </button>
           );
@@ -396,9 +394,7 @@ function CandidateIntakeView() {
                   : "text-slate-500 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm"
               }`}
             >
-              {active && (
-                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-              )}
+              {active && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-accent" />}
               {filter.label}
             </button>
           );
@@ -579,12 +575,12 @@ function CandidateCard({
     <article
       className={`panel-elevated relative overflow-hidden rounded-2xl border bg-white p-4 transition duration-150 ease-out ${
         selected
-          ? "border-sky-300 ring-2 ring-accent/20"
+          ? "border-accent-muted ring-2 ring-accent/20"
           : "border-slate-200/70 hover:border-sky-200"
       }`}
     >
       {selected && (
-        <span aria-hidden="true" className="absolute left-0 top-0 h-full w-[3px] bg-sky-400" />
+        <span aria-hidden="true" className="absolute left-0 top-0 h-full w-[3px] bg-accent-light" />
       )}
       <div className="flex items-start gap-3">
         <input
@@ -602,7 +598,7 @@ function CandidateCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="shrink-0 rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-sky-500/20">
+            <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-accent/20">
               {candidateStatusLabel(candidate.status)}
             </span>
             <span className="text-[10px] tabular-nums text-slate-400">
@@ -670,7 +666,7 @@ function CandidateCard({
 // Monogram avatar helpers — local copy of the email page pattern (recognition
 // over decoration; deterministic gradient per person).
 const AVATAR_GRADIENTS = [
-  "from-sky-400 to-blue-500",
+  "from-accent-light to-blue-500",
   "from-teal-400 to-emerald-500",
   "from-indigo-500 to-violet-600",
   "from-amber-400 to-orange-500",

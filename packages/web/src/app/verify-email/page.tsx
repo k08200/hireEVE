@@ -110,7 +110,7 @@ function VerifyEmailContent() {
           <button
             type="button"
             onClick={resend}
-            className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white transition hover:bg-sky-600 focus-ring"
+            className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 focus-ring"
           >
             {status === "sent" ? "Resend again" : "Resend verification email"}
           </button>

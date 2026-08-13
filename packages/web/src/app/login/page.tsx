@@ -207,7 +207,7 @@ function LoginForm() {
       }
     >
       {nextPath !== "/inbox" && (
-        <div className="mb-4 rounded-md border border-sky-300/40 bg-sky-300/10 px-3 py-2 text-xs leading-5 text-sky-800">
+        <div className="mb-4 rounded-md border border-accent-muted/40 bg-accent-muted/10 px-3 py-2 text-xs leading-5 text-sky-800">
           {t("auth.signInToContinue", { destination: returnDestinationLabel(nextPath, t) })}
         </div>
       )}
@@ -218,14 +218,14 @@ function LoginForm() {
           three-way callouts. When the beta gate is off, Google leads as before. */}
       {!signupOpen ? (
         <div className="space-y-4">
-          <div className="rounded-md border border-sky-300/40 bg-sky-300/10 px-3 py-2.5 text-xs leading-5 text-sky-800">
+          <div className="rounded-md border border-accent-muted/40 bg-accent-muted/10 px-3 py-2.5 text-xs leading-5 text-sky-800">
             <span className="font-semibold text-sky-900">{t("auth.inviteOnlyTitle")}</span>{" "}
             {t("auth.inviteOnlyBody")}
           </div>
 
           <Link
             href="/early-access"
-            className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white shadow-sm shadow-sky-300/20 transition hover:bg-sky-600 focus-ring"
+            className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-sky-600 focus-ring"
           >
             {t("auth.requestEarlyAccess")}
           </Link>
@@ -269,7 +269,7 @@ function LoginForm() {
                 href="https://github.com/k08200/klorn/blob/main/docs/doctrine/deterministic-floor.md"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline decoration-slate-300 underline-offset-2 hover:text-sky-600 hover:decoration-sky-300"
+                className="underline decoration-slate-300 underline-offset-2 hover:text-sky-600 hover:decoration-accent-muted"
               >
                 {t("auth.readDoctrine")}
               </a>
@@ -380,7 +380,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white shadow-sm shadow-sky-300/20 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 focus-ring"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -402,7 +402,7 @@ function LoginForm() {
             <button
               type="button"
               onClick={() => changeMode(mode === "login" ? "register" : "login")}
-              className="inline-flex min-h-10 items-center font-medium text-sky-600 transition hover:text-sky-500 focus-ring"
+              className="inline-flex min-h-10 items-center font-medium text-sky-600 transition hover:text-accent focus-ring"
             >
               {mode === "login" ? t("auth.switchToSignUp") : t("auth.switchToLogIn")}
             </button>
@@ -415,7 +415,7 @@ function LoginForm() {
             {t("auth.approvedCantSignIn")}{" "}
             <Link
               href="/reset-password"
-              className="inline-flex min-h-10 items-center font-medium text-sky-600 transition hover:text-sky-500"
+              className="inline-flex min-h-10 items-center font-medium text-sky-600 transition hover:text-accent"
             >
               {t("auth.resetYourPassword")}
             </Link>

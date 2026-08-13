@@ -89,9 +89,9 @@ function OnboardingFlow() {
               key={s}
               className={`ease-strong h-1.5 rounded-full transition-[width,background-color] duration-150 ${
                 s === step
-                  ? "w-6 bg-sky-500"
+                  ? "w-6 bg-accent"
                   : s < step
-                    ? "w-1.5 bg-sky-300/40"
+                    ? "w-1.5 bg-accent-muted/40"
                     : "w-1.5 bg-slate-200"
               }`}
             />
@@ -128,7 +128,7 @@ function WelcomeStep({
           type="button"
           onClick={onConnectClick}
           disabled={connecting}
-          className="glow-primary ease-strong flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-sky-400 to-sky-500 px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
+          className="glow-primary ease-strong flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
         >
           {connecting ? "Redirecting to Google..." : "Connect Gmail & Calendar"}
           {!connecting && <span aria-hidden>→</span>}
@@ -140,7 +140,7 @@ function WelcomeStep({
           Prefer Naver Mail?{" "}
           <Link
             href="/settings"
-            className="font-medium text-sky-600 underline decoration-sky-200 underline-offset-2 hover:text-sky-500"
+            className="font-medium text-sky-600 underline decoration-sky-200 underline-offset-2 hover:text-accent"
           >
             Connect it via IMAP in Settings
           </Link>
@@ -233,7 +233,7 @@ function SyncingStep({ initSync, onContinue }: { initSync: SyncState; onContinue
         <button
           type="button"
           onClick={onContinue}
-          className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-sky-400 to-sky-500 px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] focus-ring"
+          className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring"
         >
           {isDone ? "See what Klorn found" : "Continue to inbox"}
           <span aria-hidden>→</span>
@@ -260,7 +260,7 @@ function SyncRow({
       <p className="flex-1 text-sm text-slate-500">{label}</p>
       {done && <span className="shrink-0 text-[11px] font-semibold text-emerald-600">✓</span>}
       {loading && (
-        <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500" />
+        <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-accent" />
       )}
     </div>
   );
@@ -297,7 +297,7 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
       <button
         type="button"
         onClick={onDone}
-        className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-sky-400 to-sky-500 px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] focus-ring"
+        className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring"
       >
         Open decision queue
         <span aria-hidden>→</span>

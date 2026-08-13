@@ -95,7 +95,7 @@ export default function BetaLearningCard() {
           {!connected && (
             <Link
               href="/settings"
-              className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3 py-1.5 text-xs font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97]"
+              className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-1.5 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97]"
             >
               Connect
             </Link>
@@ -113,7 +113,7 @@ export default function BetaLearningCard() {
 
       <div className="mt-4 h-1.5 rounded-full bg-slate-100">
         <div
-          className="ease-strong h-full rounded-full bg-gradient-to-r from-sky-400 to-sky-500 transition-[width] duration-150"
+          className="ease-strong h-full rounded-full bg-gradient-to-r from-accent-light to-accent transition-[width] duration-150"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -147,7 +147,7 @@ function dotClass(state: StepState): string {
     case "done":
       return "bg-emerald-500";
     case "active":
-      return "bg-sky-500";
+      return "bg-accent";
     case "failed":
       return "bg-rose-500";
     case "pending":

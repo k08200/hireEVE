@@ -164,7 +164,7 @@ export function LinkedInboxesSection() {
           type="button"
           onClick={() => connect.mutate()}
           disabled={connect.isPending}
-          className="glow-primary ease-strong mt-3 inline-flex min-h-10 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-4 py-2 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
+          className="glow-primary ease-strong mt-3 inline-flex min-h-10 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 py-2 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
         >
           Connect another inbox
         </button>

@@ -149,7 +149,7 @@ export function SubscriptionSection() {
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="mt-0.5 shrink-0 text-sky-400"
+                    className="mt-0.5 shrink-0 text-accent-light"
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
@@ -170,7 +170,7 @@ export function SubscriptionSection() {
                 type="button"
                 onClick={native ? startAppPurchase : startWebTrial}
                 disabled={loading}
-                className="glow-primary ease-strong mt-5 flex min-h-11 w-full items-center justify-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
+                className="glow-primary ease-strong mt-5 flex min-h-11 w-full items-center justify-center rounded-lg bg-gradient-to-b from-accent-light to-accent text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
               >
                 {loading ? "Starting..." : "Start 7-day free trial"}
               </button>

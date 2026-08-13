@@ -28,7 +28,7 @@ function Stat({
   return (
     <div
       className={`rounded-xl border p-4 ${
-        highlight ? "border-sky-300 bg-sky-50" : "border-slate-200/70 bg-white"
+        highlight ? "border-accent-muted bg-sky-50" : "border-slate-200/70 bg-white"
       }`}
     >
       <div className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">

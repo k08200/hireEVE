@@ -51,7 +51,7 @@ export function OAuthErrorBanner() {
             <button
               type="button"
               onClick={() => void startGoogleConnect()}
-              className="rounded-lg bg-sky-500 px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-sky-500"
+              className="rounded-lg bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition hover:bg-accent"
             >
               Reconnect Google
             </button>

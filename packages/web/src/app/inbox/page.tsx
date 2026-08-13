@@ -613,7 +613,7 @@ function CommitmentsPanel({ commitments }: { commitments: CommitmentItem[] }) {
       <div className="border-b border-slate-100 px-4 py-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">Commitments</h2>
-          <span className="rounded-md bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-sky-700">
+          <span className="rounded-md bg-accent-dim px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-sky-700">
             {visible.length}
           </span>
         </div>
@@ -640,7 +640,7 @@ function CommitmentsPanel({ commitments }: { commitments: CommitmentItem[] }) {
                   className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ring-1 ring-inset ${
                     iOwe
                       ? "bg-amber-500/10 text-amber-600 ring-amber-500/20"
-                      : "bg-sky-500/10 text-sky-700 ring-sky-500/20"
+                      : "bg-accent/10 text-sky-700 ring-accent/20"
                   }`}
                 >
                   {iOwe ? "I owe" : "Waiting on"}
@@ -780,7 +780,7 @@ function OnboardingHint() {
           type="button"
           onClick={dismiss}
           aria-label="Dismiss tour"
-          className="ease-strong flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-400 transition duration-150 hover:bg-sky-100 hover:text-slate-700 active:scale-[0.97]"
+          className="ease-strong flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-slate-400 transition duration-150 hover:bg-accent-dim hover:text-slate-700 active:scale-[0.97]"
         >
           <svg
             aria-hidden="true"
@@ -939,7 +939,7 @@ function SignalStrip({
     {
       label: "Open commitments",
       value: commitmentValue,
-      dot: "bg-sky-500",
+      dot: "bg-accent",
       onClick: scrollToCommitments,
     },
     {
@@ -1023,7 +1023,7 @@ function ReplyNeededPanel({ hero = false }: { hero?: boolean }) {
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-slate-900">Reply Needed</h2>
-          <span className="rounded-md bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-sky-700 ring-1 ring-inset ring-sky-500/20">
+          <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-sky-700 ring-1 ring-inset ring-accent/20">
             {emails.length}
           </span>
         </div>
@@ -1104,7 +1104,7 @@ function formatFrom(from: string): string {
 // Monogram avatar helpers — local copy of the email page pattern (recognition
 // over decoration; deterministic gradient per sender).
 const AVATAR_GRADIENTS = [
-  "from-sky-400 to-blue-500",
+  "from-accent-light to-blue-500",
   "from-teal-400 to-emerald-500",
   "from-indigo-500 to-violet-600",
   "from-amber-400 to-orange-500",
@@ -1257,7 +1257,7 @@ function ActionCard({
         <span
           aria-hidden="true"
           className={`absolute left-0 top-0 h-full w-[3px] ${
-            risk === "high" ? "bg-gradient-to-b from-rose-400 to-rose-500" : "bg-sky-400"
+            risk === "high" ? "bg-gradient-to-b from-rose-400 to-rose-500" : "bg-accent-light"
           }`}
         />
       )}
@@ -1321,7 +1321,7 @@ function ActionCard({
             type="button"
             onClick={onApprove}
             disabled={!!loading}
-            className="glow-primary ease-strong inline-flex min-h-11 min-w-[120px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-5 text-sm font-semibold text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+            className="glow-primary ease-strong inline-flex min-h-11 min-w-[120px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading === "approve" ? (
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -1784,7 +1784,7 @@ function MobileActionCard({
             type="button"
             onClick={onApprove}
             disabled={!!loading}
-            className="glow-primary ease-strong flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-b from-sky-400 to-sky-500 text-[15px] font-semibold text-white transition duration-150 active:scale-[0.97] disabled:opacity-50"
+            className="glow-primary ease-strong flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-b from-accent-light to-accent text-[15px] font-semibold text-white transition duration-150 active:scale-[0.97] disabled:opacity-50"
           >
             {loading === "approve" ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />

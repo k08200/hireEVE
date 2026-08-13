@@ -257,14 +257,14 @@ function CandidateDetailView() {
                       disabled={saving}
                       className={`ease-strong relative overflow-hidden rounded-lg border px-3 py-2 text-left text-xs font-medium transition duration-150 active:scale-[0.98] disabled:opacity-50 ${
                         active
-                          ? "border-sky-300 bg-accent/10 text-sky-700"
+                          ? "border-accent-muted bg-accent/10 text-sky-700"
                           : "border-slate-200 bg-white/70 text-slate-500 hover:bg-white hover:text-slate-900"
                       }`}
                     >
                       {active && (
                         <span
                           aria-hidden="true"
-                          className="absolute left-0 top-0 h-full w-[3px] bg-sky-400"
+                          className="absolute left-0 top-0 h-full w-[3px] bg-accent-light"
                         />
                       )}
                       {status.label}
@@ -287,7 +287,7 @@ function CandidateDetailView() {
                 type="button"
                 onClick={() => update({ notes })}
                 disabled={saving}
-                className="glow-primary ease-strong mt-2 w-full rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3 py-2 text-xs font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                className="glow-primary ease-strong mt-2 w-full rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-2 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save notes"}
               </button>
@@ -312,7 +312,7 @@ function CandidateDetailView() {
           <div className="mt-5 flex flex-wrap gap-2">
             <Link
               href={`/email/${email.id}`}
-              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-4 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97]"
+              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97]"
             >
               Open source email
             </Link>

@@ -434,7 +434,7 @@ function AttachmentCorrectionForm({
           <input
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
-            className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-sky-500/40"
+            className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-accent/40"
           />
         </label>
         <label className="block">
@@ -444,7 +444,7 @@ function AttachmentCorrectionForm({
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-sky-500/40"
+            className="w-full rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-accent/40"
           >
             {[
               "resume",
@@ -500,7 +500,7 @@ function AttachmentCorrectionForm({
                   )
                 }
                 placeholder="Field"
-                className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-sky-500/40"
+                className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-accent/40"
               />
               <input
                 value={field.value}
@@ -512,7 +512,7 @@ function AttachmentCorrectionForm({
                   )
                 }
                 placeholder="Value"
-                className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-sky-500/40"
+                className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-slate-500 outline-none focus:border-accent/40"
               />
               <button
                 type="button"

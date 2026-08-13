@@ -311,7 +311,7 @@ export default function PlaygroundPage() {
                   key={s.label}
                   type="button"
                   onClick={() => applySample(s)}
-                  className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-500 transition hover:border-sky-300/50 hover:text-sky-600"
+                  className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-500 transition hover:border-accent-muted/50 hover:text-sky-600"
                 >
                   {s.label}
                 </button>
@@ -325,7 +325,7 @@ export default function PlaygroundPage() {
               id="pg-from"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="mb-3 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-sky-300 focus-visible:ring-1 focus-visible:ring-sky-300/25"
+              className="mb-3 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
               placeholder="Jane Park <jane@sequoia.com>"
             />
 
@@ -336,7 +336,7 @@ export default function PlaygroundPage() {
               id="pg-subject"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="mb-3 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-sky-300 focus-visible:ring-1 focus-visible:ring-sky-300/25"
+              className="mb-3 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
               placeholder="Can we talk today?"
             />
 
@@ -348,7 +348,7 @@ export default function PlaygroundPage() {
               value={snippet}
               onChange={(e) => setSnippet(e.target.value)}
               rows={4}
-              className="mb-4 w-full resize-y rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-sky-300 focus-visible:ring-1 focus-visible:ring-sky-300/25"
+              className="mb-4 w-full resize-y rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
               placeholder="Paste the first lines of the email…"
             />
 
@@ -364,7 +364,7 @@ export default function PlaygroundPage() {
                   id="pg-provider"
                   value={provider}
                   onChange={(e) => onProviderChange(e.target.value as ProviderId)}
-                  className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus-visible:border-sky-300"
+                  className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none focus-visible:border-accent-muted"
                 >
                   {(Object.keys(PROVIDER_META) as ProviderId[]).map((id) => (
                     <option key={id} value={id}>
@@ -384,7 +384,7 @@ export default function PlaygroundPage() {
                   id="pg-model"
                   value={PROVIDER_META[provider].models.includes(model) ? model : "__custom__"}
                   onChange={(e) => setModel(e.target.value === "__custom__" ? "" : e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-900 outline-none focus-visible:border-sky-300"
+                  className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-900 outline-none focus-visible:border-accent-muted"
                 >
                   {PROVIDER_META[provider].models.map((m) => (
                     <option key={m} value={m}>
@@ -402,7 +402,7 @@ export default function PlaygroundPage() {
                     autoCapitalize="off"
                     spellCheck={false}
                     placeholder="vendor/model-id"
-                    className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-900 outline-none placeholder:text-slate-400 focus-visible:border-sky-300"
+                    className="mt-2 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-900 outline-none placeholder:text-slate-400 focus-visible:border-accent-muted"
                   />
                 )}
               </div>
@@ -430,7 +430,7 @@ export default function PlaygroundPage() {
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              className="mb-1.5 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-sky-300 focus-visible:ring-1 focus-visible:ring-sky-300/25"
+              className="mb-1.5 w-full rounded-md border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-accent-muted focus-visible:ring-1 focus-visible:ring-accent-muted/25"
               placeholder={PROVIDER_META[provider].keyPlaceholder}
             />
             <p className="mb-4 text-[11px] text-slate-400">
@@ -442,7 +442,7 @@ export default function PlaygroundPage() {
               type="button"
               onClick={classify}
               disabled={loading}
-              className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:bg-slate-100 disabled:text-slate-400"
+              className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:bg-slate-100 disabled:text-slate-400"
             >
               {loading ? "Classifying…" : "Classify"}
             </button>
@@ -496,7 +496,7 @@ export default function PlaygroundPage() {
                       </div>
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                         <div
-                          className="h-full rounded-full bg-sky-300/70"
+                          className="h-full rounded-full bg-accent-muted/70"
                           style={{ width: `${Math.round(value * 100)}%` }}
                         />
                       </div>
@@ -520,7 +520,7 @@ export default function PlaygroundPage() {
                             key={t}
                             type="button"
                             onClick={() => sendFeedback(t)}
-                            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-500 transition hover:border-sky-300/50 hover:text-sky-600"
+                            className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-500 transition hover:border-accent-muted/50 hover:text-sky-600"
                           >
                             Should be {t}
                           </button>

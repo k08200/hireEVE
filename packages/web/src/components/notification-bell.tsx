@@ -415,8 +415,8 @@ export default function NotificationBell({ userId }: { userId: string }) {
     <div
       key={n.id}
       className={`border-b border-slate-200 ${
-        !n.isRead ? "bg-sky-400/5" : ""
-      } ${isAgentNotification(n.title) ? "border-l-2 border-l-sky-400/60" : ""}`}
+        !n.isRead ? "bg-accent-light/5" : ""
+      } ${isAgentNotification(n.title) ? "border-l-2 border-l-accent-light/60" : ""}`}
     >
       {/* The row itself is a real button (Enter + Space activate). Action buttons
           live in a sibling block below so we never nest interactive-in-interactive. */}
@@ -435,11 +435,11 @@ export default function NotificationBell({ userId }: { userId: string }) {
             {notificationTitle(n.title)}
           </span>
           {isAgentNotification(n.title) && (
-            <span className="text-[9px] text-sky-600 bg-sky-400/10 px-1 py-0.5 rounded shrink-0">
+            <span className="text-[9px] text-sky-600 bg-accent-light/10 px-1 py-0.5 rounded shrink-0">
               Klorn
             </span>
           )}
-          {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0 ml-auto" />}
+          {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0 ml-auto" />}
         </div>
         <p className="text-[13px] md:text-xs text-slate-500 mt-1 line-clamp-2 ml-6">{n.message}</p>
         <div className="flex items-center gap-2 mt-1 ml-6">
@@ -453,7 +453,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             type="button"
             onClick={(e) => handleApprovePendingAction(n, e)}
             disabled={!!pendingActionLoading[n.id]}
-            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-sky-500 hover:bg-sky-500 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
+            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-accent hover:bg-accent disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
           >
             {pendingActionLoading[n.id] === "approve" ? "..." : "Approve"}
           </button>
@@ -489,8 +489,8 @@ export default function NotificationBell({ userId }: { userId: string }) {
         type="button"
         onClick={() => toggleGroup(group.key)}
         className={`focus-ring w-full min-h-11 text-left px-4 py-3 border-b border-slate-200 hover:bg-slate-100 transition ${
-          group.unreadCount > 0 ? "bg-sky-400/5" : ""
-        } ${group.isAgent ? "border-l-2 border-l-sky-400/60" : ""}`}
+          group.unreadCount > 0 ? "bg-accent-light/5" : ""
+        } ${group.isAgent ? "border-l-2 border-l-accent-light/60" : ""}`}
         aria-expanded={expanded}
       >
         <div className="flex items-center gap-2">
@@ -501,7 +501,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             {label} {group.items.length}
           </span>
           {group.unreadCount > 0 && (
-            <span className="text-[10px] text-sky-600 bg-sky-400/10 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[10px] text-sky-600 bg-accent-light/10 px-1.5 py-0.5 rounded shrink-0">
               New {group.unreadCount}
             </span>
           )}
@@ -586,7 +586,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   </span>
                 )}
                 {unreadCount > 0 && (
-                  <span className="text-[10px] text-sky-600 bg-sky-400/10 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-sky-600 bg-accent-light/10 px-1.5 py-0.5 rounded">
                     {unreadCount}
                   </span>
                 )}
