@@ -7,6 +7,7 @@ import {
   hashPassword,
   isAdminEmail,
   isDemoAccessEnabled,
+  passwordHashNeedsUpgrade,
   registerDevice,
   removeDeviceSession,
   requireAuth,
@@ -239,6 +240,11 @@ const resetPasswordBodySchema = {
     newPassword: { type: "string", minLength: 1, maxLength: 200 },
   },
 } as const;
+
+// Users whose legacy password hash is being upgraded in the background right
+// now (login route). Caps the fire-and-forget cost-12 rehash at one per user
+// so concurrent valid-credential logins can't stack bcrypt work on the loop.
+const rehashInFlight = new Set<string>();
 
 // Exported for auth/social-login.ts — the Apple/Naver path must normalize
 // exactly like every email/password and Google path here.
@@ -526,6 +532,32 @@ export function authRoutes(app: FastifyInstance) {
       }
 
       clearLoginAttempts(normalizedEmail);
+
+      // Transparent hash upgrade (legacy cost 10 → BCRYPT_COST): rehash with
+      // the just-verified password. Fire-and-forget so sign-in never waits on
+      // the ~4x-cost hash, and CAS-guarded on the exact verified hash so a
+      // concurrent password change is never clobbered (same updateMany idiom
+      // as change-password). No sessionsInvalidatedAt — the password itself
+      // is unchanged, so nothing gets revoked. The in-flight set caps the
+      // background hash at 1 per user, so concurrent valid-credential logins
+      // across IPs can't stack cost-12 hashes on the event loop. Known edge,
+      // accepted: a change-password racing the rehash window can lose its CAS
+      // and see a spurious 409 "changed elsewhere" — retry succeeds.
+      if (passwordHashNeedsUpgrade(user.passwordHash) && !rehashInFlight.has(user.id)) {
+        rehashInFlight.add(user.id);
+        const verifiedHash = user.passwordHash;
+        hashPassword(password)
+          .then((newHash) =>
+            prisma.user.updateMany({
+              where: { id: user.id, passwordHash: verifiedHash },
+              data: { passwordHash: newHash },
+            }),
+          )
+          .catch((err) =>
+            captureError(err, { tags: { scope: "auth.rehash" }, extra: { userId: user.id } }),
+          )
+          .finally(() => rehashInFlight.delete(user.id));
+      }
       const token = signToken({ userId: user.id, email: user.email });
 
       // Register device session

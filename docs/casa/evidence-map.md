@@ -97,4 +97,4 @@ Tracked separately; none of these change a verdict above:
 5. ~~MIME allowlist on compose uploads (5.2.1 hardening).~~ Shipped (#1085).
 6. ~~`GET /api/email/:id?markRead=true` → mutation moved to `PATCH /:id/read`.~~ Shipped (#1086).
 7. ~~Make `pnpm audit` blocking in CI + add Dependabot (6.1.1 hardening).~~ Shipped.
-8. bcrypt cost 10 → 12 with migration-on-login.
+8. ~~bcrypt cost 10 → 12 with migration-on-login.~~ Shipped.
