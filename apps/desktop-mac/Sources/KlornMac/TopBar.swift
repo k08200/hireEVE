@@ -2060,6 +2060,9 @@ struct ReadingPane: View {
                             .font(.caption).foregroundStyle(Theme.textDim)
                     }
                 }
+                if let context = model.meetingContext, let proposed = context.proposed {
+                    meetingContextRows(context, proposed)
+                }
                 if let engagement = email.engagement, engagement.outboundCount > 0 {
                     // Warm tint mirrors the web graph's "you engage" pink — the
                     // signal Klorn learned from the user's own replies. Pink lives
@@ -2087,6 +2090,62 @@ struct ReadingPane: View {
             .background(Theme.surfaceRaised)
             Divider().overlay(Theme.line)
         }
+    }
+
+    /// The meeting ↔ calendar cross-reference: the slot this email proposes,
+    /// whether it clashes with the user's real calendar, and what else sits
+    /// near it that day. Hue rides the dot only (signal-line rule above); the
+    /// verdict word carries the state so it is never color-alone.
+    @ViewBuilder
+    private func meetingContextRows(
+        _ context: MeetingContextWire, _ proposed: MeetingContextWire.Proposed
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Image(systemName: "calendar.badge.clock").font(.caption2)
+                    .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                Text(L("meeting.proposedSlot", meetingSlotLabel(proposed.startTime, proposed.endTime)))
+                    .font(.caption).foregroundStyle(Theme.textDim)
+            }
+            HStack(spacing: 6) {
+                Circle().fill(meetingVerdictColor(context.conflict))
+                    .frame(width: 7, height: 7).accessibilityHidden(true)
+                Text(meetingVerdictLabel(context.conflict))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(context.conflict?.hasConflicts == true ? Theme.text : Theme.textDim)
+            }
+            ForEach(context.nearby.prefix(3)) { event in
+                Text("\(meetingSlotLabel(event.startTime, event.endTime))  \(event.title)")
+                    .font(.caption2).foregroundStyle(Theme.textDim)
+                    .padding(.leading, 13)
+                    .lineLimit(1)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func meetingVerdictLabel(_ conflict: MeetingContextWire.Conflict?) -> String {
+        guard let conflict else { return L("meeting.slotUnknown") }
+        return conflict.hasConflicts ? L("meeting.slotBusy") : L("meeting.slotFree")
+    }
+
+    private func meetingVerdictColor(_ conflict: MeetingContextWire.Conflict?) -> Color {
+        guard let conflict else { return Theme.textDim }
+        return conflict.hasConflicts ? .red : .green
+    }
+
+    /// "Wed Aug 13 · 16:00–17:00" in the user's locale/zone, from the wire's
+    /// ISO strings. Malformed input degrades to the raw string, never crashes.
+    private func meetingSlotLabel(_ startIso: String, _ endIso: String) -> String {
+        let iso = ISO8601DateFormatter()
+        guard let start = iso.date(from: startIso), let end = iso.date(from: endIso) else {
+            return startIso
+        }
+        let day = DateFormatter()
+        day.setLocalizedDateFormatFromTemplate("EdMMM")
+        let time = DateFormatter()
+        time.setLocalizedDateFormatFromTemplate("HHmm")
+        return "\(day.string(from: start)) · \(time.string(from: start))–\(time.string(from: end))"
     }
 
     /// Slim strength meter for the 0…1 learned importance, with its qualitative

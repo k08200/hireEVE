@@ -341,3 +341,9 @@
 "update.a11y.updating" = "Updating to version %@";
 "update.a11y.available" = "Update available: version %@. Installs and relaunches.";
 "calendar.addedConfirm" = "✓ Added to calendar: %@";
+
+/* Meeting <-> calendar cross-reference (2026-08-13) */
+"meeting.proposedSlot" = "Proposed: %@";
+"meeting.slotFree" = "That slot is free on your calendar";
+"meeting.slotBusy" = "Clashes with an existing event";
+"meeting.slotUnknown" = "Calendar unavailable — availability unverified";

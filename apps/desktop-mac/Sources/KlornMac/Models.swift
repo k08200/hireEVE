@@ -162,6 +162,9 @@ struct EmailDetail: Codable, Sendable, Identifiable {
     // Klorn's intelligence for this email (all optional/simple — decoding stays
     // resilient; JSONDecoder ignores the endpoint's other, richer fields).
     let summary: String?
+    /// Klorn's category ("meeting", "business", …) — gates the calendar
+    /// cross-reference fetch so ordinary mail costs nothing extra.
+    let category: String?
     let needsReply: Bool?
     let needsReplyReason: String?
     /// Learned engagement: how often the user has replied to/written this sender.
@@ -212,6 +215,35 @@ struct EmailDetail: Codable, Sendable, Identifiable {
         if let body, !body.isEmpty { return body }
         return snippet ?? ""
     }
+}
+
+/// GET /api/email/:id/meeting-context — the proposed slot parsed from a
+/// meeting email, the live conflict verdict, and nearby local events. All
+/// optional: the server degrades field-by-field (no parse → proposed null,
+/// calendar unreachable → conflict null) and the pane renders what exists.
+struct MeetingContextWire: Codable, Sendable {
+    struct Proposed: Codable, Sendable {
+        let title: String
+        let startTime: String
+        let endTime: String
+    }
+
+    struct Conflict: Codable, Sendable {
+        let hasConflicts: Bool
+        let message: String
+    }
+
+    struct NearbyEvent: Codable, Sendable, Identifiable {
+        let id: String
+        let title: String
+        let startTime: String
+        let endTime: String
+        let allDay: Bool
+    }
+
+    let proposed: Proposed?
+    let conflict: Conflict?
+    let nearby: [NearbyEvent]
 }
 
 // MARK: - Agent activity ("what Klorn did today")
