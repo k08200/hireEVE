@@ -24,6 +24,11 @@
   --ink-dim: #94a3b8; /* slate-400 — tertiary/labels */
   --line: #e2e8f0; /* slate-200 — borders */
   --line-soft: #f1f5f9; /* slate-100 — hairlines */
+  --line-strong: #cbd5e1; /* slate-300 — emphasized borders */
+  --surface-inset: #e2e8f0; /* slate-200 wells/tracks */
+  --ink-muted: #475569; /* slate-600 */
+  --accent-deep: #0284c7; /* sky-600 — link text, pressed accent */
+  --accent-deeper: #0369a1; /* sky-700 */
 }
 
 /* Dark: deep navy-slate, never pure black. Text steps keep AA against
@@ -46,6 +51,13 @@
   --ink-dim: #7d8ba1;
   --line: #293a56;
   --line-soft: #1c2a40;
+  --line-strong: #3b4d6b;
+  --surface-inset: #243350;
+  /* 6.5:1 on panel — the slate-600 mirror would fail the AA text floor. */
+  --ink-muted: #8fa0b8;
+  /* Links brighten in the dark instead of darkening: 8.1:1 on panel. */
+  --accent-deep: #38bdf8;
+  --accent-deeper: #7dd3fc;
 }
 
 /* Theme-following utilities: `inline` makes each utility read the variable
@@ -65,6 +77,11 @@
   --color-ink-dim: var(--ink-dim);
   --color-line: var(--line);
   --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+  --color-surface-inset: var(--surface-inset);
+  --color-ink-muted: var(--ink-muted);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-deeper: var(--accent-deeper);
 }
 
 @theme {
