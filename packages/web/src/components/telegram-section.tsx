@@ -155,7 +155,7 @@ export function TelegramSection() {
                 href={linkCode.deepLink}
                 target="_blank"
                 rel="noreferrer"
-                className="break-all text-sky-600 underline hover:text-sky-600"
+                className="break-all text-accent-deep underline hover:text-accent-deep"
               >
                 {linkCode.deepLink}
               </a>{" "}

@@ -244,7 +244,7 @@ function CalendarEventDetail({ id }: { id: string }) {
         <p className="text-sm text-ink-mid">{error ?? "Event not found."}</p>
         <Link
           href="/calendar"
-          className="mt-3 inline-block text-[12px] text-sky-600 hover:underline"
+          className="mt-3 inline-block text-[12px] text-accent-deep hover:underline"
         >
           ← Back to calendar
         </Link>
@@ -293,7 +293,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                   href={event.meetingLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center gap-1 text-[12px] text-sky-600 hover:text-sky-600"
+                  className="mt-2 inline-flex items-center gap-1 text-[12px] text-accent-deep hover:text-accent-deep"
                 >
                   Join meeting
                   <ExternalLinkIcon />
@@ -307,7 +307,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(false)}
-                    className="ease-strong rounded-md px-2 py-1 text-[11px] text-ink-dim transition duration-150 hover:text-slate-600 focus-ring min-h-9 min-w-9"
+                    className="ease-strong rounded-md px-2 py-1 text-[11px] text-ink-dim transition duration-150 hover:text-ink-muted focus-ring min-h-9 min-w-9"
                   >
                     Cancel
                   </button>
@@ -358,7 +358,7 @@ function CalendarEventDetail({ id }: { id: string }) {
           <section className="panel-elevated mt-6 rounded-2xl border border-line/70 bg-surface-panel p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-sky-600">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-accent-deep">
                   Prep pack
                 </p>
                 <p className="mt-0.5 text-[11px] text-ink-mid">
@@ -458,7 +458,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                       <span
                         className={`mr-2 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ${
                           c.owner === "USER"
-                            ? "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20"
+                            ? "bg-accent/10 text-accent-deep ring-1 ring-inset ring-accent/20"
                             : "bg-surface-hover text-ink-mid"
                         }`}
                       >

@@ -89,7 +89,7 @@ export default function FeedbackPolicyStudio() {
     <section className="panel-elevated mb-6 rounded-2xl border border-line/70 bg-surface-panel p-4 md:p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-deep">
             Policy Studio
           </p>
           <h2 className="mt-2 text-lg font-semibold text-ink">
@@ -141,7 +141,7 @@ export default function FeedbackPolicyStudio() {
                       </span>
                     )}
                     {candidate.ignored && (
-                      <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ink-mid ring-1 ring-inset ring-slate-200">
+                      <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ink-mid ring-1 ring-inset ring-line">
                         Hidden
                       </span>
                     )}
@@ -167,7 +167,7 @@ export default function FeedbackPolicyStudio() {
                     type="button"
                     onClick={() => setPreference(candidate, "ACTIVE")}
                     disabled={updating === candidate.id}
-                    className="ease-strong h-8 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-accent-dim active:scale-[0.97] disabled:opacity-50"
+                    className="ease-strong h-8 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-accent-dim active:scale-[0.97] disabled:opacity-50"
                   >
                     Apply
                   </button>
@@ -191,10 +191,10 @@ export default function FeedbackPolicyStudio() {
 
 function PolicyBadge({ kind }: { kind: PolicyKind }) {
   const meta = {
-    ALLOW_AFTER_SUGGESTION: ["Allow more often", "bg-accent/10 text-sky-600 ring-accent/20"],
-    REQUIRE_DRAFT_REVIEW: ["Keep draft review", "bg-surface-hover text-ink-mid ring-slate-200"],
+    ALLOW_AFTER_SUGGESTION: ["Allow more often", "bg-accent/10 text-accent-deep ring-accent/20"],
+    REQUIRE_DRAFT_REVIEW: ["Keep draft review", "bg-surface-hover text-ink-mid ring-line"],
     AVOID_SUGGESTION: ["Suggest less", "bg-rose-500/10 text-rose-600 ring-rose-500/20"],
-    LOWER_PRIORITY: ["Lower priority", "bg-surface-hover text-ink-mid ring-slate-200"],
+    LOWER_PRIORITY: ["Lower priority", "bg-surface-hover text-ink-mid ring-line"],
   }[kind];
   return (
     <span

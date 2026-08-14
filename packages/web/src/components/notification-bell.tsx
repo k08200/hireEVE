@@ -430,12 +430,12 @@ export default function NotificationBell({ userId }: { userId: string }) {
             {isAgentNotification(n.title) ? "🤖" : typeIcon[n.type] || "📌"}
           </span>
           <span
-            className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-ink-mid"} ${isAgentNotification(n.title) ? "text-sky-600" : ""}`}
+            className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-ink-mid"} ${isAgentNotification(n.title) ? "text-accent-deep" : ""}`}
           >
             {notificationTitle(n.title)}
           </span>
           {isAgentNotification(n.title) && (
-            <span className="text-[9px] text-sky-600 bg-accent-light/10 px-1 py-0.5 rounded shrink-0">
+            <span className="text-[9px] text-accent-deep bg-accent-light/10 px-1 py-0.5 rounded shrink-0">
               Klorn
             </span>
           )}
@@ -444,7 +444,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
         <p className="text-[13px] md:text-xs text-ink-mid mt-1 line-clamp-2 ml-6">{n.message}</p>
         <div className="flex items-center gap-2 mt-1 ml-6">
           <span className="text-[10px] text-ink-mid">{formatRelative(n.createdAt)}</span>
-          {getNotificationTarget(n) && <span className="text-[10px] text-sky-600">Open</span>}
+          {getNotificationTarget(n) && <span className="text-[10px] text-accent-deep">Open</span>}
         </div>
       </button>
       {n.pendingActionId && n.pendingActionStatus === "PENDING" && (
@@ -453,7 +453,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             type="button"
             onClick={(e) => handleApprovePendingAction(n, e)}
             disabled={!!pendingActionLoading[n.id]}
-            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-accent hover:bg-accent disabled:bg-slate-200 disabled:text-ink-dim disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
+            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-accent hover:bg-accent disabled:bg-surface-inset disabled:text-ink-dim disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
           >
             {pendingActionLoading[n.id] === "approve" ? "..." : "Approve"}
           </button>
@@ -461,7 +461,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             type="button"
             onClick={(e) => handleRejectPendingAction(n, e)}
             disabled={!!pendingActionLoading[n.id]}
-            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-surface-hover hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-ink-soft font-medium transition min-w-[72px] md:min-w-0"
+            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-surface-hover hover:bg-surface-inset disabled:opacity-40 disabled:cursor-not-allowed text-ink-soft font-medium transition min-w-[72px] md:min-w-0"
           >
             {pendingActionLoading[n.id] === "reject" ? "..." : "Reject"}
           </button>
@@ -496,12 +496,12 @@ export default function NotificationBell({ userId }: { userId: string }) {
         <div className="flex items-center gap-2">
           <span className="text-sm">{group.isAgent ? "🤖" : typeIcon[group.type] || "📌"}</span>
           <span
-            className={`text-sm ${group.unreadCount > 0 ? "font-semibold" : "text-ink-mid"} ${group.isAgent ? "text-sky-600" : ""}`}
+            className={`text-sm ${group.unreadCount > 0 ? "font-semibold" : "text-ink-mid"} ${group.isAgent ? "text-accent-deep" : ""}`}
           >
             {label} {group.items.length}
           </span>
           {group.unreadCount > 0 && (
-            <span className="text-[10px] text-sky-600 bg-accent-light/10 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[10px] text-accent-deep bg-accent-light/10 px-1.5 py-0.5 rounded shrink-0">
               New {group.unreadCount}
             </span>
           )}
@@ -586,7 +586,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   </span>
                 )}
                 {unreadCount > 0 && (
-                  <span className="text-[10px] text-sky-600 bg-accent-light/10 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-accent-deep bg-accent-light/10 px-1.5 py-0.5 rounded">
                     {unreadCount}
                   </span>
                 )}
@@ -597,7 +597,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     type="button"
                     onClick={markAllRead}
                     disabled={actionLoading}
-                    className="text-xs text-ink-dim hover:text-sky-600 transition disabled:opacity-40"
+                    className="text-xs text-ink-dim hover:text-accent-deep transition disabled:opacity-40"
                   >
                     {actionLoading ? "..." : "Mark all read"}
                   </button>

@@ -691,7 +691,7 @@ function EmailDetailView() {
                     {PRIORITY_LABELS[email.priority]}
                   </span>
                   {email.needsReply && (
-                    <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-accent/20">
+                    <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-accent-deeper ring-1 ring-inset ring-accent/20">
                       Needs reply
                     </span>
                   )}
@@ -786,7 +786,7 @@ function EmailDetailView() {
                 <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
                   Preview
                 </h2>
-                <p className="text-[15px] leading-7 text-slate-600">{linkifyText(email.snippet)}</p>
+                <p className="text-[15px] leading-7 text-ink-muted">{linkifyText(email.snippet)}</p>
               </section>
             ) : null}
 
@@ -822,7 +822,7 @@ function CandidateProfileCard({
         className="absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b from-accent-muted to-accent"
       />
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-sky-600">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-accent-deep">
           Candidate card
         </h2>
         <span className="text-[11px] tabular-nums text-ink-dim">
@@ -831,7 +831,7 @@ function CandidateProfileCard({
       </div>
       <div className="mb-3 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
         <p className="text-[10px] font-medium uppercase tracking-wider text-ink-dim">Pipeline</p>
-        <p className="mt-1 text-xs font-semibold text-sky-700">
+        <p className="mt-1 text-xs font-semibold text-accent-deeper">
           {candidatePipelineLabel(profile.pipelineStatus)}
         </p>
         <p className="mt-1 text-[11px] leading-5 text-ink-mid">{profile.nextAction}</p>
@@ -845,7 +845,7 @@ function CandidateProfileCard({
             disabled={updating || status === option.status}
             className={`ease-strong rounded-lg border px-2 py-1 text-[11px] font-medium transition duration-150 active:scale-[0.97] disabled:cursor-default focus-ring ${
               status === option.status
-                ? "border-accent-muted bg-accent/10 text-sky-700"
+                ? "border-accent-muted bg-accent/10 text-accent-deeper"
                 : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
             }`}
           >
@@ -867,7 +867,7 @@ function CandidateProfileCard({
           {profile.skills.map((skill) => (
             <span
               key={skill}
-              className="rounded-full border border-line bg-surface-panel/70 px-2 py-1 text-[11px] text-slate-600"
+              className="rounded-full border border-line bg-surface-panel/70 px-2 py-1 text-[11px] text-ink-muted"
             >
               {skill}
             </span>
@@ -877,14 +877,14 @@ function CandidateProfileCard({
       {profile.links.length > 0 && (
         <div className="mt-3 space-y-1">
           {profile.links.map((link) => (
-            <p key={link} className="break-all text-[11px] text-sky-600">
+            <p key={link} className="break-all text-[11px] text-accent-deep">
               {link}
             </p>
           ))}
         </div>
       )}
       {profile.missingFields.length > 0 && (
-        <p className="mt-3 text-[11px] text-sky-700">
+        <p className="mt-3 text-[11px] text-accent-deeper">
           Needs follow-up: {profile.missingFields.map(candidateMissingLabel).join(", ")}
         </p>
       )}
@@ -976,7 +976,7 @@ function ThreadContextPanel({
                 {message.summary || message.snippet || message.subject || "No summary"}
               </p>
               {message.actionItems.length > 0 && (
-                <p className="mt-1 text-[10px] font-medium text-sky-600">
+                <p className="mt-1 text-[10px] font-medium text-accent-deep">
                   {message.actionItems.length} tasks
                 </p>
               )}
@@ -1218,7 +1218,7 @@ function ReplyDraftBox({
           type="button"
           onClick={onGenerate}
           disabled={drafting}
-          className="ease-strong inline-flex h-9 shrink-0 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] disabled:opacity-50 focus-ring"
+          className="ease-strong inline-flex h-9 shrink-0 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] disabled:opacity-50 focus-ring"
         >
           {drafting ? "Drafting..." : draft ? "Regenerate" : "Draft reply"}
         </button>
@@ -1237,7 +1237,7 @@ function ReplyDraftBox({
             onClick={() => setMode(option.value)}
             className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-medium transition duration-150 active:scale-[0.97] focus-ring ${
               mode === option.value
-                ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
+                ? "bg-accent/10 text-accent-deeper ring-1 ring-inset ring-accent/30"
                 : "text-ink-mid hover:bg-surface-raised hover:text-ink"
             }`}
           >
@@ -1255,7 +1255,7 @@ function ReplyDraftBox({
               key={item.label}
               type="button"
               onClick={() => onIntentChange(item.intent)}
-              className="ease-strong rounded-full border border-line bg-surface-panel/70 px-3 py-1.5 text-[11px] text-ink-mid transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] focus-ring"
+              className="ease-strong rounded-full border border-line bg-surface-panel/70 px-3 py-1.5 text-[11px] text-ink-mid transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] focus-ring"
             >
               {item.label}
             </button>
@@ -1299,10 +1299,10 @@ function ReplyDraftBox({
                   type="checkbox"
                   checked={includeBriefAttachment}
                   onChange={(e) => onIncludeBriefAttachmentChange(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
                 />
                 <span>
-                  <span className="block text-[11px] font-medium text-sky-700">
+                  <span className="block text-[11px] font-medium text-accent-deeper">
                     Attach the attachment analysis brief
                   </span>
                   <span className="mt-0.5 block text-[10px] leading-4 text-ink-dim">
@@ -1323,7 +1323,7 @@ function ReplyDraftBox({
                         : attachments.map((attachment) => attachment.id),
                     )
                   }
-                  className="text-[11px] font-medium text-ink-dim transition duration-150 hover:text-sky-700 focus-ring"
+                  className="text-[11px] font-medium text-ink-dim transition duration-150 hover:text-accent-deeper focus-ring"
                 >
                   {selectedCount === attachments.length ? "Clear all" : "Select all"}
                 </button>
@@ -1338,9 +1338,9 @@ function ReplyDraftBox({
                       type="checkbox"
                       checked={selectedAttachmentIds.includes(attachment.id)}
                       onChange={() => toggleAttachment(attachment.id)}
-                      className="h-3.5 w-3.5 rounded border-slate-300 bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
+                      className="h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
                     />
-                    <span className="min-w-0 flex-1 truncate text-[11px] text-slate-600">
+                    <span className="min-w-0 flex-1 truncate text-[11px] text-ink-muted">
                       {attachment.filename}
                     </span>
                     <span className="shrink-0 text-[10px] text-ink-dim">
@@ -1358,7 +1358,7 @@ function ReplyDraftBox({
                   href={gmailDraftUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="ease-strong inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-sky-700 transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] focus-ring"
+                  className="ease-strong inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] focus-ring"
                 >
                   Open Gmail draft
                 </a>
@@ -1416,7 +1416,7 @@ function KlornAnalysis({
       <div className="absolute bottom-0 left-0 top-0 w-[3px] bg-gradient-to-b from-accent-muted to-accent" />
       <div className="pl-2">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-600">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-accent-deep">
             Klorn judgment
           </span>
           <div className="flex items-center gap-1.5">
@@ -1524,11 +1524,11 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
       <ul className="space-y-1">
         {actionItems.map((a, i) => (
           <li key={i} className="flex items-center gap-2 text-xs">
-            <span className={created.has(i) ? "text-teal-600" : "text-sky-600"}>
+            <span className={created.has(i) ? "text-teal-600" : "text-accent-deep"}>
               {created.has(i) ? "✓" : "□"}
             </span>
             <span
-              className={`flex-1 ${created.has(i) ? "text-ink-dim line-through" : "text-slate-600"}`}
+              className={`flex-1 ${created.has(i) ? "text-ink-dim line-through" : "text-ink-muted"}`}
             >
               {a}
             </span>
@@ -1537,7 +1537,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
                 type="button"
                 onClick={() => createTask(i)}
                 disabled={creating !== null}
-                className="ease-strong shrink-0 rounded-md border border-line bg-surface-panel/70 px-1.5 py-0.5 text-[10px] font-medium text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:opacity-40 focus-ring"
+                className="ease-strong shrink-0 rounded-md border border-line bg-surface-panel/70 px-1.5 py-0.5 text-[10px] font-medium text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:opacity-40 focus-ring"
               >
                 {creating === i ? "…" : "+ task"}
               </button>
@@ -1551,7 +1551,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
 
 function ReplyNeededPill() {
   return (
-    <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-accent/20">
+    <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-accent-deeper ring-1 ring-inset ring-accent/20">
       Needs reply
     </span>
   );
@@ -1611,7 +1611,7 @@ function LabelFeedbackControl({
 
   if (feedback) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-sky-700">
+      <span className="inline-flex items-center gap-1 text-[11px] text-accent-deeper">
         <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         Reported: {PRIORITY_LABELS[feedback.originalPriority]} {"->"}{" "}
         {PRIORITY_LABELS[feedback.correctedPriority]}
@@ -1737,7 +1737,7 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
               disabled={!!submitting}
               className={`h-7 rounded-lg border px-2 text-[11px] transition disabled:opacity-50 focus-ring ${
                 selected
-                  ? "border-accent-muted bg-accent/10 text-sky-700"
+                  ? "border-accent-muted bg-accent/10 text-accent-deeper"
                   : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
               }`}
             >

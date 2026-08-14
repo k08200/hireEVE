@@ -613,15 +613,15 @@ function CommitmentsPanel({ commitments }: { commitments: CommitmentItem[] }) {
       <div className="border-b border-line-soft px-4 py-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink">Commitments</h2>
-          <span className="rounded-md bg-accent-dim px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-sky-700">
+          <span className="rounded-md bg-accent-dim px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-accent-deeper">
             {visible.length}
           </span>
         </div>
         {/* Plain-language legend — without it the extracted sentences read as
             unexplained AI output ("뭔지 모르겠고", founder 2026-07-22). */}
         <p className="mt-1 text-[11px] leading-4 text-ink-dim">
-          Promises Klorn spotted in your mail — <span className="text-sky-600">Waiting on</span> =
-          they promised you, <span className="text-amber-600">I owe</span> = you promised them.
+          Promises Klorn spotted in your mail — <span className="text-accent-deep">Waiting on</span>{" "}
+          = they promised you, <span className="text-amber-600">I owe</span> = you promised them.
         </p>
       </div>
       <ul className="divide-y divide-line-soft">
@@ -640,7 +640,7 @@ function CommitmentsPanel({ commitments }: { commitments: CommitmentItem[] }) {
                   className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ring-1 ring-inset ${
                     iOwe
                       ? "bg-amber-500/10 text-amber-600 ring-amber-500/20"
-                      : "bg-accent/10 text-sky-700 ring-accent/20"
+                      : "bg-accent/10 text-accent-deeper ring-accent/20"
                   }`}
                 >
                   {iOwe ? "I owe" : "Waiting on"}
@@ -760,18 +760,24 @@ function OnboardingHint() {
       {/* DESKTOP — one-line compact strip; the tour never outweighs the queue. */}
       <div className="mb-4 hidden items-center gap-3 rounded-lg border border-line/60 bg-surface-panel/50 px-3 py-1.5 text-[12.5px] md:flex">
         <p className="min-w-0 flex-1 truncate text-xs text-ink-mid">
-          <span className="font-semibold text-sky-700">{t("inbox.tourTitle")}</span>
+          <span className="font-semibold text-accent-deeper">{t("inbox.tourTitle")}</span>
           <span className="mx-1.5 text-slate-300">·</span>
           Approve decisions here, tune the{" "}
-          <Link href="/inbox/firewall" className="font-medium text-sky-600 hover:text-sky-700">
+          <Link
+            href="/inbox/firewall"
+            className="font-medium text-accent-deep hover:text-accent-deeper"
+          >
             Firewall board
           </Link>
           , connect Google in{" "}
-          <Link href="/settings" className="font-medium text-sky-600 hover:text-sky-700">
+          <Link href="/settings" className="font-medium text-accent-deep hover:text-accent-deeper">
             Settings
           </Link>
           , then check{" "}
-          <Link href="/inbox/receipt" className="font-medium text-sky-600 hover:text-sky-700">
+          <Link
+            href="/inbox/receipt"
+            className="font-medium text-accent-deep hover:text-accent-deeper"
+          >
             Today's receipt
           </Link>
           .
@@ -811,21 +817,21 @@ function OnboardingHint() {
               </li>
               <li>
                 2.{" "}
-                <Link href="/inbox/firewall" className="text-sky-600 hover:text-sky-700">
+                <Link href="/inbox/firewall" className="text-accent-deep hover:text-accent-deeper">
                   Firewall board
                 </Link>{" "}
                 — see every signal sorted into SILENT / QUEUE / PUSH. Move what we got wrong.
               </li>
               <li>
                 3.{" "}
-                <Link href="/settings" className="text-sky-600 hover:text-sky-700">
+                <Link href="/settings" className="text-accent-deep hover:text-accent-deeper">
                   Settings → Connections
                 </Link>{" "}
                 — connect Google so Klorn can read mail and calendar.
               </li>
               <li>
                 4.{" "}
-                <Link href="/inbox/receipt" className="text-sky-600 hover:text-sky-700">
+                <Link href="/inbox/receipt" className="text-accent-deep hover:text-accent-deeper">
                   Today's receipt
                 </Link>{" "}
                 — what Klorn silenced, surfaced, and auto-handled today.
@@ -836,14 +842,14 @@ function OnboardingHint() {
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="rounded-md border border-line px-2.5 py-1 text-[11px] text-ink-mid transition hover:border-slate-300 hover:text-ink"
+              className="rounded-md border border-line px-2.5 py-1 text-[11px] text-ink-mid transition hover:border-line-strong hover:text-ink"
             >
               {expanded ? "Hide" : "Show"}
             </button>
             <button
               type="button"
               onClick={dismiss}
-              className="rounded-md border border-line px-2.5 py-1 text-[11px] text-ink-mid transition hover:border-slate-300 hover:text-ink"
+              className="rounded-md border border-line px-2.5 py-1 text-[11px] text-ink-mid transition hover:border-line-strong hover:text-ink"
             >
               Dismiss
             </button>
@@ -1023,7 +1029,7 @@ function ReplyNeededPanel({ hero = false }: { hero?: boolean }) {
       <div className="flex items-center justify-between border-b border-line-soft px-4 py-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-ink">Reply Needed</h2>
-          <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-sky-700 ring-1 ring-inset ring-accent/20">
+          <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-accent-deeper ring-1 ring-inset ring-accent/20">
             {emails.length}
           </span>
         </div>
@@ -1086,7 +1092,7 @@ function ReplyNeededPanel({ hero = false }: { hero?: boolean }) {
       <div className="flex justify-end border-t border-line-soft px-4 py-2.5">
         <Link
           href="/email"
-          className="text-xs font-medium text-sky-600 transition duration-150 hover:text-sky-700"
+          className="text-xs font-medium text-accent-deep transition duration-150 hover:text-accent-deeper"
         >
           Open mail →
         </Link>
@@ -1298,7 +1304,7 @@ function ActionCard({
       {emailPreview && (
         <div className="mx-5 mb-4 rounded-lg border border-line bg-surface-raised">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-line px-3 py-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-sky-600">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent-deep">
               Email to send
             </span>
             <span className="text-xs text-ink-dim">To: {emailPreview.to}</span>
@@ -1346,7 +1352,7 @@ function ActionCard({
             onClick={onSnooze}
             disabled={!!loading}
             title="Remind me in 1 hour"
-            className="ease-strong inline-flex min-h-11 items-center justify-center gap-1 rounded-lg px-3 text-xs text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:opacity-50"
+            className="ease-strong inline-flex min-h-11 items-center justify-center gap-1 rounded-lg px-3 text-xs text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:opacity-50"
           >
             {loading === "snooze" ? (
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-500" />
@@ -1596,7 +1602,7 @@ function MobileDecisionQueue({
           onClick={onRefresh}
           disabled={loading}
           aria-label="Refresh"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-hover text-ink-mid transition active:bg-slate-200 disabled:opacity-50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-hover text-ink-mid transition active:bg-surface-inset disabled:opacity-50"
         >
           <svg
             aria-hidden="true"
@@ -1761,7 +1767,7 @@ function MobileActionCard({
         {/* Outbound body inline so a send_email can't be approved unseen. */}
         {emailPreview && (
           <div className="mt-3 rounded-xl border border-line bg-surface-panel p-3">
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-sky-600">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent-deep">
               Email to send
             </p>
             <p className="mt-1 break-words text-[11px] text-ink-dim">To: {emailPreview.to}</p>

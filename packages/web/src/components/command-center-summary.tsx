@@ -136,7 +136,7 @@ function DecisionTrace({ item }: { item: AttentionItem }) {
           Confidence {Math.round(decision.confidence * 100)}%
         </span>
         {decision.suggestedAction && (
-          <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-600 ring-1 ring-inset ring-accent/20">
+          <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent-deep ring-1 ring-inset ring-accent/20">
             {displayText(decision.suggestedAction)}
           </span>
         )}
@@ -158,7 +158,7 @@ function badgeFor(item: AttentionItem): { label: string; className: string } {
     case "pending_action":
       return {
         label: "Needs approval",
-        className: "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20",
+        className: "bg-accent/10 text-accent-deep ring-1 ring-inset ring-accent/20",
       };
     case "overdue_task":
       return {
@@ -168,12 +168,12 @@ function badgeFor(item: AttentionItem): { label: string; className: string } {
     case "today_event":
       return {
         label: "Starting soon",
-        className: "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20",
+        className: "bg-accent/10 text-accent-deep ring-1 ring-inset ring-accent/20",
       };
     case "agent_proposal":
       return {
         label: "Decision proposal",
-        className: "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20",
+        className: "bg-accent/10 text-accent-deep ring-1 ring-inset ring-accent/20",
       };
     case "commitment":
       if (item.attentionType === "COMMITMENT_OVERDUE") {

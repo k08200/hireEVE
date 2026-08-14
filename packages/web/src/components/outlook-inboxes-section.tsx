@@ -174,7 +174,8 @@ export function OutlookInboxesSection() {
       ) : (
         <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50/60 p-4">
           <p className="text-sm text-ink">
-            Multiple inboxes is a <span className="font-semibold text-sky-600">Pro</span> feature.
+            Multiple inboxes is a <span className="font-semibold text-accent-deep">Pro</span>{" "}
+            feature.
           </p>
           <p className="mt-1 text-xs text-ink-mid">
             Free covers your primary Google account. Upgrade in the Subscription section to run the

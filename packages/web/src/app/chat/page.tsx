@@ -87,7 +87,7 @@ function ChatView() {
                   <button
                     type="button"
                     onClick={() => send(t(key))}
-                    className="focus-ring ease-strong row-wash min-h-[44px] w-full rounded-xl border border-line bg-surface-panel/70 px-4 py-2.5 text-left text-sm text-slate-600 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:text-ink active:scale-[0.99]"
+                    className="focus-ring ease-strong row-wash min-h-[44px] w-full rounded-xl border border-line bg-surface-panel/70 px-4 py-2.5 text-left text-sm text-ink-muted shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:text-ink active:scale-[0.99]"
                   >
                     {t(key)}
                   </button>

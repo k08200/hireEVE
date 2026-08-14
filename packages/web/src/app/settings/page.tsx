@@ -67,8 +67,8 @@ interface UserProfile {
 // v2 light-surface equivalents of agentModeClasses (the helper keeps the
 // legacy dark palette; presentation-only mapping, same mode semantics).
 function agentModeLightClasses(mode: AgentMode, active: boolean): string {
-  if (!active) return "border-line bg-surface-panel/70 text-ink-mid hover:border-slate-300";
-  if (mode === "SHADOW") return "border-slate-300 bg-surface-hover text-ink-soft";
+  if (!active) return "border-line bg-surface-panel/70 text-ink-mid hover:border-line-strong";
+  if (mode === "SHADOW") return "border-line-strong bg-surface-hover text-ink-soft";
   if (mode === "AUTO") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
@@ -1125,7 +1125,7 @@ export default function SettingsPage() {
                 id="reply-tone"
                 value={replyTone}
                 onChange={(e) => updateReplyTone(e.target.value)}
-                className="min-h-11 w-full rounded-lg border border-slate-300 bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                className="min-h-11 w-full rounded-lg border border-line-strong bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
               >
                 {(replyTones.length > 0
                   ? replyTones
@@ -1160,7 +1160,7 @@ export default function SettingsPage() {
                 id="notification-language"
                 value={notificationLanguage}
                 onChange={(e) => updateNotificationLanguage(e.target.value)}
-                className="min-h-11 w-full rounded-lg border border-slate-300 bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                className="min-h-11 w-full rounded-lg border border-line-strong bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
               >
                 <option value="en">English</option>
                 <option value="ko">한국어</option>
@@ -1258,7 +1258,7 @@ export default function SettingsPage() {
                       !notifPrefs.notifyDailyBriefing &&
                       !notifPrefs.notifyEmailCandidate
                     }
-                    className="ease-strong min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm text-ink-soft transition duration-150 hover:bg-surface-hover active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent"
+                    className="ease-strong min-h-11 rounded-lg border border-line-strong px-3 py-2 text-sm text-ink-soft transition duration-150 hover:bg-surface-hover active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent"
                   >
                     Essentials only
                   </button>
@@ -1302,7 +1302,7 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={notifPrefs[row.key]}
                       onChange={(e) => updateNotifPref(row.key, e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-slate-300 bg-surface-raised text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
+                      className="mt-0.5 w-4 h-4 rounded border-line-strong bg-surface-raised text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
                     />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-ink">{row.label}</p>
@@ -1436,8 +1436,8 @@ export default function SettingsPage() {
                             onClick={() => toggleAlwaysAllowedTool(tool)}
                             className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                               enabled
-                                ? "bg-sky-50 border-sky-200 text-sky-700"
-                                : "bg-surface-panel/70 border-line text-ink-mid hover:border-slate-300"
+                                ? "bg-sky-50 border-sky-200 text-accent-deeper"
+                                : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                             }`}
                             aria-pressed={enabled}
                           >
@@ -1483,7 +1483,7 @@ export default function SettingsPage() {
                     className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                       autoMarkReadEnabled
                         ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                        : "bg-surface-panel/70 border-line text-ink-mid hover:border-slate-300"
+                        : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                     }`}
                     aria-pressed={autoMarkReadEnabled}
                   >
@@ -1523,8 +1523,8 @@ export default function SettingsPage() {
                     }}
                     className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                       proactiveActionsEnabled
-                        ? "bg-sky-50 border-sky-200 text-sky-700"
-                        : "bg-surface-panel/70 border-line text-ink-mid hover:border-slate-300"
+                        ? "bg-sky-50 border-sky-200 text-accent-deeper"
+                        : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                     }`}
                     aria-pressed={proactiveActionsEnabled}
                   >
@@ -1563,7 +1563,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={loadAgentLogs}
-                className="inline-flex min-h-11 items-center text-sm text-sky-600 transition hover:text-sky-700"
+                className="inline-flex min-h-11 items-center text-sm text-accent-deep transition hover:text-accent-deeper"
               >
                 {agentLogsLoading ? "Loading..." : "View recent activity"}
               </button>
@@ -1613,7 +1613,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={loadLearnedPatterns}
                 disabled={patternsLoading}
-                className="inline-flex min-h-11 items-center text-sm text-sky-600 transition hover:text-sky-700 disabled:opacity-50"
+                className="inline-flex min-h-11 items-center text-sm text-accent-deep transition hover:text-accent-deeper disabled:opacity-50"
               >
                 {patternsLoading
                   ? "Analyzing..."
@@ -1639,7 +1639,7 @@ export default function SettingsPage() {
                               ? "border-blue-200 bg-blue-50 text-blue-600"
                               : p.type === "tool_preference"
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                                : "border-sky-200 bg-sky-50 text-sky-600";
+                                : "border-sky-200 bg-sky-50 text-accent-deep";
                         return (
                           <div
                             key={i}
@@ -1885,7 +1885,7 @@ export default function SettingsPage() {
           <h2 className={SECTION_TITLE}>About</h2>
           <div className={`${PANEL} p-4`}>
             <p className="text-sm text-ink-mid">
-              <span className="text-sky-600 font-medium">Klorn</span> · Decision OS
+              <span className="text-accent-deep font-medium">Klorn</span> · Decision OS
             </p>
             <p className="text-sm text-ink-dim mt-1">
               Built to reduce scattered tabs and make the next decision clearer.

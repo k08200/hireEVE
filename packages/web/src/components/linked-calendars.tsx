@@ -84,7 +84,7 @@ export function LinkedCalendars() {
   });
 
   return (
-    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4 text-slate-600">
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4 text-ink-muted">
       <h3 className="text-sm font-medium text-ink">Connected calendars</h3>
       <p className="mt-1 text-xs text-ink-mid">
         Add a work Google account so conflict checks cover a calendar that lives on a different

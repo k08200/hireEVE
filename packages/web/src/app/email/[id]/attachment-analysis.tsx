@@ -185,7 +185,7 @@ export function AttachmentAnalysis({
             type="button"
             onClick={onReanalyze}
             disabled={reanalyzing}
-            className="rounded border border-line bg-surface-hover px-2 py-1 text-[11px] text-ink-mid transition hover:bg-slate-200 disabled:opacity-50 focus-ring"
+            className="rounded border border-line bg-surface-hover px-2 py-1 text-[11px] text-ink-mid transition hover:bg-surface-inset disabled:opacity-50 focus-ring"
           >
             {reanalyzing ? "Analyzing..." : "Reanalyze"}
           </button>
@@ -226,7 +226,7 @@ export function AttachmentAnalysis({
                 type="button"
                 onClick={() => downloadAttachment(attachment)}
                 disabled={downloading === attachment.id}
-                className="rounded border border-line bg-surface-panel px-2 py-0.5 text-[10px] text-ink-mid transition hover:border-slate-300 hover:text-ink-mid disabled:opacity-50 focus-ring"
+                className="rounded border border-line bg-surface-panel px-2 py-0.5 text-[10px] text-ink-mid transition hover:border-line-strong hover:text-ink-mid disabled:opacity-50 focus-ring"
               >
                 {downloading === attachment.id ? "Downloading" : "Download original"}
               </button>
@@ -533,7 +533,7 @@ function AttachmentCorrectionForm({
           type="button"
           onClick={save}
           disabled={saving}
-          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white transition hover:bg-sky-600 disabled:opacity-50 focus-ring"
+          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white transition hover:bg-accent-deep disabled:opacity-50 focus-ring"
         >
           {saving ? "Saving..." : "Save changes"}
         </button>

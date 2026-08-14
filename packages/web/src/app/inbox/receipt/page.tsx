@@ -150,7 +150,7 @@ function ReceiptView() {
                 type="button"
                 onClick={() => handleUndo(item.id)}
                 disabled={!!undoLoading[item.id]}
-                className="text-[11px] text-ink-dim transition duration-150 hover:text-sky-700 disabled:opacity-50 focus-ring min-h-9 min-w-9"
+                className="text-[11px] text-ink-dim transition duration-150 hover:text-accent-deeper disabled:opacity-50 focus-ring min-h-9 min-w-9"
               >
                 {undoLoading[item.id] ? "Creating undo..." : "Request undo"}
               </button>
@@ -180,7 +180,7 @@ function ReceiptView() {
             title="Queued in inbox"
             description="Items placed in your decision queue — no push sent"
             accentBar="bg-accent-light"
-            labelClass="text-sky-600"
+            labelClass="text-accent-deep"
             items={receipt.queued}
           />
         )}
@@ -209,7 +209,7 @@ function ReceiptView() {
       <div className="mt-8 flex justify-center">
         <Link
           href="/inbox"
-          className="text-sm text-ink-dim transition duration-150 hover:text-slate-600"
+          className="text-sm text-ink-dim transition duration-150 hover:text-ink-muted"
         >
           ← Back to Decision Queue
         </Link>

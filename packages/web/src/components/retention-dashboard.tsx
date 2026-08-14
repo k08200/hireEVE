@@ -32,7 +32,7 @@ function Stat({
       }`}
     >
       <div className="text-2xl font-semibold tracking-tight text-ink tabular-nums">{value}</div>
-      <div className="mt-1 text-xs font-medium text-slate-600">{label}</div>
+      <div className="mt-1 text-xs font-medium text-ink-muted">{label}</div>
       {hint ? <div className="mt-0.5 text-[11px] text-ink-dim">{hint}</div> : null}
     </div>
   );

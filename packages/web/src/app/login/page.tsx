@@ -225,7 +225,7 @@ function LoginForm() {
 
           <Link
             href="/early-access"
-            className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-sky-600 focus-ring"
+            className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-accent-deep focus-ring"
           >
             {t("auth.requestEarlyAccess")}
           </Link>
@@ -233,7 +233,7 @@ function LoginForm() {
           <a
             href={`${API_BASE}/api/auth/google/login`}
             onClick={handleGoogleClick}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-transparent text-sm font-medium text-ink-mid transition hover:border-slate-300 hover:text-ink focus-ring"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-transparent text-sm font-medium text-ink-mid transition hover:border-line-strong hover:text-ink focus-ring"
           >
             <GoogleMark />
             {t("auth.googleApprovedSignIn")}
@@ -253,7 +253,7 @@ function LoginForm() {
             <a
               key={provider.id}
               href={`${API_BASE}/api/auth/${provider.id}/login`}
-              className="mt-3 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-transparent text-sm font-medium text-ink-soft transition hover:border-slate-300 hover:text-ink focus-ring"
+              className="mt-3 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-transparent text-sm font-medium text-ink-soft transition hover:border-line-strong hover:text-ink focus-ring"
             >
               {provider.id === "apple" ? <AppleMark /> : <NaverMark />}
               {provider.id === "apple" ? t("auth.continueWithApple") : t("auth.continueWithNaver")}
@@ -269,7 +269,7 @@ function LoginForm() {
                 href="https://github.com/k08200/klorn/blob/main/docs/doctrine/deterministic-floor.md"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline decoration-slate-300 underline-offset-2 hover:text-sky-600 hover:decoration-accent-muted"
+                className="underline decoration-slate-300 underline-offset-2 hover:text-accent-deep hover:decoration-accent-muted"
               >
                 {t("auth.readDoctrine")}
               </a>
@@ -280,11 +280,11 @@ function LoginForm() {
       )}
 
       <div className="my-5 flex items-center gap-3">
-        <div className="h-px flex-1 bg-slate-200" />
+        <div className="h-px flex-1 bg-surface-inset" />
         <span className="text-xs text-ink-mid">
           {signupOpen ? t("auth.orContinueEmail") : t("auth.orSignInEmail")}
         </span>
-        <div className="h-px flex-1 bg-slate-200" />
+        <div className="h-px flex-1 bg-surface-inset" />
       </div>
 
       {signupOpen && (
@@ -356,7 +356,7 @@ function LoginForm() {
             {mode === "login" && (
               <Link
                 href="/reset-password"
-                className="inline-flex min-h-10 items-center text-xs text-ink-mid transition hover:text-sky-600"
+                className="inline-flex min-h-10 items-center text-xs text-ink-mid transition hover:text-accent-deep"
               >
                 {t("auth.resetPassword")}
               </Link>
@@ -380,7 +380,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-ink-dim focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-accent-deep disabled:cursor-not-allowed disabled:bg-surface-inset disabled:text-ink-dim focus-ring"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -402,7 +402,7 @@ function LoginForm() {
             <button
               type="button"
               onClick={() => changeMode(mode === "login" ? "register" : "login")}
-              className="inline-flex min-h-10 items-center font-medium text-sky-600 transition hover:text-accent focus-ring"
+              className="inline-flex min-h-10 items-center font-medium text-accent-deep transition hover:text-accent focus-ring"
             >
               {mode === "login" ? t("auth.switchToSignUp") : t("auth.switchToLogIn")}
             </button>
@@ -415,7 +415,7 @@ function LoginForm() {
             {t("auth.approvedCantSignIn")}{" "}
             <Link
               href="/reset-password"
-              className="inline-flex min-h-10 items-center font-medium text-sky-600 transition hover:text-accent"
+              className="inline-flex min-h-10 items-center font-medium text-accent-deep transition hover:text-accent"
             >
               {t("auth.resetYourPassword")}
             </Link>

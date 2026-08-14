@@ -58,7 +58,7 @@ export const TIER_VISUAL: Record<
     label: "SILENT",
     description: "Recorded only. Klorn decided this wasn't worth surfacing.",
     plane: "tier-plane-silent border-line bg-surface-raised opacity-90 hover:opacity-100",
-    card: "border-line bg-surface-panel hover:border-slate-300",
+    card: "border-line bg-surface-panel hover:border-line-strong",
     accent: "text-ink-dim",
     dot: "text-ink-dim",
   },
@@ -77,7 +77,7 @@ export const TIER_VISUAL: Record<
 const TARGET_BUTTON: Record<Tier, string> = {
   PUSH: "hover:border-tier-push/50 hover:text-tier-push",
   QUEUE: "hover:border-tier-queue/50 hover:text-tier-queue",
-  SILENT: "hover:border-slate-300 hover:text-slate-600",
+  SILENT: "hover:border-line-strong hover:text-ink-muted",
   AUTO: "hover:border-tier-auto/50 hover:text-tier-auto",
 };
 

@@ -196,14 +196,14 @@ function WaitlistPageInner() {
                           <button
                             type="button"
                             onClick={() => copyEmail(entry)}
-                            className="break-all text-base font-semibold text-ink transition duration-150 hover:text-sky-600"
+                            className="break-all text-base font-semibold text-ink transition duration-150 hover:text-accent-deep"
                             title="Copy email"
                           >
                             {entry.email}
                           </button>
                           <StatusBadge status={entry.status} />
                           {copiedId === entry.id && (
-                            <span className="text-xs text-sky-600">Copied</span>
+                            <span className="text-xs text-accent-deep">Copied</span>
                           )}
                         </div>
                         <div className="mt-1 text-xs tabular-nums text-ink-dim">
@@ -266,7 +266,7 @@ function StatusBadge({ status }: { status: WaitlistEntry["status"] }) {
   const map: Record<WaitlistEntry["status"], { label: string; cls: string }> = {
     PENDING: { label: "Pending", cls: "bg-amber-500/10 text-amber-600 ring-amber-500/20" },
     APPROVED: { label: "Approved", cls: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20" },
-    REJECTED: { label: "Rejected", cls: "bg-surface-hover text-ink-mid ring-slate-200" },
+    REJECTED: { label: "Rejected", cls: "bg-surface-hover text-ink-mid ring-line" },
   };
   const s = map[status];
   return (

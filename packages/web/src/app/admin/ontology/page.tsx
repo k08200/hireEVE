@@ -184,7 +184,7 @@ function OntologyPageInner() {
                 <>
                   <h3 className="mb-1 text-xs uppercase tracking-wide text-ink-dim">
                     Effective (live){" "}
-                    <span className="text-sky-600">
+                    <span className="text-accent-deep">
                       · overridden: {data.relation.overriddenKnobs.join(", ")}
                     </span>
                   </h3>
@@ -246,7 +246,7 @@ function Proposals({
   return (
     <section className="panel-elevated mb-4 rounded-2xl border border-sky-200/70 bg-surface-panel p-4 md:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-sky-600">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-accent-deep">
           Proposals (advisory)
         </h2>
         <button
@@ -272,7 +272,7 @@ function Proposals({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-mono text-ink">{p.knob}</span>
-                  <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-accent/20">
+                  <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-accent-deep ring-1 ring-inset ring-accent/20">
                     {p.direction}
                   </span>
                   <span className="tabular-nums text-ink">
@@ -358,7 +358,9 @@ function Applied({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="panel-elevated mb-4 rounded-2xl border border-line/70 bg-surface-panel p-4 md:p-5">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-sky-600">{title}</h2>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-accent-deep">
+        {title}
+      </h2>
       {children}
     </section>
   );

@@ -30,8 +30,8 @@ interface EmailFeedbackResponse {
 
 const PRIORITY_STYLES: Record<EmailPriority, string> = {
   URGENT: "bg-rose-500/10 text-rose-600 ring-rose-500/20",
-  NORMAL: "bg-accent/10 text-sky-600 ring-accent/20",
-  LOW: "bg-surface-hover text-ink-mid ring-slate-200",
+  NORMAL: "bg-accent/10 text-accent-deep ring-accent/20",
+  LOW: "bg-surface-hover text-ink-mid ring-line",
 };
 
 function PriorityPill({ priority }: { priority: EmailPriority }) {

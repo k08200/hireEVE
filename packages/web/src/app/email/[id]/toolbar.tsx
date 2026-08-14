@@ -42,7 +42,7 @@ export function UndoActionBanner({
           type="button"
           onClick={onUndo}
           disabled={busy}
-          className="min-h-10 rounded-md bg-accent px-3 text-xs font-semibold text-white transition hover:bg-sky-600 disabled:opacity-50 focus-ring"
+          className="min-h-10 rounded-md bg-accent px-3 text-xs font-semibold text-white transition hover:bg-accent-deep disabled:opacity-50 focus-ring"
         >
           {busy ? "Restoring..." : "Undo"}
         </button>
@@ -154,7 +154,7 @@ export function EmailReminderQuickActions({
             type="button"
             onClick={() => onCreate(option)}
             disabled={disabled || busyKey !== null}
-            className="min-h-9 rounded-md border border-line bg-surface-raised px-3 text-xs text-ink-mid transition hover:border-slate-300 hover:text-ink disabled:cursor-not-allowed disabled:opacity-45 focus-ring"
+            className="min-h-9 rounded-md border border-line bg-surface-raised px-3 text-xs text-ink-mid transition hover:border-line-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-45 focus-ring"
           >
             {busyKey === option.key ? "Setting..." : option.label}
           </button>

@@ -168,7 +168,7 @@ export default function PwaPrompts() {
           <button
             type="button"
             onClick={handleUpdate}
-            className="min-h-10 px-3 py-1 text-xs font-medium bg-accent hover:bg-sky-600 text-white rounded-lg transition whitespace-nowrap"
+            className="min-h-10 px-3 py-1 text-xs font-medium bg-accent hover:bg-accent-deep text-white rounded-lg transition whitespace-nowrap"
           >
             Refresh
           </button>
@@ -260,7 +260,7 @@ export default function PwaPrompts() {
               </span>
               <span>
                 Tap the Share icon{" "}
-                <span aria-hidden="true" className="text-sky-600">
+                <span aria-hidden="true" className="text-accent-deep">
                   ⎋
                 </span>{" "}
                 in Safari's toolbar

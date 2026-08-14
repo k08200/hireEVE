@@ -40,7 +40,7 @@ export default function Card({
     <div
       className={`panel-elevated bg-surface-panel border border-line/70 rounded-2xl ${paddings[padding]} ${variantStyles[variant]} ${
         hover
-          ? "hover:border-slate-300 hover:bg-surface-raised transition-colors cursor-pointer"
+          ? "hover:border-line-strong hover:bg-surface-raised transition-colors cursor-pointer"
           : ""
       } ${className}`}
       {...props}

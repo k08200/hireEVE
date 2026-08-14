@@ -73,7 +73,7 @@ function OnboardingFlow() {
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         {/* Brand mark */}
-        <p className="mb-10 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-600">
+        <p className="mb-10 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent-deep">
           Klorn
         </p>
 
@@ -92,7 +92,7 @@ function OnboardingFlow() {
                   ? "w-6 bg-accent"
                   : s < step
                     ? "w-1.5 bg-accent-muted/40"
-                    : "w-1.5 bg-slate-200"
+                    : "w-1.5 bg-surface-inset"
               }`}
             />
           ))}
@@ -140,7 +140,7 @@ function WelcomeStep({
           Prefer Naver Mail?{" "}
           <Link
             href="/settings"
-            className="font-medium text-sky-600 underline decoration-sky-200 underline-offset-2 hover:text-accent"
+            className="font-medium text-accent-deep underline decoration-sky-200 underline-offset-2 hover:text-accent"
           >
             Connect it via IMAP in Settings
           </Link>
@@ -286,7 +286,7 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
       </div>
 
       <div className="panel-elevated mt-4 rounded-2xl border border-sky-200/70 bg-surface-panel p-4">
-        <p className="text-xs font-semibold text-sky-700">What happens next</p>
+        <p className="text-xs font-semibold text-accent-deeper">What happens next</p>
         <ul className="mt-2 space-y-1.5 text-xs text-ink-mid">
           <li>Your morning briefing will be ready before you wake up.</li>
           <li>Decision cards appear when Klorn finds something that needs your approval.</li>

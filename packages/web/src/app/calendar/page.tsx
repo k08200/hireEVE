@@ -400,7 +400,7 @@ function CalendarView() {
               onClick={() => {
                 void startGoogleConnect();
               }}
-              className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-4 py-2 text-sm font-medium text-slate-600 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
+              className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-4 py-2 text-sm font-medium text-ink-muted shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
             >
               Connect Google
             </button>
@@ -409,7 +409,7 @@ function CalendarView() {
               type="button"
               onClick={syncNow}
               disabled={syncing}
-              className="ease-strong min-h-11 rounded-lg border border-line bg-surface-panel/70 px-4 py-2 text-sm font-medium text-slate-600 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50"
+              className="ease-strong min-h-11 rounded-lg border border-line bg-surface-panel/70 px-4 py-2 text-sm font-medium text-ink-muted shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50"
             >
               {syncing ? "Syncing..." : "Sync again"}
             </button>
@@ -510,7 +510,7 @@ function AgendaList({
               })}
             </h3>
             {key === todayKey && (
-              <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-600 ring-1 ring-inset ring-accent/20">
+              <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-accent-deep ring-1 ring-inset ring-accent/20">
                 Today
               </span>
             )}
@@ -675,7 +675,7 @@ function DayCell({
     if (events.length > 0) router.push(`/calendar/${events[0].id}`);
   };
   const dayNumberClass = `inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[11px] font-medium tabular-nums transition ${
-    isToday ? "bg-accent text-white" : inMonth ? "text-slate-600" : "text-ink-dim"
+    isToday ? "bg-accent text-white" : inMonth ? "text-ink-muted" : "text-ink-dim"
   }`;
 
   return (
@@ -705,7 +705,7 @@ function DayCell({
         {hidden > 0 && (
           <Link
             href={`/calendar/${events[MAX_VISIBLE].id}`}
-            className="block truncate px-1 text-[10px] text-ink-dim hover:text-sky-600"
+            className="block truncate px-1 text-[10px] text-ink-dim hover:text-accent-deep"
           >
             +{hidden} more
           </Link>
@@ -733,7 +733,7 @@ function EventChip({
       className={`flex items-center gap-1 truncate rounded-md px-1 py-0.5 text-[11px] transition duration-150 ${
         dimmed
           ? "text-ink-dim hover:bg-surface-hover hover:text-ink-mid"
-          : "text-ink hover:bg-accent/10 hover:text-sky-700"
+          : "text-ink hover:bg-accent/10 hover:text-accent-deeper"
       }`}
     >
       <span

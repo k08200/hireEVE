@@ -52,7 +52,7 @@ function TableOfContents({ sections }: { sections: string[] }) {
           <li key={title}>
             <a
               href={`#${slug(title)}`}
-              className="inline-flex min-h-11 items-center text-sm text-ink-mid transition hover:text-sky-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white rounded"
+              className="inline-flex min-h-11 items-center text-sm text-ink-mid transition hover:text-accent-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white rounded"
             >
               {title}
             </a>
@@ -84,7 +84,7 @@ export default function TermsPage() {
       </nav>
 
       <article className="mx-auto max-w-4xl px-6 py-14">
-        <p className="text-sm font-medium uppercase tracking-[0.18em] text-sky-600">
+        <p className="text-sm font-medium uppercase tracking-[0.18em] text-accent-deep">
           TERMS OF SERVICE
         </p>
         <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-ink md:text-5xl">
@@ -184,7 +184,10 @@ export default function TermsPage() {
             </ul>
             <p>
               To cancel or request a refund, email{" "}
-              <a className="text-sky-600 hover:text-sky-700" href="mailto:k0820086@gmail.com">
+              <a
+                className="text-accent-deep hover:text-accent-deeper"
+                href="mailto:k0820086@gmail.com"
+              >
                 k0820086@gmail.com
               </a>{" "}
               from the address on your Klorn account. Refunds are returned to the original payment
@@ -219,7 +222,10 @@ export default function TermsPage() {
           <Section title="Account Deletion">
             <p>
               To request deletion of Klorn account data, contact{" "}
-              <a className="text-sky-600 hover:text-sky-700" href="mailto:k0820086@gmail.com">
+              <a
+                className="text-accent-deep hover:text-accent-deeper"
+                href="mailto:k0820086@gmail.com"
+              >
                 k0820086@gmail.com
               </a>
               . Deleting Klorn account data does not automatically delete data from Google or other
@@ -237,7 +243,10 @@ export default function TermsPage() {
           <Section title="Contact">
             <p>
               For questions about these terms, contact{" "}
-              <a className="text-sky-600 hover:text-sky-700" href="mailto:k0820086@gmail.com">
+              <a
+                className="text-accent-deep hover:text-accent-deeper"
+                href="mailto:k0820086@gmail.com"
+              >
                 k0820086@gmail.com
               </a>
               .

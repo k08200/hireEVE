@@ -40,7 +40,7 @@ export function EveSignalField({ className = "", tone = "panel" }: EveSignalFiel
               <span className="w-14 text-[10px] font-medium uppercase tracking-[0.1em] text-ink-dim">
                 {point.label}
               </span>
-              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
+              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-inset">
                 <span
                   className={`block h-full rounded-full ${point.accent}`}
                   style={{ width: `${44 + index * 12}%` }}

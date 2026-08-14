@@ -57,7 +57,7 @@ export default function AuthScreen({
             {t("nav.home")}
           </Link>
           <Link
-            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md border border-line px-3 py-2 text-ink-mid transition hover:border-slate-300 hover:text-ink"
+            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-md border border-line px-3 py-2 text-ink-mid transition hover:border-line-strong hover:text-ink"
             href={navCtaHref}
           >
             {resolvedNavCtaLabel}

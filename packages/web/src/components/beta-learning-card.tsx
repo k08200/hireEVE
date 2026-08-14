@@ -79,7 +79,7 @@ export default function BetaLearningCard() {
     <section className="panel-elevated mb-6 rounded-2xl border border-line/70 bg-surface-panel p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent-deep">
             Initial learning
           </p>
           <h2 className="mt-2 text-base font-semibold text-ink">

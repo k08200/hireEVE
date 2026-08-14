@@ -110,7 +110,7 @@ export default function AssistantDock() {
                       <button
                         type="button"
                         onClick={() => chat.send(t(key))}
-                        className="focus-ring ease-strong row-wash w-full rounded-lg border border-line bg-surface-panel/70 px-3 py-2 text-left text-[13px] text-slate-600 transition duration-150 hover:text-ink active:scale-[0.99]"
+                        className="focus-ring ease-strong row-wash w-full rounded-lg border border-line bg-surface-panel/70 px-3 py-2 text-left text-[13px] text-ink-muted transition duration-150 hover:text-ink active:scale-[0.99]"
                       >
                         {t(key)}
                       </button>

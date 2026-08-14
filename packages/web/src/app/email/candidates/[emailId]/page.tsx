@@ -189,7 +189,7 @@ function CandidateDetailView() {
 
           <section className="grid gap-4 lg:grid-cols-[1fr_320px]">
             <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-5">
-              <p className="text-sm leading-6 text-slate-600">{profile.summary}</p>
+              <p className="text-sm leading-6 text-ink-muted">{profile.summary}</p>
 
               <div className="mt-5 grid gap-2 sm:grid-cols-2">
                 <Fact label="Contact" value={profile.contact} />
@@ -207,7 +207,7 @@ function CandidateDetailView() {
                 <div className="mt-5 rounded-xl border border-sky-200/70 bg-gradient-to-r from-sky-50 to-white p-3">
                   <p className="text-xs font-medium text-sky-800">{profile.nextAction}</p>
                   {profile.manualReviewFiles.map((file) => (
-                    <p key={file.filename} className="mt-1 text-[11px] text-sky-700/80">
+                    <p key={file.filename} className="mt-1 text-[11px] text-accent-deeper/80">
                       {file.filename}: {file.reason}
                     </p>
                   ))}
@@ -257,7 +257,7 @@ function CandidateDetailView() {
                       disabled={saving}
                       className={`ease-strong relative overflow-hidden rounded-lg border px-3 py-2 text-left text-xs font-medium transition duration-150 active:scale-[0.98] disabled:opacity-50 ${
                         active
-                          ? "border-accent-muted bg-accent/10 text-sky-700"
+                          ? "border-accent-muted bg-accent/10 text-accent-deeper"
                           : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
                       }`}
                     >
@@ -292,7 +292,7 @@ function CandidateDetailView() {
                 {saving ? "Saving..." : "Save notes"}
               </button>
               <div className="mt-4 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
-                <p className="text-xs text-slate-600">{email.subject || "Untitled"}</p>
+                <p className="text-xs text-ink-muted">{email.subject || "Untitled"}</p>
                 <p className="mt-1 text-[11px] text-ink-dim">{email.from}</p>
               </div>
             </aside>
@@ -324,7 +324,7 @@ function CandidateDetailView() {
             </Link>
           </div>
           <div className="mt-5 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
-            <p className="text-xs text-slate-600">{email.subject || "Untitled"}</p>
+            <p className="text-xs text-ink-muted">{email.subject || "Untitled"}</p>
             <p className="mt-1 text-[11px] text-ink-dim">{email.from}</p>
           </div>
         </section>

@@ -184,7 +184,7 @@ export function CommitmentCard({
           className="ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading === "dismiss" ? (
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-300/40 border-t-slate-600" />
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-line-strong/40 border-t-slate-600" />
           ) : (
             "Dismiss"
           )}
@@ -201,7 +201,7 @@ export function CommitmentCard({
           onClick={onSnooze}
           disabled={!!loading}
           title="Hide for 24h — will resurface automatically"
-          className="ease-strong inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:opacity-50"
+          className="ease-strong inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:opacity-50"
         >
           {loading === "snooze" ? (
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-500" />
@@ -283,12 +283,12 @@ function commitmentOwnerEntry(owner: CommitmentItem["owner"]): {
     case "COUNTERPARTY":
       return {
         label: "Counterparty",
-        className: "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20",
+        className: "bg-accent/10 text-accent-deep ring-1 ring-inset ring-accent/20",
       };
     case "TEAM":
       return {
         label: "Team",
-        className: "bg-accent/10 text-sky-600 ring-1 ring-inset ring-accent/20",
+        className: "bg-accent/10 text-accent-deep ring-1 ring-inset ring-accent/20",
       };
     case "UNKNOWN":
       return {
@@ -363,14 +363,14 @@ function CommitmentPathPanel({
   return (
     <div className="mt-4 border-t border-line pt-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-semibold text-sky-600">Fulfillment plan</p>
+        <p className="text-xs font-semibold text-accent-deep">Fulfillment plan</p>
         <div className="flex items-center gap-3">
           {!allMaterialized && (
             <button
               type="button"
               onClick={onMaterializeAll}
               disabled={materializingStep !== null}
-              className="text-xs font-medium text-sky-600 transition duration-150 hover:text-sky-700 disabled:opacity-50"
+              className="text-xs font-medium text-accent-deep transition duration-150 hover:text-accent-deeper disabled:opacity-50"
             >
               {materializingStep === "all" ? "Creating..." : "Create all tasks"}
             </button>
@@ -379,7 +379,7 @@ function CommitmentPathPanel({
             type="button"
             onClick={onRebuild}
             disabled={loading}
-            className="text-xs text-ink-dim transition duration-150 hover:text-slate-600 disabled:opacity-50"
+            className="text-xs text-ink-dim transition duration-150 hover:text-ink-muted disabled:opacity-50"
           >
             {loading ? "Rebuilding..." : "Rebuild"}
           </button>
@@ -416,7 +416,7 @@ function CommitmentPathPanel({
                 </p>
               </div>
               {isMaterialized ? (
-                <span className="shrink-0 text-[11px] font-medium text-sky-600">task ✓</span>
+                <span className="shrink-0 text-[11px] font-medium text-accent-deep">task ✓</span>
               ) : (
                 <button
                   type="button"

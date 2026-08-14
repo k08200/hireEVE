@@ -142,7 +142,7 @@ export default function Sidebar() {
                   aria-current={active ? "page" : undefined}
                   className={`focus-ring relative flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition ${
                     active
-                      ? "bg-sky-50 font-medium text-sky-700 shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-accent-dim"
+                      ? "bg-sky-50 font-medium text-accent-deeper shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-accent-dim"
                       : "text-ink-mid hover:bg-surface-hover/70 hover:text-ink"
                   }`}
                 >
@@ -164,7 +164,7 @@ export default function Sidebar() {
                 aria-current={pathname.startsWith("/admin") ? "page" : undefined}
                 className={`focus-ring relative flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition ${
                   pathname.startsWith("/admin")
-                    ? "bg-sky-50 font-medium text-sky-700 shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-accent-dim"
+                    ? "bg-sky-50 font-medium text-accent-deeper shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-accent-dim"
                     : "text-ink-mid hover:bg-surface-hover/70 hover:text-ink"
                 }`}
               >
@@ -189,7 +189,7 @@ export default function Sidebar() {
             statement, not decoration. */}
         {user && googleConnected === true && (
           <div className="mx-2 mb-2 rounded-xl border border-accent-dim bg-gradient-to-br from-sky-50 to-white p-3 shadow-[0_1px_2px_rgba(2,60,110,0.05)]">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-700">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-accent-deeper">
               <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:animate-none" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />

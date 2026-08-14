@@ -32,7 +32,7 @@ export default function Tabs({ tabs, active, onChange, ariaLabel = "View" }: Tab
           className={`inline-flex min-h-11 items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
             active === tab.id
               ? "bg-surface-panel text-ink shadow-sm"
-              : "text-ink-mid hover:text-ink hover:bg-slate-200"
+              : "text-ink-mid hover:text-ink hover:bg-surface-inset"
           }`}
         >
           {tab.label}

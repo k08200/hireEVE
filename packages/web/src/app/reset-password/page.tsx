@@ -72,7 +72,7 @@ function ForgotPasswordForm() {
         </div>
         <Link
           href="/login"
-          className="mt-5 flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 focus-ring"
+          className="mt-5 flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep focus-ring"
         >
           Open login
         </Link>
@@ -109,7 +109,7 @@ function ForgotPasswordForm() {
         <button
           type="submit"
           disabled={loading || !email}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
         >
           {loading ? "Sending..." : "Send reset link"}
         </button>
@@ -165,7 +165,7 @@ function NewPasswordForm({ token }: { token: string }) {
       >
         <Link
           href="/login"
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep focus-ring"
         >
           Log in
         </Link>
@@ -218,7 +218,7 @@ function NewPasswordForm({ token }: { token: string }) {
         <button
           type="submit"
           disabled={loading || !password || !confirm}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
         >
           {loading ? "Resetting..." : "Reset password"}
         </button>

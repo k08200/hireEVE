@@ -302,7 +302,7 @@ function BriefingView() {
           </p>
           <p className="mb-4 text-xs text-ink-dim">
             Change the automatic briefing time in{" "}
-            <Link href="/settings" className="text-sky-600 hover:underline">
+            <Link href="/settings" className="text-accent-deep hover:underline">
               Settings
             </Link>
             .
@@ -338,7 +338,7 @@ function BriefingView() {
               <ul className="divide-y divide-line-soft">
                 {topActions.map((action) => (
                   <li key={action.rank} className="row-wash px-4 py-3">
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-ink-muted">
                       <span className="text-ink-dim">{action.rank}.</span> {action.label}
                     </p>
                     <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -353,7 +353,7 @@ function BriefingView() {
                             disabled={savingRank === action.rank}
                             className={`ease-strong h-8 rounded-lg border px-2 text-xs transition duration-150 active:scale-[0.97] disabled:opacity-50 focus-ring min-h-9 min-w-9 ${
                               selected
-                                ? "border-accent-muted bg-accent/10 font-medium text-sky-700"
+                                ? "border-accent-muted bg-accent/10 font-medium text-accent-deeper"
                                 : "border-line bg-surface-panel/70 text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] hover:bg-surface-panel hover:text-ink"
                             }`}
                           >
@@ -395,7 +395,7 @@ function BriefingDeliveryStatus({ status }: { status: BriefingStatus }) {
     <section className="panel-elevated mb-4 rounded-2xl border border-line/70 bg-surface-panel p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-ink">Briefing delivery</h2>
-        <Link href="/settings" className="text-xs text-sky-600 hover:underline">
+        <Link href="/settings" className="text-xs text-accent-deep hover:underline">
           Settings
         </Link>
       </div>

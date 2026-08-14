@@ -47,13 +47,13 @@ const KIND_COPY: Record<
 > = {
   ALLOW_AFTER_SUGGESTION: {
     label: "Repeated approvals",
-    tone: "bg-accent/10 text-sky-600 ring-accent/20",
+    tone: "bg-accent/10 text-accent-deep ring-accent/20",
     dot: "bg-accent",
     summary: "Suggest with more confidence",
   },
   REQUIRE_DRAFT_REVIEW: {
     label: "Keep review",
-    tone: "bg-surface-hover text-ink-mid ring-slate-200",
+    tone: "bg-surface-hover text-ink-mid ring-line",
     dot: "bg-slate-400",
     summary: "Review drafts before running",
   },
@@ -65,7 +65,7 @@ const KIND_COPY: Record<
   },
   LOWER_PRIORITY: {
     label: "Lower priority",
-    tone: "bg-surface-hover text-ink-mid ring-slate-200",
+    tone: "bg-surface-hover text-ink-mid ring-line",
     dot: "bg-slate-400",
     summary: "Watch quietly",
   },

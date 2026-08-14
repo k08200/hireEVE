@@ -281,7 +281,7 @@ export default function PlaygroundPage() {
         </Link>
         <Link
           href="/early-access"
-          className="rounded-md border border-line px-3 py-1.5 text-xs font-medium text-ink-mid transition hover:border-slate-300"
+          className="rounded-md border border-line px-3 py-1.5 text-xs font-medium text-ink-mid transition hover:border-line-strong"
         >
           Get early access
         </Link>
@@ -311,7 +311,7 @@ export default function PlaygroundPage() {
                   key={s.label}
                   type="button"
                   onClick={() => applySample(s)}
-                  className="rounded-md border border-line px-2.5 py-1 text-xs text-ink-mid transition hover:border-accent-muted/50 hover:text-sky-600"
+                  className="rounded-md border border-line px-2.5 py-1 text-xs text-ink-mid transition hover:border-accent-muted/50 hover:text-accent-deep"
                 >
                   {s.label}
                 </button>
@@ -413,7 +413,7 @@ export default function PlaygroundPage() {
               <button
                 type="button"
                 onClick={() => setShowKey((v) => !v)}
-                className="text-[11px] text-ink-mid transition hover:text-sky-600"
+                className="text-[11px] text-ink-mid transition hover:text-accent-deep"
               >
                 {showKey ? "Hide" : "Show"}
               </button>
@@ -439,7 +439,7 @@ export default function PlaygroundPage() {
               type="button"
               onClick={classify}
               disabled={loading}
-              className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-sky-600 disabled:bg-surface-hover disabled:text-ink-dim"
+              className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep disabled:bg-surface-hover disabled:text-ink-dim"
             >
               {loading ? "Classifying…" : "Classify"}
             </button>
@@ -515,7 +515,7 @@ export default function PlaygroundPage() {
                             key={t}
                             type="button"
                             onClick={() => sendFeedback(t)}
-                            className="rounded-md border border-line px-2.5 py-1 text-xs text-ink-mid transition hover:border-accent-muted/50 hover:text-sky-600"
+                            className="rounded-md border border-line px-2.5 py-1 text-xs text-ink-mid transition hover:border-accent-muted/50 hover:text-accent-deep"
                           >
                             Should be {t}
                           </button>

@@ -126,7 +126,7 @@ export default function OperatingLoopCard() {
       <div className="border-b border-line-soft bg-gradient-to-br from-white via-white to-sky-50 p-4 md:p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-600">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-deep">
               Operating loop
             </p>
             <h2 className="mt-2 text-xl font-semibold tracking-tight text-ink">
@@ -146,7 +146,9 @@ export default function OperatingLoopCard() {
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-dim">
             First move
           </p>
-          <p className="mt-1 text-sm font-medium text-sky-700">{displayText(plan.primaryAction)}</p>
+          <p className="mt-1 text-sm font-medium text-accent-deeper">
+            {displayText(plan.primaryAction)}
+          </p>
         </div>
       </div>
 
@@ -169,7 +171,7 @@ export default function OperatingLoopCard() {
           {plan.decisionPulse.latest.length > 0 && <DecisionPulseCard pulse={plan.decisionPulse} />}
           {plan.playbookNudge && (
             <div className="rounded-xl border border-line bg-surface-raised p-3">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-sky-600">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-accent-deep">
                 Playbook
               </p>
               <p className="mt-2 text-sm font-medium text-ink">{plan.playbookNudge.name}</p>
@@ -272,7 +274,7 @@ function MoveRow({ move }: { move: OperatingPlanMove }) {
       <div className="mt-3 flex flex-wrap gap-2">
         <Link
           href={chatHref}
-          className="ease-strong rounded-lg bg-accent/10 px-2.5 py-1.5 text-xs font-medium text-sky-700 ring-1 ring-inset ring-accent/20 transition duration-150 hover:bg-accent/15 active:scale-[0.97]"
+          className="ease-strong rounded-lg bg-accent/10 px-2.5 py-1.5 text-xs font-medium text-accent-deeper ring-1 ring-inset ring-accent/20 transition duration-150 hover:bg-accent/15 active:scale-[0.97]"
         >
           Prepare thread
         </Link>

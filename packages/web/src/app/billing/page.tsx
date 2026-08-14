@@ -331,7 +331,7 @@ function BillingContent() {
               </ul>
 
               {isCurrent ? (
-                <div className="rounded-lg border border-sky-200 bg-sky-50 py-2 text-center text-sm font-medium text-sky-700">
+                <div className="rounded-lg border border-sky-200 bg-sky-50 py-2 text-center text-sm font-medium text-accent-deeper">
                   Current plan
                 </div>
               ) : plan.key === "FREE" ? (

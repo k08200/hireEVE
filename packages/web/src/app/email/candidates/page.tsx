@@ -366,7 +366,7 @@ function CandidateIntakeView() {
               onClick={() => setStatus(filter.status)}
               className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition duration-150 active:scale-[0.97] focus-ring ${
                 active
-                  ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
+                  ? "bg-accent/10 text-accent-deeper ring-1 ring-inset ring-accent/30"
                   : "text-ink-mid hover:bg-surface-panel/80 hover:text-ink hover:shadow-sm"
               }`}
             >
@@ -390,7 +390,7 @@ function CandidateIntakeView() {
               onClick={() => setAttention(filter.value)}
               className={`ease-strong inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition duration-150 active:scale-[0.97] focus-ring ${
                 active
-                  ? "bg-accent/10 text-sky-700 ring-1 ring-inset ring-accent/30"
+                  ? "bg-accent/10 text-accent-deeper ring-1 ring-inset ring-accent/30"
                   : "text-ink-mid hover:bg-surface-panel/80 hover:text-ink hover:shadow-sm"
               }`}
             >
@@ -551,7 +551,7 @@ function BulkStatusButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+      className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
     >
       {label}
     </button>
@@ -585,7 +585,7 @@ function CandidateCard({
           type="checkbox"
           checked={selected}
           onChange={onToggle}
-          className="mt-1 h-4 w-4 rounded border-slate-300 bg-surface-panel text-accent"
+          className="mt-1 h-4 w-4 rounded border-line-strong bg-surface-panel text-accent"
           aria-label={`Select ${title}`}
         />
         <span
@@ -596,7 +596,7 @@ function CandidateCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-sky-700 ring-1 ring-inset ring-accent/20">
+            <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-accent-deeper ring-1 ring-inset ring-accent/20">
               {candidateStatusLabel(candidate.status)}
             </span>
             <span className="text-[10px] tabular-nums text-ink-dim">
@@ -624,18 +624,18 @@ function CandidateCard({
           </span>
         )}
         {candidate.duplicateCount > 1 && (
-          <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-ink-mid ring-1 ring-inset ring-slate-200">
+          <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-ink-mid ring-1 ring-inset ring-line">
             Duplicate match {candidate.duplicateReasons.map(candidateDuplicateLabel).join(", ")}
           </span>
         )}
         {candidate.missingFields.length > 0 && (
-          <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-ink-mid ring-1 ring-inset ring-slate-200">
+          <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-ink-mid ring-1 ring-inset ring-line">
             {formatMissingBadge(candidate.missingFields)}
           </span>
         )}
       </div>
       <div className="mt-3 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
-        <p className="truncate text-xs text-slate-600">{candidate.email.subject || "Untitled"}</p>
+        <p className="truncate text-xs text-ink-muted">{candidate.email.subject || "Untitled"}</p>
         <p className="mt-1 truncate text-[11px] text-ink-dim">{senderName(candidate.email.from)}</p>
       </div>
       {candidate.notes && (

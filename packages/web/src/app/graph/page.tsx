@@ -141,7 +141,7 @@ function GraphPageInner() {
         </div>
 
         <header className="mb-6 rounded-2xl border border-line bg-surface-panel p-5 shadow-sm shadow-black/20">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-deep">
             {copy.eyebrow}
           </p>
           <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink">{copy.title}</h1>
