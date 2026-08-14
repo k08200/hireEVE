@@ -10,6 +10,18 @@ import WebKit
 /// navigates after the initial load.
 struct EmailHtmlView: NSViewRepresentable {
     let html: String
+    /// Privacy switch (Preferences → Mail): when true, EVERY network load in
+    /// the webview is refused via a content rule list — tracking pixels, CSS
+    /// url() beacons, fonts alike. data:-inline images are untouched (the
+    /// rule matches http/https only).
+    let blockRemote: Bool
+
+    /// One compiled rule list per process. WKContentRuleListStore caches by
+    /// identifier on disk, so this settles instantly after the first run.
+    private static let blockRulesIdentifier = "klorn-mail-block-remote-v1"
+    private static let blockRulesJson = """
+        [{"trigger":{"url-filter":"^https?://.*"},"action":{"type":"block"}}]
+        """
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -27,7 +39,29 @@ struct EmailHtmlView: NSViewRepresentable {
     func updateNSView(_ view: WKWebView, context: Context) {
         guard context.coordinator.loadedHtml != html else { return }
         context.coordinator.loadedHtml = html
-        view.loadHTMLString(Self.wrap(html), baseURL: nil)
+        let wrapped = Self.wrap(html)
+        guard blockRemote else {
+            view.loadHTMLString(wrapped, baseURL: nil)
+            return
+        }
+        // Rules must be attached BEFORE the load or the first paint leaks the
+        // very requests the toggle exists to stop. If compilation fails
+        // (static valid JSON — effectively never) we fail CLOSED for privacy:
+        // the pane stays blank rather than rendering with leaks.
+        WKContentRuleListStore.default().compileContentRuleList(
+            forIdentifier: Self.blockRulesIdentifier,
+            encodedContentRuleList: Self.blockRulesJson
+        ) { list, error in
+            DispatchQueue.main.async {
+                if let list {
+                    view.configuration.userContentController.add(list)
+                    view.loadHTMLString(wrapped, baseURL: nil)
+                } else {
+                    Log.app.error(
+                        "remote-block rules failed to compile: \(String(describing: error), privacy: .public)")
+                }
+            }
+        }
     }
 
     /// Reading-surface defaults that sender inline styles override: system

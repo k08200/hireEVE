@@ -355,3 +355,8 @@
 "account.maintenance" = "App & diagnostics";
 "a11y.expanded" = "Expanded";
 "a11y.collapsed" = "Collapsed";
+
+/* Mail remote-content privacy toggle (2026-08-14) */
+"prefs.section.mail" = "MAIL";
+"prefs.remoteImages" = "Load remote images in mail";
+"prefs.remoteImages.detail" = "Off blocks every network request while reading mail — including tracking pixels. Inline images keep working.";

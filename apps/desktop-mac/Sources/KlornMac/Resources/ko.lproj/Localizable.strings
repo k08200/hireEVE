@@ -354,3 +354,8 @@
 "account.maintenance" = "앱 관리 및 진단";
 "a11y.expanded" = "펼쳐짐";
 "a11y.collapsed" = "접힘";
+
+/* Mail remote-content privacy toggle (2026-08-14) */
+"prefs.section.mail" = "메일";
+"prefs.remoteImages" = "메일의 외부 이미지 불러오기";
+"prefs.remoteImages.detail" = "끄면 메일을 읽는 동안 모든 네트워크 요청을 차단합니다 — 추적 픽셀 포함. 본문에 내장된 이미지는 계속 보입니다.";

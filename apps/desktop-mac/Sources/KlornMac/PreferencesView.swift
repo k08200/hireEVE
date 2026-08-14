@@ -63,6 +63,15 @@ struct PreferencesView: View {
                     .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
             }
 
+            section(L("prefs.section.mail")) {
+                Toggle(isOn: $settings.loadRemoteImages) {
+                    Text(L("prefs.remoteImages")).foregroundStyle(Theme.text)
+                }
+                .toggleStyle(.switch).tint(Theme.accent)
+                Text(L("prefs.remoteImages.detail"))
+                    .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
+            }
+
             section(L("prefs.section.general")) {
                 if LoginItem.isAvailable {
                     Toggle(isOn: $launchAtLogin) {

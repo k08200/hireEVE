@@ -13,6 +13,7 @@ final class AppSettings {
     static let showInDockKey = "klorn.showInDock"
     static let fullWindowSizeKey = "klorn.fullWindowSize"
     static let hasLaunchedKey = "klorn.hasLaunchedBefore"
+    static let loadRemoteImagesKey = "klorn.mail.loadRemoteImages"
 
     private let defaults: UserDefaults
 
@@ -35,6 +36,14 @@ final class AppSettings {
     /// count always updates regardless — this only gates the system banner.
     var notificationsEnabled: Bool {
         didSet { defaults.set(notificationsEnabled, forKey: Self.notificationsKey) }
+    }
+
+    /// Whether HTML mail may fetch remote resources (images, styles). ON by
+    /// default — the founder call is real rendering first — but turning it
+    /// off blocks every network load in the reading webview (tracking
+    /// pixels, CSS beacons); data:-inline images keep working.
+    var loadRemoteImages: Bool {
+        didSet { defaults.set(loadRemoteImages, forKey: Self.loadRemoteImagesKey) }
     }
 
     /// Whether the collapsed pill stays on screen. OFF = ambient-invisible mode:
@@ -128,6 +137,7 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.notificationsEnabled = Self.resolveNotifications(defaults.object(forKey: Self.notificationsKey))
+        self.loadRemoteImages = Self.resolveLoadRemoteImages(defaults.object(forKey: Self.loadRemoteImagesKey))
         self.showInDock = Self.resolveShowInDock(defaults.object(forKey: Self.showInDockKey))
         self.pillVisible = Self.resolvePillVisible(defaults.object(forKey: Self.pillVisibleKey))
         self.shortcut = Self.resolveShortcut(defaults.object(forKey: Self.shortcutKey))
@@ -175,6 +185,10 @@ final class AppSettings {
 
     /// Default ON when never set (`nil`); otherwise honor the stored flag. Pure.
     nonisolated static func resolveNotifications(_ stored: Any?) -> Bool {
+        (stored as? Bool) ?? true
+    }
+
+    nonisolated static func resolveLoadRemoteImages(_ stored: Any?) -> Bool {
         (stored as? Bool) ?? true
     }
 
