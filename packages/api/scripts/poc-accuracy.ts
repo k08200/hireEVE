@@ -164,12 +164,13 @@ function pad(value: string | number, width: number): string {
 }
 
 function printConfusionMatrix(rows: Array<{ truth: PocTier; predicted: PocTier }>): void {
-  const matrix: Record<PocTier, Record<PocTier, number>> = {
-    SILENT: { SILENT: 0, QUEUE: 0, PUSH: 0, AUTO: 0 },
-    QUEUE: { SILENT: 0, QUEUE: 0, PUSH: 0, AUTO: 0 },
-    PUSH: { SILENT: 0, QUEUE: 0, PUSH: 0, AUTO: 0 },
-    AUTO: { SILENT: 0, QUEUE: 0, PUSH: 0, AUTO: 0 },
-  };
+  // Derived from the canonical vocabulary — the old 4-key literal crashed
+  // with `undefined` cells the moment ontology v2 widened TIERS (2026-08-15).
+  const emptyRow = (): Record<PocTier, number> =>
+    Object.fromEntries(TIERS.map((t) => [t, 0])) as Record<PocTier, number>;
+  const matrix: Record<PocTier, Record<PocTier, number>> = Object.fromEntries(
+    TIERS.map((t) => [t, emptyRow()]),
+  ) as Record<PocTier, Record<PocTier, number>>;
   for (const r of rows) matrix[r.truth][r.predicted]++;
 
   console.log("\nConfusion matrix (rows = ground truth, cols = predicted):");
