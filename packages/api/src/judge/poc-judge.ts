@@ -32,6 +32,7 @@ import { parseLlmJson } from "../llm/llm-json.js";
 import { describeErrorChain } from "../llm/model-fallback.js";
 import { createCompletion, JUDGE_MODEL } from "../llm/openai.js";
 import { resolveNotificationLanguage } from "../notify/notification-strings.js";
+import { tierV2Enabled } from "../ops/feature-flags.js";
 import type { ProviderCredentials } from "../providers/index.js";
 import { captureError } from "../sentry.js";
 import { wrapUntrusted } from "../untrusted.js";
@@ -42,12 +43,14 @@ import { resolveEscalation } from "./judge-dial.js";
 import {
   ACCOUNT_ALERT_ACTION_RE,
   ACCOUNT_CONFIRMATION_RE,
+  detectSchedulingIntent,
+  detectTransactionalNotice,
   isAutomatedSender,
   isClearMarketing,
   keywordFeatures,
   looksUrgent,
 } from "./keyword-policy.js";
-import { type TierFeatures, tierFromFeatures } from "./tier-policy.js";
+import { type TierFeatures, tierFromFeatures, tierFromFeaturesV2 } from "./tier-policy.js";
 import { TIERS, type Tier } from "./tiers.js";
 
 export type { CorrectionExample, SenderFacts, SenderPrior } from "../learning/sender-policy.js";
@@ -80,6 +83,8 @@ export interface PocJudgement {
   features: PocFeatures;
   /** Which path produced this judgement — useful for accuracy diffs. */
   source: "fast-path" | "sender-prior" | "learned-rule" | "llm" | "keyword-fallback";
+  /** v2 only: may Klorn answer this unattended? Absent/false under v1. */
+  autoEligible?: boolean;
 }
 
 // CorrectionExample, SenderPrior, and SenderFacts are the sender-knowledge
@@ -770,23 +775,54 @@ export async function judgeEmail(
       );
     }
     const features = applyRoutineConfirmationCap(email, llm.features);
-    const { tier, reason: ruleReason } = tierFromFeatures(features, getEffectiveThresholds());
+    const decided = decideTier(email, features);
     const floored = applyAutomatedSenderFloors(email, {
-      tier,
-      reason: llm.reason || ruleReason,
+      tier: decided.tier,
+      reason: llm.reason || decided.reason,
     });
     return {
       tier: floored.tier,
       reason: floored.reason,
       features,
       source: "llm",
+      autoEligible: decided.autoEligible,
     };
   }
 
   const features = applyRoutineConfirmationCap(email, keywordFeatures(email));
+  const decided = decideTier(email, features);
+  const floored = applyAutomatedSenderFloors(email, decided);
+  return {
+    tier: floored.tier,
+    reason: floored.reason,
+    features,
+    source: "keyword-fallback",
+    autoEligible: decided.autoEligible,
+  };
+}
+
+/**
+ * Rule dispatch: v1 4-tier while TIER_V2_ENABLED is off; v2 5-tier +
+ * autoEligible when on. Both read the same effective thresholds, so ontology
+ * overrides apply either way. Applied to the SCORING paths only — fast-path,
+ * sender-prior, and learned-rule short-circuits above bypass it by design.
+ */
+function decideTier(
+  email: ClassifiableEmail,
+  features: PocFeatures,
+): { tier: Tier; reason: string; autoEligible: boolean } {
+  if (tierV2Enabled()) {
+    return tierFromFeaturesV2(
+      features,
+      {
+        scheduling: detectSchedulingIntent(email),
+        transactional: detectTransactionalNotice(email),
+      },
+      getEffectiveThresholds(),
+    );
+  }
   const { tier, reason } = tierFromFeatures(features, getEffectiveThresholds());
-  const floored = applyAutomatedSenderFloors(email, { tier, reason });
-  return { tier: floored.tier, reason: floored.reason, features, source: "keyword-fallback" };
+  return { tier, reason, autoEligible: false };
 }
 
 /**

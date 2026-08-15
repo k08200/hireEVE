@@ -10,7 +10,10 @@
  */
 
 /** The canonical 4-tier attention vocabulary, as serialized on the wire. */
-export type Tier = "SILENT" | "QUEUE" | "PUSH" | "AUTO";
+// Ontology v2 (2026-08-15): MEETING (scheduling lane) and INFO (transactional
+// records) join the vocabulary; AUTO remains for legacy rows and the v1
+// classifier until TIER_V2_ENABLED flips. See docs/design/tier-ontology-v2.md.
+export type Tier = "SILENT" | "INFO" | "QUEUE" | "MEETING" | "PUSH" | "AUTO";
 
 export type TrustBadge = "reliable" | "mostly_reliable" | "unreliable" | "unknown";
 
@@ -57,11 +60,5 @@ export interface FirewallItem {
 
 export interface FirewallResponse {
   tiers: Record<Tier, FirewallItem[]>;
-  summary: {
-    SILENT: number;
-    QUEUE: number;
-    PUSH: number;
-    AUTO: number;
-    total: number;
-  };
+  summary: Record<Tier, number> & { total: number };
 }

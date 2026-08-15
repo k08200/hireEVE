@@ -71,6 +71,25 @@ export const TIER_VISUAL: Record<
     accent: "text-tier-auto",
     dot: "text-tier-auto",
   },
+  // Ontology v2 lanes (TIER_V2_ENABLED, off today — dormant until the flip;
+  // dedicated lane design lands with the flip work).
+  MEETING: {
+    label: "MEETING",
+    description: "Scheduling. Accept, decline, or propose — calendar checked.",
+    plane:
+      "tier-plane-push border-tier-push/25 bg-gradient-to-b from-tier-push/[0.05] to-transparent",
+    card: "border-tier-push/10 bg-surface-panel hover:border-tier-push/35",
+    accent: "text-tier-push",
+    dot: "text-tier-push",
+  },
+  INFO: {
+    label: "INFO",
+    description: "Transactional record. Filed — no reply expected.",
+    plane: "tier-plane-silent border-line bg-surface-raised opacity-90 hover:opacity-100",
+    card: "border-line bg-surface-panel hover:border-line-strong",
+    accent: "text-ink-dim",
+    dot: "text-ink-dim",
+  },
 };
 
 // Per-target tint for the override pills, so "Move → PUSH" hints its tier hue.
@@ -79,6 +98,8 @@ const TARGET_BUTTON: Record<Tier, string> = {
   QUEUE: "hover:border-tier-queue/50 hover:text-tier-queue",
   SILENT: "hover:border-line-strong hover:text-ink-muted",
   AUTO: "hover:border-tier-auto/50 hover:text-tier-auto",
+  MEETING: "hover:border-tier-push/50 hover:text-tier-push",
+  INFO: "hover:border-line-strong hover:text-ink-muted",
 };
 
 const OVERRIDE_TARGETS: Tier[] = ["SILENT", "QUEUE", "PUSH"];
@@ -229,16 +250,15 @@ function moveItemBetweenTiers(
     tiers: { ...prev.tiers, summary: { ...prev.summary } },
   } as FirewallResponse;
   // Copy each tier array so we mutate a fresh structure
-  for (const t of TIER_ORDER.concat(["AUTO"])) {
+  for (const t of Object.keys(prev.tiers) as Tier[]) {
     next.tiers[t] = [...prev.tiers[t]];
   }
   next.tiers[item.tier] = next.tiers[item.tier].filter((row) => row.id !== item.id);
   next.tiers[newTier] = [{ ...item, tier: newTier }, ...next.tiers[newTier]];
   next.summary = {
-    SILENT: next.tiers.SILENT.length,
-    QUEUE: next.tiers.QUEUE.length,
-    PUSH: next.tiers.PUSH.length,
-    AUTO: next.tiers.AUTO.length,
+    ...(Object.fromEntries(
+      (Object.keys(next.tiers) as Tier[]).map((t) => [t, next.tiers[t].length]),
+    ) as Record<Tier, number>),
     total: prev.summary.total,
   };
   return next;

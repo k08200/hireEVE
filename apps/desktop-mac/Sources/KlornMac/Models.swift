@@ -1,12 +1,20 @@
 import Foundation
 
-/// The locked 4-tier firewall model — PUSH / QUEUE / SILENT / AUTO.
-/// Never a 5th tier or "Call" (CLAUDE.md: the model is fixed at four).
+/// The firewall tier model — PUSH / QUEUE / SILENT / AUTO, with ontology v2
+/// (MEETING/INFO, docs/design/tier-ontology-v2.md) arriving behind the
+/// server-side TIER_V2_ENABLED flag. Until the desktop grows dedicated lanes,
+/// any tier string this build doesn't know decodes as .queue — a v2 server
+/// must never crash or blank an older client (never a decode throw).
 enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     case push = "PUSH"
     case queue = "QUEUE"
     case silent = "SILENT"
     case auto = "AUTO"
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Tier(rawValue: raw) ?? .queue
+    }
 
     var id: String { rawValue }
 

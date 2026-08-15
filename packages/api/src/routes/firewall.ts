@@ -491,7 +491,9 @@ export async function firewallRoutes(app: FastifyInstance) {
 
       const tiers: Record<Tier, FirewallItem[]> = {
         SILENT: [],
+        INFO: [],
         QUEUE: [],
+        MEETING: [],
         PUSH: [],
         AUTO: [],
       };
@@ -649,7 +651,9 @@ export async function firewallRoutes(app: FastifyInstance) {
         tiers,
         summary: {
           SILENT: tiers.SILENT.length,
+          INFO: tiers.INFO.length,
           QUEUE: tiers.QUEUE.length,
+          MEETING: tiers.MEETING.length,
           PUSH: tiers.PUSH.length,
           AUTO: tiers.AUTO.length,
           total: scopedItems.length,

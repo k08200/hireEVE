@@ -455,6 +455,13 @@ model AutomationConfig {
   // reply surface (all three /reply-options keys and AUTO rule replies); the
   // accept/decline/info axis is unchanged.
   replyTone              String   @default("MATCH_ME") // "MATCH_ME" | "FORMAL" | "FRIENDLY" | "CASUAL"
+  // Ontology v2 account mode: BASIC = notify important+meetings, human answers
+  // (autoEligible items get a one-click suggested reply); AUTO = Klorn answers
+  // autoEligible items unattended (gated by AUTO_MODE_SEND_ENABLED).
+  attentionMode          String   @default("BASIC") // "BASIC" | "AUTO"
+  // auto 모드 답장 지침. null = the founder-authored default applies (editable
+  // in settings; see reply guideline UX in docs/design/tier-ontology-v2.md).
+  autoReplyGuideline     String?
   // Language for notification copy Klorn writes itself ("Draft ready",
   // "긴급 메일 2건"). Server-side because a push is composed on the server, with
   // no browser or Mac to read a locale from — the clients' own language
@@ -1094,8 +1101,13 @@ model AttentionItem {
   // 5-tier escalation policy. Populated by attention-mirror tier selector.
   // SILENT = recorded only | QUEUE = inbox only, no push | PUSH = send push
   // AUTO = auto-handled, no interrupt | null = legacy / not yet classified
-  tier       String? // "SILENT" | "QUEUE" | "PUSH" | "AUTO"
+  tier       String? // v2: "SILENT" | "INFO" | "QUEUE" | "MEETING" | "PUSH" (+ legacy "AUTO"/"CALL" via normalizeTier)
   tierReason String? // why this tier was chosen — free text, may be LLM-authored. NOT a trust signal.
+
+  // Ontology v2 (docs/design/tier-ontology-v2.md): may Klorn answer this item
+  // unattended? Computed by tier-policy floors, meaningful on QUEUE/MEETING
+  // only. Consumed by the auto-mode send path (AUTO_MODE_SEND_ENABLED).
+  autoEligible Boolean @default(false)
 
   // True only when overrideAttentionTier() (attention-override.ts) set this row —
   // the sole authenticated, ownership-checked human-override path. Judge writes

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { isTier, normalizeTier, TIERS } from "../judge/tiers.js";
 
 describe("TIERS", () => {
-  it("is exactly the canonical 4 tiers — no CALL", () => {
-    expect(TIERS).toEqual(["SILENT", "QUEUE", "PUSH", "AUTO"]);
+  it("is exactly the canonical v2 vocabulary — no CALL", () => {
+    expect(TIERS).toEqual(["SILENT", "INFO", "QUEUE", "MEETING", "PUSH", "AUTO"]);
     expect(TIERS).not.toContain("CALL");
   });
 });

@@ -64,6 +64,8 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       // Read at request time by config.ts `providerInboxSelectorEnabled()`, so
       // it belongs here rather than in the boot-frozen map above.
       PROVIDER_INBOX_SELECTOR_ENABLED: dynamicFlag(env, "PROVIDER_INBOX_SELECTOR_ENABLED"),
+      TIER_V2_ENABLED: dynamicFlag(env, "TIER_V2_ENABLED"),
+      AUTO_MODE_SEND_ENABLED: dynamicFlag(env, "AUTO_MODE_SEND_ENABLED"),
     },
     configured: {
       GMAIL_PUBSUB_TOPIC: Boolean(env.GMAIL_PUBSUB_TOPIC),
@@ -73,4 +75,22 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       MS_CLIENT_ID: Boolean(env.MS_CLIENT_ID),
     },
   };
+}
+
+/**
+ * Ontology v2 classification (5 tiers + autoEligible; docs/design/
+ * tier-ontology-v2.md). Dynamic: read per judgement so a flip needs no
+ * redeploy. OFF = the shipped v1 4-tier rule.
+ */
+export function tierV2Enabled(): boolean {
+  return dynamicFlag(process.env, "TIER_V2_ENABLED");
+}
+
+/**
+ * auto 모드 unattended replies for autoEligible items. Independent of (and
+ * meaningless without) TIER_V2_ENABLED; both OFF by default. The flip is a
+ * separate founder decision from the classification flip.
+ */
+export function autoModeSendEnabled(): boolean {
+  return dynamicFlag(process.env, "AUTO_MODE_SEND_ENABLED");
 }
