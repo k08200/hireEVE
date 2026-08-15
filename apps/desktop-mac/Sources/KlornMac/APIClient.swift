@@ -133,6 +133,26 @@ struct APIClient: Sendable {
         }
     }
 
+    /// GET raw bytes plus the server's content type — inline mail images,
+    /// where the MIME type matters and the body is not JSON.
+    func rawGet(_ path: String) async throws -> (Data, String?) {
+        var req = URLRequest(url: try url(path))
+        if let t = token() {
+            req.setValue("Bearer \(t)", forHTTPHeaderField: "Authorization")
+        }
+        let bytes: Data
+        let resp: URLResponse
+        do {
+            (bytes, resp) = try await session.data(for: req)
+        } catch {
+            throw APIError.transport(error.localizedDescription)
+        }
+        guard let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw APIError.transport("inline fetch failed")
+        }
+        return (bytes, http.value(forHTTPHeaderField: "Content-Type"))
+    }
+
     /// Pull a human message out of an error response body (`{message}`/`{error}`).
     private static func serverMessage(_ data: Data) -> String? {
         struct Body: Decodable { let message: String?; let error: String? }

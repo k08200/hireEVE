@@ -315,6 +315,16 @@ final class AppModel {
         }
     }
 
+    /// Bytes + MIME type for an inline (cid:) image in the given email, via
+    /// the authed API. nil on any failure — the webview shows a transparent
+    /// placeholder instead of a broken icon.
+    func inlineImage(emailId: String, cid: String) async -> (Data, String)? {
+        let encoded = cid.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cid
+        guard let (data, mime) = try? await api.rawGet("/api/email/\(emailId)/inline/\(encoded)")
+        else { return nil }
+        return (data, mime ?? "image/png")
+    }
+
     /// Meeting mail only: fetch the calendar cross-reference (proposed slot,
     /// conflict verdict, nearby events) without blocking the pane. The guard
     /// keeps a slow response from painting over a different, newer selection.

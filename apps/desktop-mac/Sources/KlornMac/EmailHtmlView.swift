@@ -10,6 +10,8 @@ import WebKit
 /// navigates after the initial load.
 struct EmailHtmlView: NSViewRepresentable {
     let html: String
+    /// Resolver for inline cid: images — bytes + MIME via the authed API.
+    let inlineImage: (String) async -> (Data, String)?
     /// Privacy switch (Preferences → Mail): when true, EVERY network load in
     /// the webview is refused via a content rule list — tracking pixels, CSS
     /// url() beacons, fonts alike. data:-inline images are untouched (the
@@ -29,6 +31,9 @@ struct EmailHtmlView: NSViewRepresentable {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
         config.defaultWebpagePreferences.allowsContentJavaScript = false
+        // Inline MIME images: src="cid:…" resolves through the authed API,
+        // never the network — unaffected by the remote-content block.
+        config.setURLSchemeHandler(CidSchemeHandler(fetch: inlineImage), forURLScheme: "cid")
         let view = WKWebView(frame: .zero, configuration: config)
         view.navigationDelegate = context.coordinator
         // Let the pane's surface show through instead of a hard white sheet.
@@ -107,5 +112,49 @@ struct EmailHtmlView: NSViewRepresentable {
             }
             decisionHandler(.cancel)
         }
+    }
+}
+
+
+/// Serves src="cid:…" loads from the authed API. A miss answers a 1×1
+/// transparent PNG so pre-capture rows never show a broken icon. Stopped
+/// tasks are tracked — WebKit crashes on didReceive after stop.
+final class CidSchemeHandler: NSObject, WKURLSchemeHandler {
+    private let fetch: (String) async -> (Data, String)?
+    private var stopped = Set<ObjectIdentifier>()
+
+    /// 1×1 transparent PNG.
+    private static let transparentPixel = Data(base64Encoded:
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")!
+
+    init(fetch: @escaping (String) async -> (Data, String)?) {
+        self.fetch = fetch
+    }
+
+    func webView(_: WKWebView, start task: WKURLSchemeTask) {
+        guard let url = task.request.url else {
+            task.didFailWithError(URLError(.badURL))
+            return
+        }
+        let cid = String(url.absoluteString.dropFirst("cid:".count))
+            .removingPercentEncoding ?? ""
+        let id = ObjectIdentifier(task)
+        Task { @MainActor in
+            let result = await fetch(cid)
+            guard !self.stopped.contains(id) else {
+                self.stopped.remove(id)
+                return
+            }
+            let (data, mime) = result ?? (Self.transparentPixel, "image/png")
+            let response = URLResponse(
+                url: url, mimeType: mime, expectedContentLength: data.count, textEncodingName: nil)
+            task.didReceive(response)
+            task.didReceive(data)
+            task.didFinish()
+        }
+    }
+
+    func webView(_: WKWebView, stop task: WKURLSchemeTask) {
+        stopped.insert(ObjectIdentifier(task))
     }
 }

@@ -2196,7 +2196,12 @@ struct ReadingPane: View {
                 // .id ties the webview's lifetime to ONE message: a fresh
                 // ephemeral cookie store per email, so tracker cookies set by
                 // sender A's pixel never ride along to sender B's mail.
-                EmailHtmlView(html: renderHtml, blockRemote: !model.settings.loadRemoteImages)
+                EmailHtmlView(
+                    html: renderHtml,
+                    inlineImage: { [emailId = email.id] cid in
+                        await model.inlineImage(emailId: emailId, cid: cid)
+                    },
+                    blockRemote: !model.settings.loadRemoteImages)
                     .id(email.id)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {

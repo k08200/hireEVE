@@ -49,7 +49,7 @@ import {
   syncLinkedInboxesForUser,
 } from "../mail/email-sync.js";
 import { coercePlainBody, htmlToPlainText, renderableEmailHtmlFor } from "../mail/email-text.js";
-import { getLinkedInboxClients } from "../mail/gmail.js";
+import { getLinkedInboxClients, resolveMailClient } from "../mail/gmail.js";
 import { getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { senderEmail } from "../notify/notification-format.js";
@@ -1053,6 +1053,54 @@ export async function emailRoutes(app: FastifyInstance) {
       });
 
       return { queue: queueKey, next: next ? serializeQueueEmail(next) : null };
+    },
+  );
+
+  // ─── Inline (cid:) image bytes ─────────────────────────────────────────
+  // GET /api/email/:id/inline/:cid — serves an inline MIME image referenced
+  // by src="cid:…" in rendered mail. The desktop webview's cid scheme
+  // handler fetches through here with the normal bearer auth. Misses are a
+  // plain 404 (the client renders a transparent placeholder) — rows synced
+  // before contentId capture landed simply have no match.
+  app.get(
+    "/:id/inline/:cid",
+    {
+      schema: { querystring: { type: "object", additionalProperties: false, properties: {} } },
+      config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id, cid } = request.params as { id: string; cid: string };
+      const uid = getUserId(request);
+      const dbEmail = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      });
+      if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+
+      const attachment = await prisma.emailAttachment.findFirst({
+        where: { userId: uid, emailId: dbEmail.id, contentId: cid },
+      });
+      if (!attachment) return reply.code(404).send({ error: "Inline image not found" });
+
+      const auth = await resolveMailClient(uid, dbEmail.linkedInboxAccountId);
+      if (!auth) return reply.code(404).send({ error: "Mail source not connected" });
+      try {
+        const { google } = await import("googleapis");
+        const gmail = google.gmail({ version: "v1", auth });
+        const res = await gmail.users.messages.attachments.get({
+          userId: "me",
+          messageId: dbEmail.gmailId,
+          id: attachment.gmailAttachmentId,
+        });
+        const data = res.data.data;
+        if (!data) return reply.code(404).send({ error: "Inline image not found" });
+        return reply
+          .type(attachment.mimeType || "application/octet-stream")
+          .header("cache-control", "private, max-age=3600")
+          .send(Buffer.from(data, "base64url"));
+      } catch (err) {
+        console.warn(`[EMAIL] inline image fetch failed for ${dbEmail.id}/${cid}:`, err);
+        return reply.code(404).send({ error: "Inline image not found" });
+      }
     },
   );
 

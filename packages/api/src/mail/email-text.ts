@@ -173,14 +173,11 @@ export function renderableEmailHtml(html: string | null | undefined): string | n
       font: ["color", "size", "face"],
     },
     allowedSchemes: ["http", "https", "mailto"],
-    allowedSchemesByTag: { img: ["http", "https", "data"] },
+    allowedSchemesByTag: { img: ["http", "https", "data", "cid"] },
     allowProtocolRelative: false,
-    // MIME inline images (src="cid:…") cannot resolve — the sync pipeline
-    // does not capture Content-ID (no column on EmailAttachment). The scheme
-    // filter above already strips the cid src; this drops the now-src-less
-    // <img> shell (and any genuinely src-less img) so the pane never shows a
-    // broken-image icon per inline asset. Until cid resolution lands
-    // (schema + sync change), dropped is the honest rendering.
+    // cid: srcs survive (resolved by the client's scheme handler against
+    // GET /api/email/:id/inline/:cid since 2026-08-15); a genuinely src-less
+    // <img> shell is still dropped so the pane never shows a bare broken icon.
     exclusiveFilter: (frame) => frame.tag === "img" && !(frame.attribs.src || "").trim(),
   });
   return out.trim() ? out : null;

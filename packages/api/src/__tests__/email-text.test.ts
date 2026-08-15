@@ -152,13 +152,13 @@ describe("renderableEmailHtmlFor — render-source selection", () => {
 });
 
 describe("renderableEmailHtml — cid: images", () => {
-  it("drops cid: images entirely instead of rendering broken icons", async () => {
+  it("keeps cid: images (resolved by the client scheme handler) and drops src-less shells", async () => {
     const { renderableEmailHtml } = await import("../mail/email-text.js");
     const out = renderableEmailHtml(
-      '<p>Logo:</p><img src="cid:logo@mail" alt="Logo"><img src="https://x.example/a.png" alt="ok">',
+      '<p>Logo:</p><img src="cid:logo@mail" alt="Logo"><img alt="shell"><img src="https://x.example/a.png" alt="ok">',
     );
-    expect(out).not.toContain("cid:");
-    expect(out).not.toContain('alt="Logo"');
+    expect(out).toContain('src="cid:logo@mail"');
+    expect(out).not.toContain('alt="shell"');
     expect(out).toContain('src="https://x.example/a.png"');
   });
 });

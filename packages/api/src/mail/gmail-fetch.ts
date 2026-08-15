@@ -69,6 +69,15 @@ function collectParts(part: gmail_v1.Schema$MessagePart): gmail_v1.Schema$Messag
   return parts;
 }
 
+/// The part's MIME Content-ID, without the angle brackets ("<x@y>" → "x@y").
+/// Null when the header is absent. Exported for the harness.
+export function extractContentId(part: gmail_v1.Schema$MessagePart): string | null {
+  const raw = part.headers?.find((h) => h.name?.toLowerCase() === "content-id")?.value;
+  if (!raw) return null;
+  const stripped = raw.trim().replace(/^<|>$/g, "").trim();
+  return stripped || null;
+}
+
 async function extractAttachmentsFromPayload(
   gmail: gmail_v1.Gmail,
   messageId: string,
@@ -79,11 +88,16 @@ async function extractAttachmentsFromPayload(
 
   for (let index = 0; index < parts.length; index++) {
     const part = parts[index];
-    const filename = part.filename?.trim();
+    // Inline (cid:) images usually ship WITHOUT a filename — skipping
+    // filename-less parts silently dropped every inline asset before
+    // 2026-08-15. A part is worth keeping when it has a filename OR a
+    // Content-ID; the synthesized name keeps the storage contract intact.
+    const contentId = extractContentId(part);
+    const mimeType = part.mimeType || "application/octet-stream";
+    const filename = part.filename?.trim() || (contentId ? `inline-${contentId}` : "");
     if (!filename) continue;
 
     const gmailAttachmentId = part.body?.attachmentId || `${messageId}:${index}:${filename}`;
-    const mimeType = part.mimeType || "application/octet-stream";
     const size = typeof part.body?.size === "number" ? part.body.size : null;
 
     let contentText: string | null = null;
@@ -112,6 +126,7 @@ async function extractAttachmentsFromPayload(
       filename,
       mimeType,
       size,
+      contentId,
       contentText,
     });
   }

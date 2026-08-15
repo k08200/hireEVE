@@ -937,6 +937,10 @@ model EmailAttachment {
   gmailAttachmentId String
   filename          String
   mimeType          String
+  // MIME Content-ID for inline (cid:) images, captured at sync so the
+  // reading pane can resolve src="cid:…" references. Null on rows synced
+  // before 2026-08-15 — those degrade to a transparent placeholder.
+  contentId         String?
   size              Int?
   contentText       String?
   summary           String?
