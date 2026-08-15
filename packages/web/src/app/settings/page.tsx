@@ -18,6 +18,7 @@ import { ListSkeleton } from "../../components/skeleton";
 import { SubscriptionSection } from "../../components/subscription-section";
 import { TelegramSection } from "../../components/telegram-section";
 import { useToast } from "../../components/toast";
+import Button from "../../components/ui/button";
 import StatusChip from "../../components/ui/status-chip";
 import Switch from "../../components/ui/switch";
 import { API_BASE, apiFetch, authHeaders, startGoogleConnect } from "../../lib/api";
@@ -73,14 +74,13 @@ function agentModeLightClasses(mode: AgentMode, active: boolean): string {
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
-// Shared v2 control recipes — one filled primary per screen, quiet secondary,
-// red-tinted destructive. Presentation only.
+// PRIMARY_BTN: kept only for the two spots ui/Button can't take over — an
+// <a> styled as a button (Button only renders a <button> element) and the
+// profile-save button, which swaps to a literal emerald "Saved" class that
+// Button's variants don't model. Every other primary/secondary/danger
+// button on this page now uses ui/Button directly.
 const PRIMARY_BTN =
   "glow-primary ease-strong inline-flex min-h-10 items-center justify-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40";
-const SECONDARY_BTN =
-  "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-line bg-surface-panel/70 px-4 text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50";
-const DANGER_BTN =
-  "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-50";
 const SECTION_TITLE = "mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-dim";
 const PANEL = "panel-elevated rounded-2xl border border-line/70 bg-surface-panel";
 
@@ -1056,14 +1056,12 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="flex justify-end">
-                  <button
-                    type="button"
+                  <Button
                     onClick={changePassword}
                     disabled={passwordLoading || !currentPassword || !newPassword}
-                    className={PRIMARY_BTN}
                   >
                     {passwordLoading ? "Changing..." : "Change password"}
-                  </button>
+                  </Button>
                 </div>
               </>
             ) : (
@@ -1090,14 +1088,9 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={setPasswordForOAuth}
-                    disabled={passwordLoading || !newPassword}
-                    className={PRIMARY_BTN}
-                  >
+                  <Button onClick={setPasswordForOAuth} disabled={passwordLoading || !newPassword}>
                     {passwordLoading ? "Saving..." : "Set password"}
-                  </button>
+                  </Button>
                 </div>
               </>
             )}
@@ -1225,13 +1218,11 @@ export default function SettingsPage() {
                   {pushStatus === "denied" ? "Blocked" : "Unsupported"}
                 </span>
               ) : pushStatus === "granted" ? (
-                <button type="button" onClick={disablePush} className={SECONDARY_BTN}>
+                <Button variant="secondary" onClick={disablePush}>
                   Turn off
-                </button>
+                </Button>
               ) : (
-                <button type="button" onClick={enablePush} className={PRIMARY_BTN}>
-                  Turn on
-                </button>
+                <Button onClick={enablePush}>Turn on</Button>
               )}
             </div>
 
@@ -1543,14 +1534,9 @@ export default function SettingsPage() {
 
                 {/* Run Now Button */}
                 <div>
-                  <button
-                    type="button"
-                    onClick={runAgentNow}
-                    disabled={runningAgent}
-                    className={PRIMARY_BTN}
-                  >
+                  <Button onClick={runAgentNow} disabled={runningAgent}>
                     {runningAgent ? "Running..." : "Run agent now"}
-                  </button>
+                  </Button>
                   <p className="text-[10px] text-ink-dim mt-1">
                     Check signals now without waiting for the next cycle.
                   </p>
@@ -1686,6 +1672,9 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3">
                       <StatusChip status="connected" />
                       {int.name === "Google" && (
+                        // Compact inline chip: quiet danger tint that never inverts to
+                        // solid red on hover, unlike Button's danger variant — kept
+                        // local rather than forcing a visual change onto this row.
                         <button
                           type="button"
                           onClick={disconnectGoogle}
@@ -1695,6 +1684,9 @@ export default function SettingsPage() {
                         </button>
                       )}
                       {int.name === "Slack" && (
+                        // Compact inline chip: accent-outline styling Button has no
+                        // variant for (secondary is neutral, not accent-tinted) —
+                        // kept local rather than forcing a visual change onto this row.
                         <button
                           type="button"
                           onClick={testSlack}
@@ -1714,16 +1706,16 @@ export default function SettingsPage() {
                       Coming soon
                     </span>
                   ) : int.connectUrl === "google-oauth-start" ? (
-                    <button
-                      type="button"
+                    <Button
                       onClick={() => {
                         void startGoogleConnect();
                       }}
-                      className={PRIMARY_BTN}
                     >
                       Connect
-                    </button>
+                    </Button>
                   ) : int.connectUrl ? (
+                    // Button renders a <button>; this is a same-page <a> navigation
+                    // to an OAuth start URL, so it keeps the raw PRIMARY_BTN class.
                     <a href={int.connectUrl} className={PRIMARY_BTN}>
                       Connect
                     </a>
@@ -1753,23 +1745,17 @@ export default function SettingsPage() {
               </div>
               {gmailPushConfigured ? (
                 gmailPushEnabled ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     onClick={disableGmailPush}
                     disabled={gmailPushLoading}
-                    className={SECONDARY_BTN}
                   >
                     {gmailPushLoading ? "..." : "Turn off"}
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={enableGmailPush}
-                    disabled={gmailPushLoading}
-                    className={PRIMARY_BTN}
-                  >
+                  <Button onClick={enableGmailPush} disabled={gmailPushLoading}>
                     {gmailPushLoading ? "..." : "Turn on"}
-                  </button>
+                  </Button>
                 )
               ) : (
                 <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
@@ -1823,9 +1809,9 @@ export default function SettingsPage() {
                   Build a priority briefing from tasks, calendar, and mail signals.
                 </p>
               </div>
-              <button type="button" onClick={generateBriefing} className={SECONDARY_BTN}>
+              <Button variant="secondary" onClick={generateBriefing}>
                 Generate briefing
-              </button>
+              </Button>
             </div>
           </div>
         </section>
@@ -1841,9 +1827,9 @@ export default function SettingsPage() {
                   Download decision threads, signals, memory, and execution history as JSON.
                 </p>
               </div>
-              <button type="button" onClick={exportData} className={SECONDARY_BTN}>
+              <Button variant="secondary" onClick={exportData}>
                 Export
-              </button>
+              </Button>
             </div>
           </div>
         </section>
@@ -1861,9 +1847,9 @@ export default function SettingsPage() {
                   Permanently delete decision threads, tasks, memories, contacts, and reminders.
                 </p>
               </div>
-              <button type="button" onClick={clearAllData} className={DANGER_BTN}>
+              <Button variant="danger" onClick={clearAllData}>
                 Delete workspace
-              </button>
+              </Button>
             </div>
             <div className="flex items-center justify-between gap-4 p-4">
               <div>
@@ -1873,9 +1859,9 @@ export default function SettingsPage() {
                   undone.
                 </p>
               </div>
-              <button type="button" onClick={deleteAccount} className={DANGER_BTN}>
+              <Button variant="danger" onClick={deleteAccount}>
                 Delete account
-              </button>
+              </Button>
             </div>
           </div>
         </section>
