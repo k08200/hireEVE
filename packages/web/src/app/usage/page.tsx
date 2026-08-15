@@ -9,6 +9,7 @@ import LoadingState from "../../components/ui/loading-state";
 import ResponsiveTable from "../../components/ui/responsive-table";
 import Tabs from "../../components/ui/tabs";
 import { apiFetch } from "../../lib/api";
+import { useT } from "../../lib/i18n";
 
 type UsagePeriod = "week" | "month" | "all";
 
@@ -42,10 +43,12 @@ interface ConversationUsage {
   messageCount: number;
 }
 
-const PERIOD_TABS = [
-  { id: "week", label: "This week" },
-  { id: "month", label: "This month" },
-  { id: "all", label: "All time" },
+// Translation keys only — resolved via t() at render time, since this is a
+// module-level constant outside the component (hooks rule).
+const PERIOD_TAB_KEYS = [
+  { id: "week", labelKey: "usage.period.week" },
+  { id: "month", labelKey: "usage.period.month" },
+  { id: "all", labelKey: "usage.period.all" },
 ];
 
 function formatTokens(n: number): string {
@@ -78,11 +81,12 @@ function StatTile({ label, value, detail }: { label: string; value: string; deta
 }
 
 function DailyActivity({ daily }: { daily: DailyUsage[] }) {
+  const { t } = useT();
   const maxTokens = Math.max(...daily.map((d) => d.tokens), 1);
   return (
     <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
-      <h2 className="text-sm font-semibold text-ink">Daily activity</h2>
-      <p className="mt-1 text-xs text-ink-mid">Tokens per day, newest first.</p>
+      <h2 className="text-sm font-semibold text-ink">{t("usage.dailyActivity.title")}</h2>
+      <p className="mt-1 text-xs text-ink-mid">{t("usage.dailyActivity.subtitle")}</p>
       <ul className="mt-4 space-y-1">
         {daily.map((d) => (
           <li
@@ -106,27 +110,26 @@ function DailyActivity({ daily }: { daily: DailyUsage[] }) {
 }
 
 function ConversationsTable({ conversations }: { conversations: ConversationUsage[] }) {
+  const { t } = useT();
   return (
     <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
-      <h2 className="text-sm font-semibold text-ink">Top conversations</h2>
-      <p className="mt-1 text-xs text-ink-mid">
-        The 20 assistant conversations that used the most tokens, all time.
-      </p>
+      <h2 className="text-sm font-semibold text-ink">{t("usage.conversations.title")}</h2>
+      <p className="mt-1 text-xs text-ink-mid">{t("usage.conversations.subtitle")}</p>
       <ResponsiveTable className="mt-4">
         <table className="min-w-[520px] w-full text-left text-sm">
           <thead>
             <tr className="border-b border-line text-xs text-ink-dim">
               <th scope="col" className="py-2 pr-4 font-medium">
-                Conversation
+                {t("usage.conversations.colConversation")}
               </th>
               <th scope="col" className="py-2 pr-4 text-right font-medium">
-                Messages
+                {t("usage.conversations.colMessages")}
               </th>
               <th scope="col" className="py-2 pr-4 text-right font-medium">
-                Tokens
+                {t("usage.conversations.colTokens")}
               </th>
               <th scope="col" className="py-2 text-right font-medium">
-                Est. cost
+                {t("usage.conversations.colEstCost")}
               </th>
             </tr>
           </thead>
@@ -134,7 +137,7 @@ function ConversationsTable({ conversations }: { conversations: ConversationUsag
             {conversations.map((c) => (
               <tr key={c.conversationId} className="border-b border-line-soft last:border-0">
                 <td className="max-w-[280px] truncate py-2 pr-4 text-ink">
-                  {c.title || "Untitled conversation"}
+                  {c.title || t("usage.conversations.untitled")}
                 </td>
                 <td className="py-2 pr-4 text-right text-ink-mid tabular-nums">{c.messageCount}</td>
                 <td className="py-2 pr-4 text-right text-ink tabular-nums">
@@ -153,28 +156,32 @@ function ConversationsTable({ conversations }: { conversations: ConversationUsag
 }
 
 function UsageView() {
+  const { t } = useT();
   const [period, setPeriod] = useState<UsagePeriod>("month");
   const [usage, setUsage] = useState<UsageResponse | null>(null);
   const [conversations, setConversations] = useState<ConversationUsage[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (p: UsagePeriod) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [u, c] = await Promise.all([
-        apiFetch<UsageResponse>(`/api/usage?period=${p}`),
-        apiFetch<{ conversations: ConversationUsage[] }>("/api/usage/conversations"),
-      ]);
-      setUsage(u);
-      setConversations(c.conversations);
-    } catch {
-      setError("Could not load usage data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (p: UsagePeriod) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [u, c] = await Promise.all([
+          apiFetch<UsageResponse>(`/api/usage?period=${p}`),
+          apiFetch<{ conversations: ConversationUsage[] }>("/api/usage/conversations"),
+        ]);
+        setUsage(u);
+        setConversations(c.conversations);
+      } catch {
+        setError(t("usage.error.load"));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     load(period);
@@ -183,28 +190,29 @@ function UsageView() {
   const summary = usage?.summary;
   const hasActivity = (summary?.messageCount ?? 0) > 0;
 
+  const periodTabs = PERIOD_TAB_KEYS.map((tab) => ({ id: tab.id, label: t(tab.labelKey) }));
+
   return (
     <div className="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 md:py-10">
       <header className="mb-6">
         <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
-          Usage
+          {t("usage.title")}
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-ink-mid">
-          What the assistant actually spent — tokens, messages, and estimated model cost. Plan
-          limits live on{" "}
+          {t("usage.subtitlePre")}{" "}
           <Link href="/billing" className="focus-ring rounded text-accent hover:underline">
-            billing
+            {t("usage.subtitleLinkLabel")}
           </Link>
-          .
+          {t("usage.subtitlePost")}
         </p>
       </header>
 
       <div className="mb-6">
         <Tabs
-          tabs={PERIOD_TABS}
+          tabs={periodTabs}
           active={period}
           onChange={(id) => setPeriod(id as UsagePeriod)}
-          ariaLabel="Usage period"
+          ariaLabel={t("usage.period.ariaLabel")}
         />
       </div>
 
@@ -218,23 +226,23 @@ function UsageView() {
 
       {!loading && !error && summary && !hasActivity && (
         <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel">
-          <EmptyState
-            title="No model usage in this period"
-            description="When the assistant classifies mail, drafts replies, or answers chat, the spend shows up here."
-          />
+          <EmptyState title={t("usage.empty.title")} description={t("usage.empty.description")} />
         </div>
       )}
 
       {!loading && !error && summary && hasActivity && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <StatTile label="Estimated cost" value={formatUsd(summary.totalCost)} />
+            <StatTile label={t("usage.stat.estimatedCost")} value={formatUsd(summary.totalCost)} />
             <StatTile
-              label="Tokens"
+              label={t("usage.stat.tokens")}
               value={formatTokens(summary.totalTokens)}
-              detail={`${formatTokens(summary.totalPromptTokens)} prompt · ${formatTokens(summary.totalCompletionTokens)} completion`}
+              detail={t("usage.stat.tokensDetail", {
+                prompt: formatTokens(summary.totalPromptTokens),
+                completion: formatTokens(summary.totalCompletionTokens),
+              })}
             />
-            <StatTile label="Messages" value={String(summary.messageCount)} />
+            <StatTile label={t("usage.stat.messages")} value={String(summary.messageCount)} />
           </div>
 
           {usage && usage.daily.length > 0 && <DailyActivity daily={usage.daily} />}

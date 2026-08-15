@@ -7,6 +7,7 @@ import AuthGuard from "../../components/auth-guard";
 import { ONBOARDING_ACTIVE_KEY } from "../../components/google-connect-redirect";
 import { startGoogleConnect } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { useT } from "../../lib/i18n";
 import { ReviewStep } from "./review-step";
 
 export default function OnboardingPage() {
@@ -111,17 +112,15 @@ function WelcomeStep({
   connecting: boolean;
   onConnectClick: () => void;
 }) {
+  const { t } = useT();
   return (
     <div>
       <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink">
-        Klorn surfaces only the
+        {t("onboarding.welcome.titleLine1")}
         <br />
-        decisions worth acting on.
+        {t("onboarding.welcome.titleLine2")}
       </h1>
-      <p className="mt-4 text-sm leading-6 text-ink-mid">
-        Connect Gmail and Google Calendar. Klorn pulls the items that need a decision and quiets the
-        rest.
-      </p>
+      <p className="mt-4 text-sm leading-6 text-ink-mid">{t("onboarding.welcome.desc")}</p>
 
       <div className="mt-8 space-y-3">
         <button
@@ -130,28 +129,28 @@ function WelcomeStep({
           disabled={connecting}
           className="glow-primary ease-strong flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
         >
-          {connecting ? "Redirecting to Google..." : "Connect Gmail & Calendar"}
+          {connecting ? t("onboarding.welcome.connecting") : t("onboarding.welcome.connectButton")}
           {!connecting && <span aria-hidden>→</span>}
         </button>
         {/* Non-Google escape hatch: a user who signed in with Apple/Naver and
             lives in Naver Mail attaches it via IMAP in Settings instead —
             without this line the Google button reads as the only way in. */}
         <p className="text-center text-xs leading-5 text-ink-dim">
-          Prefer Naver Mail?{" "}
+          {t("onboarding.welcome.preferNaver")}{" "}
           <Link
             href="/settings"
             className="font-medium text-accent-deep underline decoration-sky-200 underline-offset-2 hover:text-accent"
           >
-            Connect it via IMAP in Settings
+            {t("onboarding.welcome.connectViaImap")}
           </Link>
         </p>
       </div>
 
       <div className="mt-8 grid grid-cols-3 gap-3">
         {[
-          { icon: "✉", label: "Read mail" },
-          { icon: "◉", label: "Track meetings" },
-          { icon: "✦", label: "Surface decisions" },
+          { icon: "✉", label: t("onboarding.welcome.feature.readMail") },
+          { icon: "◉", label: t("onboarding.welcome.feature.trackMeetings") },
+          { icon: "✦", label: t("onboarding.welcome.feature.surfaceDecisions") },
         ].map((item) => (
           <div
             key={item.label}
@@ -165,8 +164,11 @@ function WelcomeStep({
 
       {/* Permissions disclosure — Klorn never sends without explicit approval. */}
       <p className="mt-6 text-center text-[11px] leading-5 text-ink-dim">
-        Klorn <span className="text-ink-mid">only reads</span> Gmail and Calendar. Sending mail or
-        creating events always waits for <span className="text-ink-mid">your approval</span>.
+        {t("onboarding.welcome.permissions.pre")}{" "}
+        <span className="text-ink-mid">{t("onboarding.welcome.permissions.emphasis1")}</span>{" "}
+        {t("onboarding.welcome.permissions.mid")}{" "}
+        <span className="text-ink-mid">{t("onboarding.welcome.permissions.emphasis2")}</span>
+        {t("onboarding.welcome.permissions.suffix")}
       </p>
     </div>
   );
@@ -182,6 +184,7 @@ interface SyncState {
 }
 
 function SyncingStep({ initSync, onContinue }: { initSync: SyncState; onContinue: () => void }) {
+  const { t } = useT();
   const isDone = initSync.status === "done";
   const canContinue = isDone || initSync.status === "failed" || initSync.status === "skipped";
 
@@ -196,25 +199,29 @@ function SyncingStep({ initSync, onContinue }: { initSync: SyncState; onContinue
   return (
     <div>
       <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink">
-        {isDone ? "Sync complete." : "Setting up your workspace..."}
+        {isDone ? t("onboarding.syncing.titleDone") : t("onboarding.syncing.title")}
       </h1>
       <p className="mt-4 text-sm leading-6 text-ink-mid">
-        {isDone
-          ? "Klorn has read your inbox and mapped your schedule."
-          : "Reading your recent emails and calendar. This takes about 30 seconds."}
+        {isDone ? t("onboarding.syncing.descDone") : t("onboarding.syncing.desc")}
       </p>
 
       <div className="panel-elevated mt-8 divide-y divide-line-soft overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
         <SyncRow
           icon="✉"
-          label={initSync.emails > 0 ? `${initSync.emails} emails processed` : "Reading emails..."}
+          label={
+            initSync.emails > 0
+              ? t("onboarding.syncing.emailsProcessed", { count: String(initSync.emails) })
+              : t("onboarding.syncing.readingEmails")
+          }
           done={initSync.emails > 0}
           loading={initSync.status === "syncing" && initSync.emails === 0}
         />
         <SyncRow
           icon="◷"
           label={
-            initSync.calendar > 0 ? `${initSync.calendar} events synced` : "Syncing calendar..."
+            initSync.calendar > 0
+              ? t("onboarding.syncing.eventsSynced", { count: String(initSync.calendar) })
+              : t("onboarding.syncing.syncingCalendar")
           }
           done={initSync.calendar > 0}
           loading={initSync.status === "syncing" && initSync.calendar === 0}
@@ -222,7 +229,9 @@ function SyncingStep({ initSync, onContinue }: { initSync: SyncState; onContinue
         <SyncRow
           icon="◉"
           label={
-            initSync.contacts > 0 ? `${initSync.contacts} contacts saved` : "Loading contacts..."
+            initSync.contacts > 0
+              ? t("onboarding.syncing.contactsSaved", { count: String(initSync.contacts) })
+              : t("onboarding.syncing.loadingContacts")
           }
           done={isDone && initSync.contacts > 0}
           loading={initSync.status === "syncing"}
@@ -235,7 +244,9 @@ function SyncingStep({ initSync, onContinue }: { initSync: SyncState; onContinue
           onClick={onContinue}
           className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring"
         >
-          {isDone ? "See what Klorn found" : "Continue to inbox"}
+          {isDone
+            ? t("onboarding.syncing.continueSeeFound")
+            : t("onboarding.syncing.continueToInbox")}
           <span aria-hidden>→</span>
         </button>
       )}
@@ -269,28 +280,28 @@ function SyncRow({
 // ─── Step 3: Ready ────────────────────────────────────────────────────────
 
 function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => void }) {
+  const { t } = useT();
   return (
     <div>
       <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink">
-        You&apos;re set up.
+        {t("onboarding.ready.title")}
       </h1>
-      <p className="mt-4 text-sm leading-6 text-ink-mid">
-        Klorn is running. It&apos;ll surface decisions, track commitments, and prepare your morning
-        briefing — all before you open your inbox.
-      </p>
+      <p className="mt-4 text-sm leading-6 text-ink-mid">{t("onboarding.ready.desc")}</p>
 
       <div className="mt-6 grid grid-cols-3 gap-3">
-        <StatCard value={initSync.emails} label="Emails read" />
-        <StatCard value={initSync.calendar} label="Events synced" />
-        <StatCard value={initSync.contacts} label="Contacts" />
+        <StatCard value={initSync.emails} label={t("onboarding.ready.stat.emailsRead")} />
+        <StatCard value={initSync.calendar} label={t("onboarding.ready.stat.eventsSynced")} />
+        <StatCard value={initSync.contacts} label={t("onboarding.ready.stat.contacts")} />
       </div>
 
       <div className="panel-elevated mt-4 rounded-2xl border border-sky-200/70 bg-surface-panel p-4">
-        <p className="text-xs font-semibold text-accent-deeper">What happens next</p>
+        <p className="text-xs font-semibold text-accent-deeper">
+          {t("onboarding.ready.whatNext.title")}
+        </p>
         <ul className="mt-2 space-y-1.5 text-xs text-ink-mid">
-          <li>Your morning briefing will be ready before you wake up.</li>
-          <li>Decision cards appear when Klorn finds something that needs your approval.</li>
-          <li>Commitments are tracked automatically from your emails.</li>
+          <li>{t("onboarding.ready.whatNext.item1")}</li>
+          <li>{t("onboarding.ready.whatNext.item2")}</li>
+          <li>{t("onboarding.ready.whatNext.item3")}</li>
         </ul>
       </div>
 
@@ -299,7 +310,7 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
         onClick={onDone}
         className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring"
       >
-        Open decision queue
+        {t("onboarding.ready.openQueue")}
         <span aria-hidden>→</span>
       </button>
     </div>

@@ -10,6 +10,7 @@ import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 import { isSafeBillingRedirect } from "../../lib/billing-redirect";
 import { checkoutReturnUrl } from "../../lib/checkout-return";
+import { useT } from "../../lib/i18n";
 import { isNativePlatform } from "../../lib/native/capacitor";
 import { PRO_PRICE_WEB } from "../../lib/pricing";
 
@@ -48,48 +49,71 @@ function formatUsd(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
-const PLANS = [
+interface PlanDef {
+  key: "FREE" | "PRO" | "ENTERPRISE";
+  nameKey: string;
+  /** Literal price string (e.g. "$0", PRO_PRICE_WEB) — null when priceKey is a translated label instead ("Custom"). */
+  price: string | null;
+  priceKey: string | null;
+  periodKey: string | null;
+  limitKey: string;
+  trialNoteKey: string | null;
+  featureKeys: string[];
+}
+
+// Translation keys only — actual strings resolve at render time via t(),
+// since this is a module-level constant outside the component (hooks rule).
+const PLANS: PlanDef[] = [
   {
     key: "FREE",
-    name: "Free",
+    nameKey: "billing.plan.free.name",
     price: "$0",
-    period: "",
-    limit: "50 decisions/mo · 500K tokens",
-    features: ["Mail and calendar reading", "Tasks and memory", "Free OpenRouter models"],
+    priceKey: null,
+    periodKey: null,
+    limitKey: "billing.plan.free.limit",
+    trialNoteKey: null,
+    featureKeys: [
+      "billing.plan.free.feature.mailCalendar",
+      "billing.plan.free.feature.tasksMemory",
+      "billing.plan.free.feature.freeModels",
+    ],
   },
   {
     key: "PRO",
-    name: "Pro",
+    nameKey: "billing.plan.pro.name",
     // Single source of truth — see lib/pricing.ts. This card is web-only.
     price: PRO_PRICE_WEB,
-    period: "/mo",
+    priceKey: null,
+    periodKey: "billing.plan.pro.period",
     // Trial length is configured on the Paddle price (founder decision,
     // 2026-08-13) — keep this line in sync with the Paddle dashboard.
-    trialNote: "7-day free trial · cancel anytime before it ends and pay nothing",
-    limit: "2K decisions/mo · 10M tokens",
-    features: [
-      "Everything in Free",
-      "Send mail and create calendar events",
-      "Decision loop mode: suggest + policy execution",
-      "Daily briefings and mail triage",
-      "Reply drafts and pattern learning",
-      "Slack and Notion integrations (coming soon)",
-      "Web research and document drafts",
-      "Claude Sonnet model selection",
+    trialNoteKey: "billing.plan.pro.trialNote",
+    limitKey: "billing.plan.pro.limit",
+    featureKeys: [
+      "billing.plan.pro.feature.everythingFree",
+      "billing.plan.pro.feature.sendMail",
+      "billing.plan.pro.feature.decisionLoop",
+      "billing.plan.pro.feature.briefings",
+      "billing.plan.pro.feature.replyDrafts",
+      "billing.plan.pro.feature.integrations",
+      "billing.plan.pro.feature.webResearch",
+      "billing.plan.pro.feature.sonnet",
     ],
   },
   {
     key: "ENTERPRISE",
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    limit: "Unlimited",
-    features: [
-      "Everything in Pro",
-      "Claude Opus selection",
-      "On-prem options",
-      "SLA support",
-      "Custom integrations",
+    nameKey: "billing.plan.enterprise.name",
+    price: null,
+    priceKey: "billing.plan.enterprise.price",
+    periodKey: null,
+    limitKey: "billing.plan.enterprise.limit",
+    trialNoteKey: null,
+    featureKeys: [
+      "billing.plan.enterprise.feature.everythingPro",
+      "billing.plan.enterprise.feature.opus",
+      "billing.plan.enterprise.feature.onPrem",
+      "billing.plan.enterprise.feature.sla",
+      "billing.plan.enterprise.feature.customIntegrations",
     ],
   },
 ];
@@ -120,6 +144,7 @@ function BillingContent() {
   const [status, setStatus] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { t } = useT();
 
   const success = searchParams.get("success");
   const canceled = searchParams.get("canceled");
@@ -127,16 +152,16 @@ function BillingContent() {
   useEffect(() => {
     apiFetch<BillingStatus>("/api/billing/status")
       .then(setStatus)
-      .catch(() => toast("Could not load billing status.", "error"))
+      .catch(() => toast(t("billing.error.loadStatus"), "error"))
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, [toast, t]);
 
   /** Refuse any redirect target that is not us or a payment provider. */
   function safeRedirect(url: string) {
     if (isSafeBillingRedirect(url, window.location.origin)) {
       window.location.href = url;
     } else {
-      toast("Unsafe billing redirect URL.", "error");
+      toast(t("billing.error.unsafeRedirect"), "error");
     }
   }
 
@@ -148,7 +173,7 @@ function BillingContent() {
       });
       if (url) safeRedirect(url);
     } catch {
-      toast("Could not create checkout session.", "error");
+      toast(t("billing.error.checkoutFailed"), "error");
     }
   }
 
@@ -160,7 +185,7 @@ function BillingContent() {
       });
       if (url) safeRedirect(url);
     } catch {
-      toast("Could not open billing portal.", "error");
+      toast(t("billing.error.portalFailed"), "error");
     }
   }
 
@@ -168,21 +193,19 @@ function BillingContent() {
     <div className="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 md:py-10">
       <header className="mb-8">
         <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
-          Billing
+          {t("billing.title")}
         </h1>
-        <p className="mt-2 max-w-3xl text-sm text-ink-mid">
-          Review decision limits, model usage, execution modes, and the plan that fits your team.
-        </p>
+        <p className="mt-2 max-w-3xl text-sm text-ink-mid">{t("billing.subtitle")}</p>
       </header>
 
       {success && (
         <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-          Subscription is active.
+          {t("billing.subscriptionActive")}
         </div>
       )}
       {canceled && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-          Checkout was canceled.
+          {t("billing.checkoutCanceled")}
         </div>
       )}
 
@@ -199,14 +222,14 @@ function BillingContent() {
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-dim">
-                Current plan
+                {t("billing.currentPlan")}
               </p>
               <p className="mt-1 text-xl font-semibold text-ink">{status.planName}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {status.estimatedCost > 0 && (
                 <span className="rounded-full border border-line bg-surface-raised px-3 py-1 text-xs text-ink-mid tabular-nums">
-                  About {formatUsd(status.estimatedCost)} this month
+                  {t("billing.aboutCostThisMonth", { amount: formatUsd(status.estimatedCost) })}
                 </span>
               )}
               {/* No Stripe checkout/portal inside the iOS app (App Store
@@ -218,7 +241,7 @@ function BillingContent() {
                   onClick={handleManage}
                   className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-4 py-2 text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring min-h-11"
                 >
-                  Manage subscription
+                  {t("billing.manageSubscription")}
                 </button>
               )}
             </div>
@@ -228,7 +251,7 @@ function BillingContent() {
             {/* Decision turns usage */}
             <div>
               <div className="mb-1 flex justify-between text-sm">
-                <span className="text-ink-mid">Decisions</span>
+                <span className="text-ink-mid">{t("billing.decisions")}</span>
                 <span className="text-ink-mid tabular-nums">
                   {status.messageCount} /{" "}
                   {isFiniteLimit(status.messageLimit) ? status.messageLimit.toLocaleString() : "∞"}
@@ -255,7 +278,7 @@ function BillingContent() {
             {/* Tokens usage */}
             <div>
               <div className="mb-1 flex justify-between text-sm">
-                <span className="text-ink-mid">Tokens</span>
+                <span className="text-ink-mid">{t("billing.tokens")}</span>
                 <span className="text-ink-mid tabular-nums">
                   {formatTokens(status.tokenUsage)} /{" "}
                   {isFiniteLimit(status.tokenLimit) ? formatTokens(status.tokenLimit) : "∞"}
@@ -283,7 +306,7 @@ function BillingContent() {
             href="/usage"
             className="focus-ring mt-4 inline-block rounded text-sm text-accent hover:underline"
           >
-            View detailed usage
+            {t("billing.viewDetailedUsage")}
           </Link>
         </div>
       )}
@@ -304,48 +327,50 @@ function BillingContent() {
             >
               {plan.key === "PRO" && (
                 <span className="mb-2 self-start rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
-                  Recommended
+                  {t("billing.recommended")}
                 </span>
               )}
-              <p className="mb-1 text-lg font-semibold text-ink">{plan.name}</p>
+              <p className="mb-1 text-lg font-semibold text-ink">{t(plan.nameKey)}</p>
               <p className="mb-1 text-2xl font-semibold text-ink tabular-nums">
-                {plan.price}
-                <span className="text-sm font-normal text-ink-dim">{plan.period}</span>
+                {plan.priceKey ? t(plan.priceKey) : plan.price}
+                <span className="text-sm font-normal text-ink-dim">
+                  {plan.periodKey ? t(plan.periodKey) : ""}
+                </span>
               </p>
-              <p className="mb-1 text-sm text-ink-mid">{plan.limit}</p>
-              {"trialNote" in plan && plan.trialNote ? (
-                <p className="mb-4 text-xs font-medium text-emerald-600">{plan.trialNote}</p>
+              <p className="mb-1 text-sm text-ink-mid">{t(plan.limitKey)}</p>
+              {plan.trialNoteKey ? (
+                <p className="mb-4 text-xs font-medium text-emerald-600">{t(plan.trialNoteKey)}</p>
               ) : (
                 <div className="mb-4" />
               )}
 
               <ul className="mb-6 flex-1 space-y-2">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-ink-mid">
+                {plan.featureKeys.map((fKey) => (
+                  <li key={fKey} className="flex items-start gap-2 text-sm text-ink-mid">
                     <span aria-hidden="true" className="mt-0.5 text-emerald-500">
                       ✓
                     </span>
-                    {f}
+                    {t(fKey)}
                   </li>
                 ))}
               </ul>
 
               {isCurrent ? (
                 <div className="rounded-lg border border-sky-200 bg-sky-50 py-2 text-center text-sm font-medium text-accent-deeper">
-                  Current plan
+                  {t("billing.currentPlan")}
                 </div>
               ) : plan.key === "FREE" ? (
                 // Non-current FREE card: render a neutral pill (not an empty div)
                 // so every plan card keeps the same footer height and alignment.
                 <div className="rounded-lg border border-line bg-surface-raised py-2 text-center text-sm font-medium text-ink-mid">
-                  Included with every plan
+                  {t("billing.includedWithEveryPlan")}
                 </div>
               ) : plan.key === "ENTERPRISE" ? (
                 <a
                   href="mailto:sales@klorn.ai"
                   className="ease-strong block rounded-lg border border-line bg-surface-panel/70 py-2.5 text-center text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring min-h-11"
                 >
-                  Contact sales
+                  {t("billing.contactSales")}
                 </a>
               ) : isNativePlatform() ? (
                 // iOS app: no Stripe checkout (anti-steering). The IAP purchase
@@ -359,7 +384,7 @@ function BillingContent() {
                   disabled
                   className="rounded-lg border border-line bg-surface-hover py-2.5 text-sm font-semibold text-ink-dim min-h-11"
                 >
-                  Subscription coming soon
+                  {t("billing.subscriptionComingSoon")}
                 </button>
               ) : (
                 <button
@@ -367,7 +392,7 @@ function BillingContent() {
                   onClick={() => handleUpgrade(plan.key as "PRO")}
                   className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-accent-light to-accent py-2.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring min-h-11"
                 >
-                  Start 7-day free trial
+                  {t("billing.startTrial")}
                 </button>
               )}
             </div>
@@ -383,41 +408,33 @@ function BillingContent() {
 /**
  * Factual plan/trial explanations under the cards. Copy rules: measured
  * claims only, numbers must match the Paddle price configuration and the
- * PLANS array above — no marketing language.
+ * PLANS array above — no marketing language. Keys resolve via t() in
+ * PlanDetails; the trial answer interpolates PRO_PRICE_WEB as {price}.
  */
 const PLAN_FAQ = [
-  {
-    q: "How does the 7-day free trial work?",
-    a: `Starting Pro costs $0 today and unlocks everything in Pro immediately. The first charge of ${PRO_PRICE_WEB} happens when the 7-day trial ends. Cancel anytime before then from "Manage subscription" and you pay nothing.`,
-  },
-  {
-    q: "What is the difference between Free and Pro?",
-    a: "Free reads and organizes: Klorn watches mail and calendar and turns them into decision cards, within 50 decisions and 500K tokens per month on free models. Pro executes: sending mail, creating calendar events, reply drafts, daily briefings, and the decision loop's suggest + policy execution — with 2K decisions and 10M tokens per month and Claude Sonnet model selection.",
-  },
-  {
-    q: "What does Enterprise add?",
-    a: "Custom limits instead of fixed quotas, Claude Opus model selection, on-prem deployment options, SLA-backed support, and custom integrations. Pricing depends on scope — contact sales.",
-  },
-  {
-    q: "How do I cancel or manage my subscription?",
-    a: `"Manage subscription" on this page opens the billing portal of Paddle, our merchant of record, where you can cancel, change the payment method, or download invoices. After cancelling, Pro stays active until the end of the period you already paid for.`,
-  },
+  { qKey: "billing.faq.trial.q", aKey: "billing.faq.trial.a" },
+  { qKey: "billing.faq.freeVsPro.q", aKey: "billing.faq.freeVsPro.a" },
+  { qKey: "billing.faq.enterprise.q", aKey: "billing.faq.enterprise.a" },
+  { qKey: "billing.faq.manage.q", aKey: "billing.faq.manage.a" },
 ];
 
 function PlanDetails() {
+  const { t } = useT();
   return (
     <section className="mt-10" aria-labelledby="plan-details-heading">
       <h2 id="plan-details-heading" className="mb-4 text-lg font-semibold text-ink">
-        Plan details
+        {t("billing.planDetailsHeading")}
       </h2>
       <dl className="space-y-4">
         {PLAN_FAQ.map((item) => (
           <div
-            key={item.q}
+            key={item.qKey}
             className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5"
           >
-            <dt className="text-sm font-semibold text-ink">{item.q}</dt>
-            <dd className="mt-1.5 text-sm leading-relaxed text-ink-mid">{item.a}</dd>
+            <dt className="text-sm font-semibold text-ink">{t(item.qKey)}</dt>
+            <dd className="mt-1.5 text-sm leading-relaxed text-ink-mid">
+              {t(item.aKey, { price: PRO_PRICE_WEB })}
+            </dd>
           </div>
         ))}
       </dl>

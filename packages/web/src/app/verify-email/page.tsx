@@ -6,8 +6,10 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import AuthScreen from "../../components/auth-screen";
 import { API_BASE, apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { useT } from "../../lib/i18n";
 
 function VerifyEmailContent() {
+  const { t } = useT();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const { user, token: authToken } = useAuth();
@@ -62,7 +64,7 @@ function VerifyEmailContent() {
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         {status === "verifying" && (
           <p className="text-sm text-ink-mid" aria-live="polite">
-            Verifying your email…
+            {t("verifyEmail.verifying")}
           </p>
         )}
       </div>
@@ -71,36 +73,38 @@ function VerifyEmailContent() {
 
   return (
     <AuthScreen
-      eyebrow="Email verification"
+      eyebrow={t("verifyEmail.eyebrow")}
       title={
         status === "sent"
-          ? "Verification email sent"
+          ? t("verifyEmail.title.sent")
           : status === "pending"
-            ? "Verify your email"
-            : "Verification failed"
+            ? t("verifyEmail.title.pending")
+            : t("verifyEmail.title.error")
       }
       description={
         status === "sent"
-          ? "Open the verification link in your inbox to unlock your Klorn workspace."
+          ? t("verifyEmail.description.sent")
           : status === "pending"
-            ? "Verify your account email to unlock every workspace feature."
-            : "The link is expired or invalid. Sign in again and request a new verification email."
+            ? t("verifyEmail.description.pending")
+            : t("verifyEmail.description.error")
       }
       footer={
         <Link href="/login" className="transition hover:text-ink">
-          Back to login
+          {t("auth.backToLogin")}
         </Link>
       }
     >
       <div className="space-y-4">
         <div className="rounded-md border border-line bg-surface-raised p-4">
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-dim">Next step</p>
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-ink-dim">
+            {t("verifyEmail.nextStep")}
+          </p>
           <p className="mt-2 text-sm leading-6 text-ink-mid">
             {status === "sent"
-              ? "Open the Klorn verification email and follow the link. You can return to the decision queue after verification."
+              ? t("verifyEmail.nextStepBody.sent")
               : status === "pending"
-                ? "If the email is missing, send a fresh verification link."
-                : "Return to login, check your account state, then request a new verification email."}
+                ? t("verifyEmail.nextStepBody.pending")
+                : t("verifyEmail.nextStepBody.error")}
           </p>
         </div>
 
@@ -110,14 +114,14 @@ function VerifyEmailContent() {
             onClick={resend}
             className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep focus-ring"
           >
-            {status === "sent" ? "Resend again" : "Resend verification email"}
+            {status === "sent" ? t("verifyEmail.resendAgain") : t("verifyEmail.resendVerification")}
           </button>
         ) : (
           <Link
             href="/login"
             className="flex h-11 w-full items-center justify-center rounded-md border border-line bg-surface-raised text-sm font-semibold text-ink transition hover:border-line-strong focus-ring"
           >
-            Back to login
+            {t("auth.backToLogin")}
           </Link>
         )}
       </div>
