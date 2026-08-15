@@ -1398,6 +1398,23 @@ func runSelfChecks() async -> Bool {
           contrast(Theme.text, on: raisedOnCanvas) >= 4.5)
     check("engage (non-text) clears 3:1 on a raised card over the canvas",
           contrast(Theme.engage, on: raisedOnCanvas) >= 3.0)
+
+    // Dark appearance (2026-08-15): the same floors, resolved under darkAqua —
+    // the dynamic Theme colors re-resolve inside this scope, so a future dark
+    // palette tweak that drops below a floor fails here, not in dogfood.
+    NSAppearance(named: .darkAqua)!.performAsCurrentDrawingAppearance {
+        let darkCanvas = srgba(Theme.bg)
+        let darkRaised = over(Theme.surfaceRaised, darkCanvas)
+        let darkPanel = over(Theme.panel, darkCanvas)
+        check("dark: textDim clears 4.5:1 on the panel over the canvas",
+              contrast(Theme.textDim, on: darkPanel) >= 4.5)
+        check("dark: textDim clears 4.5:1 on a raised card",
+              contrast(Theme.textDim, on: darkRaised) >= 4.5)
+        check("dark: text clears 4.5:1 on a raised card",
+              contrast(Theme.text, on: darkRaised) >= 4.5)
+        check("dark: engage (non-text) clears 3:1 on a raised card",
+              contrast(Theme.engage, on: darkRaised) >= 3.0)
+    }
     // textDim IS the floor: any extra .opacity() on top drops caption text
     // back under 4.5:1, so both single-line shapes are banned — thinning the
     // color (`textDim.opacity(…)`) and thinning an inline chain

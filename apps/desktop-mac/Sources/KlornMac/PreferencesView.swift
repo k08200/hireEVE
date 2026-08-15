@@ -63,6 +63,19 @@ struct PreferencesView: View {
                     .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
             }
 
+            section(L("prefs.section.appearance")) {
+                Picker(L("prefs.appearance"), selection: $settings.appearance) {
+                    ForEach(AppearanceChoice.allCases, id: \.self) { choice in
+                        Text(choice.label).tag(choice)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .accessibilityLabel(L("prefs.appearance"))
+                Text(L("prefs.appearance.detail"))
+                    .font(.caption).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
+            }
+
             section(L("prefs.section.mail")) {
                 Toggle(isOn: $settings.loadRemoteImages) {
                     Text(L("prefs.remoteImages")).foregroundStyle(Theme.text)

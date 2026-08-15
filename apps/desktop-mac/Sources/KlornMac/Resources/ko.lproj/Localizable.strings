@@ -359,3 +359,11 @@
 "prefs.section.mail" = "메일";
 "prefs.remoteImages" = "메일의 외부 이미지 불러오기";
 "prefs.remoteImages.detail" = "끄면 메일을 읽는 동안 모든 네트워크 요청을 차단합니다 — 추적 픽셀 포함. 본문에 내장된 이미지는 계속 보입니다.";
+
+/* Appearance (2026-08-15) */
+"prefs.section.appearance" = "화면 모드";
+"prefs.appearance" = "테마";
+"prefs.appearance.detail" = "시스템은 macOS 설정을 따르고 즉시 반영됩니다.";
+"appearance.system" = "시스템";
+"appearance.light" = "라이트";
+"appearance.dark" = "다크";
