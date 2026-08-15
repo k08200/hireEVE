@@ -1383,21 +1383,28 @@ func runSelfChecks() async -> Bool {
                 t.b * t.a + bottom.b * (1 - t.a), 1)
     }
     let white: (r: Double, g: Double, b: Double, a: Double) = (1, 1, 1, 1)
-    let canvas = srgba(Theme.bg)
-    // Worst real stack: a raised card over the translucent panel with the
-    // canvas showing through — darker backdrop than pure white, lower ratio.
-    let raisedOnCanvas = over(Theme.surfaceRaised, canvas)
-    // NOTE: these are the two statically checkable backdrops. The live glass
-    // panel is a blur over arbitrary desktop content, so its contrast is only
-    // bounded when reduce-transparency forces it opaque — the white case here.
-    check("textDim clears 4.5:1 on opaque white (reduce-transparency panel)",
-          contrast(Theme.textDim, on: white) >= 4.5)
-    check("textDim clears 4.5:1 on a raised card over the canvas",
-          contrast(Theme.textDim, on: raisedOnCanvas) >= 4.5)
-    check("text clears 4.5:1 on a raised card over the canvas",
-          contrast(Theme.text, on: raisedOnCanvas) >= 4.5)
-    check("engage (non-text) clears 3:1 on a raised card over the canvas",
-          contrast(Theme.engage, on: raisedOnCanvas) >= 3.0)
+    // The Theme colors are appearance-dynamic since dark mode — every block
+    // must PIN the appearance it audits, or the verdict silently depends on
+    // the OS of the machine running the check (caught 2026-08-15: a dark-OS
+    // machine resolved the light block against dark values and failed it,
+    // while light-OS CI passed).
+    NSAppearance(named: .aqua)!.performAsCurrentDrawingAppearance {
+        let canvas = srgba(Theme.bg)
+        // Worst real stack: a raised card over the translucent panel with the
+        // canvas showing through — darker backdrop than pure white, lower ratio.
+        let raisedOnCanvas = over(Theme.surfaceRaised, canvas)
+        // NOTE: these are the two statically checkable backdrops. The live glass
+        // panel is a blur over arbitrary desktop content, so its contrast is only
+        // bounded when reduce-transparency forces it opaque — the white case here.
+        check("textDim clears 4.5:1 on opaque white (reduce-transparency panel)",
+              contrast(Theme.textDim, on: white) >= 4.5)
+        check("textDim clears 4.5:1 on a raised card over the canvas",
+              contrast(Theme.textDim, on: raisedOnCanvas) >= 4.5)
+        check("text clears 4.5:1 on a raised card over the canvas",
+              contrast(Theme.text, on: raisedOnCanvas) >= 4.5)
+        check("engage (non-text) clears 3:1 on a raised card over the canvas",
+              contrast(Theme.engage, on: raisedOnCanvas) >= 3.0)
+    }
 
     // Dark appearance (2026-08-15): the same floors, resolved under darkAqua —
     // the dynamic Theme colors re-resolve inside this scope, so a future dark
