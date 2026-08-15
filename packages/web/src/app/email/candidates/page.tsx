@@ -7,6 +7,7 @@ import AuthGuard from "../../../components/auth-guard";
 import { ListSkeleton } from "../../../components/skeleton";
 import ErrorAlert from "../../../components/ui/error-alert";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
+import { useT } from "../../../lib/i18n";
 import { queryKeys } from "../../../lib/query-keys";
 import { captureClientError } from "../../../lib/sentry";
 import { formatRelative } from "../../../lib/text";
@@ -84,24 +85,36 @@ interface AttachmentQuality {
   }>;
 }
 
-const STATUS_FILTERS: Array<{ status: CandidateStatus; label: string }> = [
-  { status: "ALL", label: "All" },
-  { status: "NEEDS_ANALYSIS", label: "Needs analysis" },
-  { status: "NEEDS_INFO", label: "Needs info" },
-  { status: "READY_TO_REVIEW", label: "Ready" },
-  { status: "REVIEWING", label: "Reviewing" },
-  { status: "CONTACTED", label: "Contacted" },
-  { status: "SHORTLISTED", label: "Shortlisted" },
-  { status: "REJECTED", label: "Rejected" },
-  { status: "ARCHIVED", label: "Archived" },
-];
+/** `t` is passed in rather than called via useT() here — these are plain
+ * builders, not components, so they cannot use hooks themselves. */
+function buildStatusFilters(t: (key: string) => string): Array<{
+  status: CandidateStatus;
+  label: string;
+}> {
+  return [
+    { status: "ALL", label: t("candidates.status.all") },
+    { status: "NEEDS_ANALYSIS", label: t("candidates.status.needsAnalysis") },
+    { status: "NEEDS_INFO", label: t("candidates.status.needsInfo") },
+    { status: "READY_TO_REVIEW", label: t("candidates.status.ready") },
+    { status: "REVIEWING", label: t("candidates.status.reviewing") },
+    { status: "CONTACTED", label: t("candidates.status.contacted") },
+    { status: "SHORTLISTED", label: t("candidates.status.shortlisted") },
+    { status: "REJECTED", label: t("candidates.status.rejected") },
+    { status: "ARCHIVED", label: t("candidates.status.archived") },
+  ];
+}
 
-const ATTENTION_FILTERS: Array<{ value: AttentionFilter; label: string }> = [
-  { value: "all", label: "All materials" },
-  { value: "manual_review", label: "Source check" },
-  { value: "duplicates", label: "Possible duplicates" },
-  { value: "incomplete", label: "Missing info" },
-];
+function buildAttentionFilters(t: (key: string) => string): Array<{
+  value: AttentionFilter;
+  label: string;
+}> {
+  return [
+    { value: "all", label: t("candidates.attention.all") },
+    { value: "manual_review", label: t("candidates.attention.sourceCheck") },
+    { value: "duplicates", label: t("candidates.attention.duplicates") },
+    { value: "incomplete", label: t("candidates.attention.incomplete") },
+  ];
+}
 
 export default function CandidateIntakePage() {
   return (
@@ -112,7 +125,10 @@ export default function CandidateIntakePage() {
 }
 
 function CandidateIntakeView() {
+  const { t } = useT();
   const queryClient = useQueryClient();
+  const STATUS_FILTERS = buildStatusFilters(t);
+  const ATTENTION_FILTERS = buildAttentionFilters(t);
   const [status, setStatus] = useState<CandidateStatus>("ALL");
   const [attention, setAttention] = useState<AttentionFilter>("all");
   const [bulkUpdating, setBulkUpdating] = useState(false);
@@ -169,7 +185,7 @@ function CandidateIntakeView() {
   // Keep selection in sync when the filter changes (the keyed query
   // already refetches on its own).
   if (candidatesQuery.error && !error) {
-    setError("Could not load the candidate queue.");
+    setError(t("candidates.error.load"));
   }
   const setCandidates = (updater: (prev: CandidateIntake[]) => CandidateIntake[]) => {
     queryClient.setQueryData<CandidateIntake[]>(
@@ -239,7 +255,7 @@ function CandidateIntakeView() {
       setSelectedIds(new Set());
     } catch (err) {
       captureClientError(err, { scope: "email.candidates.bulk-status", status: nextStatus });
-      setError("Could not update the selected candidate status.");
+      setError(t("candidates.error.bulkUpdate"));
     } finally {
       setBulkUpdating(false);
     }
@@ -268,7 +284,7 @@ function CandidateIntakeView() {
       URL.revokeObjectURL(url);
     } catch (err) {
       captureClientError(err, { scope: "email.candidates.export", status, attention });
-      setError("Could not create the candidate CSV.");
+      setError(t("candidates.error.export"));
     } finally {
       setExporting(false);
     }
@@ -291,12 +307,9 @@ function CandidateIntakeView() {
       <header className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
-            Candidates
+            {t("mail.filterCandidates")}
           </h1>
-          <p className="mt-2 text-sm text-ink-mid">
-            Resumes, portfolios, and audition materials from email attachments, grouped by review
-            state
-          </p>
+          <p className="mt-2 text-sm text-ink-mid">{t("candidates.subtitle")}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button
@@ -305,7 +318,7 @@ function CandidateIntakeView() {
             disabled={refreshing}
             className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
           >
-            {refreshing ? "Refreshing…" : "Rescan"}
+            {refreshing ? t("candidates.refreshing") : t("candidates.rescan")}
           </button>
           <button
             type="button"
@@ -313,40 +326,50 @@ function CandidateIntakeView() {
             disabled={exporting}
             className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50 focus-ring"
           >
-            {exporting ? "Exporting…" : "Export CSV"}
+            {exporting ? t("candidates.exporting") : t("candidates.exportCsv")}
           </button>
           <Link
             href="/email"
             className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
           >
-            Email list
+            {t("candidates.emailListLink")}
           </Link>
         </div>
       </header>
 
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        <QueueStat label="Needs info" value={needsCount} />
-        <QueueStat label="Ready" value={readyCount} />
-        <QueueStat label="Duplicates" value={duplicateCount} />
-        <QueueStat label="Source checks" value={manualReviewCount} />
+        <QueueStat label={t("candidates.status.needsInfo")} value={needsCount} />
+        <QueueStat label={t("candidates.status.ready")} value={readyCount} />
+        <QueueStat label={t("candidates.stat.duplicates")} value={duplicateCount} />
+        <QueueStat label={t("candidates.stat.sourceChecks")} value={manualReviewCount} />
         {quality && (
           <>
-            <QueueStat label="AI quality" value={`${Math.round(quality.qualityScore * 100)}%`} />
-            <QueueStat label="Analyzed" value={quality.analyzedCount} />
-            <QueueStat label="Corrected" value={quality.correctedCount} />
-            <QueueStat label="Failed" value={quality.failedCount + quality.manualReviewCount} />
+            <QueueStat
+              label={t("candidates.stat.aiQuality")}
+              value={`${Math.round(quality.qualityScore * 100)}%`}
+            />
+            <QueueStat label={t("candidates.stat.analyzed")} value={quality.analyzedCount} />
+            <QueueStat label={t("candidates.stat.corrected")} value={quality.correctedCount} />
+            <QueueStat
+              label={t("candidates.stat.failed")}
+              value={quality.failedCount + quality.manualReviewCount}
+            />
           </>
         )}
       </div>
 
       {quality?.correctionSummary && quality.correctionSummary.total > 0 && (
         <div className="mb-3 rounded-xl border border-sky-200/70 bg-gradient-to-r from-sky-50 to-white px-3 py-2 text-[11px] text-sky-800">
-          Recent corrections {quality.correctionSummary.total} · categories{" "}
-          {quality.correctionSummary.categoryCorrectionCount} · fields{" "}
-          {quality.correctionSummary.fieldCorrectionCount} · summaries{" "}
-          {quality.correctionSummary.summaryCorrectionCount} · stability{" "}
-          {Math.round(quality.correctionSummary.categoryStability * 100)}%/
-          {Math.round(quality.correctionSummary.fieldStability * 100)}%
+          {t("candidates.correctionSummary", {
+            total: String(quality.correctionSummary.total),
+            categories: String(quality.correctionSummary.categoryCorrectionCount),
+            fields: String(quality.correctionSummary.fieldCorrectionCount),
+            summaries: String(quality.correctionSummary.summaryCorrectionCount),
+            categoryStability: String(
+              Math.round(quality.correctionSummary.categoryStability * 100),
+            ),
+            fieldStability: String(Math.round(quality.correctionSummary.fieldStability * 100)),
+          })}
         </div>
       )}
       {quality?.topIssues && quality.topIssues.length > 0 && (
@@ -355,7 +378,7 @@ function CandidateIntakeView() {
 
       <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
         <span className="mr-0.5 shrink-0 text-[11px] font-medium uppercase tracking-wider text-ink-dim">
-          Status
+          {t("candidates.filterStatusLabel")}
         </span>
         {STATUS_FILTERS.map((filter) => {
           const active = filter.status === status;
@@ -379,7 +402,7 @@ function CandidateIntakeView() {
 
       <div className="-mx-4 mt-1 flex items-center gap-1.5 overflow-x-auto px-4 pb-1 scrollbar-hide">
         <span className="mr-0.5 shrink-0 text-[11px] font-medium uppercase tracking-wider text-ink-dim">
-          Focus
+          {t("candidates.filterFocusLabel")}
         </span>
         {ATTENTION_FILTERS.map((filter) => {
           const active = filter.value === attention;
@@ -409,7 +432,9 @@ function CandidateIntakeView() {
               onClick={toggleAllVisible}
               className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
             >
-              {selectedCount > 0 ? `${selectedCount} selected` : "Select visible"}
+              {selectedCount > 0
+                ? t("candidates.bulk.selectedCount", { count: String(selectedCount) })
+                : t("candidates.bulk.selectVisible")}
             </button>
             {selectedCount > 0 && (
               <button
@@ -417,28 +442,28 @@ function CandidateIntakeView() {
                 onClick={() => setSelectedIds(new Set())}
                 className="ease-strong rounded-lg px-3 py-1.5 text-xs text-ink-dim transition duration-150 hover:bg-surface-hover hover:text-ink active:scale-[0.97] focus-ring"
               >
-                Clear
+                {t("candidates.bulk.clear")}
               </button>
             )}
           </div>
           <div className="flex flex-wrap gap-2">
             <BulkStatusButton
-              label="Reviewing"
+              label={t("candidates.status.reviewing")}
               disabled={selectedCount === 0 || bulkUpdating}
               onClick={() => bulkUpdateStatus("REVIEWING")}
             />
             <BulkStatusButton
-              label="Shortlist"
+              label={t("candidates.bulk.shortlist")}
               disabled={selectedCount === 0 || bulkUpdating}
               onClick={() => bulkUpdateStatus("SHORTLISTED")}
             />
             <BulkStatusButton
-              label="Contacted"
+              label={t("candidates.status.contacted")}
               disabled={selectedCount === 0 || bulkUpdating}
               onClick={() => bulkUpdateStatus("CONTACTED")}
             />
             <BulkStatusButton
-              label="Archive"
+              label={t("candidates.bulk.archive")}
               disabled={selectedCount === 0 || bulkUpdating}
               onClick={() => bulkUpdateStatus("ARCHIVED")}
             />
@@ -456,10 +481,8 @@ function CandidateIntakeView() {
 
       {!loading && !error && candidates.length === 0 && (
         <div className="panel-elevated mt-4 rounded-2xl border border-line/70 bg-surface-panel p-6 text-center">
-          <p className="text-sm text-ink-mid">No candidate materials yet.</p>
-          <p className="mt-1 text-xs text-ink-dim">
-            After Gmail sync and attachment analysis, candidate signals appear here automatically.
-          </p>
+          <p className="text-sm text-ink-mid">{t("candidates.empty.title")}</p>
+          <p className="mt-1 text-xs text-ink-dim">{t("candidates.empty.description")}</p>
         </div>
       )}
 
@@ -482,14 +505,18 @@ function CandidateIntakeView() {
 // Collapsed one-line warning strip — the failure count is one calm sentence,
 // and the noisy per-file list only appears on demand.
 function QualityIssuesStrip({ issues }: { issues: NonNullable<AttachmentQuality["topIssues"]> }) {
+  const { t } = useT();
   const [expanded, setExpanded] = useState(false);
   const count = issues.length;
   return (
     <div className="mb-3 overflow-hidden rounded-lg border border-amber-200/70 bg-amber-50/60">
       <div className="flex items-center gap-3 px-3 py-2">
         <p className="min-w-0 flex-1 truncate text-xs text-amber-800">
+          {t("candidates.qualityIssues.prefix")}
           <span className="font-semibold tabular-nums">{count}</span>{" "}
-          {count === 1 ? "attachment" : "attachments"} failed analysis — add your own key
+          {count === 1
+            ? t("candidates.qualityIssues.oneFailed")
+            : t("candidates.qualityIssues.manyFailed")}
         </p>
         <button
           type="button"
@@ -497,7 +524,7 @@ function QualityIssuesStrip({ issues }: { issues: NonNullable<AttachmentQuality[
           aria-expanded={expanded}
           className="ease-strong shrink-0 rounded-md px-2 py-1 text-[11px] font-medium text-amber-700 transition duration-150 hover:bg-amber-100 hover:text-amber-900 active:scale-[0.97] focus-ring"
         >
-          {expanded ? "Hide" : "Details"}
+          {expanded ? t("candidates.qualityIssues.hide") : t("candidates.qualityIssues.details")}
         </button>
       </div>
       {expanded && (
@@ -567,7 +594,10 @@ function CandidateCard({
   selected: boolean;
   onToggle: () => void;
 }) {
-  const title = [candidate.name || "Unknown name", candidate.role].filter(Boolean).join(" · ");
+  const { t } = useT();
+  const title = [candidate.name || t("candidates.card.unknownName"), candidate.role]
+    .filter(Boolean)
+    .join(" · ");
   const displayName = candidate.name || senderName(candidate.email.from);
   return (
     <article
@@ -586,7 +616,7 @@ function CandidateCard({
           checked={selected}
           onChange={onToggle}
           className="mt-1 h-4 w-4 rounded border-line-strong bg-surface-panel text-accent"
-          aria-label={`Select ${title}`}
+          aria-label={t("candidates.card.selectAria", { title })}
         />
         <span
           aria-hidden="true"
@@ -597,14 +627,14 @@ function CandidateCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-accent-deeper ring-1 ring-inset ring-accent/20">
-              {candidateStatusLabel(candidate.status)}
+              {candidateStatusLabel(t, candidate.status)}
             </span>
             <span className="text-[10px] tabular-nums text-ink-dim">
               {Math.round(candidate.confidence * 100)}%
             </span>
             {candidate.duplicateCount > 1 && (
               <span className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-inset ring-amber-500/20">
-                Duplicate {candidate.duplicateCount}
+                {t("candidates.card.duplicateBadge", { count: String(candidate.duplicateCount) })}
               </span>
             )}
           </div>
@@ -616,44 +646,60 @@ function CandidateCard({
         </time>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-ink-dim">
-        {candidate.contact && <span className="truncate">Contact {candidate.contact}</span>}
-        <span className="tabular-nums">{candidate.evidenceFiles.length} files</span>
+        {candidate.contact && (
+          <span className="truncate">
+            {t("candidates.card.contactPrefix", { contact: candidate.contact })}
+          </span>
+        )}
+        <span className="tabular-nums">
+          {t("emailDetail.attachment.fileCount", { count: String(candidate.evidenceFiles.length) })}
+        </span>
         {candidate.evidenceFiles.some((file) => file.needsManualReview) && (
           <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-amber-700 ring-1 ring-inset ring-amber-500/20">
-            Source check {candidate.evidenceFiles.filter((file) => file.needsManualReview).length}
+            {t("candidates.card.sourceCheckCount", {
+              count: String(
+                candidate.evidenceFiles.filter((file) => file.needsManualReview).length,
+              ),
+            })}
           </span>
         )}
         {candidate.duplicateCount > 1 && (
           <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-ink-mid ring-1 ring-inset ring-line">
-            Duplicate match {candidate.duplicateReasons.map(candidateDuplicateLabel).join(", ")}
+            {t("candidates.card.duplicateMatch", {
+              reasons: candidate.duplicateReasons
+                .map((reason) => candidateDuplicateLabel(t, reason))
+                .join(", "),
+            })}
           </span>
         )}
         {candidate.missingFields.length > 0 && (
           <span className="rounded-md bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-ink-mid ring-1 ring-inset ring-line">
-            {formatMissingBadge(candidate.missingFields)}
+            {formatMissingBadge(t, candidate.missingFields)}
           </span>
         )}
       </div>
       <div className="mt-3 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
-        <p className="truncate text-xs text-ink-muted">{candidate.email.subject || "Untitled"}</p>
+        <p className="truncate text-xs text-ink-muted">
+          {candidate.email.subject || t("common.untitled")}
+        </p>
         <p className="mt-1 truncate text-[11px] text-ink-dim">{senderName(candidate.email.from)}</p>
       </div>
       {candidate.notes && (
         <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-ink-dim">
-          Notes: {candidate.notes}
+          {t("candidates.card.notesPrefix", { notes: candidate.notes })}
         </p>
       )}
       <Link
         href={`/email/candidates/${candidate.emailId}`}
         className="ease-strong mt-3 inline-flex h-8 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
       >
-        Candidate details
+        {t("candidates.card.detailsLink")}
       </Link>
       <Link
         href={`/email/${candidate.emailId}`}
         className="ease-strong ml-2 mt-3 inline-flex h-8 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-dim transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring"
       >
-        Email
+        {t("nav.email")}
       </Link>
     </article>
   );
@@ -692,44 +738,51 @@ function senderInitials(name: string): string {
     .toUpperCase();
 }
 
-function candidateStatusLabel(status: string): string {
+/** `t` is passed in rather than called via useT() here — these are plain
+ * helpers, not components, so they cannot use hooks themselves. */
+function candidateStatusLabel(t: (key: string) => string, status: string): string {
   const labels: Record<string, string> = {
-    NEEDS_ANALYSIS: "Needs analysis",
-    NEEDS_INFO: "Needs info",
-    READY_TO_REVIEW: "Ready",
-    REVIEWING: "Reviewing",
-    CONTACTED: "Contacted",
-    SHORTLISTED: "Shortlisted",
-    REJECTED: "Rejected",
-    ARCHIVED: "Archived",
+    NEEDS_ANALYSIS: t("candidates.status.needsAnalysis"),
+    NEEDS_INFO: t("candidates.status.needsInfo"),
+    READY_TO_REVIEW: t("candidates.status.ready"),
+    REVIEWING: t("candidates.status.reviewing"),
+    CONTACTED: t("candidates.status.contacted"),
+    SHORTLISTED: t("candidates.status.shortlisted"),
+    REJECTED: t("candidates.status.rejected"),
+    ARCHIVED: t("candidates.status.archived"),
   };
   return labels[status] || status;
 }
 
 // "Missing: Name +3" — lead with the first missing field, fold the rest into
 // a count so the badge stays one quiet token instead of a red laundry list.
-function formatMissingBadge(fields: string[]): string {
-  const first = candidateMissingLabel(fields[0]);
+function formatMissingBadge(
+  t: (key: string, vars?: Record<string, string>) => string,
+  fields: string[],
+): string {
+  const first = candidateMissingLabel(t, fields[0]);
   const rest = fields.length - 1;
-  return rest > 0 ? `Missing: ${first} +${rest}` : `Missing: ${first}`;
+  return rest > 0
+    ? t("candidates.card.missingWithRest", { first, rest: String(rest) })
+    : t("candidates.card.missingOnly", { first });
 }
 
-function candidateMissingLabel(field: string): string {
+function candidateMissingLabel(t: (key: string) => string, field: string): string {
   const labels: Record<string, string> = {
-    name: "Name",
-    contact: "Contact",
-    role: "Role",
-    portfolio: "Portfolio",
+    name: t("emailDetail.candidateCard.fact.name"),
+    contact: t("emailDetail.candidateCard.fact.contact"),
+    role: t("emailDetail.candidateCard.fact.role"),
+    portfolio: t("candidates.missingField.portfolio"),
   };
   return labels[field] || field;
 }
 
-function candidateDuplicateLabel(reason: string): string {
+function candidateDuplicateLabel(t: (key: string) => string, reason: string): string {
   const labels: Record<string, string> = {
-    same_email: "Email",
-    same_phone: "Phone",
-    same_name_and_role: "Name + role",
-    same_name: "Name",
+    same_email: t("nav.email"),
+    same_phone: t("candidates.duplicateReason.phone"),
+    same_name_and_role: t("candidates.duplicateReason.nameAndRole"),
+    same_name: t("emailDetail.candidateCard.fact.name"),
   };
   return labels[reason] || reason;
 }

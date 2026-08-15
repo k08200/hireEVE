@@ -9,6 +9,7 @@
  * Each is a controlled component: parent owns busy state and callbacks.
  */
 
+import { useT } from "../../../lib/i18n";
 import { EmailActionButton, senderName } from "./atoms";
 import {
   EMAIL_REMINDER_OPTIONS,
@@ -30,11 +31,17 @@ export function UndoActionBanner({
   onDismiss: () => void;
   onUndo: () => void;
 }) {
-  const actionLabel = notice.action === "archive" ? "archived" : "moved to trash";
+  const { t } = useT();
+  const actionLabel =
+    notice.action === "archive"
+      ? t("emailDetail.toolbar.undo.actionArchived")
+      : t("emailDetail.toolbar.undo.actionMovedToTrash");
   return (
     <div className="mb-4 flex flex-col gap-3 rounded-lg border border-accent-light/30 bg-sky-50 px-4 py-3 text-sm text-ink shadow-lg shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="font-medium">Email {actionLabel}.</p>
+        <p className="font-medium">
+          {t("emailDetail.toolbar.undo.emailActionDone", { action: actionLabel })}
+        </p>
         {notice.subject && <p className="mt-0.5 truncate text-xs text-ink-mid">{notice.subject}</p>}
       </div>
       <div className="flex shrink-0 gap-2">
@@ -44,7 +51,7 @@ export function UndoActionBanner({
           disabled={busy}
           className="min-h-10 rounded-md bg-accent px-3 text-xs font-semibold text-white transition hover:bg-accent-deep disabled:opacity-50 focus-ring"
         >
-          {busy ? "Restoring..." : "Undo"}
+          {busy ? t("emailDetail.toolbar.undo.restoring") : t("emailDetail.toolbar.undo.undo")}
         </button>
         <button
           type="button"
@@ -52,7 +59,7 @@ export function UndoActionBanner({
           disabled={busy}
           className="min-h-10 rounded-md border border-line px-3 text-xs text-ink-mid transition hover:bg-surface-hover disabled:opacity-50 focus-ring"
         >
-          Dismiss
+          {t("emailDetail.toolbar.undo.dismiss")}
         </button>
       </div>
     </div>
@@ -78,6 +85,7 @@ export function EmailActionToolbar({
   onToggleRead: () => void;
   onToggleStar: () => void;
 }) {
+  const { t } = useT();
   const disabled = busyAction !== null;
   const isDemo = email.id.startsWith("demo-");
   const actionDisabled = disabled || isDemo;
@@ -90,9 +98,15 @@ export function EmailActionToolbar({
           }`}
         />
         <span className="truncate">
-          {isDemo ? "Demo email" : email.isRead ? "Read email" : "Unread email"}
-          {email.isStarred ? " · Starred" : ""}
-          {nextEmail ? ` · Next: ${senderName(nextEmail.from)}` : ""}
+          {isDemo
+            ? t("emailDetail.toolbar.status.demo")
+            : email.isRead
+              ? t("emailDetail.toolbar.status.read")
+              : t("emailDetail.toolbar.status.unread")}
+          {email.isStarred ? t("emailDetail.toolbar.starredSuffix") : ""}
+          {nextEmail
+            ? t("emailDetail.toolbar.nextSuffix", { name: senderName(nextEmail.from) })
+            : ""}
         </span>
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -101,21 +115,25 @@ export function EmailActionToolbar({
           disabled={actionDisabled}
           onClick={onToggleRead}
         >
-          {email.isRead ? "Unread" : "Read"}
+          {email.isRead
+            ? t("emailDetail.toolbar.action.unreadLabel")
+            : t("emailDetail.status.read")}
         </EmailActionButton>
         <EmailActionButton
           busy={busyAction === "star"}
           disabled={actionDisabled}
           onClick={onToggleStar}
         >
-          {email.isStarred ? "Unstar" : "Star"}
+          {email.isStarred
+            ? t("emailDetail.toolbar.action.unstar")
+            : t("emailDetail.toolbar.action.star")}
         </EmailActionButton>
         <EmailActionButton
           busy={busyAction === "archive"}
           disabled={actionDisabled}
           onClick={onArchive}
         >
-          Archive
+          {t("emailDetail.toolbar.action.archive")}
         </EmailActionButton>
         <EmailActionButton
           busy={busyAction === "delete"}
@@ -123,11 +141,11 @@ export function EmailActionToolbar({
           disabled={actionDisabled}
           onClick={onDelete}
         >
-          Delete
+          {t("common.delete")}
         </EmailActionButton>
         {nextEmail && (
           <EmailActionButton busy={false} disabled={disabled} onClick={onOpenNext}>
-            Next
+            {t("emailDetail.toolbar.action.next")}
           </EmailActionButton>
         )}
       </div>
@@ -144,9 +162,10 @@ export function EmailReminderQuickActions({
   disabled: boolean;
   onCreate: (option: EmailReminderOption) => void;
 }) {
+  const { t } = useT();
   return (
     <div className="mb-4 flex flex-col gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2 text-xs text-ink-mid sm:flex-row sm:items-center sm:justify-between">
-      <span className="font-medium text-ink-mid">Remind me</span>
+      <span className="font-medium text-ink-mid">{t("emailDetail.toolbar.remindMe")}</span>
       <div className="flex flex-wrap gap-1.5">
         {EMAIL_REMINDER_OPTIONS.map((option) => (
           <button
@@ -156,7 +175,7 @@ export function EmailReminderQuickActions({
             disabled={disabled || busyKey !== null}
             className="min-h-9 rounded-md border border-line bg-surface-raised px-3 text-xs text-ink-mid transition hover:border-line-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-45 focus-ring"
           >
-            {busyKey === option.key ? "Setting..." : option.label}
+            {busyKey === option.key ? t("emailDetail.toolbar.settingReminder") : option.label}
           </button>
         ))}
       </div>

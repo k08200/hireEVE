@@ -10,6 +10,7 @@ import { TrustBadgeChip } from "../../../components/trust-badge";
 import ErrorAlert from "../../../components/ui/error-alert";
 import LoadingState from "../../../components/ui/loading-state";
 import { API_BASE, apiFetch, authHeaders } from "../../../lib/api";
+import { useT } from "../../../lib/i18n";
 import { linkifyText } from "../../../lib/linkify";
 import { captureClientError } from "../../../lib/sentry";
 import { serverErrorMessage } from "../../../lib/server-error";
@@ -162,6 +163,7 @@ export default function EmailDetailPage() {
 }
 
 function EmailDetailView() {
+  const { t } = useT();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -234,11 +236,11 @@ function EmailDetailView() {
       }
     } catch (err) {
       captureClientError(err, { scope: "email.detail", id });
-      setError(serverErrorMessage(err, "Could not load the email."));
+      setError(serverErrorMessage(err, t("emailDetail.error.load")));
     } finally {
       setLoading(false);
     }
-  }, [id, queue, shouldMarkRead]);
+  }, [id, queue, shouldMarkRead, t]);
 
   useEffect(() => {
     load();
@@ -271,7 +273,7 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.attachments.reanalyze", id });
-      setError(serverErrorMessage(err, "Could not reanalyze attachments."));
+      setError(serverErrorMessage(err, t("emailDetail.error.reanalyzeAttachments")));
     } finally {
       setReanalyzing(false);
     }
@@ -295,7 +297,7 @@ function EmailDetailView() {
       setEmail((prev) => (prev ? { ...prev, candidateIntake: data.candidateIntake } : prev));
     } catch (err) {
       captureClientError(err, { scope: "email.candidate-intake.update", id });
-      setError(serverErrorMessage(err, "Could not save candidate status."));
+      setError(serverErrorMessage(err, t("emailDetail.error.saveCandidateStatus")));
     } finally {
       setUpdatingCandidate(false);
     }
@@ -328,12 +330,7 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.attachments.ocr", id });
-      setError(
-        serverErrorMessage(
-          err,
-          "Could not run OCR/vision analysis. Check Gmail connection and the AI key.",
-        ),
-      );
+      setError(serverErrorMessage(err, t("emailDetail.error.ocr")));
     } finally {
       setOcring(false);
     }
@@ -377,7 +374,7 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.attachment-correction", id });
-      setError(serverErrorMessage(err, "Could not save attachment analysis changes."));
+      setError(serverErrorMessage(err, t("emailDetail.error.saveAttachmentCorrection")));
     } finally {
       setSavingAttachmentCorrection(null);
     }
@@ -396,7 +393,7 @@ function EmailDetailView() {
       setGmailDraftUrl(null);
     } catch (err) {
       captureClientError(err, { scope: "email.reply-draft", id });
-      setError(serverErrorMessage(err, "Could not draft a reply."));
+      setError(serverErrorMessage(err, t("emailDetail.error.replyDraft")));
     } finally {
       setDrafting(false);
     }
@@ -414,7 +411,7 @@ function EmailDetailView() {
       setDraft(null);
     } catch (err) {
       captureClientError(err, { scope: "email.reply-draft.send", id });
-      setError(serverErrorMessage(err, "Could not send the reply. Check the address and body."));
+      setError(serverErrorMessage(err, t("emailDetail.error.sendReply")));
     } finally {
       setSendingDraft(false);
     }
@@ -451,12 +448,7 @@ function EmailDetailView() {
       );
     } catch (err) {
       captureClientError(err, { scope: "email.reply-draft.gmail-draft", id });
-      setError(
-        serverErrorMessage(
-          err,
-          "Could not save a Gmail draft. Check Gmail connection and permissions.",
-        ),
-      );
+      setError(serverErrorMessage(err, t("emailDetail.error.gmailDraft")));
     } finally {
       setSavingGmailDraft(false);
     }
@@ -475,7 +467,7 @@ function EmailDetailView() {
       setEmail((prev) => (prev ? { ...prev, isRead: nextRead } : prev));
     } catch (err) {
       captureClientError(err, { scope: "email.detail.toggle-read", id, nextRead });
-      setError(nextRead ? "Could not mark as read." : "Could not mark as unread.");
+      setError(nextRead ? t("emailDetail.error.markRead") : t("emailDetail.error.markUnread"));
     } finally {
       setActionBusy(null);
     }
@@ -494,7 +486,7 @@ function EmailDetailView() {
       setEmail((prev) => (prev ? { ...prev, isStarred: nextStarred } : prev));
     } catch (err) {
       captureClientError(err, { scope: "email.detail.toggle-star", id, nextStarred });
-      setError(nextStarred ? "Could not add star." : "Could not remove star.");
+      setError(nextStarred ? t("emailDetail.error.addStar") : t("emailDetail.error.removeStar"));
     } finally {
       setActionBusy(null);
     }
@@ -502,7 +494,7 @@ function EmailDetailView() {
 
   const goToNextOrList = (
     nextMessage: string,
-    doneMessage = "Queue complete.",
+    doneMessage = t("emailDetail.toast.queueComplete"),
     undoAction?: UndoableEmailAction,
   ) => {
     if (nextEmail) {
@@ -540,17 +532,12 @@ function EmailDetailView() {
           body: JSON.stringify({ gmailId: undoNotice.gmailId }),
         },
       );
-      toast("Restored to inbox.", "success");
+      toast(t("emailDetail.toast.restored"), "success");
       const params = new URLSearchParams({ markRead: "false", queue });
       router.replace(`/email/${data.emailId}?${params.toString()}`);
     } catch (err) {
       captureClientError(err, { scope: "email.detail.undo", action: undoNotice.action });
-      setError(
-        serverErrorMessage(
-          err,
-          "Could not restore that email. Check Gmail connection and try again.",
-        ),
-      );
+      setError(serverErrorMessage(err, t("emailDetail.error.undo")));
       setActionBusy(null);
     }
   };
@@ -561,18 +548,21 @@ function EmailDetailView() {
     setError(null);
     try {
       const remindAt = getReminderDate(option.key);
+      const subject = email.subject || t("common.noSubject");
       await apiFetch("/api/reminders", {
         method: "POST",
         body: JSON.stringify({
-          title: `${email.needsReply ? "Reply to" : "Review"}: ${email.subject || "No subject"}`,
+          title: email.needsReply
+            ? t("emailDetail.reminderTitle.replyTo", { subject })
+            : t("emailDetail.reminderTitle.review", { subject }),
           remindAt: remindAt.toISOString(),
           description: [`From: ${email.from}`, `Open: /email/${email.id}`].join("\n"),
         }),
       });
-      toast(`Reminder set for ${option.label.toLowerCase()}.`, "success");
+      toast(t("emailDetail.toast.reminderSet", { option: option.label.toLowerCase() }), "success");
     } catch (err) {
       captureClientError(err, { scope: "email.detail.reminder", id, option: option.key });
-      setError(serverErrorMessage(err, "Could not create a reminder for this email."));
+      setError(serverErrorMessage(err, t("emailDetail.error.reminder")));
     } finally {
       setReminderBusy(null);
     }
@@ -584,10 +574,14 @@ function EmailDetailView() {
     setError(null);
     try {
       await apiFetch(`/api/email/${id}/archive`, { method: "POST" });
-      goToNextOrList("Archived. Moving to the next email.", "Archived. Queue complete.", "archive");
+      goToNextOrList(
+        t("emailDetail.toast.archivedMovingNext"),
+        t("emailDetail.toast.archivedQueueComplete"),
+        "archive",
+      );
     } catch (err) {
       captureClientError(err, { scope: "email.detail.archive", id });
-      setError(serverErrorMessage(err, "Could not archive this email."));
+      setError(serverErrorMessage(err, t("emailDetail.error.archive")));
       setActionBusy(null);
     }
   };
@@ -595,9 +589,11 @@ function EmailDetailView() {
   const deleteEmailNow = async () => {
     if (!id || actionBusy) return;
     const confirmed = await confirm({
-      title: "Move email to trash?",
-      message: `This moves "${email?.subject || "Untitled"}" out of your queue. You can still recover it from Gmail trash.`,
-      confirmLabel: "Move to trash",
+      title: t("emailDetail.confirmDelete.title"),
+      message: t("emailDetail.confirmDelete.message", {
+        subject: email?.subject || t("common.untitled"),
+      }),
+      confirmLabel: t("emailDetail.confirmDelete.confirmLabel"),
       danger: true,
     });
     if (!confirmed) return;
@@ -605,10 +601,14 @@ function EmailDetailView() {
     setError(null);
     try {
       await apiFetch(`/api/email/${id}`, { method: "DELETE" });
-      goToNextOrList("Deleted. Moving to the next email.", "Deleted. Queue complete.", "delete");
+      goToNextOrList(
+        t("emailDetail.toast.deletedMovingNext"),
+        t("emailDetail.toast.deletedQueueComplete"),
+        "delete",
+      );
     } catch (err) {
       captureClientError(err, { scope: "email.detail.delete", id });
-      setError(serverErrorMessage(err, "Could not delete this email."));
+      setError(serverErrorMessage(err, t("emailDetail.error.delete")));
       setActionBusy(null);
     }
   };
@@ -633,7 +633,7 @@ function EmailDetailView() {
           <line x1="19" y1="12" x2="5" y2="12" />
           <polyline points="12 19 5 12 12 5" />
         </svg>
-        Mail list
+        {t("emailDetail.backToList")}
       </Link>
 
       {undoNotice && (
@@ -645,7 +645,7 @@ function EmailDetailView() {
         />
       )}
 
-      {loading && <LoadingState rows={3} rowHeight="h-20" label="Loading email" />}
+      {loading && <LoadingState rows={3} rowHeight="h-20" label={t("emailDetail.loadingLabel")} />}
 
       {error && <ErrorAlert>{error}</ErrorAlert>}
 
@@ -664,7 +664,7 @@ function EmailDetailView() {
               </span>
               <div className="min-w-0 flex-1">
                 <h1 className="break-words text-[24px] font-semibold leading-tight tracking-[-0.02em] text-ink md:text-[28px]">
-                  {email.subject || "No subject"}
+                  {email.subject || t("common.noSubject")}
                 </h1>
                 <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-mid">
                   <span className="max-w-full truncate font-medium text-ink-soft">
@@ -678,7 +678,11 @@ function EmailDetailView() {
                   <span aria-hidden="true" className="text-slate-300">
                     ·
                   </span>
-                  <span>{email.isRead ? "Read" : "Kept unread"}</span>
+                  <span>
+                    {email.isRead
+                      ? t("emailDetail.status.read")
+                      : t("emailDetail.status.keptUnread")}
+                  </span>
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                   <span
@@ -688,16 +692,16 @@ function EmailDetailView() {
                         : "bg-surface-hover text-ink-mid ring-transparent"
                     }`}
                   >
-                    {PRIORITY_LABELS[email.priority]}
+                    {priorityLabel(t, email.priority)}
                   </span>
                   {email.needsReply && (
                     <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-accent-deeper ring-1 ring-inset ring-accent/20">
-                      Needs reply
+                      {t("mail.filterReplyNeeded")}
                     </span>
                   )}
                   {email.category && (
                     <span className="shrink-0 rounded-md bg-surface-hover px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ink-mid">
-                      {categoryLabel(email.category)}
+                      {categoryLabel(t, email.category)}
                     </span>
                   )}
                 </div>
@@ -710,7 +714,7 @@ function EmailDetailView() {
                 nextEmail={nextEmail}
                 onArchive={archiveEmailNow}
                 onDelete={deleteEmailNow}
-                onOpenNext={() => goToNextOrList("Moving to the next email.")}
+                onOpenNext={() => goToNextOrList(t("emailDetail.toast.movingToNext"))}
                 onToggleRead={toggleRead}
                 onToggleStar={toggleStar}
               />
@@ -775,7 +779,7 @@ function EmailDetailView() {
             {email.body ? (
               <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-5 md:p-6">
                 <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
-                  Message
+                  {t("emailDetail.messageTitle")}
                 </h2>
                 <pre className="whitespace-pre-wrap break-words font-sans text-[15px] leading-7 text-ink-strong">
                   {linkifyText(email.body)}
@@ -784,7 +788,7 @@ function EmailDetailView() {
             ) : email.snippet ? (
               <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-5 md:p-6">
                 <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
-                  Preview
+                  {t("emailDetail.previewTitle")}
                 </h2>
                 <p className="text-[15px] leading-7 text-ink-muted">{linkifyText(email.snippet)}</p>
               </section>
@@ -814,7 +818,9 @@ function CandidateProfileCard({
   updating: boolean;
   onUpdate: (patch: { status?: CandidateIntakeStatus; notes?: string | null }) => void;
 }) {
+  const { t } = useT();
   const status = intake?.status ?? candidatePipelineToIntakeStatus(profile.pipelineStatus);
+  const candidateStatusOptions = buildCandidateStatusOptions(t);
   return (
     <section className="panel-elevated relative mt-5 overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-4 md:p-5">
       <span
@@ -823,21 +829,23 @@ function CandidateProfileCard({
       />
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-accent-deep">
-          Candidate card
+          {t("emailDetail.candidateCard.title")}
         </h2>
         <span className="text-[11px] tabular-nums text-ink-dim">
-          Confidence {Math.round(profile.confidence * 100)}%
+          {t("candidates.confidence", { percent: String(Math.round(profile.confidence * 100)) })}
         </span>
       </div>
       <div className="mb-3 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-ink-dim">Pipeline</p>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-ink-dim">
+          {t("emailDetail.candidateCard.pipeline")}
+        </p>
         <p className="mt-1 text-xs font-semibold text-accent-deeper">
-          {candidatePipelineLabel(profile.pipelineStatus)}
+          {candidatePipelineLabel(t, profile.pipelineStatus)}
         </p>
         <p className="mt-1 text-[11px] leading-5 text-ink-mid">{profile.nextAction}</p>
       </div>
       <div className="mb-3 flex flex-wrap gap-1.5">
-        {CANDIDATE_STATUS_OPTIONS.map((option) => (
+        {candidateStatusOptions.map((option) => (
           <button
             key={option.status}
             type="button"
@@ -855,12 +863,15 @@ function CandidateProfileCard({
       </div>
       <p className="text-sm font-medium leading-relaxed text-ink">{profile.summary}</p>
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-3">
-        <ProfileFact label="Name" value={profile.name} />
-        <ProfileFact label="Role" value={profile.role} />
-        <ProfileFact label="Contact" value={profile.contact} />
-        <ProfileFact label="Age" value={profile.age} />
-        <ProfileFact label="Height" value={profile.height} />
-        <ProfileFact label="Files" value={`${profile.evidenceFiles.length}`} />
+        <ProfileFact label={t("emailDetail.candidateCard.fact.name")} value={profile.name} />
+        <ProfileFact label={t("emailDetail.candidateCard.fact.role")} value={profile.role} />
+        <ProfileFact label={t("emailDetail.candidateCard.fact.contact")} value={profile.contact} />
+        <ProfileFact label={t("emailDetail.candidateCard.fact.age")} value={profile.age} />
+        <ProfileFact label={t("emailDetail.candidateCard.fact.height")} value={profile.height} />
+        <ProfileFact
+          label={t("emailDetail.candidateCard.fact.files")}
+          value={`${profile.evidenceFiles.length}`}
+        />
       </div>
       {profile.skills.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -885,12 +896,18 @@ function CandidateProfileCard({
       )}
       {profile.missingFields.length > 0 && (
         <p className="mt-3 text-[11px] text-accent-deeper">
-          Needs follow-up: {profile.missingFields.map(candidateMissingLabel).join(", ")}
+          {t("emailDetail.candidateCard.needsFollowUp", {
+            fields: profile.missingFields
+              .map((field) => candidateMissingLabel(t, field))
+              .join(", "),
+          })}
         </p>
       )}
       {profile.manualReviewFiles.length > 0 && (
         <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
-          <p className="text-[11px] font-semibold text-rose-700">Source review needed</p>
+          <p className="text-[11px] font-semibold text-rose-700">
+            {t("emailDetail.candidateCard.sourceReviewNeeded")}
+          </p>
           <ul className="mt-1 space-y-1">
             {profile.manualReviewFiles.map((file) => (
               <li key={`${file.filename}-${file.reason}`} className="text-[11px] text-rose-600/90">
@@ -902,30 +919,36 @@ function CandidateProfileCard({
       )}
       <label className="mt-3 block">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-mid">
-          Review note
+          {t("emailDetail.candidateCard.reviewNoteLabel")}
         </span>
         <textarea
           defaultValue={intake?.notes ?? ""}
           rows={2}
           onBlur={(e) => onUpdate({ notes: e.target.value || null })}
           className="w-full rounded-lg border border-line bg-surface-panel/80 px-3 py-2 text-xs leading-5 text-ink-soft outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15"
-          placeholder="Review note"
+          placeholder={t("emailDetail.candidateCard.reviewNoteLabel")}
         />
       </label>
     </section>
   );
 }
 
-const CANDIDATE_STATUS_OPTIONS: Array<{ status: CandidateIntakeStatus; label: string }> = [
-  { status: "NEEDS_ANALYSIS", label: "Needs analysis" },
-  { status: "NEEDS_INFO", label: "Needs info" },
-  { status: "READY_TO_REVIEW", label: "Ready to review" },
-  { status: "REVIEWING", label: "Reviewing" },
-  { status: "CONTACTED", label: "Contacted" },
-  { status: "SHORTLISTED", label: "Shortlisted" },
-  { status: "REJECTED", label: "Rejected" },
-  { status: "ARCHIVED", label: "Archived" },
-];
+/** `t` is passed in rather than called via useT() here — this is a plain
+ * builder, not a component, so it cannot use hooks itself. */
+function buildCandidateStatusOptions(
+  t: (key: string) => string,
+): Array<{ status: CandidateIntakeStatus; label: string }> {
+  return [
+    { status: "NEEDS_ANALYSIS", label: t("candidates.status.needsAnalysis") },
+    { status: "NEEDS_INFO", label: t("candidates.status.needsInfo") },
+    { status: "READY_TO_REVIEW", label: t("candidates.status.readyToReview") },
+    { status: "REVIEWING", label: t("candidates.status.reviewing") },
+    { status: "CONTACTED", label: t("candidates.status.contacted") },
+    { status: "SHORTLISTED", label: t("candidates.status.shortlisted") },
+    { status: "REJECTED", label: t("candidates.status.rejected") },
+    { status: "ARCHIVED", label: t("candidates.status.archived") },
+  ];
+}
 
 function candidatePipelineToIntakeStatus(
   status: AttachmentCandidateProfile["pipelineStatus"],
@@ -942,12 +965,13 @@ function ThreadContextPanel({
   thread: ThreadDetail;
   currentEmailId: string;
 }) {
+  const { t } = useT();
   return (
     <section className="panel-elevated mb-5 overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
       <div className="border-b border-line-soft px-4 py-3">
-        <h2 className="text-sm font-semibold text-ink">Thread context</h2>
+        <h2 className="text-sm font-semibold text-ink">{t("emailDetail.thread.title")}</h2>
         <p className="mt-0.5 text-xs text-ink-dim">
-          Review {thread.messageCount} earlier messages to understand the reply context.
+          {t("emailDetail.thread.subtitle", { count: String(thread.messageCount) })}
         </p>
       </div>
       <ol className="divide-y divide-line-soft">
@@ -973,11 +997,14 @@ function ThreadContextPanel({
                 </time>
               </div>
               <p className="mt-1 truncate text-[11px] text-ink-mid">
-                {message.summary || message.snippet || message.subject || "No summary"}
+                {message.summary ||
+                  message.snippet ||
+                  message.subject ||
+                  t("emailDetail.thread.noSummary")}
               </p>
               {message.actionItems.length > 0 && (
                 <p className="mt-1 text-[10px] font-medium text-accent-deep">
-                  {message.actionItems.length} tasks
+                  {t("emailDetail.thread.taskCount", { count: String(message.actionItems.length) })}
                 </p>
               )}
             </li>
@@ -1000,137 +1027,149 @@ type EmailWorkMode =
   | "real_estate"
   | "freelance";
 
-const WORK_MODE_OPTIONS: Array<{ value: EmailWorkMode; label: string }> = [
-  { value: "founder", label: "Founder" },
-  { value: "sales", label: "Sales" },
-  { value: "recruiting", label: "Recruiting" },
-  { value: "legal", label: "Legal" },
-  { value: "finance", label: "Finance" },
-  { value: "pm", label: "PM" },
-  { value: "support", label: "Support" },
-  { value: "ops", label: "Ops/events" },
-  { value: "real_estate", label: "Real estate" },
-  { value: "freelance", label: "Freelance" },
-];
+/** `t` is passed in rather than called via useT() here — these are plain
+ * builders, not components, so they cannot use hooks themselves. */
+function buildWorkModeOptions(t: (key: string) => string): Array<{
+  value: EmailWorkMode;
+  label: string;
+}> {
+  return [
+    { value: "founder", label: t("emailDetail.workMode.founder") },
+    { value: "sales", label: t("emailDetail.workMode.sales") },
+    { value: "recruiting", label: t("emailDetail.workMode.recruiting") },
+    { value: "legal", label: t("emailDetail.workMode.legal") },
+    { value: "finance", label: t("emailDetail.workMode.finance") },
+    { value: "pm", label: t("emailDetail.workMode.pm") },
+    { value: "support", label: t("emailDetail.workMode.support") },
+    { value: "ops", label: t("emailDetail.workMode.ops") },
+    { value: "real_estate", label: t("emailDetail.workMode.realEstate") },
+    { value: "freelance", label: t("emailDetail.workMode.freelance") },
+  ];
+}
 
-const MODE_INTENTS: Record<EmailWorkMode, Array<{ label: string; intent: string }>> = {
-  founder: [
-    {
-      label: "Investor follow-up",
-      intent: "Share a brief investor update and ask for possible times for the next meeting.",
-    },
-    {
-      label: "VIP quick reply",
-      intent:
-        "Reply with thanks and a clear next action so the important relationship is not dropped.",
-    },
-  ],
-  sales: [
-    {
-      label: "Book meeting",
-      intent: "Use the customer context and suggest times for a discovery or follow-up meeting.",
-    },
-    {
-      label: "Renewal/pricing",
-      intent: "Confirm renewal timing, pricing terms, and the next approval step.",
-    },
-  ],
-  recruiting: [],
-  legal: [
-    {
-      label: "Review intake",
-      intent:
-        "Confirm that legal review is needed and that a final answer will follow after review.",
-    },
-    {
-      label: "Request contract info",
-      intent:
-        "Ask for parties, deadline, signature status, and requested changes needed for contract review.",
-    },
-  ],
-  finance: [
-    {
-      label: "Confirm invoice",
-      intent: "Confirm receipt of the invoice and ask for any missing tax, bank, or PO details.",
-    },
-    {
-      label: "Payment issue",
-      intent:
-        "Confirm the failed or unpaid payment, request evidence if needed, and share the next timeline.",
-    },
-  ],
-  pm: [
-    {
-      label: "Issue intake",
-      intent: "Acknowledge the issue and ask for impact, repro details, and desired deadline.",
-    },
-    {
-      label: "Decision request",
-      intent: "Summarize what needs a decision, the options, and the input required.",
-    },
-  ],
-  support: [
-    {
-      label: "Support intake",
-      intent: "Acknowledge the request and ask for repro details, account info, and urgency.",
-    },
-    {
-      label: "Escalate",
-      intent: "Say the issue has been escalated internally and give the next update time.",
-    },
-  ],
-  ops: [
-    {
-      label: "Confirm logistics",
-      intent: "Confirm schedule, location, prep items, owner, and deadline.",
-    },
-    {
-      label: "Vendor follow-up",
-      intent: "Ask the vendor about quote, contract, delivery timeline, and missing materials.",
-    },
-  ],
-  real_estate: [
-    {
-      label: "Tour schedule",
-      intent:
-        "Ask for available tour times and preferred criteria, then propose the next appointment.",
-    },
-    {
-      label: "Contract stage",
-      intent: "Request the next materials needed for contract, loan, inspection, or closing.",
-    },
-  ],
-  freelance: [
-    {
-      label: "Confirm scope",
-      intent: "Ask to confirm scope, deliverables, revisions, timeline, and quote.",
-    },
-    {
-      label: "Collect feedback",
-      intent:
-        "Acknowledge feedback and clarify what will be applied and when the next version arrives.",
-    },
-  ],
-};
+function buildModeIntents(
+  t: (key: string) => string,
+): Record<EmailWorkMode, Array<{ label: string; intent: string }>> {
+  return {
+    founder: [
+      {
+        label: t("emailDetail.quickIntent.founder.investorFollowUp.label"),
+        intent: t("emailDetail.quickIntent.founder.investorFollowUp.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.founder.vipQuickReply.label"),
+        intent: t("emailDetail.quickIntent.founder.vipQuickReply.intent"),
+      },
+    ],
+    sales: [
+      {
+        label: t("emailDetail.quickIntent.sales.bookMeeting.label"),
+        intent: t("emailDetail.quickIntent.sales.bookMeeting.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.sales.renewalPricing.label"),
+        intent: t("emailDetail.quickIntent.sales.renewalPricing.intent"),
+      },
+    ],
+    recruiting: [],
+    legal: [
+      {
+        label: t("emailDetail.quickIntent.legal.reviewIntake.label"),
+        intent: t("emailDetail.quickIntent.legal.reviewIntake.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.legal.requestContractInfo.label"),
+        intent: t("emailDetail.quickIntent.legal.requestContractInfo.intent"),
+      },
+    ],
+    finance: [
+      {
+        label: t("emailDetail.quickIntent.finance.confirmInvoice.label"),
+        intent: t("emailDetail.quickIntent.finance.confirmInvoice.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.finance.paymentIssue.label"),
+        intent: t("emailDetail.quickIntent.finance.paymentIssue.intent"),
+      },
+    ],
+    pm: [
+      {
+        label: t("emailDetail.quickIntent.pm.issueIntake.label"),
+        intent: t("emailDetail.quickIntent.pm.issueIntake.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.pm.decisionRequest.label"),
+        intent: t("emailDetail.quickIntent.pm.decisionRequest.intent"),
+      },
+    ],
+    support: [
+      {
+        label: t("emailDetail.quickIntent.support.supportIntake.label"),
+        intent: t("emailDetail.quickIntent.support.supportIntake.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.support.escalate.label"),
+        intent: t("emailDetail.quickIntent.support.escalate.intent"),
+      },
+    ],
+    ops: [
+      {
+        label: t("emailDetail.quickIntent.ops.confirmLogistics.label"),
+        intent: t("emailDetail.quickIntent.ops.confirmLogistics.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.ops.vendorFollowUp.label"),
+        intent: t("emailDetail.quickIntent.ops.vendorFollowUp.intent"),
+      },
+    ],
+    real_estate: [
+      {
+        label: t("emailDetail.quickIntent.realEstate.tourSchedule.label"),
+        intent: t("emailDetail.quickIntent.realEstate.tourSchedule.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.realEstate.contractStage.label"),
+        intent: t("emailDetail.quickIntent.realEstate.contractStage.intent"),
+      },
+    ],
+    freelance: [
+      {
+        label: t("emailDetail.quickIntent.freelance.confirmScope.label"),
+        intent: t("emailDetail.quickIntent.freelance.confirmScope.intent"),
+      },
+      {
+        label: t("emailDetail.quickIntent.freelance.collectFeedback.label"),
+        intent: t("emailDetail.quickIntent.freelance.collectFeedback.intent"),
+      },
+    ],
+  };
+}
 
 function buildQuickReplyIntents(
+  t: (key: string, vars?: Record<string, string>) => string,
   profile: AttachmentCandidateProfile | null,
   mode: EmailWorkMode,
 ): Array<{ label: string; intent: string }> {
-  const intents: Array<{ label: string; intent: string }> = [...MODE_INTENTS[mode]];
+  const intents: Array<{ label: string; intent: string }> = [...buildModeIntents(t)[mode]];
   if (!profile) return intents.slice(0, 4);
-  const missing = profile.missingFields.map(candidateMissingLabel);
+  const missing = profile.missingFields.map((field) => candidateMissingLabel(t, field));
   const manualFiles = profile.manualReviewFiles.map((file) => file.filename);
 
   if (missing.length > 0 || manualFiles.length > 0) {
     intents.push({
-      label: "Request missing materials",
+      label: t("emailDetail.quickIntent.requestMissingMaterials.label"),
       intent: [
-        "I am reviewing the application materials.",
+        t("emailDetail.quickIntent.requestMissingMaterials.intentIntro"),
         manualFiles.length > 0
-          ? `Ask them to resend these files in readable PDF/DOCX/HWPX format: ${manualFiles.join(", ")}.`
+          ? t("emailDetail.quickIntent.requestMissingMaterials.intentFiles", {
+              files: manualFiles.join(", "),
+            })
           : "",
-        missing.length > 0 ? `Also ask for these missing details: ${missing.join(", ")}.` : "",
+        missing.length > 0
+          ? t("emailDetail.quickIntent.requestMissingMaterials.intentMissing", {
+              fields: missing.join(", "),
+            })
+          : "",
       ]
         .filter(Boolean)
         .join(" "),
@@ -1139,16 +1178,14 @@ function buildQuickReplyIntents(
 
   if (profile.pipelineStatus === "ready_to_review") {
     intents.push({
-      label: "Confirm intake",
-      intent:
-        "Confirm receipt of the materials, say review is in progress, and promise to follow up with timing or results.",
+      label: t("emailDetail.quickIntent.confirmIntake.label"),
+      intent: t("emailDetail.quickIntent.confirmIntake.intent"),
     });
   }
 
   intents.push({
-    label: "Ask audition times",
-    intent:
-      "Say the profile was reviewed and ask for possible audition times, contact availability, and any portfolio links.",
+    label: t("emailDetail.quickIntent.askAuditionTimes.label"),
+    intent: t("emailDetail.quickIntent.askAuditionTimes.intent"),
   });
 
   return intents.slice(0, 4);
@@ -1191,6 +1228,7 @@ function ReplyDraftBox({
   onSaveGmailDraft: () => void;
   onSend: () => void;
 }) {
+  const { t } = useT();
   const [mode, setMode] = useState<EmailWorkMode>("founder");
   const toggleAttachment = (attachmentId: string) => {
     onSelectedAttachmentIdsChange(
@@ -1201,18 +1239,17 @@ function ReplyDraftBox({
   };
   const selectedCount = selectedAttachmentIds.length;
   const draftAttachmentCount = selectedCount + (includeBriefAttachment ? 1 : 0);
-  const quickIntents = buildQuickReplyIntents(candidateProfile, mode);
+  const workModeOptions = buildWorkModeOptions(t);
+  const quickIntents = buildQuickReplyIntents(t, candidateProfile, mode);
 
   return (
     <section className="panel-elevated mt-5 overflow-hidden rounded-2xl border border-line/70 bg-surface-panel p-4 md:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-ink-mid">
-            Reply draft
+            {t("emailDetail.replyDraft.title")}
           </h2>
-          <p className="mt-1 text-xs text-ink-dim">
-            Klorn drafts it. You approve before anything is sent.
-          </p>
+          <p className="mt-1 text-xs text-ink-dim">{t("emailDetail.replyDraft.subtitle")}</p>
         </div>
         <button
           type="button"
@@ -1220,17 +1257,21 @@ function ReplyDraftBox({
           disabled={drafting}
           className="ease-strong inline-flex h-9 shrink-0 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] disabled:opacity-50 focus-ring"
         >
-          {drafting ? "Drafting..." : draft ? "Regenerate" : "Draft reply"}
+          {drafting
+            ? t("emailDetail.replyDraft.drafting")
+            : draft
+              ? t("emailDetail.replyDraft.regenerate")
+              : t("emailDetail.replyDraft.draftButton")}
         </button>
       </div>
       <input
         value={intent}
         onChange={(e) => onIntentChange(e.target.value)}
-        placeholder="Example: confirm the profile was reviewed and ask for next audition availability"
+        placeholder={t("emailDetail.replyDraft.intentPlaceholder")}
         className="mb-3 w-full rounded-lg border border-line bg-surface-panel/80 px-3 py-2 text-xs text-ink-soft placeholder-ink-dim outline-none transition duration-150 ease-out focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15"
       />
       <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
-        {WORK_MODE_OPTIONS.map((option) => (
+        {workModeOptions.map((option) => (
           <button
             key={option.value}
             type="button"
@@ -1267,7 +1308,7 @@ function ReplyDraftBox({
           <div className="grid gap-2 text-xs sm:grid-cols-2">
             <label className="block">
               <span className="mb-1 block text-[10px] uppercase tracking-wider text-ink-mid">
-                To
+                {t("emailDetail.replyDraft.toLabel")}
               </span>
               <input
                 value={draft.to}
@@ -1277,7 +1318,7 @@ function ReplyDraftBox({
             </label>
             <label className="block">
               <span className="mb-1 block text-[10px] uppercase tracking-wider text-ink-mid">
-                Subject
+                {t("emailDetail.replyDraft.subjectLabel")}
               </span>
               <input
                 value={draft.subject}
@@ -1303,16 +1344,16 @@ function ReplyDraftBox({
                 />
                 <span>
                   <span className="block text-[11px] font-medium text-accent-deeper">
-                    Attach the attachment analysis brief
+                    {t("emailDetail.replyDraft.attachBriefLabel")}
                   </span>
                   <span className="mt-0.5 block text-[10px] leading-4 text-ink-dim">
-                    Converts the candidate card, key points, and extracted fields into a txt brief.
+                    {t("emailDetail.replyDraft.attachBriefDescription")}
                   </span>
                 </span>
               </label>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-[10px] font-medium uppercase tracking-wider text-ink-mid">
-                  Save original attachments too
+                  {t("emailDetail.replyDraft.saveOriginalAttachments")}
                 </span>
                 <button
                   type="button"
@@ -1325,7 +1366,9 @@ function ReplyDraftBox({
                   }
                   className="text-[11px] font-medium text-ink-dim transition duration-150 hover:text-accent-deeper focus-ring"
                 >
-                  {selectedCount === attachments.length ? "Clear all" : "Select all"}
+                  {selectedCount === attachments.length
+                    ? t("emailDetail.replyDraft.clearAll")
+                    : t("emailDetail.replyDraft.selectAll")}
                 </button>
               </div>
               <div className="grid gap-1.5 sm:grid-cols-2">
@@ -1360,7 +1403,7 @@ function ReplyDraftBox({
                   rel="noreferrer"
                   className="ease-strong inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] focus-ring"
                 >
-                  Open Gmail draft
+                  {t("emailDetail.replyDraft.openGmailDraft")}
                 </a>
               )}
               <button
@@ -1370,10 +1413,12 @@ function ReplyDraftBox({
                 className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50 focus-ring"
               >
                 {savingGmailDraft
-                  ? "Saving..."
+                  ? t("emailDetail.replyDraft.saving")
                   : draftAttachmentCount > 0
-                    ? `Save Gmail draft + ${draftAttachmentCount} attachments`
-                    : "Save Gmail draft"}
+                    ? t("emailDetail.replyDraft.saveGmailDraftWithAttachments", {
+                        count: String(draftAttachmentCount),
+                      })
+                    : t("emailDetail.replyDraft.saveGmailDraft")}
               </button>
               <button
                 type="button"
@@ -1381,7 +1426,9 @@ function ReplyDraftBox({
                 disabled={sending || !draft.to || !draft.subject || !draft.body}
                 className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
               >
-                {sending ? "Sending..." : "Send this reply"}
+                {sending
+                  ? t("emailDetail.replyDraft.sending")
+                  : t("emailDetail.replyDraft.sendButton")}
               </button>
             </div>
           </div>
@@ -1398,15 +1445,14 @@ function KlornAnalysis({
   email: EmailDetail;
   onPriorityChange: (priority: EmailPriority) => void;
 }) {
+  const { t } = useT();
   const hasAnything =
     email.summary || email.keyPoints.length > 0 || email.actionItems.length > 0 || email.category;
 
   if (!hasAnything) {
     return (
       <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4">
-        <p className="text-xs text-ink-dim">
-          Klorn has not analyzed this email yet. Sync, then check again shortly.
-        </p>
+        <p className="text-xs text-ink-dim">{t("emailDetail.analysis.notAnalyzed")}</p>
       </section>
     );
   }
@@ -1417,7 +1463,7 @@ function KlornAnalysis({
       <div className="pl-2">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-accent-deep">
-            Klorn judgment
+            {t("emailDetail.analysis.title")}
           </span>
           <div className="flex items-center gap-1.5">
             <PriorityPill priority={email.priority} />
@@ -1436,7 +1482,7 @@ function KlornAnalysis({
         {email.keyPoints.length > 0 && (
           <div className="mt-3">
             <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-ink-dim">
-              Key points
+              {t("emailDetail.analysis.keyPoints")}
             </p>
             <ul className="space-y-1">
               {email.keyPoints.map((k, i) => (
@@ -1461,6 +1507,7 @@ function KlornAnalysis({
 
 function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionItems: string[] }) {
   const { toast } = useToast();
+  const { t } = useT();
   const [creating, setCreating] = useState<"all" | number | null>(null);
   const [created, setCreated] = useState<Set<number>>(new Set());
 
@@ -1473,9 +1520,9 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
         body: JSON.stringify({ indices: [index] }),
       });
       setCreated((prev) => new Set([...prev, index]));
-      toast("Task created.", "success");
+      toast(t("emailDetail.actionItems.taskCreated"), "success");
     } catch {
-      toast("Failed to create task.", "error");
+      toast(t("emailDetail.actionItems.taskCreateFailed"), "error");
     } finally {
       setCreating(null);
     }
@@ -1492,11 +1539,16 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
       });
       setCreated(new Set(actionItems.map((_, i) => i)));
       toast(
-        `${uncreatedIndices.length} task${uncreatedIndices.length > 1 ? "s" : ""} created.`,
+        t(
+          uncreatedIndices.length > 1
+            ? "emailDetail.actionItems.taskCreatedMany"
+            : "emailDetail.actionItems.taskCreatedOne",
+          { count: String(uncreatedIndices.length) },
+        ),
         "success",
       );
     } catch {
-      toast("Failed to create tasks.", "error");
+      toast(t("emailDetail.actionItems.tasksCreateFailed"), "error");
     } finally {
       setCreating(null);
     }
@@ -1508,7 +1560,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
     <div className="mt-3">
       <div className="flex items-center justify-between mb-1.5">
         <p className="text-[10px] font-medium uppercase tracking-wider text-ink-dim">
-          Action items
+          {t("emailDetail.actionItems.title")}
         </p>
         {!allCreated && (
           <button
@@ -1517,7 +1569,9 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
             disabled={creating !== null}
             className="ease-strong rounded-md border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700 transition duration-150 hover:bg-teal-100 active:scale-[0.97] disabled:opacity-40 focus-ring"
           >
-            {creating === "all" ? "Creating…" : "Create all tasks"}
+            {creating === "all"
+              ? t("emailDetail.actionItems.creating")
+              : t("emailDetail.actionItems.createAll")}
           </button>
         )}
       </div>
@@ -1539,7 +1593,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
                 disabled={creating !== null}
                 className="ease-strong shrink-0 rounded-md border border-line bg-surface-panel/70 px-1.5 py-0.5 text-[10px] font-medium text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:opacity-40 focus-ring"
               >
-                {creating === i ? "…" : "+ task"}
+                {creating === i ? "…" : t("emailDetail.actionItems.addTask")}
               </button>
             )}
           </li>
@@ -1550,18 +1604,24 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
 }
 
 function ReplyNeededPill() {
+  const { t } = useT();
   return (
     <span className="shrink-0 rounded-md bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-accent-deeper ring-1 ring-inset ring-accent/20">
-      Needs reply
+      {t("mail.filterReplyNeeded")}
     </span>
   );
 }
 
-const PRIORITY_LABELS: Record<EmailPriority, string> = {
-  URGENT: "Urgent",
-  NORMAL: "Normal",
-  LOW: "Low",
-};
+/** `t` is passed in rather than called via useT() here — this is a plain
+ * helper, not a component, so it cannot use hooks itself. */
+function priorityLabel(t: (key: string) => string, priority: EmailPriority): string {
+  const labels: Record<EmailPriority, string> = {
+    URGENT: t("emailDetail.priority.urgent"),
+    NORMAL: t("emailDetail.priority.normal"),
+    LOW: t("emailDetail.priority.low"),
+  };
+  return labels[priority];
+}
 
 function LabelFeedbackControl({
   emailId,
@@ -1572,6 +1632,7 @@ function LabelFeedbackControl({
   currentPriority: EmailPriority;
   onPriorityChange: (priority: EmailPriority) => void;
 }) {
+  const { t } = useT();
   const [feedback, setFeedback] = useState<LabelFeedback | null>(null);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState<EmailPriority | null>(null);
@@ -1603,7 +1664,7 @@ function LabelFeedbackControl({
       setOpen(false);
     } catch (err) {
       captureClientError(err, { scope: "email.feedback.submit", emailId, correctedPriority });
-      setError(serverErrorMessage(err, "Could not report this. Please try again soon."));
+      setError(serverErrorMessage(err, t("emailDetail.error.reportLabel")));
     } finally {
       setSubmitting(null);
     }
@@ -1613,8 +1674,10 @@ function LabelFeedbackControl({
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-accent-deeper">
         <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-        Reported: {PRIORITY_LABELS[feedback.originalPriority]} {"->"}{" "}
-        {PRIORITY_LABELS[feedback.correctedPriority]}
+        {t("emailDetail.feedback.reported", {
+          original: priorityLabel(t, feedback.originalPriority),
+          corrected: priorityLabel(t, feedback.correctedPriority),
+        })}
       </span>
     );
   }
@@ -1626,7 +1689,7 @@ function LabelFeedbackControl({
         onClick={() => setOpen(true)}
         className="text-[11px] text-ink-dim underline-offset-2 hover:text-ink-mid hover:underline focus-ring"
       >
-        Wrong label
+        {t("emailDetail.feedback.wrongLabel")}
       </button>
     );
   }
@@ -1637,7 +1700,7 @@ function LabelFeedbackControl({
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] text-ink-dim">Actual priority:</span>
+      <span className="text-[11px] text-ink-dim">{t("emailDetail.feedback.actualPriority")}</span>
       {options.map((p) => (
         <button
           key={p}
@@ -1646,7 +1709,7 @@ function LabelFeedbackControl({
           disabled={!!submitting}
           className="ease-strong rounded-md border border-line bg-surface-panel/70 px-1.5 py-0.5 text-[11px] font-medium text-ink-soft transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50 focus-ring"
         >
-          {submitting === p ? "..." : PRIORITY_LABELS[p]}
+          {submitting === p ? "..." : priorityLabel(t, p)}
         </button>
       ))}
       <button
@@ -1658,7 +1721,7 @@ function LabelFeedbackControl({
         disabled={!!submitting}
         className="text-[11px] text-ink-dim hover:text-ink-mid focus-ring"
       >
-        Cancel
+        {t("common.cancel")}
       </button>
       {error && <span className="text-[11px] text-red-600">{error}</span>}
     </div>
@@ -1666,6 +1729,7 @@ function LabelFeedbackControl({
 }
 
 function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
+  const { t } = useT();
   const [feedback, setFeedback] = useState<ReplyNeededFeedback | null>(null);
   const [submitting, setSubmitting] = useState<ReplyNeededChoice | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1706,26 +1770,28 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
       });
     } catch (err) {
       captureClientError(err, { scope: "email.reply-needed-feedback.submit", emailId, choice });
-      setError(serverErrorMessage(err, "Could not save."));
+      setError(serverErrorMessage(err, t("emailDetail.error.saveFeedback")));
     } finally {
       setSubmitting(null);
     }
   };
 
   const options: Array<{ choice: ReplyNeededChoice; label: string }> = [
-    { choice: "today", label: "Reply today" },
-    { choice: "waiting_on_me", label: "On me" },
-    { choice: "waiting_on_them", label: "Waiting on them" },
-    { choice: "needed", label: "Reply needed" },
-    { choice: "not_needed", label: "Not needed" },
-    { choice: "later", label: "Later" },
-    { choice: "done", label: "Done" },
+    { choice: "today", label: t("emailDetail.replyNeeded.today") },
+    { choice: "waiting_on_me", label: t("emailDetail.replyNeeded.onMe") },
+    { choice: "waiting_on_them", label: t("emailDetail.replyNeeded.waitingOnThem") },
+    { choice: "needed", label: t("emailDetail.replyNeeded.needed") },
+    { choice: "not_needed", label: t("emailDetail.replyNeeded.notNeeded") },
+    { choice: "later", label: t("emailDetail.replyNeeded.later") },
+    { choice: "done", label: t("emailDetail.replyNeeded.done") },
   ];
 
   return (
     <div className="mt-4 border-t border-line-soft pt-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] text-ink-dim">Reply-needed judgment:</span>
+        <span className="text-[11px] text-ink-dim">
+          {t("emailDetail.replyNeeded.judgmentLabel")}
+        </span>
         {options.map((option) => {
           const selected = feedback?.choice === option.choice;
           return (
@@ -1752,23 +1818,24 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
 }
 
 function PriorityPill({ priority }: { priority: EmailDetail["priority"] }) {
+  const { t } = useT();
   if (priority === "NORMAL") return null;
   const styles = {
     URGENT: "bg-rose-500/10 text-rose-600 ring-rose-500/20",
     LOW: "bg-surface-hover text-ink-mid ring-transparent",
   };
-  const labels = { URGENT: "Urgent", LOW: "Low" };
   return (
     <span
       className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ring-1 ring-inset ${styles[priority as "URGENT" | "LOW"]}`}
     >
-      {labels[priority as "URGENT" | "LOW"]}
+      {priorityLabel(t, priority as "URGENT" | "LOW")}
     </span>
   );
 }
 
 function CategoryPill({ category }: { category: string }) {
-  const label = categoryLabel(category);
+  const { t } = useT();
+  const label = categoryLabel(t, category);
   return (
     <span className="shrink-0 rounded-md bg-surface-hover px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-ink-mid">
       {label}
@@ -1776,35 +1843,40 @@ function CategoryPill({ category }: { category: string }) {
   );
 }
 
-function categoryLabel(category: string): string {
+/** `t` is passed in rather than called via useT() here — these are plain
+ * helpers, not components, so they cannot use hooks themselves. */
+function categoryLabel(t: (key: string) => string, category: string): string {
   const labelMap: Record<string, string> = {
-    business: "Business",
-    engineering: "Engineering",
-    automated: "Automated",
-    newsletter: "Newsletter",
-    meeting: "Meeting",
-    billing: "Billing",
-    conversation: "Conversation",
-    other: "Other",
+    business: t("emailDetail.category.business"),
+    engineering: t("emailDetail.category.engineering"),
+    automated: t("emailDetail.category.automated"),
+    newsletter: t("emailDetail.category.newsletter"),
+    meeting: t("emailDetail.category.meeting"),
+    billing: t("emailDetail.category.billing"),
+    conversation: t("emailDetail.category.conversation"),
+    other: t("emailDetail.category.other"),
   };
   return labelMap[category] || category;
 }
 
-function candidateMissingLabel(key: string): string {
+function candidateMissingLabel(t: (key: string) => string, key: string): string {
   const labelMap: Record<string, string> = {
-    name: "Name",
-    contact: "Contact",
-    role: "Role",
-    portfolio: "Portfolio link",
+    name: t("emailDetail.candidateCard.fact.name"),
+    contact: t("emailDetail.candidateCard.fact.contact"),
+    role: t("emailDetail.candidateCard.fact.role"),
+    portfolio: t("emailDetail.candidateCard.missingField.portfolioLink"),
   };
   return labelMap[key] || key;
 }
 
-function candidatePipelineLabel(status: AttachmentCandidateProfile["pipelineStatus"]): string {
+function candidatePipelineLabel(
+  t: (key: string) => string,
+  status: AttachmentCandidateProfile["pipelineStatus"],
+): string {
   const labels: Record<AttachmentCandidateProfile["pipelineStatus"], string> = {
-    ready_to_review: "Ready to review",
-    needs_info: "Needs info",
-    needs_analysis: "Needs analysis",
+    ready_to_review: t("candidates.status.readyToReview"),
+    needs_info: t("candidates.status.needsInfo"),
+    needs_analysis: t("candidates.status.needsAnalysis"),
   };
   return labels[status];
 }
