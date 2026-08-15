@@ -117,6 +117,19 @@ describe("scheduling / transactional detectors", () => {
     expect(
       detectSchedulingIntent({ subject: "Invoice #123", snippet: "your receipt", body: "" }),
     ).toBe(false);
+    // Marketing copy must not reach a lane that notifies (review 2026-08-15).
+    expect(
+      detectSchedulingIntent({ subject: "Your editorial calendar for Q4", snippet: "", body: "" }),
+    ).toBe(false);
+    expect(detectSchedulingIntent({ subject: "Zoom in on savings!", snippet: "", body: "" })).toBe(
+      false,
+    );
+    expect(detectSchedulingIntent({ subject: "배송 일정 안내", snippet: "", body: "" })).toBe(
+      false,
+    );
+    expect(
+      detectSchedulingIntent({ subject: "다음주 일정 조율 부탁드립니다", snippet: "", body: "" }),
+    ).toBe(true);
   });
 
   it("detects transactional notices from automated senders only", () => {
@@ -130,5 +143,16 @@ describe("scheduling / transactional detectors", () => {
     expect(detectTransactionalNotice({ from: "noreply@shop.com", hasListUnsubscribe: true })).toBe(
       false,
     );
+  });
+});
+
+describe("eligibleAfterFloor", () => {
+  it("clears eligibility when a floor rewrites the tier off QUEUE/MEETING", async () => {
+    const { eligibleAfterFloor } = await import("../judge/poc-judge.js");
+    expect(eligibleAfterFloor(true, "QUEUE")).toBe(true);
+    expect(eligibleAfterFloor(true, "MEETING")).toBe(true);
+    expect(eligibleAfterFloor(true, "SILENT")).toBe(false);
+    expect(eligibleAfterFloor(true, "PUSH")).toBe(false);
+    expect(eligibleAfterFloor(false, "QUEUE")).toBe(false);
   });
 });

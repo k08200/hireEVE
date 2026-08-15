@@ -228,7 +228,10 @@ export function keywordFeatures(email: ClassifiableEmail): TierFeatures {
 /// Scheduling wording, broader than MEETING_RE (which feeds the v1 keyword
 /// features and must not drift): "invit" covers invite AND invitation; no
 /// bare "schedule" — "scheduled maintenance" notices are INFO, not MEETING.
-const SCHEDULING_RE = /meeting|invit|calendar|zoom|reschedul|미팅|일정|회의/;
+/// No bare "calendar"/"zoom"/"schedule"/"일정": marketing copy ("editorial
+/// calendar", "zoom in on savings", "배송 일정") false-positives into a lane
+/// that NOTIFIES. Korean scheduling intent needs the coordination verb.
+const SCHEDULING_RE = /meeting|invit|reschedul|미팅|회의|일정 (조율|변경|조정|협의)/;
 /// A join link in the body is scheduling intent even with a chatty subject.
 const MEET_LINK_RE = /meet\.google\.com\/|zoom\.us\/j\/|teams\.microsoft\.com\/l\/meetup-join/;
 

@@ -785,7 +785,7 @@ export async function judgeEmail(
       reason: floored.reason,
       features,
       source: "llm",
-      autoEligible: decided.autoEligible,
+      autoEligible: eligibleAfterFloor(decided.autoEligible, floored.tier),
     };
   }
 
@@ -797,8 +797,19 @@ export async function judgeEmail(
     reason: floored.reason,
     features,
     source: "keyword-fallback",
-    autoEligible: decided.autoEligible,
+    autoEligible: eligibleAfterFloor(decided.autoEligible, floored.tier),
   };
+}
+
+/**
+ * autoEligible is only meaningful on the human-answerable lanes. The floors
+ * above can rewrite the tier AFTER the rule computed eligibility (CI-noise →
+ * SILENT, automated PUSH → QUEUE stays fine) — without this guard an item
+ * could persist as tier=SILENT + autoEligible=true and later be picked up by
+ * the auto-mode send path. Pure, exported for the tests.
+ */
+export function eligibleAfterFloor(eligible: boolean, finalTier: Tier): boolean {
+  return eligible && (finalTier === "QUEUE" || finalTier === "MEETING");
 }
 
 /**

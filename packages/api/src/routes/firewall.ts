@@ -32,7 +32,7 @@ import { snoozeAttentionItem } from "../judge/attention-snooze.js";
 import { getDecisionMetrics } from "../judge/decision-metrics.js";
 import { collapseEmailThreads } from "../judge/firewall-thread-collapse.js";
 import { resolveTierReason } from "../judge/tier-reason-strings.js";
-import { manualOverrideReason, normalizeTier, TIERS, type Tier } from "../judge/tiers.js";
+import { manualOverrideReason, normalizeTier, type Tier } from "../judge/tiers.js";
 import { getInteractionGraph } from "../learning/interaction-graph.js";
 import { describePolicy } from "../learning/ontology.js";
 import { getTrustScoresBulk } from "../learning/trust-score.js";
@@ -53,6 +53,12 @@ const EMAIL_ID_TOOLS = new Set([
   "reply_to_email",
 ]);
 
+// Manual overrides accept only tiers the CURRENT clients can render — the v2
+// vocabulary (MEETING/INFO) joins once the board/desktop grow their lanes.
+// Widening TIERS alone would let a scripted call move an item somewhere both
+// UIs are blind to ("my mail vanished").
+const OVERRIDABLE_TIERS = ["SILENT", "QUEUE", "PUSH", "AUTO"] as const;
+
 const overrideBodySchema = {
   type: "object",
   additionalProperties: false,
@@ -60,7 +66,7 @@ const overrideBodySchema = {
   properties: {
     tier: {
       type: "string",
-      enum: TIERS,
+      enum: OVERRIDABLE_TIERS,
     },
   },
 } as const;

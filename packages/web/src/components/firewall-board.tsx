@@ -247,11 +247,15 @@ function moveItemBetweenTiers(
   if (!prev) return prev;
   const next = {
     ...prev,
-    tiers: { ...prev.tiers, summary: { ...prev.summary } },
+    // summary is a SIBLING of tiers — the old spread nested a summary key
+    // inside tiers, which the key-driven copy below would then try to spread
+    // as an array on the next optimistic move (second-override crash).
+    tiers: { ...prev.tiers },
+    summary: { ...prev.summary },
   } as FirewallResponse;
   // Copy each tier array so we mutate a fresh structure
-  for (const t of Object.keys(prev.tiers) as Tier[]) {
-    next.tiers[t] = [...prev.tiers[t]];
+  for (const t of Object.keys(next.tiers) as Tier[]) {
+    next.tiers[t] = [...next.tiers[t]];
   }
   next.tiers[item.tier] = next.tiers[item.tier].filter((row) => row.id !== item.id);
   next.tiers[newTier] = [{ ...item, tier: newTier }, ...next.tiers[newTier]];
