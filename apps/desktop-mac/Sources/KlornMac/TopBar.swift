@@ -1162,40 +1162,72 @@ struct FullView: View {
 /// Height persists via AppSettings. VoiceOver adjusts in 20pt steps.
 private struct SectionResizeHandle: View {
     @Binding var height: Double
-    @State private var dragBase: Double?
-    @State private var hovering = false
 
     var body: some View {
-        Rectangle().fill(Color.clear)
-            .frame(height: 9)
-            .overlay(
-                Capsule().fill(hovering ? Theme.textDim : Theme.line)
-                    .frame(width: 36, height: 3))
-            .contentShape(Rectangle())
-            .onHover { over in
-                hovering = over
-                if over { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
+        ZStack {
+            // AppKit-level drag surface: the panel is movable-by-background,
+            // and AppKit claims a drag on any non-refusing view as a WINDOW
+            // MOVE before SwiftUI's DragGesture ever fires (v0.4.80040 bug —
+            // the handle "did nothing"). An NSView that answers
+            // mouseDownCanMoveWindow=false is the only reliable refusal.
+            ResizeDragSurface(startHeight: { height }, apply: { height = $0 })
+            Capsule().fill(Theme.line).frame(width: 36, height: 3)
+                .allowsHitTesting(false)
+        }
+        .frame(height: 12)
+        .accessibilityElement()
+        .accessibilityLabel(L("sidebar.resize.a11y"))
+        .accessibilityValue(Text("\(Int(height))"))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: height += 20
+            case .decrement: height -= 20
+            @unknown default: break
             }
-            .gesture(
-                DragGesture(minimumDistance: 1)
-                    .onChanged { value in
-                        let base = dragBase ?? height
-                        dragBase = base
-                        // Dragging up (negative translation) grows the section.
-                        height = base - value.translation.height
-                    }
-                    .onEnded { _ in dragBase = nil }
-            )
-            .accessibilityElement()
-            .accessibilityLabel(L("sidebar.resize.a11y"))
-            .accessibilityValue(Text("\(Int(height))"))
-            .accessibilityAdjustableAction { direction in
-                switch direction {
-                case .increment: height += 20
-                case .decrement: height -= 20
-                @unknown default: break
-                }
-            }
+        }
+    }
+}
+
+private struct ResizeDragSurface: NSViewRepresentable {
+    let startHeight: () -> Double
+    let apply: (Double) -> Void
+
+    func makeNSView(context _: Context) -> ResizeDragNSView {
+        let view = ResizeDragNSView()
+        view.startHeight = startHeight
+        view.apply = apply
+        return view
+    }
+
+    func updateNSView(_ view: ResizeDragNSView, context _: Context) {
+        view.startHeight = startHeight
+        view.apply = apply
+    }
+}
+
+final class ResizeDragNSView: NSView {
+    var startHeight: () -> Double = { 0 }
+    var apply: (Double) -> Void = { _ in }
+    private var dragStartHeight: Double = 0
+    private var dragStartScreenY: CGFloat = 0
+
+    // The whole point: refuse the window-move claim so the drag is OURS.
+    override var mouseDownCanMoveWindow: Bool { false }
+
+    override func mouseDown(with _: NSEvent) {
+        dragStartHeight = startHeight()
+        dragStartScreenY = NSEvent.mouseLocation.y
+    }
+
+    override func mouseDragged(with _: NSEvent) {
+        // Screen Y grows upward on macOS: dragging the bar up (positive dy)
+        // grows the section below it.
+        let dy = NSEvent.mouseLocation.y - dragStartScreenY
+        apply(dragStartHeight + Double(dy))
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .resizeUpDown)
     }
 }
 
