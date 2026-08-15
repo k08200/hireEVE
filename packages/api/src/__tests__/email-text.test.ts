@@ -150,3 +150,15 @@ describe("renderableEmailHtmlFor — render-source selection", () => {
     expect(renderableEmailHtmlFor("just words, no markup", null)).toBeNull();
   });
 });
+
+describe("renderableEmailHtml — cid: images", () => {
+  it("drops cid: images entirely instead of rendering broken icons", async () => {
+    const { renderableEmailHtml } = await import("../mail/email-text.js");
+    const out = renderableEmailHtml(
+      '<p>Logo:</p><img src="cid:logo@mail" alt="Logo"><img src="https://x.example/a.png" alt="ok">',
+    );
+    expect(out).not.toContain("cid:");
+    expect(out).not.toContain('alt="Logo"');
+    expect(out).toContain('src="https://x.example/a.png"');
+  });
+});
