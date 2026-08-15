@@ -142,6 +142,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Reassert accessory policy post-launch; do NOT activate or foreground.
         NSApp.setActivationPolicy(.accessory)
+        // Appearance: system by default, or the Preferences override. Set
+        // before any panel draws so the first frame is already themed.
+        NSApp.appearance = model.settings.appearance.nsAppearance
+        model.settings.onAppearanceChanged = { choice in
+            NSApp.appearance = choice.nsAppearance
+        }
         // Claim notification taps before the first banner can be posted.
         if PushNotifier.isAvailable {
             UNUserNotificationCenter.current().delegate = self

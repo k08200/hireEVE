@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 
@@ -14,6 +15,7 @@ final class AppSettings {
     static let fullWindowSizeKey = "klorn.fullWindowSize"
     static let hasLaunchedKey = "klorn.hasLaunchedBefore"
     static let loadRemoteImagesKey = "klorn.mail.loadRemoteImages"
+    static let appearanceKey = "klorn.appearance"
 
     private let defaults: UserDefaults
 
@@ -45,6 +47,18 @@ final class AppSettings {
     var loadRemoteImages: Bool {
         didSet { defaults.set(loadRemoteImages, forKey: Self.loadRemoteImagesKey) }
     }
+
+    /// App appearance: follow the OS, or force light/dark. Applied via
+    /// NSApp.appearance (nil = system) by the launch wiring and on change.
+    var appearance: AppearanceChoice {
+        didSet {
+            defaults.set(appearance.rawValue, forKey: Self.appearanceKey)
+            onAppearanceChanged?(appearance)
+        }
+    }
+
+    /// Fired when the appearance choice changes (wired at launch, not persisted).
+    var onAppearanceChanged: ((AppearanceChoice) -> Void)?
 
     /// Whether the collapsed pill stays on screen. OFF = ambient-invisible mode:
     /// nothing is drawn until ⌥⌘K summons the panel or a PUSH card appears —
@@ -138,6 +152,7 @@ final class AppSettings {
         self.defaults = defaults
         self.notificationsEnabled = Self.resolveNotifications(defaults.object(forKey: Self.notificationsKey))
         self.loadRemoteImages = Self.resolveLoadRemoteImages(defaults.object(forKey: Self.loadRemoteImagesKey))
+        self.appearance = Self.resolveAppearance(defaults.object(forKey: Self.appearanceKey))
         self.showInDock = Self.resolveShowInDock(defaults.object(forKey: Self.showInDockKey))
         self.pillVisible = Self.resolvePillVisible(defaults.object(forKey: Self.pillVisibleKey))
         self.shortcut = Self.resolveShortcut(defaults.object(forKey: Self.shortcutKey))
@@ -192,6 +207,10 @@ final class AppSettings {
         (stored as? Bool) ?? true
     }
 
+    nonisolated static func resolveAppearance(_ stored: Any?) -> AppearanceChoice {
+        AppearanceChoice(rawValue: stored as? String ?? "") ?? .system
+    }
+
     /// Default ON (pill shown) when never set; otherwise honor the stored flag. Pure.
     nonisolated static func resolvePillVisible(_ stored: Any?) -> Bool {
         (stored as? Bool) ?? true
@@ -209,5 +228,30 @@ final class AppSettings {
 enum AppInfo {
     static var version: String {
         (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "dev"
+    }
+}
+
+
+/// The three appearance options. `nsAppearance` is what NSApp.appearance
+/// takes: nil = inherit the system.
+enum AppearanceChoice: String, CaseIterable, Sendable {
+    case system
+    case light
+    case dark
+
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .system: L("appearance.system")
+        case .light: L("appearance.light")
+        case .dark: L("appearance.dark")
+        }
     }
 }

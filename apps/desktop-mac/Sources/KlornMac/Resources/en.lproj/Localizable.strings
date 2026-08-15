@@ -360,3 +360,11 @@
 "prefs.section.mail" = "MAIL";
 "prefs.remoteImages" = "Load remote images in mail";
 "prefs.remoteImages.detail" = "Off blocks every network request while reading mail — including tracking pixels. Inline images keep working.";
+
+/* Appearance (2026-08-15) */
+"prefs.section.appearance" = "APPEARANCE";
+"prefs.appearance" = "Theme";
+"prefs.appearance.detail" = "System follows macOS and updates live.";
+"appearance.system" = "System";
+"appearance.light" = "Light";
+"appearance.dark" = "Dark";
