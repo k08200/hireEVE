@@ -367,3 +367,6 @@
 "appearance.system" = "시스템";
 "appearance.light" = "라이트";
 "appearance.dark" = "다크";
+
+/* Sidebar section resize (2026-08-15) */
+"sidebar.resize.a11y" = "계정 섹션 크기 조절";

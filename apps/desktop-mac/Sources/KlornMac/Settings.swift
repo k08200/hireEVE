@@ -16,6 +16,7 @@ final class AppSettings {
     static let hasLaunchedKey = "klorn.hasLaunchedBefore"
     static let loadRemoteImagesKey = "klorn.mail.loadRemoteImages"
     static let appearanceKey = "klorn.appearance"
+    static let accountSectionHeightKey = "klorn.sidebar.accountHeight"
 
     private let defaults: UserDefaults
 
@@ -59,6 +60,12 @@ final class AppSettings {
 
     /// Fired when the appearance choice changes (wired at launch, not persisted).
     var onAppearanceChanged: ((AppearanceChoice) -> Void)?
+
+    /// User-dragged height of the sidebar's ACCOUNT section. The TODAY/
+    /// UPCOMING region flexes to absorb whatever this gives or takes.
+    var accountSectionHeight: Double {
+        didSet { defaults.set(accountSectionHeight, forKey: Self.accountSectionHeightKey) }
+    }
 
     /// Whether the collapsed pill stays on screen. OFF = ambient-invisible mode:
     /// nothing is drawn until ⌥⌘K summons the panel or a PUSH card appears —
@@ -153,6 +160,8 @@ final class AppSettings {
         self.notificationsEnabled = Self.resolveNotifications(defaults.object(forKey: Self.notificationsKey))
         self.loadRemoteImages = Self.resolveLoadRemoteImages(defaults.object(forKey: Self.loadRemoteImagesKey))
         self.appearance = Self.resolveAppearance(defaults.object(forKey: Self.appearanceKey))
+        self.accountSectionHeight = Self.resolveAccountSectionHeight(
+            defaults.object(forKey: Self.accountSectionHeightKey))
         self.showInDock = Self.resolveShowInDock(defaults.object(forKey: Self.showInDockKey))
         self.pillVisible = Self.resolvePillVisible(defaults.object(forKey: Self.pillVisibleKey))
         self.shortcut = Self.resolveShortcut(defaults.object(forKey: Self.shortcutKey))
@@ -209,6 +218,13 @@ final class AppSettings {
 
     nonisolated static func resolveAppearance(_ stored: Any?) -> AppearanceChoice {
         AppearanceChoice(rawValue: stored as? String ?? "") ?? .system
+    }
+
+    /// Clamp so a wild stored value can never crush the mail list or push the
+    /// account actions off-screen. Pure.
+    nonisolated static func resolveAccountSectionHeight(_ stored: Any?) -> Double {
+        let raw = (stored as? NSNumber)?.doubleValue ?? (stored as? Double) ?? 260
+        return min(max(raw, 140), 460)
     }
 
     /// Default ON (pill shown) when never set; otherwise honor the stored flag. Pure.

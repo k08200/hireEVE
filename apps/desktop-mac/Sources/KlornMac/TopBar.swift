@@ -977,14 +977,14 @@ private struct AccountColumn: View {
                     SubtleTextButton(title: L("menu.checkUpdates")) {
                         Task { await model.checkForUpdateNow() }
                     }
+                    if let result = model.updateCheckResult {
+                        Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                    }
                     SubtleTextButton(title: L("menu.restart")) { AppRestart.relaunch() }
                     SubtleTextButton(title: L("menu.diagnostics")) {
                         Task { await model.runDiagnostics() }
                     }
                     DiagnosticsBlock()
-                    if let result = model.updateCheckResult {
-                        Text(result).font(.caption2).foregroundStyle(Theme.textDim)
-                    }
                 }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
@@ -1157,6 +1157,48 @@ struct FullView: View {
     }
 }
 
+/// Draggable boundary above the ACCOUNT section: dragging up grows the
+/// account area, the TODAY/UPCOMING scroll region flexes to absorb it.
+/// Height persists via AppSettings. VoiceOver adjusts in 20pt steps.
+private struct SectionResizeHandle: View {
+    @Binding var height: Double
+    @State private var dragBase: Double?
+    @State private var hovering = false
+
+    var body: some View {
+        Rectangle().fill(Color.clear)
+            .frame(height: 9)
+            .overlay(
+                Capsule().fill(hovering ? Theme.textDim : Theme.line)
+                    .frame(width: 36, height: 3))
+            .contentShape(Rectangle())
+            .onHover { over in
+                hovering = over
+                if over { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
+            }
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        let base = dragBase ?? height
+                        dragBase = base
+                        // Dragging up (negative translation) grows the section.
+                        height = base - value.translation.height
+                    }
+                    .onEnded { _ in dragBase = nil }
+            )
+            .accessibilityElement()
+            .accessibilityLabel(L("sidebar.resize.a11y"))
+            .accessibilityValue(Text("\(Int(height))"))
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: height += 20
+                case .decrement: height -= 20
+                @unknown default: break
+                }
+            }
+    }
+}
+
 private struct FullSidebar: View {
     @Environment(AppModel.self) private var model
     @Binding var selected: ListMode
@@ -1302,9 +1344,10 @@ private struct FullSidebar: View {
             // "TODAY" heading over 300pt of nothing reads as a broken pane, not
             // as a calm one.
             let hasToday = model.briefing != nil || (model.today?.total ?? 0) > 0
+            Divider().overlay(Theme.line).padding(.horizontal, 12).padding(.top, 12)
             if hasToday {
                 ColumnHeader(title: L("section.todayShort"))
-                    .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 6)
+                    .padding(.horizontal, 20).padding(.top, 10).padding(.bottom, 6)
             }
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -1336,6 +1379,11 @@ private struct FullSidebar: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
+            SectionResizeHandle(
+                height: Binding(
+                    get: { model.settings.accountSectionHeight },
+                    set: { model.settings.accountSectionHeight = AppSettings.resolveAccountSectionHeight($0) }
+                ))
             ColumnHeader(title: L("prefs.section.account")).padding(.horizontal, 20).padding(.bottom, 6)
             // Own scroll area with a hard ceiling: the list above stays the
             // star, and the account actions can grow without running off the
@@ -1364,16 +1412,18 @@ private struct FullSidebar: View {
                     sidebarAction(L("menu.checkUpdates"), dim: true) {
                         Task { await model.checkForUpdateNow() }
                     }
+                    // Feedback sits NEXT TO its trigger, not below the
+                    // diagnostics dump (founder, 2026-08-15).
+                    if let result = model.updateCheckResult {
+                        Text(result).font(.caption2).foregroundStyle(Theme.textDim)
+                            .padding(.horizontal, 20)
+                    }
                     sidebarAction(L("menu.restart"), dim: true) { AppRestart.relaunch() }
                     // The app must be able to answer "why is mail stuck" itself.
                     sidebarAction(L("menu.diagnostics"), dim: true) {
                         Task { await model.runDiagnostics() }
                     }
                     DiagnosticsBlock().padding(.horizontal, 20)
-                    if let result = model.updateCheckResult {
-                        Text(result).font(.caption2).foregroundStyle(Theme.textDim)
-                            .padding(.horizontal, 20)
-                    }
                 }
                 if let error = model.linkAccountError {
                     Text(error).font(.caption2).foregroundStyle(Theme.textDim)
@@ -1387,7 +1437,7 @@ private struct FullSidebar: View {
             sidebarAction(L("prefs.title"), dim: true) { model.showPreferences = true }
             }
             }
-            .frame(maxHeight: 260)
+            .frame(height: CGFloat(model.settings.accountSectionHeight))
         }
         .padding(.horizontal, 8).padding(.vertical, 18)
     }

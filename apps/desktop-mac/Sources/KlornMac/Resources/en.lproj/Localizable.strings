@@ -368,3 +368,6 @@
 "appearance.system" = "System";
 "appearance.light" = "Light";
 "appearance.dark" = "Dark";
+
+/* Sidebar section resize (2026-08-15) */
+"sidebar.resize.a11y" = "Resize the account section";
