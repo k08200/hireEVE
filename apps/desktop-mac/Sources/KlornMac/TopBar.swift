@@ -48,6 +48,9 @@ enum TopBarMetrics {
     /// window sizes, which made edge-drag feel dead ("can't shrink it",
     /// 2026-08-07). Floor for the panel's contentMinSize and screen fitting.
     static let fullMin = NSSize(width: 880, height: 520)
+    /// Smallest expanded panel a drag-resize may reach. 720 keeps the tier
+    /// columns readable; anything narrower belongs to the pill.
+    static let expandedMin = NSSize(width: 720, height: 300)
     /// Gap kept to the screen edges when the ideal size doesn't fit.
     static let screenMargin: CGFloat = 12
     static let corner: CGFloat = 20

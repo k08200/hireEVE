@@ -13,6 +13,7 @@ final class AppSettings {
     static let shortcutKey = "klorn.toggleShortcut"
     static let showInDockKey = "klorn.showInDock"
     static let fullWindowSizeKey = "klorn.fullWindowSize"
+    static let expandedWindowSizeKey = "klorn.expandedWindowSize"
     static let hasLaunchedKey = "klorn.hasLaunchedBefore"
     static let loadRemoteImagesKey = "klorn.mail.loadRemoteImages"
     static let appearanceKey = "klorn.appearance"
@@ -96,6 +97,17 @@ final class AppSettings {
         }
     }
 
+    /// The expanded panel's user-chosen size — same contract as
+    /// `fullWindowSize`, one slot per resizable state.
+    var expandedWindowSize: NSSize? {
+        didSet {
+            guard let size = expandedWindowSize else { return }
+            defaults.set(
+                ["width": Double(size.width), "height": Double(size.height)],
+                forKey: Self.expandedWindowSizeKey)
+        }
+    }
+
     var pillVisible: Bool {
         didSet {
             defaults.set(pillVisible, forKey: Self.pillVisibleKey)
@@ -167,6 +179,8 @@ final class AppSettings {
         self.shortcut = Self.resolveShortcut(defaults.object(forKey: Self.shortcutKey))
         self.fullWindowSize = Self.resolveFullWindowSize(
             defaults.object(forKey: Self.fullWindowSizeKey), floor: TopBarMetrics.fullMin)
+        self.expandedWindowSize = Self.resolveFullWindowSize(
+            defaults.object(forKey: Self.expandedWindowSizeKey), floor: TopBarMetrics.expandedMin)
     }
 
     /// Restore a stored {width,height}; malformed → nil (the screen-fitted

@@ -318,9 +318,26 @@ func runSelfChecks() async -> Bool {
           TopBarMetrics.fittedSize(
               ideal: TopBarMetrics.fullMin, visible: NSSize(width: 800, height: 500)).width
               <= 800 - TopBarMetrics.screenMargin * 2)
-    check("pill/expanded panel stays fixed and non-activating",
+    check("pill panel stays fixed and non-activating",
           !TopBarController.styleMask(focusable: false).contains(.resizable)
           && TopBarController.styleMask(focusable: false).contains(.nonactivatingPanel))
+    // Expanded joined the key-able/resizable family (Cmd+Tab needs a window
+    // that can raise; 1140pt clipped narrow displays — 2026-08-15).
+    check("expanded uses the full-family style, with its own smaller floor",
+          TopBarController.minSize(for: .expanded) == TopBarMetrics.expandedMin
+          && TopBarController.minSize(for: .full) == TopBarMetrics.fullMin
+          && TopBarMetrics.expandedMin.width < TopBarMetrics.fullMin.width)
+    check("expanded shrinks to fit a narrow display",
+          {
+              let s = TopBarMetrics.fittedSize(
+                  ideal: TopBarMetrics.expanded, visible: NSSize(width: 1024, height: 640),
+                  floor: TopBarMetrics.expandedMin)
+              return s.width <= 1024 - TopBarMetrics.screenMargin * 2
+          }())
+    check("stored expanded size below its floor is lifted",
+          AppSettings.resolveFullWindowSize(
+              ["width": 100.0, "height": 100.0], floor: TopBarMetrics.expandedMin)
+              == TopBarMetrics.expandedMin)
     check("stored size below the floor is lifted",
           AppSettings.resolveFullWindowSize(
               ["width": 100.0, "height": 100.0], floor: TopBarMetrics.fullMin)

@@ -1,9 +1,11 @@
 import AppKit
 import SwiftUI
 
-/// A borderless panel that can still become key — used only for the full state
-/// so its reply text field can receive keyboard input. (A plain borderless
-/// window returns false for canBecomeKey.)
+/// A borderless panel that can still become key — used for the expanded and
+/// full states so they can receive keyboard input and, critically, so the app
+/// has a window Cmd+Tab can actually raise. (A plain borderless window returns
+/// false for canBecomeKey; an app whose only window can't become key never
+/// fronts when picked in the switcher — dogfood 2026-08-15.)
 final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
@@ -32,7 +34,12 @@ final class TopBarController {
     init(model: AppModel) {
         self.model = model
         resizeRecorder.onLiveResizeEnd = { [weak self] size in
-            self?.model.settings.fullWindowSize = size
+            guard let self else { return }
+            switch self.state {
+            case .full: self.model.settings.fullWindowSize = size
+            case .expanded: self.model.settings.expandedWindowSize = size
+            case .collapsed: break  // pill is never resizable
+            }
         }
     }
 
@@ -167,7 +174,11 @@ final class TopBarController {
             panel?.orderOut(nil)
             return
         }
-        let focusable = (state == .full)
+        // Expanded and full are both user-summoned app windows: key-able so
+        // Cmd+Tab has something to raise (policy promotion alone never
+        // registered the app in the switcher — expanded-state bug, 2026-08-15).
+        // Only the ambient pill stays non-focus-stealing.
+        let focusable = (state != .collapsed)
         let size = panelSize(for: state)
         let root = TopBarRoot(state: state, actions: makeActions())
             .environment(model)
@@ -178,11 +189,16 @@ final class TopBarController {
         // Recreate the window when the focus model flips: pill/panel are
         // non-focus-stealing; full is a key-able app window so its reply field
         // can accept keyboard input.
+        var inheritedFrame: NSRect?
         if let existing = self.panel, panelIsFocusable != focusable {
+            // Seed the replacement with the old frame so the pill↔expanded
+            // morph still animates from where the old window sat.
+            inheritedFrame = existing.isVisible ? existing.frame : nil
             existing.orderOut(nil)
             self.panel = nil
         }
         let panel = self.panel ?? makePanel(focusable: focusable)
+        if let inherited = inheritedFrame { panel.setFrame(inherited, display: false) }
         panelIsFocusable = focusable
         panel.contentView = NSHostingView(rootView: root)
         self.panel = panel
@@ -199,18 +215,20 @@ final class TopBarController {
         {
             setFrame(panel, size: size)
         }
+        let stateChanged = renderedState != state
         renderedState = state
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
         if focusable {
-            // Full is a real, focusable app window, so it takes focus outright —
-            // the reply field has to be able to type. (ignoringOtherApps is
-            // inert on the macOS 14 target — cooperative activate() is the
-            // only sanctioned form; the load-bearing Cmd+Tab fixes are the
-            // policy hoist above and the dismiss()-path policy drop.)
+            // Expanded/full are real app windows the user just summoned
+            // (☰, Show-all, ⌥⌘K) — taking focus is the intent. Activation
+            // also completes the .accessory→.regular promotion; without it
+            // the app never appears in Cmd+Tab (expanded-state bug,
+            // 2026-08-15). Activate only on a state CHANGE so a same-state
+            // refresh() (settings/language) can't yank focus back.
             panel.makeKeyAndOrderFront(nil)
-            NSApp.activate()
+            if stateChanged { NSApp.activate() }
         } else {
-            // Expanded is Cmd+Tab-able but still never steals focus.
+            // The ambient pill must never steal focus.
             panel.orderFrontRegardless()
         }
     }
@@ -293,15 +311,24 @@ final class TopBarController {
             onQuit: { NSApplication.shared.terminate(nil) })
     }
 
-    /// The frame size for a state: full fits the screen (and honors the
-    /// user's drag-resize); pill/expanded stay at their fixed metrics.
+    /// The frame size for a state: expanded and full fit the screen (the
+    /// fixed 1140pt expanded overflowed narrow displays — clipping report,
+    /// 2026-08-15) and honor the user's drag-resize; the pill stays fixed.
     private func panelSize(for state: BarState) -> NSSize {
-        let ideal = state == .full
-            ? (model.settings.fullWindowSize ?? TopBarMetrics.full)
-            : TopBarMetrics.size(for: state)
-        guard state == .full, let visible = NSScreen.main?.visibleFrame else { return ideal }
+        let ideal: NSSize
+        switch state {
+        case .collapsed: return TopBarMetrics.collapsed
+        case .expanded: ideal = model.settings.expandedWindowSize ?? TopBarMetrics.expanded
+        case .full: ideal = model.settings.fullWindowSize ?? TopBarMetrics.full
+        }
+        guard let visible = NSScreen.main?.visibleFrame else { return ideal }
         return TopBarMetrics.fittedSize(
-            ideal: ideal, visible: visible.size, floor: TopBarMetrics.fullMin)
+            ideal: ideal, visible: visible.size, floor: Self.minSize(for: state))
+    }
+
+    /// Per-state drag-resize floor. Pure for the harness.
+    nonisolated static func minSize(for state: BarState) -> NSSize {
+        state == .full ? TopBarMetrics.fullMin : TopBarMetrics.expandedMin
     }
 
     /// Pure for the harness: when may render() move/resize the panel? Only a
@@ -313,9 +340,9 @@ final class TopBarController {
         renderedState != state || !panelVisible || frameLost
     }
 
-    /// Pure for the harness: full is a resizable key-able window (the fixed
-    /// 1400×860 could not be shrunk — clipped-display report, 2026-08-05);
-    /// pill/expanded stay non-focus-stealing and fixed.
+    /// Pure for the harness: expanded/full are resizable key-able windows
+    /// (fixed sizes could not be shrunk — clipped-display reports 2026-08-05
+    /// and 2026-08-15); only the pill stays non-focus-stealing and fixed.
     nonisolated static func styleMask(focusable: Bool) -> NSWindow.StyleMask {
         focusable ? [.borderless, .resizable] : [.borderless, .nonactivatingPanel]
     }
@@ -330,10 +357,8 @@ final class TopBarController {
             : NSPanel(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
         if focusable {
             // Borderless windows still get native edge-drag with .resizable;
-            // the floor keeps the fixed sidebar + list columns from clipping.
-            // Screen-clamped below in setFrame — a floor wider than the
-            // display would let live-resize park the window off-screen.
-            panel.contentMinSize = TopBarMetrics.fullMin
+            // the per-state floor (set in setFrame, which also screen-clamps
+            // it) keeps fixed columns from clipping.
             panel.delegate = resizeRecorder
         }
         panel.isFloatingPanel = true
@@ -362,7 +387,7 @@ final class TopBarController {
         // is the exact clipping fittedSize exists to prevent.
         if panelIsFocusable {
             panel.contentMinSize = TopBarMetrics.fittedSize(
-                ideal: TopBarMetrics.fullMin, visible: visible.size)
+                ideal: Self.minSize(for: state), visible: visible.size)
         }
         // Honor Reduce Motion (WCAG 2.3.3 + CLAUDE.md): a full-window morph up to
         // 1400px is exactly the large motion the setting exists to suppress.
