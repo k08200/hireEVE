@@ -75,6 +75,11 @@ export function extractContentId(part: gmail_v1.Schema$MessagePart): string | nu
   const raw = part.headers?.find((h) => h.name?.toLowerCase() === "content-id")?.value;
   if (!raw) return null;
   const stripped = raw.trim().replace(/^<|>$/g, "").trim();
+  // Control characters are invalid in a Content-ID (RFC 2045) and would only
+  // ever appear in a crafted header — treat the whole header as absent rather
+  // than storing a value that can break the DB insert or URL round-trip.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional reject filter
+  if (/[\u0000-\u001f\u007f]/.test(stripped)) return null;
   return stripped || null;
 }
 
@@ -94,6 +99,12 @@ async function extractAttachmentsFromPayload(
     // Content-ID; the synthesized name keeps the storage contract intact.
     const contentId = extractContentId(part);
     const mimeType = part.mimeType || "application/octet-stream";
+    const inlineOnly = !part.filename?.trim() && !!contentId;
+    // Filename-less cid parts are captured solely so src="cid:…" can resolve
+    // to bytes later — anything that is not an actual image is useless for
+    // that and only widens the attack/cost surface (sender-declared MIME is
+    // untrusted), so it keeps the pre-2026-08-15 skip behavior.
+    if (inlineOnly && !mimeType.startsWith("image/")) continue;
     const filename = part.filename?.trim() || (contentId ? `inline-${contentId}` : "");
     if (!filename) continue;
 
@@ -101,7 +112,11 @@ async function extractAttachmentsFromPayload(
     const size = typeof part.body?.size === "number" ? part.body.size : null;
 
     let contentText: string | null = null;
-    const shouldFetch = isReadableEmailAttachment(filename, mimeType, size);
+    // Inline-only images are fetched lazily by the /inline/:cid endpoint —
+    // extracting content here would both add a Gmail fetch per logo/banner at
+    // sync time and enqueue every one of them (contentText != null ⇒ PENDING)
+    // into the per-user LLM attachment analysis, a sender-controlled cost.
+    const shouldFetch = !inlineOnly && isReadableEmailAttachment(filename, mimeType, size);
     if (shouldFetch) {
       try {
         let data = part.body?.data || "";

@@ -1079,7 +1079,13 @@ export async function emailRoutes(app: FastifyInstance) {
       const attachment = await prisma.emailAttachment.findFirst({
         where: { userId: uid, emailId: dbEmail.id, contentId: cid },
       });
-      if (!attachment) return reply.code(404).send({ error: "Inline image not found" });
+      // Only ever serve image/* — mimeType is the sender's declaration, and
+      // reflecting an arbitrary type (e.g. text/html) under our origin is an
+      // XSS foothold the moment any consumer loads this URL outside the
+      // JS-disabled desktop webview.
+      if (!attachment || !attachment.mimeType?.startsWith("image/")) {
+        return reply.code(404).send({ error: "Inline image not found" });
+      }
 
       const auth = await resolveMailClient(uid, dbEmail.linkedInboxAccountId);
       if (!auth) return reply.code(404).send({ error: "Mail source not connected" });

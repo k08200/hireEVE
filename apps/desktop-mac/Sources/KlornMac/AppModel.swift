@@ -319,8 +319,12 @@ final class AppModel {
     /// the authed API. nil on any failure — the webview shows a transparent
     /// placeholder instead of a broken icon.
     func inlineImage(emailId: String, cid: String) async -> (Data, String)? {
-        let encoded = cid.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cid
-        guard let (data, mime) = try? await api.rawGet("/api/email/\(emailId)/inline/\(encoded)")
+        // The cid is a sender-controlled Content-ID landing in a single path
+        // SEGMENT, so `.urlPathAllowed` (which leaves "/" raw) would let a
+        // crafted cid rewrite the request path. Alphanumerics-only: every
+        // other byte gets percent-encoded and decodes identically server-side.
+        guard let encoded = cid.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
+              let (data, mime) = try? await api.rawGet("/api/email/\(emailId)/inline/\(encoded)")
         else { return nil }
         return (data, mime ?? "image/png")
     }
