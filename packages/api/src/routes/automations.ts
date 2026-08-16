@@ -3,6 +3,11 @@ import { listAgentModePolicies, normalizeAgentMode } from "../agentcore/agent-mo
 import { runAgentForUser } from "../agentcore/autonomous-agent.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { db, prisma } from "../db.js";
+import {
+  DEFAULT_AUTO_REPLY_GUIDELINE,
+  normalizeAttentionMode,
+  normalizeAutoReplyGuideline,
+} from "../learning/auto-reply-guideline.js";
 import { listReplyTonePolicies, normalizeReplyTone } from "../learning/reply-tone.js";
 import {
   NOTIFICATION_LANGUAGES,
@@ -85,6 +90,11 @@ export async function automationRoutes(app: FastifyInstance) {
       autoMarkReadEnabled: configAny.autoMarkReadEnabled ?? false,
       proactiveActions: configAny.proactiveActions ?? false,
       phoneEscalationEnabled: configAny.phoneEscalationEnabled ?? false,
+      attentionMode: normalizeAttentionMode(configAny.attentionMode),
+      autoReplyGuideline: normalizeAutoReplyGuideline(configAny.autoReplyGuideline),
+      // The founder default the UI shows as the editable starting draft when
+      // autoReplyGuideline is null.
+      autoReplyGuidelineDefault: DEFAULT_AUTO_REPLY_GUIDELINE,
     };
   });
 
@@ -120,6 +130,8 @@ export async function automationRoutes(app: FastifyInstance) {
       "autoMarkReadEnabled",
       "proactiveActions",
       "phoneEscalationEnabled",
+      "attentionMode",
+      "autoReplyGuideline",
     ];
     const data: Record<string, unknown> = {};
     for (const key of allowed) {
@@ -129,6 +141,15 @@ export async function automationRoutes(app: FastifyInstance) {
     // Validate agentMode
     if ("agentMode" in data) {
       data.agentMode = normalizeAgentMode(data.agentMode);
+    }
+
+    // Ontology v2 auto mode: unknown mode → BASIC; guideline is trimmed,
+    // capped, and empty → null (null = the founder default applies).
+    if ("attentionMode" in data) {
+      data.attentionMode = normalizeAttentionMode(data.attentionMode);
+    }
+    if ("autoReplyGuideline" in data) {
+      data.autoReplyGuideline = normalizeAutoReplyGuideline(data.autoReplyGuideline);
     }
 
     // Validate replyTone — an unknown register would otherwise be persisted
@@ -194,6 +215,11 @@ export async function automationRoutes(app: FastifyInstance) {
       autoMarkReadEnabled: configAny.autoMarkReadEnabled ?? false,
       proactiveActions: configAny.proactiveActions ?? false,
       phoneEscalationEnabled: configAny.phoneEscalationEnabled ?? false,
+      attentionMode: normalizeAttentionMode(configAny.attentionMode),
+      autoReplyGuideline: normalizeAutoReplyGuideline(configAny.autoReplyGuideline),
+      // The founder default the UI shows as the editable starting draft when
+      // autoReplyGuideline is null.
+      autoReplyGuidelineDefault: DEFAULT_AUTO_REPLY_GUIDELINE,
     };
   });
 
