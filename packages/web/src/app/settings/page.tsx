@@ -128,6 +128,10 @@ export default function SettingsPage() {
   const [attentionMode, setAttentionMode] = useState<"BASIC" | "AUTO">("BASIC");
   const [guidelineDraft, setGuidelineDraft] = useState("");
   const [guidelineDefault, setGuidelineDefault] = useState("");
+  /// Last text the server is known to hold — used to put the box back when a
+  /// CLEARING save fails, so an empty field can't read as "I cleared it" while
+  /// the server still has the old guideline.
+  const [guidelineSaved, setGuidelineSaved] = useState("");
   const [guidelineSaving, setGuidelineSaving] = useState(false);
   const [guidelineAdvice, setGuidelineAdvice] = useState<string | null>(null);
   const [adviceLoading, setAdviceLoading] = useState(false);
@@ -479,6 +483,7 @@ export default function SettingsPage() {
         setAttentionMode(d.attentionMode === "AUTO" ? "AUTO" : "BASIC");
         setGuidelineDefault(d.autoReplyGuidelineDefault ?? "");
         setGuidelineDraft(d.autoReplyGuideline ?? d.autoReplyGuidelineDefault ?? "");
+        setGuidelineSaved(d.autoReplyGuideline ?? d.autoReplyGuidelineDefault ?? "");
         setNotificationLanguage(d.notificationLanguage ?? "en");
         if (d.timezone) setProfile((p) => ({ ...p, timezone: d.timezone ?? p.timezone }));
         setNotifPrefs({
@@ -587,8 +592,14 @@ export default function SettingsPage() {
       });
       toast(t("settings.toast.guidelineSaved"), "success");
       // Empty save = reset to the founder default (server stores null).
+      const landed = guidelineDraft.trim() ? guidelineDraft : guidelineDefault;
       if (!guidelineDraft.trim() && guidelineDefault) setGuidelineDraft(guidelineDefault);
+      setGuidelineSaved(landed);
     } catch {
+      // A failed CLEARING save must not leave an empty box implying the
+      // guideline is gone — restore what the server still holds. A failed
+      // edit keeps the user's text so they can retry without retyping.
+      if (!guidelineDraft.trim() && guidelineSaved) setGuidelineDraft(guidelineSaved);
       toast(t("settings.toast.guidelineFailed"), "error");
     } finally {
       setGuidelineSaving(false);
@@ -1253,13 +1264,17 @@ export default function SettingsPage() {
                 <span className="font-medium block">{t("settings.field.attentionMode")}</span>
                 <p className="text-sm text-ink-mid">{t("settings.field.attentionModeDesc")}</p>
               </div>
-              <div className="grid grid-cols-2 gap-2" role="radiogroup">
+              {/* aria-pressed toggles, not a role=radiogroup: the ARIA radio
+                  pattern promises arrow-key navigation with a roving tabindex,
+                  and claiming the role without it is worse for keyboard users
+                  than not claiming it. Same pattern as the other pickers on
+                  this page (always-allowed tools, auto-mark-read). */}
+              <div className="grid grid-cols-2 gap-2">
                 {(["BASIC", "AUTO"] as const).map((mode) => (
                   <button
                     key={mode}
                     type="button"
-                    role="radio"
-                    aria-checked={attentionMode === mode}
+                    aria-pressed={attentionMode === mode}
                     onClick={() => updateAttentionMode(mode)}
                     className={`min-h-11 rounded-lg border px-3 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
                       attentionMode === mode
@@ -1301,7 +1316,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={saveGuideline}
                       disabled={guidelineSaving}
-                      className="min-h-9 rounded-lg border border-accent/60 bg-accent/10 px-3 py-1.5 text-sm font-medium text-accent-deep hover:bg-accent/15 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                      className="min-h-11 rounded-lg border border-accent/60 bg-accent/10 px-3 py-2 text-sm font-medium text-accent-deep hover:bg-accent/15 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                     >
                       {t("settings.action.saveGuideline")}
                     </button>
@@ -1309,7 +1324,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={requestGuidelineAdvice}
                       disabled={adviceLoading || !guidelineDraft.trim()}
-                      className="min-h-9 rounded-lg border border-line-strong bg-surface-panel px-3 py-1.5 text-sm text-ink-mid hover:text-ink disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                      className="min-h-11 rounded-lg border border-line-strong bg-surface-panel px-3 py-2 text-sm text-ink-mid hover:text-ink disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                     >
                       {adviceLoading
                         ? t("settings.action.guidelineAdviceLoading")

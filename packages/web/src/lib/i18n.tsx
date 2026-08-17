@@ -179,7 +179,7 @@ const enTranslations: Record<string, string> = {
   "settings.action.guidelineAdvice": "Get AI feedback",
   "settings.action.guidelineAdviceLoading": "Reviewing…",
   "settings.autoMode.flagNote":
-    "Auto-sending is being rolled out gradually — your mode and guideline are saved now and take effect when it reaches your account.",
+    "Auto-sending isn't switched on yet. Your mode and guideline are saved now and take effect once it is.",
   "settings.toast.attentionModeFailed": "Couldn't change the mode. Try again.",
   "settings.toast.guidelineSaved": "Guideline saved.",
   "settings.toast.guidelineFailed": "Couldn't save the guideline. Try again.",
@@ -1255,7 +1255,7 @@ const koTranslations: Record<string, string> = {
   "settings.action.guidelineAdvice": "AI 조언 받기",
   "settings.action.guidelineAdviceLoading": "검토 중…",
   "settings.autoMode.flagNote":
-    "자동 발송은 순차 적용 중입니다 — 모드와 지침은 지금 저장되고, 계정에 적용되는 시점부터 동작합니다.",
+    "자동 발송은 아직 켜져 있지 않습니다. 모드와 지침은 지금 저장되며, 켜지는 시점부터 동작합니다.",
   "settings.toast.attentionModeFailed": "모드를 변경하지 못했습니다. 다시 시도하세요.",
   "settings.toast.guidelineSaved": "지침을 저장했습니다.",
   "settings.toast.guidelineFailed": "지침을 저장하지 못했습니다. 다시 시도하세요.",
