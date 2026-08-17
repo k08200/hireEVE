@@ -215,6 +215,12 @@ struct PreferencesView: View {
                 }
             }
 
+            if model.phase == .signedIn {
+                section(L("prefs.section.inboxes")) {
+                    InboxAccountsSection(model: model)
+                }
+            }
+
             section(L("prefs.section.about")) {
                 infoRow(L("prefs.about.version"), AppInfo.version)
                 infoRow(L("prefs.about.api"), Config.apiBaseURL)
@@ -301,5 +307,151 @@ private struct ShortcutRecorder: View {
 
     private func stopCapture() {
         if let monitor { NSEvent.removeMonitor(monitor); self.monitor = nil }
+    }
+}
+
+/// Connected mailboxes: every inbox Klorn reads, what it is, and — for the
+/// IMAP ones the desktop can manage directly — a way to add or remove them.
+/// Google inboxes are OAuth-linked in the browser (see the Account section),
+/// so they are listed read-only here.
+private struct InboxAccountsSection: View {
+    let model: AppModel
+    @State private var naverEmail = ""
+    @State private var naverPassword = ""
+    @State private var showConnectForm = false
+    @State private var pendingDisconnect: ImapAccount?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(model.inboxes) { inbox in
+                accountRow(
+                    email: inbox.email ?? L("inbox.unknownAddress"),
+                    provider: providerLabel(inbox.provider),
+                    needsReconnect: inbox.needsReconnect,
+                    detail: nil,
+                    onDisconnect: nil)
+            }
+            ForEach(model.imapAccounts) { account in
+                accountRow(
+                    email: account.email,
+                    provider: providerLabel("NAVER"),
+                    needsReconnect: account.needsReconnect,
+                    detail: account.host,
+                    onDisconnect: { pendingDisconnect = account })
+            }
+            if model.inboxes.isEmpty && model.imapAccounts.isEmpty {
+                Text(L("prefs.inboxes.empty"))
+                    .font(.caption).foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if showConnectForm {
+                connectForm
+            } else {
+                Button(L("account.naver.connect")) { showConnectForm = true }
+                    .buttonStyle(.bordered).controlSize(.small)
+            }
+            if let error = model.imapError {
+                Text(error).font(.caption).foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .task { await model.refreshImapAccounts() }
+        .confirmationDialog(
+            L("account.disconnect.confirm"),
+            isPresented: Binding(
+                get: { pendingDisconnect != nil },
+                set: { if !$0 { pendingDisconnect = nil } })
+        ) {
+            Button(L("account.disconnect"), role: .destructive) {
+                guard let account = pendingDisconnect else { return }
+                pendingDisconnect = nil
+                Task { await model.disconnectNaverInbox(email: account.email) }
+            }
+            Button(L("common.cancel"), role: .cancel) { pendingDisconnect = nil }
+        }
+    }
+
+    private var connectForm: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L("account.naver.password.hint"))
+                .font(.caption).foregroundStyle(Theme.textDim)
+                .fixedSize(horizontal: false, vertical: true)
+            textInput($naverEmail, label: L("account.naver.email"), secure: false)
+            textInput($naverPassword, label: L("account.naver.password"), secure: true)
+            HStack(spacing: 8) {
+                Button(L("account.naver.submit")) {
+                    Task {
+                        let ok = await model.connectNaverInbox(
+                            email: naverEmail.trimmingCharacters(in: .whitespacesAndNewlines),
+                            password: naverPassword)
+                        if ok {
+                            // Clear the credential from memory the moment the
+                            // server has verified it; keep nothing around.
+                            naverPassword = ""
+                            naverEmail = ""
+                            showConnectForm = false
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent).controlSize(.small)
+                .disabled(
+                    model.isConnectingImap
+                        || !canSubmitImapConnect(email: naverEmail, password: naverPassword))
+                Button(L("common.cancel")) {
+                    naverPassword = ""
+                    showConnectForm = false
+                }
+                .buttonStyle(.bordered).controlSize(.small)
+            }
+        }
+    }
+
+    private func accountRow(
+        email: String, provider: String, needsReconnect: Bool, detail: String?,
+        onDisconnect: (() -> Void)?
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(email).font(.body).foregroundStyle(Theme.text)
+                    .lineLimit(1).truncationMode(.middle)
+                Text(detail.map { "\(provider) · \($0)" } ?? provider)
+                    .font(.caption).foregroundStyle(Theme.textDim)
+            }
+            Spacer()
+            if needsReconnect {
+                Text(L("inbox.needsReconnect"))
+                    .font(.caption).foregroundStyle(Theme.textDim)
+            }
+            if let onDisconnect {
+                Button(L("account.disconnect"), action: onDisconnect)
+                    .buttonStyle(.bordered).controlSize(.small)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// AppKit-backed fields paint as placeholder glyphs in the offscreen
+    /// design renderer, so mirror the box with plain text there (same shape
+    /// as the quiet-hours field).
+    @ViewBuilder
+    private func textInput(_ text: Binding<String>, label: String, secure: Bool) -> some View {
+        if Theme.isRenderingOffscreen {
+            Text(secure ? "••••••••" : (text.wrappedValue.isEmpty ? label : text.wrappedValue))
+                .font(.callout).foregroundStyle(Theme.textDim)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 22)
+                .padding(.horizontal, 6)
+                .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.field))
+        } else if secure {
+            SecureField(label, text: text)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel(label)
+        } else {
+            TextField(label, text: text)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel(label)
+        }
     }
 }

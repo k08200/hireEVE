@@ -764,6 +764,44 @@ func runSelfChecks() async -> Bool {
         check("search response decodes", false)
     }
 
+    print("IMAP mailboxes:")
+    // GET /api/naver-imap/status wire (routes/imap-connect.ts).
+    let imapJSON = """
+    {"connected":true,"email":"me@naver.com","host":"imap.naver.com:993",
+    "accounts":[{"email":"me@naver.com","host":"imap.naver.com:993",
+    "connectedAt":"2026-08-17T00:00:00.000Z","lastSyncedAt":null,"needsReconnect":false}]}
+    """
+    if let imap = try? JSONDecoder().decode(ImapStatusResponse.self, from: Data(imapJSON.utf8)) {
+        let accounts = imap.resolvedAccounts(fallbackEmail: nil)
+        check("imap status decodes its accounts", accounts.count == 1 && accounts[0].email == "me@naver.com")
+        check("null lastSyncedAt is tolerated", accounts[0].lastSyncedAt == nil)
+    } else {
+        check("imap status decodes", false)
+    }
+    // An older server sent only {connected, email} — keep showing the mailbox.
+    let legacyImap = ImapStatusResponse(connected: true, accounts: nil)
+    check("legacy single-account shape still lists one mailbox",
+          legacyImap.resolvedAccounts(fallbackEmail: "old@naver.com").count == 1)
+    check("disconnected legacy shape lists nothing",
+          ImapStatusResponse(connected: false, accounts: nil)
+              .resolvedAccounts(fallbackEmail: "old@naver.com").isEmpty)
+    check("provider labels are human, unknown falls back",
+          providerLabel("GOOGLE") == "Gmail" && providerLabel("naver") == "Naver"
+          && providerLabel(nil) == L("inbox.provider.generic")
+          && providerLabel("WEIRD") == L("inbox.provider.generic"))
+    // The connect form must not fire a request that the server will only
+    // reject: blank/short password, or an address that smuggles a second one.
+    check("connect form accepts a plain mailbox + app password",
+          canSubmitImapConnect(email: "me@naver.com", password: "abcd1234"))
+    check("connect form rejects blank/short password",
+          !canSubmitImapConnect(email: "me@naver.com", password: "")
+          && !canSubmitImapConnect(email: "me@naver.com", password: "ab"))
+    check("connect form rejects a malformed or multi address",
+          !canSubmitImapConnect(email: "menaver.com", password: "abcd1234")
+          && !canSubmitImapConnect(email: "me@naver", password: "abcd1234")
+          && !canSubmitImapConnect(email: "a@naver.com, b@evil.com", password: "abcd1234")
+          && !canSubmitImapConnect(email: "", password: "abcd1234"))
+
     print("Multi-inbox:")
     // GET /api/email/inboxes wire (routes/email.ts): the primary row has a
     // NULL id; linked rows carry the LinkedInboxAccount id.
@@ -775,6 +813,7 @@ func runSelfChecks() async -> Bool {
         let two = inboxResp.inboxes
         check("inboxes wire decodes", two.count == 2 && two[0].id == nil && two[1].needsReconnect)
         check("primary selection value is \"primary\"", two[0].selectionValue == "primary")
+        check("absent provider decodes as nil (older server)", two[0].provider == nil)
         check("selector label — all", inboxSelectorLabel(selected: "all", inboxes: two) == L("mail.allInboxes"))
         check("selector label — short name of the selection",
               inboxSelectorLabel(selected: "primary", inboxes: two) == "me"

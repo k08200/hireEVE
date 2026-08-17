@@ -371,3 +371,21 @@
 
 /* Sidebar section resize (2026-08-15) */
 "sidebar.resize.a11y" = "Resize the account section";
+
+/* Inboxes (connected mailboxes) */
+"prefs.section.inboxes" = "INBOXES";
+"prefs.inboxes.empty" = "No mailbox connected yet.";
+"inbox.provider.generic" = "Mail";
+"inbox.unknownAddress" = "Unknown address";
+"inbox.needsReconnect" = "Needs reconnect";
+"common.cancel" = "Cancel";
+"account.disconnect" = "Disconnect";
+"account.disconnect.confirm" = "Disconnect this mailbox? Klorn stops reading it. Mail already synced stays.";
+"account.naver.connect" = "Connect Naver mailbox…";
+"account.naver.email" = "Naver address";
+"account.naver.password" = "App password";
+"account.naver.password.hint" = "Naver Mail > Settings > IMAP/SMTP: turn it on and use the app password there, not your login password.";
+"account.naver.submit" = "Connect";
+"account.imap.failed" = "Could not connect that mailbox.";
+"account.imap.rateLimited" = "Too many attempts. Try again in a few minutes.";
+"account.imap.disconnectFailed" = "Could not disconnect that mailbox.";

@@ -468,10 +468,69 @@ struct InboxOption: Codable, Sendable, Identifiable, Hashable {
     let email: String?
     let kind: String  // "primary" | "linked"
     let needsReconnect: Bool
+    /// "GOOGLE" | "NAVER" | … — the server sends it, older builds ignored it.
+    /// Optional so a response without the field still decodes.
+    let provider: String?
 
     /// Selector value ("primary" for the nil-id primary row) — matches the
     /// web InboxSelector's value scheme and the API's `inbox=` param.
     var selectionValue: String { id ?? "primary" }
+}
+
+/// One IMAP mailbox from GET /api/naver-imap/status (routes/imap-connect.ts).
+/// Richer than the inbox selector row — it carries the sync clock — and,
+/// unlike /api/email/inboxes, it is not behind the provider-selector flag.
+struct ImapAccount: Codable, Sendable, Identifiable, Hashable {
+    let email: String
+    let host: String?
+    let connectedAt: String?
+    let lastSyncedAt: String?
+    let needsReconnect: Bool
+
+    var id: String { email }
+}
+
+struct ImapStatusResponse: Codable, Sendable {
+    let connected: Bool
+    let accounts: [ImapAccount]?
+
+    /// Accounts, tolerating an older server that only sent the single-account
+    /// shape (`connected` + `email`).
+    func resolvedAccounts(fallbackEmail: String?) -> [ImapAccount] {
+        if let accounts, !accounts.isEmpty { return accounts }
+        guard connected, let email = fallbackEmail else { return [] }
+        return [
+            ImapAccount(
+                email: email, host: nil, connectedAt: nil, lastSyncedAt: nil,
+                needsReconnect: false)
+        ]
+    }
+}
+
+/// Display label for a mailbox provider. Unknown/absent → a neutral "Mail"
+/// rather than a raw enum string leaking into the UI. Pure for the harness.
+func providerLabel(_ provider: String?) -> String {
+    switch provider?.uppercased() {
+    case "GOOGLE": "Gmail"
+    case "NAVER": "Naver"
+    case "ICLOUD": "iCloud"
+    case "OUTLOOK": "Outlook"
+    default: L("inbox.provider.generic")
+    }
+}
+
+/// Whether an IMAP connect form may be submitted: an address that looks like
+/// one, and a non-empty app password. Deliberately permissive on the address
+/// (the server verifies with a real LOGIN) but it must not be blank or carry
+/// a second recipient. Pure for the harness.
+func canSubmitImapConnect(email: String, password: String) -> Bool {
+    let mail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+    let pass = password.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !pass.isEmpty, pass.count >= 4 else { return false }
+    guard !mail.contains(","), !mail.contains(" ") else { return false }
+    let parts = mail.split(separator: "@")
+    guard parts.count == 2, !parts[0].isEmpty, parts[1].contains(".") else { return false }
+    return true
 }
 
 /// GET /api/email/inboxes response envelope.

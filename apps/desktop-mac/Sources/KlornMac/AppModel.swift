@@ -104,6 +104,11 @@ final class AppModel {
     /// every mail-list fetch is scoped by `selectedInbox` (doctrine: never
     /// assume the primary account).
     private(set) var inboxes: [InboxOption] = []
+    /// Naver IMAP mailboxes, fetched from the ungated status endpoint so the
+    /// account list is complete even while the provider selector flag is off.
+    private(set) var imapAccounts: [ImapAccount] = []
+    private(set) var imapError: String?
+    private(set) var isConnectingImap = false
 
     /// Selector value: "all" | "primary" | a linked inbox id. Persisted so the
     /// scope survives relaunch (klorn.-prefixed defaults key — required).
@@ -148,6 +153,64 @@ final class AppModel {
             }
         } catch {
             Log.app.debug("inboxes fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Reload the Naver IMAP mailbox list. Silent on failure — the section
+    /// simply shows nothing rather than an error the user can't act on.
+    func refreshImapAccounts() async {
+        do {
+            let status = try await api.fetchNaverStatus()
+            imapAccounts = status.resolvedAccounts(fallbackEmail: nil)
+        } catch {
+            Log.app.debug("imap status fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Connect a Naver mailbox. The app password travels straight to the
+    /// server (live IMAP verify + enciphered storage) and is never written to
+    /// disk here. Returns true when the mailbox was accepted, so the form can
+    /// clear its fields on success only.
+    func connectNaverInbox(email: String, password: String) async -> Bool {
+        guard !isConnectingImap else { return false }
+        isConnectingImap = true
+        defer { isConnectingImap = false }
+        imapError = nil
+        do {
+            try await api.connectNaver(email: email, password: password)
+            await refreshImapAccounts()
+            await refreshInboxes()
+            await loadQueue()
+            return true
+        } catch APIError.unauthorized {
+            signOut()
+            return false
+        } catch APIError.forbidden {
+            // Entitlement, not a dead session — never sign the user out here.
+            imapError = L("error.needsPro")
+            return false
+        } catch let APIError.http(status, message) {
+            // 400 carries the server's real reason (bad app password, host
+            // mismatch); 429 is the 5-per-15-minutes connect limit.
+            imapError = status == 429 ? L("account.imap.rateLimited") : (message ?? L("account.imap.failed"))
+            return false
+        } catch {
+            imapError = L("account.imap.failed")
+            return false
+        }
+    }
+
+    /// Disconnect ONE Naver mailbox (never the bodyless all-accounts form).
+    func disconnectNaverInbox(email: String) async {
+        imapError = nil
+        do {
+            try await api.disconnectNaver(email: email)
+            await refreshImapAccounts()
+            await refreshInboxes()
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            imapError = L("account.imap.disconnectFailed")
         }
     }
 
