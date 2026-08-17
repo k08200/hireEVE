@@ -165,6 +165,25 @@ const enTranslations: Record<string, string> = {
   "settings.field.replyTone": "Reply tone",
   "settings.field.replyToneDesc":
     "How Klorn's drafts sound. It changes the wording, not what the reply says — and never the language: a reply is always written in the language of the mail it answers.",
+  "settings.field.attentionMode": "Attention mode",
+  "settings.field.attentionModeDesc":
+    "How much Klorn handles on its own. Basic notifies you for important mail and meetings and leaves replies to you; Auto also answers safe, routine mail for you, following your guideline.",
+  "settings.attentionMode.basic.label": "Basic",
+  "settings.attentionMode.basic.desc": "Notify important mail & meetings — I reply myself",
+  "settings.attentionMode.auto.label": "Auto",
+  "settings.attentionMode.auto.desc": "Klorn also answers safe, routine mail for me",
+  "settings.field.autoGuideline": "Reply guideline",
+  "settings.field.autoGuidelineDesc":
+    "Standing instructions every unattended reply follows. Edit or add to the default; saving an empty box restores it.",
+  "settings.action.saveGuideline": "Save guideline",
+  "settings.action.guidelineAdvice": "Get AI feedback",
+  "settings.action.guidelineAdviceLoading": "Reviewing…",
+  "settings.autoMode.flagNote":
+    "Auto-sending is being rolled out gradually — your mode and guideline are saved now and take effect when it reaches your account.",
+  "settings.toast.attentionModeFailed": "Couldn't change the mode. Try again.",
+  "settings.toast.guidelineSaved": "Guideline saved.",
+  "settings.toast.guidelineFailed": "Couldn't save the guideline. Try again.",
+  "settings.toast.adviceFailed": "Couldn't get feedback. Try again.",
   "settings.replyTone.matchMe.label": "Match me",
   "settings.replyTone.matchMe.desc": "Learn from my sent mail",
   "settings.replyTone.formal.label": "Formal",
@@ -1222,6 +1241,25 @@ const koTranslations: Record<string, string> = {
   "settings.field.replyTone": "답장 톤",
   "settings.field.replyToneDesc":
     "Klorn 초안의 어투를 정합니다. 표현만 달라질 뿐 내용은 바뀌지 않으며, 언어는 절대 바뀌지 않습니다 — 답장은 항상 원본 메일의 언어로 작성됩니다.",
+  "settings.field.attentionMode": "동작 모드",
+  "settings.field.attentionModeDesc":
+    "Klorn이 알아서 처리하는 범위입니다. 기본 모드는 중요한 메일과 미팅만 알리고 답장은 직접, auto 모드는 안전한 일상 메일에 한해 지침에 따라 답장까지 대신합니다.",
+  "settings.attentionMode.basic.label": "기본",
+  "settings.attentionMode.basic.desc": "중요 메일·미팅만 알림 — 답장은 내가",
+  "settings.attentionMode.auto.label": "Auto",
+  "settings.attentionMode.auto.desc": "안전한 일상 메일은 Klorn이 답장까지",
+  "settings.field.autoGuideline": "답장 지침",
+  "settings.field.autoGuidelineDesc":
+    "무인 답장이 항상 따르는 지침입니다. 기본값을 수정하거나 추가하세요. 비워서 저장하면 기본값으로 돌아갑니다.",
+  "settings.action.saveGuideline": "지침 저장",
+  "settings.action.guidelineAdvice": "AI 조언 받기",
+  "settings.action.guidelineAdviceLoading": "검토 중…",
+  "settings.autoMode.flagNote":
+    "자동 발송은 순차 적용 중입니다 — 모드와 지침은 지금 저장되고, 계정에 적용되는 시점부터 동작합니다.",
+  "settings.toast.attentionModeFailed": "모드를 변경하지 못했습니다. 다시 시도하세요.",
+  "settings.toast.guidelineSaved": "지침을 저장했습니다.",
+  "settings.toast.guidelineFailed": "지침을 저장하지 못했습니다. 다시 시도하세요.",
+  "settings.toast.adviceFailed": "조언을 받지 못했습니다. 다시 시도하세요.",
   "settings.replyTone.matchMe.label": "내 스타일대로",
   "settings.replyTone.matchMe.desc": "보낸 메일에서 학습",
   "settings.replyTone.formal.label": "격식체",

@@ -9,10 +9,12 @@ import {
   normalizeAutoReplyGuideline,
 } from "../learning/auto-reply-guideline.js";
 import { listReplyTonePolicies, normalizeReplyTone } from "../learning/reply-tone.js";
+import { createCompletion, DRAFT_MODEL } from "../llm/openai.js";
 import {
   NOTIFICATION_LANGUAGES,
   resolveNotificationLanguage,
 } from "../notify/notification-strings.js";
+import { captureError } from "../sentry.js";
 import { normalizeTimeZone } from "../time-zone.js";
 
 // MEDIUM-risk tools that users may pre-approve for AUTO mode.
@@ -222,6 +224,52 @@ export async function automationRoutes(app: FastifyInstance) {
       autoReplyGuidelineDefault: DEFAULT_AUTO_REPLY_GUIDELINE,
     };
   });
+
+  // POST /api/automations/guideline-advice — AI feedback on the auto-mode
+  // reply guideline (참고용: never applied automatically — the user reads the
+  // advice and edits their own text). Rate-limited: each call is an LLM spend.
+  app.post(
+    "/guideline-advice",
+    {
+      schema: {
+        body: {
+          type: "object",
+          additionalProperties: false,
+          required: ["guideline"],
+          properties: { guideline: { type: "string", minLength: 1, maxLength: 2000 } },
+        },
+      },
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const userId = getUserId(request);
+      const { guideline } = request.body as { guideline: string };
+      try {
+        const response = await createCompletion(
+          {
+            model: DRAFT_MODEL,
+            temperature: 0.3,
+            max_tokens: 600,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You review a user's standing guideline for UNATTENDED email auto-replies (nobody proofreads before sending). Point out concrete risks and gaps: missing deferral rules for commitments/money/deadlines, ambiguity an LLM could misread, privacy leaks, tone problems. Reply in the same language the guideline is written in, as 2-4 short bullet points. Advice only — do not rewrite the whole guideline.",
+              },
+              { role: "user", content: guideline },
+            ],
+          },
+          { userId },
+        );
+        const advice = response.choices[0]?.message?.content?.trim();
+        if (!advice) return reply.code(502).send({ error: "No advice produced" });
+        return { advice };
+      } catch (err) {
+        captureError(err, { tags: { scope: "automations.guideline-advice" }, extra: { userId } });
+        return reply.code(502).send({ error: "Advice generation failed" });
+      }
+    },
+  );
 
   // POST /api/automations/run-now — Manually trigger agent for current user
   app.post(
