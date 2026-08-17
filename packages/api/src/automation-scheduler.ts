@@ -10,7 +10,7 @@
  */
 
 import { drainActionOutbox } from "./agentcore/action-outbox.js";
-import { sendAutoReplyViaFloor } from "./agentcore/auto-reply-send.js";
+import { isSingleRecipient, sendAutoReplyViaFloor } from "./agentcore/auto-reply-send.js";
 import { runProactiveActions } from "./agentcore/proactive-actions.js";
 import { isEntitled, planHasFeature } from "./billing/stripe.js";
 import {
@@ -532,6 +532,12 @@ export async function ensureAutoReplyNotification(
 /// tick answers at most a handful so a burst can't drain the LLM budget.
 const AUTO_MODE_LOOKBACK_MS = 6 * 60 * 60 * 1000;
 const AUTO_MODE_MAX_PER_TICK = 5;
+/// A candidate whose draft keeps coming back empty is retried at most this
+/// many times (security review 2026-08-16: without a cap, one stuck item
+/// meant a fresh LLM call every 60s tick for the whole 6h lookback).
+/// In-memory by design — a restart resetting the count is harmless.
+const AUTO_MODE_MAX_DRAFT_ATTEMPTS = 3;
+const autoModeDraftAttempts = new Map<string, number>();
 
 export async function ensureAutoModeReplyNotification(
   userId: string,
@@ -1363,12 +1369,27 @@ async function runUserCycle(
                 select: { id: true },
               });
               if (already) continue;
+              // Refuse a malformed/crafted From BEFORE any LLM spend or
+              // ledger write — the floor's single-recipient guard would only
+              // reject it after the ledger already claimed "replied".
+              const toMatch = email.from.match(/<([^>]+)>/);
+              const toAddr = (toMatch ? toMatch[1] : email.from).trim();
+              if (!isSingleRecipient(toAddr)) {
+                console.warn(`[AUTOMATION] auto-mode skip: non-single recipient from ${item.id}`);
+                continue;
+              }
+              const attempts = autoModeDraftAttempts.get(item.id) ?? 0;
+              if (attempts >= AUTO_MODE_MAX_DRAFT_ATTEMPTS) continue;
               const draft = await generateGuidelineReply(
                 { from: email.from, subject: email.subject, body: email.body || "" },
                 config.userId,
                 guideline,
               );
-              if (!draft) continue;
+              if (!draft) {
+                autoModeDraftAttempts.set(item.id, attempts + 1);
+                continue;
+              }
+              autoModeDraftAttempts.delete(item.id);
               // Race guard mirroring the rule sweep: the LLM took seconds —
               // skip if the source row vanished (delete/reconcile).
               const still = await prisma.emailMessage.findFirst({
@@ -1376,25 +1397,44 @@ async function runUserCycle(
                 select: { id: true },
               });
               if (!still) continue;
-              const toMatch = email.from.match(/<([^>]+)>/);
-              const toAddr = (toMatch ? toMatch[1] : email.from).trim();
               // Ledger BEFORE send — opposite of the rule sweep, deliberately.
               // The unique dedupeKey is the cross-tick concurrency lock: an
-              // unattended DOUBLE-send is worse than a missed one (a send
-              // failure leaves the item OPEN, so the human lane catches it).
+              // unattended DOUBLE-send is worse than a missed one.
               const ledger = await ensureAutoModeReplyNotification(
                 config.userId,
                 email.gmailId,
                 toAddr,
               );
               if (!ledger) continue;
-              await sendAutoReplyViaFloor(
-                config.userId,
-                toAddr,
-                `Re: ${email.subject}`,
-                draft,
-                email.id,
-              );
+              try {
+                await sendAutoReplyViaFloor(
+                  config.userId,
+                  toAddr,
+                  `Re: ${email.subject}`,
+                  draft,
+                  email.id,
+                );
+              } catch (sendErr) {
+                // The ledger must not lie: rewrite it as a failure record so
+                // the user is never told a reply went out when it didn't.
+                // No retry (at-most-once holds); the item stays OPEN for the
+                // human lane (security review 2026-08-16, HIGH).
+                await prisma.notification
+                  .update({
+                    where: { id: ledger.id },
+                    data: {
+                      title: "Auto-mode reply failed",
+                      message: `Auto-mode reply to ${toAddr} failed — the mail is still in your queue [${email.gmailId}]`,
+                    },
+                  })
+                  .catch((updateErr) =>
+                    console.warn(
+                      `[AUTOMATION] auto-mode failure-ledger update failed for ${item.id}`,
+                      updateErr,
+                    ),
+                  );
+                throw sendErr;
+              }
               // Klorn handled it — resolve the item so the queue stays clean.
               await prisma.attentionItem
                 .update({ where: { id: item.id }, data: { status: "RESOLVED" } })
