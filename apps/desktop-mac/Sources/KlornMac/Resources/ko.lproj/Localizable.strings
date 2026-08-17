@@ -379,7 +379,7 @@
 "inbox.needsReconnect" = "재연결 필요";
 "common.cancel" = "취소";
 "account.disconnect" = "연결 해제";
-"account.disconnect.confirm" = "이 메일함을 해제할까요? Klorn이 더 이상 읽지 않습니다. 이미 가져온 메일은 남습니다.";
+"account.disconnect.confirm" = "%@ 연결을 해제할까요? Klorn이 더 이상 읽지 않습니다. 이미 가져온 메일은 남습니다.";
 "account.naver.connect" = "네이버 메일함 연결…";
 "account.naver.email" = "네이버 주소";
 "account.naver.password" = "앱 비밀번호";

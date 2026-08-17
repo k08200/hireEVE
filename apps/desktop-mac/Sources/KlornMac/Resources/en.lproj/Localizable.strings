@@ -380,7 +380,7 @@
 "inbox.needsReconnect" = "Needs reconnect";
 "common.cancel" = "Cancel";
 "account.disconnect" = "Disconnect";
-"account.disconnect.confirm" = "Disconnect this mailbox? Klorn stops reading it. Mail already synced stays.";
+"account.disconnect.confirm" = "Disconnect %@? Klorn stops reading it. Mail already synced stays.";
 "account.naver.connect" = "Connect Naver mailbox…";
 "account.naver.email" = "Naver address";
 "account.naver.password" = "App password";

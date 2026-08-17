@@ -358,7 +358,7 @@ private struct InboxAccountsSection: View {
         }
         .task { await model.refreshImapAccounts() }
         .confirmationDialog(
-            L("account.disconnect.confirm"),
+            L("account.disconnect.confirm", pendingDisconnect?.email ?? ""),
             isPresented: Binding(
                 get: { pendingDisconnect != nil },
                 set: { if !$0 { pendingDisconnect = nil } })
