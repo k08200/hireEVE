@@ -770,8 +770,9 @@ func runSelfChecks() async -> Bool {
     check("a nonzero v2 lane joins in display position",
           Tier.visibleOrder(counts: { $0 == .meeting ? 2 : 0 })
               == [.push, .meeting, .queue, .silent, .auto])
-    check("guide teaches the v1 four until the flip", Tier.coreOrder.count == 4
-          && !Tier.coreOrder.contains(.meeting) && !Tier.coreOrder.contains(.info))
+    check("guide teaches the five live v2 lanes, not legacy AUTO",
+          Tier.coreOrder.count == 5 && Tier.coreOrder.contains(.meeting)
+          && Tier.coreOrder.contains(.info) && !Tier.coreOrder.contains(.auto))
     // A v1 server's summary (no MEETING/INFO keys) must still decode.
     let v1Summary = """
     {"SILENT":1,"QUEUE":2,"PUSH":3,"AUTO":4,"total":10}

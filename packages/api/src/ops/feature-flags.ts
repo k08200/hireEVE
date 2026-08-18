@@ -64,9 +64,9 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       // Read at request time by config.ts `providerInboxSelectorEnabled()`, so
       // it belongs here rather than in the boot-frozen map above.
       PROVIDER_INBOX_SELECTOR_ENABLED: dynamicFlag(env, "PROVIDER_INBOX_SELECTOR_ENABLED"),
-      TIER_V2_ENABLED: dynamicFlag(env, "TIER_V2_ENABLED"),
+      TIER_V2_ENABLED: defaultOnFlag(env, "TIER_V2_ENABLED"),
       AUTO_MODE_SEND_ENABLED: dynamicFlag(env, "AUTO_MODE_SEND_ENABLED"),
-      SPAM_INTAKE_ENABLED: dynamicFlag(env, "SPAM_INTAKE_ENABLED"),
+      SPAM_INTAKE_ENABLED: defaultOnFlag(env, "SPAM_INTAKE_ENABLED"),
     },
     configured: {
       GMAIL_PUBSUB_TOPIC: Boolean(env.GMAIL_PUBSUB_TOPIC),
@@ -78,13 +78,20 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
   };
 }
 
+/** Default-ON dynamic flag: set the env var to "false"/"0"/"off" to disable. */
+function defaultOnFlag(env: NodeJS.ProcessEnv, key: string): boolean {
+  const raw = (env[key] ?? "").toLowerCase();
+  return !["false", "0", "off", "no"].includes(raw);
+}
+
 /**
  * Ontology v2 classification (5 tiers + autoEligible; docs/design/
- * tier-ontology-v2.md). Dynamic: read per judgement so a flip needs no
- * redeploy. OFF = the shipped v1 4-tier rule.
+ * tier-ontology-v2.md). Flipped default-ON 2026-08-18 by founder decision
+ * ("분류 6개 왜 아직 안 했냐") — TIER_V2_ENABLED=false is the emergency
+ * kill switch back to the v1 4-tier rule.
  */
 export function tierV2Enabled(): boolean {
-  return dynamicFlag(process.env, "TIER_V2_ENABLED");
+  return defaultOnFlag(process.env, "TIER_V2_ENABLED");
 }
 
 /**
@@ -102,5 +109,7 @@ export function autoModeSendEnabled(): boolean {
  * the judge's spam floor). Dynamic; OFF = the historical INBOX-only sync.
  */
 export function spamIntakeEnabled(): boolean {
-  return dynamicFlag(process.env, "SPAM_INTAKE_ENABLED");
+  // Default-ON since 2026-08-18 (same founder go as the tier flip; capped at
+  // 10/sweep). SPAM_INTAKE_ENABLED=false disables.
+  return defaultOnFlag(process.env, "SPAM_INTAKE_ENABLED");
 }

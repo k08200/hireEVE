@@ -138,7 +138,9 @@ describe("eval-set gate (no-LLM pipeline)", () => {
 
     const predictions = await Promise.all(
       file.items.map(async (item) => ({
-        item,
+        // v2 is the default now — the expectation is labelV2 when present,
+        // mirroring loadLabelledSet in scripts/poc-accuracy.ts.
+        item: { ...item, label: (item as { labelV2?: typeof item.label }).labelV2 ?? item.label },
         judgement: await judgeEmail({
           from: item.from,
           subject: item.subject,

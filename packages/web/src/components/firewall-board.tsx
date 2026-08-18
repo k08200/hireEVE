@@ -258,7 +258,7 @@ export function FirewallBoard() {
         {(data.summary.INFO ?? 0) > 0 && (
           <InfoStrip count={data.summary.INFO} items={data.tiers.INFO} />
         )}
-        <AutoStrip count={data.summary.AUTO} items={data.tiers.AUTO} />
+        {data.summary.AUTO > 0 && <AutoStrip count={data.summary.AUTO} items={data.tiers.AUTO} />}
       </div>
     </div>
   );

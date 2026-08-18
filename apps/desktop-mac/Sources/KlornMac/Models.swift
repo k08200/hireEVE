@@ -26,8 +26,10 @@ enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     /// flag-off server renders the same four rows as before.
     static let displayOrder: [Tier] = [.push, .meeting, .queue, .info, .silent, .auto]
 
-    /// The v1 four — the tier guide teaches these until the v2 flip.
-    static let coreOrder: [Tier] = [.push, .queue, .silent, .auto]
+    /// What the first-run guide teaches: the five live v2 lanes. AUTO is
+    /// legacy-only after the 2026-08-18 flip (existing rows render; the
+    /// classifier never emits it), so the guide no longer introduces it.
+    static let coreOrder: [Tier] = [.push, .meeting, .queue, .info, .silent]
 
     /// Whether this tier existed before ontology v2. Pure for the harness.
     var isV2Lane: Bool { self == .meeting || self == .info }

@@ -147,7 +147,8 @@
       "labels": [],
       "receivedAt": "2026-06-01T11:00:00.000Z",
       "label": "QUEUE",
-      "note": "system notification — visible, not interrupting"
+      "note": "system notification — visible, not interrupting | v2: automated record -> INFO",
+      "labelV2": "INFO"
     },
     {
       "id": "eval-014",
@@ -167,7 +168,9 @@
       "snippet": "We noticed a new sign-in to your Google Account.",
       "labels": [],
       "receivedAt": "2026-06-01T11:10:00.000Z",
-      "label": "QUEUE"
+      "label": "QUEUE",
+      "labelV2": "INFO",
+      "note": " | v2: automated record -> INFO"
     },
     {
       "id": "eval-016",
@@ -177,7 +180,9 @@
       "snippet": "Invoice #1042 for $49.00 was finalized.",
       "labels": [],
       "receivedAt": "2026-06-01T11:15:00.000Z",
-      "label": "QUEUE"
+      "label": "QUEUE",
+      "labelV2": "INFO",
+      "note": " | v2: automated record -> INFO"
     },
     {
       "id": "eval-017",
@@ -278,7 +283,8 @@
       "labels": [],
       "receivedAt": "2026-06-01T12:35:00.000Z",
       "label": "QUEUE",
-      "note": "own-product signal — founder wants these visible"
+      "note": "own-product signal — founder wants these visible | v2: automated record -> INFO",
+      "labelV2": "INFO"
     },
     {
       "id": "eval-027",
@@ -288,7 +294,9 @@
       "snippet": "Your invoice for May is now available in the billing console.",
       "labels": [],
       "receivedAt": "2026-06-01T12:40:00.000Z",
-      "label": "QUEUE"
+      "label": "QUEUE",
+      "labelV2": "INFO",
+      "note": " | v2: automated record -> INFO"
     },
     {
       "id": "eval-028",
@@ -308,7 +316,9 @@
       "snippet": "Sending over an invite for a 30-minute roadmap sync.",
       "labels": [],
       "receivedAt": "2026-06-01T12:50:00.000Z",
-      "label": "QUEUE"
+      "label": "QUEUE",
+      "labelV2": "MEETING",
+      "note": " | v2: scheduling invite -> MEETING"
     },
     {
       "id": "eval-030",
@@ -520,8 +530,8 @@
       "labels": [],
       "receivedAt": "2026-06-01T16:10:00.000Z",
       "label": "AUTO",
-      "note": "delivery confirmation — archive candidate",
-      "labelV2": "QUEUE"
+      "note": "delivery confirmation — archive candidate | v2: automated record -> INFO",
+      "labelV2": "INFO"
     },
     {
       "id": "eval-050",
@@ -532,8 +542,8 @@
       "labels": [],
       "receivedAt": "2026-06-01T16:15:00.000Z",
       "label": "AUTO",
-      "note": "informational stat mail — archive candidate",
-      "labelV2": "QUEUE"
+      "note": "informational stat mail — archive candidate | v2: automated record -> INFO",
+      "labelV2": "INFO"
     },
     {
       "id": "eval-051",
