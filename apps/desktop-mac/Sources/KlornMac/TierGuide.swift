@@ -61,6 +61,13 @@ struct TierGuide: View {
             }
             .padding(.bottom, Theme.s2)
 
+            // What the "inbox" column even IS — the founder-reported confusion
+            // (2026-08-15) was the name collision: our 수신함/INBOX is the
+            // triage RESULT, not the raw Gmail inbox. Say that first.
+            Text(L("guide.pipeline"))
+                .font(.callout).foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, Theme.s2)
             Text(L("guide.intro"))
                 .font(.callout).foregroundStyle(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)

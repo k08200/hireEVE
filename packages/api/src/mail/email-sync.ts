@@ -13,6 +13,7 @@ import { planHasFeature } from "../billing/stripe.js";
 import { MULTI_INBOX_SYNC_ENABLED } from "../config.js";
 import { prisma } from "../db.js";
 import { persistGmailEmail } from "../judge/email-firewall.js";
+import { spamIntakeEnabled } from "../ops/feature-flags.js";
 import { resolveUserEmail } from "../resolve-user-email.js";
 import { Semaphore } from "../semaphore.js";
 import { captureError } from "../sentry.js";
@@ -46,6 +47,12 @@ const RECONCILE_REFRESH_CAP = 500;
 // well under that; an INBOX larger than this falls back to an in-Node diff so a
 // single huge NOT IN can never crash the reconcile.
 const INBOX_PARAM_CAP = 10000;
+// Spam-lane snapshot bound (SPAM_INTAKE_ENABLED): only the N most recent spam
+// messages per sweep. Spam volume is unbounded and each row costs a judge
+// pass — the lane exists to catch FALSE POSITIVES, and those are recent by
+// definition. Deliberately separate from the INBOX maxResults so spam can
+// never starve inbox intake.
+const SPAM_FETCH_CAP = 10;
 
 // Persist + firewall (judge/push/backfill) moved to ./email-firewall.js (M3 step 6).
 export { backfillEmailAttentionItems, judgeAndMirrorEmail } from "../judge/email-firewall.js";
@@ -284,6 +291,29 @@ export async function syncEmails(
   return { synced: history.emails.length, newCount, source: "gmail" };
 }
 
+/**
+ * Spam-lane sweep (SPAM_INTAKE_ENABLED, default OFF): read the N most recent
+ * SPAM-labeled messages so a real mail Gmail wrongly spammed still reaches
+ * the queue. Rides the snapshot/query path deliberately — a query fetch skips
+ * the INBOX watermark (syncSnapshot), so the spam lane can never corrupt the
+ * incremental history sync. Persisted rows carry the SPAM label; the judge's
+ * spam floor keeps them out of PUSH/MEETING and autoEligible stays false.
+ * Best-effort: returns 0 on any failure (the next tick retries).
+ */
+export async function syncSpamLane(userId: string): Promise<number> {
+  if (!spamIntakeEnabled()) return 0;
+  try {
+    const result = await syncEmails(userId, SPAM_FETCH_CAP, "in:spam");
+    return result.newCount;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/not connected/i.test(msg)) {
+      console.warn(`[MAIL-SYNC] spam lane failed for ${userId}: ${msg}`);
+    }
+    return 0;
+  }
+}
+
 // ─── Gmail ↔ DB Reconciliation ────────────────────────────────────────────
 
 /**
@@ -476,24 +506,34 @@ async function reconcileInboxScope(
     // Resolve the attention items of the rows we're about to delete BEFORE the
     // delete, so an archived/trashed email leaves the attention queue instead of
     // orphaning an OPEN item the priority amplifier keeps surfacing forever.
+    // Spam-lane rows are NOT in the INBOX listing by definition — without the
+    // label exclusion every synced spam row would be wiped on the next
+    // reconcile tick. Their lifecycle is aging, not reconcile (v1 tradeoff:
+    // a spam the user deletes in Gmail lingers until it ages out).
+    const staleWhere = {
+      ...scope,
+      gmailId: { notIn: inboxIdList },
+      NOT: { labels: { has: "SPAM" } },
+    };
     const stale = await prisma.emailMessage.findMany({
-      where: { ...scope, gmailId: { notIn: inboxIdList } },
+      where: staleWhere,
       select: { id: true },
     });
     await resolveAttentionForDeletedEmails(
       userId,
       stale.map((r) => r.id),
     );
-    const res = await prisma.emailMessage.deleteMany({
-      where: { ...scope, gmailId: { notIn: inboxIdList } },
-    });
+    const res = await prisma.emailMessage.deleteMany({ where: staleWhere });
     removed = res.count;
   } else {
     const stored = await prisma.emailMessage.findMany({
       where: scope,
-      select: { id: true, gmailId: true },
+      select: { id: true, gmailId: true, labels: true },
     });
-    const staleIds = stored.filter((e) => !inboxIds.has(e.gmailId)).map((e) => e.id);
+    // Same spam-lane exclusion as the NOT IN branch above.
+    const staleIds = stored
+      .filter((e) => !inboxIds.has(e.gmailId) && !(e.labels ?? []).includes("SPAM"))
+      .map((e) => e.id);
     await resolveAttentionForDeletedEmails(userId, staleIds);
     for (let i = 0; i < staleIds.length; i += INBOX_PARAM_CAP) {
       const res = await prisma.emailMessage.deleteMany({

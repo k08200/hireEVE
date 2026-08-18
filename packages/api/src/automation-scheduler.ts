@@ -44,6 +44,7 @@ import {
   reconcileLinkedInboxes,
   summarizeUnsummarizedEmails,
   syncEmails,
+  syncSpamLane,
 } from "./mail/email-sync.js";
 import { getAuthedClient, getLinkedInboxClients, renewExpiringGmailWatches } from "./mail/gmail.js";
 import { notifyConversationsUpdated } from "./notify/conversations-updated.js";
@@ -1090,6 +1091,11 @@ async function runUserCycle(
         // poll fallback never did, so mail that arrived via THIS path reached
         // clients only when their own polling caught up (desktop: 60 s).
         if (syncResult.newCount > 0) notifyConversationsUpdated(config.userId);
+        // Spam lane (SPAM_INTAKE_ENABLED, no-op while off): catch real mail
+        // Gmail wrongly spammed. Capped snapshot query; never touches the
+        // INBOX watermark.
+        const spamNew = await syncSpamLane(config.userId);
+        if (spamNew > 0) notifyConversationsUpdated(config.userId);
 
         // AI summarize new emails — floor 10 so a zero-new tick still drains
         // the backlog (same #725 floor the interactive routes already have;

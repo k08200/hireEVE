@@ -677,7 +677,34 @@ function applyAutomatedSenderFloors(
       );
     }
   }
-  return applyAutomatedSenderPushFloor(email.from, decision);
+  return applySpamFloor(email.labels, applyAutomatedSenderPushFloor(email.from, decision));
+}
+
+/** Gmail put this message in spam. Pure for the tests. */
+export function hasSpamLabel(labels: string[] | undefined): boolean {
+  return labels?.includes("SPAM") ?? false;
+}
+
+/**
+ * Spam-lane floor (SPAM_INTAKE_ENABLED, docs: the value of syncing spam is
+ * catching FALSE POSITIVES — real mail Gmail wrongly spammed). Such mail must
+ * be VISIBLE (so it lands QUEUE, never SILENT-hidden) but must never
+ * interrupt: spam is the most attacker-dense input there is, and a crafted
+ * "urgent" spam earning a push notification would be a free interruption
+ * channel. Callers also force autoEligible=false for spam — an unattended
+ * reply to spam confirms the address to the spammer. Pure, exported for the
+ * tests; a no-op while the intake flag is off (no SPAM rows exist).
+ */
+export function applySpamFloor(
+  labels: string[] | undefined,
+  decision: { tier: Tier; reason: string },
+): { tier: Tier; reason: string } {
+  if (!hasSpamLabel(labels)) return decision;
+  if (decision.tier !== "PUSH" && decision.tier !== "MEETING") return decision;
+  return {
+    tier: "QUEUE",
+    reason: "Gmail marked this spam — surfaced for review, never interrupts",
+  };
 }
 
 /**
@@ -785,7 +812,8 @@ export async function judgeEmail(
       reason: floored.reason,
       features,
       source: "llm",
-      autoEligible: eligibleAfterFloor(decided.autoEligible, floored.tier),
+      autoEligible:
+        eligibleAfterFloor(decided.autoEligible, floored.tier) && !hasSpamLabel(email.labels),
     };
   }
 
@@ -797,7 +825,8 @@ export async function judgeEmail(
     reason: floored.reason,
     features,
     source: "keyword-fallback",
-    autoEligible: eligibleAfterFloor(decided.autoEligible, floored.tier),
+    autoEligible:
+      eligibleAfterFloor(decided.autoEligible, floored.tier) && !hasSpamLabel(email.labels),
   };
 }
 

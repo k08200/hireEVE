@@ -66,6 +66,7 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       PROVIDER_INBOX_SELECTOR_ENABLED: dynamicFlag(env, "PROVIDER_INBOX_SELECTOR_ENABLED"),
       TIER_V2_ENABLED: dynamicFlag(env, "TIER_V2_ENABLED"),
       AUTO_MODE_SEND_ENABLED: dynamicFlag(env, "AUTO_MODE_SEND_ENABLED"),
+      SPAM_INTAKE_ENABLED: dynamicFlag(env, "SPAM_INTAKE_ENABLED"),
     },
     configured: {
       GMAIL_PUBSUB_TOPIC: Boolean(env.GMAIL_PUBSUB_TOPIC),
@@ -93,4 +94,13 @@ export function tierV2Enabled(): boolean {
  */
 export function autoModeSendEnabled(): boolean {
   return dynamicFlag(process.env, "AUTO_MODE_SEND_ENABLED");
+}
+
+/**
+ * Spam-lane ingestion: sync the most recent SPAM-labeled Gmail messages so a
+ * real mail Gmail wrongly spammed still reaches the queue (never PUSH — see
+ * the judge's spam floor). Dynamic; OFF = the historical INBOX-only sync.
+ */
+export function spamIntakeEnabled(): boolean {
+  return dynamicFlag(process.env, "SPAM_INTAKE_ENABLED");
 }

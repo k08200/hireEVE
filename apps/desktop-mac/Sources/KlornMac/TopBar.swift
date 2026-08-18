@@ -813,6 +813,19 @@ private struct InboxColumn: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 ColumnHeader(title: L("section.inbox"))
+                // "What is this?" — reopens the tier guide right where the
+                // "inbox가 뭔지 모르겠다" question arises (both surfaces that
+                // render this header: expanded panel and full-view sidebar).
+                Button {
+                    model.showTierGuide = true
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textDim)
+                }
+                .buttonStyle(.plain)
+                .help(L("guide.reopen"))
+                .accessibilityLabel(L("guide.reopen"))
                 Spacer()
                 InboxSelectorMenu()
             }
@@ -1277,6 +1290,19 @@ private struct FullSidebar: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 ColumnHeader(title: L("section.inbox"))
+                // "What is this?" — reopens the tier guide right where the
+                // "inbox가 뭔지 모르겠다" question arises (both surfaces that
+                // render this header: expanded panel and full-view sidebar).
+                Button {
+                    model.showTierGuide = true
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textDim)
+                }
+                .buttonStyle(.plain)
+                .help(L("guide.reopen"))
+                .accessibilityLabel(L("guide.reopen"))
                 Spacer()
                 InboxSelectorMenu()
             }
