@@ -121,12 +121,15 @@ describe("eval-set gate (no-LLM pipeline)", () => {
     createCompletionMock.mockReset();
   });
 
-  it("eval set is well-formed: 50 items, valid tiers, unique ids", () => {
-    expect(file.items).toHaveLength(50);
+  it("eval set is well-formed: 56 items, valid tiers (v1 and v2), unique ids", () => {
+    // 50 v1 items + 6 dual-labelled ontology-v2 items (2026-08-18).
+    expect(file.items).toHaveLength(56);
     const ids = new Set(file.items.map((i) => i.id));
-    expect(ids.size).toBe(50);
+    expect(ids.size).toBe(56);
     for (const item of file.items) {
       expect(POC_TIERS).toContain(item.label);
+      const v2 = (item as { labelV2?: string }).labelV2;
+      if (v2 !== undefined) expect(POC_TIERS).toContain(v2);
     }
   });
 

@@ -52,6 +52,7 @@ import {
   type PocTier,
 } from "../src/judge/poc-judge.js";
 import { TIERS, type Tier } from "../src/judge/tiers.js";
+import { tierV2Enabled } from "../src/ops/feature-flags.js";
 
 interface GroundTruthItem {
   id: string;
@@ -69,6 +70,13 @@ interface GroundTruthItem {
   labels: string[];
   receivedAt: string;
   label: null | PocTier;
+  /**
+   * Ontology-v2 expectation for the SAME mail (dual-label scheme). When the
+   * run executes with TIER_V2_ENABLED, labelV2 (falling back to label)
+   * becomes the truth; a flag-off run ignores it entirely, so adding v2
+   * expectations can never move the flag-off CI gate.
+   */
+  labelV2?: PocTier;
   note?: string;
   /**
    * Optional per-item JudgeContext fixture (#650) — corrections, senderPrior,
@@ -317,9 +325,11 @@ function loadLabelledSet(inArg: string): LoadedSet {
   const inPath = resolve(inArg);
   const raw = readFileSync(inPath, "utf8");
   const file = JSON.parse(raw) as GroundTruthFile;
-  const labelled = file.items.filter(
-    (i): i is LabelledItem => i.label !== null && POC_TIERS.includes(i.label as PocTier),
-  );
+  const v2 = tierV2Enabled();
+  const labelled = file.items
+    .map((i) => (v2 && i.labelV2 ? { ...i, label: i.labelV2 } : i))
+    .filter((i): i is LabelledItem => i.label !== null && POC_TIERS.includes(i.label as PocTier));
+  if (v2) console.log("  (TIER_V2_ENABLED: labelV2 expectations in effect)");
   const skipped = file.items.length - labelled.length;
   if (labelled.length === 0) {
     throw new Error(`No items have a label set in ${inPath}. Fill in 'label' fields first.`);
