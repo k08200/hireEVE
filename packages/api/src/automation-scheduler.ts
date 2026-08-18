@@ -10,6 +10,7 @@
  */
 
 import { drainActionOutbox } from "./agentcore/action-outbox.js";
+import { runAutoModeSweep } from "./agentcore/auto-mode-sweep.js";
 import { isSingleRecipient, sendAutoReplyViaFloor } from "./agentcore/auto-reply-send.js";
 import { runProactiveActions } from "./agentcore/proactive-actions.js";
 import { isEntitled, planHasFeature } from "./billing/stripe.js";
@@ -528,18 +529,6 @@ export async function ensureAutoReplyNotification(
  * says auto mode only interrupts for PUSH/MEETING, and an auto-handled reply
  * is exactly the thing that shouldn't interrupt.
  */
-/// Auto-mode sweep bounds: only items judged within the lookback are
-/// candidates (older mail deserves a human, not a late robot reply), and each
-/// tick answers at most a handful so a burst can't drain the LLM budget.
-const AUTO_MODE_LOOKBACK_MS = 6 * 60 * 60 * 1000;
-const AUTO_MODE_MAX_PER_TICK = 5;
-/// A candidate whose draft keeps coming back empty is retried at most this
-/// many times (security review 2026-08-16: without a cap, one stuck item
-/// meant a fresh LLM call every 60s tick for the whole 6h lookback).
-/// In-memory by design — a restart resetting the count is harmless.
-const AUTO_MODE_MAX_DRAFT_ATTEMPTS = 3;
-const autoModeDraftAttempts = new Map<string, number>();
-
 export async function ensureAutoModeReplyNotification(
   userId: string,
   gmailId: string,
@@ -1343,121 +1332,77 @@ async function runUserCycle(
           normalizeAttentionMode(config.attentionMode) === "AUTO" &&
           planHasFeature(configUserPlan, "email_auto_reply", configUserRole)
         ) {
-          const candidates = await prisma.attentionItem.findMany({
-            where: {
-              userId: config.userId,
-              source: "EMAIL",
-              status: "OPEN",
-              autoEligible: true,
-              tier: { in: ["QUEUE", "MEETING"] },
-              isManualOverride: false,
-              createdAt: { gte: new Date(Date.now() - AUTO_MODE_LOOKBACK_MS) },
-            },
-            orderBy: { createdAt: "desc" },
-            take: AUTO_MODE_MAX_PER_TICK,
-          });
           const guideline = effectiveAutoReplyGuideline(config.autoReplyGuideline);
-          for (const item of candidates) {
-            try {
-              const email = await prisma.emailMessage.findFirst({
-                where: { id: item.sourceId, userId: config.userId },
-              });
-              if (!email) continue;
-              // Never double-answer one mail: an EmailRule reply or an
-              // earlier mode reply already claimed it.
-              const already = await prisma.notification.findFirst({
+          // Ordering contracts (dedupe-before-LLM, ledger-before-send,
+          // failure-ledger rewrite, draft-retry cap) live in
+          // agentcore/auto-mode-sweep.ts and are pinned by its tests.
+          await runAutoModeSweep(config.userId, guideline, {
+            findCandidates: (userId, since, take) =>
+              prisma.attentionItem.findMany({
                 where: {
-                  userId: config.userId,
-                  dedupeKey: {
-                    in: [`auto-reply:${email.gmailId}`, `auto-mode-reply:${email.gmailId}`],
-                  },
+                  userId,
+                  source: "EMAIL",
+                  status: "OPEN",
+                  autoEligible: true,
+                  tier: { in: ["QUEUE", "MEETING"] },
+                  isManualOverride: false,
+                  createdAt: { gte: since },
+                },
+                orderBy: { createdAt: "desc" },
+                take,
+                select: { id: true, sourceId: true },
+              }),
+            findEmail: (userId, emailRowId) =>
+              prisma.emailMessage.findFirst({
+                where: { id: emailRowId, userId },
+                select: { id: true, gmailId: true, from: true, subject: true, body: true },
+              }),
+            alreadyReplied: async (userId, gmailId) =>
+              (await prisma.notification.findFirst({
+                where: {
+                  userId,
+                  dedupeKey: { in: [`auto-reply:${gmailId}`, `auto-mode-reply:${gmailId}`] },
                 },
                 select: { id: true },
-              });
-              if (already) continue;
-              // Refuse a malformed/crafted From BEFORE any LLM spend or
-              // ledger write — the floor's single-recipient guard would only
-              // reject it after the ledger already claimed "replied".
-              const toMatch = email.from.match(/<([^>]+)>/);
-              const toAddr = (toMatch ? toMatch[1] : email.from).trim();
-              if (!isSingleRecipient(toAddr)) {
-                console.warn(`[AUTOMATION] auto-mode skip: non-single recipient from ${item.id}`);
-                continue;
-              }
-              const attempts = autoModeDraftAttempts.get(item.id) ?? 0;
-              if (attempts >= AUTO_MODE_MAX_DRAFT_ATTEMPTS) continue;
-              const draft = await generateGuidelineReply(
-                { from: email.from, subject: email.subject, body: email.body || "" },
-                config.userId,
-                guideline,
-              );
-              if (!draft) {
-                autoModeDraftAttempts.set(item.id, attempts + 1);
-                continue;
-              }
-              autoModeDraftAttempts.delete(item.id);
-              // Race guard mirroring the rule sweep: the LLM took seconds —
-              // skip if the source row vanished (delete/reconcile).
-              const still = await prisma.emailMessage.findFirst({
-                where: { id: email.id },
+              })) !== null,
+            isSingleRecipient,
+            draftReply: generateGuidelineReply,
+            emailStillExists: async (emailRowId) =>
+              (await prisma.emailMessage.findFirst({
+                where: { id: emailRowId },
                 select: { id: true },
-              });
-              if (!still) continue;
-              // Ledger BEFORE send — opposite of the rule sweep, deliberately.
-              // The unique dedupeKey is the cross-tick concurrency lock: an
-              // unattended DOUBLE-send is worse than a missed one.
-              const ledger = await ensureAutoModeReplyNotification(
-                config.userId,
-                email.gmailId,
-                toAddr,
-              );
-              if (!ledger) continue;
-              try {
-                await sendAutoReplyViaFloor(
-                  config.userId,
-                  toAddr,
-                  `Re: ${email.subject}`,
-                  draft,
-                  email.id,
+              })) !== null,
+            writeLedger: ensureAutoModeReplyNotification,
+            send: (userId, toAddr, subject, body, inReplyToEmailId) =>
+              sendAutoReplyViaFloor(userId, toAddr, subject, body, inReplyToEmailId),
+            markLedgerFailed: async (ledgerId, toAddr, gmailId) => {
+              await prisma.notification
+                .update({
+                  where: { id: ledgerId },
+                  data: {
+                    title: "Auto-mode reply failed",
+                    message: `Auto-mode reply to ${toAddr} failed — the mail is still in your queue [${gmailId}]`,
+                  },
+                })
+                .catch((updateErr) =>
+                  console.warn(`[AUTOMATION] auto-mode failure-ledger update failed`, updateErr),
                 );
-              } catch (sendErr) {
-                // The ledger must not lie: rewrite it as a failure record so
-                // the user is never told a reply went out when it didn't.
-                // No retry (at-most-once holds); the item stays OPEN for the
-                // human lane (security review 2026-08-16, HIGH).
-                await prisma.notification
-                  .update({
-                    where: { id: ledger.id },
-                    data: {
-                      title: "Auto-mode reply failed",
-                      message: `Auto-mode reply to ${toAddr} failed — the mail is still in your queue [${email.gmailId}]`,
-                    },
-                  })
-                  .catch((updateErr) =>
-                    console.warn(
-                      `[AUTOMATION] auto-mode failure-ledger update failed for ${item.id}`,
-                      updateErr,
-                    ),
-                  );
-                throw sendErr;
-              }
-              // Klorn handled it — resolve the item so the queue stays clean.
+            },
+            resolveItem: async (itemId) => {
               await prisma.attentionItem
-                .update({ where: { id: item.id }, data: { status: "RESOLVED" } })
+                .update({ where: { id: itemId }, data: { status: "RESOLVED" } })
                 .catch((err) =>
-                  console.warn(`[AUTOMATION] auto-mode resolve failed for ${item.id}`, err),
+                  console.warn(`[AUTOMATION] auto-mode resolve failed for ${itemId}`, err),
                 );
-            } catch (err) {
-              console.warn(
-                `[AUTOMATION] auto-mode reply failed for item ${item.id} (user ${config.userId})`,
-                err,
-              );
+            },
+            warn: (message) => console.warn(message),
+            reportError: (err, itemId) =>
               captureError(err, {
                 tags: { scope: "automation.auto-mode-reply" },
-                extra: { userId: config.userId, itemId: item.id },
-              });
-            }
-          }
+                extra: { userId: config.userId, itemId },
+              }),
+            now: Date.now,
+          });
         }
 
         // Reconcile DB with Gmail (remove deleted/archived emails).
