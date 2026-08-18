@@ -10,6 +10,7 @@ interface WaitlistEntry {
   email: string;
   name: string | null;
   useCase: string | null;
+  source: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
   approvedAt: string | null;
   createdAt: string;
@@ -215,6 +216,9 @@ function WaitlistPageInner() {
                           <p className="mt-3 max-w-3xl text-sm leading-6 text-ink-mid">
                             {entry.useCase}
                           </p>
+                        )}
+                        {entry.source && (
+                          <p className="mt-1 text-xs text-ink-dim">via {entry.source}</p>
                         )}
                       </div>
                     </div>

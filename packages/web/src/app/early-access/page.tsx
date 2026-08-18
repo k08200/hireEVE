@@ -14,6 +14,7 @@ export default function EarlyAccessPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [useCase, setUseCase] = useState("");
+  const [source, setSource] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export default function EarlyAccessPage() {
           email: cleanEmail,
           name: name.trim() || undefined,
           useCase: useCase.trim() || undefined,
+          source: source.trim() || undefined,
         }),
       });
 
@@ -218,6 +220,18 @@ export default function EarlyAccessPage() {
               This helps us understand which workflow to tune first.
             </p>
           </div>
+
+          <Input
+            id="source"
+            label="How did you hear about Klorn? (optional)"
+            value={source}
+            onChange={(e) => {
+              resetFormError();
+              setSource(e.target.value);
+            }}
+            maxLength={80}
+            placeholder="Hacker News, a friend, a video…"
+          />
 
           {errorMsg && (
             <p
