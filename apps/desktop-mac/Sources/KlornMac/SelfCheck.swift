@@ -304,6 +304,18 @@ func runSelfChecks() async -> Bool {
           && sourceBadgeLabel("EMAIL") == nil && sourceBadgeLabel("PENDING_ACTION") == nil)
     check("full panel is user-resizable",
           TopBarController.styleMask(focusable: true).contains(.resizable))
+    // The AppKit-level clamp is the last line of defense: whatever sets the
+    // frame, the top edge stays reachable and the size fits the screen.
+    let vis = NSRect(x: 0, y: 0, width: 1440, height: 875)
+    check("clamp pulls a top-lodged frame back under the menu bar",
+          KeyablePanel.clamped(NSRect(x: 100, y: 400, width: 800, height: 600), into: vis)
+              == NSRect(x: 100, y: 275, width: 800, height: 600))
+    check("clamp shrinks an oversized frame to the visible area",
+          KeyablePanel.clamped(NSRect(x: 0, y: -100, width: 2000, height: 1200), into: vis)
+              == NSRect(x: 0, y: 0, width: 1440, height: 875))
+    check("clamp leaves a healthy frame untouched",
+          KeyablePanel.clamped(NSRect(x: 100, y: 100, width: 800, height: 600), into: vis)
+              == NSRect(x: 100, y: 100, width: 800, height: 600))
     check("a top-clipped frame counts as lost (unreachable grab area)",
           TopBarController.isFrameLost(
               frame: NSRect(x: 100, y: 500, width: 800, height: 600),

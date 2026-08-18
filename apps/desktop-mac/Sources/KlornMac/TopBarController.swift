@@ -9,6 +9,33 @@ import SwiftUI
 final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    /// HARD clamp, at the AppKit layer: no matter who sets the frame — our
+    /// pin, a background drag, a display swap moving the window across
+    /// screens, or any system placement — the top edge may never rise above
+    /// the visible area and the size may never exceed it. A borderless
+    /// window has no title-bar constraint, so without this the header can
+    /// lodge above the menu bar where nothing can grab it (dogfood
+    /// 2026-08-18, twice — the render-time self-heal only ran on state
+    /// changes and missed frames moved between renders).
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        let base = super.constrainFrameRect(frameRect, to: screen)
+        guard let visible = (screen ?? NSScreen.main)?.visibleFrame else { return base }
+        return KeyablePanel.clamped(base, into: visible)
+    }
+
+    /// Pure for the harness: shrink to fit, then shift fully on-screen
+    /// (top-priority: the grab area at the top must stay reachable).
+    nonisolated static func clamped(_ frame: NSRect, into visible: NSRect) -> NSRect {
+        var f = frame
+        f.size.width = min(f.width, visible.width)
+        f.size.height = min(f.height, visible.height)
+        if f.maxY > visible.maxY { f.origin.y = visible.maxY - f.height }
+        if f.minY < visible.minY { f.origin.y = visible.minY }
+        if f.maxX > visible.maxX { f.origin.x = visible.maxX - f.width }
+        if f.minX < visible.minX { f.origin.x = visible.minX }
+        return f
+    }
 }
 
 /// Owns the always-on top bar: a single non-focus-stealing panel pinned to the
@@ -31,8 +58,21 @@ final class TopBarController {
     /// Persists the full window's user-chosen size after a drag-resize.
     private let resizeRecorder = PanelResizeRecorder()
 
+    private var screenObserver: NSObjectProtocol?
+
     init(model: AppModel) {
         self.model = model
+        // A display change can strand or clip the window between renders —
+        // re-clamp immediately rather than waiting for the next state change.
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.reclampIfLost() }
+        }
+        resizeRecorder.onMoveOrResize = { [weak self] in
+            MainActor.assumeIsolated { self?.reclampIfLost() }
+        }
         resizeRecorder.onLiveResizeEnd = { [weak self] size in
             guard let self else { return }
             switch self.state {
@@ -332,6 +372,17 @@ final class TopBarController {
         state == .full ? TopBarMetrics.fullMin : TopBarMetrics.expandedMin
     }
 
+    /// Re-clamp the live panel when its frame went bad between renders
+    /// (drag lodged it, or a display change moved it). Uses the same clamp
+    /// the panel itself enforces, so this can never fight constrainFrameRect.
+    private func reclampIfLost() {
+        guard let panel, panel.isVisible,
+              let visible = NSScreen.main?.visibleFrame,
+              Self.isFrameLost(frame: panel.frame, visible: visible)
+        else { return }
+        panel.setFrame(KeyablePanel.clamped(panel.frame, into: visible), display: true)
+    }
+
     /// A frame is lost when it is off every screen OR its top edge is above
     /// the visible area (the grab/title region is unreachable — the exact
     /// clipped-after-update failure, dogfood 2026-08-18). Pure for the harness.
@@ -447,9 +498,15 @@ final class TopBarController {
 @MainActor
 final class PanelResizeRecorder: NSObject, NSWindowDelegate {
     var onLiveResizeEnd: ((NSSize) -> Void)?
+    var onMoveOrResize: (() -> Void)?
 
     func windowDidEndLiveResize(_ notification: Notification) {
         guard let window = notification.object as? NSWindow else { return }
         onLiveResizeEnd?(window.frame.size)
+        onMoveOrResize?()
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        onMoveOrResize?()
     }
 }
