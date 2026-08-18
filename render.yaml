@@ -185,8 +185,11 @@ services:
         sync: false
       - key: GMAIL_PUSH_OIDC_EMAIL
         sync: false
+      # Public URL, not a secret — committed so realtime setup is one field
+      # (the OIDC service-account email) away. Must match the Pub/Sub push
+      # subscription's explicit Audience (runbook Mode B).
       - key: GMAIL_PUSH_OIDC_AUDIENCE
-        sync: false
+        value: https://klorn-api.onrender.com/api/gmail/push
       # Free-dyno keepalive ping target (else the dyno sleeps and misses pushes).
       - key: KEEPALIVE_URL
         sync: false

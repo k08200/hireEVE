@@ -19,9 +19,10 @@
 
 import { prisma } from "../db.js";
 import { parseEventText } from "../event-parse.js";
-import { checkConflicts } from "../pim/calendar.js";
+import { checkAttendeeBusy, checkConflicts } from "../pim/calendar.js";
 import { wrapUntrusted } from "../untrusted.js";
 import { getUserTimeZone } from "../user-timezone.js";
+import { extractEmailAddress } from "./email-address.js";
 
 export interface MeetingContextEvent {
   id: string;
@@ -35,6 +36,12 @@ export interface MeetingContext {
   proposed: { title: string; startTime: string; endTime: string } | null;
   conflict: { hasConflicts: boolean; message: string } | null;
   nearby: MeetingContextEvent[];
+  /**
+   * Team mode v1: the counterparty's availability at the proposed slot,
+   * from Google free/busy — present only when their calendar is visible to
+   * this account (same Workspace or shared). Absent ≠ free.
+   */
+  attendeeBusy: Array<{ email: string; busy: boolean }>;
   timeZone: string;
 }
 
@@ -45,6 +52,8 @@ interface MeetingEmailInput {
   keyPoints: string[];
   body: string | null;
   receivedAt: Date;
+  /** Sender header — the counterparty whose availability team mode checks. */
+  from?: string | null;
 }
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -111,7 +120,13 @@ export async function getMeetingContext(
   }
 
   if (!proposed) {
-    const empty: MeetingContext = { proposed: null, conflict: null, nearby: [], timeZone };
+    const empty: MeetingContext = {
+      proposed: null,
+      conflict: null,
+      nearby: [],
+      attendeeBusy: [],
+      timeZone,
+    };
     cacheSet(email.id, empty);
     return empty;
   }
@@ -128,6 +143,24 @@ export async function getMeetingContext(
     }
   } catch (err) {
     console.warn(`[MEETING-CTX] conflict check failed for email ${email.id}:`, err);
+  }
+
+  // Team mode v1: is the SENDER free at their own proposed time? Their
+  // address is header data — used only as a free/busy calendar id, and
+  // wrapped as untrusted wherever it is displayed.
+  let attendeeBusy: MeetingContext["attendeeBusy"] = [];
+  try {
+    const sender = extractEmailAddress(email.from ?? "");
+    if (sender) {
+      attendeeBusy = await checkAttendeeBusy(
+        userId,
+        [sender],
+        proposed.startTime,
+        proposed.endTime,
+      );
+    }
+  } catch (err) {
+    console.warn(`[MEETING-CTX] attendee busy check failed for email ${email.id}:`, err);
   }
 
   let nearby: MeetingContextEvent[] = [];
@@ -155,7 +188,7 @@ export async function getMeetingContext(
     console.warn(`[MEETING-CTX] nearby lookup failed for email ${email.id}:`, err);
   }
 
-  const context: MeetingContext = { proposed, conflict, nearby, timeZone };
+  const context: MeetingContext = { proposed, conflict, nearby, attendeeBusy, timeZone };
   cacheSet(email.id, context);
   return context;
 }
@@ -204,6 +237,14 @@ export function formatCalendarFacts(context: MeetingContext): string | null {
     lines.push(
       "- Conflict check: unavailable (calendar not reachable) — do not claim the slot is free or busy.",
     );
+  }
+  const attendeeBusy = context.attendeeBusy ?? [];
+  if (attendeeBusy.length > 0) {
+    const parts = attendeeBusy.map(
+      (a) =>
+        `${wrapUntrusted(a.email, "calendar:attendee")} is ${a.busy ? "BUSY" : "free"} at that time`,
+    );
+    lines.push(`- Attendee availability (their calendar, verified): ${parts.join("; ")}`);
   }
   if (context.nearby.length > 0) {
     const events = context.nearby

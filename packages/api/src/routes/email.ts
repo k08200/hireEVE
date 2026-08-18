@@ -1137,6 +1137,7 @@ export async function emailRoutes(app: FastifyInstance) {
         keyPoints: parseJsonArray(dbEmail.keyPoints),
         body: dbEmail.body,
         receivedAt: dbEmail.receivedAt,
+        from: dbEmail.from,
       });
       if (context) return context;
       // Non-meeting mail answers with an empty context rather than an error —
