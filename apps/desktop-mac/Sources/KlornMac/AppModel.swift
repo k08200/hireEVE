@@ -341,6 +341,11 @@ final class AppModel {
             if !KeychainStore.save(token) {
                 Log.app.warning("Keychain save denied (unsigned dev build?) — token kept in memory for this session only")
             }
+            // A live socket opened under the PREVIOUS token would 4001-loop
+            // forever (RealtimeClient captures its token once), silently
+            // degrading realtime to the 60s poll. Re-arm it with the fresh
+            // credential; start() tears the old loop down first.
+            realtime?.start(token: token)
             phase = .signedIn
             await loadQueue()
         case .failure(let reason, let detail):

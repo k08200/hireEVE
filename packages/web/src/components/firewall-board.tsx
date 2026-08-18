@@ -149,9 +149,15 @@ export function FirewallBoard() {
     };
     const intervalId = window.setInterval(refresh, FIREWALL_REFRESH_MS);
     window.addEventListener("focus", refresh);
+    // Realtime wake: NotificationBell bridges the WS "conversations-updated"
+    // message to this window event. Every other mail surface listened; the
+    // flagship board alone sat on its 45s poll (realtime audit 2026-08-18).
+    // Same overriding/visibility guards as the poll, via refresh().
+    window.addEventListener("conversations-updated", refresh);
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("conversations-updated", refresh);
     };
   }, [load]);
 

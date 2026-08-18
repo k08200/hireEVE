@@ -15,6 +15,12 @@ interface WsMessage {
   from?: string;
 }
 
+// Heartbeat cadence: ping every 30s; if NOTHING (pong or otherwise) has
+// arrived for 45s, treat the socket as half-open and force a reconnect.
+// Mirrors the desktop RealtimeClient's 30s ping / timeout pair.
+const HEARTBEAT_INTERVAL_MS = 30_000;
+const HEARTBEAT_SILENCE_LIMIT_MS = 45_000;
+
 export function useWebSocket(userId: string) {
   const [connected, setConnected] = useState(false);
   const [clientId, setClientId] = useState<string | null>(null);
@@ -34,6 +40,8 @@ export function useWebSocket(userId: string) {
   const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const mountedRef = useRef(true);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastActivityRef = useRef(Date.now());
 
   const connect = useCallback(() => {
     if (!userId) return;
@@ -56,10 +64,29 @@ export function useWebSocket(userId: string) {
       }
       setConnected(true);
       reconnectAttemptsRef.current = 0;
+      // Half-open detection (ported from the desktop RealtimeClient, which
+      // fixed the 2026-08-06 "web ~1s, desktop stale" miss in the other
+      // direction): a socket that sleeps through macOS suspend or a NAT
+      // rebind still LOOKS open but receives nothing, silently downgrading
+      // every surface to its fallback poll. Ping on an interval; if nothing
+      // at all has arrived for ~1.5 intervals, force-close so the normal
+      // backoff reconnect takes over. Any inbound frame counts as life —
+      // the server answers "ping" with "pong" (websocket.ts handleMessage).
+      lastActivityRef.current = Date.now();
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      heartbeatRef.current = setInterval(() => {
+        if (ws.readyState !== WebSocket.OPEN) return;
+        if (Date.now() - lastActivityRef.current > HEARTBEAT_SILENCE_LIMIT_MS) {
+          ws.close(); // half-open: let onclose schedule the reconnect
+          return;
+        }
+        ws.send(JSON.stringify({ type: "ping", payload: {} }));
+      }, HEARTBEAT_INTERVAL_MS);
     };
 
     ws.onmessage = (event) => {
       if (!mountedRef.current) return;
+      lastActivityRef.current = Date.now();
       try {
         const msg: WsMessage = JSON.parse(event.data);
 
@@ -100,6 +127,10 @@ export function useWebSocket(userId: string) {
     };
 
     ws.onclose = () => {
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
       if (!mountedRef.current) return;
       setConnected(false);
       // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (cap). Jitter avoids a

@@ -19,6 +19,18 @@ service account, i.e. it signs OIDC tokens. For that subscription the shared
 secret can never match (Pub/Sub sends a Google-signed JWT, not your string) —
 Mode B is the one to configure.
 
+**Client-side audit 2026-08-18 (#1131):** the wake chain is now code-complete
+on every surface — firewall board listens to `conversations-updated` (was the
+one surface on a 45s poll), web WS has half-open heartbeat detection (ported
+from the desktop client), on-read activity sync wakes other open clients, and
+the desktop socket re-arms on token rotation instead of 4001-looping. The ONLY
+remaining step for "mail in ~1s" on the mail list is this section's env setup
+(`GMAIL_PUSH_OIDC_EMAIL` + `GMAIL_PUSH_OIDC_AUDIENCE`, Mode B). Two honest
+caveats: the firewall/desktop QUEUE floor is judge LLM latency plus a ≤2s
+wake coalesce — a few seconds, not one; and on the free dyno, sleep drops both
+Pub/Sub deliveries and every WebSocket regardless (`KEEPALIVE_URL` or a paid
+tier is load-bearing).
+
 ### Mode A — shared secret (fastest)
 
 1. Generate a secret: `openssl rand -hex 32`.
