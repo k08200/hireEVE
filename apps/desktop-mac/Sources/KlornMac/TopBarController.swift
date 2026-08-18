@@ -208,7 +208,8 @@ final class TopBarController {
         // (pill↔expanded↔full morph), a fresh panel, or a window that is no
         // longer on ANY screen (display unplugged/resized) may reposition —
         // a partially off-screen frame is respected as a deliberate drag.
-        let frameLost = !(NSScreen.main?.visibleFrame.intersects(panel.frame) ?? true)
+        let frameLost = Self.isFrameLost(
+            frame: panel.frame, visible: NSScreen.main?.visibleFrame)
         if Self.shouldSetFrame(
             renderedState: renderedState, state: state,
             panelVisible: panel.isVisible, frameLost: frameLost)
@@ -331,6 +332,15 @@ final class TopBarController {
         state == .full ? TopBarMetrics.fullMin : TopBarMetrics.expandedMin
     }
 
+    /// A frame is lost when it is off every screen OR its top edge is above
+    /// the visible area (the grab/title region is unreachable — the exact
+    /// clipped-after-update failure, dogfood 2026-08-18). Pure for the harness.
+    nonisolated static func isFrameLost(frame: NSRect, visible: NSRect?) -> Bool {
+        guard let visible else { return false }
+        if !visible.intersects(frame) { return true }
+        return frame.maxY > visible.maxY + 2
+    }
+
     /// Pure for the harness: when may render() move/resize the panel? Only a
     /// state morph, a not-yet-shown panel, or a frame stranded off every
     /// screen — never a same-state re-render (that was the snap-back bug).
@@ -377,6 +387,11 @@ final class TopBarController {
         panel.isFloatingPanel = Self.isUtilityWindow(focusable: focusable)
         panel.level = Self.isUtilityWindow(focusable: focusable) ? .floating : .normal
         panel.hidesOnDeactivate = false
+        // Managed windows are state-restorable by default; restoration fought
+        // our own pinning after the 2026-08-18 window-class change and
+        // reopened the window top-clipped above the menu bar. Our persisted
+        // sizes are the only restoration we want.
+        panel.isRestorable = false
         panel.becomesKeyOnlyIfNeeded = !focusable
         panel.collectionBehavior = Self.isUtilityWindow(focusable: focusable)
             ? [.canJoinAllSpaces, .fullScreenAuxiliary]

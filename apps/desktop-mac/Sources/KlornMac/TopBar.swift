@@ -1441,7 +1441,11 @@ private struct FullSidebar: View {
                     .padding(.bottom, 8)
                 }
             }
-            .frame(height: hasToday ? model.settings.todaySectionHeight : 0)
+            // A CAP, not a fixed height: short content collapses to its own
+            // size (no dead gap — dogfood 2026-08-18); the handle sets how
+            // much TODAY may take before UPCOMING starts.
+            .frame(maxHeight: hasToday ? model.settings.todaySectionHeight : 0)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .topLeading)
             if hasToday {
                 SectionResizeHandle(

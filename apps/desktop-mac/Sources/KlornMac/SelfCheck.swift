@@ -304,6 +304,16 @@ func runSelfChecks() async -> Bool {
           && sourceBadgeLabel("EMAIL") == nil && sourceBadgeLabel("PENDING_ACTION") == nil)
     check("full panel is user-resizable",
           TopBarController.styleMask(focusable: true).contains(.resizable))
+    check("a top-clipped frame counts as lost (unreachable grab area)",
+          TopBarController.isFrameLost(
+              frame: NSRect(x: 100, y: 500, width: 800, height: 600),
+              visible: NSRect(x: 0, y: 0, width: 1440, height: 875))
+          && !TopBarController.isFrameLost(
+              frame: NSRect(x: 100, y: 100, width: 800, height: 600),
+              visible: NSRect(x: 0, y: 0, width: 1440, height: 875))
+          && TopBarController.isFrameLost(
+              frame: NSRect(x: 5_000, y: 100, width: 800, height: 600),
+              visible: NSRect(x: 0, y: 0, width: 1440, height: 875)))
     check("same-state re-render never reframes (snap-back fix)",
           !TopBarController.shouldSetFrame(
               renderedState: .full, state: .full, panelVisible: true, frameLost: false))
