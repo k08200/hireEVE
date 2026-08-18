@@ -764,6 +764,26 @@ func runSelfChecks() async -> Bool {
         check("search response decodes", false)
     }
 
+    print("Tier v2 lanes:")
+    check("v2 lanes hide at zero, v1 four always show",
+          Tier.visibleOrder(counts: { _ in 0 }) == [.push, .queue, .silent, .auto])
+    check("a nonzero v2 lane joins in display position",
+          Tier.visibleOrder(counts: { $0 == .meeting ? 2 : 0 })
+              == [.push, .meeting, .queue, .silent, .auto])
+    check("guide teaches the v1 four until the flip", Tier.coreOrder.count == 4
+          && !Tier.coreOrder.contains(.meeting) && !Tier.coreOrder.contains(.info))
+    // A v1 server's summary (no MEETING/INFO keys) must still decode.
+    let v1Summary = """
+    {"SILENT":1,"QUEUE":2,"PUSH":3,"AUTO":4,"total":10}
+    """
+    if let sum = try? JSONDecoder().decode(FirewallSummary.self, from: Data(v1Summary.utf8)) {
+        check("v1 summary decodes; absent v2 lanes count zero",
+              sum.count(for: .meeting) == 0 && sum.count(for: .info) == 0
+              && sum.count(for: .push) == 3)
+    } else {
+        check("v1 summary decodes", false)
+    }
+
     print("IMAP mailboxes:")
     // GET /api/naver-imap/status wire (routes/imap-connect.ts).
     let imapJSON = """

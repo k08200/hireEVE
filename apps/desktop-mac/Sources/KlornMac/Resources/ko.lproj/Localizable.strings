@@ -269,6 +269,10 @@
 "mail.needsReconnect" = "%@ — 다시 연결 필요";
 
 /* Tier meanings — the product's core idea, previously unexplained in-app */
+"tier.meeting.blurb" = "일정 — 초대와 변경 요청을 캘린더와 대조합니다. 한 키로 수락하거나 거절하세요.";
+"tier.meeting.empty" = "대기 중인 미팅 없음";
+"tier.info.blurb" = "기록 — 영수증, 확인, 알림. 정리해 두고 검색할 수 있으며, 답장이 필요한 건 없습니다.";
+"tier.info.empty" = "새 기록 없음";
 "tier.push.blurb" = "지금 방해합니다. 상대가 답을 기다리고 있거나 시간이 걸린 일입니다.";
 "tier.queue.blurb" = "기다립니다. 오늘 읽을 만하지만 배너를 띄울 정도는 아닙니다.";
 "tier.silent.blurb" = "지운 게 아니라 넣어둔 겁니다. 뉴스레터·영수증 — 찾아보면 그대로 있습니다.";

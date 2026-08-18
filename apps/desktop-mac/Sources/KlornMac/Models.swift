@@ -7,7 +7,9 @@ import Foundation
 /// must never crash or blank an older client (never a decode throw).
 enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     case push = "PUSH"
+    case meeting = "MEETING"
     case queue = "QUEUE"
+    case info = "INFO"
     case silent = "SILENT"
     case auto = "AUTO"
 
@@ -19,12 +21,29 @@ enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     var id: String { rawValue }
 
     /// Display order: loudest first (what interrupts you), quietest last.
-    static let displayOrder: [Tier] = [.push, .queue, .silent, .auto]
+    /// Callers that render one row per tier hide the v2 lanes (meeting/info)
+    /// while their counts are zero — see `visibleOrder(counts:)` — so a
+    /// flag-off server renders the same four rows as before.
+    static let displayOrder: [Tier] = [.push, .meeting, .queue, .info, .silent, .auto]
+
+    /// The v1 four — the tier guide teaches these until the v2 flip.
+    static let coreOrder: [Tier] = [.push, .queue, .silent, .auto]
+
+    /// Whether this tier existed before ontology v2. Pure for the harness.
+    var isV2Lane: Bool { self == .meeting || self == .info }
+
+    /// Rows worth drawing: every v1 tier always, a v2 lane only when it has
+    /// items (a lane the server never fills is noise, not information).
+    static func visibleOrder(counts: (Tier) -> Int) -> [Tier] {
+        displayOrder.filter { !$0.isV2Lane || counts($0) > 0 }
+    }
 
     var label: String {
         switch self {
         case .push: "Push"
+        case .meeting: "Meeting"
         case .queue: "Queue"
+        case .info: "Info"
         case .silent: "Silent"
         case .auto: "Auto"
         }
@@ -57,12 +76,15 @@ struct FirewallItem: Codable, Sendable, Identifiable, Hashable {
     let hashStale: Bool?
 }
 
-/// Per-tier open counts (the daily receipt header).
+/// Per-tier open counts (the daily receipt header). The v2 lanes decode as
+/// optional so a v1 server (no MEETING/INFO keys) still parses; absent = 0.
 struct FirewallSummary: Codable, Sendable, Hashable {
     let silent: Int
     let queue: Int
     let push: Int
     let auto: Int
+    let meeting: Int?
+    let info: Int?
     let total: Int
 
     enum CodingKeys: String, CodingKey {
@@ -70,13 +92,17 @@ struct FirewallSummary: Codable, Sendable, Hashable {
         case queue = "QUEUE"
         case push = "PUSH"
         case auto = "AUTO"
+        case meeting = "MEETING"
+        case info = "INFO"
         case total
     }
 
     func count(for tier: Tier) -> Int {
         switch tier {
         case .push: push
+        case .meeting: meeting ?? 0
         case .queue: queue
+        case .info: info ?? 0
         case .silent: silent
         case .auto: auto
         }
@@ -125,6 +151,8 @@ struct FirewallResponse: Codable, Sendable {
             queue: shifted(.queue, self.summary.queue),
             push: shifted(.push, self.summary.push),
             auto: shifted(.auto, self.summary.auto),
+            meeting: shifted(.meeting, self.summary.meeting ?? 0),
+            info: shifted(.info, self.summary.info ?? 0),
             total: self.summary.total)
         return FirewallResponse(tiers: newTiers, summary: summary)
     }
@@ -144,12 +172,19 @@ struct FirewallResponse: Codable, Sendable {
                 newTiers[tier.rawValue] = kept
             }
         }
+        // Broken into locals: the compiler timed out type-checking the single
+        // six-argument max() expression after the v2 fields joined.
+        let removedTotal = removed.values.reduce(0, +)
+        let newSilent = max(0, self.summary.silent - (removed[.silent] ?? 0))
+        let newQueue = max(0, self.summary.queue - (removed[.queue] ?? 0))
+        let newPush = max(0, self.summary.push - (removed[.push] ?? 0))
+        let newAuto = max(0, self.summary.auto - (removed[.auto] ?? 0))
+        let newMeeting = max(0, (self.summary.meeting ?? 0) - (removed[.meeting] ?? 0))
+        let newInfo = max(0, (self.summary.info ?? 0) - (removed[.info] ?? 0))
         let summary = FirewallSummary(
-            silent: max(0, self.summary.silent - (removed[.silent] ?? 0)),
-            queue: max(0, self.summary.queue - (removed[.queue] ?? 0)),
-            push: max(0, self.summary.push - (removed[.push] ?? 0)),
-            auto: max(0, self.summary.auto - (removed[.auto] ?? 0)),
-            total: max(0, self.summary.total - removed.values.reduce(0, +)))
+            silent: newSilent, queue: newQueue, push: newPush, auto: newAuto,
+            meeting: newMeeting, info: newInfo,
+            total: max(0, self.summary.total - removedTotal))
         return FirewallResponse(tiers: newTiers, summary: summary)
     }
 }

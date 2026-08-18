@@ -270,6 +270,10 @@
 "mail.needsReconnect" = "%@ — needs reconnect";
 
 /* Tier meanings — the product's core idea, previously unexplained in-app */
+"tier.meeting.blurb" = "Scheduling — invites and reschedules, checked against your calendar. Accept or decline in one key.";
+"tier.meeting.empty" = "No meetings waiting on you";
+"tier.info.blurb" = "Records — receipts, confirmations, alerts. Filed and searchable; nothing here needs a reply.";
+"tier.info.empty" = "No new records";
 "tier.push.blurb" = "Interrupts you. Someone is waiting on a reply, or it's time-critical.";
 "tier.queue.blurb" = "Waits for you. Worth reading today, but not worth a banner.";
 "tier.silent.blurb" = "Filed, not deleted. Newsletters and receipts — still here when you look.";

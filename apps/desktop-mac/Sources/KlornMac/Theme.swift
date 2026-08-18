@@ -69,7 +69,11 @@ enum Theme {
     static func tint(_ tier: Tier) -> Color {
         switch tier {
         case .push: Color(red: 1.0, green: 0.30, blue: 0.34)
+        // v2 lanes: meeting sits near push in urgency (teal keeps it distinct
+        // from every v1 hue); info is records-gray, quieter than queue.
+        case .meeting: Color(red: 0.05, green: 0.60, blue: 0.55)
         case .queue: Color(red: 0.851, green: 0.467, blue: 0.024)
+        case .info: Color(red: 0.42, green: 0.47, blue: 0.55)
         case .silent: Color(red: 0.49, green: 0.53, blue: 0.59)
         case .auto: Color(red: 0.231, green: 0.510, blue: 0.965)
         }

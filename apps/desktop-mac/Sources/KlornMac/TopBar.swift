@@ -829,7 +829,7 @@ private struct InboxColumn: View {
                 Spacer()
                 InboxSelectorMenu()
             }
-            ForEach(Tier.displayOrder) { tier in
+            ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
                 InboxTierRow(tier: tier, count: model.queue?.summary.count(for: tier) ?? 0) {
                     actions.onOpenTier(tier)
                 }
@@ -1307,7 +1307,7 @@ private struct FullSidebar: View {
                 InboxSelectorMenu()
             }
             .padding(.horizontal, 20).padding(.bottom, 6)
-            ForEach(Tier.displayOrder) { tier in
+            ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
                 Button { selected = .tier(tier) } label: {
                     HStack(spacing: 10) {
                         Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)

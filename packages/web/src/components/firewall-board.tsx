@@ -15,7 +15,7 @@ export type { FirewallItem, FirewallResponse, Tier } from "@klorn/contract";
 
 import type { DailyReceipt, FirewallItem, FirewallResponse, Tier } from "@klorn/contract";
 
-type ColumnTier = "PUSH" | "QUEUE" | "SILENT";
+type ColumnTier = "PUSH" | "MEETING" | "QUEUE" | "SILENT";
 
 // How often the firewall view re-pulls while the tab is focused.
 export const FIREWALL_REFRESH_MS = 45_000;
@@ -103,6 +103,10 @@ const TARGET_BUTTON: Record<Tier, string> = {
 };
 
 const OVERRIDE_TARGETS: Tier[] = ["SILENT", "QUEUE", "PUSH"];
+/// v2-mode targets: MEETING/INFO become movable once the server actually
+/// emits those lanes; showing them to a v1 board would offer moves the
+/// server rejects (OVERRIDABLE_TIERS).
+const OVERRIDE_TARGETS_V2: Tier[] = ["SILENT", "INFO", "QUEUE", "MEETING", "PUSH"];
 
 export function FirewallBoard() {
   const { toast } = useToast();
@@ -188,6 +192,7 @@ export function FirewallBoard() {
     if (!data) return null;
     return {
       PUSH: data.tiers.PUSH,
+      MEETING: data.tiers.MEETING ?? [],
       QUEUE: data.tiers.QUEUE,
       SILENT: data.tiers.SILENT,
     } as Record<ColumnTier, FirewallItem[]>;
@@ -227,18 +232,32 @@ export function FirewallBoard() {
 
         <DailyReceiptStrip data={data} receipt={receipt} />
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {(["PUSH", "QUEUE", "SILENT"] as const).map((tier) => (
+        {/* Ontology v2: MEETING becomes a real column only when the server
+            emits it (TIER_V2_ENABLED) — a flag-off board is pixel-identical.
+            INFO is a records lane, so it gets the strip treatment like AUTO. */}
+        <div
+          className={`mt-8 grid gap-4 ${
+            (data.summary.MEETING ?? 0) > 0 ? "md:grid-cols-4" : "md:grid-cols-3"
+          }`}
+        >
+          {((data.summary.MEETING ?? 0) > 0
+            ? (["PUSH", "MEETING", "QUEUE", "SILENT"] as const)
+            : (["PUSH", "QUEUE", "SILENT"] as const)
+          ).map((tier) => (
             <TierColumn
               key={tier}
               tier={tier}
               items={visibleColumns?.[tier] ?? []}
               overrideId={overriding}
               onOverride={override}
+              v2={(data.summary.MEETING ?? 0) > 0 || (data.summary.INFO ?? 0) > 0}
             />
           ))}
         </div>
 
+        {(data.summary.INFO ?? 0) > 0 && (
+          <InfoStrip count={data.summary.INFO} items={data.tiers.INFO} />
+        )}
         <AutoStrip count={data.summary.AUTO} items={data.tiers.AUTO} />
       </div>
     </div>
@@ -409,11 +428,13 @@ function TierColumn({
   items,
   overrideId,
   onOverride,
+  v2,
 }: {
   tier: ColumnTier;
   items: FirewallItem[];
   overrideId: string | null;
   onOverride: (item: FirewallItem, newTier: Tier) => void;
+  v2: boolean;
 }) {
   const v = TIER_VISUAL[tier];
   return (
@@ -441,6 +462,7 @@ function TierColumn({
               index={i}
               overrideId={overrideId}
               onOverride={onOverride}
+              v2={v2}
             />
           ))}
         </ul>
@@ -455,12 +477,14 @@ function FirewallCard({
   index,
   overrideId,
   onOverride,
+  v2,
 }: {
   item: FirewallItem;
   tier: ColumnTier;
   index: number;
   overrideId: string | null;
   onOverride: (item: FirewallItem, newTier: Tier) => void;
+  v2: boolean;
 }) {
   const v = TIER_VISUAL[tier];
   // Best-effort meaningful heading: actual email subject beats the
@@ -527,17 +551,19 @@ function FirewallCard({
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        {OVERRIDE_TARGETS.filter((t) => t !== tier).map((target) => (
-          <button
-            key={target}
-            type="button"
-            disabled={anyOverriding}
-            onClick={() => onOverride(item, target)}
-            className={`ease-strong inline-flex min-h-7 items-center rounded-full border border-line bg-surface-panel/70 px-2.5 text-[10px] font-medium uppercase tracking-wider text-ink-mid transition duration-150 hover:bg-surface-panel active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${TARGET_BUTTON[target]}`}
-          >
-            Move → {target}
-          </button>
-        ))}
+        {(v2 ? OVERRIDE_TARGETS_V2 : OVERRIDE_TARGETS)
+          .filter((t) => t !== tier)
+          .map((target) => (
+            <button
+              key={target}
+              type="button"
+              disabled={anyOverriding}
+              onClick={() => onOverride(item, target)}
+              className={`ease-strong inline-flex min-h-7 items-center rounded-full border border-line bg-surface-panel/70 px-2.5 text-[10px] font-medium uppercase tracking-wider text-ink-mid transition duration-150 hover:bg-surface-panel active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40 ${TARGET_BUTTON[target]}`}
+            >
+              Move → {target}
+            </button>
+          ))}
         {item.href && (
           <Link
             href={item.href}
@@ -596,6 +622,32 @@ function toolBodyPreview(item: FirewallItem): string | undefined {
     return parts.length ? parts.join("\n") : undefined;
   }
   return undefined;
+}
+
+/** Records lane (ontology v2): filed transactional mail — visible, never a
+ * column (nothing here ever needs a reply), same strip idiom as AUTO. */
+function InfoStrip({ count, items }: { count: number; items: FirewallItem[] }) {
+  const v = TIER_VISUAL.INFO;
+  return (
+    <section className={`glass mt-4 rounded-2xl border p-4 ${v.plane}`}>
+      <header className="flex items-center gap-2">
+        <TierGlyph tier="INFO" className={v.dot} />
+        <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-dim">
+          INFO
+        </h2>
+        <CountChip value={count} className={`ml-auto text-sm font-semibold ${v.accent}`} />
+      </header>
+      <p className="mt-1.5 text-[11px] leading-5 text-ink-dim">{v.description}</p>
+      <ul className="mt-3 space-y-1.5 text-xs text-ink-mid">
+        {items.slice(0, 5).map((item) => (
+          <li key={item.id} className="flex items-center gap-2 line-clamp-1">
+            <span className="text-ink-dim/60">·</span>
+            <span className="truncate">{item.title}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 function AutoStrip({ count, items }: { count: number; items: FirewallItem[] }) {
