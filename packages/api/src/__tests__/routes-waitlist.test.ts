@@ -221,6 +221,53 @@ describe("POST /api/waitlist — source attribution", () => {
     expect(waitlistByEmail.get("verbose@example.com")?.source).toHaveLength(80);
   });
 
+  it("never splits a surrogate pair at the truncation boundary", async () => {
+    const app = await buildApp();
+    // 79 ASCII chars + one emoji (2 UTF-16 code units): a code-unit slice(0, 80)
+    // would cut the pair in half and store a lone surrogate — invalid UTF-8 at
+    // the Postgres boundary, failing the exact signup we promised never to lose.
+    const source = `${"x".repeat(79)}😀`;
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "emoji@example.com", source },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const stored = waitlistByEmail.get("emoji@example.com")?.source ?? "";
+    expect(stored).toBe(source); // 80 code points — kept whole
+    expect(stored.endsWith("😀")).toBe(true); // .at(-1) would return a half-pair by design
+    // No lone surrogates anywhere in what we store.
+    expect(stored.isWellFormed()).toBe(true);
+  });
+
+  it("accepts a source far beyond any schema cap and still just truncates", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "essay@example.com", source: "y".repeat(5000) },
+    });
+
+    // The signup must survive ANY answer length — schema-level rejection of a
+    // long source would contradict the truncate-not-reject contract.
+    expect(res.statusCode).toBe(200);
+    expect(waitlistByEmail.get("essay@example.com")?.source).toHaveLength(80);
+  });
+
+  it("forwards the source to the admin alert", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "attributed@example.com", source: "selfh.st newsletter" },
+    });
+
+    expect(sendWaitlistAdminAlertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ source: "selfh.st newsletter" }),
+    );
+  });
+
   it("treats a blank source as absent", async () => {
     const app = await buildApp();
     await app.inject({

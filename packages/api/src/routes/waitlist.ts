@@ -11,11 +11,11 @@ const waitlistBodySchema = {
     name: { type: "string", minLength: 1, maxLength: 120 },
     useCase: { type: "string", minLength: 1, maxLength: 500 },
     // "How did you hear about us?" — free text, deliberately not an enum so a
-    // channel we never thought of still gets recorded verbatim. Over-long
-    // answers are truncated, not rejected: a chatty reply must not cost us
-    // the signup. See the schema comment on Waitlist.source for why this is
-    // the only attribution we can still collect.
-    source: { type: "string", minLength: 1, maxLength: 400 },
+    // channel we never thought of still gets recorded verbatim. No maxLength
+    // here on purpose: an AJV cap would 400-reject the whole signup before our
+    // truncation ever ran, and a chatty reply must not cost us the signup.
+    // Fastify's body limit bounds the payload; storage is capped at SOURCE_MAX.
+    source: { type: "string", minLength: 1 },
   },
 } as const;
 
@@ -34,7 +34,12 @@ function trimOrUndefined(value: unknown, max: number): string | undefined {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
-  return trimmed.length > max ? trimmed.slice(0, max) : trimmed;
+  if (trimmed.length <= max) return trimmed;
+  // Truncate by code points, not UTF-16 units: a naive slice can split a
+  // surrogate pair (e.g. an emoji on the boundary) and the resulting lone
+  // surrogate is invalid UTF-8 at the Postgres layer — failing the exact
+  // signup the truncation exists to protect.
+  return Array.from(trimmed).slice(0, max).join("");
 }
 
 export function waitlistRoutes(app: FastifyInstance) {
@@ -84,7 +89,7 @@ export function waitlistRoutes(app: FastifyInstance) {
               // First touch wins. A resubmission that omits the question —
               // or answers it from a different device — must not overwrite
               // the channel that actually brought this person in.
-              source: existing.source ? undefined : (source ?? undefined),
+              source: existing.source ? undefined : source,
             },
             select: { id: true, email: true, name: true, useCase: true, source: true },
           })
