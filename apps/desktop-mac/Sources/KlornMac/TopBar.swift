@@ -318,6 +318,12 @@ struct CollapsedBar: View {
             case .signedOut:
                 Button(L("auth.logIn"), action: actions.onSignIn)
                     .buttonStyle(PrimaryButtonStyle())
+                if model.loginProviders.contains("apple") {
+                    Button(L("auth.signInApple")) {
+                        Task { await model.signIn(provider: "apple") }
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
 
             Button(action: actions.onHideBar) {
@@ -1008,6 +1014,11 @@ private struct AccountColumn: View {
                 }
             } else {
                 SubtleTextButton(title: L("auth.signInGoogle"), dim: false) { actions.onSignIn() }
+                if model.loginProviders.contains("apple") {
+                    SubtleTextButton(title: L("auth.signInApple"), dim: false) {
+                        Task { await model.signIn(provider: "apple") }
+                    }
+                }
             }
             if model.phase == .signedIn, let usage = model.usage {
                 VStack(alignment: .leading, spacing: 5) {
@@ -1190,6 +1201,27 @@ private struct OffscreenFriendlyScroll<Content: View>: View {
     }
 }
 
+/// Reports a view's laid-out height so a capped section's drag can clamp to
+/// real content (a cap beyond content is a dead zone the cursor rubber-bands
+/// through).
+private struct SectionHeightKey: PreferenceKey {
+    nonisolated(unsafe) static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private extension View {
+    func measureSectionHeight(_ into: @escaping (CGFloat) -> Void) -> some View {
+        background(
+            GeometryReader { geo in
+                Color.clear.preference(key: SectionHeightKey.self, value: geo.size.height)
+            }
+        )
+        .onPreferenceChange(SectionHeightKey.self) { into($0) }
+    }
+}
+
 private struct SectionResizeHandle: View {
     @Binding var height: Double
     /// True when the resizable section sits ABOVE this handle (dragging the
@@ -1198,6 +1230,8 @@ private struct SectionResizeHandle: View {
     /// up=grow default; the today handle reused it unflipped, which is why
     /// it felt dead in the wrong direction (dogfood 2026-08-19).
     var growsDown = false
+
+    @State private var hovering = false
 
     var body: some View {
         ZStack {
@@ -1208,10 +1242,22 @@ private struct SectionResizeHandle: View {
             // mouseDownCanMoveWindow=false is the only reliable refusal.
             ResizeDragSurface(
                 startHeight: { height }, apply: { height = $0 }, growsDown: growsDown)
-            Capsule().fill(Theme.line).frame(width: 36, height: 3)
+            // macOS-divider look: a hairline across the column with a centred
+            // grabber that answers hover — visibly a control, not lint.
+            VStack(spacing: 0) {
+                Rectangle().fill(Theme.line.opacity(hovering ? 0 : 0.6))
+                    .frame(height: 1)
+            }
+            .allowsHitTesting(false)
+            Capsule()
+                .fill(hovering ? Theme.accent.opacity(0.85) : Theme.line)
+                .frame(width: hovering ? 44 : 28, height: hovering ? 5 : 4)
+                .animation(.easeOut(duration: 0.12), value: hovering)
                 .allowsHitTesting(false)
         }
-        .frame(height: 12)
+        .frame(height: 14)
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
         .accessibilityElement()
         .accessibilityLabel(L("sidebar.resize.a11y"))
         .accessibilityValue(Text("\(Int(height))"))
@@ -1281,6 +1327,11 @@ private struct FullSidebar: View {
     /// account section is daily-use identity actions; update/restart/health
     /// are occasional and were crowding the sidebar (founder, 2026-08-14).
     @State private var showMaintenance = false
+    /// Real laid-out content heights — caps clamp to these so a drag never
+    /// wanders into a dead zone past the content (dogfood 2026-08-19).
+    @State private var navContentHeight: CGFloat = 0
+    @State private var todayContentHeight: CGFloat = 0
+    @State private var upcomingContentHeight: CGFloat = 0
 
     /// Compact event row for the 220pt sidebar: NOW badge or start time,
     /// title, and a click-through to the meeting link when present.
@@ -1432,9 +1483,10 @@ private struct FullSidebar: View {
             }
             .frame(maxHeight: model.settings.inboxSectionHeight)
             .fixedSize(horizontal: false, vertical: true)
+            .measureSectionHeight { navContentHeight = $0 }
             SectionResizeHandle(
                 height: Binding(
-                    get: { model.settings.inboxSectionHeight },
+                    get: { min(model.settings.inboxSectionHeight, max(Double(navContentHeight), 180)) },
                     set: { model.settings.inboxSectionHeight = AppSettings.resolveInboxSectionHeight($0) }
                 ),
                 growsDown: true)
@@ -1490,10 +1542,11 @@ private struct FullSidebar: View {
             .frame(maxHeight: hasToday ? model.settings.todaySectionHeight : 0)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .topLeading)
+            .measureSectionHeight { todayContentHeight = $0 }
             if hasToday {
                 SectionResizeHandle(
                     height: Binding(
-                        get: { model.settings.todaySectionHeight },
+                        get: { min(model.settings.todaySectionHeight, max(Double(todayContentHeight), 120)) },
                         set: { model.settings.todaySectionHeight = AppSettings.resolveTodaySectionHeight($0) }
                     ),
                     growsDown: true)
@@ -1504,9 +1557,10 @@ private struct FullSidebar: View {
             .frame(maxHeight: model.settings.upcomingSectionHeight)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .topLeading)
+            .measureSectionHeight { upcomingContentHeight = $0 }
             SectionResizeHandle(
                 height: Binding(
-                    get: { model.settings.upcomingSectionHeight },
+                    get: { min(model.settings.upcomingSectionHeight, max(Double(upcomingContentHeight), 100)) },
                     set: { model.settings.upcomingSectionHeight = AppSettings.resolveUpcomingSectionHeight($0) }
                 ),
                 growsDown: true)

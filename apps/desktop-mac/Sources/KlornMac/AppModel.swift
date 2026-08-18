@@ -104,6 +104,19 @@ final class AppModel {
     /// every mail-list fetch is scoped by `selectedInbox` (doctrine: never
     /// assume the primary account).
     private(set) var inboxes: [InboxOption] = []
+    /// Server-enabled login providers (GET /api/auth/providers, unauthed).
+    /// Defaults to ["google"] so the UI works before/without the fetch.
+    private(set) var loginProviders: [String] = ["google"]
+
+    func refreshLoginProviders() async {
+        struct Row: Codable { let id: String }
+        struct Providers: Codable { let providers: [Row] }
+        if let resp = try? await api.get("/api/auth/providers", authed: false, as: Providers.self),
+           !resp.providers.isEmpty
+        {
+            loginProviders = resp.providers.map(\.id)
+        }
+    }
     /// Naver IMAP mailboxes, fetched from the ungated status endpoint so the
     /// account list is complete even while the provider selector flag is off.
     private(set) var imapAccounts: [ImapAccount] = []
@@ -306,6 +319,9 @@ final class AppModel {
     /// `loadQueue()` -> `ensureActive()` establishes the silent PUSH baseline and
     /// starts polling; idempotent, so calling it once on launch is enough.
     func start() {
+        // Which sign-in buttons to offer — server-driven, fetched once at
+        // launch (unauthed; harmless if it fails: Google stays the default).
+        Task { await refreshLoginProviders() }
         guard phase == .signedIn else { return }
         Task { await loadQueue() }
     }
@@ -320,20 +336,20 @@ final class AppModel {
     /// polling a nonce the server has already burned, fails a few seconds
     /// later, and stomps the SECOND attempt's state back to signed-out — the
     /// bar flickering between "Log in" and "Signing in…" (dogfood 2026-08-10).
-    func signIn() async {
+    func signIn(provider: String = "google") async {
         signInTask?.cancel()
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.runSignIn()
+            await self.runSignIn(provider: provider)
         }
         signInTask = task
         await task.value
     }
 
-    private func runSignIn() async {
+    private func runSignIn(provider: String = "google") async {
         phase = .signingIn
         signInError = nil
-        let result = await GoogleSignIn.run(api: api)
+        let result = await GoogleSignIn.run(api: api, provider: provider)
         // A superseded attempt owns none of this state any more.
         guard !Task.isCancelled else { return }
         switch result {

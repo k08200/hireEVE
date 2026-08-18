@@ -249,7 +249,7 @@ final class TopBarController {
         // longer on ANY screen (display unplugged/resized) may reposition —
         // a partially off-screen frame is respected as a deliberate drag.
         let frameLost = Self.isFrameLost(
-            frame: panel.frame, visible: NSScreen.main?.visibleFrame)
+            frame: panel.frame, visible: (panel.screen ?? NSScreen.main)?.visibleFrame)
         if Self.shouldSetFrame(
             renderedState: renderedState, state: state,
             panelVisible: panel.isVisible, frameLost: frameLost)
@@ -259,6 +259,7 @@ final class TopBarController {
         let stateChanged = renderedState != state
         renderedState = state
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
+        defer { reclampIfLost() }
         if focusable {
             // Expanded/full are real app windows the user just summoned
             // (☰, Show-all, ⌥⌘K) — taking focus is the intent. Activation
@@ -362,7 +363,7 @@ final class TopBarController {
         case .expanded: ideal = model.settings.expandedWindowSize ?? TopBarMetrics.expanded
         case .full: ideal = model.settings.fullWindowSize ?? TopBarMetrics.full
         }
-        guard let visible = NSScreen.main?.visibleFrame else { return ideal }
+        guard let visible = (panel?.screen ?? NSScreen.main)?.visibleFrame else { return ideal }
         return TopBarMetrics.fittedSize(
             ideal: ideal, visible: visible.size, floor: Self.minSize(for: state))
     }
@@ -377,7 +378,7 @@ final class TopBarController {
     /// the panel itself enforces, so this can never fight constrainFrameRect.
     private func reclampIfLost() {
         guard let panel, panel.isVisible,
-              let visible = NSScreen.main?.visibleFrame,
+              let visible = (panel.screen ?? NSScreen.main)?.visibleFrame,
               Self.isFrameLost(frame: panel.frame, visible: visible)
         else { return }
         panel.setFrame(KeyablePanel.clamped(panel.frame, into: visible), display: true)
@@ -461,7 +462,7 @@ final class TopBarController {
 
     /// Keep the bar pinned top-center; animate the frame so expand/collapse morphs.
     private func setFrame(_ panel: NSPanel, size: NSSize) {
-        guard let visible = NSScreen.main?.visibleFrame else { return }
+        guard let visible = (panel.screen ?? NSScreen.main)?.visibleFrame else { return }
         // The drag-resize floor must also respect the CURRENT screen: a
         // contentMinSize wider than the display would let AppKit's live
         // resize (and possibly programmatic frames) exceed the screen, which
@@ -507,6 +508,10 @@ final class PanelResizeRecorder: NSObject, NSWindowDelegate {
     }
 
     func windowDidMove(_ notification: Notification) {
+        onMoveOrResize?()
+    }
+
+    func windowDidChangeScreen(_ notification: Notification) {
         onMoveOrResize?()
     }
 }

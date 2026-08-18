@@ -1,6 +1,7 @@
 import formbody from "@fastify/formbody";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { buildAppleAuthUrl, exchangeAppleCode, verifyAppleIdToken } from "../auth/apple.js";
+import { mintExchangeCode } from "../auth/exchange-codes.js";
 import {
   buildNaverAuthUrl,
   exchangeNaverCode,
@@ -11,6 +12,7 @@ import type { SocialIdentity, SocialProviderId } from "../auth/social-identity.j
 import { completeSocialLogin } from "../auth/social-login.js";
 import { signToken, verifyToken } from "../auth.js";
 import { appleLoginEnabled, naverLoginEnabled } from "../config.js";
+import { desktopHandoffPage, desktopLoginTokens, isAllowedNativeScheme } from "./auth.js";
 
 export interface SocialAuthProvider {
   id: SocialProviderId;
@@ -106,11 +108,48 @@ export function socialAuthRoutes(
 
     // GET /login — mint the short-lived signed state and bounce to consent.
     // Same state shape as the Google flow: marker in the email field, 10 min.
+    // Desktop (2026-08-19): ?source=desktop&nonce=…&appScheme=… mirrors the
+    // Google desktop leg — the nonce (minted by /desktop-nonce, PKCE-bound)
+    // rides in the userId slot and the callback relays/parks the JWT.
     app.get(
       "/login",
-      { config: { rateLimit: { max: 20, timeWindow: "15 minutes" } } },
-      async (_request, reply) => {
-        const state = signToken({ userId: "__login__", email: `__${provider.id}_login__` }, "10m");
+      {
+        schema: {
+          querystring: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              source: { type: "string", maxLength: 20 },
+              nonce: { type: "string", maxLength: 128 },
+              appScheme: { type: "string", maxLength: 64 },
+            },
+          },
+        },
+        config: { rateLimit: { max: 20, timeWindow: "15 minutes" } },
+      },
+      async (request, reply) => {
+        const { source, nonce, appScheme } = request.query as {
+          source?: string;
+          nonce?: string;
+          appScheme?: string;
+        };
+        const isDesktop = source === "desktop" && !!nonce;
+        if (isDesktop) {
+          const entry = desktopLoginTokens.get(nonce as string);
+          if (!entry || entry.jwt !== undefined || entry.relayed || entry.expiresAt < Date.now()) {
+            return reply
+              .code(400)
+              .send({ error: "Invalid or expired nonce. Call /api/auth/desktop-nonce first." });
+          }
+        }
+        const state = signToken(
+          {
+            userId: isDesktop ? (nonce as string) : "__login__",
+            email: isDesktop ? `__${provider.id}_login_desktop__` : `__${provider.id}_login__`,
+            ...(isDesktop && isAllowedNativeScheme(appScheme) ? { appScheme } : {}),
+          },
+          "10m",
+        );
         return reply.redirect(provider.buildAuthUrl(state));
       },
     );
@@ -127,19 +166,31 @@ export function socialAuthRoutes(
       if (!params?.code || !params.state || params.error) {
         return reply.redirect(`${webUrl}/login?error=${provider.id}_denied`);
       }
-      let statePayload: { userId: string; email: string };
+      let statePayload: { userId: string; email: string; appScheme?: string };
       try {
         statePayload = verifyToken(params.state);
       } catch {
         return reply.redirect(`${webUrl}/login?error=${provider.id}_failed`);
       }
       // Both halves of the state must match: the provider marker AND the
-      // "__login__" placeholder userId. Checking the marker alone would let
-      // any signed JWT whose email happens to equal the marker (registration
-      // does not enforce email format) stand in as a state (security review
+      // placeholder userId. Checking the marker alone would let any signed
+      // JWT whose email happens to equal the marker (registration does not
+      // enforce email format) stand in as a state (security review
       // 2026-08-06); the Google branch predates this check and keeps its own
-      // shape untouched.
-      if (
+      // shape untouched. The DESKTOP marker carries the /desktop-nonce value
+      // in the userId slot instead — validated against the live nonce map,
+      // so a forged userId still cannot park a token anywhere an attacker
+      // can read (the poller is PKCE-bound and the relay targets the device
+      // that completed OAuth).
+      const isDesktopLogin = statePayload.email === `__${provider.id}_login_desktop__`;
+      if (isDesktopLogin) {
+        const entry = desktopLoginTokens.get(statePayload.userId);
+        // jwt/relayed check: defense-in-depth against callback replay beyond
+        // the provider's own single-use authorization code.
+        if (!entry || entry.expiresAt < Date.now() || entry.jwt !== undefined || entry.relayed) {
+          return reply.redirect(`${webUrl}/login?error=${provider.id}_failed`);
+        }
+      } else if (
         statePayload.email !== `__${provider.id}_login__` ||
         statePayload.userId !== "__login__"
       ) {
@@ -162,7 +213,41 @@ export function socialAuthRoutes(
         if (!identity) {
           return reply.redirect(`${webUrl}/login?error=${provider.id}_failed`);
         }
-        const { redirect } = await completeSocialLogin(identity, { ip, userAgent });
+        const { redirect, token } = await completeSocialLogin(identity, { ip, userAgent });
+        if (isDesktopLogin) {
+          if (!token) {
+            // completeSocialLogin only omits the token on its error redirects;
+            // a desktop leg cannot proceed without one.
+            return reply.redirect(`${webUrl}/login?error=${provider.id}_failed`);
+          }
+          const nonce = statePayload.userId;
+          // Mirror of the Google desktop branch (routes/auth.ts): relay via a
+          // one-time exchange code deep-linked to the allowlisted scheme,
+          // keeping the nonce un-parked (relayed=true burns it for reuse);
+          // no scheme -> park for the PKCE-bound poller.
+          if (isAllowedNativeScheme(statePayload.appScheme)) {
+            const relayCode = mintExchangeCode(token);
+            const entry = desktopLoginTokens.get(nonce);
+            if (entry) desktopLoginTokens.set(nonce, { ...entry, relayed: true });
+            reply.header("Cache-Control", "no-store");
+            reply.type("text/html");
+            return reply.send(
+              desktopHandoffPage(`${statePayload.appScheme}://oauth-callback?code=${relayCode}`),
+            );
+          }
+          const entry = desktopLoginTokens.get(nonce);
+          if (entry) desktopLoginTokens.set(nonce, { ...entry, jwt: token });
+          reply.type("text/html");
+          // Same terminal document as the Google poll path: the browser leg
+          // must end in a committed page, and the app's poller does the rest.
+          return reply.send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Klorn Login</title>
+<style>body{font-family:system-ui;background:#0a0a0a;color:#e5e7eb;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.box{text-align:center;padding:40px}.ok{font-size:48px;margin-bottom:16px}.t{font-size:14px;color:#9ca3af;margin-top:12px}</style>
+</head><body><div class="box"><div class="ok">\u2713</div><h2>Login Successful</h2>
+<p class="t">Return to the Klorn desktop app.<br>You can close this tab.</p>
+</div></body></html>`);
+        }
         return reply.redirect(redirect);
       } catch (err) {
         console.error(`[SOCIAL] ${provider.id} login completion failed:`, err);
