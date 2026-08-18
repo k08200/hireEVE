@@ -318,6 +318,12 @@ func runSelfChecks() async -> Bool {
           TopBarMetrics.fittedSize(
               ideal: TopBarMetrics.fullMin, visible: NSSize(width: 800, height: 500)).width
               <= 800 - TopBarMetrics.screenMargin * 2)
+    // Cmd+Tab needs a real managed window, not a floating utility overlay
+    // (dogfood 2026-08-18: the full view was unswitchable while it was a
+    // floating .canJoinAllSpaces panel).
+    check("pill is the only utility overlay; expanded/full are real windows",
+          TopBarController.isUtilityWindow(focusable: false)
+          && !TopBarController.isUtilityWindow(focusable: true))
     check("pill panel stays fixed and non-activating",
           !TopBarController.styleMask(focusable: false).contains(.resizable)
           && TopBarController.styleMask(focusable: false).contains(.nonactivatingPanel))

@@ -340,6 +340,12 @@ final class TopBarController {
         renderedState != state || !panelVisible || frameLost
     }
 
+    /// Whether this window is an ambient utility overlay (the pill) or a real
+    /// app window (expanded/full). Utility overlays float above everything and
+    /// join every Space; real windows live at normal level so Cmd+Tab, Spaces,
+    /// and full-screen treat the app like an app. Pure for the harness.
+    nonisolated static func isUtilityWindow(focusable: Bool) -> Bool { !focusable }
+
     /// Pure for the harness: expanded/full are resizable key-able windows
     /// (fixed sizes could not be shrunk — clipped-display reports 2026-08-05
     /// and 2026-08-15); only the pill stays non-focus-stealing and fixed.
@@ -361,11 +367,20 @@ final class TopBarController {
             // it) keeps fixed columns from clipping.
             panel.delegate = resizeRecorder
         }
-        panel.isFloatingPanel = true
-        panel.level = .floating
+        // The window CLASS decides Cmd+Tab, not just the activation policy
+        // (dogfood 2026-08-18: the FULL view still wasn't switchable). A
+        // floating utility panel with .canJoinAllSpaces is exactly what the
+        // window server treats as an overlay — it never registers the app as
+        // something Cmd+Tab can raise. Expanded/full are the app's real
+        // windows, so they get ordinary managed-window semantics; only the
+        // ambient pill stays a floating always-on-top utility.
+        panel.isFloatingPanel = Self.isUtilityWindow(focusable: focusable)
+        panel.level = Self.isUtilityWindow(focusable: focusable) ? .floating : .normal
         panel.hidesOnDeactivate = false
         panel.becomesKeyOnlyIfNeeded = !focusable
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.collectionBehavior = Self.isUtilityWindow(focusable: focusable)
+            ? [.canJoinAllSpaces, .fullScreenAuxiliary]
+            : [.managed, .fullScreenPrimary]
         // Light v2: the panel is always a light surface — pin the effective
         // appearance so semantic colors resolve light even in system dark mode.
         // Appearance follows NSApp (system or the Preferences override) —
