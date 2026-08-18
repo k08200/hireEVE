@@ -803,11 +803,15 @@ func runSelfChecks() async -> Bool {
           && (AttentionMode(rawValue: "AUTO") ?? .basic) == .auto)
 
     print("Tier v2 lanes:")
-    check("v2 lanes hide at zero, v1 four always show",
-          Tier.visibleOrder(counts: { _ in 0 }) == [.push, .queue, .silent, .auto])
-    check("a nonzero v2 lane joins in display position",
-          Tier.visibleOrder(counts: { $0 == .meeting ? 2 : 0 })
-              == [.push, .meeting, .queue, .silent, .auto])
+    check("the five live lanes always show; legacy AUTO hides at zero",
+          Tier.visibleOrder(counts: { _ in 0 }) == [.push, .meeting, .queue, .info, .silent])
+    check("legacy AUTO joins only while old rows remain",
+          Tier.visibleOrder(counts: { $0 == .auto ? 1 : 0 })
+              == [.push, .meeting, .queue, .info, .silent, .auto])
+    check("section height resolvers clamp junk",
+          AppSettings.resolveInboxSectionHeight("junk") == 620
+          && AppSettings.resolveInboxSectionHeight(10.0) == 180
+          && AppSettings.resolveUpcomingSectionHeight(9_999.0) == 600)
     check("guide teaches the five live v2 lanes, not legacy AUTO",
           Tier.coreOrder.count == 5 && Tier.coreOrder.contains(.meeting)
           && Tier.coreOrder.contains(.info) && !Tier.coreOrder.contains(.auto))

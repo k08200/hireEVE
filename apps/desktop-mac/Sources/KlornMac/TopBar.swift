@@ -1176,8 +1176,28 @@ struct FullView: View {
 /// Draggable boundary above the ACCOUNT section: dragging up grows the
 /// account area, the TODAY/UPCOMING scroll region flexes to absorb it.
 /// Height persists via AppSettings. VoiceOver adjusts in 20pt steps.
+/// ScrollView at runtime; a plain container under the offscreen design
+/// renderer, which cannot draw ScrollView content (PreviewRender note).
+private struct OffscreenFriendlyScroll<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if Theme.isRenderingOffscreen {
+            content()
+        } else {
+            ScrollView(showsIndicators: false) { content() }
+        }
+    }
+}
+
 private struct SectionResizeHandle: View {
     @Binding var height: Double
+    /// True when the resizable section sits ABOVE this handle (dragging the
+    /// boundary DOWN should grow it). False = section below (account), where
+    /// dragging UP grows. The account handle shipped first and set the
+    /// up=grow default; the today handle reused it unflipped, which is why
+    /// it felt dead in the wrong direction (dogfood 2026-08-19).
+    var growsDown = false
 
     var body: some View {
         ZStack {
@@ -1186,7 +1206,8 @@ private struct SectionResizeHandle: View {
             // MOVE before SwiftUI's DragGesture ever fires (v0.4.80040 bug —
             // the handle "did nothing"). An NSView that answers
             // mouseDownCanMoveWindow=false is the only reliable refusal.
-            ResizeDragSurface(startHeight: { height }, apply: { height = $0 })
+            ResizeDragSurface(
+                startHeight: { height }, apply: { height = $0 }, growsDown: growsDown)
             Capsule().fill(Theme.line).frame(width: 36, height: 3)
                 .allowsHitTesting(false)
         }
@@ -1207,23 +1228,27 @@ private struct SectionResizeHandle: View {
 private struct ResizeDragSurface: NSViewRepresentable {
     let startHeight: () -> Double
     let apply: (Double) -> Void
+    var growsDown = false
 
     func makeNSView(context _: Context) -> ResizeDragNSView {
         let view = ResizeDragNSView()
         view.startHeight = startHeight
         view.apply = apply
+        view.growsDown = growsDown
         return view
     }
 
     func updateNSView(_ view: ResizeDragNSView, context _: Context) {
         view.startHeight = startHeight
         view.apply = apply
+        view.growsDown = growsDown
     }
 }
 
 final class ResizeDragNSView: NSView {
     var startHeight: () -> Double = { 0 }
     var apply: (Double) -> Void = { _ in }
+    var growsDown = false
     private var dragStartHeight: Double = 0
     private var dragStartScreenY: CGFloat = 0
 
@@ -1236,10 +1261,11 @@ final class ResizeDragNSView: NSView {
     }
 
     override func mouseDragged(with _: NSEvent) {
-        // Screen Y grows upward on macOS: dragging the bar up (positive dy)
-        // grows the section below it.
+        // Screen Y grows upward on macOS. For a section BELOW the handle
+        // (account), dragging up (positive dy) grows it; for a section ABOVE
+        // (수신함/오늘/예정), dragging down grows it — hence the sign flip.
         let dy = NSEvent.mouseLocation.y - dragStartScreenY
-        apply(dragStartHeight + Double(dy))
+        apply(dragStartHeight + (growsDown ? -Double(dy) : Double(dy)))
     }
 
     override func resetCursorRects() {
@@ -1307,94 +1333,111 @@ private struct FullSidebar: View {
                 InboxSelectorMenu()
             }
             .padding(.horizontal, 20).padding(.bottom, 6)
-            ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
-                Button { selected = .tier(tier) } label: {
+            // 수신함 nav block: capped + scrollable so its boundary is
+            // draggable like every other section (founder 2026-08-19). The
+            // cap is a MAX — short content keeps its natural height.
+            // (ImageRenderer draws nothing inside a ScrollView — the design
+            // renderer gets the plain stack, same rows.)
+            OffscreenFriendlyScroll {
+                VStack(alignment: .leading, spacing: 4) {
+                ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
+                    Button { selected = .tier(tier) } label: {
+                        HStack(spacing: 10) {
+                            Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
+                            Text(tier.label)
+                                .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
+                                .foregroundStyle(Theme.text)
+                            Spacer()
+                            Text("\(model.queue?.summary.count(for: tier) ?? 0)")
+                                .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                        }
+                        .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
+                    }
+                    .buttonStyle(.plain)
+                    .help(tier.blurb)
+                    .accessibilityLabel(
+                        L("tier.row.a11y", tier.label, model.queue?.summary.count(for: tier) ?? 0, tier.blurb))
+                }
+
+                // Commitments: promises made / replies awaited — the follow-through
+                // half of the firewall (what mail asked of you, and of them).
+                Button { selected = .commitments } label: {
                     HStack(spacing: 10) {
-                        Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
-                        Text(tier.label)
-                            .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
+                        Image(systemName: "checklist").font(.caption)
+                            .foregroundStyle(Theme.accent).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.commitments"))
+                            .font(.body.weight(selected == .commitments ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
                         Spacer()
-                        Text("\(model.queue?.summary.count(for: tier) ?? 0)")
+                        Text("\(model.commitments?.count ?? 0)")
                             .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
                     }
-                    .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
+                    .modifier(SidebarRowChrome(selected: selected == .commitments))
                 }
                 .buttonStyle(.plain)
-                .help(tier.blurb)
-                .accessibilityLabel(
-                    L("tier.row.a11y", tier.label, model.queue?.summary.count(for: tier) ?? 0, tier.blurb))
-            }
+                .accessibilityLabel(L("commitments.a11y", model.commitments?.count ?? 0))
 
-            // Commitments: promises made / replies awaited — the follow-through
-            // half of the firewall (what mail asked of you, and of them).
-            Button { selected = .commitments } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "checklist").font(.caption)
-                        .foregroundStyle(Theme.accent).frame(width: 8)
-                        .accessibilityHidden(true)
-                    Text(L("section.commitments"))
-                        .font(.body.weight(selected == .commitments ? .semibold : .regular))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
-                    Text("\(model.commitments?.count ?? 0)")
-                        .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                // Proposals: what Klorn wants to do and hasn't done yet.
+                Button { selected = .proposals } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "hand.raised").font(.caption)
+                            .foregroundStyle(Theme.accent).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("proposals.title"))
+                            .font(.body.weight(selected == .proposals ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                        Text("\(model.pendingActions.count)")
+                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                    }
+                    .modifier(SidebarRowChrome(selected: selected == .proposals))
                 }
-                .modifier(SidebarRowChrome(selected: selected == .commitments))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("commitments.a11y", model.commitments?.count ?? 0))
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("proposals.a11y", model.pendingActions.count))
 
-            // Proposals: what Klorn wants to do and hasn't done yet.
-            Button { selected = .proposals } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "hand.raised").font(.caption)
-                        .foregroundStyle(Theme.accent).frame(width: 8)
-                        .accessibilityHidden(true)
-                    Text(L("proposals.title"))
-                        .font(.body.weight(selected == .proposals ? .semibold : .regular))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
-                    Text("\(model.pendingActions.count)")
-                        .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                // Assistant: ask/act across mail, calendar, and the briefing.
+                Button { selected = .assistant } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "sparkles").font(.caption)
+                            .foregroundStyle(Theme.accent).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.assistant"))
+                            .font(.body.weight(selected == .assistant ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                    }
+                    .modifier(SidebarRowChrome(selected: selected == .assistant))
                 }
-                .modifier(SidebarRowChrome(selected: selected == .proposals))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("proposals.a11y", model.pendingActions.count))
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("section.assistant"))
 
-            // Assistant: ask/act across mail, calendar, and the briefing.
-            Button { selected = .assistant } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "sparkles").font(.caption)
-                        .foregroundStyle(Theme.accent).frame(width: 8)
-                        .accessibilityHidden(true)
-                    Text(L("section.assistant"))
-                        .font(.body.weight(selected == .assistant ? .semibold : .regular))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
+                // Calendar: the week as a full list-column screen, not just the
+                // TODAY/UPCOMING crumbs below.
+                Button { selected = .calendar } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "calendar").font(.caption)
+                            .foregroundStyle(Theme.accent).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.calendar"))
+                            .font(.body.weight(selected == .calendar ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                    }
+                    .modifier(SidebarRowChrome(selected: selected == .calendar))
                 }
-                .modifier(SidebarRowChrome(selected: selected == .assistant))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("section.assistant"))
-
-            // Calendar: the week as a full list-column screen, not just the
-            // TODAY/UPCOMING crumbs below.
-            Button { selected = .calendar } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "calendar").font(.caption)
-                        .foregroundStyle(Theme.accent).frame(width: 8)
-                        .accessibilityHidden(true)
-                    Text(L("section.calendar"))
-                        .font(.body.weight(selected == .calendar ? .semibold : .regular))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("section.calendar"))
                 }
-                .modifier(SidebarRowChrome(selected: selected == .calendar))
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("section.calendar"))
+            .frame(maxHeight: model.settings.inboxSectionHeight)
+            .fixedSize(horizontal: false, vertical: true)
+            SectionResizeHandle(
+                height: Binding(
+                    get: { model.settings.inboxSectionHeight },
+                    set: { model.settings.inboxSectionHeight = AppSettings.resolveInboxSectionHeight($0) }
+                ),
+                growsDown: true)
 
             // TODAY lives in the full view too — the biggest surface must not
             // know less about the day than the compact panel (dogfood 2026-07-16).
@@ -1452,12 +1495,22 @@ private struct FullSidebar: View {
                     height: Binding(
                         get: { model.settings.todaySectionHeight },
                         set: { model.settings.todaySectionHeight = AppSettings.resolveTodaySectionHeight($0) }
-                    ))
+                    ),
+                    growsDown: true)
             }
             ScrollView(showsIndicators: false) {
                 UpcomingSection(actions: actions).padding(.horizontal, 12).padding(.bottom, 8)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxHeight: model.settings.upcomingSectionHeight)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            SectionResizeHandle(
+                height: Binding(
+                    get: { model.settings.upcomingSectionHeight },
+                    set: { model.settings.upcomingSectionHeight = AppSettings.resolveUpcomingSectionHeight($0) }
+                ),
+                growsDown: true)
+            Spacer(minLength: 0)
 
             SectionResizeHandle(
                 height: Binding(

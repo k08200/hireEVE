@@ -34,10 +34,12 @@ enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     /// Whether this tier existed before ontology v2. Pure for the harness.
     var isV2Lane: Bool { self == .meeting || self == .info }
 
-    /// Rows worth drawing: every v1 tier always, a v2 lane only when it has
-    /// items (a lane the server never fills is noise, not information).
+    /// Rows worth drawing: the five live v2 lanes ALWAYS (the sidebar is the
+    /// classification scheme itself — a zero-count Meeting lane is
+    /// information, founder 2026-08-19); legacy AUTO only while old rows
+    /// remain (the v2 classifier never emits it).
     static func visibleOrder(counts: (Tier) -> Int) -> [Tier] {
-        displayOrder.filter { !$0.isV2Lane || counts($0) > 0 }
+        displayOrder.filter { $0 != .auto || counts($0) > 0 }
     }
 
     var label: String {
