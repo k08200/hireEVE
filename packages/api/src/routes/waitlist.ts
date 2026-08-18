@@ -10,8 +10,17 @@ const waitlistBodySchema = {
     email: { type: "string", minLength: 3, maxLength: 320 },
     name: { type: "string", minLength: 1, maxLength: 120 },
     useCase: { type: "string", minLength: 1, maxLength: 500 },
+    // "How did you hear about us?" — free text, deliberately not an enum so a
+    // channel we never thought of still gets recorded verbatim. Over-long
+    // answers are truncated, not rejected: a chatty reply must not cost us
+    // the signup. See the schema comment on Waitlist.source for why this is
+    // the only attribution we can still collect.
+    source: { type: "string", minLength: 1, maxLength: 400 },
   },
 } as const;
+
+/** Max stored length of `source`; longer answers are truncated to fit. */
+const SOURCE_MAX = 80;
 
 // Bounded quantifiers (≤64 local, ≤253 domain, ≤63 TLD) to avoid polynomial-time
 // regex backtracking on long crafted inputs. CodeQL js/polynomial-redos.
@@ -44,7 +53,12 @@ export function waitlistRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const body = request.body as { email: string; name?: string; useCase?: string };
+      const body = request.body as {
+        email: string;
+        name?: string;
+        useCase?: string;
+        source?: string;
+      };
       const email = normalizeEmail(body.email);
       if (!EMAIL_RE.test(email)) {
         return reply.code(400).send({ error: "Invalid email" });
@@ -52,23 +66,31 @@ export function waitlistRoutes(app: FastifyInstance) {
 
       const name = trimOrUndefined(body.name, 120);
       const useCase = trimOrUndefined(body.useCase, 500);
+      const source = trimOrUndefined(body.source, SOURCE_MAX);
 
       // Idempotent dedup — if email already exists we still return 200 so
       // the form doesn't leak whether someone is already on the list.
       const existing = await db.waitlist.findUnique({
         where: { email },
-        select: { id: true, status: true },
+        select: { id: true, status: true, source: true },
       });
 
       const entry = existing
         ? await db.waitlist.update({
             where: { email },
-            data: { name: name ?? undefined, useCase: useCase ?? undefined },
-            select: { id: true, email: true, name: true, useCase: true },
+            data: {
+              name: name ?? undefined,
+              useCase: useCase ?? undefined,
+              // First touch wins. A resubmission that omits the question —
+              // or answers it from a different device — must not overwrite
+              // the channel that actually brought this person in.
+              source: existing.source ? undefined : (source ?? undefined),
+            },
+            select: { id: true, email: true, name: true, useCase: true, source: true },
           })
         : await db.waitlist.create({
-            data: { email, name, useCase },
-            select: { id: true, email: true, name: true, useCase: true },
+            data: { email, name, useCase, source },
+            select: { id: true, email: true, name: true, useCase: true, source: true },
           });
 
       // Fire-and-forget admin notification — don't block the response if

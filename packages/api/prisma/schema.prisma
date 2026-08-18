@@ -1607,10 +1607,16 @@ model ContactEngagementScore {
 // adds the email to the Google Cloud Console Test users list and approves
 // access. No FK to User — these are people without accounts yet.
 model Waitlist {
-  id         String         @id @default(uuid())
-  email      String         @unique
-  name       String?
-  useCase    String?        @db.VarChar(500)
+  id      String  @id @default(uuid())
+  email   String  @unique
+  name    String?
+  useCase String? @db.VarChar(500)
+  /// Self-reported "how did you hear about us", free text. This is the only
+  /// channel attribution we get: GitHub restricted the stargazers API on
+  /// 2026-06-30, so referral reconstruction from outside is no longer
+  /// possible, and self-hosted installs are invisible by design. Never
+  /// overwritten once set — the first touch is the one worth attributing.
+  source     String?        @db.VarChar(80)
   status     WaitlistStatus @default(PENDING)
   approvedAt DateTime?
   createdAt  DateTime       @default(now())

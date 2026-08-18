@@ -16,6 +16,7 @@ type StoredWaitlist = {
   email: string;
   name?: string | null;
   useCase?: string | null;
+  source?: string | null;
   status: string;
 };
 const waitlistByEmail = new Map<string, StoredWaitlist>();
@@ -29,12 +30,17 @@ vi.mock("../db.js", () => {
         return waitlistByEmail.get(where.email) ?? null;
       }),
       create: vi.fn(
-        async ({ data }: { data: { email: string; name?: string; useCase?: string } }) => {
+        async ({
+          data,
+        }: {
+          data: { email: string; name?: string; useCase?: string; source?: string };
+        }) => {
           const entry: StoredWaitlist = {
             id: `wl-${nextId++}`,
             email: data.email,
             name: data.name ?? null,
             useCase: data.useCase ?? null,
+            source: data.source ?? null,
             status: "PENDING",
           };
           waitlistByEmail.set(data.email, entry);
@@ -47,11 +53,17 @@ vi.mock("../db.js", () => {
           data,
         }: {
           where: { email: string };
-          data: { name?: string; useCase?: string };
+          data: { name?: string; useCase?: string; source?: string };
         }) => {
           const existing = waitlistByEmail.get(where.email);
           if (!existing) throw new Error("Not found");
-          const updated = { ...existing, ...data };
+          // Match Prisma: an `undefined` field means "leave this column
+          // alone", not "write NULL". A naive spread would silently clear
+          // fields the route deliberately declined to touch.
+          const patch = Object.fromEntries(
+            Object.entries(data).filter(([, value]) => value !== undefined),
+          );
+          const updated = { ...existing, ...patch };
           waitlistByEmail.set(where.email, updated);
           return updated;
         },
@@ -166,5 +178,74 @@ describe("POST /api/waitlist", () => {
     expect(res.statusCode).toBe(200);
     expect(sendWaitlistAdminAlertSpy).toHaveBeenCalledTimes(1);
     expect(sendWaitlistConfirmationEmailSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Attribution: the only place a stranger tells us where they came from.
+// GitHub restricted the stargazers API on 2026-06-30, so third-party referral
+// reconstruction is gone — if we don't capture it here, it is unrecoverable.
+describe("POST /api/waitlist — source attribution", () => {
+  it("persists the reported source on a new signup", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "from-hn@example.com", source: "Hacker News" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(waitlistByEmail.get("from-hn@example.com")?.source).toBe("Hacker News");
+  });
+
+  it("stores no source when the field is omitted", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "quiet@example.com" },
+    });
+
+    expect(waitlistByEmail.get("quiet@example.com")?.source ?? null).toBeNull();
+  });
+
+  it("truncates an over-long source instead of rejecting the signup", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "verbose@example.com", source: "x".repeat(200) },
+    });
+
+    // A chatty answer must never cost us the signup.
+    expect(res.statusCode).toBe(200);
+    expect(waitlistByEmail.get("verbose@example.com")?.source).toHaveLength(80);
+  });
+
+  it("treats a blank source as absent", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "blank@example.com", source: "   " },
+    });
+
+    expect(waitlistByEmail.get("blank@example.com")?.source ?? null).toBeNull();
+  });
+
+  it("keeps the original source when a resubmission omits it", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "repeat@example.com", source: "Reddit" },
+    });
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "repeat@example.com", useCase: "still keen" },
+    });
+
+    // First touch is the one worth attributing — don't let a later blank erase it.
+    expect(waitlistByEmail.get("repeat@example.com")?.source).toBe("Reddit");
   });
 });
