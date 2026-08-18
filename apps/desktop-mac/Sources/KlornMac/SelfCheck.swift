@@ -770,6 +770,16 @@ func runSelfChecks() async -> Bool {
         check("search response decodes", false)
     }
 
+    print("Sections & mode:")
+    check("today section height clamps junk and keeps sane values",
+          AppSettings.resolveTodaySectionHeight("junk") == 240
+          && AppSettings.resolveTodaySectionHeight(50.0) == 120
+          && AppSettings.resolveTodaySectionHeight(9_999.0) == 520
+          && AppSettings.resolveTodaySectionHeight(300.0) == 300)
+    check("unknown attention mode decodes as BASIC (fail-closed)",
+          AttentionMode(rawValue: "WEIRD") == nil
+          && (AttentionMode(rawValue: "AUTO") ?? .basic) == .auto)
+
     print("Tier v2 lanes:")
     check("v2 lanes hide at zero, v1 four always show",
           Tier.visibleOrder(counts: { _ in 0 }) == [.push, .queue, .silent, .auto])

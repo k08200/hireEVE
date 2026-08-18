@@ -174,9 +174,9 @@
 "auto.tone.scope" = "Applies to all three one-key replies — accept, decline, and ask. It changes how they sound, not what they say.";
 "auto.tone.matchMe" = "Match me";
 "auto.tone.matchMe.detail" = "Learn the register from your own sent mail.";
-"auto.tone.formal" = "Formal";
+"auto.tone.formal" = "Polite";
 "auto.tone.formal.detail" = "Polite and businesslike, with honorifics where the language has them.";
-"auto.tone.friendly" = "Friendly";
+"auto.tone.friendly" = "Work";
 "auto.tone.friendly.detail" = "Warm but professional — the everyday default.";
 "auto.tone.casual" = "Casual";
 "auto.tone.casual.detail" = "Relaxed and short, the way you'd write to a teammate.";
@@ -394,3 +394,15 @@
 "account.imap.failed" = "Could not connect that mailbox.";
 "account.imap.rateLimited" = "Too many attempts. Try again in a few minutes.";
 "account.imap.disconnectFailed" = "Could not disconnect that mailbox.";
+
+/* Attention mode (기본/auto) */
+"mode.section" = "MODE";
+"mode.basic" = "Basic";
+"mode.basic.detail" = "Notify only important mail and meetings — you pick and reply. Everything else stays quiet.";
+"mode.auto" = "Auto";
+"mode.auto.detail" = "Klorn also answers safe, routine mail for you, following the guideline below. Alerts stay limited to meetings and must-answer mail.";
+"mode.guideline" = "Reply guideline";
+"mode.guideline.detail" = "Every unattended reply follows this. Edit or add to the default.";
+"mode.guideline.save" = "Save guideline";
+"mode.guideline.resetHint" = "Clear and save to restore the default.";
+"mode.sidebar.a11y" = "Attention mode";

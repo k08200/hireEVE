@@ -70,7 +70,7 @@ describe("collectFeatureFlags", () => {
   it("empty env → documented defaults (two default-ON flags, rest off)", () => {
     const report = collectFeatureFlags({} as NodeJS.ProcessEnv);
     // Default-ON since 2026-08-18 (founder flip): tier v2 + spam intake.
-    const defaultOn = new Set(["TIER_V2_ENABLED", "SPAM_INTAKE_ENABLED"]);
+    const defaultOn = new Set(["TIER_V2_ENABLED", "SPAM_INTAKE_ENABLED", "AUTO_MODE_SEND_ENABLED"]);
     for (const [key, value] of Object.entries(report.dynamic)) {
       expect(value, key).toBe(defaultOn.has(key));
     }
@@ -81,9 +81,11 @@ describe("collectFeatureFlags", () => {
     const report = collectFeatureFlags({
       TIER_V2_ENABLED: "false",
       SPAM_INTAKE_ENABLED: "off",
+      AUTO_MODE_SEND_ENABLED: "0",
     } as unknown as NodeJS.ProcessEnv);
     expect(report.dynamic.TIER_V2_ENABLED).toBe(false);
     expect(report.dynamic.SPAM_INTAKE_ENABLED).toBe(false);
+    expect(report.dynamic.AUTO_MODE_SEND_ENABLED).toBe(false);
   });
 });
 

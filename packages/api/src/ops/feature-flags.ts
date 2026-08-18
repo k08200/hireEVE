@@ -65,7 +65,7 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       // it belongs here rather than in the boot-frozen map above.
       PROVIDER_INBOX_SELECTOR_ENABLED: dynamicFlag(env, "PROVIDER_INBOX_SELECTOR_ENABLED"),
       TIER_V2_ENABLED: defaultOnFlag(env, "TIER_V2_ENABLED"),
-      AUTO_MODE_SEND_ENABLED: dynamicFlag(env, "AUTO_MODE_SEND_ENABLED"),
+      AUTO_MODE_SEND_ENABLED: defaultOnFlag(env, "AUTO_MODE_SEND_ENABLED"),
       SPAM_INTAKE_ENABLED: defaultOnFlag(env, "SPAM_INTAKE_ENABLED"),
     },
     configured: {
@@ -95,12 +95,14 @@ export function tierV2Enabled(): boolean {
 }
 
 /**
- * auto 모드 unattended replies for autoEligible items. Independent of (and
- * meaningless without) TIER_V2_ENABLED; both OFF by default. The flip is a
- * separate founder decision from the classification flip.
+ * auto 모드 unattended replies for autoEligible items. Default-ON since
+ * 2026-08-18 (founder: "auto는 답장도 직접 알아서 하도록" — 한번에 싹 다).
+ * The REAL gate is per-user: nothing sends unless the user set
+ * attentionMode=AUTO in settings and holds the entitlement.
+ * AUTO_MODE_SEND_ENABLED=false is the global kill switch.
  */
 export function autoModeSendEnabled(): boolean {
-  return dynamicFlag(process.env, "AUTO_MODE_SEND_ENABLED");
+  return defaultOnFlag(process.env, "AUTO_MODE_SEND_ENABLED");
 }
 
 /**

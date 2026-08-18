@@ -173,9 +173,9 @@
 "auto.tone.scope" = "수락·거절·확인 세 가지 한 키 답장 모두에 적용됩니다. 내용이 아니라 말투만 바뀝니다.";
 "auto.tone.matchMe" = "내 문체 따라가기";
 "auto.tone.matchMe.detail" = "보낸 메일에서 문체를 학습합니다.";
-"auto.tone.formal" = "격식체";
+"auto.tone.formal" = "공손";
 "auto.tone.formal.detail" = "공손하고 업무적인 문체. 존댓말이 있는 언어에서는 존댓말을 씁니다.";
-"auto.tone.friendly" = "친근체";
+"auto.tone.friendly" = "업무";
 "auto.tone.friendly.detail" = "따뜻하지만 예의를 지키는 평소 기본값.";
 "auto.tone.casual" = "편한 말투";
 "auto.tone.casual.detail" = "동료에게 쓰듯 짧고 편하게.";
@@ -393,3 +393,15 @@
 "account.imap.failed" = "메일함을 연결하지 못했습니다.";
 "account.imap.rateLimited" = "시도가 너무 잦습니다. 몇 분 후 다시 시도하세요.";
 "account.imap.disconnectFailed" = "메일함 연결을 해제하지 못했습니다.";
+
+/* Attention mode (기본/auto) */
+"mode.section" = "모드";
+"mode.basic" = "기본";
+"mode.basic.detail" = "중요한 메일과 미팅만 알리고, 답장은 직접 고릅니다. 나머지는 조용히.";
+"mode.auto" = "Auto";
+"mode.auto.detail" = "안전한 일상 메일은 아래 지침에 따라 Klorn이 답장까지 대신합니다. 알림은 미팅과 꼭 답해야 할 메일만.";
+"mode.guideline" = "답장 지침";
+"mode.guideline.detail" = "무인 답장이 항상 따르는 지침입니다. 기본값을 수정하거나 추가하세요.";
+"mode.guideline.save" = "지침 저장";
+"mode.guideline.resetHint" = "비우고 저장하면 기본값으로 돌아갑니다.";
+"mode.sidebar.a11y" = "동작 모드";

@@ -1410,6 +1410,10 @@ private struct FullSidebar: View {
                 ColumnHeader(title: L("section.todayShort"))
                     .padding(.horizontal, 20).padding(.top, 10).padding(.bottom, 6)
             }
+            // Every section boundary is user-draggable (founder 2026-08-18:
+            // "섹션마다 크기 조절"): TODAY has its own persisted height, the
+            // handle below it trades space with UPCOMING, and the account
+            // handle at the bottom trades with everything above.
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 8) {
                     if let briefing = model.briefing {
@@ -1434,9 +1438,20 @@ private struct FullSidebar: View {
                                 .padding(.horizontal, 20)
                         }
                     }
-                    UpcomingSection(actions: actions).padding(.horizontal, 12)
+                    .padding(.bottom, 8)
                 }
-                .padding(.bottom, 8)
+            }
+            .frame(height: hasToday ? model.settings.todaySectionHeight : 0)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            if hasToday {
+                SectionResizeHandle(
+                    height: Binding(
+                        get: { model.settings.todaySectionHeight },
+                        set: { model.settings.todaySectionHeight = AppSettings.resolveTodaySectionHeight($0) }
+                    ))
+            }
+            ScrollView(showsIndicators: false) {
+                UpcomingSection(actions: actions).padding(.horizontal, 12).padding(.bottom, 8)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
@@ -1445,6 +1460,26 @@ private struct FullSidebar: View {
                     get: { model.settings.accountSectionHeight },
                     set: { model.settings.accountSectionHeight = AppSettings.resolveAccountSectionHeight($0) }
                 ))
+            // One-click 기본/Auto switch, right in the sidebar (founder
+            // 2026-08-18: the mode must not hide inside Preferences).
+            if model.phase == .signedIn {
+                HStack(spacing: 8) {
+                    Text(L("mode.section")).font(.caption).foregroundStyle(Theme.textDim)
+                    Picker(L("mode.sidebar.a11y"), selection: Binding(
+                        get: { model.automation.attentionMode },
+                        set: { mode in model.updateAutomation { $0.attentionMode = mode } }
+                    )) {
+                        ForEach(AttentionMode.allCases, id: \.self) { mode in
+                            Text(mode.label).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .disabled(model.automationSaving)
+                    .accessibilityLabel(L("mode.sidebar.a11y"))
+                }
+                .padding(.horizontal, 20).padding(.vertical, 6)
+            }
             ColumnHeader(title: L("prefs.section.account")).padding(.horizontal, 20).padding(.bottom, 6)
             // Own scroll area with a hard ceiling: the list above stays the
             // star, and the account actions can grow without running off the
