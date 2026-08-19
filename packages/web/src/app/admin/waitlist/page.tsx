@@ -57,6 +57,7 @@ function WaitlistPageInner() {
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState<Filter>("PENDING");
+  const [sourceFilter, setSourceFilter] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -74,6 +75,20 @@ function WaitlistPageInner() {
       setLoading(false);
     }
   }, [filter, toast]);
+
+  const sourceCounts = entries.reduce<Record<string, number>>((acc, entry) => {
+    const key = entry.source ?? "Unknown";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const sources = Object.keys(sourceCounts).sort();
+
+  const visibleEntries =
+    sourceFilter === "ALL"
+      ? entries
+      : entries.filter((entry) => (entry.source ?? "Unknown") === sourceFilter);
+
 
   useEffect(() => {
     load();
@@ -160,11 +175,10 @@ function WaitlistPageInner() {
                 key={f.key}
                 type="button"
                 onClick={() => setFilter(f.key)}
-                className={`ease-strong rounded-xl border px-4 py-3 text-left transition duration-150 active:scale-[0.97] ${
-                  isActive
-                    ? "panel-elevated border-accent-muted bg-sky-50 text-ink"
-                    : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
-                }`}
+                className={`ease-strong rounded-xl border px-4 py-3 text-left transition duration-150 active:scale-[0.97] ${isActive
+                  ? "panel-elevated border-accent-muted bg-sky-50 text-ink"
+                  : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
+                  }`}
               >
                 <div className="text-xs uppercase tracking-wide">{f.label}</div>
                 <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
@@ -173,16 +187,37 @@ function WaitlistPageInner() {
           })}
         </section>
 
+        {sources.length > 0 && (
+          <section className="mb-6 flex flex-wrap items-center gap-3">
+            <label htmlFor="source-filter" className="text-sm text-ink-mid">
+              Source:
+            </label>
+            <select
+              id="source-filter"
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-sm text-ink"
+            >
+              <option value="ALL">All ({entries.length})</option>
+              {sources.map((s) => (
+                <option key={s} value={s}>
+                  {s} ({sourceCounts[s]})
+                </option>
+              ))}
+            </select>
+          </section>
+        )}
+
         {loading ? (
           <p className="text-sm text-ink-dim">Loading...</p>
-        ) : entries.length === 0 ? (
+        ) : visibleEntries.length === 0 ? (
           <p className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-6 text-sm text-ink-mid">
             No requests in this state.
           </p>
         ) : (
           <section className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
             <ul className="divide-y divide-line-soft">
-              {entries.map((entry) => (
+              {visibleEntries.map((entry) => (
                 <li key={entry.id} className="row-wash p-4 md:p-5">
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div className="flex min-w-0 items-start gap-3">
