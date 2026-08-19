@@ -240,7 +240,15 @@ final class TopBarController {
         let panel = self.panel ?? makePanel(focusable: focusable)
         if let inherited = inheritedFrame { panel.setFrame(inherited, display: false) }
         panelIsFocusable = focusable
-        panel.contentView = NSHostingView(rootView: root)
+        let host = NSHostingView(rootView: root)
+        // The controller owns the window frame (setFrame + user drag). The
+        // default sizingOptions let SwiftUI ideal-size changes resize the
+        // window — growing UP in AppKit coordinates, pushing the title bar
+        // off-screen whenever a sidebar section handle made content taller
+        // (clipping recording, 2026-08-19). Content adapts to the window,
+        // never the reverse.
+        host.sizingOptions = []
+        panel.contentView = host
         self.panel = panel
         // Re-pinning on EVERY render fought the user: any same-state
         // refresh() snapped a dragged window back to top-center and
@@ -508,6 +516,12 @@ final class PanelResizeRecorder: NSObject, NSWindowDelegate {
     }
 
     func windowDidMove(_ notification: Notification) {
+        onMoveOrResize?()
+    }
+
+    // Programmatic/content-driven resizes never hit windowDidEndLiveResize or
+    // constrainFrameRect — this is the only hook that sees them (2026-08-19).
+    func windowDidResize(_ notification: Notification) {
         onMoveOrResize?()
     }
 

@@ -1570,6 +1570,27 @@ func runSelfChecks() async -> Bool {
         print("      offenders: \(engageTextOffenders.joined(separator: ", "))")
     }
 
+    // Content-driven growth (a sidebar section handle making the SwiftUI tree
+    // taller) resized the window UP off-screen without live-resize or move
+    // events (clipping recording, 2026-08-19). Two walls, both source-pinned
+    // here because the delegate needs a window and the harness has none:
+    // sizingOptions=[] stops SwiftUI from driving the window frame at all,
+    // and windowDidResize re-clamps whatever still resizes it.
+    let hostSizingPinned = lineOffenders { $0.contains("host.sizingOptions = []") }
+    check("SwiftUI content size never drives the window frame",
+          hostSizingPinned.contains("TopBarController.swift"))
+    let resizeHookPresent = lineOffenders { $0.contains("func windowDidResize") }
+    check("windowDidResize re-clamp hook is wired",
+          resizeHookPresent.contains("TopBarController.swift"))
+
+    // Mail HTML is authored against a white page; the reading surface must
+    // pin one regardless of app theme (dark mode ghost-text recording,
+    // 2026-08-19) and must keep WebKit from auto-darkening the canvas.
+    let mailWrap = EmailHtmlView.wrap("<p>hi</p>")
+    check("mail surface pins a light card in every theme",
+          mailWrap.contains("background: #ffffff")
+          && mailWrap.contains("color-scheme: light"))
+
     print(failures == 0 ? "\nALL CHECKS PASSED" : "\n\(failures) CHECK(S) FAILED")
     return failures == 0
 }

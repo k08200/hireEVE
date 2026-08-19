@@ -70,11 +70,19 @@ struct EmailHtmlView: NSViewRepresentable {
     }
 
     /// Reading-surface defaults that sender inline styles override: system
-    /// type, measured margins, images never wider than the pane.
-    static func wrap(_ body: String) -> String {
+    /// type, measured margins, images never wider than the pane. Mail HTML is
+    /// authored against a white page — senders routinely set only a dark text
+    /// color and assume the background — so the surface is ALWAYS a light
+    /// card, never the app theme (dark mode made unstyled body text nearly
+    /// invisible: #1e293b on the dark pane — recording, 2026-08-19).
+    /// color-scheme:light also stops WebKit from auto-darkening the canvas.
+    /// Pure for the harness.
+    nonisolated static func wrap(_ body: String) -> String {
         """
         <!doctype html><html><head><meta charset="utf-8">
         <style>
+          :root { color-scheme: light; }
+          html, body { background: #ffffff; }
           body { margin: 20px 24px; font: 13px/1.5 -apple-system, 'Apple SD Gothic Neo', sans-serif; color: #1e293b; word-wrap: break-word; }
           img { max-width: 100%; height: auto; }
           table { max-width: 100%; }
