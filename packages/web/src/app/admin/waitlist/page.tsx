@@ -78,7 +78,6 @@ function WaitlistPageInner() {
     }
   }, [filter, toast]);
 
-
   const sourceCounts = entries.reduce<Record<string, number>>((acc, entry) => {
     const key = entry.source ?? "Unknown";
     acc[key] = (acc[key] ?? 0) + 1;
@@ -100,7 +99,6 @@ function WaitlistPageInner() {
       : sourceFilter === "Other"
         ? entries.filter((entry) => !topSources.includes(entry.source ?? "Unknown"))
         : entries.filter((entry) => (entry.source ?? "Unknown") === sourceFilter);
-
 
   useEffect(() => {
     load();
@@ -186,11 +184,15 @@ function WaitlistPageInner() {
               <button
                 key={f.key}
                 type="button"
-                onClick={() => setFilter(f.key)}
-                className={`ease-strong rounded-xl border px-4 py-3 text-left transition duration-150 active:scale-[0.97] ${isActive
-                  ? "panel-elevated border-accent-muted bg-sky-50 text-ink"
-                  : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
-                  }`}
+                onClick={() => {
+                  setFilter(f.key);
+                  setSourceFilter("ALL");
+                }}
+                className={`ease-strong rounded-xl border px-4 py-3 text-left transition duration-150 active:scale-[0.97] ${
+                  isActive
+                    ? "panel-elevated border-accent-muted bg-sky-50 text-ink"
+                    : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
+                }`}
               >
                 <div className="text-xs uppercase tracking-wide">{f.label}</div>
                 <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
