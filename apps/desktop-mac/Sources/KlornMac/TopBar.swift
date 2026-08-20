@@ -154,7 +154,7 @@ struct ColumnHeader: View {
     }
 
     var body: some View {
-        Text(title).font(.system(size: 10, weight: .semibold))
+        Text(title).font(Theme.Typo.micro)
             .foregroundStyle(Theme.textDim).tracking(Self.tracking(for: title))
     }
 }
@@ -1134,7 +1134,7 @@ private struct TeamsColumn: View {
     var body: some View {
         OffscreenFriendlyScroll {
             VStack(alignment: .leading, spacing: 14) {
-                Text(L("teams.title")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                Text(L("teams.title")).font(Theme.Typo.display).foregroundStyle(Theme.text)
                 Text(L("teams.subtitle")).font(.caption).foregroundStyle(Theme.textDim)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -1559,7 +1559,7 @@ private struct FullSidebar: View {
                     .foregroundStyle(Theme.text)
                 Spacer()
                 Text("\(tierCount(tier))")
-                    .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                    .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
             }
             .padding(.leading, indented ? 14 : 0)
             .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
@@ -1653,7 +1653,7 @@ private struct FullSidebar: View {
                     withAnimation(.easeOut(duration: 0.15)) { filedExpanded.toggle() }
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "tray.full").font(.caption)
+                        Image(systemName: "tray.full").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.textDim).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
@@ -1663,7 +1663,7 @@ private struct FullSidebar: View {
                             .accessibilityHidden(true)
                         Spacer()
                         Text("\(lanes.filedTotal)")
-                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                            .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
                     }
                     .modifier(SidebarRowChrome(selected: false))
                 }
@@ -1683,7 +1683,7 @@ private struct FullSidebar: View {
                 // half of the firewall (what mail asked of you, and of them).
                 Button { selected = .commitments } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "checklist").font(.caption)
+                        Image(systemName: "checklist").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.accent).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("section.commitments"))
@@ -1691,7 +1691,7 @@ private struct FullSidebar: View {
                             .foregroundStyle(Theme.text)
                         Spacer()
                         Text("\(model.commitments?.count ?? 0)")
-                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                            .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
                     }
                     .modifier(SidebarRowChrome(selected: selected == .commitments))
                 }
@@ -1704,7 +1704,7 @@ private struct FullSidebar: View {
                 if model.pendingActions.count > 0 || selected == .proposals {
                 Button { selected = .proposals } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "hand.raised").font(.caption)
+                        Image(systemName: "hand.raised").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.accent).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("proposals.title"))
@@ -1712,7 +1712,7 @@ private struct FullSidebar: View {
                             .foregroundStyle(Theme.text)
                         Spacer()
                         Text("\(model.pendingActions.count)")
-                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                            .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
                     }
                     .modifier(SidebarRowChrome(selected: selected == .proposals))
                 }
@@ -1725,7 +1725,7 @@ private struct FullSidebar: View {
                 if model.teamModeAvailable {
                     Button { selected = .teams } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: "person.2").font(.caption)
+                            Image(systemName: "person.2").font(Theme.Typo.icon)
                                 .foregroundStyle(Theme.accent).frame(width: 8)
                                 .accessibilityHidden(true)
                             Text(L("teams.title"))
@@ -1733,7 +1733,7 @@ private struct FullSidebar: View {
                                 .foregroundStyle(Theme.text)
                             Spacer()
                             Text("\(model.teams.count)")
-                                .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                                .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
                         }
                         .modifier(SidebarRowChrome(selected: selected == .teams))
                     }
@@ -1744,7 +1744,7 @@ private struct FullSidebar: View {
                 // Assistant: ask/act across mail, calendar, and the briefing.
                 Button { selected = .assistant } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "sparkles").font(.caption)
+                        Image(systemName: "sparkles").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.accent).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("section.assistant"))
@@ -1761,7 +1761,7 @@ private struct FullSidebar: View {
                 // TODAY/UPCOMING crumbs below.
                 Button { selected = .calendar } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "calendar").font(.caption)
+                        Image(systemName: "calendar").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.accent).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("section.calendar"))
@@ -2295,7 +2295,7 @@ private struct CommitmentsList: View {
             HStack(spacing: 8) {
                 Image(systemName: "checklist").font(.body).foregroundStyle(Theme.accent)
                     .accessibilityHidden(true)
-                Text(L("section.commitments")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                Text(L("section.commitments")).font(Theme.Typo.display).foregroundStyle(Theme.text)
                 Text("\(model.commitments?.count ?? 0)")
                     .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
             }
@@ -2478,17 +2478,18 @@ struct FullRow: View {
                         // mail that "doesn't exist in Gmail" (2026-08-10).
                         // Web parity: firewall-board's SourceBadge.
                         if !sender.isEmpty {
-                            Text(sender).font(.caption.weight(.semibold))
+                            Text(sender).font(Theme.Typo.label)
                                 .foregroundStyle(Theme.textDim).lineLimit(1)
                         } else if let badge = sourceBadgeLabel(item.source) {
-                            Text(badge).font(.caption.weight(.semibold))
+                            Text(badge).font(Theme.Typo.label)
                                 .foregroundStyle(Theme.textDim).lineLimit(1)
                         }
                         Text(decodeHTMLEntities(item.email?.subject ?? item.title))
-                            .font(.system(size: 15, weight: .medium))
+                            .font(Theme.Typo.head)
                             .foregroundStyle(Theme.text).lineLimit(1)
                         if let reason = rowTierReason(item.tierReason) {
-                            Text(reason).font(.caption2).foregroundStyle(Theme.textDim).lineLimit(1)
+                            Text(reason).font(Theme.Typo.caption)
+                                .foregroundStyle(Theme.textDim).lineLimit(1)
                         }
                     }
                     Spacer(minLength: 8)
@@ -2617,7 +2618,7 @@ struct ReadingPane: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: Theme.s2) {
                 Text(decodeHTMLEntities(email.subject ?? L("mail.noSubjectParen")))
-                    .font(.title2.weight(.semibold))
+                    .font(Theme.Typo.display)
                     .foregroundStyle(Theme.text).lineLimit(2)
                 HStack {
                     Text(senderDisplayName(email.from.map(decodeHTMLEntities)))

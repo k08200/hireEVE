@@ -117,6 +117,31 @@ enum Theme {
 
     // MARK: Spacing (4pt grid)
     // s2/s3 within a control, s4 between controls, s6 between sections.
+    // MARK: Typography — the five-step scale (design renewal P0, 2026-08-21).
+    // SF stays (native-feel doctrine, writing-style.md); unification with the
+    // web happens at the HIERARCHY level, not the typeface. Every step is a
+    // deliberate contrast jump so a glance separates statement (head) from
+    // metadata (label/caption) — the old surfaces mixed raw .font() sizes one
+    // point apart, which reads as one grey block at arm's length.
+    enum Typo {
+        /// Screen titles (Preferences, Teams, reading-pane subject).
+        static let display = Font.system(size: 20, weight: .semibold)
+        /// The statement a list is scanned for: subjects, section heads.
+        static let head = Font.system(size: 15, weight: .semibold)
+        /// Identity + controls: senders, buttons, chips.
+        static let label = Font.system(size: 12, weight: .medium)
+        /// Running text.
+        static let body = Font.system(size: 13)
+        /// Metadata: reasons, timestamps, helper lines.
+        static let caption = Font.system(size: 11)
+        /// Tracked micro-labels: column headers. Pair with ColumnHeader tracking.
+        static let micro = Font.system(size: 10, weight: .semibold)
+        /// Counts — monospaced digits so columns of numbers never shimmy.
+        static let numeric = Font.system(size: 13).monospacedDigit()
+        /// Row/nav icons — one size, one weight, everywhere.
+        static let icon = Font.system(size: 12, weight: .medium)
+    }
+
     static let s1: CGFloat = 4
     static let s2: CGFloat = 8
     static let s3: CGFloat = 12
