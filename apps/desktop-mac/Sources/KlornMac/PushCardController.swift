@@ -299,7 +299,9 @@ final class PushCardController {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         // Light v2: the panel is always a light surface — pin the effective
         // appearance so semantic colors resolve light even in system dark mode.
-        panel.appearance = NSAppearance(named: .aqua)
+        // Appearance follows NSApp (system or the Preferences override) —
+        // the light pin predates dark mode (2026-08-15).
+        panel.appearance = nil
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true

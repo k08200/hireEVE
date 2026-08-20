@@ -222,3 +222,39 @@ export function keywordFeatures(email: ClassifiableEmail): TierFeatures {
 
   return { confidence, senderTrust, reversibility, urgency };
 }
+
+// ─── Ontology v2 deterministic signals (tier-policy.ts TierSignals) ─────────
+
+/// Scheduling wording, broader than MEETING_RE (which feeds the v1 keyword
+/// features and must not drift): "invit" covers invite AND invitation; no
+/// bare "schedule" — "scheduled maintenance" notices are INFO, not MEETING.
+/// No bare "calendar"/"zoom"/"schedule"/"일정": marketing copy ("editorial
+/// calendar", "zoom in on savings", "배송 일정") false-positives into a lane
+/// that NOTIFIES. Korean scheduling intent needs the coordination verb.
+const SCHEDULING_RE = /meeting|invit|reschedul|미팅|회의|일정 (조율|변경|조정|협의)/;
+/// A join link in the body is scheduling intent even with a chatty subject.
+const MEET_LINK_RE = /meet\.google\.com\/|zoom\.us\/j\/|teams\.microsoft\.com\/l\/meetup-join/;
+
+/** v2 MEETING signal: invite/reschedule wording or an embedded meeting link. */
+export function detectSchedulingIntent(email: {
+  subject?: string | null;
+  snippet?: string | null;
+  body?: string | null;
+}): boolean {
+  const head = `${email.subject || ""} ${email.snippet || ""}`.toLowerCase();
+  if (SCHEDULING_RE.test(head)) return true;
+  return MEET_LINK_RE.test((email.body || "").slice(0, 4000).toLowerCase());
+}
+
+/**
+ * v2 INFO signal: an automated transactional sender (receipts, alerts,
+ * confirmations). Bulk marketing (List-Unsubscribe) is excluded — that is
+ * SILENT's territory, and the two must not compete for the same mail.
+ */
+export function detectTransactionalNotice(email: {
+  from?: string | null;
+  hasListUnsubscribe?: boolean | null;
+}): boolean {
+  if (email.hasListUnsubscribe) return false;
+  return isAutomatedSender(email.from || "");
+}

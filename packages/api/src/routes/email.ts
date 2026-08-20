@@ -18,7 +18,7 @@ import type {
 import type { EmailMessage, FeedbackSignal, Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
-import { requireAppAccess } from "../billing/entitlement-guard.js";
+import { requireAppAccess, requireEntitled } from "../billing/entitlement-guard.js";
 import { planHasFeature } from "../billing/stripe.js";
 import { MULTI_INBOX_SYNC_ENABLED, providerInboxSelectorEnabled } from "../config.js";
 import { prisma } from "../db.js";
@@ -28,6 +28,7 @@ import {
   getTrustScoresBulk,
   type TrustScoreResult,
 } from "../learning/trust-score.js";
+import { describeLlmFailure } from "../llm/describe-failure.js";
 import {
   analyzePendingEmailAttachments,
   buildAttachmentCandidateProfile,
@@ -41,6 +42,7 @@ import {
   syncRecentCandidateIntakes,
 } from "../mail/email-candidate-intake.js";
 import type { FeedbackRecord } from "../mail/email-label-feedback.js";
+import { summarizeEmailOnDemand } from "../mail/email-summarize.js";
 import {
   getEmailThreads,
   reconcileEmails,
@@ -48,8 +50,9 @@ import {
   syncEmails,
   syncLinkedInboxesForUser,
 } from "../mail/email-sync.js";
-import { coercePlainBody, htmlToPlainText } from "../mail/email-text.js";
-import { getLinkedInboxClients } from "../mail/gmail.js";
+import { coercePlainBody, htmlToPlainText, renderableEmailHtmlFor } from "../mail/email-text.js";
+import { getLinkedInboxClients, resolveMailClient } from "../mail/gmail.js";
+import { getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { senderEmail } from "../notify/notification-format.js";
 import { createTask } from "../pim/tasks.js";
@@ -1055,6 +1058,104 @@ export async function emailRoutes(app: FastifyInstance) {
     },
   );
 
+  // ─── Inline (cid:) image bytes ─────────────────────────────────────────
+  // GET /api/email/:id/inline/:cid — serves an inline MIME image referenced
+  // by src="cid:…" in rendered mail. The desktop webview's cid scheme
+  // handler fetches through here with the normal bearer auth. Misses are a
+  // plain 404 (the client renders a transparent placeholder) — rows synced
+  // before contentId capture landed simply have no match.
+  app.get(
+    "/:id/inline/:cid",
+    {
+      schema: { querystring: { type: "object", additionalProperties: false, properties: {} } },
+      config: { rateLimit: { max: 60, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id, cid } = request.params as { id: string; cid: string };
+      const uid = getUserId(request);
+      const dbEmail = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      });
+      if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+
+      const attachment = await prisma.emailAttachment.findFirst({
+        where: { userId: uid, emailId: dbEmail.id, contentId: cid },
+      });
+      // Only ever serve image/* — mimeType is the sender's declaration, and
+      // reflecting an arbitrary type (e.g. text/html) under our origin is an
+      // XSS foothold the moment any consumer loads this URL outside the
+      // JS-disabled desktop webview.
+      if (!attachment || !attachment.mimeType?.startsWith("image/")) {
+        return reply.code(404).send({ error: "Inline image not found" });
+      }
+
+      const auth = await resolveMailClient(uid, dbEmail.linkedInboxAccountId);
+      if (!auth) return reply.code(404).send({ error: "Mail source not connected" });
+      try {
+        const { google } = await import("googleapis");
+        const gmail = google.gmail({ version: "v1", auth });
+        const res = await gmail.users.messages.attachments.get({
+          userId: "me",
+          messageId: dbEmail.gmailId,
+          id: attachment.gmailAttachmentId,
+        });
+        const data = res.data.data;
+        if (!data) return reply.code(404).send({ error: "Inline image not found" });
+        return reply
+          .type(attachment.mimeType || "application/octet-stream")
+          .header("cache-control", "private, max-age=3600")
+          .send(Buffer.from(data, "base64url"));
+      } catch (err) {
+        console.warn(`[EMAIL] inline image fetch failed for ${dbEmail.id}/${cid}:`, err);
+        return reply.code(404).send({ error: "Inline image not found" });
+      }
+    },
+  );
+
+  // ─── Meeting ↔ calendar cross-reference ──────────────────────────────
+  // GET /api/email/:id/meeting-context — for meeting-category mail: the
+  // proposed slot parsed from the email (anchored at receivedAt), a live
+  // conflict verdict, and nearby local events. Reading-pane data; the same
+  // (cached) context also grounds the reply drafts. Rate-limited because a
+  // cold call costs one LLM parse.
+  app.get(
+    "/:id/meeting-context",
+    {
+      schema: { querystring: { type: "object", additionalProperties: false, properties: {} } },
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const uid = getUserId(request);
+      const dbEmail = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      });
+      if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+
+      const context = await getMeetingContext(uid, {
+        id: dbEmail.id,
+        category: dbEmail.category,
+        summary: dbEmail.summary,
+        keyPoints: parseJsonArray(dbEmail.keyPoints),
+        body: dbEmail.body,
+        receivedAt: dbEmail.receivedAt,
+        from: dbEmail.from,
+      });
+      if (context) return context;
+      // Non-meeting mail answers with an empty context rather than an error —
+      // the client treats "nothing to show" uniformly. Resolve the real zone
+      // so the response always satisfies the MeetingContext contract
+      // (timeZone: string, never null).
+      const { getUserTimeZone } = await import("../user-timezone.js");
+      return {
+        proposed: null,
+        conflict: null,
+        nearby: [],
+        timeZone: await getUserTimeZone(uid),
+      };
+    },
+  );
+
   // ─── Single Email Detail ──────────────────────────────────────────────
   // GET /api/email/:id
   app.get("/:id", { schema: { querystring: emailDetailQuerySchema } }, async (request) => {
@@ -1108,6 +1209,17 @@ export async function emailRoutes(app: FastifyInstance) {
         // instead of tag soup or the snippet stub. A pathological row must
         // degrade to the snippet, not 500 the whole detail view.
         body: serveBody(dbEmail.body, dbEmail.htmlBody, dbEmail.id, uid),
+        // Sanitized HTML for clients that render mail as the sender designed
+        // it (JS-disabled webview). null for genuinely-plain mail — the plain
+        // body above stays authoritative there. Failure degrades to null.
+        renderHtml: (() => {
+          try {
+            return renderableEmailHtmlFor(dbEmail.body, dbEmail.htmlBody);
+          } catch (err) {
+            console.error("[EMAIL] renderHtml sanitize failed:", { emailId: dbEmail.id }, err);
+            return null;
+          }
+        })(),
         date: dbEmail.receivedAt.toISOString(),
         labels: dbEmail.labels,
         isRead: dbEmail.isRead,
@@ -1325,6 +1437,69 @@ export async function emailRoutes(app: FastifyInstance) {
 
       const count = await summarizeUnsummarizedEmails(uid, limit || 10);
       return { summarized: count };
+    },
+  );
+
+  // POST /api/email/:id/summarize — on-demand detailed re-summary of ONE
+  // email (reading-pane "AI 정리"). One foreground LLM call per request, so
+  // the paid-compose gate and the reply-draft rate budget both apply.
+  app.post(
+    "/:id/summarize",
+    {
+      // The plugin-level requireAuth hook already covers this route; the
+      // explicit pair matches the sibling LLM routes and survives hook
+      // reordering. requireAuth first sets userId for requireEntitled.
+      preHandler: [requireAuth, requireEntitled],
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const uid = getUserId(request);
+      const { lang } = (request.body as { lang?: string }) || {};
+
+      const dbEmail = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      });
+      if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+
+      try {
+        const result = await summarizeEmailOnDemand(uid, dbEmail, lang === "ko" ? "ko" : "en");
+        if (!result) {
+          return reply
+            .code(503)
+            .send({ error: "No AI provider is configured. Add an API key in Settings." });
+        }
+        return result;
+      } catch (err) {
+        // Same failure taxonomy as /reply-draft: the cap and the per-user
+        // throttle are user-visible facts, everything else is a transient 503
+        // with the failure class named — never a bare 500.
+        if (err instanceof Error && err.name === "DailyCostCapExceededError") {
+          return reply.code(429).send({ error: err.message });
+        }
+        if (err instanceof Error && err.name === "UserRateLimitedError") {
+          const retryAfterMs = (err as { retryAfterMs?: number }).retryAfterMs ?? 1_000;
+          reply.header("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
+          return reply.code(429).send({ error: err.message });
+        }
+        if (err instanceof Error && err.name === "AllProvidersExhaustedError") {
+          captureError(err, {
+            tags: { scope: "email.summarize-detail.providers-exhausted" },
+            extra: { userId: uid, emailId: dbEmail.id },
+          });
+          return reply.code(503).send({
+            error: "The AI model provider is unavailable right now. Please try again shortly.",
+          });
+        }
+        captureError(err, {
+          tags: { scope: "email.summarize-detail" },
+          extra: { userId: uid, emailId: dbEmail.id },
+        });
+        const reason = describeLlmFailure(err);
+        return reply.code(503).send({
+          error: `Summarizing is temporarily unavailable (${reason}). Please try again shortly.`,
+        });
+      }
     },
   );
 

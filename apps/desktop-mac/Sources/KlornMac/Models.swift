@@ -1,22 +1,53 @@
 import Foundation
 
-/// The locked 4-tier firewall model — PUSH / QUEUE / SILENT / AUTO.
-/// Never a 5th tier or "Call" (CLAUDE.md: the model is fixed at four).
+/// The firewall tier model — PUSH / QUEUE / SILENT / AUTO, with ontology v2
+/// (MEETING/INFO, docs/design/tier-ontology-v2.md) arriving behind the
+/// server-side TIER_V2_ENABLED flag. Until the desktop grows dedicated lanes,
+/// any tier string this build doesn't know decodes as .queue — a v2 server
+/// must never crash or blank an older client (never a decode throw).
 enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     case push = "PUSH"
+    case meeting = "MEETING"
     case queue = "QUEUE"
+    case info = "INFO"
     case silent = "SILENT"
     case auto = "AUTO"
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = Tier(rawValue: raw) ?? .queue
+    }
 
     var id: String { rawValue }
 
     /// Display order: loudest first (what interrupts you), quietest last.
-    static let displayOrder: [Tier] = [.push, .queue, .silent, .auto]
+    /// Callers that render one row per tier hide the v2 lanes (meeting/info)
+    /// while their counts are zero — see `visibleOrder(counts:)` — so a
+    /// flag-off server renders the same four rows as before.
+    static let displayOrder: [Tier] = [.push, .meeting, .queue, .info, .silent, .auto]
+
+    /// What the first-run guide teaches: the five live v2 lanes. AUTO is
+    /// legacy-only after the 2026-08-18 flip (existing rows render; the
+    /// classifier never emits it), so the guide no longer introduces it.
+    static let coreOrder: [Tier] = [.push, .meeting, .queue, .info, .silent]
+
+    /// Whether this tier existed before ontology v2. Pure for the harness.
+    var isV2Lane: Bool { self == .meeting || self == .info }
+
+    /// Rows worth drawing: the five live v2 lanes ALWAYS (the sidebar is the
+    /// classification scheme itself — a zero-count Meeting lane is
+    /// information, founder 2026-08-19); legacy AUTO only while old rows
+    /// remain (the v2 classifier never emits it).
+    static func visibleOrder(counts: (Tier) -> Int) -> [Tier] {
+        displayOrder.filter { $0 != .auto || counts($0) > 0 }
+    }
 
     var label: String {
         switch self {
         case .push: "Push"
+        case .meeting: "Meeting"
         case .queue: "Queue"
+        case .info: "Info"
         case .silent: "Silent"
         case .auto: "Auto"
         }
@@ -49,12 +80,15 @@ struct FirewallItem: Codable, Sendable, Identifiable, Hashable {
     let hashStale: Bool?
 }
 
-/// Per-tier open counts (the daily receipt header).
+/// Per-tier open counts (the daily receipt header). The v2 lanes decode as
+/// optional so a v1 server (no MEETING/INFO keys) still parses; absent = 0.
 struct FirewallSummary: Codable, Sendable, Hashable {
     let silent: Int
     let queue: Int
     let push: Int
     let auto: Int
+    let meeting: Int?
+    let info: Int?
     let total: Int
 
     enum CodingKeys: String, CodingKey {
@@ -62,13 +96,17 @@ struct FirewallSummary: Codable, Sendable, Hashable {
         case queue = "QUEUE"
         case push = "PUSH"
         case auto = "AUTO"
+        case meeting = "MEETING"
+        case info = "INFO"
         case total
     }
 
     func count(for tier: Tier) -> Int {
         switch tier {
         case .push: push
+        case .meeting: meeting ?? 0
         case .queue: queue
+        case .info: info ?? 0
         case .silent: silent
         case .auto: auto
         }
@@ -117,6 +155,8 @@ struct FirewallResponse: Codable, Sendable {
             queue: shifted(.queue, self.summary.queue),
             push: shifted(.push, self.summary.push),
             auto: shifted(.auto, self.summary.auto),
+            meeting: shifted(.meeting, self.summary.meeting ?? 0),
+            info: shifted(.info, self.summary.info ?? 0),
             total: self.summary.total)
         return FirewallResponse(tiers: newTiers, summary: summary)
     }
@@ -136,12 +176,19 @@ struct FirewallResponse: Codable, Sendable {
                 newTiers[tier.rawValue] = kept
             }
         }
+        // Broken into locals: the compiler timed out type-checking the single
+        // six-argument max() expression after the v2 fields joined.
+        let removedTotal = removed.values.reduce(0, +)
+        let newSilent = max(0, self.summary.silent - (removed[.silent] ?? 0))
+        let newQueue = max(0, self.summary.queue - (removed[.queue] ?? 0))
+        let newPush = max(0, self.summary.push - (removed[.push] ?? 0))
+        let newAuto = max(0, self.summary.auto - (removed[.auto] ?? 0))
+        let newMeeting = max(0, (self.summary.meeting ?? 0) - (removed[.meeting] ?? 0))
+        let newInfo = max(0, (self.summary.info ?? 0) - (removed[.info] ?? 0))
         let summary = FirewallSummary(
-            silent: max(0, self.summary.silent - (removed[.silent] ?? 0)),
-            queue: max(0, self.summary.queue - (removed[.queue] ?? 0)),
-            push: max(0, self.summary.push - (removed[.push] ?? 0)),
-            auto: max(0, self.summary.auto - (removed[.auto] ?? 0)),
-            total: max(0, self.summary.total - removed.values.reduce(0, +)))
+            silent: newSilent, queue: newQueue, push: newPush, auto: newAuto,
+            meeting: newMeeting, info: newInfo,
+            total: max(0, self.summary.total - removedTotal))
         return FirewallResponse(tiers: newTiers, summary: summary)
     }
 }
@@ -162,6 +209,16 @@ struct EmailDetail: Codable, Sendable, Identifiable {
     // Klorn's intelligence for this email (all optional/simple — decoding stays
     // resilient; JSONDecoder ignores the endpoint's other, richer fields).
     let summary: String?
+    /// Klorn's category ("meeting", "business", …) — gates the calendar
+    /// cross-reference fetch so ordinary mail costs nothing extra.
+    let category: String?
+    /// Server-sanitized HTML for rendering mail as the sender designed it
+    /// (EmailHtmlView, JS-disabled). null for genuinely-plain mail.
+    let renderHtml: String?
+    /// AI-extracted bullets/tasks (same batch pass as `summary`; the detail
+    /// endpoint always sent these — the pane just never decoded them).
+    let keyPoints: [String]?
+    let actionItems: [String]?
     let needsReply: Bool?
     let needsReplyReason: String?
     /// Learned engagement: how often the user has replied to/written this sender.
@@ -212,6 +269,35 @@ struct EmailDetail: Codable, Sendable, Identifiable {
         if let body, !body.isEmpty { return body }
         return snippet ?? ""
     }
+}
+
+/// GET /api/email/:id/meeting-context — the proposed slot parsed from a
+/// meeting email, the live conflict verdict, and nearby local events. All
+/// optional: the server degrades field-by-field (no parse → proposed null,
+/// calendar unreachable → conflict null) and the pane renders what exists.
+struct MeetingContextWire: Codable, Sendable {
+    struct Proposed: Codable, Sendable {
+        let title: String
+        let startTime: String
+        let endTime: String
+    }
+
+    struct Conflict: Codable, Sendable {
+        let hasConflicts: Bool
+        let message: String
+    }
+
+    struct NearbyEvent: Codable, Sendable, Identifiable {
+        let id: String
+        let title: String
+        let startTime: String
+        let endTime: String
+        let allDay: Bool
+    }
+
+    let proposed: Proposed?
+    let conflict: Conflict?
+    let nearby: [NearbyEvent]
 }
 
 // MARK: - Agent activity ("what Klorn did today")
@@ -425,10 +511,69 @@ struct InboxOption: Codable, Sendable, Identifiable, Hashable {
     let email: String?
     let kind: String  // "primary" | "linked"
     let needsReconnect: Bool
+    /// "GOOGLE" | "NAVER" | … — the server sends it, older builds ignored it.
+    /// Optional so a response without the field still decodes.
+    let provider: String?
 
     /// Selector value ("primary" for the nil-id primary row) — matches the
     /// web InboxSelector's value scheme and the API's `inbox=` param.
     var selectionValue: String { id ?? "primary" }
+}
+
+/// One IMAP mailbox from GET /api/naver-imap/status (routes/imap-connect.ts).
+/// Richer than the inbox selector row — it carries the sync clock — and,
+/// unlike /api/email/inboxes, it is not behind the provider-selector flag.
+struct ImapAccount: Codable, Sendable, Identifiable, Hashable {
+    let email: String
+    let host: String?
+    let connectedAt: String?
+    let lastSyncedAt: String?
+    let needsReconnect: Bool
+
+    var id: String { email }
+}
+
+struct ImapStatusResponse: Codable, Sendable {
+    let connected: Bool
+    let accounts: [ImapAccount]?
+
+    /// Accounts, tolerating an older server that only sent the single-account
+    /// shape (`connected` + `email`).
+    func resolvedAccounts(fallbackEmail: String?) -> [ImapAccount] {
+        if let accounts, !accounts.isEmpty { return accounts }
+        guard connected, let email = fallbackEmail else { return [] }
+        return [
+            ImapAccount(
+                email: email, host: nil, connectedAt: nil, lastSyncedAt: nil,
+                needsReconnect: false)
+        ]
+    }
+}
+
+/// Display label for a mailbox provider. Unknown/absent → a neutral "Mail"
+/// rather than a raw enum string leaking into the UI. Pure for the harness.
+func providerLabel(_ provider: String?) -> String {
+    switch provider?.uppercased() {
+    case "GOOGLE": "Gmail"
+    case "NAVER": "Naver"
+    case "ICLOUD": "iCloud"
+    case "OUTLOOK": "Outlook"
+    default: L("inbox.provider.generic")
+    }
+}
+
+/// Whether an IMAP connect form may be submitted: an address that looks like
+/// one, and a non-empty app password. Deliberately permissive on the address
+/// (the server verifies with a real LOGIN) but it must not be blank or carry
+/// a second recipient. Pure for the harness.
+func canSubmitImapConnect(email: String, password: String) -> Bool {
+    let mail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+    let pass = password.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !pass.isEmpty, pass.count >= 4 else { return false }
+    guard !mail.contains(","), !mail.contains(" ") else { return false }
+    let parts = mail.split(separator: "@")
+    guard parts.count == 2, !parts[0].isEmpty, parts[1].contains(".") else { return false }
+    return true
 }
 
 /// GET /api/email/inboxes response envelope.

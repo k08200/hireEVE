@@ -121,8 +121,27 @@ export async function sessionRevokedForToken(payload: JwtPayload): Promise<boole
   return isTokenRevokedByEpoch(payload, user?.sessionsInvalidatedAt);
 }
 
+// 12 ≈ 250ms/hash on dev hardware (~4x cost 10) — paid once per register/
+// change/reset; login-path upgrades are fire-and-forget so sign-in never
+// waits on the rehash.
+export const BCRYPT_COST = 12;
+
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
+  return bcrypt.hash(password, BCRYPT_COST);
+}
+
+/**
+ * True when a stored hash predates the current cost factor. Malformed input
+ * must never throw out of the login path — it reports "no upgrade" and
+ * comparePassword stays the sole rejector.
+ */
+export function passwordHashNeedsUpgrade(hash: string): boolean {
+  try {
+    const rounds = bcrypt.getRounds(hash);
+    return Number.isFinite(rounds) && rounds < BCRYPT_COST;
+  } catch {
+    return false;
+  }
 }
 
 export async function comparePassword(password: string, hash: string): Promise<boolean> {

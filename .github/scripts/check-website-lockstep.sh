@@ -12,7 +12,10 @@ KO=website/ko/index.html
 skeleton() {
   {
     grep -o 'id="[^"]*"' "$1" || true
-    grep -o 'src="/media/[^"]*"' "$1" || true
+    # Localized app screenshots (/media/app/ko/…) are the one sanctioned
+    # per-language asset divergence — normalize the prefix so the KO page may
+    # point at its own set while the FILENAMES still must match the EN page.
+    grep -o 'src="/media/[^"]*"' "$1" | sed 's|/media/app/ko/|/media/app/|' || true
     grep -o 'poster="/media/[^"]*"' "$1" || true
     grep -oE '^[[:space:]]*\.[a-z][a-zA-Z0-9., :()-]*\{' "$1" | sed 's/[[:space:]]//g' || true
   } | sort

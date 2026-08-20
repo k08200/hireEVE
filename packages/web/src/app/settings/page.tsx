@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
+import AppearanceSection from "../../components/appearance-section";
 import AuthGuard from "../../components/auth-guard";
 import { ByokKeysSection } from "../../components/byok-keys-section";
 import { useConfirm } from "../../components/confirm-dialog";
@@ -17,10 +18,12 @@ import { ListSkeleton } from "../../components/skeleton";
 import { SubscriptionSection } from "../../components/subscription-section";
 import { TelegramSection } from "../../components/telegram-section";
 import { useToast } from "../../components/toast";
+import Button from "../../components/ui/button";
 import StatusChip from "../../components/ui/status-chip";
 import Switch from "../../components/ui/switch";
 import { API_BASE, apiFetch, authHeaders, startGoogleConnect } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { useT } from "../../lib/i18n";
 import {
   fetchVapidKey,
   getOrCreatePushSubscription,
@@ -66,22 +69,21 @@ interface UserProfile {
 // v2 light-surface equivalents of agentModeClasses (the helper keeps the
 // legacy dark palette; presentation-only mapping, same mode semantics).
 function agentModeLightClasses(mode: AgentMode, active: boolean): string {
-  if (!active) return "border-slate-200 bg-white/70 text-slate-500 hover:border-slate-300";
-  if (mode === "SHADOW") return "border-slate-300 bg-slate-100 text-slate-700";
+  if (!active) return "border-line bg-surface-panel/70 text-ink-mid hover:border-line-strong";
+  if (mode === "SHADOW") return "border-line-strong bg-surface-hover text-ink-soft";
   if (mode === "AUTO") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
-// Shared v2 control recipes — one filled primary per screen, quiet secondary,
-// red-tinted destructive. Presentation only.
+// PRIMARY_BTN: kept only for the two spots ui/Button can't take over — an
+// <a> styled as a button (Button only renders a <button> element) and the
+// profile-save button, which swaps to a literal emerald "Saved" class that
+// Button's variants don't model. Every other primary/secondary/danger
+// button on this page now uses ui/Button directly.
 const PRIMARY_BTN =
-  "glow-primary ease-strong inline-flex min-h-10 items-center justify-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-4 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40";
-const SECONDARY_BTN =
-  "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white/70 px-4 text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50";
-const DANGER_BTN =
-  "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 text-sm font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-50";
-const SECTION_TITLE = "mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400";
-const PANEL = "panel-elevated rounded-2xl border border-slate-200/70 bg-white";
+  "glow-primary ease-strong inline-flex min-h-10 items-center justify-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40";
+const SECTION_TITLE = "mb-3 text-[11px] font-semibold uppercase tracking-wider text-ink-dim";
+const PANEL = "panel-elevated rounded-2xl border border-line/70 bg-surface-panel";
 
 export default function SettingsPage() {
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -120,6 +122,19 @@ export default function SettingsPage() {
   const [replyTones, setReplyTones] = useState<
     Array<{ tone: string; label: string; description: string }>
   >([]);
+  // Ontology v2 auto mode: BASIC = notify important+meetings only, human
+  // answers; AUTO = Klorn answers eligible mail per the guideline (send is
+  // additionally server-flag-gated — the UI is honest about that below).
+  const [attentionMode, setAttentionMode] = useState<"BASIC" | "AUTO">("BASIC");
+  const [guidelineDraft, setGuidelineDraft] = useState("");
+  const [guidelineDefault, setGuidelineDefault] = useState("");
+  /// Last text the server is known to hold — used to put the box back when a
+  /// CLEARING save fails, so an empty field can't read as "I cleared it" while
+  /// the server still has the old guideline.
+  const [guidelineSaved, setGuidelineSaved] = useState("");
+  const [guidelineSaving, setGuidelineSaving] = useState(false);
+  const [guidelineAdvice, setGuidelineAdvice] = useState<string | null>(null);
+  const [adviceLoading, setAdviceLoading] = useState(false);
   const [notificationLanguage, setNotificationLanguage] = useState("en");
   const [proactiveActionsEnabled, setProactiveActionsEnabled] = useState(false);
   const [phoneEscalationEnabled, setPhoneEscalationEnabled] = useState(false);
@@ -155,6 +170,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { confirm } = useConfirm();
+  const { t } = useT();
 
   // Check push notification support and permission, auto-repair if granted but no subscription
   useEffect(() => {
@@ -225,7 +241,7 @@ export default function SettingsPage() {
       });
     } catch (err) {
       captureClientError(err, { scope: "settings.save-profile-name" });
-      toast("Could not save your name. Please try again.", "error");
+      toast(t("settings.toast.saveNameFailed"), "error");
       return;
     }
     try {
@@ -240,13 +256,13 @@ export default function SettingsPage() {
       captureClientError(err, { scope: "settings.save-profile-timezone" });
     }
     setProfileSaved(true);
-    toast("Profile saved.", "success");
+    toast(t("settings.toast.profileSaved"), "success");
     setTimeout(() => setProfileSaved(false), 2000);
   };
 
   const enablePush = async () => {
     if (!("Notification" in window)) {
-      toast("This browser does not support notifications.", "error");
+      toast(t("settings.toast.pushUnsupported"), "error");
       return;
     }
     const permission = await Notification.requestPermission();
@@ -258,14 +274,14 @@ export default function SettingsPage() {
           const reg = await getSwRegistration();
           const sub = await getOrCreatePushSubscription(reg, publicKey);
           await registerSubscriptionWithServer(sub);
-          toast("macOS notifications enabled.", "success");
+          toast(t("settings.toast.pushEnabled"), "success");
         }
       } catch (err) {
         console.error("[PUSH-SETTINGS] Error:", err);
-        toast("Push registration failed.", "error");
+        toast(t("settings.toast.pushRegistrationFailed"), "error");
       }
     } else if (permission === "denied") {
-      toast("Notifications are blocked. Allow them in browser settings.", "error");
+      toast(t("settings.toast.pushBlocked"), "error");
     }
   };
 
@@ -275,13 +291,13 @@ export default function SettingsPage() {
     // Retention analytics: turning push off entirely is the strongest churn
     // signal — track it so the dashboard surfaces mute rate.
     track("notif_muted", { scope: "all" });
-    toast("Push notifications disabled.", "info");
+    toast(t("settings.toast.pushDisabled"), "info");
   };
 
   const changePassword = async () => {
     if (!currentPassword || !newPassword) return;
     if (newPassword.length < 6) {
-      toast("Password must be at least 6 characters.", "error");
+      toast(t("settings.toast.passwordMinLength"), "error");
       return;
     }
     setPasswordLoading(true);
@@ -290,11 +306,11 @@ export default function SettingsPage() {
         method: "POST",
         body: JSON.stringify({ currentPassword, newPassword }),
       });
-      toast("Password changed — please log in again on your devices.", "success");
+      toast(t("settings.toast.passwordChanged"), "success");
       setCurrentPassword("");
       setNewPassword("");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed.";
+      const msg = err instanceof Error ? err.message : t("settings.toast.genericFailed");
       const match = msg.match(/API \d+: (.+)/);
       const parsed = match
         ? (() => {
@@ -313,7 +329,7 @@ export default function SettingsPage() {
   const setPasswordForOAuth = async () => {
     if (!newPassword) return;
     if (newPassword.length < 6) {
-      toast("Password must be at least 6 characters.", "error");
+      toast(t("settings.toast.passwordMinLength"), "error");
       return;
     }
     setPasswordLoading(true);
@@ -322,11 +338,11 @@ export default function SettingsPage() {
         method: "POST",
         body: JSON.stringify({ newPassword }),
       });
-      toast("Password set.", "success");
+      toast(t("settings.toast.passwordSet"), "success");
       setNewPassword("");
       setHasPassword(true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed.";
+      const msg = err instanceof Error ? err.message : t("settings.toast.genericFailed");
       const match = msg.match(/API \d+: (.+)/);
       const parsed = match
         ? (() => {
@@ -344,9 +360,9 @@ export default function SettingsPage() {
 
   const disconnectGoogle = async () => {
     const ok = await confirm({
-      title: "Disconnect Google",
-      message: "Remove Gmail and Calendar access. You can reconnect at any time.",
-      confirmLabel: "Disconnect",
+      title: t("settings.confirm.disconnectGoogle.title"),
+      message: t("settings.confirm.disconnectGoogle.message"),
+      confirmLabel: t("settings.confirm.disconnectGoogle.confirmLabel"),
       danger: true,
     });
     if (!ok) return;
@@ -359,16 +375,16 @@ export default function SettingsPage() {
       // guard a failed disconnect still flipped the UI to "disconnected" and
       // toasted success while the server kept the Google grant.
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Request failed." }));
-        toast(body.error || "Could not disconnect Google.", "error");
+        const body = await res.json().catch(() => ({ error: t("settings.toast.requestFailed") }));
+        toast(body.error || t("settings.toast.googleDisconnectFailed"), "error");
         return;
       }
       setGoogleConnected(false);
       setGmailPushEnabled(false);
       setGmailPushExpiresAt(null);
-      toast("Google disconnected.", "info");
+      toast(t("settings.toast.googleDisconnected"), "info");
     } catch {
-      toast("Could not disconnect Google.", "error");
+      toast(t("settings.toast.googleDisconnectFailed"), "error");
     }
   };
 
@@ -380,8 +396,8 @@ export default function SettingsPage() {
         headers: authHeaders(),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Request failed." }));
-        toast(body.error || "Could not enable real-time sync.", "error");
+        const body = await res.json().catch(() => ({ error: t("settings.toast.requestFailed") }));
+        toast(body.error || t("settings.toast.gmailPushEnableFailed"), "error");
         return;
       }
       const data = (await res.json()) as { expiration?: string };
@@ -389,9 +405,9 @@ export default function SettingsPage() {
       if (data.expiration) {
         setGmailPushExpiresAt(new Date(Number(data.expiration)).toISOString());
       }
-      toast("Real-time mail sync enabled.", "success");
+      toast(t("settings.toast.gmailPushEnabled"), "success");
     } catch {
-      toast("Could not enable real-time sync.", "error");
+      toast(t("settings.toast.gmailPushEnableFailed"), "error");
     } finally {
       setGmailPushLoading(false);
     }
@@ -405,15 +421,15 @@ export default function SettingsPage() {
         headers: authHeaders(),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Request failed." }));
-        toast(body.error || "Could not disable real-time sync.", "error");
+        const body = await res.json().catch(() => ({ error: t("settings.toast.requestFailed") }));
+        toast(body.error || t("settings.toast.gmailPushDisableFailed"), "error");
         return;
       }
       setGmailPushEnabled(false);
       setGmailPushExpiresAt(null);
-      toast("Real-time mail sync disabled. Scheduled checks will continue.", "info");
+      toast(t("settings.toast.gmailPushDisabled"), "info");
     } catch {
-      toast("Could not disable real-time sync.", "error");
+      toast(t("settings.toast.gmailPushDisableFailed"), "error");
     } finally {
       setGmailPushLoading(false);
     }
@@ -446,6 +462,9 @@ export default function SettingsPage() {
       quietHoursEnd?: string | null;
       proactiveActions?: boolean;
       phoneEscalationEnabled?: boolean;
+      attentionMode?: string;
+      autoReplyGuideline?: string | null;
+      autoReplyGuidelineDefault?: string;
     }>("/api/automations")
       .then((d) => {
         setProactiveActionsEnabled(d.proactiveActions ?? false);
@@ -461,6 +480,10 @@ export default function SettingsPage() {
         setAutoMarkReadEnabled(d.autoMarkReadEnabled ?? false);
         setReplyTone(d.replyTone ?? "MATCH_ME");
         if (Array.isArray(d.replyTones) && d.replyTones.length > 0) setReplyTones(d.replyTones);
+        setAttentionMode(d.attentionMode === "AUTO" ? "AUTO" : "BASIC");
+        setGuidelineDefault(d.autoReplyGuidelineDefault ?? "");
+        setGuidelineDraft(d.autoReplyGuideline ?? d.autoReplyGuidelineDefault ?? "");
+        setGuidelineSaved(d.autoReplyGuideline ?? d.autoReplyGuidelineDefault ?? "");
         setNotificationLanguage(d.notificationLanguage ?? "en");
         if (d.timezone) setProfile((p) => ({ ...p, timezone: d.timezone ?? p.timezone }));
         setNotifPrefs({
@@ -480,10 +503,9 @@ export default function SettingsPage() {
   const updateAutoMarkRead = async (value: boolean) => {
     if (value) {
       const ok = await confirm({
-        title: "Auto-mark Gmail as read?",
-        message:
-          "After Klorn sends an approved auto-mode reply, the original Gmail thread can be marked as read. Keep this off if unread mail is part of your fallback workflow.",
-        confirmLabel: "Turn on",
+        title: t("settings.confirm.autoMarkRead.title"),
+        message: t("settings.confirm.autoMarkRead.message"),
+        confirmLabel: t("settings.confirm.autoMarkRead.confirmLabel"),
       });
       if (!ok) return;
     }
@@ -495,7 +517,7 @@ export default function SettingsPage() {
       });
     } catch {
       setAutoMarkReadEnabled(!value);
-      toast("Could not save setting.", "error");
+      toast(t("settings.toast.settingSaveFailed"), "error");
     }
   };
 
@@ -506,10 +528,15 @@ export default function SettingsPage() {
         method: "PATCH",
         body: JSON.stringify({ phoneEscalationEnabled: value }),
       });
-      toast(value ? "Phone escalation enabled." : "Phone escalation disabled.", "success");
+      toast(
+        value
+          ? t("settings.toast.phoneEscalationEnabled")
+          : t("settings.toast.phoneEscalationDisabled"),
+        "success",
+      );
     } catch {
       setPhoneEscalationEnabled(!value);
-      toast("Could not save setting.", "error");
+      toast(t("settings.toast.settingSaveFailed"), "error");
     }
   };
 
@@ -524,7 +551,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ [key]: value }),
       });
     } catch {
-      toast("Could not save setting.", "error");
+      toast(t("settings.toast.settingSaveFailed"), "error");
     }
   };
 
@@ -538,7 +565,64 @@ export default function SettingsPage() {
       });
     } catch {
       setReplyTone(previous);
-      toast("Could not save reply tone.", "error");
+      toast(t("settings.toast.replyToneFailed"), "error");
+    }
+  };
+
+  const updateAttentionMode = async (mode: "BASIC" | "AUTO") => {
+    const previous = attentionMode;
+    setAttentionMode(mode);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ attentionMode: mode }),
+      });
+    } catch {
+      setAttentionMode(previous);
+      toast(t("settings.toast.attentionModeFailed"), "error");
+    }
+  };
+
+  const saveGuideline = async () => {
+    setGuidelineSaving(true);
+    try {
+      await apiFetch("/api/automations", {
+        method: "PATCH",
+        body: JSON.stringify({ autoReplyGuideline: guidelineDraft }),
+      });
+      toast(t("settings.toast.guidelineSaved"), "success");
+      // Empty save = reset to the founder default (server stores null).
+      const landed = guidelineDraft.trim() ? guidelineDraft : guidelineDefault;
+      if (!guidelineDraft.trim() && guidelineDefault) setGuidelineDraft(guidelineDefault);
+      setGuidelineSaved(landed);
+    } catch {
+      // A failed CLEARING save must not leave an empty box implying the
+      // guideline is gone — restore what the server still holds. A failed
+      // edit keeps the user's text so they can retry without retyping.
+      if (!guidelineDraft.trim() && guidelineSaved) setGuidelineDraft(guidelineSaved);
+      toast(t("settings.toast.guidelineFailed"), "error");
+    } finally {
+      setGuidelineSaving(false);
+    }
+  };
+
+  const requestGuidelineAdvice = async () => {
+    setAdviceLoading(true);
+    setGuidelineAdvice(null);
+    try {
+      const res = await apiFetch<{ advice?: string }>("/api/automations/guideline-advice", {
+        method: "POST",
+        body: JSON.stringify({ guideline: guidelineDraft }),
+      });
+      if (res.advice) {
+        setGuidelineAdvice(res.advice);
+      } else {
+        toast(t("settings.toast.adviceFailed"), "error");
+      }
+    } catch {
+      toast(t("settings.toast.adviceFailed"), "error");
+    } finally {
+      setAdviceLoading(false);
     }
   };
 
@@ -552,7 +636,7 @@ export default function SettingsPage() {
       });
     } catch {
       setNotificationLanguage(previous);
-      toast("Could not save notification language.", "error");
+      toast(t("settings.toast.notifLanguageFailed"), "error");
     }
   };
 
@@ -585,7 +669,7 @@ export default function SettingsPage() {
       });
     } catch {
       setNotifPrefs(previous);
-      toast("Could not apply the preset.", "error");
+      toast(t("settings.toast.presetFailed"), "error");
     }
   };
 
@@ -596,10 +680,13 @@ export default function SettingsPage() {
         method: "PATCH",
         body: JSON.stringify({ dailyBriefing: enabled }),
       });
-      toast(enabled ? "Daily briefing enabled." : "Daily briefing disabled.", "success");
+      toast(
+        enabled ? t("settings.toast.briefingEnabled") : t("settings.toast.briefingDisabled"),
+        "success",
+      );
     } catch {
       setDailyBriefingEnabled(!enabled);
-      toast("Could not save briefing setting.", "error");
+      toast(t("settings.toast.briefingSaveFailed"), "error");
     }
   };
 
@@ -610,9 +697,9 @@ export default function SettingsPage() {
         method: "PATCH",
         body: JSON.stringify({ briefingTime: value, timezone: profile.timezone }),
       });
-      toast("Briefing time saved.", "success");
+      toast(t("settings.toast.briefingTimeSaved"), "success");
     } catch {
-      toast("Could not save briefing time.", "error");
+      toast(t("settings.toast.briefingTimeSaveFailed"), "error");
     }
   };
 
@@ -620,14 +707,14 @@ export default function SettingsPage() {
     const isEnabling = !alwaysAllowedTools.includes(tool);
     if (isEnabling) {
       const ok = await confirm({
-        title: "Allow this tool to run automatically?",
-        message: `${tool} can run without a separate approval when Auto mode decides it is within policy. Mail replies and destructive actions still require approval.`,
-        confirmLabel: "Allow tool",
+        title: t("settings.confirm.allowTool.title"),
+        message: t("settings.confirm.allowTool.message", { tool }),
+        confirmLabel: t("settings.confirm.allowTool.confirmLabel"),
       });
       if (!ok) return;
     }
     const next = alwaysAllowedTools.includes(tool)
-      ? alwaysAllowedTools.filter((t) => t !== tool)
+      ? alwaysAllowedTools.filter((existing) => existing !== tool)
       : [...alwaysAllowedTools, tool];
     const previous = alwaysAllowedTools;
     setAlwaysAllowedTools(next);
@@ -640,7 +727,12 @@ export default function SettingsPage() {
         setAlwaysAllowedTools(updated.alwaysAllowedTools);
     } catch (err) {
       setAlwaysAllowedTools(previous);
-      toast(`Update failed: ${err instanceof Error ? err.message : "Error"}`, "error");
+      toast(
+        t("settings.toast.updateFailedWithReason", {
+          reason: err instanceof Error ? err.message : t("settings.error"),
+        }),
+        "error",
+      );
     }
   };
 
@@ -693,10 +785,13 @@ export default function SettingsPage() {
         method: "PATCH",
         body: JSON.stringify({ autonomousAgent: enabled }),
       });
-      toast(enabled ? "Decision agent enabled." : "Decision agent disabled.", "success");
+      toast(
+        enabled ? t("settings.toast.agentEnabled") : t("settings.toast.agentDisabled"),
+        "success",
+      );
     } catch {
       setAgentEnabled(!enabled);
-      toast("Could not update.", "error");
+      toast(t("settings.toast.updateFailed"), "error");
     }
   };
 
@@ -708,7 +803,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ agentIntervalMin: min }),
       });
     } catch {
-      toast("Could not save check interval.", "error");
+      toast(t("settings.toast.intervalSaveFailed"), "error");
     }
   };
 
@@ -717,9 +812,9 @@ export default function SettingsPage() {
     setRunningAgent(true);
     try {
       await apiFetch<{ triggered: boolean }>("/api/automations/run-now", { method: "POST" });
-      toast("Agent run started. Check the decision queue for results.", "success");
+      toast(t("settings.toast.agentRunStarted"), "success");
     } catch {
-      toast("Could not run the agent.", "error");
+      toast(t("settings.toast.agentRunFailed"), "error");
     } finally {
       setRunningAgent(false);
     }
@@ -728,10 +823,9 @@ export default function SettingsPage() {
   const toggleAgentMode = async (mode: AgentMode) => {
     if (mode === "AUTO" && agentMode !== "AUTO") {
       const ok = await confirm({
-        title: "Switch to Auto mode?",
-        message:
-          "Klorn can run low-risk internal actions automatically. External replies, calendar changes, destructive work, and anything outside policy still require approval.",
-        confirmLabel: "Use Auto mode",
+        title: t("settings.confirm.autoMode.title"),
+        message: t("settings.confirm.autoMode.message"),
+        confirmLabel: t("settings.confirm.autoMode.confirmLabel"),
       });
       if (!ok) return;
     }
@@ -745,7 +839,7 @@ export default function SettingsPage() {
       toast(agentModeToast(mode), "success");
     } catch {
       setAgentMode(previousMode);
-      toast("Could not save mode.", "error");
+      toast(t("settings.toast.modeSaveFailed"), "error");
     }
   };
 
@@ -779,7 +873,7 @@ export default function SettingsPage() {
   const integrations: Integration[] = [
     {
       name: "Google",
-      description: "Reads Gmail and Calendar signals and connects them to meeting prep.",
+      description: t("settings.integration.google.desc"),
       connected: googleConnected,
       connectUrl: "google-oauth-start",
       statusUrl: `${API_BASE}/api/auth/google/status`,
@@ -787,15 +881,20 @@ export default function SettingsPage() {
     {
       name: "Slack",
       description: slackConnected
-        ? `Connected via ${slackMode === "bot_token" ? "bot token" : "webhook"}`
-        : "An admin must set SLACK_BOT_TOKEN or SLACK_WEBHOOK_URL.",
+        ? t("settings.integration.slack.connectedVia", {
+            method:
+              slackMode === "bot_token"
+                ? t("settings.integration.slack.viaBotToken")
+                : t("settings.integration.slack.viaWebhook"),
+          })
+        : t("settings.integration.slack.adminOnly"),
       connected: slackConnected,
       connectUrl: slackConnected ? undefined : "slack-admin-only",
       statusUrl: `${API_BASE}/api/slack/status`,
     },
     {
       name: "Notion",
-      description: "Prepares page search, document drafts, and database access.",
+      description: t("settings.integration.notion.desc"),
       connected: notionConnected,
       connectUrl: notionConnected ? undefined : "notion-coming-soon",
       statusUrl: `${API_BASE}/api/notion/status`,
@@ -810,13 +909,13 @@ export default function SettingsPage() {
         headers: authHeaders(),
       });
       if (res.ok) {
-        toast("Slack test message sent.", "success");
+        toast(t("settings.toast.slackTestSent"), "success");
       } else {
         const body = await res.json().catch(() => ({}));
-        toast(body.error || "Could not send test message.", "error");
+        toast(body.error || t("settings.toast.slackTestFailed"), "error");
       }
     } catch {
-      toast("Could not send test message.", "error");
+      toast(t("settings.toast.slackTestFailed"), "error");
     } finally {
       setSlackTesting(false);
     }
@@ -832,23 +931,22 @@ export default function SettingsPage() {
       // Without these guards a 5xx (or a Render dyno HTML body) either threw an
       // unhandled rejection or fell through to a fake "success" toast.
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Request failed." }));
-        toast(body.error || "Could not generate briefing.", "error");
+        const body = await res.json().catch(() => ({ error: t("settings.toast.requestFailed") }));
+        toast(body.error || t("settings.toast.briefingGenerateFailed"), "error");
         return;
       }
       const data = await res.json();
-      toast(data.briefing || "Briefing generated. Review it on the briefing screen.", "success");
+      toast(data.briefing || t("settings.toast.briefingGenerated"), "success");
     } catch {
-      toast("Could not generate briefing.", "error");
+      toast(t("settings.toast.briefingGenerateFailed"), "error");
     }
   };
 
   const clearAllData = async () => {
     const ok = await confirm({
-      title: "Delete workspace data",
-      message:
-        "Delete all decision threads, tasks, memories, contacts, and reminders. This cannot be undone.",
-      confirmLabel: "Delete workspace",
+      title: t("settings.confirm.deleteWorkspace.title"),
+      message: t("settings.confirm.deleteWorkspace.message"),
+      confirmLabel: t("settings.confirm.deleteWorkspace.confirmLabel"),
       danger: true,
     });
     if (!ok) return;
@@ -860,26 +958,23 @@ export default function SettingsPage() {
       // Don't falsely tell the user their data was deleted (and wipe local
       // profile state) when the server-side delete actually failed.
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Request failed." }));
-        toast(body.error || "Could not delete workspace data.", "error");
+        const body = await res.json().catch(() => ({ error: t("settings.toast.requestFailed") }));
+        toast(body.error || t("settings.toast.deleteWorkspaceFailed"), "error");
         return;
       }
       localStorage.removeItem(PROFILE_KEY);
       localStorage.removeItem(PINNED_CHATS_KEY);
-      toast("Workspace data deleted.", "info");
+      toast(t("settings.toast.workspaceDeleted"), "info");
     } catch {
-      toast("Could not delete workspace data.", "error");
+      toast(t("settings.toast.deleteWorkspaceFailed"), "error");
     }
   };
 
   const deleteAccount = async () => {
     const ok = await confirm({
-      title: "Delete your account",
-      message:
-        "This permanently deletes your Klorn account and ALL of your data — emails, " +
-        "classifications, tasks, memories, calendar events, connected Google access, " +
-        "and settings. This cannot be undone.",
-      confirmLabel: "Delete my account",
+      title: t("settings.confirm.deleteAccount.title"),
+      message: t("settings.confirm.deleteAccount.message"),
+      confirmLabel: t("settings.confirm.deleteAccount.confirmLabel"),
       danger: true,
     });
     if (!ok) return;
@@ -889,15 +984,15 @@ export default function SettingsPage() {
         headers: authHeaders(),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Request failed." }));
-        toast(body.error || "Could not delete your account.", "error");
+        const body = await res.json().catch(() => ({ error: t("settings.toast.requestFailed") }));
+        toast(body.error || t("settings.toast.deleteAccountFailed"), "error");
         return;
       }
       // Wipe local session and leave the app entirely.
       localStorage.clear();
       window.location.href = "/login?deleted=1";
     } catch {
-      toast("Could not delete your account.", "error");
+      toast(t("settings.toast.deleteAccountFailed"), "error");
     }
   };
 
@@ -907,8 +1002,8 @@ export default function SettingsPage() {
       // Without this guard a 500's error JSON gets written into the downloaded
       // export file and the user is told the export succeeded.
       if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: "Request failed." }));
-        toast(body.error || "Data export failed.", "error");
+        const body = await res.json().catch(() => ({ error: t("settings.toast.requestFailed") }));
+        toast(body.error || t("settings.toast.exportFailed"), "error");
         return;
       }
       const data = await res.json();
@@ -919,9 +1014,9 @@ export default function SettingsPage() {
       a.download = `klorn-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast("Data exported.", "success");
+      toast(t("settings.toast.exported"), "success");
     } catch {
-      toast("Data export failed.", "error");
+      toast(t("settings.toast.exportFailed"), "error");
     }
   };
 
@@ -933,37 +1028,42 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-3 sm:px-6 md:py-10">
         {/* Flat v2 header — plain text on the canvas, no boxed hero. */}
         <header className="mb-8">
-          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
-            Settings
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
+            {t("settings.title")}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Profile, notifications, execution boundaries, and data
-          </p>
+          <p className="mt-2 text-sm text-ink-mid">{t("settings.subtitle")}</p>
         </header>
 
         <SubscriptionSection />
 
         {/* Profile */}
         <section className="mb-8">
-          <h2 className={SECTION_TITLE}>Operator profile</h2>
+          <h2 className={SECTION_TITLE}>{t("settings.section.appearance")}</h2>
+          <div className={`${PANEL} p-5`}>
+            <AppearanceSection />
+          </div>
+        </section>
+
+        <section className="mb-8">
+          <h2 className={SECTION_TITLE}>{t("settings.profile")}</h2>
           <div className={`${PANEL} p-5 space-y-4`}>
             <div>
-              <label htmlFor="profile-name" className="block text-sm text-slate-500 mb-1">
-                Display name
+              <label htmlFor="profile-name" className="block text-sm text-ink-mid mb-1">
+                {t("settings.displayName")}
               </label>
               <input
                 id="profile-name"
                 type="text"
                 value={profile.name}
                 onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
-                placeholder="Name"
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition placeholder-slate-400"
+                placeholder={t("settings.namePlaceholder")}
+                className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-ink-dim"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="profile-lang" className="block text-sm text-slate-500 mb-1">
-                  Language
+                <label htmlFor="profile-lang" className="block text-sm text-ink-mid mb-1">
+                  {t("settings.language")}
                 </label>
                 <select
                   id="profile-lang"
@@ -974,21 +1074,23 @@ export default function SettingsPage() {
                       language: e.target.value as UserProfile["language"],
                     }))
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition"
+                  className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition"
                 >
+                  {/* Language names name themselves — "English"/"한국어" do not
+                      change with the picked UI locale. */}
                   <option value="en">English</option>
                   <option value="ko">한국어</option>
                 </select>
               </div>
               <div>
-                <label htmlFor="profile-tz" className="block text-sm text-slate-500 mb-1">
-                  Time zone
+                <label htmlFor="profile-tz" className="block text-sm text-ink-mid mb-1">
+                  {t("settings.timezone")}
                 </label>
                 <select
                   id="profile-tz"
                   value={profile.timezone}
                   onChange={(e) => setProfile((p) => ({ ...p, timezone: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition"
+                  className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition"
                 >
                   {TIMEZONES.map((tz) => (
                     <option key={tz} value={tz}>
@@ -1008,7 +1110,7 @@ export default function SettingsPage() {
                     : PRIMARY_BTN
                 }
               >
-                {profileSaved ? "Saved" : "Save profile"}
+                {profileSaved ? t("settings.saved") : t("settings.saveProfile")}
               </button>
             </div>
           </div>
@@ -1016,80 +1118,71 @@ export default function SettingsPage() {
 
         {/* Security */}
         <section className="mb-8">
-          <h2 className={SECTION_TITLE}>Access security</h2>
+          <h2 className={SECTION_TITLE}>{t("settings.security")}</h2>
           <div className={`${PANEL} p-5 space-y-4`}>
             {hasPassword ? (
               <>
                 <div>
-                  <label htmlFor="current-pw" className="block text-sm text-slate-500 mb-1">
-                    Current password
+                  <label htmlFor="current-pw" className="block text-sm text-ink-mid mb-1">
+                    {t("settings.currentPassword")}
                   </label>
                   <input
                     id="current-pw"
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Current password"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition placeholder-slate-400"
+                    placeholder={t("settings.currentPassword")}
+                    className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-ink-dim"
                   />
                 </div>
                 <div>
-                  <label htmlFor="new-pw" className="block text-sm text-slate-500 mb-1">
-                    New password
+                  <label htmlFor="new-pw" className="block text-sm text-ink-mid mb-1">
+                    {t("settings.newPassword")}
                   </label>
                   <input
                     id="new-pw"
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder={t("settings.newPasswordPlaceholder")}
                     minLength={6}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition placeholder-slate-400"
+                    className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-ink-dim"
                   />
                 </div>
                 <div className="flex justify-end">
-                  <button
-                    type="button"
+                  <Button
                     onClick={changePassword}
                     disabled={passwordLoading || !currentPassword || !newPassword}
-                    className={PRIMARY_BTN}
                   >
-                    {passwordLoading ? "Changing..." : "Change password"}
-                  </button>
+                    {passwordLoading ? t("settings.changing") : t("settings.changePassword")}
+                  </Button>
                 </div>
               </>
             ) : (
               <>
-                <p className="text-sm text-slate-500">
-                  You are signed in with Google. Set a password to also use email login.
+                <p className="text-sm text-ink-mid">
+                  {t("settings.oauthNoPassword.line1")}
                   <br />
-                  <span className="text-slate-400">
-                    Once saved, this account can sign in with email and password.
-                  </span>
+                  <span className="text-ink-dim">{t("settings.oauthNoPassword.line2")}</span>
                 </p>
                 <div>
-                  <label htmlFor="set-pw" className="block text-sm text-slate-500 mb-1">
-                    New password
+                  <label htmlFor="set-pw" className="block text-sm text-ink-mid mb-1">
+                    {t("settings.newPassword")}
                   </label>
                   <input
                     id="set-pw"
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="At least 6 characters"
+                    placeholder={t("settings.newPasswordPlaceholder")}
                     minLength={6}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-300 transition placeholder-slate-400"
+                    className="w-full bg-surface-raised border border-line rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-accent-muted transition placeholder-ink-dim"
                   />
                 </div>
                 <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={setPasswordForOAuth}
-                    disabled={passwordLoading || !newPassword}
-                    className={PRIMARY_BTN}
-                  >
-                    {passwordLoading ? "Saving..." : "Set password"}
-                  </button>
+                  <Button onClick={setPasswordForOAuth} disabled={passwordLoading || !newPassword}>
+                    {passwordLoading ? t("settings.saving") : t("settings.setPassword")}
+                  </Button>
                 </div>
               </>
             )}
@@ -1100,36 +1193,44 @@ export default function SettingsPage() {
             Both are backend settings the desktop app already exposed; the web
             had no picker, so the same account read differently per client. */}
         <section className="mb-8">
-          <h2 className={SECTION_TITLE}>Replies</h2>
-          <div className={`${PANEL} divide-y divide-slate-100`}>
+          <h2 className={SECTION_TITLE}>{t("settings.section.replies")}</h2>
+          <div className={`${PANEL} divide-y divide-line-soft`}>
             <div className="p-5 space-y-3">
               <div>
                 <label htmlFor="reply-tone" className="font-medium block">
-                  Reply tone
+                  {t("settings.field.replyTone")}
                 </label>
-                <p className="text-sm text-slate-500">
-                  How Klorn's drafts sound. It changes the wording, not what the reply says — and
-                  never the language: a reply is always written in the language of the mail it
-                  answers.
-                </p>
+                <p className="text-sm text-ink-mid">{t("settings.field.replyToneDesc")}</p>
               </div>
               <select
                 id="reply-tone"
                 value={replyTone}
                 onChange={(e) => updateReplyTone(e.target.value)}
-                className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                className="min-h-11 w-full rounded-lg border border-line-strong bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
               >
                 {(replyTones.length > 0
                   ? replyTones
                   : [
                       {
                         tone: "MATCH_ME",
-                        label: "Match me",
-                        description: "Learn from my sent mail",
+                        label: t("settings.replyTone.matchMe.label"),
+                        description: t("settings.replyTone.matchMe.desc"),
                       },
-                      { tone: "FORMAL", label: "Formal", description: "Polite and businesslike" },
-                      { tone: "FRIENDLY", label: "Friendly", description: "Warm but professional" },
-                      { tone: "CASUAL", label: "Casual", description: "Relaxed and short" },
+                      {
+                        tone: "FORMAL",
+                        label: t("settings.replyTone.formal.label"),
+                        description: t("settings.replyTone.formal.desc"),
+                      },
+                      {
+                        tone: "FRIENDLY",
+                        label: t("settings.replyTone.friendly.label"),
+                        description: t("settings.replyTone.friendly.desc"),
+                      },
+                      {
+                        tone: "CASUAL",
+                        label: t("settings.replyTone.casual.label"),
+                        description: t("settings.replyTone.casual.desc"),
+                      },
                     ]
                 ).map((option) => (
                   <option key={option.tone} value={option.tone}>
@@ -1141,52 +1242,131 @@ export default function SettingsPage() {
             <div className="p-5 space-y-3">
               <div>
                 <label htmlFor="notification-language" className="font-medium block">
-                  Notification language
+                  {t("settings.field.notificationLanguage")}
                 </label>
-                <p className="text-sm text-slate-500">
-                  The language Klorn writes its own notifications in ("Draft ready"). Separate from
-                  the app language above, because a notification is composed on the server.
+                <p className="text-sm text-ink-mid">
+                  {t("settings.field.notificationLanguageDesc")}
                 </p>
               </div>
               <select
                 id="notification-language"
                 value={notificationLanguage}
                 onChange={(e) => updateNotificationLanguage(e.target.value)}
-                className="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                className="min-h-11 w-full rounded-lg border border-line-strong bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
               >
+                {/* Language names name themselves, unaffected by UI locale. */}
                 <option value="en">English</option>
                 <option value="ko">한국어</option>
               </select>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <span className="font-medium block">{t("settings.field.attentionMode")}</span>
+                <p className="text-sm text-ink-mid">{t("settings.field.attentionModeDesc")}</p>
+              </div>
+              {/* aria-pressed toggles, not a role=radiogroup: the ARIA radio
+                  pattern promises arrow-key navigation with a roving tabindex,
+                  and claiming the role without it is worse for keyboard users
+                  than not claiming it. Same pattern as the other pickers on
+                  this page (always-allowed tools, auto-mark-read). */}
+              <div className="grid grid-cols-2 gap-2">
+                {(["BASIC", "AUTO"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={attentionMode === mode}
+                    onClick={() => updateAttentionMode(mode)}
+                    className={`min-h-11 rounded-lg border px-3 py-2 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+                      attentionMode === mode
+                        ? "border-accent/60 bg-accent/5 text-ink"
+                        : "border-line-strong bg-surface-panel text-ink-mid hover:border-line-strong hover:text-ink"
+                    }`}
+                  >
+                    <span className="font-medium block">
+                      {mode === "BASIC"
+                        ? t("settings.attentionMode.basic.label")
+                        : t("settings.attentionMode.auto.label")}
+                    </span>
+                    <span className="text-xs text-ink-dim">
+                      {mode === "BASIC"
+                        ? t("settings.attentionMode.basic.desc")
+                        : t("settings.attentionMode.auto.desc")}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {attentionMode === "AUTO" && (
+                <div className="space-y-2 pt-1">
+                  <div>
+                    <label htmlFor="auto-guideline" className="font-medium block text-sm">
+                      {t("settings.field.autoGuideline")}
+                    </label>
+                    <p className="text-xs text-ink-dim">{t("settings.field.autoGuidelineDesc")}</p>
+                  </div>
+                  <textarea
+                    id="auto-guideline"
+                    value={guidelineDraft}
+                    onChange={(e) => setGuidelineDraft(e.target.value)}
+                    rows={5}
+                    maxLength={2000}
+                    className="w-full rounded-lg border border-line-strong bg-surface-panel px-3 py-2 text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={saveGuideline}
+                      disabled={guidelineSaving}
+                      className="min-h-11 rounded-lg border border-accent/60 bg-accent/10 px-3 py-2 text-sm font-medium text-accent-deep hover:bg-accent/15 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                    >
+                      {t("settings.action.saveGuideline")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={requestGuidelineAdvice}
+                      disabled={adviceLoading || !guidelineDraft.trim()}
+                      className="min-h-11 rounded-lg border border-line-strong bg-surface-panel px-3 py-2 text-sm text-ink-mid hover:text-ink disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                    >
+                      {adviceLoading
+                        ? t("settings.action.guidelineAdviceLoading")
+                        : t("settings.action.guidelineAdvice")}
+                    </button>
+                  </div>
+                  {guidelineAdvice && (
+                    <div className="rounded-lg border border-line bg-surface-raised p-3 text-sm text-ink-mid whitespace-pre-wrap">
+                      {guidelineAdvice}
+                    </div>
+                  )}
+                  <p className="text-xs text-ink-dim">{t("settings.autoMode.flagNote")}</p>
+                </div>
+              )}
             </div>
           </div>
         </section>
 
         {/* Notifications */}
         <section className="mb-8">
-          <h2 className={SECTION_TITLE}>Signal rhythm</h2>
-          <div className={`${PANEL} divide-y divide-slate-100`}>
+          <h2 className={SECTION_TITLE}>{t("settings.section.signalRhythm")}</h2>
+          <div className={`${PANEL} divide-y divide-line-soft`}>
             <div className="p-5 space-y-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="font-medium">Morning briefing</h3>
-                  <p className="text-sm text-slate-500">
-                    Sends one daily decision briefing in your time zone, even when you are away.
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Time zone: {profile.timezone}. Change it in the profile section above.
+                  <h3 className="font-medium">{t("settings.morningBriefing.title")}</h3>
+                  <p className="text-sm text-ink-mid">{t("settings.morningBriefing.desc")}</p>
+                  <p className="mt-1 text-xs text-ink-dim">
+                    {t("settings.morningBriefing.timezoneNote", { timezone: profile.timezone })}
                   </p>
                 </div>
                 <Switch
                   checked={dailyBriefingEnabled}
                   onChange={(next) => updateDailyBriefing(next)}
-                  label="Morning briefing"
+                  label={t("settings.morningBriefing.title")}
                   hideLabel
                   className="shrink-0"
                 />
               </div>
-              <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
-                <label htmlFor="briefing-time" className="text-sm font-medium text-slate-900">
-                  Delivery time
+              <div className="flex items-center gap-3 border-t border-line-soft pt-3">
+                <label htmlFor="briefing-time" className="text-sm font-medium text-ink">
+                  {t("settings.field.deliveryTime")}
                 </label>
                 <input
                   id="briefing-time"
@@ -1194,36 +1374,38 @@ export default function SettingsPage() {
                   value={briefingTime}
                   disabled={!dailyBriefingEnabled}
                   onChange={(e) => updateBriefingTime(e.target.value)}
-                  className="min-h-11 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 disabled:opacity-50"
+                  className="min-h-11 rounded border border-line bg-surface-raised px-3 py-2 text-sm text-ink disabled:opacity-50"
                 />
-                <span className="text-xs text-slate-400">Default is 06:00.</span>
+                <span className="text-xs text-ink-dim">
+                  {t("settings.deliveryTime.defaultNote")}
+                </span>
               </div>
             </div>
             <div className="p-5 flex items-center justify-between gap-4">
               <div>
-                <h3 className="font-medium">Push notifications</h3>
-                <p className="text-sm text-slate-500">
+                <h3 className="font-medium">{t("settings.pushNotifications.title")}</h3>
+                <p className="text-sm text-ink-mid">
                   {pushStatus === "unsupported"
-                    ? "This browser does not support push notifications."
+                    ? t("settings.pushNotifications.unsupported")
                     : pushStatus === "granted"
-                      ? "On - receive reminders, briefings, and important mail alerts."
+                      ? t("settings.pushNotifications.on")
                       : pushStatus === "denied"
-                        ? "Blocked by the browser. Allow notifications in browser settings."
-                        : "Receive reminders, briefings, and important mail alerts."}
+                        ? t("settings.pushNotifications.blocked")
+                        : t("settings.pushNotifications.off")}
                 </p>
               </div>
               {pushStatus === "unsupported" || pushStatus === "denied" ? (
-                <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                  {pushStatus === "denied" ? "Blocked" : "Unsupported"}
+                <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
+                  {pushStatus === "denied"
+                    ? t("settings.pushNotifications.blockedChip")
+                    : t("settings.pushNotifications.unsupportedChip")}
                 </span>
               ) : pushStatus === "granted" ? (
-                <button type="button" onClick={disablePush} className={SECONDARY_BTN}>
-                  Turn off
-                </button>
+                <Button variant="secondary" onClick={disablePush}>
+                  {t("settings.turnOff")}
+                </Button>
               ) : (
-                <button type="button" onClick={enablePush} className={PRIMARY_BTN}>
-                  Turn on
-                </button>
+                <Button onClick={enablePush}>{t("settings.turnOn")}</Button>
               )}
             </div>
 
@@ -1231,11 +1413,11 @@ export default function SettingsPage() {
             <div className="p-5 space-y-3">
               <fieldset className="space-y-2">
                 <legend className="w-full">
-                  <span className="block font-medium text-slate-900">
-                    Which signals are worth interrupting you?
+                  <span className="block font-medium text-ink">
+                    {t("settings.notifPrefs.legend")}
                   </span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
-                    Disabled categories stay quiet across push and in-app notifications.
+                  <span className="mt-0.5 block text-xs text-ink-mid">
+                    {t("settings.notifPrefs.legendDesc")}
                   </span>
                 </legend>
                 <div className="flex flex-wrap items-center gap-2 pb-2">
@@ -1250,104 +1432,103 @@ export default function SettingsPage() {
                       !notifPrefs.notifyDailyBriefing &&
                       !notifPrefs.notifyEmailCandidate
                     }
-                    className="ease-strong min-h-11 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition duration-150 hover:bg-slate-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent"
+                    className="ease-strong min-h-11 rounded-lg border border-line-strong px-3 py-2 text-sm text-ink-soft transition duration-150 hover:bg-surface-hover active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent"
                   >
-                    Essentials only
+                    {t("settings.notifPrefs.essentialsOnly")}
                   </button>
-                  <span className="text-xs text-slate-500">
-                    Mail that needs an answer, plus anything on your calendar. Everything else stays
-                    in the app without a notification.
+                  <span className="text-xs text-ink-mid">
+                    {t("settings.notifPrefs.essentialsOnlyDesc")}
                   </span>
                 </div>
                 {[
                   {
                     key: "notifyEmailUrgent" as const,
-                    label: "Urgent mail",
-                    desc: "New mail Klorn considers time-sensitive",
+                    label: t("settings.notifPrefs.urgentMail.label"),
+                    desc: t("settings.notifPrefs.urgentMail.desc"),
                   },
                   {
                     key: "notifyMeeting" as const,
-                    label: "Meeting reminders",
-                    desc: "Upcoming meetings and standup reminders",
+                    label: t("settings.notifPrefs.meeting.label"),
+                    desc: t("settings.notifPrefs.meeting.desc"),
                   },
                   {
                     key: "notifyTaskDue" as const,
-                    label: "Due and overdue",
-                    desc: "Task due-date reminders",
+                    label: t("settings.notifPrefs.taskDue.label"),
+                    desc: t("settings.notifPrefs.taskDue.desc"),
                   },
                   {
                     key: "notifyAgentProposal" as const,
-                    label: "Agent proposals",
-                    desc: "When Klorn needs approval before acting",
+                    label: t("settings.notifPrefs.agentProposal.label"),
+                    desc: t("settings.notifPrefs.agentProposal.desc"),
                   },
                   {
                     key: "notifyDailyBriefing" as const,
-                    label: "Daily briefing",
-                    desc: "Your daily decision briefing",
+                    label: t("settings.notifPrefs.dailyBriefing.label"),
+                    desc: t("settings.notifPrefs.dailyBriefing.desc"),
                   },
                 ].map((row) => (
                   <label
                     key={row.key}
-                    className="flex items-start gap-3 py-2 cursor-pointer hover:bg-slate-100 rounded-lg px-2 transition"
+                    className="flex items-start gap-3 py-2 cursor-pointer hover:bg-surface-hover rounded-lg px-2 transition"
                   >
                     <input
                       type="checkbox"
                       checked={notifPrefs[row.key]}
                       onChange={(e) => updateNotifPref(row.key, e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-slate-300 bg-slate-50 text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
+                      className="mt-0.5 w-4 h-4 rounded border-line-strong bg-surface-raised text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
                     />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">{row.label}</p>
-                      <p className="text-xs text-slate-500">{row.desc}</p>
+                      <p className="text-sm font-medium text-ink">{row.label}</p>
+                      <p className="text-xs text-ink-mid">{row.desc}</p>
                     </div>
                   </label>
                 ))}
               </fieldset>
-              <div className="pt-3 border-t border-slate-100">
-                <p className="text-sm font-medium text-slate-900 mb-1">Quiet hours</p>
-                <p className="text-xs text-slate-500 mb-3">
-                  Pause push notifications during this window. Leave blank for no limit.
+              <div className="pt-3 border-t border-line-soft">
+                <p className="text-sm font-medium text-ink mb-1">
+                  {t("settings.quietHours.title")}
                 </p>
+                <p className="text-xs text-ink-mid mb-3">{t("settings.quietHours.desc")}</p>
                 <div className="flex items-center gap-3">
                   <label htmlFor="quiet-hours-start" className="sr-only">
-                    Quiet hours start time
+                    {t("settings.quietHours.startSrLabel")}
                   </label>
                   <input
                     id="quiet-hours-start"
                     type="time"
-                    aria-label="Quiet hours start"
+                    aria-label={t("settings.quietHours.startAriaLabel")}
                     value={notifPrefs.quietHoursStart || ""}
                     onChange={(e) => updateNotifPref("quietHoursStart", e.target.value || null)}
-                    className="min-h-11 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-sm text-slate-900 focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25"
+                    className="min-h-11 rounded border border-line bg-surface-raised px-2 py-1 text-sm text-ink focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25"
                   />
-                  <span className="text-slate-500 text-sm">to</span>
+                  <span className="text-ink-mid text-sm">{t("settings.quietHours.to")}</span>
                   <label htmlFor="quiet-hours-end" className="sr-only">
-                    Quiet hours end time
+                    {t("settings.quietHours.endSrLabel")}
                   </label>
                   <input
                     id="quiet-hours-end"
                     type="time"
-                    aria-label="Quiet hours end"
+                    aria-label={t("settings.quietHours.endAriaLabel")}
                     value={notifPrefs.quietHoursEnd || ""}
                     onChange={(e) => updateNotifPref("quietHoursEnd", e.target.value || null)}
-                    className="min-h-11 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-sm text-slate-900 focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25"
+                    className="min-h-11 rounded border border-line bg-surface-raised px-2 py-1 text-sm text-ink focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25"
                   />
                 </div>
               </div>
-              <div className="pt-3 border-t border-slate-100">
+              <div className="pt-3 border-t border-line-soft">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Phone escalation</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Calls you once when an urgent notification goes unacknowledged for 5 minutes.
-                      Max 3 calls/day. Quiet hours always win. Requires a verified phone number and
-                      server-side Twilio setup.
+                    <p className="text-sm font-medium text-ink">
+                      {t("settings.phoneEscalation.title")}
+                    </p>
+                    <p className="text-xs text-ink-dim mt-1">
+                      {t("settings.phoneEscalation.desc")}
                     </p>
                   </div>
                   <Switch
                     checked={phoneEscalationEnabled}
                     onChange={(next) => updatePhoneEscalation(next)}
-                    label="Phone escalation"
+                    label={t("settings.phoneEscalation.title")}
                     hideLabel
                     className="shrink-0"
                   />
@@ -1359,19 +1540,17 @@ export default function SettingsPage() {
 
         {/* Decision Agent */}
         <section className="mb-8">
-          <h2 className={SECTION_TITLE}>Decision agent</h2>
+          <h2 className={SECTION_TITLE}>{t("settings.section.decisionAgent")}</h2>
           <div className={`${PANEL} p-5 space-y-4`}>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Execution boundary</h3>
-                <p className="text-sm text-slate-500">
-                  Let Klorn watch work, calendar, and mail in the background within approval limits.
-                </p>
+                <h3 className="font-medium">{t("settings.executionBoundary.title")}</h3>
+                <p className="text-sm text-ink-mid">{t("settings.executionBoundary.desc")}</p>
               </div>
               <Switch
                 checked={agentEnabled}
                 onChange={(next) => toggleAgent(next)}
-                label="Execution boundary"
+                label={t("settings.executionBoundary.title")}
                 hideLabel
                 className="shrink-0"
               />
@@ -1381,7 +1560,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 {/* Agent Mode */}
                 <div>
-                  <div className="text-sm text-slate-500 mb-2">Agent mode</div>
+                  <div className="text-sm text-ink-mid mb-2">{t("settings.field.agentMode")}</div>
                   <div className="grid grid-cols-3 gap-2">
                     {agentModeOptions.map((option) => (
                       <button
@@ -1402,14 +1581,13 @@ export default function SettingsPage() {
                     ))}
                   </div>
                   {agentMode === "SHADOW" && (
-                    <p className="text-[10px] text-slate-500 mt-2">
-                      Klorn quietly prepares drafts and approval-ready work, then queues it.
+                    <p className="text-[10px] text-ink-mid mt-2">
+                      {t("settings.agentMode.shadowNote")}
                     </p>
                   )}
                   {agentMode === "AUTO" && (
                     <p className="text-[10px] text-emerald-600 mt-2">
-                      Low-risk internal work can run automatically. Replies, calendar changes, and
-                      destructive work still require explicit approval.
+                      {t("settings.agentMode.autoNote")}
                     </p>
                   )}
                 </div>
@@ -1417,8 +1595,8 @@ export default function SettingsPage() {
                 {/* Pre-approved tools — skip approval for specific MEDIUM-risk tools */}
                 {agentMode === "AUTO" && preApprovableTools.length > 0 && (
                   <div>
-                    <label className="block text-sm text-slate-500 mb-2">
-                      Always-allowed tools
+                    <label className="block text-sm text-ink-mid mb-2">
+                      {t("settings.field.alwaysAllowedTools")}
                     </label>
                     <div className="space-y-2">
                       {preApprovableTools.map((tool) => {
@@ -1430,42 +1608,43 @@ export default function SettingsPage() {
                             onClick={() => toggleAlwaysAllowedTool(tool)}
                             className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                               enabled
-                                ? "bg-sky-50 border-sky-200 text-sky-700"
-                                : "bg-white/70 border-slate-200 text-slate-500 hover:border-slate-300"
+                                ? "bg-sky-50 border-sky-200 text-accent-deeper"
+                                : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                             }`}
                             aria-pressed={enabled}
                           >
                             <span className="font-mono text-xs">{tool}</span>
                             <span className="text-[10px] opacity-80">
-                              {enabled ? "Run within policy" : "Review first"}
+                              {enabled
+                                ? t("settings.tool.runWithinPolicy")
+                                : t("settings.tool.reviewFirst")}
                             </span>
                           </button>
                         );
                       })}
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-2">
-                      Enabled tools still run only within policy. Mail replies and destructive work
-                      cannot be pre-approved here.
+                    <p className="text-[10px] text-ink-dim mt-2">
+                      {t("settings.alwaysAllowedTools.note")}
                     </p>
                   </div>
                 )}
 
                 {/* Check Interval */}
                 <div>
-                  <label htmlFor="agent-interval" className="block text-sm text-slate-500 mb-1">
-                    Check interval
+                  <label htmlFor="agent-interval" className="block text-sm text-ink-mid mb-1">
+                    {t("settings.field.checkInterval")}
                   </label>
                   <select
                     id="agent-interval"
                     value={agentInterval}
                     onChange={(e) => updateAgentInterval(Number(e.target.value))}
-                    className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm transition focus:border-sky-300 focus:outline-none"
+                    className="min-h-11 rounded-lg border border-line bg-surface-raised px-4 py-2 text-sm transition focus:border-accent-muted focus:outline-none"
                   >
-                    <option value={3}>Every 3 min</option>
-                    <option value={5}>Every 5 min (default)</option>
-                    <option value={10}>Every 10 min</option>
-                    <option value={15}>Every 15 min</option>
-                    <option value={30}>Every 30 min</option>
+                    <option value={3}>{t("settings.checkInterval.3min")}</option>
+                    <option value={5}>{t("settings.checkInterval.5min")}</option>
+                    <option value={10}>{t("settings.checkInterval.10min")}</option>
+                    <option value={15}>{t("settings.checkInterval.15min")}</option>
+                    <option value={30}>{t("settings.checkInterval.30min")}</option>
                   </select>
                 </div>
 
@@ -1477,19 +1656,16 @@ export default function SettingsPage() {
                     className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                       autoMarkReadEnabled
                         ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                        : "bg-white/70 border-slate-200 text-slate-500 hover:border-slate-300"
+                        : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                     }`}
                     aria-pressed={autoMarkReadEnabled}
                   >
-                    <span>Auto-mark Gmail as read</span>
+                    <span>{t("settings.autoMarkRead.label")}</span>
                     <span className="text-[10px] opacity-80">
-                      {autoMarkReadEnabled ? "On" : "Off"}
+                      {autoMarkReadEnabled ? t("settings.state.on") : t("settings.state.off")}
                     </span>
                   </button>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    In auto mode, Klorn can mark the original Gmail thread as read after sending a
-                    reply. Default is off so unread mail remains a fallback.
-                  </p>
+                  <p className="text-[10px] text-ink-dim mt-1">{t("settings.autoMarkRead.desc")}</p>
                 </div>
 
                 {/* Proactive actions toggle */}
@@ -1505,31 +1681,28 @@ export default function SettingsPage() {
                           body: JSON.stringify({ proactiveActions: next }),
                         });
                         toast(
-                          next
-                            ? "Proactive alerts on — Klorn will notify you about unanswered emails, overdue tasks, and upcoming meetings."
-                            : "Proactive alerts off.",
+                          next ? t("settings.toast.proactiveOn") : t("settings.toast.proactiveOff"),
                           "success",
                         );
                       } catch {
                         setProactiveActionsEnabled(!next);
-                        toast("Could not save setting.", "error");
+                        toast(t("settings.toast.settingSaveFailed"), "error");
                       }
                     }}
                     className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                       proactiveActionsEnabled
-                        ? "bg-sky-50 border-sky-200 text-sky-700"
-                        : "bg-white/70 border-slate-200 text-slate-500 hover:border-slate-300"
+                        ? "bg-sky-50 border-sky-200 text-accent-deeper"
+                        : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                     }`}
                     aria-pressed={proactiveActionsEnabled}
                   >
-                    <span>Proactive alerts</span>
+                    <span>{t("settings.proactiveAlerts.label")}</span>
                     <span className="text-[10px] opacity-80">
-                      {proactiveActionsEnabled ? "On" : "Off"}
+                      {proactiveActionsEnabled ? t("settings.state.on") : t("settings.state.off")}
                     </span>
                   </button>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Klorn watches for unanswered emails, overdue tasks, upcoming meetings, and
-                    follow-up opportunities — and alerts you before they slip.
+                  <p className="text-[10px] text-ink-dim mt-1">
+                    {t("settings.proactiveAlerts.desc")}
                   </p>
                 </div>
 
@@ -1537,17 +1710,10 @@ export default function SettingsPage() {
 
                 {/* Run Now Button */}
                 <div>
-                  <button
-                    type="button"
-                    onClick={runAgentNow}
-                    disabled={runningAgent}
-                    className={PRIMARY_BTN}
-                  >
-                    {runningAgent ? "Running..." : "Run agent now"}
-                  </button>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Check signals now without waiting for the next cycle.
-                  </p>
+                  <Button onClick={runAgentNow} disabled={runningAgent}>
+                    {runningAgent ? t("settings.state.running") : t("settings.runAgentNow")}
+                  </Button>
+                  <p className="text-[10px] text-ink-dim mt-1">{t("settings.runAgentNow.desc")}</p>
                 </div>
               </div>
             )}
@@ -1557,33 +1723,33 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={loadAgentLogs}
-                className="inline-flex min-h-11 items-center text-sm text-sky-600 transition hover:text-sky-700"
+                className="inline-flex min-h-11 items-center text-sm text-accent-deep transition hover:text-accent-deeper"
               >
-                {agentLogsLoading ? "Loading..." : "View recent activity"}
+                {agentLogsLoading ? t("common.loading") : t("settings.viewRecentActivity")}
               </button>
               {agentLogs.length > 0 && (
                 <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
                   {agentLogs.map((log) => (
                     <div
                       key={log.id}
-                      className="bg-slate-50/60 border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                      className="bg-surface-raised/60 border border-line rounded-lg px-3 py-2 text-sm"
                     >
                       <div className="flex items-center gap-2">
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             log.action === "notify"
-                              ? "bg-sky-500"
+                              ? "bg-accent"
                               : log.action === "tool_call"
                                 ? "bg-emerald-400"
                                 : log.action === "auto_action"
-                                  ? "bg-sky-500"
+                                  ? "bg-accent"
                                   : log.action === "error"
                                     ? "bg-red-400"
                                     : "bg-slate-300"
                           }`}
                         />
-                        <span className="text-slate-500 flex-1 truncate">{log.summary}</span>
-                        <span className="text-slate-500 text-xs shrink-0">
+                        <span className="text-ink-mid flex-1 truncate">{log.summary}</span>
+                        <span className="text-ink-mid text-xs shrink-0">
                           {new Date(log.createdAt).toLocaleString("en-US", {
                             month: "short",
                             day: "numeric",
@@ -1593,7 +1759,9 @@ export default function SettingsPage() {
                         </span>
                       </div>
                       {log.tool && (
-                        <span className="text-xs text-slate-400 ml-3.5">Tool: {log.tool}</span>
+                        <span className="text-xs text-ink-dim ml-3.5">
+                          {t("settings.agentLog.toolPrefix", { tool: log.tool })}
+                        </span>
                       )}
                     </div>
                   ))}
@@ -1607,25 +1775,27 @@ export default function SettingsPage() {
                 type="button"
                 onClick={loadLearnedPatterns}
                 disabled={patternsLoading}
-                className="inline-flex min-h-11 items-center text-sm text-sky-600 transition hover:text-sky-700 disabled:opacity-50"
+                className="inline-flex min-h-11 items-center text-sm text-accent-deep transition hover:text-accent-deeper disabled:opacity-50"
               >
                 {patternsLoading
-                  ? "Analyzing..."
+                  ? t("settings.state.analyzing")
                   : patternsLoaded
-                    ? "Refresh learned patterns"
-                    : "What has Klorn learned about you?"}
+                    ? t("settings.refreshPatterns")
+                    : t("settings.whatLearned")}
               </button>
               {patternsLoaded && (
                 <div className="mt-3">
                   {learnedPatterns.length === 0 ? (
-                    <p className="text-xs text-slate-400">
-                      Not enough data yet — patterns emerge after a few days of use.
-                    </p>
+                    <p className="text-xs text-ink-dim">{t("settings.patterns.notEnough")}</p>
                   ) : (
                     <div className="space-y-2">
                       {learnedPatterns.slice(0, 8).map((p, i) => {
                         const confidenceLabel =
-                          p.confidence >= 0.8 ? "HIGH" : p.confidence >= 0.5 ? "MED" : "LOW";
+                          p.confidence >= 0.8
+                            ? t("settings.confidence.high")
+                            : p.confidence >= 0.5
+                              ? t("settings.confidence.med")
+                              : t("settings.confidence.low");
                         const typeColor =
                           p.type === "rejection"
                             ? "border-red-200 bg-red-50 text-red-600"
@@ -1633,21 +1803,19 @@ export default function SettingsPage() {
                               ? "border-blue-200 bg-blue-50 text-blue-600"
                               : p.type === "tool_preference"
                                 ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                                : "border-sky-200 bg-sky-50 text-sky-600";
+                                : "border-sky-200 bg-sky-50 text-accent-deep";
                         return (
                           <div
                             key={i}
-                            className="bg-slate-50/60 border border-slate-200 rounded-lg px-3 py-2 text-sm flex items-start gap-2"
+                            className="bg-surface-raised/60 border border-line rounded-lg px-3 py-2 text-sm flex items-start gap-2"
                           >
                             <span
                               className={`shrink-0 rounded border px-1 py-0.5 text-[10px] font-medium ${typeColor}`}
                             >
                               {confidenceLabel}
                             </span>
-                            <span className="text-slate-500 flex-1">{p.description}</span>
-                            <span className="shrink-0 text-[11px] text-slate-400">
-                              {p.evidence}×
-                            </span>
+                            <span className="text-ink-mid flex-1">{p.description}</span>
+                            <span className="shrink-0 text-[11px] text-ink-dim">{p.evidence}×</span>
                           </div>
                         );
                       })}
@@ -1661,12 +1829,12 @@ export default function SettingsPage() {
 
         {/* Integrations */}
         <section className="mb-8">
-          <h2 className={SECTION_TITLE}>Connections</h2>
+          <h2 className={SECTION_TITLE}>{t("settings.section.connections")}</h2>
           <InAppBrowserNotice />
           <Suspense>
             <OAuthErrorBanner />
           </Suspense>
-          <div className={`${PANEL} divide-y divide-slate-100`}>
+          <div className={`${PANEL} divide-y divide-line-soft`}>
             {loading ? (
               <div className="p-4">
                 <ListSkeleton count={3} />
@@ -1676,56 +1844,62 @@ export default function SettingsPage() {
                 <div key={int.name} className="flex items-center justify-between gap-4 p-4">
                   <div>
                     <h3 className="font-medium">{int.name}</h3>
-                    <p className="text-sm text-slate-500">{int.description}</p>
+                    <p className="text-sm text-ink-mid">{int.description}</p>
                   </div>
                   {int.connected ? (
                     <div className="flex items-center gap-3">
                       <StatusChip status="connected" />
                       {int.name === "Google" && (
+                        // Compact inline chip: quiet danger tint that never inverts to
+                        // solid red on hover, unlike Button's danger variant — kept
+                        // local rather than forcing a visual change onto this row.
                         <button
                           type="button"
                           onClick={disconnectGoogle}
                           className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                         >
-                          Disconnect
+                          {t("settings.disconnect")}
                         </button>
                       )}
                       {int.name === "Slack" && (
+                        // Compact inline chip: accent-outline styling Button has no
+                        // variant for (secondary is neutral, not accent-tinted) —
+                        // kept local rather than forcing a visual change onto this row.
                         <button
                           type="button"
                           onClick={testSlack}
                           disabled={slackTesting}
-                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-accent transition duration-150 hover:bg-white hover:border-accent/50 active:scale-[0.97] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-accent transition duration-150 hover:bg-surface-panel hover:border-accent/50 active:scale-[0.97] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                         >
-                          {slackTesting ? "Sending..." : "Send test"}
+                          {slackTesting ? t("settings.state.sending") : t("settings.sendTest")}
                         </button>
                       )}
                     </div>
                   ) : int.connectUrl?.endsWith("-admin-only") ? (
-                    <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                      Admin setup
+                    <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
+                      {t("settings.chip.adminSetup")}
                     </span>
                   ) : int.connectUrl?.endsWith("-coming-soon") ? (
-                    <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                      Coming soon
+                    <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
+                      {t("settings.chip.comingSoon")}
                     </span>
                   ) : int.connectUrl === "google-oauth-start" ? (
-                    <button
-                      type="button"
+                    <Button
                       onClick={() => {
                         void startGoogleConnect();
                       }}
-                      className={PRIMARY_BTN}
                     >
-                      Connect
-                    </button>
+                      {t("settings.connect")}
+                    </Button>
                   ) : int.connectUrl ? (
+                    // Button renders a <button>; this is a same-page <a> navigation
+                    // to an OAuth start URL, so it keeps the raw PRIMARY_BTN class.
                     <a href={int.connectUrl} className={PRIMARY_BTN}>
-                      Connect
+                      {t("settings.connect")}
                     </a>
                   ) : (
-                    <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                      Coming soon
+                    <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
+                      {t("settings.chip.comingSoon")}
                     </span>
                   )}
                 </div>
@@ -1736,40 +1910,36 @@ export default function SettingsPage() {
           {googleConnected && (
             <div className={`mt-3 ${PANEL} p-4 flex items-center justify-between gap-4`}>
               <div>
-                <h3 className="font-medium">Real-time mail sync</h3>
-                <p className="text-sm text-slate-500">
+                <h3 className="font-medium">{t("settings.realtimeSync.title")}</h3>
+                <p className="text-sm text-ink-mid">
                   {gmailPushConfigured
                     ? gmailPushEnabled
                       ? gmailPushExpiresAt
-                        ? `Gmail push is active until ${new Date(gmailPushExpiresAt).toLocaleString("en-US")}. It renews automatically before expiration.`
-                        : "Gmail push is active and renews automatically before expiration."
-                      : "Subscribe to Gmail push so mail signals arrive immediately. If off, Klorn checks every minute."
-                    : "The server Pub/Sub topic is not configured yet. Ask an admin to enable it."}
+                        ? t("settings.realtimeSync.activeUntil", {
+                            date: new Date(gmailPushExpiresAt).toLocaleString("en-US"),
+                          })
+                        : t("settings.realtimeSync.active")
+                      : t("settings.realtimeSync.subscribe")
+                    : t("settings.realtimeSync.notConfigured")}
                 </p>
               </div>
               {gmailPushConfigured ? (
                 gmailPushEnabled ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     onClick={disableGmailPush}
                     disabled={gmailPushLoading}
-                    className={SECONDARY_BTN}
                   >
-                    {gmailPushLoading ? "..." : "Turn off"}
-                  </button>
+                    {gmailPushLoading ? "..." : t("settings.turnOff")}
+                  </Button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={enableGmailPush}
-                    disabled={gmailPushLoading}
-                    className={PRIMARY_BTN}
-                  >
-                    {gmailPushLoading ? "..." : "Turn on"}
-                  </button>
+                  <Button onClick={enableGmailPush} disabled={gmailPushLoading}>
+                    {gmailPushLoading ? "..." : t("settings.turnOn")}
+                  </Button>
                 )
               ) : (
-                <span className="text-sm text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                  Unavailable
+                <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
+                  {t("settings.realtimeSync.unavailable")}
                 </span>
               )}
             </div>
@@ -1810,36 +1980,34 @@ export default function SettingsPage() {
 
         {/* Manual Runs */}
         <section className="mb-8">
-          <h2 className={SECTION_TITLE}>Manual runs</h2>
+          <h2 className={SECTION_TITLE}>{t("settings.section.manualRuns")}</h2>
           <div className="space-y-3">
             <div className={`${PANEL} p-4 flex items-center justify-between gap-4`}>
               <div>
-                <h3 className="font-medium">Daily briefing</h3>
-                <p className="text-sm text-slate-500">
-                  Build a priority briefing from tasks, calendar, and mail signals.
+                <h3 className="font-medium">{t("settings.dailyBriefing")}</h3>
+                <p className="text-sm text-ink-mid">
+                  {t("settings.manualRuns.dailyBriefing.desc")}
                 </p>
               </div>
-              <button type="button" onClick={generateBriefing} className={SECONDARY_BTN}>
-                Generate briefing
-              </button>
+              <Button variant="secondary" onClick={generateBriefing}>
+                {t("settings.generateBriefing")}
+              </Button>
             </div>
           </div>
         </section>
 
         {/* Data Management */}
         <section className="mb-8">
-          <h2 className={SECTION_TITLE}>Workspace data</h2>
+          <h2 className={SECTION_TITLE}>{t("settings.data")}</h2>
           <div className="space-y-3">
             <div className={`${PANEL} p-4 flex items-center justify-between gap-4`}>
               <div>
-                <h3 className="font-medium">Export workspace data</h3>
-                <p className="text-sm text-slate-500">
-                  Download decision threads, signals, memory, and execution history as JSON.
-                </p>
+                <h3 className="font-medium">{t("settings.exportData")}</h3>
+                <p className="text-sm text-ink-mid">{t("settings.exportWorkspace.desc")}</p>
               </div>
-              <button type="button" onClick={exportData} className={SECONDARY_BTN}>
-                Export
-              </button>
+              <Button variant="secondary" onClick={exportData}>
+                {t("settings.export")}
+              </Button>
             </div>
           </div>
         </section>
@@ -1847,46 +2015,40 @@ export default function SettingsPage() {
         {/* Workspace Reset */}
         <section className="mb-8">
           <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-red-400">
-            Workspace reset
+            {t("settings.dangerZone")}
           </h2>
-          <div className="panel-elevated rounded-2xl border border-red-200 bg-white divide-y divide-red-100">
+          <div className="panel-elevated rounded-2xl border border-red-200 bg-surface-panel divide-y divide-red-100">
             <div className="flex items-center justify-between gap-4 p-4">
               <div>
-                <h3 className="font-medium">Delete workspace data</h3>
-                <p className="text-sm text-slate-500">
-                  Permanently delete decision threads, tasks, memories, contacts, and reminders.
-                </p>
+                <h3 className="font-medium">{t("settings.confirm.deleteWorkspace.title")}</h3>
+                <p className="text-sm text-ink-mid">{t("settings.deleteWorkspace.desc")}</p>
               </div>
-              <button type="button" onClick={clearAllData} className={DANGER_BTN}>
-                Delete workspace
-              </button>
+              <Button variant="danger" onClick={clearAllData}>
+                {t("settings.deleteAll")}
+              </Button>
             </div>
             <div className="flex items-center justify-between gap-4 p-4">
               <div>
-                <h3 className="font-medium">Delete account</h3>
-                <p className="text-sm text-slate-500 mt-0.5">
-                  Permanently delete your account, Google access, and all data. This cannot be
-                  undone.
-                </p>
+                <h3 className="font-medium">{t("settings.deleteBtn")}</h3>
+                <p className="text-sm text-ink-mid mt-0.5">{t("settings.deleteAccount.desc")}</p>
               </div>
-              <button type="button" onClick={deleteAccount} className={DANGER_BTN}>
-                Delete account
-              </button>
+              <Button variant="danger" onClick={deleteAccount}>
+                {t("settings.deleteBtn")}
+              </Button>
             </div>
           </div>
         </section>
 
         {/* About */}
         <section>
-          <h2 className={SECTION_TITLE}>About</h2>
+          <h2 className={SECTION_TITLE}>{t("settings.about")}</h2>
           <div className={`${PANEL} p-4`}>
-            <p className="text-sm text-slate-500">
-              <span className="text-sky-600 font-medium">Klorn</span> · Decision OS
+            <p className="text-sm text-ink-mid">
+              <span className="text-accent-deep font-medium">Klorn</span> ·{" "}
+              {t("settings.about.tagline")}
             </p>
-            <p className="text-sm text-slate-400 mt-1">
-              Built to reduce scattered tabs and make the next decision clearer.
-            </p>
-            <p className="text-xs text-slate-500 mt-3">v0.2.0 — MVP</p>
+            <p className="text-sm text-ink-dim mt-1">{t("settings.about.desc")}</p>
+            <p className="text-xs text-ink-mid mt-3">{t("settings.about.version")}</p>
           </div>
         </section>
       </div>

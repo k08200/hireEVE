@@ -264,6 +264,46 @@ async function linkedAccountConflicts(
   return { conflicts, accountsChecked: linked.length };
 }
 
+/**
+ * Team-mode v1 (founder 2026-08-15/19): are the OTHER people free at the
+ * proposed slot? Queries Google free/busy for the given attendee addresses —
+ * works whenever their calendars are visible to this account (same Workspace
+ * or explicitly shared). A calendar we can't read reports an inline error and
+ * is OMITTED (unknown, never "free"). Best-effort by contract: any transport
+ * failure returns [] and the caller says nothing rather than guessing.
+ */
+export async function checkAttendeeBusy(
+  userId: string,
+  attendeeEmails: string[],
+  startTime: string,
+  endTime: string,
+): Promise<Array<{ email: string; busy: boolean }>> {
+  if (attendeeEmails.length === 0) return [];
+  const auth = await getAuthedClient(userId);
+  if (!auth) return [];
+  const userZone = await getUserTimeZone(userId);
+  const timeMin = toAbsoluteInstant(startTime, userZone);
+  const timeMax = toAbsoluteInstant(endTime, userZone);
+  if (!timeMin || !timeMax) return [];
+  try {
+    const calendar = google.calendar({ version: "v3", auth });
+    const fb = await calendar.freebusy.query({
+      requestBody: { timeMin, timeMax, items: attendeeEmails.map((id) => ({ id })) },
+    });
+    const calendars = fb.data.calendars ?? {};
+    const out: Array<{ email: string; busy: boolean }> = [];
+    for (const email of attendeeEmails) {
+      const cal = calendars[email];
+      if (!cal || (cal.errors?.length ?? 0) > 0) continue; // not visible — unknown
+      out.push({ email, busy: (cal.busy?.length ?? 0) > 0 });
+    }
+    return out;
+  } catch (err) {
+    console.warn(`[CALENDAR] attendee freebusy failed for ${userId}:`, err);
+    return [];
+  }
+}
+
 export async function checkConflicts(userId: string, startTime: string, endTime: string) {
   const auth = await getAuthedClient(userId);
   if (!auth) return { error: "Google Calendar not connected." };

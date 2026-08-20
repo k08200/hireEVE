@@ -64,9 +64,15 @@ final class AppModel {
     // Reading pane (full view): the selected row + its loaded email content.
     private(set) var selectedItemId: String?
     private(set) var openedEmail: EmailDetail?
+    /// Calendar cross-reference for the opened meeting email (nil while
+    /// loading, for non-meeting mail, or when the server has nothing).
+    private(set) var meetingContext: MeetingContextWire?
     private(set) var isLoadingEmail = false
     private(set) var emailError: String?
     private(set) var replyError: String?
+    /// On-demand deep re-summary ("AI 정리") in flight / failed for the pane.
+    private(set) var isSummarizing = false
+    private(set) var summarizeFailed = false
 
     /// Refresh cadence so new PUSH mail surfaces a notification even with the
     /// window closed (also keeps the free-tier API warm).
@@ -101,6 +107,24 @@ final class AppModel {
     /// every mail-list fetch is scoped by `selectedInbox` (doctrine: never
     /// assume the primary account).
     private(set) var inboxes: [InboxOption] = []
+    /// Server-enabled login providers (GET /api/auth/providers, unauthed).
+    /// Defaults to ["google"] so the UI works before/without the fetch.
+    private(set) var loginProviders: [String] = ["google"]
+
+    func refreshLoginProviders() async {
+        struct Row: Codable { let id: String }
+        struct Providers: Codable { let providers: [Row] }
+        if let resp = try? await api.get("/api/auth/providers", authed: false, as: Providers.self),
+           !resp.providers.isEmpty
+        {
+            loginProviders = resp.providers.map(\.id)
+        }
+    }
+    /// Naver IMAP mailboxes, fetched from the ungated status endpoint so the
+    /// account list is complete even while the provider selector flag is off.
+    private(set) var imapAccounts: [ImapAccount] = []
+    private(set) var imapError: String?
+    private(set) var isConnectingImap = false
 
     /// Selector value: "all" | "primary" | a linked inbox id. Persisted so the
     /// scope survives relaunch (klorn.-prefixed defaults key — required).
@@ -145,6 +169,64 @@ final class AppModel {
             }
         } catch {
             Log.app.debug("inboxes fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Reload the Naver IMAP mailbox list. Silent on failure — the section
+    /// simply shows nothing rather than an error the user can't act on.
+    func refreshImapAccounts() async {
+        do {
+            let status = try await api.fetchNaverStatus()
+            imapAccounts = status.resolvedAccounts(fallbackEmail: nil)
+        } catch {
+            Log.app.debug("imap status fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Connect a Naver mailbox. The app password travels straight to the
+    /// server (live IMAP verify + enciphered storage) and is never written to
+    /// disk here. Returns true when the mailbox was accepted, so the form can
+    /// clear its fields on success only.
+    func connectNaverInbox(email: String, password: String) async -> Bool {
+        guard !isConnectingImap else { return false }
+        isConnectingImap = true
+        defer { isConnectingImap = false }
+        imapError = nil
+        do {
+            try await api.connectNaver(email: email, password: password)
+            await refreshImapAccounts()
+            await refreshInboxes()
+            await loadQueue()
+            return true
+        } catch APIError.unauthorized {
+            signOut()
+            return false
+        } catch APIError.forbidden {
+            // Entitlement, not a dead session — never sign the user out here.
+            imapError = L("error.needsPro")
+            return false
+        } catch let APIError.http(status, message) {
+            // 400 carries the server's real reason (bad app password, host
+            // mismatch); 429 is the 5-per-15-minutes connect limit.
+            imapError = status == 429 ? L("account.imap.rateLimited") : (message ?? L("account.imap.failed"))
+            return false
+        } catch {
+            imapError = L("account.imap.failed")
+            return false
+        }
+    }
+
+    /// Disconnect ONE Naver mailbox (never the bodyless all-accounts form).
+    func disconnectNaverInbox(email: String) async {
+        imapError = nil
+        do {
+            try await api.disconnectNaver(email: email)
+            await refreshImapAccounts()
+            await refreshInboxes()
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            imapError = L("account.imap.disconnectFailed")
         }
     }
 
@@ -240,6 +322,9 @@ final class AppModel {
     /// `loadQueue()` -> `ensureActive()` establishes the silent PUSH baseline and
     /// starts polling; idempotent, so calling it once on launch is enough.
     func start() {
+        // Which sign-in buttons to offer — server-driven, fetched once at
+        // launch (unauthed; harmless if it fails: Google stays the default).
+        Task { await refreshLoginProviders() }
         guard phase == .signedIn else { return }
         Task { await loadQueue() }
     }
@@ -254,20 +339,20 @@ final class AppModel {
     /// polling a nonce the server has already burned, fails a few seconds
     /// later, and stomps the SECOND attempt's state back to signed-out — the
     /// bar flickering between "Log in" and "Signing in…" (dogfood 2026-08-10).
-    func signIn() async {
+    func signIn(provider: String = "google") async {
         signInTask?.cancel()
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.runSignIn()
+            await self.runSignIn(provider: provider)
         }
         signInTask = task
         await task.value
     }
 
-    private func runSignIn() async {
+    private func runSignIn(provider: String = "google") async {
         phase = .signingIn
         signInError = nil
-        let result = await GoogleSignIn.run(api: api)
+        let result = await GoogleSignIn.run(api: api, provider: provider)
         // A superseded attempt owns none of this state any more.
         guard !Task.isCancelled else { return }
         switch result {
@@ -275,6 +360,11 @@ final class AppModel {
             if !KeychainStore.save(token) {
                 Log.app.warning("Keychain save denied (unsigned dev build?) — token kept in memory for this session only")
             }
+            // A live socket opened under the PREVIOUS token would 4001-loop
+            // forever (RealtimeClient captures its token once), silently
+            // degrading realtime to the 60s poll. Re-arm it with the fresh
+            // credential; start() tears the old loop down first.
+            realtime?.start(token: token)
             phase = .signedIn
             await loadQueue()
         case .failure(let reason, let detail):
@@ -304,6 +394,7 @@ final class AppModel {
             // write. Fire-and-forget: a failed mark-read must not blank the
             // reading pane the user already has.
             Task { try? await api.patch("/api/email/\(emailDbId)/read", json: [:]) }
+            loadMeetingContext(for: emailDbId, guardId: item.id)
         } catch APIError.unauthorized {
             signOut()
         } catch {
@@ -311,9 +402,37 @@ final class AppModel {
         }
     }
 
+    /// Bytes + MIME type for an inline (cid:) image in the given email, via
+    /// the authed API. nil on any failure — the webview shows a transparent
+    /// placeholder instead of a broken icon.
+    func inlineImage(emailId: String, cid: String) async -> (Data, String)? {
+        // The cid is a sender-controlled Content-ID landing in a single path
+        // SEGMENT, so `.urlPathAllowed` (which leaves "/" raw) would let a
+        // crafted cid rewrite the request path. Alphanumerics-only: every
+        // other byte gets percent-encoded and decodes identically server-side.
+        guard let encoded = cid.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
+              let (data, mime) = try? await api.rawGet("/api/email/\(emailId)/inline/\(encoded)")
+        else { return nil }
+        return (data, mime ?? "image/png")
+    }
+
+    /// Meeting mail only: fetch the calendar cross-reference (proposed slot,
+    /// conflict verdict, nearby events) without blocking the pane. The guard
+    /// keeps a slow response from painting over a different, newer selection.
+    private func loadMeetingContext(for emailDbId: String, guardId: String) {
+        meetingContext = nil
+        guard openedEmail?.category == "meeting" else { return }
+        Task {
+            let context = try? await api.get(
+                "/api/email/\(emailDbId)/meeting-context", as: MeetingContextWire.self)
+            if selectedItemId == guardId { meetingContext = context }
+        }
+    }
+
     func clearSelection() {
         selectedItemId = nil
         openedEmail = nil
+        meetingContext = nil
         emailError = nil
         replyError = nil
     }
@@ -336,7 +455,7 @@ final class AppModel {
             signOut()
             return nil
         } catch APIError.forbidden {
-            replyError = "AI reply drafts need Klorn Pro."
+            replyError = L("error.needsPro")
             return nil
         } catch {
             replyError = Self.describe(error)
@@ -371,6 +490,33 @@ final class AppModel {
             return .needsPro
         } catch {
             return .failed(Self.describe(error))
+        }
+    }
+
+    /// On-demand deep re-summary of the opened email (reading pane "AI 정리").
+    /// The server persists the richer summary/keyPoints/actionItems, so a
+    /// re-fetch of the detail is the merge — no client-side struct surgery.
+    /// Output language follows the app UI (UI text is en/ko-fixed; only
+    /// replies mirror the mail's language).
+    func summarizeOpenedEmail() async {
+        guard let email = openedEmail, !isSummarizing else { return }
+        isSummarizing = true
+        summarizeFailed = false
+        defer { isSummarizing = false }
+        do {
+            let lang = L10n.resolvedCode(override: L10n.override)
+            try await api.post("/api/email/\(email.id)/summarize", json: ["lang": lang])
+        } catch {
+            Log.app.error("on-demand summarize failed: \(String(describing: error), privacy: .private)")
+            if openedEmail?.id == email.id { summarizeFailed = true }
+            return
+        }
+        // The POST persisted server-side; a refresh failure here must not
+        // report "summarize failed" — the pane just keeps the old band until
+        // the next open re-fetches it.
+        if let updated = try? await api.get("/api/email/\(email.id)", as: EmailDetail.self),
+           openedEmail?.id == email.id {
+            openedEmail = updated
         }
     }
 
@@ -444,7 +590,7 @@ final class AppModel {
             try await api.post("/api/calendar", json: body)
             clearEventDraft(messageId)
             chatMessages.append(ChatMessage(
-                role: .assistant, text: "✓ Added to calendar: \(eventDraftLabel(draft))"))
+                role: .assistant, text: L("calendar.addedConfirm", eventDraftLabel(draft))))
             Task { await refreshToday() }  // the TODAY column should show it now
         } catch APIError.unauthorized {
             signOut()

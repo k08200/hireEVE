@@ -104,14 +104,14 @@ export default function PushOnboardingBanner() {
     <div
       role="dialog"
       aria-label="Enable push notifications"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] w-[min(94vw,420px)] bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-900/15 px-4 py-3.5 flex items-start gap-3 animate-slide-up pb-safe"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] w-[min(94vw,420px)] bg-surface-panel border border-line rounded-2xl shadow-2xl shadow-slate-900/15 px-4 py-3.5 flex items-start gap-3 animate-slide-up pb-safe"
     >
-      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-base shrink-0">
+      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-light to-sky-600 flex items-center justify-center text-base shrink-0">
         <span aria-hidden="true">🔔</span>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-slate-900">Enable Klorn notifications</p>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-sm font-medium text-ink">Enable Klorn notifications</p>
+        <p className="text-xs text-ink-mid mt-0.5">
           Get briefings and urgent mail the moment they land.
         </p>
         {error && <p className="text-xs text-red-400 mt-1.5">{error}</p>}
@@ -120,7 +120,7 @@ export default function PushOnboardingBanner() {
             type="button"
             onClick={enable}
             disabled={submitting}
-            className="px-3 py-1.5 text-xs font-medium bg-sky-500 hover:bg-sky-600 disabled:bg-slate-100 disabled:text-slate-400 text-white rounded-lg transition"
+            className="px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent-deep disabled:bg-surface-hover disabled:text-ink-dim text-white rounded-lg transition"
           >
             {submitting ? "Enabling..." : "Enable"}
           </button>
@@ -128,7 +128,7 @@ export default function PushOnboardingBanner() {
             type="button"
             onClick={dismiss}
             disabled={submitting}
-            className="px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition"
+            className="px-3 py-1.5 text-xs font-medium text-ink-mid hover:text-ink transition"
           >
             Later
           </button>
@@ -139,7 +139,7 @@ export default function PushOnboardingBanner() {
         onClick={dismiss}
         disabled={submitting}
         aria-label="Close"
-        className="text-slate-400 hover:text-slate-900 transition text-lg leading-none -mr-1 -mt-0.5"
+        className="text-ink-dim hover:text-ink transition text-lg leading-none -mr-1 -mt-0.5"
       >
         ×
       </button>

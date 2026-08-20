@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { type AssistantChatMessage, useAssistantChat } from "../lib/use-assistant-chat";
 import EventDraftCard from "./event-draft-card";
+import ErrorAlert from "./ui/error-alert";
 import VoiceButton from "./voice-button";
 
 const SUGGESTION_KEYS = [
@@ -52,27 +53,25 @@ export default function AssistantDock() {
           ref={panelRef}
           role="dialog"
           aria-label={t("nav.assistant")}
-          className="panel-elevated ease-strong fixed bottom-24 right-4 z-[80] flex h-[min(600px,calc(100dvh-8rem))] w-[min(400px,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white transition duration-200 starting:translate-y-2 starting:scale-[0.97] starting:opacity-0 motion-reduce:transition-none md:bottom-[5.25rem] md:right-5"
+          className="panel-elevated ease-strong fixed bottom-24 right-4 z-[80] flex h-[min(600px,calc(100dvh-8rem))] w-[min(400px,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-line/70 bg-surface-panel transition duration-200 starting:translate-y-2 starting:scale-[0.97] starting:opacity-0 motion-reduce:transition-none md:bottom-[5.25rem] md:right-5"
         >
           {/* Head */}
-          <div className="flex items-center gap-2.5 border-b border-slate-100 px-4 py-3">
+          <div className="flex items-center gap-2.5 border-b border-line-soft px-4 py-3">
             <span
               aria-hidden="true"
-              className="avatar-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-[11px] font-semibold text-white"
+              className="avatar-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[11px] font-semibold text-white"
             >
               K
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold leading-none text-slate-900">
-                {t("nav.assistant")}
-              </p>
-              <p className="mt-1 truncate text-[11px] text-slate-400">Mail · calendar · briefing</p>
+              <p className="text-sm font-semibold leading-none text-ink">{t("nav.assistant")}</p>
+              <p className="mt-1 truncate text-[11px] text-ink-dim">Mail · calendar · briefing</p>
             </div>
             <button
               type="button"
               onClick={chat.newChat}
               disabled={!chat.activeId || chat.sending}
-              className="focus-ring ease-strong h-7 rounded-md px-2 text-[11px] font-medium text-slate-400 transition duration-150 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97] disabled:opacity-40"
+              className="focus-ring ease-strong h-7 rounded-md px-2 text-[11px] font-medium text-ink-dim transition duration-150 hover:bg-surface-hover hover:text-ink active:scale-[0.97] disabled:opacity-40"
             >
               {t("chat.newChat")}
             </button>
@@ -80,7 +79,7 @@ export default function AssistantDock() {
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close assistant"
-              className="focus-ring ease-strong flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition duration-150 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97]"
+              className="focus-ring ease-strong flex h-7 w-7 items-center justify-center rounded-md text-ink-dim transition duration-150 hover:bg-surface-hover hover:text-ink active:scale-[0.97]"
             >
               <svg
                 aria-hidden="true"
@@ -101,17 +100,17 @@ export default function AssistantDock() {
           {/* Thread */}
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
             {chat.messagesLoading ? (
-              <p className="text-sm text-slate-500">{t("chat.loadingConversation")}</p>
+              <p className="text-sm text-ink-mid">{t("chat.loadingConversation")}</p>
             ) : chat.messages.length === 0 && !chat.pendingText ? (
               <div className="space-y-2.5 pt-1">
-                <p className="text-sm text-slate-500">{t("chat.emptyState")}</p>
+                <p className="text-sm text-ink-mid">{t("chat.emptyState")}</p>
                 <ul className="space-y-1.5">
                   {SUGGESTION_KEYS.map((key) => (
                     <li key={key}>
                       <button
                         type="button"
                         onClick={() => chat.send(t(key))}
-                        className="focus-ring ease-strong row-wash w-full rounded-lg border border-slate-200 bg-white/70 px-3 py-2 text-left text-[13px] text-slate-600 transition duration-150 hover:text-slate-900 active:scale-[0.99]"
+                        className="focus-ring ease-strong row-wash w-full rounded-lg border border-line bg-surface-panel/70 px-3 py-2 text-left text-[13px] text-ink-muted transition duration-150 hover:text-ink active:scale-[0.99]"
                       >
                         {t(key)}
                       </button>
@@ -135,35 +134,28 @@ export default function AssistantDock() {
                   <div role="status" className="flex items-center gap-2">
                     <span
                       aria-hidden="true"
-                      className="avatar-ring flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-[10px] font-semibold text-white"
+                      className="avatar-ring flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[10px] font-semibold text-white"
                     >
                       K
                     </span>
-                    <p className="text-[13px] text-slate-500">{t("chat.thinking")}</p>
+                    <p className="text-[13px] text-ink-mid">{t("chat.thinking")}</p>
                   </div>
                 )}
               </>
             )}
-            {chat.sendError && (
-              <p
-                role="alert"
-                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700"
-              >
-                {t("chat.sendFailed")}
-              </p>
-            )}
+            {chat.sendError && <ErrorAlert>{t("chat.sendFailed")}</ErrorAlert>}
             <div ref={threadEndRef} />
           </div>
 
           {/* Composer */}
           <form
-            className="border-t border-slate-100 p-3"
+            className="border-t border-line-soft p-3"
             onSubmit={(e) => {
               e.preventDefault();
               chat.send(chat.input);
             }}
           >
-            <div className="flex items-end gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 transition duration-150 ease-out focus-within:border-sky-300/70 focus-within:ring-2 focus-within:ring-accent/15">
+            <div className="flex items-end gap-1.5 rounded-xl border border-line bg-surface-panel px-3 py-2 transition duration-150 ease-out focus-within:border-accent-muted/70 focus-within:ring-2 focus-within:ring-accent/15">
               <textarea
                 ref={inputRef}
                 value={chat.input}
@@ -178,7 +170,7 @@ export default function AssistantDock() {
                 maxLength={4000}
                 placeholder={t("chat.inputPlaceholder")}
                 aria-label="Message the assistant"
-                className="max-h-24 flex-1 resize-none bg-transparent text-[13px] text-slate-900 outline-none placeholder:text-slate-400"
+                className="max-h-24 flex-1 resize-none bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-dim"
               />
               <VoiceButton
                 onTranscript={(text) =>
@@ -189,7 +181,7 @@ export default function AssistantDock() {
                 type="submit"
                 disabled={!chat.input.trim() || chat.sending}
                 aria-label={t("chat.send")}
-                className="glow-primary ease-strong flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+                className="glow-primary ease-strong flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-b from-accent-light to-accent text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg
                   aria-hidden="true"
@@ -217,7 +209,7 @@ export default function AssistantDock() {
         onClick={() => setOpen((p) => !p)}
         aria-expanded={open}
         aria-label={open ? "Close assistant" : "Open assistant"}
-        className="glow-primary ease-strong fixed bottom-24 right-4 z-[81] flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-white transition duration-150 hover:from-sky-400 hover:to-sky-700 active:scale-[0.94] md:bottom-5 md:right-5"
+        className="glow-primary ease-strong fixed bottom-24 right-4 z-[81] flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-white transition duration-150 hover:from-accent-light hover:to-sky-700 active:scale-[0.94] md:bottom-5 md:right-5"
       >
         {open ? (
           <svg
@@ -257,11 +249,11 @@ function DockBubble({ message }: { message: AssistantChatMessage }) {
     <div className="ease-strong flex justify-start gap-2 transition duration-150 starting:translate-y-1 starting:opacity-0 motion-reduce:transition-none">
       <span
         aria-hidden="true"
-        className="avatar-ring mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-sky-600 text-[10px] font-semibold text-white"
+        className="avatar-ring mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[10px] font-semibold text-white"
       >
         K
       </span>
-      <div className="max-w-[85%] rounded-2xl rounded-tl-md border border-slate-200/70 bg-white px-3.5 py-2 text-[13px] text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+      <div className="max-w-[85%] rounded-2xl rounded-tl-md border border-line/70 bg-surface-panel px-3.5 py-2 text-[13px] text-ink-strong shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
         <p className="whitespace-pre-wrap">{message.content}</p>
         {draft && <EventDraftCard draft={draft} />}
       </div>

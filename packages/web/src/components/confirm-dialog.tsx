@@ -91,7 +91,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[110] px-4">
           <div
             ref={dialogRef}
-            className="bg-white border border-slate-200 rounded-xl p-6 w-full max-w-sm animate-slide-up"
+            className="bg-surface-panel border border-line rounded-xl p-6 w-full max-w-sm animate-slide-up"
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-dialog-title"
@@ -100,14 +100,14 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <h3 id="confirm-dialog-title" className="font-semibold mb-2">
               {options.title}
             </h3>
-            <p id="confirm-dialog-message" className="text-sm text-slate-500 mb-6">
+            <p id="confirm-dialog-message" className="text-sm text-ink-mid mb-6">
               {options.message}
             </p>
             <div className="flex gap-2 justify-end">
               <button
                 type="button"
                 onClick={() => handleClose(false)}
-                className="min-h-11 px-4 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-900 transition"
+                className="min-h-11 px-4 py-2 rounded-lg text-sm text-ink-mid hover:text-ink transition"
               >
                 Cancel
               </button>
@@ -117,7 +117,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 className={`min-h-11 px-4 py-2 rounded-lg text-sm font-medium transition ${
                   options.danger
                     ? "bg-red-600 hover:bg-red-500 text-white"
-                    : "bg-sky-500 hover:bg-sky-600 text-white"
+                    : "bg-accent hover:bg-accent-deep text-white"
                 }`}
               >
                 {options.confirmLabel || "Confirm"}

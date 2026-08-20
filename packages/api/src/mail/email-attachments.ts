@@ -13,6 +13,8 @@ export interface RawEmailAttachment {
   filename: string;
   mimeType: string;
   size?: number | null;
+  /// MIME Content-ID (angle brackets stripped) for inline cid: images.
+  contentId?: string | null;
   contentText?: string | null;
 }
 
@@ -273,17 +275,18 @@ export async function upsertEmailAttachments(input: {
     await prisma.$executeRaw`
       INSERT INTO "EmailAttachment" (
         "id", "userId", "emailId", "gmailAttachmentId", "filename", "mimeType",
-        "size", "contentText", "analysisStatus", "updatedAt"
+        "size", "contentId", "contentText", "analysisStatus", "updatedAt"
       )
       VALUES (
         ${id}, ${input.userId}, ${input.emailId}, ${attachment.gmailAttachmentId},
         ${attachment.filename}, ${attachment.mimeType}, ${attachment.size ?? null},
-        ${contentText}, ${contentText ? "PENDING" : "UNSUPPORTED"}, NOW()
+        ${attachment.contentId ?? null}, ${contentText}, ${contentText ? "PENDING" : "UNSUPPORTED"}, NOW()
       )
       ON CONFLICT ("emailId", "gmailAttachmentId") DO UPDATE SET
         "filename" = EXCLUDED."filename",
         "mimeType" = EXCLUDED."mimeType",
         "size" = EXCLUDED."size",
+        "contentId" = COALESCE(EXCLUDED."contentId", "EmailAttachment"."contentId"),
         "contentText" = COALESCE(EXCLUDED."contentText", "EmailAttachment"."contentText"),
         "analysisStatus" = CASE
           WHEN EXCLUDED."contentText" IS NULL THEN "EmailAttachment"."analysisStatus"

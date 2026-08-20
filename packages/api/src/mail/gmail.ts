@@ -7,6 +7,7 @@ import {
   ensureGmailReconnectNotification,
   type ReconnectProvider,
 } from "../notify/reconnect-notification.js";
+import { spamIntakeEnabled } from "../ops/feature-flags.js";
 import { captureError } from "../sentry.js";
 import { wrapUntrusted } from "../untrusted.js";
 
@@ -1531,6 +1532,15 @@ export async function classifyEmails(userId: string, maxResults = 10) {
  * renewal cron can find watches approaching expiry.
  * Returns { historyId, expiration } on success.
  */
+/**
+ * Labels the Gmail watch subscribes to. SPAM joins when the spam-lane intake
+ * flag is on so arrivals there also trigger a push; existing watches pick the
+ * new filter up at their next renewal (<=24h before expiry, hourly sweep).
+ */
+export function gmailWatchLabelIds(): string[] {
+  return spamIntakeEnabled() ? ["INBOX", "SPAM"] : ["INBOX"];
+}
+
 export async function registerGmailWatch(
   userId: string,
 ): Promise<{ historyId: string; expiration: string } | { error: string }> {
@@ -1546,7 +1556,10 @@ export async function registerGmailWatch(
       userId: "me",
       requestBody: {
         topicName: topic,
-        labelIds: ["INBOX"],
+        // SPAM rides along so the spam-lane sweep gets push-fresh signal too;
+        // harmless while SPAM_INTAKE_ENABLED is off (the push handler's
+        // history sync stays INBOX-scoped and simply finds nothing new).
+        labelIds: gmailWatchLabelIds(),
         labelFilterBehavior: "INCLUDE",
       },
     });
@@ -1693,7 +1706,11 @@ export async function registerLinkedInboxWatch(
   try {
     const res = await gmail.users.watch({
       userId: "me",
-      requestBody: { topicName: topic, labelIds: ["INBOX"], labelFilterBehavior: "INCLUDE" },
+      requestBody: {
+        topicName: topic,
+        labelIds: gmailWatchLabelIds(),
+        labelFilterBehavior: "INCLUDE",
+      },
     });
     const expirationMs = res.data.expiration ? Number(res.data.expiration) : null;
     if (expirationMs && !Number.isNaN(expirationMs)) {

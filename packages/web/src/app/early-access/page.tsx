@@ -14,6 +14,7 @@ export default function EarlyAccessPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [useCase, setUseCase] = useState("");
+  const [source, setSource] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export default function EarlyAccessPage() {
           email: cleanEmail,
           name: name.trim() || undefined,
           useCase: useCase.trim() || undefined,
+          source: source.trim() || undefined,
         }),
       });
 
@@ -102,14 +104,14 @@ export default function EarlyAccessPage() {
         <span>
           <Link
             href="/privacy"
-            className="inline-flex min-h-10 items-center px-1 transition hover:text-slate-500"
+            className="inline-flex min-h-10 items-center px-1 transition hover:text-ink-mid"
           >
             Privacy
           </Link>
           <span className="mx-2 text-slate-300">/</span>
           <Link
             href="/terms"
-            className="inline-flex min-h-10 items-center px-1 transition hover:text-slate-500"
+            className="inline-flex min-h-10 items-center px-1 transition hover:text-ink-mid"
           >
             Terms
           </Link>
@@ -118,20 +120,20 @@ export default function EarlyAccessPage() {
     >
       {isDone ? (
         <div>
-          <div className="rounded-md border border-sky-300/25 bg-sky-300/10 p-4">
-            <h2 className="text-base font-semibold text-slate-900">
+          <div className="rounded-md border border-accent-muted/25 bg-accent-muted/10 p-4">
+            <h2 className="text-base font-semibold text-ink">
               {status === "already"
                 ? "You're already on the list"
                 : "Request received — here's what's next"}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="mt-2 text-sm leading-6 text-ink-mid">
               {status === "already" ? (
                 <>
                   Your previous request is still in the queue. If it's been more than a few hours
                   and you haven't heard back, email{" "}
                   <a
                     href="mailto:k0820086@gmail.com"
-                    className="underline decoration-stone-600 underline-offset-2 hover:text-slate-900"
+                    className="underline decoration-stone-600 underline-offset-2 hover:text-ink"
                   >
                     k0820086@gmail.com
                   </a>{" "}
@@ -140,13 +142,13 @@ export default function EarlyAccessPage() {
               ) : (
                 <>
                   I'll approve your email by hand{" "}
-                  <span className="font-medium text-slate-900">within 5 minutes</span> if I'm awake
-                  (KST), otherwise within a few hours. You'll get an email from{" "}
-                  <span className="font-mono text-slate-900">noreply@klorn.ai</span> the moment
-                  you're approved — then{" "}
+                  <span className="font-medium text-ink">within 5 minutes</span> if I'm awake (KST),
+                  otherwise within a few hours. You'll get an email from{" "}
+                  <span className="font-mono text-ink">noreply@klorn.ai</span> the moment you're
+                  approved — then{" "}
                   <Link
                     href="/login"
-                    className="underline decoration-sky-400/60 underline-offset-2 hover:text-sky-100"
+                    className="underline decoration-accent-light/60 underline-offset-2 hover:text-accent-dim"
                   >
                     Log in
                   </Link>{" "}
@@ -158,13 +160,13 @@ export default function EarlyAccessPage() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             <Link
               href="/"
-              className="flex min-h-11 items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white transition hover:bg-sky-600"
+              className="flex min-h-11 items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep"
             >
               Back home
             </Link>
             <Link
               href="/login"
-              className="flex min-h-11 items-center justify-center rounded-md border border-slate-200 text-sm text-slate-500 transition hover:border-slate-200"
+              className="flex min-h-11 items-center justify-center rounded-md border border-line text-sm text-ink-mid transition hover:border-line"
             >
               Log in after approval
             </Link>
@@ -214,10 +216,22 @@ export default function EarlyAccessPage() {
               rows={3}
               placeholder="Example: 50+ emails/day, follow-ups, meeting prep."
             />
-            <p className="mt-2 text-xs leading-5 text-slate-400">
+            <p className="mt-2 text-xs leading-5 text-ink-dim">
               This helps us understand which workflow to tune first.
             </p>
           </div>
+
+          <Input
+            id="source"
+            label="How did you hear about Klorn? (optional)"
+            value={source}
+            onChange={(e) => {
+              resetFormError();
+              setSource(e.target.value);
+            }}
+            maxLength={80}
+            placeholder="Hacker News, a friend, a video…"
+          />
 
           {errorMsg && (
             <p
@@ -231,23 +245,23 @@ export default function EarlyAccessPage() {
           <button
             type="submit"
             disabled={status === "submitting"}
-            className="flex h-11 w-full items-center justify-center rounded-md bg-sky-500 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition-all hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/40 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
+            className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all hover:bg-accent-deep hover:shadow-xl hover:shadow-accent/40 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim disabled:shadow-none"
           >
             {status === "submitting" ? "Submitting..." : "Request early access"}
           </button>
 
-          <p className="text-xs leading-5 text-slate-400">
+          <p className="text-xs leading-5 text-ink-dim">
             By applying, you agree to the{" "}
             <Link
               href="/privacy"
-              className="inline-flex min-h-10 items-center underline hover:text-slate-500"
+              className="inline-flex min-h-10 items-center underline hover:text-ink-mid"
             >
               Privacy Policy
             </Link>{" "}
             and{" "}
             <Link
               href="/terms"
-              className="inline-flex min-h-10 items-center underline hover:text-slate-500"
+              className="inline-flex min-h-10 items-center underline hover:text-ink-mid"
             >
               Terms
             </Link>

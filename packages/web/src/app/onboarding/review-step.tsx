@@ -8,6 +8,7 @@ import {
   type Tier,
 } from "../../components/firewall-board";
 import { apiFetch } from "../../lib/api";
+import { useT } from "../../lib/i18n";
 import { captureClientError } from "../../lib/sentry";
 
 // Tiers the user can reassign to during onboarding. AUTO is an execution tier,
@@ -33,6 +34,7 @@ type Label = { kind: "confirmed" | "corrected"; tier: Tier };
  * from day one. Nothing is required: the user can continue at any time.
  */
 export function ReviewStep({ onContinue }: { onContinue: () => void }) {
+  const { t } = useT();
   const [items, setItems] = useState<FirewallItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -111,42 +113,43 @@ export function ReviewStep({ onContinue }: { onContinue: () => void }) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold leading-tight tracking-tight text-slate-900">
-        Does this look right?
+      <h1 className="text-3xl font-semibold leading-tight tracking-tight text-ink">
+        {t("onboarding.review.title")}
       </h1>
-      <p className="mt-4 text-sm leading-6 text-slate-500">
-        Klorn sorted your recent inbox into tiers. Confirm the calls it got right and fix the ones
-        it didn&apos;t — a few is enough to teach it what matters to you.
-      </p>
+      <p className="mt-4 text-sm leading-6 text-ink-mid">{t("onboarding.review.desc")}</p>
 
       {loading && items.length === 0 ? (
-        <div className="mt-8 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-slate-200 border-t-sky-500 motion-reduce:animate-none" />
-          <p className="text-sm text-slate-500">Reading your inbox…</p>
+        <div className="mt-8 flex items-center gap-3 rounded-xl border border-line bg-surface-raised px-4 py-3">
+          <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent motion-reduce:animate-none" />
+          <p className="text-sm text-ink-mid">{t("onboarding.review.readingInbox")}</p>
         </div>
       ) : null}
 
       {loadError && items.length === 0 ? (
-        <p className="mt-8 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          Couldn&apos;t load your classifications right now. You can review them anytime from your
-          inbox.
+        <p className="mt-8 rounded-xl border border-line bg-surface-raised px-4 py-3 text-sm text-ink-mid">
+          {t("onboarding.review.loadError")}
         </p>
       ) : null}
 
       {!loading && !loadError && items.length === 0 ? (
-        <p className="mt-8 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-          No mail to review yet — Klorn will sort new email as it arrives.
+        <p className="mt-8 rounded-xl border border-line bg-surface-raised px-4 py-3 text-sm text-ink-mid">
+          {t("onboarding.review.emptyState")}
         </p>
       ) : null}
 
       <div className="mt-8 space-y-6">
         {groups.map((group) => (
-          <section key={group.tier} aria-label={`${TIER_VISUAL[group.tier].label} emails`}>
+          <section
+            key={group.tier}
+            aria-label={t("onboarding.review.groupAriaLabel", {
+              tier: TIER_VISUAL[group.tier].label,
+            })}
+          >
             <div className="mb-2 flex items-baseline gap-2">
               <span className={`text-xs font-semibold ${TIER_VISUAL[group.tier].accent}`}>
                 {TIER_VISUAL[group.tier].label}
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-ink-dim">
                 {TIER_VISUAL[group.tier].description}
               </span>
             </div>
@@ -169,13 +172,15 @@ export function ReviewStep({ onContinue }: { onContinue: () => void }) {
       <button
         type="button"
         onClick={onContinue}
-        className="mt-8 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+        className="mt-8 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-accent-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-muted/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
       >
-        {reviewedCount > 0 ? `Continue — ${reviewedCount} reviewed` : "Looks good — continue"}
+        {reviewedCount > 0
+          ? t("onboarding.review.continueReviewed", { count: String(reviewedCount) })
+          : t("onboarding.review.continueDefault")}
         <span aria-hidden>→</span>
       </button>
-      <p className="mt-3 text-center text-[11px] leading-5 text-slate-400">
-        Every confirm or fix teaches Klorn. You can refine any tier later from your inbox.
+      <p className="mt-3 text-center text-[11px] leading-5 text-ink-dim">
+        {t("onboarding.review.footerNote")}
       </p>
     </div>
   );
@@ -194,21 +199,22 @@ function ReviewCard({
   onConfirm: () => void;
   onCorrect: (tier: Tier) => void;
 }) {
-  const sender = item.email?.from ?? "Unknown sender";
-  const subject = item.email?.subject ?? item.title ?? "(no subject)";
+  const { t } = useT();
+  const sender = item.email?.from ?? t("onboarding.review.card.unknownSender");
+  const subject = item.email?.subject ?? item.title ?? t("onboarding.review.card.noSubject");
   const snippet = item.email?.snippet ?? null;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
-      <p className="truncate text-xs text-slate-500">{sender}</p>
-      <p className="mt-0.5 truncate text-sm font-medium text-slate-900">{subject}</p>
-      {snippet ? <p className="mt-1 line-clamp-2 text-xs text-slate-400">{snippet}</p> : null}
+    <div className="rounded-xl border border-line bg-surface-panel p-3">
+      <p className="truncate text-xs text-ink-mid">{sender}</p>
+      <p className="mt-0.5 truncate text-sm font-medium text-ink">{subject}</p>
+      {snippet ? <p className="mt-1 line-clamp-2 text-xs text-ink-dim">{snippet}</p> : null}
 
       {labelState ? (
         <p className={`mt-3 text-xs font-semibold ${TIER_VISUAL[labelState.tier].accent}`}>
           {labelState.kind === "confirmed"
-            ? `Kept in ${labelState.tier} ✓`
-            : `Moved to ${labelState.tier} ✓`}
+            ? t("onboarding.review.card.keptIn", { tier: labelState.tier })
+            : t("onboarding.review.card.movedTo", { tier: labelState.tier })}
         </p>
       ) : (
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -218,18 +224,20 @@ function ReviewCard({
             disabled={busy}
             className="min-h-11 rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:border-emerald-400/60 hover:bg-emerald-400/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Looks right
+            {t("onboarding.review.card.looksRight")}
           </button>
-          <span className="text-[11px] text-slate-400">or move to</span>
-          {MOVE_TARGETS.filter((t) => t !== item.tier).map((t) => (
+          <span className="text-[11px] text-ink-dim">{t("onboarding.review.card.orMoveTo")}</span>
+          {/* Tier codes (PUSH/QUEUE/SILENT) are product vocabulary, not
+              translated — see docs/product-vocabulary.md. */}
+          {MOVE_TARGETS.filter((target) => target !== item.tier).map((target) => (
             <button
-              key={t}
+              key={target}
               type="button"
-              onClick={() => onCorrect(t)}
+              onClick={() => onCorrect(target)}
               disabled={busy}
-              className={`min-h-11 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 ${TIER_VISUAL[t].accent}`}
+              className={`min-h-11 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-mid transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50 ${TIER_VISUAL[target].accent}`}
             >
-              {t}
+              {target}
             </button>
           ))}
         </div>

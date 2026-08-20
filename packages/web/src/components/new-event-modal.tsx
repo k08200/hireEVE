@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { apiFetch } from "../lib/api";
+import ErrorAlert from "./ui/error-alert";
 
 /**
  * Minimal create-event dialog for /calendar. POSTs to /api/calendar, which
@@ -12,7 +13,7 @@ import { apiFetch } from "../lib/api";
  */
 
 const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-[0_1px_1px_rgba(15,23,42,0.03)] outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/15 disabled:opacity-60";
+  "w-full rounded-lg border border-line bg-surface-panel/80 px-3 py-2 text-sm text-ink shadow-[0_1px_1px_rgba(15,23,42,0.03)] outline-none transition duration-150 ease-out placeholder:text-ink-dim focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15 disabled:opacity-60";
 
 function getFocusableElements(root: HTMLElement | null): HTMLElement[] {
   if (!root) return [];
@@ -176,12 +177,12 @@ export function NewEventModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
-        className="panel-elevated relative w-full max-w-md animate-slide-up rounded-t-2xl border border-slate-200/70 bg-white p-5 shadow-2xl shadow-slate-900/10 md:rounded-2xl"
+        className="panel-elevated relative w-full max-w-md animate-slide-up rounded-t-2xl border border-line/70 bg-surface-panel p-5 shadow-2xl shadow-slate-900/10 md:rounded-2xl"
       >
-        <h2 id={headingId} className="text-base font-semibold text-slate-900">
+        <h2 id={headingId} className="text-base font-semibold text-ink">
           New event
         </h2>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-ink-dim">
           Created in your Google Calendar and synced back here.
         </p>
 
@@ -193,7 +194,7 @@ export function NewEventModal({
           }}
         >
           <div>
-            <label htmlFor={`${headingId}-title`} className="mb-1 block text-xs text-slate-500">
+            <label htmlFor={`${headingId}-title`} className="mb-1 block text-xs text-ink-mid">
               Title
             </label>
             <input
@@ -211,7 +212,7 @@ export function NewEventModal({
 
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-1">
-              <label htmlFor={`${headingId}-date`} className="mb-1 block text-xs text-slate-500">
+              <label htmlFor={`${headingId}-date`} className="mb-1 block text-xs text-ink-mid">
                 Date
               </label>
               <input
@@ -224,7 +225,7 @@ export function NewEventModal({
               />
             </div>
             <div>
-              <label htmlFor={`${headingId}-start`} className="mb-1 block text-xs text-slate-500">
+              <label htmlFor={`${headingId}-start`} className="mb-1 block text-xs text-ink-mid">
                 Starts
               </label>
               <input
@@ -241,7 +242,7 @@ export function NewEventModal({
               />
             </div>
             <div>
-              <label htmlFor={`${headingId}-end`} className="mb-1 block text-xs text-slate-500">
+              <label htmlFor={`${headingId}-end`} className="mb-1 block text-xs text-ink-mid">
                 Ends
               </label>
               <input
@@ -259,8 +260,8 @@ export function NewEventModal({
           )}
 
           <div>
-            <label htmlFor={`${headingId}-location`} className="mb-1 block text-xs text-slate-500">
-              Location <span className="text-slate-400">(optional)</span>
+            <label htmlFor={`${headingId}-location`} className="mb-1 block text-xs text-ink-mid">
+              Location <span className="text-ink-dim">(optional)</span>
             </label>
             <input
               id={`${headingId}-location`}
@@ -274,25 +275,21 @@ export function NewEventModal({
             />
           </div>
 
-          {error && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {error}
-            </p>
-          )}
+          {error && <ErrorAlert>{error}</ErrorAlert>}
 
           <div className="flex items-center justify-end gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="ease-strong min-h-10 rounded-lg border border-slate-200 bg-white/70 px-4 text-sm text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+              className="ease-strong min-h-10 rounded-lg border border-line bg-surface-panel/70 px-4 text-sm text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!canSave}
-              className="glow-primary ease-strong min-h-10 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-4 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+              className="glow-primary ease-strong min-h-10 rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {saving ? "Creating..." : "Create event"}
             </button>

@@ -22,7 +22,7 @@ export default function LoadingState({
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className={`${rowHeight} animate-pulse rounded-xl border border-slate-200 bg-slate-100`}
+          className={`${rowHeight} animate-pulse rounded-xl border border-line bg-surface-hover`}
         />
       ))}
       <span className="sr-only">{label}…</span>

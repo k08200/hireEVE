@@ -5,6 +5,7 @@ import { API_BASE, getStoredAuthToken } from "../lib/api";
 import { captureClientError } from "../lib/sentry";
 import { useConfirm } from "./confirm-dialog";
 import { useToast } from "./toast";
+import ErrorAlert from "./ui/error-alert";
 
 // Mirror the server caps (packages/api/src/routes/email-mutations.ts) so the
 // user gets an instant client-side warning instead of a round-trip rejection.
@@ -23,7 +24,7 @@ function formatBytes(bytes: number): string {
 }
 
 const fieldClass =
-  "w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 outline-none transition duration-150 ease-out placeholder:text-slate-400 focus:border-accent/50 focus:bg-white focus:ring-2 focus:ring-accent/15 disabled:opacity-60";
+  "w-full rounded-lg border border-line bg-surface-panel/80 px-3 py-2 text-sm text-ink outline-none transition duration-150 ease-out placeholder:text-ink-dim focus:border-accent/50 focus:bg-surface-panel focus:ring-2 focus:ring-accent/15 disabled:opacity-60";
 
 export function ComposeModal({ open, onClose }: ComposeModalProps) {
   const { toast } = useToast();
@@ -209,10 +210,10 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="panel-elevated flex max-h-[88vh] w-full max-w-xl origin-center flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white transition duration-150 ease-strong starting:scale-[0.97] starting:opacity-0 motion-reduce:transition-none"
+        className="panel-elevated flex max-h-[88vh] w-full max-w-xl origin-center flex-col overflow-hidden rounded-2xl border border-line/70 bg-surface-panel transition duration-150 ease-strong starting:scale-[0.97] starting:opacity-0 motion-reduce:transition-none"
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 id={titleId} className="text-base font-semibold tracking-[-0.01em] text-slate-900">
+        <div className="flex items-center justify-between border-b border-line-soft px-5 py-4">
+          <h2 id={titleId} className="text-base font-semibold tracking-[-0.01em] text-ink">
             New message
           </h2>
           <button
@@ -220,7 +221,7 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
             onClick={close}
             disabled={sending}
             aria-label="Close"
-            className="ease-strong flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition duration-150 hover:bg-slate-100 hover:text-slate-700 active:scale-[0.97] disabled:opacity-50"
+            className="ease-strong flex h-9 w-9 items-center justify-center rounded-lg text-ink-dim transition duration-150 hover:bg-surface-hover hover:text-ink-soft active:scale-[0.97] disabled:opacity-50"
           >
             ✕
           </button>
@@ -278,18 +279,18 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
               {files.map((file, index) => (
                 <li
                   key={`${file.name}-${file.size}`}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs"
+                  className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2 text-xs"
                 >
-                  <span className="min-w-0 flex-1 truncate text-slate-900" title={file.name}>
+                  <span className="min-w-0 flex-1 truncate text-ink" title={file.name}>
                     📎 {file.name}
                   </span>
-                  <span className="shrink-0 text-slate-400">{formatBytes(file.size)}</span>
+                  <span className="shrink-0 text-ink-dim">{formatBytes(file.size)}</span>
                   <button
                     type="button"
                     onClick={() => removeFile(index)}
                     disabled={sending}
                     aria-label={`Remove ${file.name}`}
-                    className="shrink-0 rounded px-1 text-slate-400 transition hover:text-red-600 disabled:opacity-50"
+                    className="shrink-0 rounded px-1 text-ink-dim transition hover:text-red-600 disabled:opacity-50"
                   >
                     ✕
                   </button>
@@ -307,20 +308,16 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
               {formatBytes(MAX_TOTAL_BYTES)}.
             </p>
           )}
-          {error && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {error}
-            </p>
-          )}
+          {error && <ErrorAlert>{error}</ErrorAlert>}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
+        <div className="flex items-center justify-between gap-3 border-t border-line-soft px-5 py-4">
           <input ref={fileInputRef} type="file" multiple hidden onChange={onFileInputChange} />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={sending}
-            className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+            className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50"
           >
             📎 Attach files
           </button>
@@ -329,7 +326,7 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
               type="button"
               onClick={close}
               disabled={sending}
-              className="ease-strong inline-flex min-h-11 items-center rounded-lg px-4 text-sm text-slate-500 transition duration-150 hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+              className="ease-strong inline-flex min-h-11 items-center rounded-lg px-4 text-sm text-ink-mid transition duration-150 hover:text-ink active:scale-[0.97] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -337,7 +334,7 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
               type="button"
               onClick={send}
               disabled={!canSend}
-              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-4 text-sm font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sending ? "Sending…" : "Send"}
             </button>

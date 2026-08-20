@@ -95,6 +95,7 @@ export async function sendWaitlistAdminAlert(entry: {
   email: string;
   name?: string | null;
   useCase?: string | null;
+  source?: string | null;
   isResubmission?: boolean;
 }): Promise<boolean> {
   const adminEmails = (process.env.ADMIN_EMAILS || "")
@@ -122,6 +123,9 @@ export async function sendWaitlistAdminAlert(entry: {
   const safeEmail = entry.email.replace(/[<>]/g, "");
   const safeName = (entry.name || "").replace(/[<>]/g, "");
   const safeUseCase = (entry.useCase || "").replace(/[<>]/g, "");
+  // Full escaping (not just <>): source is the newest free-text field and the
+  // whole point of capturing it is to read it here.
+  const safeSource = escapeHtml(entry.source || "");
 
   try {
     await resend.emails.send({
@@ -136,6 +140,7 @@ export async function sendWaitlistAdminAlert(entry: {
           <p style="color: #374151; font-size: 14px; margin: 0 0 4px;"><strong>Email:</strong> ${safeEmail}</p>
           ${safeName ? `<p style="color: #374151; font-size: 14px; margin: 0 0 4px;"><strong>Name:</strong> ${safeName}</p>` : ""}
           ${safeUseCase ? `<p style="color: #374151; font-size: 14px; margin: 0 0 12px;"><strong>How they use email:</strong> ${safeUseCase}</p>` : ""}
+          ${safeSource ? `<p style="color: #374151; font-size: 14px; margin: 0 0 12px;"><strong>Heard about us via:</strong> ${safeSource}</p>` : ""}
           <p style="color: #6b7280; font-size: 13px; margin: 16px 0 0;">
             Review at <a href="${WEB_URL}/admin/waitlist">${WEB_URL}/admin/waitlist</a>.
           </p>

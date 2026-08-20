@@ -124,8 +124,8 @@ function SmsContent() {
 
   if (authLoading || (user && user.role !== "ADMIN")) {
     return (
-      <div className="min-h-dvh bg-white">
-        <div className="mx-auto max-w-xl px-6 py-8 text-sm text-slate-400">Loading…</div>
+      <div className="min-h-dvh bg-surface-panel">
+        <div className="mx-auto max-w-xl px-6 py-8 text-sm text-ink-dim">Loading…</div>
       </div>
     );
   }
@@ -134,13 +134,13 @@ function SmsContent() {
   const usage = phoneQuery.data?.usage;
 
   return (
-    <div className="min-h-dvh bg-white">
+    <div className="min-h-dvh bg-surface-panel">
       <div className="mx-auto max-w-xl px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-slate-900">
+          <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-ink">
             SMS alerts (admin)
           </h1>
-          <p className="mt-2 text-[13px] text-slate-500">
+          <p className="mt-2 text-[13px] text-ink-mid">
             Klorn will text you for URGENT email + meeting alerts on top of the existing web push.
             Admin-only while we dogfood. Hard cap of {usage?.cap ?? 10} messages per day.
           </p>
@@ -148,9 +148,9 @@ function SmsContent() {
 
         <form
           onSubmit={handleSave}
-          className="panel-elevated space-y-3 rounded-2xl border border-slate-200/70 bg-white p-4"
+          className="panel-elevated space-y-3 rounded-2xl border border-line/70 bg-surface-panel p-4"
         >
-          <label htmlFor="sms-phone" className="block text-[12px] font-medium text-slate-500">
+          <label htmlFor="sms-phone" className="block text-[12px] font-medium text-ink-mid">
             Phone number
           </label>
           <input
@@ -161,9 +161,9 @@ function SmsContent() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="+821012345678"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-400/50 focus:outline-none"
+            className="w-full rounded-lg border border-line bg-surface-raised px-3 py-2 text-sm text-ink placeholder:text-ink-dim focus:border-accent-light/50 focus:outline-none"
           />
-          <p className="text-[11px] text-slate-400">{E164_HINT}</p>
+          <p className="text-[11px] text-ink-dim">{E164_HINT}</p>
 
           {formError && <p className="text-[12px] text-red-600">{formError}</p>}
 
@@ -171,7 +171,7 @@ function SmsContent() {
             <button
               type="submit"
               disabled={saveMutation.isPending}
-              className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3 py-1.5 text-[12px] font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
+              className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-1.5 text-[12px] font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
             >
               {saveMutation.isPending ? "Saving…" : "Save"}
             </button>
@@ -192,19 +192,19 @@ function SmsContent() {
                 setTestResult(null);
                 testMutation.mutate();
               }}
-              className="ease-strong rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-[12px] font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-40"
+              className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-[12px] font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-40"
             >
               {testMutation.isPending ? "Sending…" : "Send test SMS"}
             </button>
           </div>
 
-          {testResult && <p className="text-[12px] text-slate-500">{testResult}</p>}
+          {testResult && <p className="text-[12px] text-ink-mid">{testResult}</p>}
         </form>
 
         {saved && usage && (
-          <div className="panel-elevated mt-4 rounded-2xl border border-slate-200/70 bg-white p-4 text-[12px] text-slate-400">
+          <div className="panel-elevated mt-4 rounded-2xl border border-line/70 bg-surface-panel p-4 text-[12px] text-ink-dim">
             <div>
-              <span className="font-medium text-slate-500">Current:</span> {saved}
+              <span className="font-medium text-ink-mid">Current:</span> {saved}
             </div>
             <div className="mt-1">
               Today: {usage.used} / {usage.cap} (resets at UTC midnight)

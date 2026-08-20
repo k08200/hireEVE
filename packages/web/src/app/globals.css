@@ -1,6 +1,97 @@
 @import "tailwindcss";
 
+/* Class-based dark variant: `.dark` on <html>, set pre-hydration by the
+   inline script in layout.tsx (system preference or the stored override). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Theme palettes ─────────────────────────────────────────────────
+   Semantic tokens carry the theme: light values here are byte-identical to
+   what the app hardcoded before dark mode, so the light theme cannot drift.
+   The .dark block swaps the same variables — components tokenized onto the
+   surface / ink / line families need no dark: variants at all. */
+:root {
+  --surface-app: #f4f8fc;
+  --surface-canvas: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-panel: #ffffff;
+  --surface-translucent: rgba(255, 255, 255, 0.85);
+  --surface-raised: #f8fafc; /* slate-50 wells */
+  --surface-hover: #f1f5f9; /* slate-100 */
+  --ink: #0f172a; /* slate-900 — primary text */
+  --ink-strong: #1e293b; /* slate-800 */
+  --ink-soft: #334155; /* slate-700 */
+  --ink-mid: #64748b; /* slate-500 — secondary text */
+  --ink-dim: #94a3b8; /* slate-400 — tertiary/labels */
+  --line: #e2e8f0; /* slate-200 — borders */
+  --line-soft: #f1f5f9; /* slate-100 — hairlines */
+  --line-strong: #cbd5e1; /* slate-300 — emphasized borders */
+  --surface-inset: #e2e8f0; /* slate-200 wells/tracks */
+  --ink-muted: #475569; /* slate-600 */
+  --accent-deep: #0284c7; /* sky-600 — link text, pressed accent */
+  --accent-deeper: #0369a1; /* sky-700 */
+}
+
+/* Dark: deep navy-slate, never pure black. Text steps keep AA against
+   their surfaces (verified in the dark QA pass). */
+.dark {
+  --surface-app: #0b1120;
+  --surface-canvas: #0f172a;
+  --surface-elevated: #16213a;
+  --surface-panel: #111a2e;
+  --surface-translucent: rgba(15, 23, 42, 0.85);
+  --surface-raised: #16213a;
+  --surface-hover: #1e293b;
+  --ink: #f1f5f9;
+  --ink-strong: #e2e8f0;
+  --ink-soft: #cbd5e1;
+  --ink-mid: #94a3b8;
+  /* NOT the mirror of light's slate-400: that lands at 3.6:1 on these
+     surfaces. 7d8ba1 clears the 4.5:1 AA text floor on panel AND raised
+     (5.0 / 4.6) while staying visibly quieter than ink-mid. */
+  --ink-dim: #7d8ba1;
+  --line: #293a56;
+  --line-soft: #1c2a40;
+  --line-strong: #3b4d6b;
+  --surface-inset: #243350;
+  /* 6.5:1 on panel — the slate-600 mirror would fail the AA text floor. */
+  --ink-muted: #8fa0b8;
+  /* Links brighten in the dark instead of darkening: 8.1:1 on panel. */
+  --accent-deep: #38bdf8;
+  --accent-deeper: #7dd3fc;
+}
+
+/* Theme-following utilities: `inline` makes each utility read the variable
+   at use time, so the .dark swap above applies everywhere. */
+@theme inline {
+  --color-surface-app: var(--surface-app);
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-panel: var(--surface-panel);
+  --color-surface-translucent: var(--surface-translucent);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-ink: var(--ink);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-mid: var(--ink-mid);
+  --color-ink-dim: var(--ink-dim);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+  --color-surface-inset: var(--surface-inset);
+  --color-ink-muted: var(--ink-muted);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-deeper: var(--accent-deeper);
+}
+
 @theme {
+  /* Typography (2026-08-13): Geist, self-hosted via next/font (the CSS vars
+     are stamped on <html> by layout.tsx). Korean glyphs fall through to the
+     system stack. Geist Mono backs `font-mono` for figures and code. */
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
   /* Unified app accent (2026-06-16): was coral #ff6b4a, now the same gold
      the rest of the app already used (inbox, firewall, login = Tailwind
      amber). Only the mail surface referenced these tokens, so re-pointing
@@ -10,15 +101,6 @@
   --color-accent-light: #38bdf8;
   --color-accent-muted: #7dd3fc;
   --color-accent-dim: #e0f2fe;
-
-  /* Surface tokens — extracted 2026-05-19 from inline bg-[#XXXXXX] usages
-     across the landing page and app shell. Use `bg-surface-app`, etc.
-     instead of bare hex values so the palette can be retuned in one spot. */
-  --color-surface-app: #f4f8fc;
-  --color-surface-canvas: #ffffff;
-  --color-surface-elevated: #ffffff;
-  --color-surface-panel: #ffffff;
-  --color-surface-translucent: rgba(255, 255, 255, 0.85);
 
   /* Text / brand tokens — gold accent and cream foreground used on the
      marketing surface. Same logic: rename here, not 30 className strings. */
@@ -86,6 +168,64 @@ body::before {
     100% 100%,
     100% 100%;
   background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
+/* ── Dark counterparts for the hand-written surfaces ─────────────────
+   The token swap handles utility colors; these are the atmospheric layers
+   and shadows that hardcode light-world values. Same composition, night
+   palette: glows dim, shadows deepen, inset highlights go faint. */
+.dark body::before {
+  background:
+    radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 1px, transparent 1.5px),
+    radial-gradient(80% 60% at 12% -5%, rgba(14, 165, 233, 0.1), transparent 60%),
+    radial-gradient(70% 50% at 105% 0%, rgba(99, 102, 241, 0.09), transparent 55%),
+    radial-gradient(60% 45% at 50% 115%, rgba(56, 189, 248, 0.06), transparent 60%),
+    linear-gradient(180deg, #0d1526 0%, #0b1120 45%, #0a0f1c 100%);
+  background-size:
+    26px 26px,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
+.dark .sky-bg {
+  background-color: #0c1322;
+  background-image:
+    radial-gradient(62% 40% at 88% -4%, rgba(240, 203, 158, 0.08), transparent 68%),
+    radial-gradient(58% 44% at 2% 16%, rgba(240, 222, 226, 0.06), transparent 70%),
+    radial-gradient(64% 46% at 96% 66%, rgba(56, 120, 190, 0.14), transparent 68%),
+    radial-gradient(52% 40% at 20% 96%, rgba(99, 102, 241, 0.1), transparent 70%);
+}
+
+.dark .panel-elevated {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    0 18px 40px -20px rgba(0, 0, 0, 0.65);
+}
+
+.dark .row-wash:hover {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.09), rgba(56, 189, 248, 0.02));
+}
+
+.dark .glow-primary {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 10px 22px -8px rgba(14, 165, 233, 0.4);
+}
+
+.dark .seg-active {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.07) inset;
+}
+
+.dark .avatar-ring {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.09) inset;
 }
 
 /* Strong ease-out (Emil Kowalski's UI curve) — punchier than the built-in
