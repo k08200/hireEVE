@@ -53,11 +53,11 @@ const EMAIL_ID_TOOLS = new Set([
   "reply_to_email",
 ]);
 
-// Manual overrides accept only tiers the CURRENT clients can render — the v2
-// vocabulary (MEETING/INFO) joins once the board/desktop grow their lanes.
-// Widening TIERS alone would let a scripted call move an item somewhere both
-// UIs are blind to ("my mail vanished").
-const OVERRIDABLE_TIERS = ["SILENT", "QUEUE", "PUSH", "AUTO"] as const;
+// Manual overrides accept the full vocabulary: the web board renders MEETING
+// as a column and INFO as a strip whenever items exist (2026-08-18), and the
+// desktop shows v2 rows when nonzero — nothing can vanish into a blind lane
+// any more.
+const OVERRIDABLE_TIERS = ["SILENT", "INFO", "QUEUE", "MEETING", "PUSH", "AUTO"] as const;
 
 const overrideBodySchema = {
   type: "object",

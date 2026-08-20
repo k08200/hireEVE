@@ -18,7 +18,7 @@ import type {
 import type { EmailMessage, FeedbackSignal, Prisma } from "@prisma/client";
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
-import { requireAppAccess } from "../billing/entitlement-guard.js";
+import { requireAppAccess, requireEntitled } from "../billing/entitlement-guard.js";
 import { planHasFeature } from "../billing/stripe.js";
 import { MULTI_INBOX_SYNC_ENABLED, providerInboxSelectorEnabled } from "../config.js";
 import { prisma } from "../db.js";
@@ -28,6 +28,7 @@ import {
   getTrustScoresBulk,
   type TrustScoreResult,
 } from "../learning/trust-score.js";
+import { describeLlmFailure } from "../llm/describe-failure.js";
 import {
   analyzePendingEmailAttachments,
   buildAttachmentCandidateProfile,
@@ -41,6 +42,7 @@ import {
   syncRecentCandidateIntakes,
 } from "../mail/email-candidate-intake.js";
 import type { FeedbackRecord } from "../mail/email-label-feedback.js";
+import { summarizeEmailOnDemand } from "../mail/email-summarize.js";
 import {
   getEmailThreads,
   reconcileEmails,
@@ -1137,6 +1139,7 @@ export async function emailRoutes(app: FastifyInstance) {
         keyPoints: parseJsonArray(dbEmail.keyPoints),
         body: dbEmail.body,
         receivedAt: dbEmail.receivedAt,
+        from: dbEmail.from,
       });
       if (context) return context;
       // Non-meeting mail answers with an empty context rather than an error —
@@ -1434,6 +1437,69 @@ export async function emailRoutes(app: FastifyInstance) {
 
       const count = await summarizeUnsummarizedEmails(uid, limit || 10);
       return { summarized: count };
+    },
+  );
+
+  // POST /api/email/:id/summarize — on-demand detailed re-summary of ONE
+  // email (reading-pane "AI 정리"). One foreground LLM call per request, so
+  // the paid-compose gate and the reply-draft rate budget both apply.
+  app.post(
+    "/:id/summarize",
+    {
+      // The plugin-level requireAuth hook already covers this route; the
+      // explicit pair matches the sibling LLM routes and survives hook
+      // reordering. requireAuth first sets userId for requireEntitled.
+      preHandler: [requireAuth, requireEntitled],
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const uid = getUserId(request);
+      const { lang } = (request.body as { lang?: string }) || {};
+
+      const dbEmail = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      });
+      if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+
+      try {
+        const result = await summarizeEmailOnDemand(uid, dbEmail, lang === "ko" ? "ko" : "en");
+        if (!result) {
+          return reply
+            .code(503)
+            .send({ error: "No AI provider is configured. Add an API key in Settings." });
+        }
+        return result;
+      } catch (err) {
+        // Same failure taxonomy as /reply-draft: the cap and the per-user
+        // throttle are user-visible facts, everything else is a transient 503
+        // with the failure class named — never a bare 500.
+        if (err instanceof Error && err.name === "DailyCostCapExceededError") {
+          return reply.code(429).send({ error: err.message });
+        }
+        if (err instanceof Error && err.name === "UserRateLimitedError") {
+          const retryAfterMs = (err as { retryAfterMs?: number }).retryAfterMs ?? 1_000;
+          reply.header("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
+          return reply.code(429).send({ error: err.message });
+        }
+        if (err instanceof Error && err.name === "AllProvidersExhaustedError") {
+          captureError(err, {
+            tags: { scope: "email.summarize-detail.providers-exhausted" },
+            extra: { userId: uid, emailId: dbEmail.id },
+          });
+          return reply.code(503).send({
+            error: "The AI model provider is unavailable right now. Please try again shortly.",
+          });
+        }
+        captureError(err, {
+          tags: { scope: "email.summarize-detail" },
+          extra: { userId: uid, emailId: dbEmail.id },
+        });
+        const reason = describeLlmFailure(err);
+        return reply.code(503).send({
+          error: `Summarizing is temporarily unavailable (${reason}). Please try again shortly.`,
+        });
+      }
     },
   );
 

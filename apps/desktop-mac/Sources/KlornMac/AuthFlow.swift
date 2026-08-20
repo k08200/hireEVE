@@ -99,10 +99,11 @@ enum AuthFlow {
         return s
     }()
 
-    /// The browser-bounce URL. Pure for testing.
-    static func loginURL(apiBase: String, nonce: String) -> String {
+    /// The browser-bounce URL. Pure for testing. `provider` is a server route
+    /// segment from our own enum, never user input.
+    static func loginURL(apiBase: String, nonce: String, provider: String = "google") -> String {
         let encoded = nonce.addingPercentEncoding(withAllowedCharacters: nonceAllowed) ?? nonce
-        return "\(apiBase)/api/auth/google/login?source=desktop&nonce=\(encoded)&appScheme=\(appScheme)"
+        return "\(apiBase)/api/auth/\(provider)/login?source=desktop&nonce=\(encoded)&appScheme=\(appScheme)"
     }
 
     /// Parse a relay deep link (`klorn://oauth-callback?code=…`). Pure for testing.
@@ -116,11 +117,13 @@ enum AuthFlow {
         return code
     }
 
-    static func run(_ deps: AuthFlowDeps, apiBase: String) async -> SignInResult {
+    static func run(
+        _ deps: AuthFlowDeps, apiBase: String, provider: String = "google"
+    ) async -> SignInResult {
         guard let nonce = await deps.fetchNonce(), !nonce.isEmpty else {
             return .failure(reason: .nonceFailed, detail: "could not obtain a sign-in nonce")
         }
-        deps.openLogin(loginURL(apiBase: apiBase, nonce: nonce))
+        deps.openLogin(loginURL(apiBase: apiBase, nonce: nonce, provider: provider))
 
         let deadline = deps.now() + maxWaitSeconds
         while deps.now() < deadline {
@@ -156,7 +159,10 @@ enum AuthFlow {
 /// Real wiring of AuthFlow against the live API + OS browser. Cancellation rides
 /// on the enclosing Task (cancel the task to abort sign-in).
 enum GoogleSignIn {
-    static func run(api: APIClient = APIClient(), apiBase: String = Config.apiBaseURL) async -> SignInResult {
+    static func run(
+        api: APIClient = APIClient(), apiBase: String = Config.apiBaseURL,
+        provider: String = "google"
+    ) async -> SignInResult {
         let pkce = PKCE.generate()
         let deps = AuthFlowDeps(
             fetchNonce: {
@@ -183,7 +189,7 @@ enum GoogleSignIn {
                 return resp?.token
             }
         )
-        return await AuthFlow.run(deps, apiBase: apiBase)
+        return await AuthFlow.run(deps, apiBase: apiBase, provider: provider)
     }
 
     /// One poll. The API client throws on non-2xx, so 404/410 surface as

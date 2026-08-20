@@ -111,6 +111,7 @@ async function calendarFactsFor(
     keyPoints: unknown;
     body: string | null;
     receivedAt: Date;
+    from?: string | null;
   },
 ): Promise<string | null> {
   try {
@@ -121,6 +122,7 @@ async function calendarFactsFor(
       keyPoints: parseJsonArray(dbEmail.keyPoints),
       body: dbEmail.body,
       receivedAt: dbEmail.receivedAt,
+      from: dbEmail.from,
     });
     return context ? formatCalendarFacts(context) : null;
   } catch (err) {

@@ -73,6 +73,10 @@
 "mail.changeTier.a11y" = "%1$@ 님의 메일 분류 변경, 현재 %2$@";
 "mail.moveTo" = "%1$@%2$@ 옮기기 ";
 "mail.snoozePrefix" = "미루기 ";
+"mail.summarize" = "AI 정리";
+"mail.summarizing" = "정리 중…";
+"mail.summarizeFailed" = "정리 실패 — 다시 시도하세요.";
+"mail.actionItems" = "해야 할 일";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */
@@ -173,9 +177,9 @@
 "auto.tone.scope" = "수락·거절·확인 세 가지 한 키 답장 모두에 적용됩니다. 내용이 아니라 말투만 바뀝니다.";
 "auto.tone.matchMe" = "내 문체 따라가기";
 "auto.tone.matchMe.detail" = "보낸 메일에서 문체를 학습합니다.";
-"auto.tone.formal" = "격식체";
+"auto.tone.formal" = "공손";
 "auto.tone.formal.detail" = "공손하고 업무적인 문체. 존댓말이 있는 언어에서는 존댓말을 씁니다.";
-"auto.tone.friendly" = "친근체";
+"auto.tone.friendly" = "업무";
 "auto.tone.friendly.detail" = "따뜻하지만 예의를 지키는 평소 기본값.";
 "auto.tone.casual" = "편한 말투";
 "auto.tone.casual.detail" = "동료에게 쓰듯 짧고 편하게.";
@@ -263,12 +267,17 @@
 "section.recentPush" = "최근 PUSH";
 "section.todayShort" = "오늘";
 "push.nothingNeedsYou" = "지금 처리할 것이 없습니다.";
+"auth.signInApple" = "Apple로 계속하기";
 "auth.signInGoogle" = "Google로 로그인";
 "calendar.noEvents" = "오늘 일정 없음";
 "calendar.eventRow.a11y" = "%1$@, %2$@. 세부 정보를 봅니다.";
 "mail.needsReconnect" = "%@ — 다시 연결 필요";
 
 /* Tier meanings — the product's core idea, previously unexplained in-app */
+"tier.meeting.blurb" = "일정 — 초대와 변경 요청을 캘린더와 대조합니다. 한 키로 수락하거나 거절하세요.";
+"tier.meeting.empty" = "대기 중인 미팅 없음";
+"tier.info.blurb" = "기록 — 영수증, 확인, 알림. 정리해 두고 검색할 수 있으며, 답장이 필요한 건 없습니다.";
+"tier.info.empty" = "새 기록 없음";
 "tier.push.blurb" = "지금 방해합니다. 상대가 답을 기다리고 있거나 시간이 걸린 일입니다.";
 "tier.queue.blurb" = "기다립니다. 오늘 읽을 만하지만 배너를 띄울 정도는 아닙니다.";
 "tier.silent.blurb" = "지운 게 아니라 넣어둔 겁니다. 뉴스레터·영수증 — 찾아보면 그대로 있습니다.";
@@ -281,6 +290,7 @@
 
 /* First-run guide */
 "guide.title" = "Klorn이 메일을 나누는 방식";
+"guide.pipeline" = "Klorn이 연결된 모든 메일함을 읽고 각 메일을 아래 네 단계로 분류합니다. 이 수신함은 그 분류 결과이며, Gmail 받은편지함 원본이 아닙니다.";
 "guide.intro" = "모든 메일은 네 가지 중 하나로 들어갑니다. 지우지 않고, 사용자 없이 답장하지도 않습니다 — 얼마나 크게 알릴지만 정합니다.";
 "guide.correcting" = "잘못 분류됐으면 다른 곳으로 옮기세요. Klorn이 그 수정을 학습합니다. 각 메일에는 왜 그 분류가 됐는지도 표시됩니다.";
 "guide.done" = "알겠습니다";
@@ -370,3 +380,33 @@
 
 /* Sidebar section resize (2026-08-15) */
 "sidebar.resize.a11y" = "계정 섹션 크기 조절";
+
+/* Inboxes (connected mailboxes) */
+"prefs.section.inboxes" = "받은편지함";
+"prefs.inboxes.empty" = "연결된 메일함이 없습니다.";
+"inbox.provider.generic" = "메일";
+"inbox.unknownAddress" = "주소 없음";
+"inbox.needsReconnect" = "재연결 필요";
+"common.cancel" = "취소";
+"account.disconnect" = "연결 해제";
+"account.disconnect.confirm" = "%@ 연결을 해제할까요? Klorn이 더 이상 읽지 않습니다. 이미 가져온 메일은 남습니다.";
+"account.naver.connect" = "네이버 메일함 연결…";
+"account.naver.email" = "네이버 주소";
+"account.naver.password" = "앱 비밀번호";
+"account.naver.password.hint" = "네이버 메일 > 환경설정 > IMAP/SMTP에서 사용함으로 바꾸고, 로그인 비밀번호가 아니라 그곳의 앱 비밀번호를 입력하세요.";
+"account.naver.submit" = "연결";
+"account.imap.failed" = "메일함을 연결하지 못했습니다.";
+"account.imap.rateLimited" = "시도가 너무 잦습니다. 몇 분 후 다시 시도하세요.";
+"account.imap.disconnectFailed" = "메일함 연결을 해제하지 못했습니다.";
+
+/* Attention mode (기본/auto) */
+"mode.section" = "모드";
+"mode.basic" = "기본";
+"mode.basic.detail" = "중요한 메일과 미팅만 알리고, 답장은 직접 고릅니다. 나머지는 조용히.";
+"mode.auto" = "Auto";
+"mode.auto.detail" = "안전한 일상 메일은 아래 지침에 따라 Klorn이 답장까지 대신합니다. 알림은 미팅과 꼭 답해야 할 메일만.";
+"mode.guideline" = "답장 지침";
+"mode.guideline.detail" = "무인 답장이 항상 따르는 지침입니다. 기본값을 수정하거나 추가하세요.";
+"mode.guideline.save" = "지침 저장";
+"mode.guideline.resetHint" = "비우고 저장하면 기본값으로 돌아갑니다.";
+"mode.sidebar.a11y" = "동작 모드";

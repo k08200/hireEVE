@@ -45,6 +45,33 @@ struct APIClient: Sendable {
         try await get("/api/email/inboxes")
     }
 
+    /// GET /api/naver-imap/status — connected Naver mailboxes. Not gated by
+    /// the provider-selector flag, so it is the reliable source for the
+    /// account list even when /api/email/inboxes hides non-Google rows.
+    func fetchNaverStatus() async throws -> ImapStatusResponse {
+        try await get("/api/naver-imap/status")
+    }
+
+    /// POST /api/naver-imap/connect. The app password is passed straight
+    /// through to the server (which verifies it with a live IMAP login and
+    /// stores it enciphered) and is never persisted on this machine.
+    func connectNaver(email: String, password: String) async throws {
+        let body = try JSONEncoder().encode(["email": email, "password": password])
+        _ = try await data(
+            "/api/naver-imap/connect", method: "POST", body: body,
+            contentType: "application/json")
+    }
+
+    /// POST /api/naver-imap/disconnect — ALWAYS with an email: the bodyless
+    /// form removes every mailbox for the provider, which no desktop control
+    /// should be able to trigger by accident.
+    func disconnectNaver(email: String) async throws {
+        let body = try JSONEncoder().encode(["email": email])
+        _ = try await data(
+            "/api/naver-imap/disconnect", method: "POST", body: body,
+            contentType: "application/json")
+    }
+
     /// GET /api/automations — server-owned behaviour settings (agent mode,
     /// reply tone, notification categories, quiet hours).
     func fetchAutomationSettings() async throws -> AutomationSettings {

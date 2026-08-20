@@ -89,7 +89,15 @@ export function isAllowedNativeScheme(scheme: unknown): scheme is string {
 // carry a metacharacter (its scheme passed isAllowedNativeScheme and its code
 // is hex from crypto.randomBytes): NATIVE_OAUTH_SCHEMES is env-configurable, so
 // a self-hoster's typo must not be able to become markup.
-function desktopHandoffPage(deepLink: string): string {
+/// Desktop sign-in nonce state, shared with routes/social-auth.ts so the
+/// Apple/Naver desktop legs park/relay into the same map the
+/// /desktop-token/:nonce poller reads. Module-level: single registration.
+export const desktopLoginTokens = new Map<
+  string,
+  { jwt?: string; expiresAt: number; challenge?: string; relayed?: boolean }
+>();
+
+export function desktopHandoffPage(deepLink: string): string {
   const href = deepLink
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -845,10 +853,6 @@ export function authRoutes(app: FastifyInstance) {
   // never gains a `jwt`): polling it is the app's only recovery path when the
   // browser refuses the scheme launch, and the flag still burns the nonce for
   // starting a SECOND login.
-  const desktopLoginTokens = new Map<
-    string,
-    { jwt?: string; expiresAt: number; challenge?: string; relayed?: boolean }
-  >();
 
   // OAuth exchange codes moved to auth/exchange-codes.ts (module-level) so the
   // Apple/Naver callbacks in routes/social-auth.ts mint codes this file's

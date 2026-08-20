@@ -304,6 +304,28 @@ func runSelfChecks() async -> Bool {
           && sourceBadgeLabel("EMAIL") == nil && sourceBadgeLabel("PENDING_ACTION") == nil)
     check("full panel is user-resizable",
           TopBarController.styleMask(focusable: true).contains(.resizable))
+    // The AppKit-level clamp is the last line of defense: whatever sets the
+    // frame, the top edge stays reachable and the size fits the screen.
+    let vis = NSRect(x: 0, y: 0, width: 1440, height: 875)
+    check("clamp pulls a top-lodged frame back under the menu bar",
+          KeyablePanel.clamped(NSRect(x: 100, y: 400, width: 800, height: 600), into: vis)
+              == NSRect(x: 100, y: 275, width: 800, height: 600))
+    check("clamp shrinks an oversized frame to the visible area",
+          KeyablePanel.clamped(NSRect(x: 0, y: -100, width: 2000, height: 1200), into: vis)
+              == NSRect(x: 0, y: 0, width: 1440, height: 875))
+    check("clamp leaves a healthy frame untouched",
+          KeyablePanel.clamped(NSRect(x: 100, y: 100, width: 800, height: 600), into: vis)
+              == NSRect(x: 100, y: 100, width: 800, height: 600))
+    check("a top-clipped frame counts as lost (unreachable grab area)",
+          TopBarController.isFrameLost(
+              frame: NSRect(x: 100, y: 500, width: 800, height: 600),
+              visible: NSRect(x: 0, y: 0, width: 1440, height: 875))
+          && !TopBarController.isFrameLost(
+              frame: NSRect(x: 100, y: 100, width: 800, height: 600),
+              visible: NSRect(x: 0, y: 0, width: 1440, height: 875))
+          && TopBarController.isFrameLost(
+              frame: NSRect(x: 5_000, y: 100, width: 800, height: 600),
+              visible: NSRect(x: 0, y: 0, width: 1440, height: 875)))
     check("same-state re-render never reframes (snap-back fix)",
           !TopBarController.shouldSetFrame(
               renderedState: .full, state: .full, panelVisible: true, frameLost: false))
@@ -318,6 +340,12 @@ func runSelfChecks() async -> Bool {
           TopBarMetrics.fittedSize(
               ideal: TopBarMetrics.fullMin, visible: NSSize(width: 800, height: 500)).width
               <= 800 - TopBarMetrics.screenMargin * 2)
+    // Cmd+Tab needs a real managed window, not a floating utility overlay
+    // (dogfood 2026-08-18: the full view was unswitchable while it was a
+    // floating .canJoinAllSpaces panel).
+    check("pill is the only utility overlay; expanded/full are real windows",
+          TopBarController.isUtilityWindow(focusable: false)
+          && !TopBarController.isUtilityWindow(focusable: true))
     check("pill panel stays fixed and non-activating",
           !TopBarController.styleMask(focusable: false).contains(.resizable)
           && TopBarController.styleMask(focusable: false).contains(.nonactivatingPanel))
@@ -764,6 +792,79 @@ func runSelfChecks() async -> Bool {
         check("search response decodes", false)
     }
 
+    print("Sections & mode:")
+    check("today section height clamps junk and keeps sane values",
+          AppSettings.resolveTodaySectionHeight("junk") == 240
+          && AppSettings.resolveTodaySectionHeight(50.0) == 120
+          && AppSettings.resolveTodaySectionHeight(9_999.0) == 520
+          && AppSettings.resolveTodaySectionHeight(300.0) == 300)
+    check("unknown attention mode decodes as BASIC (fail-closed)",
+          AttentionMode(rawValue: "WEIRD") == nil
+          && (AttentionMode(rawValue: "AUTO") ?? .basic) == .auto)
+
+    print("Tier v2 lanes:")
+    check("the five live lanes always show; legacy AUTO hides at zero",
+          Tier.visibleOrder(counts: { _ in 0 }) == [.push, .meeting, .queue, .info, .silent])
+    check("legacy AUTO joins only while old rows remain",
+          Tier.visibleOrder(counts: { $0 == .auto ? 1 : 0 })
+              == [.push, .meeting, .queue, .info, .silent, .auto])
+    check("section height resolvers clamp junk",
+          AppSettings.resolveInboxSectionHeight("junk") == 620
+          && AppSettings.resolveInboxSectionHeight(10.0) == 180
+          && AppSettings.resolveUpcomingSectionHeight(9_999.0) == 600)
+    check("guide teaches the five live v2 lanes, not legacy AUTO",
+          Tier.coreOrder.count == 5 && Tier.coreOrder.contains(.meeting)
+          && Tier.coreOrder.contains(.info) && !Tier.coreOrder.contains(.auto))
+    // A v1 server's summary (no MEETING/INFO keys) must still decode.
+    let v1Summary = """
+    {"SILENT":1,"QUEUE":2,"PUSH":3,"AUTO":4,"total":10}
+    """
+    if let sum = try? JSONDecoder().decode(FirewallSummary.self, from: Data(v1Summary.utf8)) {
+        check("v1 summary decodes; absent v2 lanes count zero",
+              sum.count(for: .meeting) == 0 && sum.count(for: .info) == 0
+              && sum.count(for: .push) == 3)
+    } else {
+        check("v1 summary decodes", false)
+    }
+
+    print("IMAP mailboxes:")
+    // GET /api/naver-imap/status wire (routes/imap-connect.ts).
+    let imapJSON = """
+    {"connected":true,"email":"me@naver.com","host":"imap.naver.com:993",
+    "accounts":[{"email":"me@naver.com","host":"imap.naver.com:993",
+    "connectedAt":"2026-08-17T00:00:00.000Z","lastSyncedAt":null,"needsReconnect":false}]}
+    """
+    if let imap = try? JSONDecoder().decode(ImapStatusResponse.self, from: Data(imapJSON.utf8)) {
+        let accounts = imap.resolvedAccounts(fallbackEmail: nil)
+        check("imap status decodes its accounts", accounts.count == 1 && accounts[0].email == "me@naver.com")
+        check("null lastSyncedAt is tolerated", accounts[0].lastSyncedAt == nil)
+    } else {
+        check("imap status decodes", false)
+    }
+    // An older server sent only {connected, email} — keep showing the mailbox.
+    let legacyImap = ImapStatusResponse(connected: true, accounts: nil)
+    check("legacy single-account shape still lists one mailbox",
+          legacyImap.resolvedAccounts(fallbackEmail: "old@naver.com").count == 1)
+    check("disconnected legacy shape lists nothing",
+          ImapStatusResponse(connected: false, accounts: nil)
+              .resolvedAccounts(fallbackEmail: "old@naver.com").isEmpty)
+    check("provider labels are human, unknown falls back",
+          providerLabel("GOOGLE") == "Gmail" && providerLabel("naver") == "Naver"
+          && providerLabel(nil) == L("inbox.provider.generic")
+          && providerLabel("WEIRD") == L("inbox.provider.generic"))
+    // The connect form must not fire a request that the server will only
+    // reject: blank/short password, or an address that smuggles a second one.
+    check("connect form accepts a plain mailbox + app password",
+          canSubmitImapConnect(email: "me@naver.com", password: "abcd1234"))
+    check("connect form rejects blank/short password",
+          !canSubmitImapConnect(email: "me@naver.com", password: "")
+          && !canSubmitImapConnect(email: "me@naver.com", password: "ab"))
+    check("connect form rejects a malformed or multi address",
+          !canSubmitImapConnect(email: "menaver.com", password: "abcd1234")
+          && !canSubmitImapConnect(email: "me@naver", password: "abcd1234")
+          && !canSubmitImapConnect(email: "a@naver.com, b@evil.com", password: "abcd1234")
+          && !canSubmitImapConnect(email: "", password: "abcd1234"))
+
     print("Multi-inbox:")
     // GET /api/email/inboxes wire (routes/email.ts): the primary row has a
     // NULL id; linked rows carry the LinkedInboxAccount id.
@@ -775,6 +876,7 @@ func runSelfChecks() async -> Bool {
         let two = inboxResp.inboxes
         check("inboxes wire decodes", two.count == 2 && two[0].id == nil && two[1].needsReconnect)
         check("primary selection value is \"primary\"", two[0].selectionValue == "primary")
+        check("absent provider decodes as nil (older server)", two[0].provider == nil)
         check("selector label — all", inboxSelectorLabel(selected: "all", inboxes: two) == L("mail.allInboxes"))
         check("selector label — short name of the selection",
               inboxSelectorLabel(selected: "primary", inboxes: two) == "me"
@@ -1467,6 +1569,27 @@ func runSelfChecks() async -> Bool {
     if !engageTextOffenders.isEmpty {
         print("      offenders: \(engageTextOffenders.joined(separator: ", "))")
     }
+
+    // Content-driven growth (a sidebar section handle making the SwiftUI tree
+    // taller) resized the window UP off-screen without live-resize or move
+    // events (clipping recording, 2026-08-19). Two walls, both source-pinned
+    // here because the delegate needs a window and the harness has none:
+    // sizingOptions=[] stops SwiftUI from driving the window frame at all,
+    // and windowDidResize re-clamps whatever still resizes it.
+    let hostSizingPinned = lineOffenders { $0.contains("host.sizingOptions = []") }
+    check("SwiftUI content size never drives the window frame",
+          hostSizingPinned.contains("TopBarController.swift"))
+    let resizeHookPresent = lineOffenders { $0.contains("func windowDidResize") }
+    check("windowDidResize re-clamp hook is wired",
+          resizeHookPresent.contains("TopBarController.swift"))
+
+    // Mail HTML is authored against a white page; the reading surface must
+    // pin one regardless of app theme (dark mode ghost-text recording,
+    // 2026-08-19) and must keep WebKit from auto-darkening the canvas.
+    let mailWrap = EmailHtmlView.wrap("<p>hi</p>")
+    check("mail surface pins a light card in every theme",
+          mailWrap.contains("background: #ffffff")
+          && mailWrap.contains("color-scheme: light"))
 
     print(failures == 0 ? "\nALL CHECKS PASSED" : "\n\(failures) CHECK(S) FAILED")
     return failures == 0
