@@ -111,6 +111,10 @@ struct TopBarRoot: View {
             }
         }
         .glassPanel(cornerRadius: TopBarMetrics.corner(for: state))
+        // Root safety net: NSHostingView centers a root whose minimum exceeds
+        // the window, which clips the app's own header row first. Pin to the
+        // top so any overflow is always cut at the bottom instead.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -1080,7 +1084,10 @@ struct FullView: View {
         // urgent-mail card — has to be able to say which tier to land on.
         @Bindable var model = model
 
-        ZStack {
+        // .top: if the content's minimum ever exceeds the window again, the
+        // overflow must clip at the BOTTOM — a centered ZStack ate the header
+        // first (clipping screenshots, 2026-08-20).
+        ZStack(alignment: .top) {
             // Sky behind everything. The header sits directly on it so the view
             // opens on air rather than on a toolbar; the working columns get a
             // translucent panel so running text never lands on a gradient.
@@ -1364,6 +1371,20 @@ private struct FullSidebar: View {
     }
 
     var body: some View {
+        // The whole column scrolls when the window is shorter than the
+        // sections' minimum (user-grown caps + fixed clusters). Without this
+        // the overflow was clipped — top-first, eating the inbox header
+        // (clipping screenshots, 2026-08-20). minHeight: available keeps the
+        // Spacer pinning the bottom cluster whenever there IS room.
+        GeometryReader { geo in
+            OffscreenFriendlyScroll {
+                sidebarColumn
+                    .frame(minHeight: geo.size.height, alignment: .top)
+            }
+        }
+    }
+
+    private var sidebarColumn: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 ColumnHeader(title: L("section.inbox"))

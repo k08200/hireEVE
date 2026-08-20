@@ -1583,6 +1583,20 @@ func runSelfChecks() async -> Bool {
     check("windowDidResize re-clamp hook is wired",
           resizeHookPresent.contains("TopBarController.swift"))
 
+    // Overflow must never eat the header: the root pins content to the TOP
+    // (a centered NSHostingView/ZStack clipped the header first when the
+    // sections' minimum exceeded the window — screenshots, 2026-08-20).
+    let rootTopPinned = lineOffenders {
+        $0.contains("maxHeight: .infinity, alignment: .top")
+    }
+    check("root content pins to the top (overflow clips at the bottom)",
+          rootTopPinned.contains("TopBar.swift"))
+    let sidebarScrolls = lineOffenders {
+        $0.contains("minHeight: geo.size.height, alignment: .top")
+    }
+    check("sidebar scrolls instead of clipping when the window is short",
+          sidebarScrolls.contains("TopBar.swift"))
+
     // Mail HTML is authored against a white page; the reading surface must
     // pin one regardless of app theme (dark mode ghost-text recording,
     // 2026-08-19) and must keep WebKit from auto-darkening the canvas.
