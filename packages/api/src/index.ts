@@ -50,6 +50,7 @@ import { receiptRoutes } from "./routes/receipt.js";
 import { skillRoutes } from "./routes/skills.js";
 import { smsRoutes } from "./routes/sms.js";
 import { appleAuthProvider, naverAuthProvider, socialAuthRoutes } from "./routes/social-auth.js";
+import { teamRoutes } from "./routes/teams.js";
 import { telegramRoutes } from "./routes/telegram.js";
 import { tokenUsageRoutes } from "./routes/token-usage.js";
 import { waitlistRoutes } from "./routes/waitlist.js";
@@ -241,6 +242,7 @@ app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, 
 
 await app.register(billingRoutes, { prefix: "/api/billing" });
 await app.register(deviceRoutes, { prefix: "/api/devices" });
+await app.register(teamRoutes, { prefix: "/api/teams" });
 await app.register(webhookRoutes, { prefix: "/api/webhook" });
 await app.register(chatRoutes, { prefix: "/api/chat" });
 await app.register(chatConversationRoutes, { prefix: "/api/chat" });

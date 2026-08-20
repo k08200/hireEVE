@@ -334,6 +334,13 @@ struct MeetingContextWire: Codable, Sendable {
     let alternatives: [AlternativeSlot]?
 }
 
+/// GET /api/teams — a saved member group (team mode P1).
+struct TeamWire: Codable, Sendable, Identifiable {
+    let id: String
+    let name: String
+    let members: [String]
+}
+
 /// GET /api/email/:id/sender-dossier — relationship context for the sender.
 struct SenderDossierWire: Codable, Sendable {
     let summary: String
@@ -414,6 +421,8 @@ struct EventDraft: Codable, Sendable, Hashable {
     let startTime: String
     let endTime: String
     let location: String?
+    /// Invitees (team mode P2) — approving the card is what sends invites.
+    let attendees: [String]?
 }
 
 /// POST /api/chat/conversations/:id/messages → one synchronous agent turn.

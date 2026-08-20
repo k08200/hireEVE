@@ -83,6 +83,16 @@
 "dossier.inFlight" = "진행 중: %@";
 "dossier.promise" = "마지막 약속: %@";
 "dossier.a11y" = "발신자 맥락";
+"prefs.section.teams" = "팀";
+"teams.empty" = "아직 팀이 없습니다 — 팀을 저장하면 어시스턴트에 \"팀 전체 언제 다 돼?\"라고 물을 수 있습니다.";
+"teams.namePlaceholder" = "팀 이름 (예: AX팀)";
+"teams.membersPlaceholder" = "멤버 이메일, 쉼표로 구분";
+"teams.add" = "팀 추가";
+"teams.saving" = "저장 중…";
+"teams.remove" = "삭제";
+"teams.saveFailed" = "팀을 저장하지 못했습니다 — 멤버 주소를 확인하세요.";
+"teams.visibilityNote" = "가용성은 Google free/busy 기준입니다: 멤버가 캘린더를 공유했거나 같은 Workspace여야 보입니다. 안 보이는 멤버는 '확인 불가'로 표시하며 비어 있다고 가정하지 않습니다.";
+"calendar.invitees" = "초대: %@";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */

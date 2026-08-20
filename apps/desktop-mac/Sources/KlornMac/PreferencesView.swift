@@ -219,6 +219,9 @@ struct PreferencesView: View {
                 section(L("prefs.section.inboxes")) {
                     InboxAccountsSection(model: model)
                 }
+                section(L("prefs.section.teams")) {
+                    TeamsSection(model: model)
+                }
             }
 
             section(L("prefs.section.about")) {
@@ -314,6 +317,62 @@ private struct ShortcutRecorder: View {
 /// IMAP ones the desktop can manage directly — a way to add or remove them.
 /// Google inboxes are OAuth-linked in the browser (see the Account section),
 /// so they are listed read-only here.
+/// Team mode P1: saved member groups the assistant can schedule around
+/// ("AX팀 내일 언제 다 돼?"). Name + member emails; availability honesty
+/// (unknown ≠ free) lives server-side.
+private struct TeamsSection: View {
+    let model: AppModel
+    @State private var name = ""
+    @State private var membersText = ""
+    @State private var saving = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(model.teams) { team in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(team.name).font(.callout.weight(.medium)).foregroundStyle(Theme.text)
+                        Text(team.members.joined(separator: ", "))
+                            .font(.caption2).foregroundStyle(Theme.textDim).lineLimit(2)
+                    }
+                    Spacer()
+                    Button(L("teams.remove")) {
+                        Task { await model.deleteTeam(id: team.id) }
+                    }
+                    .buttonStyle(.plain).font(.caption).foregroundStyle(Theme.textDim)
+                }
+            }
+            if model.teams.isEmpty {
+                Text(L("teams.empty")).font(.caption).foregroundStyle(Theme.textDim)
+            }
+            Divider().overlay(Theme.line)
+            TextField(L("teams.namePlaceholder"), text: $name)
+                .textFieldStyle(.roundedBorder).font(.callout)
+            TextField(L("teams.membersPlaceholder"), text: $membersText)
+                .textFieldStyle(.roundedBorder).font(.callout)
+            HStack(spacing: 8) {
+                Button(saving ? L("teams.saving") : L("teams.add")) {
+                    saving = true
+                    Task {
+                        await model.createTeam(name: name, membersText: membersText)
+                        if model.teamError == nil { name = ""; membersText = "" }
+                        saving = false
+                    }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(saving || name.trimmingCharacters(in: .whitespaces).isEmpty
+                          || membersText.trimmingCharacters(in: .whitespaces).isEmpty)
+                if let error = model.teamError {
+                    Text(error).font(.caption2).foregroundStyle(Theme.textDim)
+                }
+            }
+            Text(L("teams.visibilityNote")).font(.caption2).foregroundStyle(Theme.textDim)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .task { await model.refreshTeams() }
+    }
+}
+
 private struct InboxAccountsSection: View {
     let model: AppModel
     @State private var naverEmail = ""

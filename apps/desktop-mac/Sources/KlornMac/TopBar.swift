@@ -2080,6 +2080,12 @@ private struct ChatBubble: View {
                         Text(eventDraftLabel(draft))
                             .font(.caption).foregroundStyle(Theme.text).lineLimit(2)
                     }
+                    // Invitees must be visible BEFORE approval — approving is
+                    // what sends the invitations (team mode P2).
+                    if let attendees = draft.attendees, !attendees.isEmpty {
+                        Text(L("calendar.invitees", attendees.joined(separator: ", ")))
+                            .font(.caption2).foregroundStyle(Theme.textDim).lineLimit(2)
+                    }
                     HStack(spacing: 8) {
                         Button(L("calendar.addToCalendar")) {
                             Task { await model.createEvent(from: draft, messageId: message.id) }

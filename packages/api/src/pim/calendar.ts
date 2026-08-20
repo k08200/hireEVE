@@ -82,6 +82,7 @@ export async function createEvent(
   endTime: string,
   description?: string,
   location?: string,
+  attendees?: string[],
 ) {
   const auth = await getAuthedClient(userId);
   if (!auth) return { error: "Google Calendar not connected." };
@@ -100,7 +101,13 @@ export async function createEvent(
         location: location || "",
         start: { dateTime: startTime, timeZone: userZone },
         end: { dateTime: endTime, timeZone: userZone },
+        ...(attendees && attendees.length > 0
+          ? { attendees: attendees.map((email) => ({ email })) }
+          : {}),
       },
+      // Invitations go out only when the human-approved draft carries
+      // attendees (team mode P2) — the assistant's tool path never passes them.
+      ...(attendees && attendees.length > 0 ? { sendUpdates: "all" as const } : {}),
     });
 
     // Canonical timestamps come back from Google's response — these are the
@@ -344,6 +351,45 @@ export async function getAttendeeBusyBlocks(
   }
 }
 
+/**
+ * Team mode P1: per-member busy intervals with VISIBILITY made explicit —
+ * blocks: null means "this calendar is not visible to the user" (absent ≠
+ * free; callers must report those members as unknown, never as available).
+ */
+export async function getAttendeeBusyByMember(
+  userId: string,
+  attendeeEmails: string[],
+  timeMinIso: string,
+  timeMaxIso: string,
+): Promise<Array<{ email: string; blocks: Array<{ start: string; end: string }> | null }>> {
+  if (attendeeEmails.length === 0) return [];
+  const auth = await getAuthedClient(userId);
+  if (!auth) return attendeeEmails.map((email) => ({ email, blocks: null }));
+  try {
+    const calendar = google.calendar({ version: "v3", auth });
+    const fb = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: timeMinIso,
+        timeMax: timeMaxIso,
+        items: attendeeEmails.map((id) => ({ id })),
+      },
+    });
+    const calendars = fb.data.calendars ?? {};
+    return attendeeEmails.map((email) => {
+      const cal = calendars[email];
+      if (!cal || (cal.errors?.length ?? 0) > 0) return { email, blocks: null };
+      const blocks: Array<{ start: string; end: string }> = [];
+      for (const b of cal.busy ?? []) {
+        if (b.start && b.end) blocks.push({ start: b.start, end: b.end });
+      }
+      return { email, blocks };
+    });
+  } catch (err) {
+    console.warn(`[CALENDAR] per-member busy query failed for ${userId}:`, err);
+    return attendeeEmails.map((email) => ({ email, blocks: null }));
+  }
+}
+
 export async function checkConflicts(userId: string, startTime: string, endTime: string) {
   const auth = await getAuthedClient(userId);
   if (!auth) return { error: "Google Calendar not connected." };
@@ -437,6 +483,18 @@ export const CALENDAR_TOOLS = [
           },
           description: { type: "string", description: "Event description (optional)" },
           location: { type: "string", description: "Event location (optional)" },
+          // INVARIANT: this parameter exists so the MODEL can propose
+          // invitees for the chat confirm card. The tool-executor's
+          // create_event case deliberately IGNORES it — the only caller that
+          // ever passes attendees to createEvent() is the human-approved
+          // POST /api/calendar. Do not wire it into the executor.
+          attendees: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Attendee email addresses to invite (optional). In chat this becomes part of the " +
+              "confirm card — invitations are sent only after the user approves.",
+          },
         },
         required: ["summary", "start_time", "end_time"],
       },

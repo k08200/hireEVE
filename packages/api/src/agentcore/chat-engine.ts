@@ -23,6 +23,7 @@ export const CHAT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "list_emails",
   "read_email",
   "sender_context",
+  "team_availability",
   "classify_emails",
   "list_events",
   "check_calendar_conflicts",
@@ -39,6 +40,9 @@ export interface EventDraft {
   startTime: string;
   endTime: string;
   location?: string;
+  /** Team mode P2: invitees carried into the confirm card; the human
+   *  approval (POST /api/calendar) is what actually sends invitations. */
+  attendees?: string[];
 }
 
 export interface ChatTurnResult {
@@ -82,7 +86,23 @@ function validateEventDraft(args: Record<string, unknown>): EventDraft | null {
   if (Number.isNaN(Date.parse(startTime)) || Number.isNaN(Date.parse(endTime))) return null;
   const location =
     typeof args.location === "string" && args.location.trim() ? args.location.trim() : undefined;
-  return { title, startTime, endTime, ...(location ? { location } : {}) };
+  const attendees = Array.isArray(args.attendees)
+    ? [
+        ...new Set(
+          args.attendees
+            .filter((a): a is string => typeof a === "string")
+            .map((a) => a.trim().toLowerCase())
+            .filter((a) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a)),
+        ),
+      ].slice(0, 20)
+    : [];
+  return {
+    title,
+    startTime,
+    endTime,
+    ...(location ? { location } : {}),
+    ...(attendees.length > 0 ? { attendees } : {}),
+  };
 }
 
 export async function runChatTurn(opts: {

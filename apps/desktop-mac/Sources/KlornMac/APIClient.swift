@@ -104,6 +104,18 @@ struct APIClient: Sendable {
         _ = try await data(path, method: "POST", body: body, contentType: "application/json", authed: authed)
     }
 
+    /// POST any Encodable body; discard the response (arrays/optionals that
+    /// the [String: String] helper cannot express — e.g. event attendees).
+    func post(_ path: String, encodable: some Encodable, authed: Bool = true) async throws {
+        let body = try JSONEncoder().encode(encodable)
+        _ = try await data(path, method: "POST", body: body, contentType: "application/json", authed: authed)
+    }
+
+    /// DELETE a resource; discard the response body.
+    func delete(_ path: String, authed: Bool = true) async throws {
+        _ = try await data(path, method: "DELETE", authed: authed)
+    }
+
     /// PATCH a JSON object; discard the response body (e.g. commitment status).
     func patch(_ path: String, json: [String: String], authed: Bool = true) async throws {
         let body = try JSONEncoder().encode(json)

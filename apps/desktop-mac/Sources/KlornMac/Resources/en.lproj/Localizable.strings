@@ -84,6 +84,16 @@
 "dossier.inFlight" = "In flight: %@";
 "dossier.promise" = "Last promise: %@";
 "dossier.a11y" = "Sender context";
+"prefs.section.teams" = "TEAMS";
+"teams.empty" = "No teams yet — save one to ask \"when is the whole team free?\" in the assistant.";
+"teams.namePlaceholder" = "Team name (e.g. AX team)";
+"teams.membersPlaceholder" = "Member emails, comma-separated";
+"teams.add" = "Add team";
+"teams.saving" = "Saving…";
+"teams.remove" = "Remove";
+"teams.saveFailed" = "Couldn't save the team — check the member addresses.";
+"teams.visibilityNote" = "Availability uses Google free/busy: members must share their calendar with you (or share a Workspace). Members Klorn can't see are reported as unknown, never assumed free.";
+"calendar.invitees" = "Invites: %@";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
 /* Reading pane */

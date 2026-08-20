@@ -123,6 +123,38 @@ final class AppModel {
             loginProviders = resp.providers.map(\.id)
         }
     }
+    // MARK: Teams (team mode P1)
+
+    /// The user's saved teams for team-availability questions.
+    private(set) var teams: [TeamWire] = []
+    private(set) var teamError: String?
+
+    func refreshTeams() async {
+        struct Resp: Codable { let teams: [TeamWire] }
+        if let resp = try? await api.get("/api/teams", as: Resp.self) { teams = resp.teams }
+    }
+
+    func createTeam(name: String, membersText: String) async {
+        teamError = nil
+        let members = membersText
+            .split(whereSeparator: { $0 == "," || $0 == "\n" || $0 == " " })
+            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+            .filter { !$0.isEmpty }
+        struct Body: Encodable { let name: String; let members: [String] }
+        do {
+            try await api.post("/api/teams", encodable: Body(name: name, members: members))
+            await refreshTeams()
+        } catch {
+            teamError = L("teams.saveFailed")
+            Log.app.error("team create failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    func deleteTeam(id: String) async {
+        try? await api.delete("/api/teams/\(id)")
+        await refreshTeams()
+    }
+
     /// Naver IMAP mailboxes, fetched from the ungated status endpoint so the
     /// account list is complete even while the provider selector flag is off.
     private(set) var imapAccounts: [ImapAccount] = []
@@ -602,10 +634,18 @@ final class AppModel {
     /// server-side), clear the card, and confirm in-thread. Failure keeps the
     /// card so the user can retry, plus a visible failure bubble.
     func createEvent(from draft: EventDraft, messageId: UUID) async {
-        var body = ["title": draft.title, "startTime": draft.startTime, "endTime": draft.endTime]
-        if let location = draft.location { body["location"] = location }
+        struct Body: Encodable {
+            let title: String
+            let startTime: String
+            let endTime: String
+            let location: String?
+            let attendees: [String]?
+        }
+        let body = Body(
+            title: draft.title, startTime: draft.startTime, endTime: draft.endTime,
+            location: draft.location, attendees: draft.attendees)
         do {
-            try await api.post("/api/calendar", json: body)
+            try await api.post("/api/calendar", encodable: body)
             clearEventDraft(messageId)
             chatMessages.append(ChatMessage(
                 role: .assistant, text: L("calendar.addedConfirm", eventDraftLabel(draft))))
