@@ -1262,7 +1262,7 @@ private struct TeamsColumn: View {
 /// tier — a real desktop-app view of the whole firewall.
 /// What the full view's list column shows: a firewall tier, commitments, or
 /// the assistant chat.
-enum ListMode: Equatable {
+enum ListMode: Equatable, Hashable {
     case tier(Tier)
     case commitments
     case assistant
@@ -1997,16 +1997,26 @@ private struct FullList: View {
     private var items: [FirewallItem] { model.queue?.items(for: tier) ?? [] }
     private var searching: Bool { isSearchActive(query) }
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotionSwitch
+
     var body: some View {
-        switch mode {
-        case .commitments: CommitmentsList()
-        case .assistant: AssistantColumn()
-        case .proposals: ProposalsList()
-        case .calendar: CalendarAgendaColumn(actions: actions)
-        case .teams: TeamsColumn()
-        case .tier: tierList
+        // P3: lane/screen switches crossfade instead of hard-cutting — the
+        // last silent state change in the main window.
+        Group {
+            switch mode {
+            case .commitments: CommitmentsList()
+            case .assistant: AssistantColumn()
+            case .proposals: ProposalsList()
+            case .calendar: CalendarAgendaColumn(actions: actions)
+            case .teams: TeamsColumn()
+            case .tier: tierList
+            }
         }
+        .id(mode)
+        .transition(.opacity)
+        .animation(reduceMotionSwitch ? nil : .easeOut(duration: 0.15), value: mode)
     }
+
 
     private var tierList: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -2569,9 +2579,17 @@ struct FullRow: View {
         }
         .padding(.horizontal, 20).padding(.vertical, 11)
         // Selection is not color-only: an accent leading bar + a stronger fill (both
-        // perceivable), plus the .isSelected trait above.
+        // perceivable), plus the .isSelected trait above. At REST the bar
+        // carries the row's TIER instead (design renewal P2): in mixed-lane
+        // surfaces (전체 수신함, search) the lane identity used to live in one
+        // 8px dot at the far right — now every row wears its lane on the
+        // scan edge. Muted so the list stays quiet; selection still wins.
         .background(alignment: .leading) {
-            if selected { Rectangle().fill(Theme.accent).frame(width: 3) }
+            if selected {
+                Rectangle().fill(Theme.accent).frame(width: 3)
+            } else {
+                Rectangle().fill(Theme.tint(item.tier).opacity(0.45)).frame(width: 3)
+            }
         }
         .background(selected ? Theme.surfaceSelected : hovering ? Theme.surfaceHover : .clear)
         .onHover { hovering = $0 }
