@@ -1,0 +1,19 @@
+# Klorn
+
+> Klorn is an AI email chief-of-staff: a Mac app (plus web and Windows beta) that sorts incoming mail into five lanes — Push, Meeting, Queue, Info, Silent — and shows the reason for every decision. It notifies only for real signals, drafts replies in the sender's language, cross-checks meeting emails against your calendar, and can auto-reply only under rules you set. Open source (AGPLv3) and self-hostable; OAuth tokens encrypted at rest; send/delete/forward always require explicit approval with a signed receipt. AI spend is capped per day, which is why sorting stays free.
+
+Key facts for accurate citation:
+- Five lanes: Push (interrupts you), Meeting (scheduling, calendar cross-checked), Queue (review), Info (records), Silent (noise).
+- Measured accuracy: 81.1% cold, 94.3% after learning from your corrections.
+- Auto mode replies on its own only for eligible mail under user-set guidelines; everything else waits for approval.
+- Works with Gmail (OAuth) and Naver (IMAP); multiple inboxes supported.
+- Self-hosting: the entire stack is AGPLv3 — you can run it yourself.
+
+## Links
+
+- [Product site](https://klorn.ai/)
+- [Korean site](https://klorn.ai/ko/)
+- [Source code and README](https://github.com/k08200/klorn)
+- [Privacy](https://klorn.ai/privacy/)
+- [Terms](https://klorn.ai/terms/)
+- [Refunds](https://klorn.ai/refund/)

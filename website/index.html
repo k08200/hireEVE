@@ -715,6 +715,87 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .chip{animation:none}
 }
 </style>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "SoftwareApplication",
+ "name": "Klorn",
+ "operatingSystem": "macOS, Windows, Web",
+ "applicationCategory": "BusinessApplication",
+ "url": "https://klorn.ai/",
+ "inLanguage": "en",
+ "description": "A Mac app that sorts your mail into five lanes — Push, Meeting, Queue, Info, Silent — and tells you why. Open source (AGPLv3), self-hostable, and it never sends anything outside rules you set.",
+ "sameAs": [
+  "https://github.com/k08200/klorn"
+ ],
+ "offers": {
+  "@type": "Offer",
+  "price": "0",
+  "priceCurrency": "USD",
+  "description": "Invite-only beta; mail sorting is free with a daily AI budget cap."
+ },
+ "softwareHelp": {
+  "@type": "CreativeWork",
+  "url": "https://github.com/k08200/klorn#readme"
+ }
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "Why is it invite-only?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Reading your mail needs Google's restricted scopes, and those need a security review before the app can be published. Until it clears, Google caps testers at 100."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Can it send something without me?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "No. Send, delete and forward always wait for an explicit approval and each one writes a signed receipt with a hash of exactly what went out."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Where does my mail actually go?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "To the classifier and back. Your OAuth tokens are encrypted at rest, and because the whole thing is AGPLv3 you can read the code that touches them — or run it yourself."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "What if it files something wrong?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Move it. Every message shows why it landed where it did, and the correction is what the classifier learns from — that is the difference between 81.1% cold and 94.3% warm."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "When is the Windows app?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Shipped, as an unsigned beta — SmartScreen warns once until the app is code-signed. The web app remains available in any browser with the same account and tiers."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Can the AI run up a bill?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "No. Klorn caps its own spend per day, and stops rather than overspending — a runaway loop costs you nothing. That cap is why sorting stays free."
+   }
+  }
+ ]
+}
+</script>
 </head>
 <body>
 <div class="grain"></div>
@@ -1021,7 +1102,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="amt">$0<span>/month</span></div>
       <p class="note">No card. A daily AI budget keeps it sustainable.</p>
       <ul>
-        <li>4-tier mail firewall — only real signals interrupt you</li>
+        <li>Five-lane mail firewall — only real signals interrupt you</li>
         <li>Decision queue with evidence for every card</li>
         <li>Morning briefing and calendar view</li>
         <li>Assistant that answers from your own mail</li>
@@ -1122,7 +1203,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">AGPLv3 licence</a></nav>
     <nav aria-label="Legal"><h4>Legal</h4>
       <a href="https://app.klorn.ai/privacy">Privacy</a><a href="https://app.klorn.ai/terms">Terms</a>
-      <a href="https://app.klorn.ai/terms#billing-cancellation-and-refunds">Refunds</a>
+      <a href="https://app.klorn.ai/refund">Refunds</a>
       <a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">Security</a>
       <a href="mailto:k0820086@gmail.com">Contact</a></nav>
   </div>
@@ -1591,6 +1672,31 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 
   open = 1;
   draw();
+})();
+</script>
+<script>
+// Inflow attribution: pass utm_*/referrer/landing-path along to the app so
+// the early-access form can report which channel brought the signup.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
 })();
 </script>
 </body>

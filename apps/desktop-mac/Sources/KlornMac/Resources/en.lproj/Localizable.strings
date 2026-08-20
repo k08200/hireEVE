@@ -74,6 +74,40 @@
 "mail.changeTier.a11y" = "Change tier for message from %1$@, currently %2$@";
 "mail.moveTo" = "Move to %1$@%2$@";
 "mail.snoozePrefix" = "Snooze ";
+"mail.summarize" = "AI Summary";
+"mail.summarizing" = "Summarizing…";
+"mail.summarizeFailed" = "Couldn't summarize — try again.";
+"mail.actionItems" = "Action items";
+"section.filed" = "Filed";
+"section.filed.help" = "Mail Klorn already filed — Info records and Silent noise. Click to expand.";
+"filed.a11y" = "Filed mail, %d items";
+"dossier.inFlight" = "In flight: %@";
+"dossier.promise" = "Last promise: %@";
+"dossier.a11y" = "Sender context";
+"prefs.section.teams" = "TEAMS";
+"teams.title" = "Teams";
+"teams.subtitle" = "Save a team once, then see when the WHOLE team is free and book the meeting from a slot. Availability is Google free/busy; invisible calendars are reported, never assumed free.";
+"teams.addHeader" = "New team";
+"teams.min30" = "30 min";
+"teams.min60" = "1 hour";
+"teams.findSlots" = "Find common free time";
+"teams.checking" = "Checking…";
+"teams.unknown" = "Availability unknown (calendar not visible): %@";
+"teams.noSlots" = "No common slot in the next 3 days — try 30 minutes or edit members.";
+"teams.meetingTitlePlaceholder" = "Meeting title (defaults to the team name)";
+"teams.book" = "Book & invite %@ people";
+"teams.bookNote" = "Booking creates the event on your calendar and emails an invitation to every member — this button is the approval.";
+"teams.booked" = "Meeting created — invitations sent.";
+"teams.bookFailed" = "Couldn't create the meeting — try again.";
+"teams.empty" = "No teams yet — save one to ask \"when is the whole team free?\" in the assistant.";
+"teams.namePlaceholder" = "Team name (e.g. AX team)";
+"teams.membersPlaceholder" = "Member emails, comma-separated";
+"teams.add" = "Add team";
+"teams.saving" = "Saving…";
+"teams.remove" = "Remove";
+"teams.saveFailed" = "Couldn't save the team — check the member addresses.";
+"teams.visibilityNote" = "Availability uses Google free/busy: members must share their calendar with you (or share a Workspace). Members Klorn can't see are reported as unknown, never assumed free.";
+"calendar.invitees" = "Invites: %@";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
 /* Reading pane */
@@ -264,6 +298,7 @@
 "section.recentPush" = "RECENT PUSH";
 "section.todayShort" = "TODAY";
 "push.nothingNeedsYou" = "Nothing needs you right now.";
+"auth.signInNaver" = "Continue with Naver";
 "auth.signInApple" = "Continue with Apple";
 "auth.signInGoogle" = "Sign in with Google";
 "calendar.noEvents" = "No events today";
@@ -349,6 +384,7 @@
 "calendar.addedConfirm" = "✓ Added to calendar: %@";
 
 /* Meeting <-> calendar cross-reference (2026-08-13) */
+"meeting.alternatives" = "Both free: %@";
 "meeting.proposedSlot" = "Proposed: %@";
 "meeting.slotFree" = "That slot is free on your calendar";
 "meeting.slotBusy" = "Clashes with an existing event";

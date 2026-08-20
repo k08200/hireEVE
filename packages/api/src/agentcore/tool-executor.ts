@@ -5,6 +5,7 @@
  */
 
 import { planHasFeature, TOOL_FEATURE_MAP } from "../billing/stripe.js";
+import { teamModeEnabled } from "../config.js";
 import { prisma } from "../db.js";
 import {
   type ActionReceipt,
@@ -18,6 +19,7 @@ import { upsertAttentionForCalendarEvent } from "../judge/attention-mirror.js";
 import { forget, MEMORY_TOOLS, recall, remember } from "../learning/memory.js";
 import { classifyEmails, GMAIL_TOOLS, listEmails, readEmail } from "../mail/gmail.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
+import { getSenderDossier } from "../mail/sender-dossier.js";
 import { BRIEFING_TOOLS } from "../pim/briefing.js";
 import {
   CALENDAR_TOOLS,
@@ -32,6 +34,7 @@ import {
   MEETING_TOOLS,
   summarizeMeeting,
 } from "../pim/meeting.js";
+import { getTeamAvailability } from "../pim/team-availability.js";
 import { captureError } from "../sentry.js";
 import { calculate, generatePassword, UTILITY_TOOLS } from "../utilities.js";
 import { executeSkill, listUserSkills, SKILL_TOOLS } from "./skill-executor.js";
@@ -45,6 +48,81 @@ const TIME_TOOL = {
     parameters: { type: "object", properties: {}, required: [] },
   },
 };
+
+/// "What were we discussing with this person" — the sender dossier as a chat
+/// tool. Reads only the user's own stored mail; cache-by-count inside the
+/// module keeps repeat questions free.
+const DOSSIER_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "sender_context",
+    description:
+      "Relationship context for one email sender, distilled from mail already exchanged: " +
+      "who they are to the user, topics currently in flight, and the last outstanding " +
+      "promise. Use when the user asks about a person or sender (e.g. 'what were we " +
+      "discussing with alice@…', '이 사람과 무슨 얘기했지').",
+    parameters: {
+      type: "object",
+      properties: {
+        sender_email: {
+          type: "string",
+          description: "The sender's bare email address (user@domain).",
+        },
+      },
+      required: ["sender_email"],
+    },
+  },
+};
+
+/// "When is the whole team free" — common free slots for a saved team or an
+/// ad-hoc member list, intersected with the user's own calendar. Members
+/// whose calendars are not visible are reported as UNKNOWN, never as free.
+const TEAM_AVAILABILITY_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "team_availability",
+    description:
+      "Find time slots where the USER and a group of people are all free. Pass either the " +
+      "name of one of the user's saved teams (team_name) or an explicit members list of " +
+      "email addresses. Members whose calendars are not visible come back in " +
+      "unknownMembers — their availability is UNKNOWN, do not claim they are free. Use for " +
+      "questions like 'AX팀 내일 언제 다 돼?' or 'find an hour for me, alice@ and bob@ this week'.",
+    parameters: {
+      type: "object",
+      properties: {
+        team_name: { type: "string", description: "Name of one of the user's saved teams." },
+        members: {
+          type: "array",
+          items: { type: "string" },
+          description: "Explicit member email addresses (used when team_name is not given).",
+        },
+        window_start: { type: "string", description: "ISO start of the search window." },
+        window_end: { type: "string", description: "ISO end of the search window (max 14 days)." },
+        duration_minutes: { type: "number", description: "Meeting length, default 60." },
+      },
+      required: ["window_start", "window_end"],
+    },
+  },
+};
+
+/// team_availability budget: 10 calls per user per 5 minutes, in-process
+/// (single instance). One call can already answer a whole scheduling question.
+const TEAM_AVAILABILITY_BUDGET = 10;
+const TEAM_AVAILABILITY_WINDOW_MS = 5 * 60 * 1000;
+const teamAvailabilityCalls = new Map<string, number[]>();
+function consumeTeamAvailabilityBudget(userId: string): boolean {
+  const now = Date.now();
+  const calls = (teamAvailabilityCalls.get(userId) ?? []).filter(
+    (t) => now - t < TEAM_AVAILABILITY_WINDOW_MS,
+  );
+  if (calls.length >= TEAM_AVAILABILITY_BUDGET) {
+    teamAvailabilityCalls.set(userId, calls);
+    return false;
+  }
+  calls.push(now);
+  teamAvailabilityCalls.set(userId, calls);
+  return true;
+}
 
 const GOOGLE_TOOLS = [...GMAIL_TOOLS, ...CALENDAR_TOOLS];
 
@@ -74,6 +152,8 @@ export const ALWAYS_TOOLS = [
   ...LOCAL_UTILITY_TOOLS,
   ...MEMORY_TOOLS,
   ...SKILL_TOOLS,
+  DOSSIER_TOOL,
+  TEAM_AVAILABILITY_TOOL,
   TIME_TOOL,
 ];
 
@@ -192,6 +272,20 @@ async function executeToolCallInternal(
         );
       case "read_email":
         return JSON.stringify(await readEmail(userId, requireString(args.email_id, "email_id")));
+      case "sender_context": {
+        const sender = requireString(args.sender_email, "sender_email").trim().toLowerCase();
+        if (!sender.includes("@")) {
+          return JSON.stringify({ error: "sender_email must be a bare email address." });
+        }
+        const dossier = await getSenderDossier(userId, sender, "en");
+        if (!dossier) {
+          return JSON.stringify({ error: "No AI provider is configured for this account." });
+        }
+        if (dossier.emailCount === 0) {
+          return JSON.stringify({ info: "No stored mail with this sender yet." });
+        }
+        return JSON.stringify(dossier);
+      }
       case "send_email": {
         const to = requireString(args.to, "to");
         const subject = requireString(args.subject, "subject");
@@ -241,6 +335,52 @@ async function executeToolCallInternal(
       }
       case "list_events":
         return JSON.stringify(await listEvents(userId, safeInt(args.max_results, 10, 200)));
+      case "team_availability": {
+        if (!teamModeEnabled()) {
+          return JSON.stringify({
+            error: "Team mode is not part of the current plan.",
+            code: "TEAM_REQUIRED",
+          });
+        }
+        // Dedicated throttle (security review 2026-08-20): chat's generic
+        // caps still allowed thousands of free/busy probes per minute.
+        if (!consumeTeamAvailabilityBudget(userId)) {
+          return JSON.stringify({
+            error: "Too many availability checks — try again in a minute.",
+          });
+        }
+        let members: string[] = [];
+        if (typeof args.team_name === "string" && args.team_name.trim()) {
+          const teams = await prisma.team.findMany({
+            where: { userId },
+            select: { name: true, members: true },
+          });
+          const wanted = args.team_name.trim().toLowerCase();
+          const team = teams.find((t) => t.name.toLowerCase() === wanted);
+          if (!team) {
+            return JSON.stringify({
+              error: `No saved team named "${args.team_name}".`,
+              availableTeams: teams.map((t) => t.name),
+            });
+          }
+          members = Array.isArray(team.members)
+            ? team.members.filter((m): m is string => typeof m === "string")
+            : [];
+        } else if (Array.isArray(args.members)) {
+          members = args.members.filter((m): m is string => typeof m === "string");
+        }
+        if (members.length === 0) {
+          return JSON.stringify({ error: "Provide team_name (a saved team) or a members list." });
+        }
+        const result = await getTeamAvailability(
+          userId,
+          members,
+          requireString(args.window_start, "window_start"),
+          requireString(args.window_end, "window_end"),
+          safeInt(args.duration_minutes, 60, 480),
+        );
+        return JSON.stringify(result);
+      }
       case "create_event": {
         const evSummary = requireString(args.summary, "summary");
         const evStart = requireString(args.start_time, "start_time");

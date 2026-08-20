@@ -42,6 +42,32 @@ enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
         displayOrder.filter { $0 != .auto || counts($0) > 0 }
     }
 
+    /// The full sidebar's two-level presentation (founder 2026-08-20: nine
+    /// always-on rows was too many — the CLASSIFICATION stays six lanes, the
+    /// default VIEW earns its rows). Action lanes stay primary: PUSH/QUEUE
+    /// always, MEETING only while it holds items (it notifies on arrival, so
+    /// an empty row teaches nothing). INFO/SILENT — mail Klorn already filed —
+    /// collapse into one "filed" disclosure row; legacy AUTO joins them only
+    /// while old rows remain. Every lane stays one click away.
+    /// Pure for the harness.
+    struct SidebarLanes: Equatable {
+        let primary: [Tier]
+        let filed: [Tier]
+        let filedTotal: Int
+    }
+
+    static func sidebarLanes(counts: (Tier) -> Int) -> SidebarLanes {
+        var primary: [Tier] = [.push]
+        if counts(.meeting) > 0 { primary.append(.meeting) }
+        primary.append(.queue)
+        var filed: [Tier] = [.info, .silent]
+        if counts(.auto) > 0 { filed.append(.auto) }
+        return SidebarLanes(
+            primary: primary,
+            filed: filed,
+            filedTotal: filed.reduce(0) { $0 + counts($1) })
+    }
+
     var label: String {
         switch self {
         case .push: "Push"
@@ -215,6 +241,10 @@ struct EmailDetail: Codable, Sendable, Identifiable {
     /// Server-sanitized HTML for rendering mail as the sender designed it
     /// (EmailHtmlView, JS-disabled). null for genuinely-plain mail.
     let renderHtml: String?
+    /// AI-extracted bullets/tasks (same batch pass as `summary`; the detail
+    /// endpoint always sent these — the pane just never decoded them).
+    let keyPoints: [String]?
+    let actionItems: [String]?
     let needsReply: Bool?
     let needsReplyReason: String?
     /// Learned engagement: how often the user has replied to/written this sender.
@@ -291,9 +321,45 @@ struct MeetingContextWire: Codable, Sendable {
         let allDay: Bool
     }
 
+    struct AlternativeSlot: Codable, Sendable {
+        let startTime: String
+        let endTime: String
+    }
+
     let proposed: Proposed?
     let conflict: Conflict?
     let nearby: [NearbyEvent]
+    /// Team mode v2: slots verified free for BOTH sides when the proposal
+    /// clashes. Optional — older servers omit it.
+    let alternatives: [AlternativeSlot]?
+}
+
+/// GET /api/teams — a saved member group (team mode P1).
+struct TeamWire: Codable, Sendable, Identifiable {
+    let id: String
+    let name: String
+    let members: [String]
+}
+
+/// GET /api/teams/:id/availability — common free slots for a saved team.
+struct TeamAvailabilityWire: Codable, Sendable {
+    struct Slot: Codable, Sendable, Identifiable {
+        let startTime: String
+        let endTime: String
+        var id: String { startTime }
+    }
+    let slots: [Slot]
+    let checkedMembers: [String]
+    let unknownMembers: [String]
+    let timeZone: String
+}
+
+/// GET /api/email/:id/sender-dossier — relationship context for the sender.
+struct SenderDossierWire: Codable, Sendable {
+    let summary: String
+    let openThreads: [String]
+    let lastPromise: String?
+    let emailCount: Int
 }
 
 // MARK: - Agent activity ("what Klorn did today")
@@ -368,6 +434,8 @@ struct EventDraft: Codable, Sendable, Hashable {
     let startTime: String
     let endTime: String
     let location: String?
+    /// Invitees (team mode P2) — approving the card is what sends invites.
+    let attendees: [String]?
 }
 
 /// POST /api/chat/conversations/:id/messages → one synchronous agent turn.

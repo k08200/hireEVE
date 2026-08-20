@@ -691,17 +691,17 @@ func runSelfChecks() async -> Bool {
     utcCal.timeZone = TimeZone(identifier: "UTC")!
     let draft = EventDraft(
         title: "Sync with Sarah", startTime: "2026-07-21T05:00:00.000Z",
-        endTime: "2026-07-21T06:00:00.000Z", location: "Zoom")
+        endTime: "2026-07-21T06:00:00.000Z", location: "Zoom", attendees: nil)
     check("draft label = title · time · location",
           eventDraftLabel(draft, calendar: utcCal) == "Sync with Sarah · 05:00–06:00 · Zoom")
     check("draft label omits missing location",
           eventDraftLabel(
               EventDraft(title: "T", startTime: "2026-07-21T05:00:00.000Z",
-                         endTime: "2026-07-21T06:00:00.000Z", location: nil),
+                         endTime: "2026-07-21T06:00:00.000Z", location: nil, attendees: nil),
               calendar: utcCal) == "T · 05:00–06:00")
     check("draft label survives malformed time",
           eventDraftLabel(
-              EventDraft(title: "T", startTime: "not-a-date", endTime: "nope", location: nil),
+              EventDraft(title: "T", startTime: "not-a-date", endTime: "nope", location: nil, attendees: nil),
               calendar: utcCal) == "T")
     let draftTurn = try? JSONDecoder().decode(ChatTurnResponse.self, from: Data("""
     {"reply":"일정 잡을까요?","eventDraft":{"title":"Sync","startTime":"2026-07-21T05:00:00Z",
@@ -808,6 +808,18 @@ func runSelfChecks() async -> Bool {
     check("legacy AUTO joins only while old rows remain",
           Tier.visibleOrder(counts: { $0 == .auto ? 1 : 0 })
               == [.push, .meeting, .queue, .info, .silent, .auto])
+    // Two-level sidebar (founder 2026-08-20): action lanes primary, filed
+    // lanes behind one disclosure — MEETING earns its row with items.
+    check("sidebar defaults to PUSH/QUEUE primary; filed = INFO+SILENT",
+          Tier.sidebarLanes(counts: { _ in 0 })
+              == Tier.SidebarLanes(primary: [.push, .queue], filed: [.info, .silent], filedTotal: 0))
+    check("MEETING becomes primary only while it holds items",
+          Tier.sidebarLanes(counts: { $0 == .meeting ? 2 : 0 }).primary
+              == [.push, .meeting, .queue])
+    check("filed total sums its lanes; legacy AUTO joins only with rows",
+          Tier.sidebarLanes(counts: { [.info: 4, .silent: 91, .auto: 1][$0] ?? 0 })
+              == Tier.SidebarLanes(
+                  primary: [.push, .queue], filed: [.info, .silent, .auto], filedTotal: 96))
     check("section height resolvers clamp junk",
           AppSettings.resolveInboxSectionHeight("junk") == 620
           && AppSettings.resolveInboxSectionHeight(10.0) == 180
@@ -1582,6 +1594,20 @@ func runSelfChecks() async -> Bool {
     let resizeHookPresent = lineOffenders { $0.contains("func windowDidResize") }
     check("windowDidResize re-clamp hook is wired",
           resizeHookPresent.contains("TopBarController.swift"))
+
+    // Overflow must never eat the header: the root pins content to the TOP
+    // (a centered NSHostingView/ZStack clipped the header first when the
+    // sections' minimum exceeded the window — screenshots, 2026-08-20).
+    let rootTopPinned = lineOffenders {
+        $0.contains("maxHeight: .infinity, alignment: .top")
+    }
+    check("root content pins to the top (overflow clips at the bottom)",
+          rootTopPinned.contains("TopBar.swift"))
+    let sidebarScrolls = lineOffenders {
+        $0.contains("minHeight: geo.size.height, alignment: .top")
+    }
+    check("sidebar scrolls instead of clipping when the window is short",
+          sidebarScrolls.contains("TopBar.swift"))
 
     // Mail HTML is authored against a white page; the reading surface must
     // pin one regardless of app theme (dark mode ghost-text recording,

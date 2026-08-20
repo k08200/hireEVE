@@ -6,7 +6,12 @@
 #
 # Usage:
 #   cp .env.selfhost.example .env.selfhost      # then fill in the values
-#   docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml up -d --build
+#   docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml up -d
+#
+# api and web pull prebuilt images from ghcr.io — no toolchain, no source
+# build. To build from source instead (e.g. you changed the code, or you
+# serve web beyond localhost and must rebake NEXT_PUBLIC_API_URL), swap the
+# `image:` line for the commented `build:` block on that service.
 #
 # Migrations run automatically: the api image's entrypoint
 # (packages/api/scripts/start.sh) executes `prisma migrate deploy` with
@@ -37,9 +42,11 @@ services:
       retries: 5
 
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
+    image: ghcr.io/k08200/klorn-api:latest
+    # To build from source, remove the image: line and uncomment:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.api
     restart: unless-stopped
     ports:
       - "3001:3001"
@@ -97,14 +104,17 @@ services:
         condition: service_healthy
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile.web
-      args:
-        # Inlined into the client bundle at BUILD time — a runtime env entry
-        # cannot change it. Point it at where browsers reach the API (your
-        # public API URL when serving beyond localhost), then rebuild.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    image: ghcr.io/k08200/klorn-web:latest
+    # NEXT_PUBLIC_API_URL is inlined into the client bundle at BUILD time —
+    # a runtime env entry cannot change it. The published image is baked
+    # with the single-host default (http://localhost:3001). If browsers
+    # reach your API at any other address (reverse proxy, separate host),
+    # remove the image: line and rebuild from source:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.web
+    #   args:
+    #     NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
     restart: unless-stopped
     ports:
       - "3000:3000"

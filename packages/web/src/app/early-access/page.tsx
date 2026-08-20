@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AuthScreen from "@/components/auth-screen";
 import { Input, Textarea } from "@/components/ui/input";
 import { API_BASE } from "@/lib/api";
+import { captureFirstTouchAttribution, storedAttribution } from "@/lib/attribution";
 
 type Status = "idle" | "submitting" | "success" | "already" | "error";
 
@@ -18,6 +19,12 @@ export default function EarlyAccessPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+
+  // First-touch: the landing site decorates its links with utm/ref/lp — pin
+  // whatever brought this person in before they navigate further.
+  useEffect(() => {
+    captureFirstTouchAttribution();
+  }, []);
 
   const resetFormError = () => {
     if (errorMsg) setErrorMsg(null);
@@ -47,6 +54,7 @@ export default function EarlyAccessPage() {
           name: name.trim() || undefined,
           useCase: useCase.trim() || undefined,
           source: source.trim() || undefined,
+          attribution: storedAttribution() ?? undefined,
         }),
       });
 
@@ -68,7 +76,7 @@ export default function EarlyAccessPage() {
     } catch (_err) {
       setStatus("error");
       setErrorMsg(
-        "We could not reach the waitlist server. Check your connection and try again, or email hello@klorn.ai if this keeps happening.",
+        "We could not reach the waitlist server. Check your connection and try again, or email k0820086@gmail.com if this keeps happening.",
       );
     }
   };

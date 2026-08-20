@@ -17,6 +17,7 @@ type StoredWaitlist = {
   name?: string | null;
   useCase?: string | null;
   source?: string | null;
+  attribution?: string | null;
   status: string;
 };
 const waitlistByEmail = new Map<string, StoredWaitlist>();
@@ -33,7 +34,13 @@ vi.mock("../db.js", () => {
         async ({
           data,
         }: {
-          data: { email: string; name?: string; useCase?: string; source?: string };
+          data: {
+            email: string;
+            name?: string;
+            useCase?: string;
+            source?: string;
+            attribution?: string;
+          };
         }) => {
           const entry: StoredWaitlist = {
             id: `wl-${nextId++}`,
@@ -41,6 +48,7 @@ vi.mock("../db.js", () => {
             name: data.name ?? null,
             useCase: data.useCase ?? null,
             source: data.source ?? null,
+            attribution: data.attribution ?? null,
             status: "PENDING",
           };
           waitlistByEmail.set(data.email, entry);
@@ -53,7 +61,7 @@ vi.mock("../db.js", () => {
           data,
         }: {
           where: { email: string };
-          data: { name?: string; useCase?: string; source?: string };
+          data: { name?: string; useCase?: string; source?: string; attribution?: string };
         }) => {
           const existing = waitlistByEmail.get(where.email);
           if (!existing) throw new Error("Not found");
@@ -184,6 +192,50 @@ describe("POST /api/waitlist", () => {
 // Attribution: the only place a stranger tells us where they came from.
 // GitHub restricted the stargazers API on 2026-06-30, so third-party referral
 // reconstruction is gone — if we don't capture it here, it is unrecoverable.
+describe("POST /api/waitlist — automatic inflow attribution", () => {
+  it("persists the funnel-captured attribution on a new signup", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: {
+        email: "attr@example.com",
+        attribution: "utm_source=hn utm_campaign=show ref=news.ycombinator.com lp=/",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(waitlistByEmail.get("attr@example.com")?.attribution).toBe(
+      "utm_source=hn utm_campaign=show ref=news.ycombinator.com lp=/",
+    );
+  });
+
+  it("attribution is first-touch: a resubmission never overwrites it", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "ft@example.com", attribution: "utm_source=hn" },
+    });
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "ft@example.com", attribution: "utm_source=x" },
+    });
+    expect(waitlistByEmail.get("ft@example.com")?.attribution).toBe("utm_source=hn");
+  });
+
+  it("truncates an over-long attribution instead of rejecting the signup", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "attr-long@example.com", attribution: "u".repeat(600) },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(waitlistByEmail.get("attr-long@example.com")?.attribution).toHaveLength(300);
+  });
+});
+
 describe("POST /api/waitlist — source attribution", () => {
   it("persists the reported source on a new signup", async () => {
     const app = await buildApp();

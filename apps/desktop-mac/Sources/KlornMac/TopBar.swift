@@ -111,6 +111,10 @@ struct TopBarRoot: View {
             }
         }
         .glassPanel(cornerRadius: TopBarMetrics.corner(for: state))
+        // Root safety net: NSHostingView centers a root whose minimum exceeds
+        // the window, which clips the app's own header row first. Pin to the
+        // top so any overflow is always cut at the bottom instead.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -150,7 +154,7 @@ struct ColumnHeader: View {
     }
 
     var body: some View {
-        Text(title).font(.system(size: 10, weight: .semibold))
+        Text(title).font(Theme.Typo.micro)
             .foregroundStyle(Theme.textDim).tracking(Self.tracking(for: title))
     }
 }
@@ -318,9 +322,9 @@ struct CollapsedBar: View {
             case .signedOut:
                 Button(L("auth.logIn"), action: actions.onSignIn)
                     .buttonStyle(PrimaryButtonStyle())
-                if model.loginProviders.contains("apple") {
-                    Button(L("auth.signInApple")) {
-                        Task { await model.signIn(provider: "apple") }
+                ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
+                    Button(loginProviderLabel(provider)) {
+                        Task { await model.signIn(provider: provider) }
                     }
                     .buttonStyle(.bordered)
                 }
@@ -835,11 +839,16 @@ private struct InboxColumn: View {
                 Spacer()
                 InboxSelectorMenu()
             }
-            ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
+            // Same two-level hierarchy as the full sidebar (founder
+            // 2026-08-20): action lanes as rows, filed lanes as one summary
+            // row that opens the full view inside the group.
+            let lanes = Tier.sidebarLanes(counts: { model.queue?.summary.count(for: $0) ?? 0 })
+            ForEach(lanes.primary) { tier in
                 InboxTierRow(tier: tier, count: model.queue?.summary.count(for: tier) ?? 0) {
                     actions.onOpenTier(tier)
                 }
             }
+            FiledSummaryRow(count: lanes.filedTotal) { actions.onOpenTier(.info) }
             Spacer()
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
@@ -871,6 +880,48 @@ private struct InboxTierRow: View {
         .background(hovering ? Theme.surfaceHover : .clear, in: RoundedRectangle(cornerRadius: 8))
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: hovering)
+    }
+}
+
+/// The filed-lanes summary in the expanded panel — same chrome as
+/// InboxTierRow; opens the full view inside the group (INFO first).
+private struct FiledSummaryRow: View {
+    let count: Int
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "tray.full").font(.caption2)
+                    .foregroundStyle(Theme.textDim).frame(width: 7)
+                    .accessibilityHidden(true)
+                Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
+                Spacer()
+                Text("\(count)")
+                    .font(.body.monospacedDigit().weight(.medium))
+                    .foregroundStyle(Theme.textDim)
+            }
+            .padding(.horizontal, Theme.s2).padding(.vertical, 5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(hovering ? Theme.surfaceHover : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .accessibilityLabel(L("filed.a11y", count))
+    }
+}
+
+/// Login button label per advertised provider id. Data-driven from
+/// GET /api/auth/providers, so a provider the founder flips on later (naver)
+/// appears WITHOUT an app update; an id the app has no string for degrades
+/// to the capitalized id rather than hiding the button.
+func loginProviderLabel(_ id: String) -> String {
+    switch id {
+    case "apple": L("auth.signInApple")
+    case "naver": L("auth.signInNaver")
+    default: id.capitalized
     }
 }
 
@@ -1014,9 +1065,9 @@ private struct AccountColumn: View {
                 }
             } else {
                 SubtleTextButton(title: L("auth.signInGoogle"), dim: false) { actions.onSignIn() }
-                if model.loginProviders.contains("apple") {
-                    SubtleTextButton(title: L("auth.signInApple"), dim: false) {
-                        Task { await model.signIn(provider: "apple") }
+                ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
+                    SubtleTextButton(title: loginProviderLabel(provider), dim: false) {
+                        Task { await model.signIn(provider: provider) }
                     }
                 }
             }
@@ -1051,6 +1102,158 @@ private struct AccountColumn: View {
     }
 }
 
+/// "Tue, Aug 25 · 15:00–16:00" — shared by the team screen (ReadingPane has
+/// a private twin; unify if a third caller appears).
+private func slotRangeLabel(_ startIso: String, _ endIso: String) -> String {
+    let iso = ISO8601DateFormatter()
+    guard let start = iso.date(from: startIso), let end = iso.date(from: endIso) else {
+        return startIso
+    }
+    let day = DateFormatter()
+    day.setLocalizedDateFormatFromTemplate("EdMMM")
+    let time = DateFormatter()
+    time.setLocalizedDateFormatFromTemplate("HHmm")
+    return "\(day.string(from: start)) · \(time.string(from: start))–\(time.string(from: end))"
+}
+
+/// Team mode's dedicated screen: manage teams, see when the WHOLE team is
+/// free, and book the meeting from a slot. Booking is the approval — the
+/// button names every invitee, and the POST goes to the human-approval
+/// endpoint that actually sends invitations.
+private struct TeamsColumn: View {
+    @Environment(AppModel.self) private var model
+    @State private var selectedTeamId: String?
+    @State private var duration = 60
+    @State private var meetingTitle = ""
+    @State private var name = ""
+    @State private var membersText = ""
+    @State private var saving = false
+
+    private var selectedTeam: TeamWire? { model.teams.first { $0.id == selectedTeamId } }
+
+    var body: some View {
+        OffscreenFriendlyScroll {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(L("teams.title")).font(Theme.Typo.display).foregroundStyle(Theme.text)
+                Text(L("teams.subtitle")).font(.caption).foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ForEach(model.teams) { team in
+                    teamRow(team)
+                }
+                if model.teams.isEmpty {
+                    Text(L("teams.empty")).font(.caption).foregroundStyle(Theme.textDim)
+                }
+
+                Divider().overlay(Theme.line)
+                Text(L("teams.addHeader")).font(.caption.weight(.semibold)).foregroundStyle(Theme.textDim)
+                TextField(L("teams.namePlaceholder"), text: $name)
+                    .textFieldStyle(.roundedBorder).font(.callout)
+                TextField(L("teams.membersPlaceholder"), text: $membersText)
+                    .textFieldStyle(.roundedBorder).font(.callout)
+                HStack(spacing: 8) {
+                    Button(saving ? L("teams.saving") : L("teams.add")) {
+                        saving = true
+                        Task {
+                            await model.createTeam(name: name, membersText: membersText)
+                            if model.teamError == nil { name = ""; membersText = "" }
+                            saving = false
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(saving || name.trimmingCharacters(in: .whitespaces).isEmpty
+                              || membersText.trimmingCharacters(in: .whitespaces).isEmpty)
+                    if let error = model.teamError {
+                        Text(error).font(.caption2).foregroundStyle(Theme.textDim)
+                    }
+                }
+                Text(L("teams.visibilityNote")).font(.caption2).foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .task { await model.refreshTeams() }
+    }
+
+    @ViewBuilder
+    private func teamRow(_ team: TeamWire) -> some View {
+        let isSelected = selectedTeamId == team.id
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                selectedTeamId = isSelected ? nil : team.id
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: isSelected ? "chevron.down" : "chevron.right")
+                        .font(.caption2).foregroundStyle(Theme.textDim).accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(team.name).font(.callout.weight(.medium)).foregroundStyle(Theme.text)
+                        Text(team.members.joined(separator: ", "))
+                            .font(.caption2).foregroundStyle(Theme.textDim).lineLimit(2)
+                    }
+                    Spacer()
+                    Button(L("teams.remove")) { Task { await model.deleteTeam(id: team.id) } }
+                        .buttonStyle(.plain).font(.caption).foregroundStyle(Theme.textDim)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isSelected {
+                HStack(spacing: 8) {
+                    Picker("", selection: $duration) {
+                        Text(L("teams.min30")).tag(30)
+                        Text(L("teams.min60")).tag(60)
+                    }
+                    .pickerStyle(.segmented).labelsHidden().frame(width: 120)
+                    Button(model.checkingTeamId == team.id ? L("teams.checking") : L("teams.findSlots")) {
+                        Task { await model.checkTeamAvailability(teamId: team.id, durationMinutes: duration) }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(model.checkingTeamId != nil)
+                }
+                if let result = model.teamBookingResult {
+                    Text(result).font(.caption).foregroundStyle(Theme.textDim)
+                }
+                if let availability = model.teamAvailability {
+                    if !availability.unknownMembers.isEmpty {
+                        Text(L("teams.unknown", availability.unknownMembers.joined(separator: ", ")))
+                            .font(.caption2).foregroundStyle(Theme.textDim)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if availability.slots.isEmpty {
+                        Text(L("teams.noSlots")).font(.caption).foregroundStyle(Theme.textDim)
+                    } else {
+                        TextField(L("teams.meetingTitlePlaceholder"), text: $meetingTitle)
+                            .textFieldStyle(.roundedBorder).font(.callout)
+                        ForEach(availability.slots) { slot in
+                            HStack(spacing: 8) {
+                                Text(slotRangeLabel(slot.startTime, slot.endTime))
+                                    .font(.caption.monospacedDigit()).foregroundStyle(Theme.text)
+                                Spacer()
+                                // The button IS the approval: it names what it sends.
+                                Button(L("teams.book", "\(team.members.count)")) {
+                                    Task {
+                                        _ = await model.bookTeamMeeting(
+                                            title: meetingTitle.isEmpty ? team.name : meetingTitle,
+                                            slot: slot, members: team.members)
+                                    }
+                                }
+                                .buttonStyle(.bordered).controlSize(.small)
+                            }
+                        }
+                        Text(L("teams.bookNote")).font(.caption2).foregroundStyle(Theme.textDim)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+        .padding(10)
+        .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line))
+    }
+}
+
 // MARK: - Full ("real app" window)
 
 /// The largest state: a tier sidebar + a big scrollable list of the selected
@@ -1068,6 +1271,10 @@ enum ListMode: Equatable {
     /// stay, but "what does my week look like" deserves the list column
     /// (founder, 2026-08-13: the calendar existed, it just wasn't visible).
     case calendar
+    /// Team mode's dedicated screen (founder 2026-08-20: a paid mode must
+    /// not live in a settings corner) — teams, whole-team availability, and
+    /// booking. Rendered only while the server grants team mode.
+    case teams
 }
 
 struct FullView: View {
@@ -1080,7 +1287,10 @@ struct FullView: View {
         // urgent-mail card — has to be able to say which tier to land on.
         @Bindable var model = model
 
-        ZStack {
+        // .top: if the content's minimum ever exceeds the window again, the
+        // overflow must clip at the BOTTOM — a centered ZStack ate the header
+        // first (clipping screenshots, 2026-08-20).
+        ZStack(alignment: .top) {
             // Sky behind everything. The header sits directly on it so the view
             // opens on air rather than on a toolbar; the working columns get a
             // translucent panel so running text never lands on a gradient.
@@ -1327,11 +1537,37 @@ private struct FullSidebar: View {
     /// account section is daily-use identity actions; update/restart/health
     /// are occasional and were crowding the sidebar (founder, 2026-08-14).
     @State private var showMaintenance = false
+    /// Filed-lanes disclosure (INFO/SILENT/legacy AUTO). Session-scoped; a
+    /// selection inside the group keeps it open regardless.
+    @State private var filedExpanded = false
     /// Real laid-out content heights — caps clamp to these so a drag never
     /// wanders into a dead zone past the content (dogfood 2026-08-19).
     @State private var navContentHeight: CGFloat = 0
     @State private var todayContentHeight: CGFloat = 0
     @State private var upcomingContentHeight: CGFloat = 0
+
+    private func tierCount(_ tier: Tier) -> Int { model.queue?.summary.count(for: tier) ?? 0 }
+
+    /// One tier row — shared by the primary lanes and the filed group
+    /// (indented so the hierarchy reads at a glance).
+    private func tierRow(_ tier: Tier, indented: Bool = false) -> some View {
+        Button { selected = .tier(tier) } label: {
+            HStack(spacing: 10) {
+                Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
+                Text(tier.label)
+                    .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                Text("\(tierCount(tier))")
+                    .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
+            }
+            .padding(.leading, indented ? 14 : 0)
+            .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
+        }
+        .buttonStyle(.plain)
+        .help(tier.blurb)
+        .accessibilityLabel(L("tier.row.a11y", tier.label, tierCount(tier), tier.blurb))
+    }
 
     /// Compact event row for the 220pt sidebar: NOW badge or start time,
     /// title, and a click-through to the meeting link when present.
@@ -1364,6 +1600,20 @@ private struct FullSidebar: View {
     }
 
     var body: some View {
+        // The whole column scrolls when the window is shorter than the
+        // sections' minimum (user-grown caps + fixed clusters). Without this
+        // the overflow was clipped — top-first, eating the inbox header
+        // (clipping screenshots, 2026-08-20). minHeight: available keeps the
+        // Spacer pinning the bottom cluster whenever there IS room.
+        GeometryReader { geo in
+            OffscreenFriendlyScroll {
+                sidebarColumn
+                    .frame(minHeight: geo.size.height, alignment: .top)
+            }
+        }
+    }
+
+    private var sidebarColumn: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 ColumnHeader(title: L("section.inbox"))
@@ -1391,30 +1641,49 @@ private struct FullSidebar: View {
             // renderer gets the plain stack, same rows.)
             OffscreenFriendlyScroll {
                 VStack(alignment: .leading, spacing: 4) {
-                ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
-                    Button { selected = .tier(tier) } label: {
-                        HStack(spacing: 10) {
-                            Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
-                            Text(tier.label)
-                                .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
-                                .foregroundStyle(Theme.text)
-                            Spacer()
-                            Text("\(model.queue?.summary.count(for: tier) ?? 0)")
-                                .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
-                        }
-                        .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
+                // Two-level lanes (founder 2026-08-20: nine always-on rows was
+                // too many): action lanes primary, filed lanes behind one
+                // disclosure. The classification itself is untouched.
+                let lanes = Tier.sidebarLanes(counts: tierCount)
+                let filedHoldsSelection = lanes.filed.contains { selected == .tier($0) }
+                ForEach(lanes.primary) { tier in
+                    tierRow(tier)
+                }
+                Button {
+                    withAnimation(.easeOut(duration: 0.15)) { filedExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "tray.full").font(Theme.Typo.icon)
+                            .foregroundStyle(Theme.textDim).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
+                        Image(systemName: "chevron.right").font(.caption2)
+                            .foregroundStyle(Theme.textDim)
+                            .rotationEffect((filedExpanded || filedHoldsSelection) ? .degrees(90) : .zero)
+                            .accessibilityHidden(true)
+                        Spacer()
+                        Text("\(lanes.filedTotal)")
+                            .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
                     }
-                    .buttonStyle(.plain)
-                    .help(tier.blurb)
-                    .accessibilityLabel(
-                        L("tier.row.a11y", tier.label, model.queue?.summary.count(for: tier) ?? 0, tier.blurb))
+                    .modifier(SidebarRowChrome(selected: false))
+                }
+                .buttonStyle(.plain)
+                .help(L("section.filed.help"))
+                .accessibilityLabel(L("filed.a11y", lanes.filedTotal))
+                .accessibilityValue((filedExpanded || filedHoldsSelection) ? L("a11y.expanded") : L("a11y.collapsed"))
+                // Viewing a filed lane keeps its row visible even collapsed —
+                // a selection must never hide its own location.
+                if filedExpanded || filedHoldsSelection {
+                    ForEach(lanes.filed) { tier in
+                        tierRow(tier, indented: true)
+                    }
                 }
 
                 // Commitments: promises made / replies awaited — the follow-through
                 // half of the firewall (what mail asked of you, and of them).
                 Button { selected = .commitments } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "checklist").font(.caption)
+                        Image(systemName: "checklist").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.accent).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("section.commitments"))
@@ -1422,7 +1691,7 @@ private struct FullSidebar: View {
                             .foregroundStyle(Theme.text)
                         Spacer()
                         Text("\(model.commitments?.count ?? 0)")
-                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                            .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
                     }
                     .modifier(SidebarRowChrome(selected: selected == .commitments))
                 }
@@ -1430,9 +1699,12 @@ private struct FullSidebar: View {
                 .accessibilityLabel(L("commitments.a11y", model.commitments?.count ?? 0))
 
                 // Proposals: what Klorn wants to do and hasn't done yet.
+                // Zero-hide (founder 2026-08-20: rows must earn their place);
+                // a live selection keeps the row while the last item clears.
+                if model.pendingActions.count > 0 || selected == .proposals {
                 Button { selected = .proposals } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "hand.raised").font(.caption)
+                        Image(systemName: "hand.raised").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.accent).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("proposals.title"))
@@ -1440,17 +1712,39 @@ private struct FullSidebar: View {
                             .foregroundStyle(Theme.text)
                         Spacer()
                         Text("\(model.pendingActions.count)")
-                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                            .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
                     }
                     .modifier(SidebarRowChrome(selected: selected == .proposals))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(L("proposals.a11y", model.pendingActions.count))
+                }
+
+                // Team mode: paid capability — the row exists only while the
+                // server grants it (teamModeAvailable via /api/teams probe).
+                if model.teamModeAvailable {
+                    Button { selected = .teams } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "person.2").font(Theme.Typo.icon)
+                                .foregroundStyle(Theme.accent).frame(width: 8)
+                                .accessibilityHidden(true)
+                            Text(L("teams.title"))
+                                .font(.body.weight(selected == .teams ? .semibold : .regular))
+                                .foregroundStyle(Theme.text)
+                            Spacer()
+                            Text("\(model.teams.count)")
+                                .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
+                        }
+                        .modifier(SidebarRowChrome(selected: selected == .teams))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(L("teams.title"))
+                }
 
                 // Assistant: ask/act across mail, calendar, and the briefing.
                 Button { selected = .assistant } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "sparkles").font(.caption)
+                        Image(systemName: "sparkles").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.accent).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("section.assistant"))
@@ -1467,7 +1761,7 @@ private struct FullSidebar: View {
                 // TODAY/UPCOMING crumbs below.
                 Button { selected = .calendar } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "calendar").font(.caption)
+                        Image(systemName: "calendar").font(Theme.Typo.icon)
                             .foregroundStyle(Theme.accent).frame(width: 8)
                             .accessibilityHidden(true)
                         Text(L("section.calendar"))
@@ -1639,6 +1933,11 @@ private struct FullSidebar: View {
                 }
             } else {
                 sidebarAction(L("auth.signInGoogle")) { actions.onSignIn() }
+                ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
+                    sidebarAction(loginProviderLabel(provider)) {
+                        Task { await model.signIn(provider: provider) }
+                    }
+                }
             }
             sidebarAction(L("guide.reopen"), dim: true) { model.showTierGuide = true }
             sidebarAction(L("prefs.title"), dim: true) { model.showPreferences = true }
@@ -1700,6 +1999,7 @@ private struct FullList: View {
         case .assistant: AssistantColumn()
         case .proposals: ProposalsList()
         case .calendar: CalendarAgendaColumn(actions: actions)
+        case .teams: TeamsColumn()
         case .tier: tierList
         }
     }
@@ -1958,6 +2258,12 @@ private struct ChatBubble: View {
                         Text(eventDraftLabel(draft))
                             .font(.caption).foregroundStyle(Theme.text).lineLimit(2)
                     }
+                    // Invitees must be visible BEFORE approval — approving is
+                    // what sends the invitations (team mode P2).
+                    if let attendees = draft.attendees, !attendees.isEmpty {
+                        Text(L("calendar.invitees", attendees.joined(separator: ", ")))
+                            .font(.caption2).foregroundStyle(Theme.textDim).lineLimit(2)
+                    }
                     HStack(spacing: 8) {
                         Button(L("calendar.addToCalendar")) {
                             Task { await model.createEvent(from: draft, messageId: message.id) }
@@ -1989,7 +2295,7 @@ private struct CommitmentsList: View {
             HStack(spacing: 8) {
                 Image(systemName: "checklist").font(.body).foregroundStyle(Theme.accent)
                     .accessibilityHidden(true)
-                Text(L("section.commitments")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                Text(L("section.commitments")).font(Theme.Typo.display).foregroundStyle(Theme.text)
                 Text("\(model.commitments?.count ?? 0)")
                     .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
             }
@@ -2172,17 +2478,18 @@ struct FullRow: View {
                         // mail that "doesn't exist in Gmail" (2026-08-10).
                         // Web parity: firewall-board's SourceBadge.
                         if !sender.isEmpty {
-                            Text(sender).font(.caption.weight(.semibold))
+                            Text(sender).font(Theme.Typo.label)
                                 .foregroundStyle(Theme.textDim).lineLimit(1)
                         } else if let badge = sourceBadgeLabel(item.source) {
-                            Text(badge).font(.caption.weight(.semibold))
+                            Text(badge).font(Theme.Typo.label)
                                 .foregroundStyle(Theme.textDim).lineLimit(1)
                         }
                         Text(decodeHTMLEntities(item.email?.subject ?? item.title))
-                            .font(.system(size: 15, weight: .medium))
+                            .font(Theme.Typo.head)
                             .foregroundStyle(Theme.text).lineLimit(1)
                         if let reason = rowTierReason(item.tierReason) {
-                            Text(reason).font(.caption2).foregroundStyle(Theme.textDim).lineLimit(1)
+                            Text(reason).font(Theme.Typo.caption)
+                                .foregroundStyle(Theme.textDim).lineLimit(1)
                         }
                     }
                     Spacer(minLength: 8)
@@ -2311,7 +2618,7 @@ struct ReadingPane: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: Theme.s2) {
                 Text(decodeHTMLEntities(email.subject ?? L("mail.noSubjectParen")))
-                    .font(.title2.weight(.semibold))
+                    .font(Theme.Typo.display)
                     .foregroundStyle(Theme.text).lineLimit(2)
                 HStack {
                     Text(senderDisplayName(email.from.map(decodeHTMLEntities)))
@@ -2442,24 +2749,62 @@ struct ReadingPane: View {
         .padding(16)
     }
 
-    /// Klorn's per-email intelligence: why it landed in this tier, the AI summary,
-    /// and whether it needs a reply. Hidden when there's nothing to show.
+    /// Klorn's per-email intelligence: why it landed in this tier, the AI summary
+    /// with its key points and action items, and whether it needs a reply.
+    /// Always rendered for an opened email — the "AI 정리" button must stay
+    /// reachable even before any summary exists (founder, 2026-08-20).
     @ViewBuilder
     private func klornBand(_ email: EmailDetail) -> some View {
         let reason = item?.tierReason
-        let hasEngagement = (email.engagement?.outboundCount ?? 0) > 0
-        let show = (reason?.isEmpty == false) || (email.summary?.isEmpty == false) || (email.needsReply == true) || hasEngagement
-        if show {
-            VStack(alignment: .leading, spacing: 6) {
-                if let item, let reason, !reason.isEmpty {
-                    HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    if let item, let reason, !reason.isEmpty {
                         Circle().fill(Theme.tint(item.tier)).frame(width: 7, height: 7)
                         Text(L("mail.whyTier", item.tier.label, reason))
                             .font(.caption).foregroundStyle(Theme.textDim).lineLimit(2)
                     }
+                    Spacer(minLength: 12)
+                    // Deep re-read of THIS mail: longer summary, up to 6 key
+                    // points, deadlines kept — in the UI language.
+                    Button(model.isSummarizing ? L("mail.summarizing") : L("mail.summarize")) {
+                        Task { await model.summarizeOpenedEmail() }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(model.isSummarizing ? Theme.textDim : Theme.accent)
+                    .disabled(model.isSummarizing)
+                }
+                if model.summarizeFailed {
+                    Text(L("mail.summarizeFailed"))
+                        .font(.caption).foregroundStyle(Theme.textDim)
                 }
                 if let summary = email.summary, !summary.isEmpty {
                     Text(summary).font(.callout).foregroundStyle(Theme.text.opacity(0.9))
+                }
+                if let points = email.keyPoints, !points.isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        // Position keys: LLM bullets can repeat verbatim, and
+                        // duplicate \.self identities break SwiftUI diffing.
+                        ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text("•").font(.caption).foregroundStyle(Theme.textDim)
+                                    .accessibilityHidden(true)
+                                Text(point).font(.caption).foregroundStyle(Theme.text.opacity(0.85))
+                            }
+                        }
+                    }
+                }
+                if let actions = email.actionItems, !actions.isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                                Image(systemName: "checkmark.circle").font(.caption2)
+                                    .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                                Text(action).font(.caption).foregroundStyle(Theme.text.opacity(0.85))
+                            }
+                        }
+                    }
+                    .accessibilityLabel(L("mail.actionItems"))
                 }
                 // Signal lines carry their hue on the ICON (and meter) only; the
                 // text itself stays dim. Stacked colored text lines (accent blue +
@@ -2472,6 +2817,28 @@ struct ReadingPane: View {
                         Text((email.needsReplyReason?.isEmpty == false) ? email.needsReplyReason! : L("reading.needsReply"))
                             .font(.caption).foregroundStyle(Theme.textDim)
                     }
+                }
+                if let dossier = model.senderDossier, !dossier.summary.isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Image(systemName: "person.crop.circle").font(.caption2)
+                                .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                            Text(dossier.summary).font(.caption)
+                                .foregroundStyle(Theme.textDim).lineLimit(2)
+                        }
+                        if !dossier.openThreads.isEmpty {
+                            Text(L("dossier.inFlight", dossier.openThreads.joined(separator: " · ")))
+                                .font(.caption2).foregroundStyle(Theme.textDim)
+                                .padding(.leading, 13).lineLimit(2)
+                        }
+                        if let promise = dossier.lastPromise, !promise.isEmpty {
+                            Text(L("dossier.promise", promise))
+                                .font(.caption2).foregroundStyle(Theme.textDim)
+                                .padding(.leading, 13).lineLimit(2)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(L("dossier.a11y"))
                 }
                 if let context = model.meetingContext, let proposed = context.proposed {
                     meetingContextRows(context, proposed)
@@ -2495,14 +2862,13 @@ struct ReadingPane: View {
                     .accessibilityLabel(engagement.accessibilityLabel)
                 }
             }
-            // Same measure as the mail body below: intelligence about a document
-            // should not run wider than the document itself.
-            .frame(maxWidth: 640, alignment: .leading)
-            .padding(.horizontal, 24).padding(.vertical, 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surfaceRaised)
-            Divider().overlay(Theme.line)
-        }
+        // Same measure as the mail body below: intelligence about a document
+        // should not run wider than the document itself.
+        .frame(maxWidth: 640, alignment: .leading)
+        .padding(.horizontal, 24).padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surfaceRaised)
+        Divider().overlay(Theme.line)
     }
 
     /// The meeting ↔ calendar cross-reference: the slot this email proposes,
@@ -2526,6 +2892,16 @@ struct ReadingPane: View {
                 Text(meetingVerdictLabel(context.conflict))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(context.conflict?.hasConflicts == true ? Theme.text : Theme.textDim)
+            }
+            if let alts = context.alternatives, !alts.isEmpty {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Image(systemName: "calendar.badge.checkmark").font(.caption2)
+                        .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                    Text(L("meeting.alternatives",
+                           alts.prefix(3).map { meetingSlotLabel($0.startTime, $0.endTime) }
+                               .joined(separator: " · ")))
+                        .font(.caption).foregroundStyle(Theme.textDim)
+                }
             }
             ForEach(context.nearby.prefix(3)) { event in
                 Text("\(meetingSlotLabel(event.startTime, event.endTime))  \(event.title)")

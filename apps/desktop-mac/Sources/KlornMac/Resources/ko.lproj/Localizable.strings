@@ -73,6 +73,40 @@
 "mail.changeTier.a11y" = "%1$@ 님의 메일 분류 변경, 현재 %2$@";
 "mail.moveTo" = "%1$@%2$@ 옮기기 ";
 "mail.snoozePrefix" = "미루기 ";
+"mail.summarize" = "AI 정리";
+"mail.summarizing" = "정리 중…";
+"mail.summarizeFailed" = "정리 실패 — 다시 시도하세요.";
+"mail.actionItems" = "해야 할 일";
+"section.filed" = "정리됨";
+"section.filed.help" = "Klorn이 이미 정리한 메일 — Info 기록과 Silent 차단. 클릭해서 펼치기.";
+"filed.a11y" = "정리된 메일 %d건";
+"dossier.inFlight" = "진행 중: %@";
+"dossier.promise" = "마지막 약속: %@";
+"dossier.a11y" = "발신자 맥락";
+"prefs.section.teams" = "팀";
+"teams.title" = "팀";
+"teams.subtitle" = "팀을 한 번 저장하면 팀 전체가 비는 시간을 보고 그 자리에서 미팅을 잡을 수 있습니다. 가용성은 Google free/busy 기준 — 안 보이는 캘린더는 표시하며, 비어 있다고 가정하지 않습니다.";
+"teams.addHeader" = "새 팀";
+"teams.min30" = "30분";
+"teams.min60" = "1시간";
+"teams.findSlots" = "공통 빈 시간 찾기";
+"teams.checking" = "확인 중…";
+"teams.unknown" = "확인 불가(캘린더 안 보임): %@";
+"teams.noSlots" = "앞으로 3일 안에 공통 빈 시간이 없습니다 — 30분으로 바꾸거나 멤버를 조정해 보세요.";
+"teams.meetingTitlePlaceholder" = "미팅 제목 (비우면 팀 이름)";
+"teams.book" = "%@명에게 초대 보내며 잡기";
+"teams.bookNote" = "잡으면 내 캘린더에 일정이 생기고 모든 멤버에게 초대 메일이 발송됩니다 — 이 버튼이 승인입니다.";
+"teams.booked" = "미팅을 만들고 초대를 보냈습니다.";
+"teams.bookFailed" = "미팅을 만들지 못했습니다 — 다시 시도하세요.";
+"teams.empty" = "아직 팀이 없습니다 — 팀을 저장하면 어시스턴트에 \"팀 전체 언제 다 돼?\"라고 물을 수 있습니다.";
+"teams.namePlaceholder" = "팀 이름 (예: AX팀)";
+"teams.membersPlaceholder" = "멤버 이메일, 쉼표로 구분";
+"teams.add" = "팀 추가";
+"teams.saving" = "저장 중…";
+"teams.remove" = "삭제";
+"teams.saveFailed" = "팀을 저장하지 못했습니다 — 멤버 주소를 확인하세요.";
+"teams.visibilityNote" = "가용성은 Google free/busy 기준입니다: 멤버가 캘린더를 공유했거나 같은 Workspace여야 보입니다. 안 보이는 멤버는 '확인 불가'로 표시하며 비어 있다고 가정하지 않습니다.";
+"calendar.invitees" = "초대: %@";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */
@@ -263,6 +297,7 @@
 "section.recentPush" = "최근 PUSH";
 "section.todayShort" = "오늘";
 "push.nothingNeedsYou" = "지금 처리할 것이 없습니다.";
+"auth.signInNaver" = "네이버로 계속하기";
 "auth.signInApple" = "Apple로 계속하기";
 "auth.signInGoogle" = "Google로 로그인";
 "calendar.noEvents" = "오늘 일정 없음";
@@ -348,6 +383,7 @@
 "calendar.addedConfirm" = "✓ 캘린더에 추가됨: %@";
 
 /* Meeting <-> calendar cross-reference (2026-08-13) */
+"meeting.alternatives" = "함께 가능한 시간: %@";
 "meeting.proposedSlot" = "제안 시간: %@";
 "meeting.slotFree" = "캘린더에서 비어 있는 시간";
 "meeting.slotBusy" = "기존 일정과 겹침";

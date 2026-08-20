@@ -2,17 +2,21 @@ FROM node:22-slim AS base
 RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (contract is a type-only workspace dep of web — the
+# `...` filter only links it when its package.json is present at install)
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/web/package.json packages/web/
+COPY packages/contract/package.json packages/contract/
 RUN pnpm install --frozen-lockfile --filter @klorn/web...
 
-# Copy source and build.
+# Copy source and build (contract ships raw .ts types — no build step of
+# its own, but `next build`'s type check resolves into its src/)
 # NEXT_PUBLIC_* values are inlined into the client bundle at BUILD time —
 # a runtime `environment:` entry cannot change them. Self-hosters serving
 # the web app anywhere other than localhost must pass this build arg.
 ARG NEXT_PUBLIC_API_URL=http://localhost:3001
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+COPY packages/contract/ packages/contract/
 COPY packages/web/ packages/web/
 RUN pnpm --filter @klorn/web build
 

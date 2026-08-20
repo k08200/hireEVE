@@ -16,9 +16,12 @@ const waitlistBodySchema = {
     // truncation ever ran, and a chatty reply must not cost us the signup.
     // Fastify's body limit bounds the payload; storage is capped at SOURCE_MAX.
     source: { type: "string", minLength: 1 },
+    attribution: { type: "string", minLength: 1 },
   },
 } as const;
 
+/** Max stored length of automatic attribution (utm + referrer + path). */
+const ATTRIBUTION_MAX = 300;
 /** Max stored length of `source`; longer answers are truncated to fit. */
 const SOURCE_MAX = 80;
 
@@ -63,6 +66,7 @@ export function waitlistRoutes(app: FastifyInstance) {
         name?: string;
         useCase?: string;
         source?: string;
+        attribution?: string;
       };
       const email = normalizeEmail(body.email);
       if (!EMAIL_RE.test(email)) {
@@ -72,12 +76,13 @@ export function waitlistRoutes(app: FastifyInstance) {
       const name = trimOrUndefined(body.name, 120);
       const useCase = trimOrUndefined(body.useCase, 500);
       const source = trimOrUndefined(body.source, SOURCE_MAX);
+      const attribution = trimOrUndefined(body.attribution, ATTRIBUTION_MAX);
 
       // Idempotent dedup — if email already exists we still return 200 so
       // the form doesn't leak whether someone is already on the list.
       const existing = await db.waitlist.findUnique({
         where: { email },
-        select: { id: true, status: true, source: true },
+        select: { id: true, status: true, source: true, attribution: true },
       });
 
       const entry = existing
@@ -90,11 +95,13 @@ export function waitlistRoutes(app: FastifyInstance) {
               // or answers it from a different device — must not overwrite
               // the channel that actually brought this person in.
               source: existing.source ? undefined : source,
+              // Same first-touch rule as `source`.
+              attribution: existing.attribution ? undefined : attribution,
             },
             select: { id: true, email: true, name: true, useCase: true, source: true },
           })
         : await db.waitlist.create({
-            data: { email, name, useCase, source },
+            data: { email, name, useCase, source, attribution },
             select: { id: true, email: true, name: true, useCase: true, source: true },
           });
 

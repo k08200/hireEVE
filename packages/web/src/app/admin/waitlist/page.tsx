@@ -11,6 +11,7 @@ interface WaitlistEntry {
   name: string | null;
   useCase: string | null;
   source: string | null;
+  attribution: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
   approvedAt: string | null;
   createdAt: string;
@@ -266,6 +267,9 @@ function WaitlistPageInner() {
                         )}
                         {entry.source && (
                           <p className="mt-1 text-xs text-ink-dim">via {entry.source}</p>
+                        )}
+                        {entry.attribution && (
+                          <p className="mt-0.5 text-xs text-ink-dim">{entry.attribution}</p>
                         )}
                       </div>
                     </div>

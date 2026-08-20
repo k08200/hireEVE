@@ -115,6 +115,9 @@ Useful optional vars (full tuning catalog with defaults:
 
 [`docker-compose.selfhost.yml`](../docker-compose.selfhost.yml) runs the full
 stack: Postgres 16, the API (Fastify + Prisma), and the web app (Next.js).
+The api and web images are prebuilt and published to
+[ghcr.io](https://github.com/k08200?tab=packages) — no local toolchain, no
+source build.
 
 ```bash
 git clone https://github.com/k08200/klorn.git
@@ -122,7 +125,7 @@ cd klorn
 cp .env.selfhost.example .env.selfhost
 # Fill in .env.selfhost: postgres password, JWT secret, encryption key,
 # your Google OAuth client, and one LLM provider.
-docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml up -d --build
+docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml up -d
 ```
 
 Open `http://localhost:3000`. The API is on `:3001`; Postgres stays internal
@@ -132,10 +135,15 @@ Notes:
 
 - **Schema is automatic.** The API entrypoint runs `prisma migrate deploy`
   (with retry) before serving; `prisma generate` happens at image build.
-- **Serving beyond localhost?** Change `WEB_URL`, `CORS_ORIGINS`,
+- **Serving beyond localhost?** This is the one case that still needs a
+  source build: `NEXT_PUBLIC_API_URL` is baked into the web bundle at build
+  time, so the prebuilt web image only works when browsers reach the API at
+  `http://localhost:3001`. Change `WEB_URL`, `CORS_ORIGINS`,
   `NEXT_PUBLIC_API_URL`, and `GOOGLE_REDIRECT_URI` together, put a TLS
-  reverse proxy (Caddy/nginx) in front, and re-run with `--build` —
-  `NEXT_PUBLIC_API_URL` is baked into the web bundle at build time.
+  reverse proxy (Caddy/nginx) in front, swap the web service's `image:` line
+  for the commented `build:` block in the compose file, and re-run with
+  `--build`. The api image needs no rebuild — it is configured entirely at
+  runtime.
 - **Local LLM from inside Docker:** use
   `OPENAI_COMPAT_BASE_URL=http://host.docker.internal:11434/v1`, not
   `localhost`.
@@ -165,9 +173,13 @@ configured and keeps polling.
 ## Updating
 
 ```bash
-git pull
-docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml up -d --build
+git pull   # picks up compose/doc changes
+docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml pull
+docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml up -d
 ```
+
+(If you switched a service to the source-build path, use `up -d --build`
+instead of `pull`.)
 
 Database migrations apply automatically on the next API boot (additive,
 checked into `packages/api/prisma/migrations/`). For the Render path, pushes
