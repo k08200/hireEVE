@@ -271,6 +271,7 @@
 "section.recentPush" = "RECENT PUSH";
 "section.todayShort" = "TODAY";
 "push.nothingNeedsYou" = "Nothing needs you right now.";
+"auth.signInNaver" = "Continue with Naver";
 "auth.signInApple" = "Continue with Apple";
 "auth.signInGoogle" = "Sign in with Google";
 "calendar.noEvents" = "No events today";

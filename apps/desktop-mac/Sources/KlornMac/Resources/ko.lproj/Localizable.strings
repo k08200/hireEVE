@@ -270,6 +270,7 @@
 "section.recentPush" = "최근 PUSH";
 "section.todayShort" = "오늘";
 "push.nothingNeedsYou" = "지금 처리할 것이 없습니다.";
+"auth.signInNaver" = "네이버로 계속하기";
 "auth.signInApple" = "Apple로 계속하기";
 "auth.signInGoogle" = "Google로 로그인";
 "calendar.noEvents" = "오늘 일정 없음";

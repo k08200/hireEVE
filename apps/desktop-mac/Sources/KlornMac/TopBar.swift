@@ -322,9 +322,9 @@ struct CollapsedBar: View {
             case .signedOut:
                 Button(L("auth.logIn"), action: actions.onSignIn)
                     .buttonStyle(PrimaryButtonStyle())
-                if model.loginProviders.contains("apple") {
-                    Button(L("auth.signInApple")) {
-                        Task { await model.signIn(provider: "apple") }
+                ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
+                    Button(loginProviderLabel(provider)) {
+                        Task { await model.signIn(provider: provider) }
                     }
                     .buttonStyle(.bordered)
                 }
@@ -839,11 +839,16 @@ private struct InboxColumn: View {
                 Spacer()
                 InboxSelectorMenu()
             }
-            ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
+            // Same two-level hierarchy as the full sidebar (founder
+            // 2026-08-20): action lanes as rows, filed lanes as one summary
+            // row that opens the full view inside the group.
+            let lanes = Tier.sidebarLanes(counts: { model.queue?.summary.count(for: $0) ?? 0 })
+            ForEach(lanes.primary) { tier in
                 InboxTierRow(tier: tier, count: model.queue?.summary.count(for: tier) ?? 0) {
                     actions.onOpenTier(tier)
                 }
             }
+            FiledSummaryRow(count: lanes.filedTotal) { actions.onOpenTier(.info) }
             Spacer()
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
@@ -875,6 +880,48 @@ private struct InboxTierRow: View {
         .background(hovering ? Theme.surfaceHover : .clear, in: RoundedRectangle(cornerRadius: 8))
         .onHover { hovering = $0 }
         .animation(.easeOut(duration: 0.12), value: hovering)
+    }
+}
+
+/// The filed-lanes summary in the expanded panel — same chrome as
+/// InboxTierRow; opens the full view inside the group (INFO first).
+private struct FiledSummaryRow: View {
+    let count: Int
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "tray.full").font(.caption2)
+                    .foregroundStyle(Theme.textDim).frame(width: 7)
+                    .accessibilityHidden(true)
+                Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
+                Spacer()
+                Text("\(count)")
+                    .font(.body.monospacedDigit().weight(.medium))
+                    .foregroundStyle(Theme.textDim)
+            }
+            .padding(.horizontal, Theme.s2).padding(.vertical, 5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .background(hovering ? Theme.surfaceHover : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .accessibilityLabel(L("filed.a11y", count))
+    }
+}
+
+/// Login button label per advertised provider id. Data-driven from
+/// GET /api/auth/providers, so a provider the founder flips on later (naver)
+/// appears WITHOUT an app update; an id the app has no string for degrades
+/// to the capitalized id rather than hiding the button.
+func loginProviderLabel(_ id: String) -> String {
+    switch id {
+    case "apple": L("auth.signInApple")
+    case "naver": L("auth.signInNaver")
+    default: id.capitalized
     }
 }
 
@@ -1018,9 +1065,9 @@ private struct AccountColumn: View {
                 }
             } else {
                 SubtleTextButton(title: L("auth.signInGoogle"), dim: false) { actions.onSignIn() }
-                if model.loginProviders.contains("apple") {
-                    SubtleTextButton(title: L("auth.signInApple"), dim: false) {
-                        Task { await model.signIn(provider: "apple") }
+                ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
+                    SubtleTextButton(title: loginProviderLabel(provider), dim: false) {
+                        Task { await model.signIn(provider: provider) }
                     }
                 }
             }
@@ -1709,6 +1756,11 @@ private struct FullSidebar: View {
                 }
             } else {
                 sidebarAction(L("auth.signInGoogle")) { actions.onSignIn() }
+                ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
+                    sidebarAction(loginProviderLabel(provider)) {
+                        Task { await model.signIn(provider: provider) }
+                    }
+                }
             }
             sidebarAction(L("guide.reopen"), dim: true) { model.showTierGuide = true }
             sidebarAction(L("prefs.title"), dim: true) { model.showPreferences = true }
