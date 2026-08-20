@@ -231,11 +231,21 @@ export function keywordFeatures(email: ClassifiableEmail): TierFeatures {
 /// No bare "calendar"/"zoom"/"schedule"/"일정": marketing copy ("editorial
 /// calendar", "zoom in on savings", "배송 일정") false-positives into a lane
 /// that NOTIFIES. Korean scheduling intent needs the coordination verb.
-const SCHEDULING_RE = /meeting|invit|reschedul|미팅|회의|일정 (조율|변경|조정|협의)/;
+/// No bare "meeting"/"미팅"/"회의" either (eval misses 2026-08-20): meeting
+/// NOTES ("summary of decisions from the meeting") and asks that merely
+/// mention one ("partner meeting moved up — send the deck") are not
+/// schedulable; the noun counts only next to MEETING_CONTEXT_RE below.
+const SCHEDULING_RE = /invit|reschedul|일정 (조율|변경|조정|협의)/;
+const MEETING_NOUN_RE = /meeting|미팅|회의/;
+/// Forward-looking coordination wording that turns a meeting mention into
+/// scheduling intent: proposing/confirming a time, asking availability.
+const MEETING_CONTEXT_RE =
+  /schedul|confirm|calendar|availab|what time|works for|시간|잡아|잡을|조율|가능/;
 /// A join link in the body is scheduling intent even with a chatty subject.
 const MEET_LINK_RE = /meet\.google\.com\/|zoom\.us\/j\/|teams\.microsoft\.com\/l\/meetup-join/;
 
-/** v2 MEETING signal: invite/reschedule wording or an embedded meeting link. */
+/** v2 MEETING signal: invite/reschedule wording, a meeting noun in a
+ *  time-coordination context, or an embedded meeting link. */
 export function detectSchedulingIntent(email: {
   subject?: string | null;
   snippet?: string | null;
@@ -243,6 +253,7 @@ export function detectSchedulingIntent(email: {
 }): boolean {
   const head = `${email.subject || ""} ${email.snippet || ""}`.toLowerCase();
   if (SCHEDULING_RE.test(head)) return true;
+  if (MEETING_NOUN_RE.test(head) && MEETING_CONTEXT_RE.test(head)) return true;
   return MEET_LINK_RE.test((email.body || "").slice(0, 4000).toLowerCase());
 }
 
