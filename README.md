@@ -153,7 +153,7 @@ Self-host is the primary way to run Klorn today: full feature parity, your own G
 
   [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/k08200/klorn)
 
-- **Docker Compose** — [`docker-compose.selfhost.yml`](docker-compose.selfhost.yml) runs postgres + api + web on one box, migrations included.
+- **Docker Compose** — [`docker-compose.selfhost.yml`](docker-compose.selfhost.yml) runs postgres + api + web on one box, migrations included. The api/web images are prebuilt on ghcr.io, so `up -d` pulls — no local toolchain, no source build.
 
 The complete guide (OAuth client setup, env reference, real-time Gmail push, updating) is **[docs/self-hosting.md](docs/self-hosting.md)**.
 
