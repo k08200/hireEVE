@@ -132,6 +132,45 @@ describe("scheduling / transactional detectors", () => {
     ).toBe(true);
   });
 
+  it("a bare meeting NOUN is not scheduling intent (eval misses, 2026-08-20)", () => {
+    // Meeting NOTES — a recap of a past meeting, nothing to accept/decline.
+    expect(
+      detectSchedulingIntent({
+        subject: "Notes from yesterday's product review",
+        snippet: "Summary of decisions and owners from the meeting.",
+        body: "",
+      }),
+    ).toBe(false);
+    // Urgent human ask that merely MENTIONS a meeting — the request is the
+    // deck, not attendance; this must stay on the PUSH path.
+    expect(
+      detectSchedulingIntent({
+        subject: "Need the updated deck today",
+        snippet: "Partner meeting moved up — can you send the latest deck today?",
+        body: "",
+      }),
+    ).toBe(false);
+  });
+
+  it("a meeting noun WITH scheduling context still fires", () => {
+    // Time-coordination reply — the mail from the founder's own inbox that
+    // the lane exists for.
+    expect(
+      detectSchedulingIntent({
+        subject: "Re: Can we move tomorrow to 4pm?",
+        snippet: "Confirming meeting time",
+        body: "",
+      }),
+    ).toBe(true);
+    expect(
+      detectSchedulingIntent({
+        subject: "미팅 가능하신 시간 알려주세요",
+        snippet: "",
+        body: "",
+      }),
+    ).toBe(true);
+  });
+
   it("detects transactional notices from automated senders only", () => {
     expect(
       detectTransactionalNotice({ from: "noreply@github.com", hasListUnsubscribe: false }),
