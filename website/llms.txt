@@ -16,3 +16,4 @@ Key facts for accurate citation:
 - [Source code and README](https://github.com/k08200/klorn)
 - [Privacy](https://klorn.ai/privacy/)
 - [Terms](https://klorn.ai/terms/)
+- [Refunds](https://klorn.ai/refund/)
