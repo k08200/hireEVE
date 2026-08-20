@@ -1334,11 +1334,37 @@ private struct FullSidebar: View {
     /// account section is daily-use identity actions; update/restart/health
     /// are occasional and were crowding the sidebar (founder, 2026-08-14).
     @State private var showMaintenance = false
+    /// Filed-lanes disclosure (INFO/SILENT/legacy AUTO). Session-scoped; a
+    /// selection inside the group keeps it open regardless.
+    @State private var filedExpanded = false
     /// Real laid-out content heights — caps clamp to these so a drag never
     /// wanders into a dead zone past the content (dogfood 2026-08-19).
     @State private var navContentHeight: CGFloat = 0
     @State private var todayContentHeight: CGFloat = 0
     @State private var upcomingContentHeight: CGFloat = 0
+
+    private func tierCount(_ tier: Tier) -> Int { model.queue?.summary.count(for: tier) ?? 0 }
+
+    /// One tier row — shared by the primary lanes and the filed group
+    /// (indented so the hierarchy reads at a glance).
+    private func tierRow(_ tier: Tier, indented: Bool = false) -> some View {
+        Button { selected = .tier(tier) } label: {
+            HStack(spacing: 10) {
+                Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
+                Text(tier.label)
+                    .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                Text("\(tierCount(tier))")
+                    .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+            }
+            .padding(.leading, indented ? 14 : 0)
+            .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
+        }
+        .buttonStyle(.plain)
+        .help(tier.blurb)
+        .accessibilityLabel(L("tier.row.a11y", tier.label, tierCount(tier), tier.blurb))
+    }
 
     /// Compact event row for the 220pt sidebar: NOW badge or start time,
     /// title, and a click-through to the meeting link when present.
@@ -1412,23 +1438,42 @@ private struct FullSidebar: View {
             // renderer gets the plain stack, same rows.)
             OffscreenFriendlyScroll {
                 VStack(alignment: .leading, spacing: 4) {
-                ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
-                    Button { selected = .tier(tier) } label: {
-                        HStack(spacing: 10) {
-                            Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
-                            Text(tier.label)
-                                .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
-                                .foregroundStyle(Theme.text)
-                            Spacer()
-                            Text("\(model.queue?.summary.count(for: tier) ?? 0)")
-                                .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
-                        }
-                        .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
+                // Two-level lanes (founder 2026-08-20: nine always-on rows was
+                // too many): action lanes primary, filed lanes behind one
+                // disclosure. The classification itself is untouched.
+                let lanes = Tier.sidebarLanes(counts: tierCount)
+                let filedHoldsSelection = lanes.filed.contains { selected == .tier($0) }
+                ForEach(lanes.primary) { tier in
+                    tierRow(tier)
+                }
+                Button {
+                    withAnimation(.easeOut(duration: 0.15)) { filedExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "tray.full").font(.caption)
+                            .foregroundStyle(Theme.textDim).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
+                        Image(systemName: "chevron.right").font(.caption2)
+                            .foregroundStyle(Theme.textDim)
+                            .rotationEffect((filedExpanded || filedHoldsSelection) ? .degrees(90) : .zero)
+                            .accessibilityHidden(true)
+                        Spacer()
+                        Text("\(lanes.filedTotal)")
+                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
                     }
-                    .buttonStyle(.plain)
-                    .help(tier.blurb)
-                    .accessibilityLabel(
-                        L("tier.row.a11y", tier.label, model.queue?.summary.count(for: tier) ?? 0, tier.blurb))
+                    .modifier(SidebarRowChrome(selected: false))
+                }
+                .buttonStyle(.plain)
+                .help(L("section.filed.help"))
+                .accessibilityLabel(L("filed.a11y", lanes.filedTotal))
+                .accessibilityValue((filedExpanded || filedHoldsSelection) ? L("a11y.expanded") : L("a11y.collapsed"))
+                // Viewing a filed lane keeps its row visible even collapsed —
+                // a selection must never hide its own location.
+                if filedExpanded || filedHoldsSelection {
+                    ForEach(lanes.filed) { tier in
+                        tierRow(tier, indented: true)
+                    }
                 }
 
                 // Commitments: promises made / replies awaited — the follow-through
@@ -1451,6 +1496,9 @@ private struct FullSidebar: View {
                 .accessibilityLabel(L("commitments.a11y", model.commitments?.count ?? 0))
 
                 // Proposals: what Klorn wants to do and hasn't done yet.
+                // Zero-hide (founder 2026-08-20: rows must earn their place);
+                // a live selection keeps the row while the last item clears.
+                if model.pendingActions.count > 0 || selected == .proposals {
                 Button { selected = .proposals } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "hand.raised").font(.caption)
@@ -1467,6 +1515,7 @@ private struct FullSidebar: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(L("proposals.a11y", model.pendingActions.count))
+                }
 
                 // Assistant: ask/act across mail, calendar, and the briefing.
                 Button { selected = .assistant } label: {

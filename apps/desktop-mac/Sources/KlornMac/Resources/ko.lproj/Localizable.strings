@@ -77,6 +77,9 @@
 "mail.summarizing" = "정리 중…";
 "mail.summarizeFailed" = "정리 실패 — 다시 시도하세요.";
 "mail.actionItems" = "해야 할 일";
+"section.filed" = "정리됨";
+"section.filed.help" = "Klorn이 이미 정리한 메일 — Info 기록과 Silent 차단. 클릭해서 펼치기.";
+"filed.a11y" = "정리된 메일 %d건";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */

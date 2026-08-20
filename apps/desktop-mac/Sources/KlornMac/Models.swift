@@ -42,6 +42,32 @@ enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
         displayOrder.filter { $0 != .auto || counts($0) > 0 }
     }
 
+    /// The full sidebar's two-level presentation (founder 2026-08-20: nine
+    /// always-on rows was too many — the CLASSIFICATION stays six lanes, the
+    /// default VIEW earns its rows). Action lanes stay primary: PUSH/QUEUE
+    /// always, MEETING only while it holds items (it notifies on arrival, so
+    /// an empty row teaches nothing). INFO/SILENT — mail Klorn already filed —
+    /// collapse into one "filed" disclosure row; legacy AUTO joins them only
+    /// while old rows remain. Every lane stays one click away.
+    /// Pure for the harness.
+    struct SidebarLanes: Equatable {
+        let primary: [Tier]
+        let filed: [Tier]
+        let filedTotal: Int
+    }
+
+    static func sidebarLanes(counts: (Tier) -> Int) -> SidebarLanes {
+        var primary: [Tier] = [.push]
+        if counts(.meeting) > 0 { primary.append(.meeting) }
+        primary.append(.queue)
+        var filed: [Tier] = [.info, .silent]
+        if counts(.auto) > 0 { filed.append(.auto) }
+        return SidebarLanes(
+            primary: primary,
+            filed: filed,
+            filedTotal: filed.reduce(0) { $0 + counts($1) })
+    }
+
     var label: String {
         switch self {
         case .push: "Push"

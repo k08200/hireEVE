@@ -808,6 +808,18 @@ func runSelfChecks() async -> Bool {
     check("legacy AUTO joins only while old rows remain",
           Tier.visibleOrder(counts: { $0 == .auto ? 1 : 0 })
               == [.push, .meeting, .queue, .info, .silent, .auto])
+    // Two-level sidebar (founder 2026-08-20): action lanes primary, filed
+    // lanes behind one disclosure — MEETING earns its row with items.
+    check("sidebar defaults to PUSH/QUEUE primary; filed = INFO+SILENT",
+          Tier.sidebarLanes(counts: { _ in 0 })
+              == Tier.SidebarLanes(primary: [.push, .queue], filed: [.info, .silent], filedTotal: 0))
+    check("MEETING becomes primary only while it holds items",
+          Tier.sidebarLanes(counts: { $0 == .meeting ? 2 : 0 }).primary
+              == [.push, .meeting, .queue])
+    check("filed total sums its lanes; legacy AUTO joins only with rows",
+          Tier.sidebarLanes(counts: { [.info: 4, .silent: 91, .auto: 1][$0] ?? 0 })
+              == Tier.SidebarLanes(
+                  primary: [.push, .queue], filed: [.info, .silent, .auto], filedTotal: 96))
     check("section height resolvers clamp junk",
           AppSettings.resolveInboxSectionHeight("junk") == 620
           && AppSettings.resolveInboxSectionHeight(10.0) == 180

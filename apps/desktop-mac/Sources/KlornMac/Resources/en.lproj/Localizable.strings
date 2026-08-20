@@ -78,6 +78,9 @@
 "mail.summarizing" = "Summarizing…";
 "mail.summarizeFailed" = "Couldn't summarize — try again.";
 "mail.actionItems" = "Action items";
+"section.filed" = "Filed";
+"section.filed.help" = "Mail Klorn already filed — Info records and Silent noise. Click to expand.";
+"filed.a11y" = "Filed mail, %d items";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
 /* Reading pane */
