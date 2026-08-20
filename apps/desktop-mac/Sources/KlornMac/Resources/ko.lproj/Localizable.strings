@@ -73,6 +73,10 @@
 "mail.changeTier.a11y" = "%1$@ 님의 메일 분류 변경, 현재 %2$@";
 "mail.moveTo" = "%1$@%2$@ 옮기기 ";
 "mail.snoozePrefix" = "미루기 ";
+"mail.summarize" = "AI 정리";
+"mail.summarizing" = "정리 중…";
+"mail.summarizeFailed" = "정리 실패 — 다시 시도하세요.";
+"mail.actionItems" = "해야 할 일";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */

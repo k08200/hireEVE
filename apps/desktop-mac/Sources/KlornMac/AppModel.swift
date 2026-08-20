@@ -70,6 +70,9 @@ final class AppModel {
     private(set) var isLoadingEmail = false
     private(set) var emailError: String?
     private(set) var replyError: String?
+    /// On-demand deep re-summary ("AI 정리") in flight / failed for the pane.
+    private(set) var isSummarizing = false
+    private(set) var summarizeFailed = false
 
     /// Refresh cadence so new PUSH mail surfaces a notification even with the
     /// window closed (also keeps the free-tier API warm).
@@ -487,6 +490,33 @@ final class AppModel {
             return .needsPro
         } catch {
             return .failed(Self.describe(error))
+        }
+    }
+
+    /// On-demand deep re-summary of the opened email (reading pane "AI 정리").
+    /// The server persists the richer summary/keyPoints/actionItems, so a
+    /// re-fetch of the detail is the merge — no client-side struct surgery.
+    /// Output language follows the app UI (UI text is en/ko-fixed; only
+    /// replies mirror the mail's language).
+    func summarizeOpenedEmail() async {
+        guard let email = openedEmail, !isSummarizing else { return }
+        isSummarizing = true
+        summarizeFailed = false
+        defer { isSummarizing = false }
+        do {
+            let lang = L10n.resolvedCode(override: L10n.override)
+            try await api.post("/api/email/\(email.id)/summarize", json: ["lang": lang])
+        } catch {
+            Log.app.error("on-demand summarize failed: \(String(describing: error), privacy: .private)")
+            if openedEmail?.id == email.id { summarizeFailed = true }
+            return
+        }
+        // The POST persisted server-side; a refresh failure here must not
+        // report "summarize failed" — the pane just keeps the old band until
+        // the next open re-fetches it.
+        if let updated = try? await api.get("/api/email/\(email.id)", as: EmailDetail.self),
+           openedEmail?.id == email.id {
+            openedEmail = updated
         }
     }
 

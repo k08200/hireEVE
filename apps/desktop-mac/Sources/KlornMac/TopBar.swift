@@ -2442,24 +2442,62 @@ struct ReadingPane: View {
         .padding(16)
     }
 
-    /// Klorn's per-email intelligence: why it landed in this tier, the AI summary,
-    /// and whether it needs a reply. Hidden when there's nothing to show.
+    /// Klorn's per-email intelligence: why it landed in this tier, the AI summary
+    /// with its key points and action items, and whether it needs a reply.
+    /// Always rendered for an opened email — the "AI 정리" button must stay
+    /// reachable even before any summary exists (founder, 2026-08-20).
     @ViewBuilder
     private func klornBand(_ email: EmailDetail) -> some View {
         let reason = item?.tierReason
-        let hasEngagement = (email.engagement?.outboundCount ?? 0) > 0
-        let show = (reason?.isEmpty == false) || (email.summary?.isEmpty == false) || (email.needsReply == true) || hasEngagement
-        if show {
-            VStack(alignment: .leading, spacing: 6) {
-                if let item, let reason, !reason.isEmpty {
-                    HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    if let item, let reason, !reason.isEmpty {
                         Circle().fill(Theme.tint(item.tier)).frame(width: 7, height: 7)
                         Text(L("mail.whyTier", item.tier.label, reason))
                             .font(.caption).foregroundStyle(Theme.textDim).lineLimit(2)
                     }
+                    Spacer(minLength: 12)
+                    // Deep re-read of THIS mail: longer summary, up to 6 key
+                    // points, deadlines kept — in the UI language.
+                    Button(model.isSummarizing ? L("mail.summarizing") : L("mail.summarize")) {
+                        Task { await model.summarizeOpenedEmail() }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(model.isSummarizing ? Theme.textDim : Theme.accent)
+                    .disabled(model.isSummarizing)
+                }
+                if model.summarizeFailed {
+                    Text(L("mail.summarizeFailed"))
+                        .font(.caption).foregroundStyle(Theme.textDim)
                 }
                 if let summary = email.summary, !summary.isEmpty {
                     Text(summary).font(.callout).foregroundStyle(Theme.text.opacity(0.9))
+                }
+                if let points = email.keyPoints, !points.isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        // Position keys: LLM bullets can repeat verbatim, and
+                        // duplicate \.self identities break SwiftUI diffing.
+                        ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text("•").font(.caption).foregroundStyle(Theme.textDim)
+                                    .accessibilityHidden(true)
+                                Text(point).font(.caption).foregroundStyle(Theme.text.opacity(0.85))
+                            }
+                        }
+                    }
+                }
+                if let actions = email.actionItems, !actions.isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                                Image(systemName: "checkmark.circle").font(.caption2)
+                                    .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                                Text(action).font(.caption).foregroundStyle(Theme.text.opacity(0.85))
+                            }
+                        }
+                    }
+                    .accessibilityLabel(L("mail.actionItems"))
                 }
                 // Signal lines carry their hue on the ICON (and meter) only; the
                 // text itself stays dim. Stacked colored text lines (accent blue +
@@ -2495,14 +2533,13 @@ struct ReadingPane: View {
                     .accessibilityLabel(engagement.accessibilityLabel)
                 }
             }
-            // Same measure as the mail body below: intelligence about a document
-            // should not run wider than the document itself.
-            .frame(maxWidth: 640, alignment: .leading)
-            .padding(.horizontal, 24).padding(.vertical, 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surfaceRaised)
-            Divider().overlay(Theme.line)
-        }
+        // Same measure as the mail body below: intelligence about a document
+        // should not run wider than the document itself.
+        .frame(maxWidth: 640, alignment: .leading)
+        .padding(.horizontal, 24).padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surfaceRaised)
+        Divider().overlay(Theme.line)
     }
 
     /// The meeting ↔ calendar cross-reference: the slot this email proposes,

@@ -215,6 +215,10 @@ struct EmailDetail: Codable, Sendable, Identifiable {
     /// Server-sanitized HTML for rendering mail as the sender designed it
     /// (EmailHtmlView, JS-disabled). null for genuinely-plain mail.
     let renderHtml: String?
+    /// AI-extracted bullets/tasks (same batch pass as `summary`; the detail
+    /// endpoint always sent these — the pane just never decoded them).
+    let keyPoints: [String]?
+    let actionItems: [String]?
     let needsReply: Bool?
     let needsReplyReason: String?
     /// Learned engagement: how often the user has replied to/written this sender.

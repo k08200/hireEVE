@@ -74,6 +74,10 @@
 "mail.changeTier.a11y" = "Change tier for message from %1$@, currently %2$@";
 "mail.moveTo" = "Move to %1$@%2$@";
 "mail.snoozePrefix" = "Snooze ";
+"mail.summarize" = "AI Summary";
+"mail.summarizing" = "Summarizing…";
+"mail.summarizeFailed" = "Couldn't summarize — try again.";
+"mail.actionItems" = "Action items";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
 /* Reading pane */
