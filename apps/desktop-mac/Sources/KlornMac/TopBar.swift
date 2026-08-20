@@ -2708,6 +2708,16 @@ struct ReadingPane: View {
                     .font(.caption.weight(.medium))
                     .foregroundStyle(context.conflict?.hasConflicts == true ? Theme.text : Theme.textDim)
             }
+            if let alts = context.alternatives, !alts.isEmpty {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Image(systemName: "calendar.badge.checkmark").font(.caption2)
+                        .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                    Text(L("meeting.alternatives",
+                           alts.prefix(3).map { meetingSlotLabel($0.startTime, $0.endTime) }
+                               .joined(separator: " · ")))
+                        .font(.caption).foregroundStyle(Theme.textDim)
+                }
+            }
             ForEach(context.nearby.prefix(3)) { event in
                 Text("\(meetingSlotLabel(event.startTime, event.endTime))  \(event.title)")
                     .font(.caption2).foregroundStyle(Theme.textDim)

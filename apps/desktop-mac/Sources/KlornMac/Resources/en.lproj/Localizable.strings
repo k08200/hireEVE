@@ -360,6 +360,7 @@
 "calendar.addedConfirm" = "✓ Added to calendar: %@";
 
 /* Meeting <-> calendar cross-reference (2026-08-13) */
+"meeting.alternatives" = "Both free: %@";
 "meeting.proposedSlot" = "Proposed: %@";
 "meeting.slotFree" = "That slot is free on your calendar";
 "meeting.slotBusy" = "Clashes with an existing event";

@@ -180,6 +180,10 @@ export default function PaywallScreen() {
           <Link href="/terms" className="transition hover:text-ink-soft">
             Terms
           </Link>
+          <span aria-hidden="true">·</span>
+          <Link href="/refund" className="transition hover:text-ink-soft">
+            Refunds
+          </Link>
         </div>
       </div>
     </main>

@@ -304,6 +304,46 @@ export async function checkAttendeeBusy(
   }
 }
 
+/**
+ * Team mode v2: the attendees' BUSY INTERVALS over a window (not just a
+ * boolean at one slot) — the input the alternative-slot suggester needs.
+ * Same visibility rule as checkAttendeeBusy: calendars this account cannot
+ * see contribute nothing (absent ≠ free), and any failure degrades to [].
+ */
+export async function getAttendeeBusyBlocks(
+  userId: string,
+  attendeeEmails: string[],
+  timeMinIso: string,
+  timeMaxIso: string,
+): Promise<Array<{ start: string; end: string }>> {
+  if (attendeeEmails.length === 0) return [];
+  const auth = await getAuthedClient(userId);
+  if (!auth) return [];
+  try {
+    const calendar = google.calendar({ version: "v3", auth });
+    const fb = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: timeMinIso,
+        timeMax: timeMaxIso,
+        items: attendeeEmails.map((id) => ({ id })),
+      },
+    });
+    const calendars = fb.data.calendars ?? {};
+    const out: Array<{ start: string; end: string }> = [];
+    for (const email of attendeeEmails) {
+      const cal = calendars[email];
+      if (!cal || (cal.errors?.length ?? 0) > 0) continue;
+      for (const b of cal.busy ?? []) {
+        if (b.start && b.end) out.push({ start: b.start, end: b.end });
+      }
+    }
+    return out;
+  } catch (err) {
+    console.warn(`[CALENDAR] attendee busy-block query failed for ${userId}:`, err);
+    return [];
+  }
+}
+
 export async function checkConflicts(userId: string, startTime: string, endTime: string) {
   const auth = await getAuthedClient(userId);
   if (!auth) return { error: "Google Calendar not connected." };

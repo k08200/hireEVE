@@ -359,6 +359,7 @@
 "calendar.addedConfirm" = "✓ 캘린더에 추가됨: %@";
 
 /* Meeting <-> calendar cross-reference (2026-08-13) */
+"meeting.alternatives" = "함께 가능한 시간: %@";
 "meeting.proposedSlot" = "제안 시간: %@";
 "meeting.slotFree" = "캘린더에서 비어 있는 시간";
 "meeting.slotBusy" = "기존 일정과 겹침";

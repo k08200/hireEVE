@@ -321,9 +321,17 @@ struct MeetingContextWire: Codable, Sendable {
         let allDay: Bool
     }
 
+    struct AlternativeSlot: Codable, Sendable {
+        let startTime: String
+        let endTime: String
+    }
+
     let proposed: Proposed?
     let conflict: Conflict?
     let nearby: [NearbyEvent]
+    /// Team mode v2: slots verified free for BOTH sides when the proposal
+    /// clashes. Optional — older servers omit it.
+    let alternatives: [AlternativeSlot]?
 }
 
 /// GET /api/email/:id/sender-dossier — relationship context for the sender.
