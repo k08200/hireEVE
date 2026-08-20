@@ -141,6 +141,24 @@ private extension View {
     }
 }
 
+/// Sidebar feature-row icon: a tinted rounded container in the System
+/// Settings idiom (founder 2026-08-21: bare mismatched glyphs read as
+/// unfinished). One hue family — accent container, deep-accent glyph — so
+/// the column stays quiet; identity comes from the glyph, not a rainbow.
+struct FeatureIcon: View {
+    let systemName: String
+    var body: some View {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(Theme.accent.opacity(0.14))
+            .frame(width: 20, height: 20)
+            .overlay(
+                Image(systemName: systemName)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(Theme.accentDeep))
+            .accessibilityHidden(true)
+    }
+}
+
 struct ColumnHeader: View {
     let title: String
 
@@ -1555,7 +1573,10 @@ private struct FullSidebar: View {
     private func tierRow(_ tier: Tier, indented: Bool = false) -> some View {
         Button { selected = .tier(tier) } label: {
             HStack(spacing: 10) {
+                // 20pt slot so tier dots and FeatureIcon containers share one
+                // text column — mixed leading widths read as misalignment.
                 Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
+                    .frame(width: 20)
                 Text(tier.label)
                     .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
                     .foregroundStyle(Theme.text)
@@ -1657,8 +1678,13 @@ private struct FullSidebar: View {
                     withAnimation(.easeOut(duration: 0.15)) { filedExpanded.toggle() }
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "tray.full").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.textDim).frame(width: 8)
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Theme.surfaceRaised)
+                            .frame(width: 20, height: 20)
+                            .overlay(
+                                Image(systemName: "tray.full")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Theme.textDim))
                             .accessibilityHidden(true)
                         Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
                         Image(systemName: "chevron.right").font(.caption2)
@@ -1687,9 +1713,7 @@ private struct FullSidebar: View {
                 // half of the firewall (what mail asked of you, and of them).
                 Button { selected = .commitments } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "checklist").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.accent).frame(width: 8)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "checklist")
                         Text(L("section.commitments"))
                             .font(.body.weight(selected == .commitments ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1708,9 +1732,7 @@ private struct FullSidebar: View {
                 if model.pendingActions.count > 0 || selected == .proposals {
                 Button { selected = .proposals } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "hand.raised").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.accent).frame(width: 8)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "hand.raised")
                         Text(L("proposals.title"))
                             .font(.body.weight(selected == .proposals ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1729,9 +1751,7 @@ private struct FullSidebar: View {
                 if model.teamModeAvailable {
                     Button { selected = .teams } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: "person.2").font(Theme.Typo.icon)
-                                .foregroundStyle(Theme.accent).frame(width: 8)
-                                .accessibilityHidden(true)
+                            FeatureIcon(systemName: "person.2")
                             Text(L("teams.title"))
                                 .font(.body.weight(selected == .teams ? .semibold : .regular))
                                 .foregroundStyle(Theme.text)
@@ -1748,9 +1768,7 @@ private struct FullSidebar: View {
                 // Assistant: ask/act across mail, calendar, and the briefing.
                 Button { selected = .assistant } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "sparkles").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.accent).frame(width: 8)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "sparkles")
                         Text(L("section.assistant"))
                             .font(.body.weight(selected == .assistant ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1765,9 +1783,7 @@ private struct FullSidebar: View {
                 // TODAY/UPCOMING crumbs below.
                 Button { selected = .calendar } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "calendar").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.accent).frame(width: 8)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "calendar")
                         Text(L("section.calendar"))
                             .font(.body.weight(selected == .calendar ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
