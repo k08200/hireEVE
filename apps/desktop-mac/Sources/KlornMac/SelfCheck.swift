@@ -304,6 +304,18 @@ func runSelfChecks() async -> Bool {
           && sourceBadgeLabel("EMAIL") == nil && sourceBadgeLabel("PENDING_ACTION") == nil)
     check("full panel is user-resizable",
           TopBarController.styleMask(focusable: true).contains(.resizable))
+    // The AppKit-level clamp is the last line of defense: whatever sets the
+    // frame, the top edge stays reachable and the size fits the screen.
+    let vis = NSRect(x: 0, y: 0, width: 1440, height: 875)
+    check("clamp pulls a top-lodged frame back under the menu bar",
+          KeyablePanel.clamped(NSRect(x: 100, y: 400, width: 800, height: 600), into: vis)
+              == NSRect(x: 100, y: 275, width: 800, height: 600))
+    check("clamp shrinks an oversized frame to the visible area",
+          KeyablePanel.clamped(NSRect(x: 0, y: -100, width: 2000, height: 1200), into: vis)
+              == NSRect(x: 0, y: 0, width: 1440, height: 875))
+    check("clamp leaves a healthy frame untouched",
+          KeyablePanel.clamped(NSRect(x: 100, y: 100, width: 800, height: 600), into: vis)
+              == NSRect(x: 100, y: 100, width: 800, height: 600))
     check("a top-clipped frame counts as lost (unreachable grab area)",
           TopBarController.isFrameLost(
               frame: NSRect(x: 100, y: 500, width: 800, height: 600),
@@ -791,11 +803,27 @@ func runSelfChecks() async -> Bool {
           && (AttentionMode(rawValue: "AUTO") ?? .basic) == .auto)
 
     print("Tier v2 lanes:")
-    check("v2 lanes hide at zero, v1 four always show",
-          Tier.visibleOrder(counts: { _ in 0 }) == [.push, .queue, .silent, .auto])
-    check("a nonzero v2 lane joins in display position",
-          Tier.visibleOrder(counts: { $0 == .meeting ? 2 : 0 })
-              == [.push, .meeting, .queue, .silent, .auto])
+    check("the five live lanes always show; legacy AUTO hides at zero",
+          Tier.visibleOrder(counts: { _ in 0 }) == [.push, .meeting, .queue, .info, .silent])
+    check("legacy AUTO joins only while old rows remain",
+          Tier.visibleOrder(counts: { $0 == .auto ? 1 : 0 })
+              == [.push, .meeting, .queue, .info, .silent, .auto])
+    // Two-level sidebar (founder 2026-08-20): action lanes primary, filed
+    // lanes behind one disclosure — MEETING earns its row with items.
+    check("sidebar defaults to PUSH/QUEUE primary; filed = INFO+SILENT",
+          Tier.sidebarLanes(counts: { _ in 0 })
+              == Tier.SidebarLanes(primary: [.push, .queue], filed: [.info, .silent], filedTotal: 0))
+    check("MEETING becomes primary only while it holds items",
+          Tier.sidebarLanes(counts: { $0 == .meeting ? 2 : 0 }).primary
+              == [.push, .meeting, .queue])
+    check("filed total sums its lanes; legacy AUTO joins only with rows",
+          Tier.sidebarLanes(counts: { [.info: 4, .silent: 91, .auto: 1][$0] ?? 0 })
+              == Tier.SidebarLanes(
+                  primary: [.push, .queue], filed: [.info, .silent, .auto], filedTotal: 96))
+    check("section height resolvers clamp junk",
+          AppSettings.resolveInboxSectionHeight("junk") == 620
+          && AppSettings.resolveInboxSectionHeight(10.0) == 180
+          && AppSettings.resolveUpcomingSectionHeight(9_999.0) == 600)
     check("guide teaches the five live v2 lanes, not legacy AUTO",
           Tier.coreOrder.count == 5 && Tier.coreOrder.contains(.meeting)
           && Tier.coreOrder.contains(.info) && !Tier.coreOrder.contains(.auto))
@@ -1553,6 +1581,41 @@ func runSelfChecks() async -> Bool {
     if !engageTextOffenders.isEmpty {
         print("      offenders: \(engageTextOffenders.joined(separator: ", "))")
     }
+
+    // Content-driven growth (a sidebar section handle making the SwiftUI tree
+    // taller) resized the window UP off-screen without live-resize or move
+    // events (clipping recording, 2026-08-19). Two walls, both source-pinned
+    // here because the delegate needs a window and the harness has none:
+    // sizingOptions=[] stops SwiftUI from driving the window frame at all,
+    // and windowDidResize re-clamps whatever still resizes it.
+    let hostSizingPinned = lineOffenders { $0.contains("host.sizingOptions = []") }
+    check("SwiftUI content size never drives the window frame",
+          hostSizingPinned.contains("TopBarController.swift"))
+    let resizeHookPresent = lineOffenders { $0.contains("func windowDidResize") }
+    check("windowDidResize re-clamp hook is wired",
+          resizeHookPresent.contains("TopBarController.swift"))
+
+    // Overflow must never eat the header: the root pins content to the TOP
+    // (a centered NSHostingView/ZStack clipped the header first when the
+    // sections' minimum exceeded the window — screenshots, 2026-08-20).
+    let rootTopPinned = lineOffenders {
+        $0.contains("maxHeight: .infinity, alignment: .top")
+    }
+    check("root content pins to the top (overflow clips at the bottom)",
+          rootTopPinned.contains("TopBar.swift"))
+    let sidebarScrolls = lineOffenders {
+        $0.contains("minHeight: geo.size.height, alignment: .top")
+    }
+    check("sidebar scrolls instead of clipping when the window is short",
+          sidebarScrolls.contains("TopBar.swift"))
+
+    // Mail HTML is authored against a white page; the reading surface must
+    // pin one regardless of app theme (dark mode ghost-text recording,
+    // 2026-08-19) and must keep WebKit from auto-darkening the canvas.
+    let mailWrap = EmailHtmlView.wrap("<p>hi</p>")
+    check("mail surface pins a light card in every theme",
+          mailWrap.contains("background: #ffffff")
+          && mailWrap.contains("color-scheme: light"))
 
     print(failures == 0 ? "\nALL CHECKS PASSED" : "\n\(failures) CHECK(S) FAILED")
     return failures == 0

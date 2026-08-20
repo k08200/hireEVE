@@ -16,6 +16,7 @@ type StoredWaitlist = {
   email: string;
   name?: string | null;
   useCase?: string | null;
+  source?: string | null;
   status: string;
 };
 const waitlistByEmail = new Map<string, StoredWaitlist>();
@@ -29,12 +30,17 @@ vi.mock("../db.js", () => {
         return waitlistByEmail.get(where.email) ?? null;
       }),
       create: vi.fn(
-        async ({ data }: { data: { email: string; name?: string; useCase?: string } }) => {
+        async ({
+          data,
+        }: {
+          data: { email: string; name?: string; useCase?: string; source?: string };
+        }) => {
           const entry: StoredWaitlist = {
             id: `wl-${nextId++}`,
             email: data.email,
             name: data.name ?? null,
             useCase: data.useCase ?? null,
+            source: data.source ?? null,
             status: "PENDING",
           };
           waitlistByEmail.set(data.email, entry);
@@ -47,11 +53,17 @@ vi.mock("../db.js", () => {
           data,
         }: {
           where: { email: string };
-          data: { name?: string; useCase?: string };
+          data: { name?: string; useCase?: string; source?: string };
         }) => {
           const existing = waitlistByEmail.get(where.email);
           if (!existing) throw new Error("Not found");
-          const updated = { ...existing, ...data };
+          // Match Prisma: an `undefined` field means "leave this column
+          // alone", not "write NULL". A naive spread would silently clear
+          // fields the route deliberately declined to touch.
+          const patch = Object.fromEntries(
+            Object.entries(data).filter(([, value]) => value !== undefined),
+          );
+          const updated = { ...existing, ...patch };
           waitlistByEmail.set(where.email, updated);
           return updated;
         },
@@ -166,5 +178,121 @@ describe("POST /api/waitlist", () => {
     expect(res.statusCode).toBe(200);
     expect(sendWaitlistAdminAlertSpy).toHaveBeenCalledTimes(1);
     expect(sendWaitlistConfirmationEmailSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Attribution: the only place a stranger tells us where they came from.
+// GitHub restricted the stargazers API on 2026-06-30, so third-party referral
+// reconstruction is gone — if we don't capture it here, it is unrecoverable.
+describe("POST /api/waitlist — source attribution", () => {
+  it("persists the reported source on a new signup", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "from-hn@example.com", source: "Hacker News" },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(waitlistByEmail.get("from-hn@example.com")?.source).toBe("Hacker News");
+  });
+
+  it("stores no source when the field is omitted", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "quiet@example.com" },
+    });
+
+    expect(waitlistByEmail.get("quiet@example.com")?.source ?? null).toBeNull();
+  });
+
+  it("truncates an over-long source instead of rejecting the signup", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "verbose@example.com", source: "x".repeat(200) },
+    });
+
+    // A chatty answer must never cost us the signup.
+    expect(res.statusCode).toBe(200);
+    expect(waitlistByEmail.get("verbose@example.com")?.source).toHaveLength(80);
+  });
+
+  it("never splits a surrogate pair at the truncation boundary", async () => {
+    const app = await buildApp();
+    // 79 ASCII chars + one emoji (2 UTF-16 code units): a code-unit slice(0, 80)
+    // would cut the pair in half and store a lone surrogate — invalid UTF-8 at
+    // the Postgres boundary, failing the exact signup we promised never to lose.
+    const source = `${"x".repeat(79)}😀`;
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "emoji@example.com", source },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const stored = waitlistByEmail.get("emoji@example.com")?.source ?? "";
+    expect(stored).toBe(source); // 80 code points — kept whole
+    expect(stored.endsWith("😀")).toBe(true); // .at(-1) would return a half-pair by design
+    // No lone surrogates anywhere in what we store.
+    expect(stored.isWellFormed()).toBe(true);
+  });
+
+  it("accepts a source far beyond any schema cap and still just truncates", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "essay@example.com", source: "y".repeat(5000) },
+    });
+
+    // The signup must survive ANY answer length — schema-level rejection of a
+    // long source would contradict the truncate-not-reject contract.
+    expect(res.statusCode).toBe(200);
+    expect(waitlistByEmail.get("essay@example.com")?.source).toHaveLength(80);
+  });
+
+  it("forwards the source to the admin alert", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "attributed@example.com", source: "selfh.st newsletter" },
+    });
+
+    expect(sendWaitlistAdminAlertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ source: "selfh.st newsletter" }),
+    );
+  });
+
+  it("treats a blank source as absent", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "blank@example.com", source: "   " },
+    });
+
+    expect(waitlistByEmail.get("blank@example.com")?.source ?? null).toBeNull();
+  });
+
+  it("keeps the original source when a resubmission omits it", async () => {
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "repeat@example.com", source: "Reddit" },
+    });
+    await app.inject({
+      method: "POST",
+      url: "/api/waitlist",
+      payload: { email: "repeat@example.com", useCase: "still keen" },
+    });
+
+    // First touch is the one worth attributing — don't let a later blank erase it.
+    expect(waitlistByEmail.get("repeat@example.com")?.source).toBe("Reddit");
   });
 });

@@ -17,6 +17,8 @@ final class AppSettings {
     static let hasLaunchedKey = "klorn.hasLaunchedBefore"
     static let loadRemoteImagesKey = "klorn.mail.loadRemoteImages"
     static let appearanceKey = "klorn.appearance"
+    static let inboxSectionHeightKey = "klorn.inboxSectionHeight"
+    static let upcomingSectionHeightKey = "klorn.upcomingSectionHeight"
     static let todaySectionHeightKey = "klorn.todaySectionHeight"
     static let accountSectionHeightKey = "klorn.sidebar.accountHeight"
 
@@ -71,6 +73,14 @@ final class AppSettings {
 
     var todaySectionHeight: Double {
         didSet { defaults.set(todaySectionHeight, forKey: Self.todaySectionHeightKey) }
+    }
+
+    var inboxSectionHeight: Double {
+        didSet { defaults.set(inboxSectionHeight, forKey: Self.inboxSectionHeightKey) }
+    }
+
+    var upcomingSectionHeight: Double {
+        didSet { defaults.set(upcomingSectionHeight, forKey: Self.upcomingSectionHeightKey) }
     }
 
     /// Whether the collapsed pill stays on screen. OFF = ambient-invisible mode:
@@ -181,6 +191,10 @@ final class AppSettings {
             defaults.object(forKey: Self.accountSectionHeightKey))
         self.todaySectionHeight = Self.resolveTodaySectionHeight(
             defaults.object(forKey: Self.todaySectionHeightKey))
+        self.inboxSectionHeight = Self.resolveInboxSectionHeight(
+            defaults.object(forKey: Self.inboxSectionHeightKey))
+        self.upcomingSectionHeight = Self.resolveUpcomingSectionHeight(
+            defaults.object(forKey: Self.upcomingSectionHeightKey))
         self.showInDock = Self.resolveShowInDock(defaults.object(forKey: Self.showInDockKey))
         self.pillVisible = Self.resolvePillVisible(defaults.object(forKey: Self.pillVisibleKey))
         self.shortcut = Self.resolveShortcut(defaults.object(forKey: Self.shortcutKey))
@@ -254,6 +268,18 @@ final class AppSettings {
         let raw = (stored as? NSNumber)?.doubleValue ?? (stored as? Double) ?? 240
         return min(max(raw, 120), 520)
     }
+    /// 수신함 nav cap — default generous so nothing changes until dragged.
+    nonisolated static func resolveInboxSectionHeight(_ stored: Any?) -> Double {
+        let raw = (stored as? NSNumber)?.doubleValue ?? (stored as? Double) ?? 620
+        return min(max(raw, 180), 800)
+    }
+
+    /// 예정(UPCOMING) cap — same clamp discipline.
+    nonisolated static func resolveUpcomingSectionHeight(_ stored: Any?) -> Double {
+        let raw = (stored as? NSNumber)?.doubleValue ?? (stored as? Double) ?? 300
+        return min(max(raw, 100), 600)
+    }
+
 
 
     /// Default ON (pill shown) when never set; otherwise honor the stored flag. Pure.

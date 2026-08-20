@@ -73,6 +73,13 @@
 "mail.changeTier.a11y" = "%1$@ 님의 메일 분류 변경, 현재 %2$@";
 "mail.moveTo" = "%1$@%2$@ 옮기기 ";
 "mail.snoozePrefix" = "미루기 ";
+"mail.summarize" = "AI 정리";
+"mail.summarizing" = "정리 중…";
+"mail.summarizeFailed" = "정리 실패 — 다시 시도하세요.";
+"mail.actionItems" = "해야 할 일";
+"section.filed" = "정리됨";
+"section.filed.help" = "Klorn이 이미 정리한 메일 — Info 기록과 Silent 차단. 클릭해서 펼치기.";
+"filed.a11y" = "정리된 메일 %d건";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */
@@ -263,6 +270,7 @@
 "section.recentPush" = "최근 PUSH";
 "section.todayShort" = "오늘";
 "push.nothingNeedsYou" = "지금 처리할 것이 없습니다.";
+"auth.signInApple" = "Apple로 계속하기";
 "auth.signInGoogle" = "Google로 로그인";
 "calendar.noEvents" = "오늘 일정 없음";
 "calendar.eventRow.a11y" = "%1$@, %2$@. 세부 정보를 봅니다.";

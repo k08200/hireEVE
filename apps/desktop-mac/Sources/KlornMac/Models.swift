@@ -34,10 +34,38 @@ enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     /// Whether this tier existed before ontology v2. Pure for the harness.
     var isV2Lane: Bool { self == .meeting || self == .info }
 
-    /// Rows worth drawing: every v1 tier always, a v2 lane only when it has
-    /// items (a lane the server never fills is noise, not information).
+    /// Rows worth drawing: the five live v2 lanes ALWAYS (the sidebar is the
+    /// classification scheme itself — a zero-count Meeting lane is
+    /// information, founder 2026-08-19); legacy AUTO only while old rows
+    /// remain (the v2 classifier never emits it).
     static func visibleOrder(counts: (Tier) -> Int) -> [Tier] {
-        displayOrder.filter { !$0.isV2Lane || counts($0) > 0 }
+        displayOrder.filter { $0 != .auto || counts($0) > 0 }
+    }
+
+    /// The full sidebar's two-level presentation (founder 2026-08-20: nine
+    /// always-on rows was too many — the CLASSIFICATION stays six lanes, the
+    /// default VIEW earns its rows). Action lanes stay primary: PUSH/QUEUE
+    /// always, MEETING only while it holds items (it notifies on arrival, so
+    /// an empty row teaches nothing). INFO/SILENT — mail Klorn already filed —
+    /// collapse into one "filed" disclosure row; legacy AUTO joins them only
+    /// while old rows remain. Every lane stays one click away.
+    /// Pure for the harness.
+    struct SidebarLanes: Equatable {
+        let primary: [Tier]
+        let filed: [Tier]
+        let filedTotal: Int
+    }
+
+    static func sidebarLanes(counts: (Tier) -> Int) -> SidebarLanes {
+        var primary: [Tier] = [.push]
+        if counts(.meeting) > 0 { primary.append(.meeting) }
+        primary.append(.queue)
+        var filed: [Tier] = [.info, .silent]
+        if counts(.auto) > 0 { filed.append(.auto) }
+        return SidebarLanes(
+            primary: primary,
+            filed: filed,
+            filedTotal: filed.reduce(0) { $0 + counts($1) })
     }
 
     var label: String {
@@ -213,6 +241,10 @@ struct EmailDetail: Codable, Sendable, Identifiable {
     /// Server-sanitized HTML for rendering mail as the sender designed it
     /// (EmailHtmlView, JS-disabled). null for genuinely-plain mail.
     let renderHtml: String?
+    /// AI-extracted bullets/tasks (same batch pass as `summary`; the detail
+    /// endpoint always sent these — the pane just never decoded them).
+    let keyPoints: [String]?
+    let actionItems: [String]?
     let needsReply: Bool?
     let needsReplyReason: String?
     /// Learned engagement: how often the user has replied to/written this sender.

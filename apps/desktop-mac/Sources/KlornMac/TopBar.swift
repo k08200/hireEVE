@@ -111,6 +111,10 @@ struct TopBarRoot: View {
             }
         }
         .glassPanel(cornerRadius: TopBarMetrics.corner(for: state))
+        // Root safety net: NSHostingView centers a root whose minimum exceeds
+        // the window, which clips the app's own header row first. Pin to the
+        // top so any overflow is always cut at the bottom instead.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -318,6 +322,12 @@ struct CollapsedBar: View {
             case .signedOut:
                 Button(L("auth.logIn"), action: actions.onSignIn)
                     .buttonStyle(PrimaryButtonStyle())
+                if model.loginProviders.contains("apple") {
+                    Button(L("auth.signInApple")) {
+                        Task { await model.signIn(provider: "apple") }
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
 
             Button(action: actions.onHideBar) {
@@ -1008,6 +1018,11 @@ private struct AccountColumn: View {
                 }
             } else {
                 SubtleTextButton(title: L("auth.signInGoogle"), dim: false) { actions.onSignIn() }
+                if model.loginProviders.contains("apple") {
+                    SubtleTextButton(title: L("auth.signInApple"), dim: false) {
+                        Task { await model.signIn(provider: "apple") }
+                    }
+                }
             }
             if model.phase == .signedIn, let usage = model.usage {
                 VStack(alignment: .leading, spacing: 5) {
@@ -1069,7 +1084,10 @@ struct FullView: View {
         // urgent-mail card — has to be able to say which tier to land on.
         @Bindable var model = model
 
-        ZStack {
+        // .top: if the content's minimum ever exceeds the window again, the
+        // overflow must clip at the BOTTOM — a centered ZStack ate the header
+        // first (clipping screenshots, 2026-08-20).
+        ZStack(alignment: .top) {
             // Sky behind everything. The header sits directly on it so the view
             // opens on air rather than on a toolbar; the working columns get a
             // translucent panel so running text never lands on a gradient.
@@ -1176,8 +1194,51 @@ struct FullView: View {
 /// Draggable boundary above the ACCOUNT section: dragging up grows the
 /// account area, the TODAY/UPCOMING scroll region flexes to absorb it.
 /// Height persists via AppSettings. VoiceOver adjusts in 20pt steps.
+/// ScrollView at runtime; a plain container under the offscreen design
+/// renderer, which cannot draw ScrollView content (PreviewRender note).
+private struct OffscreenFriendlyScroll<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        if Theme.isRenderingOffscreen {
+            content()
+        } else {
+            ScrollView(showsIndicators: false) { content() }
+        }
+    }
+}
+
+/// Reports a view's laid-out height so a capped section's drag can clamp to
+/// real content (a cap beyond content is a dead zone the cursor rubber-bands
+/// through).
+private struct SectionHeightKey: PreferenceKey {
+    nonisolated(unsafe) static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private extension View {
+    func measureSectionHeight(_ into: @escaping (CGFloat) -> Void) -> some View {
+        background(
+            GeometryReader { geo in
+                Color.clear.preference(key: SectionHeightKey.self, value: geo.size.height)
+            }
+        )
+        .onPreferenceChange(SectionHeightKey.self) { into($0) }
+    }
+}
+
 private struct SectionResizeHandle: View {
     @Binding var height: Double
+    /// True when the resizable section sits ABOVE this handle (dragging the
+    /// boundary DOWN should grow it). False = section below (account), where
+    /// dragging UP grows. The account handle shipped first and set the
+    /// up=grow default; the today handle reused it unflipped, which is why
+    /// it felt dead in the wrong direction (dogfood 2026-08-19).
+    var growsDown = false
+
+    @State private var hovering = false
 
     var body: some View {
         ZStack {
@@ -1186,11 +1247,24 @@ private struct SectionResizeHandle: View {
             // MOVE before SwiftUI's DragGesture ever fires (v0.4.80040 bug —
             // the handle "did nothing"). An NSView that answers
             // mouseDownCanMoveWindow=false is the only reliable refusal.
-            ResizeDragSurface(startHeight: { height }, apply: { height = $0 })
-            Capsule().fill(Theme.line).frame(width: 36, height: 3)
+            ResizeDragSurface(
+                startHeight: { height }, apply: { height = $0 }, growsDown: growsDown)
+            // macOS-divider look: a hairline across the column with a centred
+            // grabber that answers hover — visibly a control, not lint.
+            VStack(spacing: 0) {
+                Rectangle().fill(Theme.line.opacity(hovering ? 0 : 0.6))
+                    .frame(height: 1)
+            }
+            .allowsHitTesting(false)
+            Capsule()
+                .fill(hovering ? Theme.accent.opacity(0.85) : Theme.line)
+                .frame(width: hovering ? 44 : 28, height: hovering ? 5 : 4)
+                .animation(.easeOut(duration: 0.12), value: hovering)
                 .allowsHitTesting(false)
         }
-        .frame(height: 12)
+        .frame(height: 14)
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
         .accessibilityElement()
         .accessibilityLabel(L("sidebar.resize.a11y"))
         .accessibilityValue(Text("\(Int(height))"))
@@ -1207,23 +1281,27 @@ private struct SectionResizeHandle: View {
 private struct ResizeDragSurface: NSViewRepresentable {
     let startHeight: () -> Double
     let apply: (Double) -> Void
+    var growsDown = false
 
     func makeNSView(context _: Context) -> ResizeDragNSView {
         let view = ResizeDragNSView()
         view.startHeight = startHeight
         view.apply = apply
+        view.growsDown = growsDown
         return view
     }
 
     func updateNSView(_ view: ResizeDragNSView, context _: Context) {
         view.startHeight = startHeight
         view.apply = apply
+        view.growsDown = growsDown
     }
 }
 
 final class ResizeDragNSView: NSView {
     var startHeight: () -> Double = { 0 }
     var apply: (Double) -> Void = { _ in }
+    var growsDown = false
     private var dragStartHeight: Double = 0
     private var dragStartScreenY: CGFloat = 0
 
@@ -1236,10 +1314,11 @@ final class ResizeDragNSView: NSView {
     }
 
     override func mouseDragged(with _: NSEvent) {
-        // Screen Y grows upward on macOS: dragging the bar up (positive dy)
-        // grows the section below it.
+        // Screen Y grows upward on macOS. For a section BELOW the handle
+        // (account), dragging up (positive dy) grows it; for a section ABOVE
+        // (수신함/오늘/예정), dragging down grows it — hence the sign flip.
         let dy = NSEvent.mouseLocation.y - dragStartScreenY
-        apply(dragStartHeight + Double(dy))
+        apply(dragStartHeight + (growsDown ? -Double(dy) : Double(dy)))
     }
 
     override func resetCursorRects() {
@@ -1255,6 +1334,37 @@ private struct FullSidebar: View {
     /// account section is daily-use identity actions; update/restart/health
     /// are occasional and were crowding the sidebar (founder, 2026-08-14).
     @State private var showMaintenance = false
+    /// Filed-lanes disclosure (INFO/SILENT/legacy AUTO). Session-scoped; a
+    /// selection inside the group keeps it open regardless.
+    @State private var filedExpanded = false
+    /// Real laid-out content heights — caps clamp to these so a drag never
+    /// wanders into a dead zone past the content (dogfood 2026-08-19).
+    @State private var navContentHeight: CGFloat = 0
+    @State private var todayContentHeight: CGFloat = 0
+    @State private var upcomingContentHeight: CGFloat = 0
+
+    private func tierCount(_ tier: Tier) -> Int { model.queue?.summary.count(for: tier) ?? 0 }
+
+    /// One tier row — shared by the primary lanes and the filed group
+    /// (indented so the hierarchy reads at a glance).
+    private func tierRow(_ tier: Tier, indented: Bool = false) -> some View {
+        Button { selected = .tier(tier) } label: {
+            HStack(spacing: 10) {
+                Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
+                Text(tier.label)
+                    .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                Text("\(tierCount(tier))")
+                    .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+            }
+            .padding(.leading, indented ? 14 : 0)
+            .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
+        }
+        .buttonStyle(.plain)
+        .help(tier.blurb)
+        .accessibilityLabel(L("tier.row.a11y", tier.label, tierCount(tier), tier.blurb))
+    }
 
     /// Compact event row for the 220pt sidebar: NOW badge or start time,
     /// title, and a click-through to the meeting link when present.
@@ -1287,6 +1397,20 @@ private struct FullSidebar: View {
     }
 
     var body: some View {
+        // The whole column scrolls when the window is shorter than the
+        // sections' minimum (user-grown caps + fixed clusters). Without this
+        // the overflow was clipped — top-first, eating the inbox header
+        // (clipping screenshots, 2026-08-20). minHeight: available keeps the
+        // Spacer pinning the bottom cluster whenever there IS room.
+        GeometryReader { geo in
+            OffscreenFriendlyScroll {
+                sidebarColumn
+                    .frame(minHeight: geo.size.height, alignment: .top)
+            }
+        }
+    }
+
+    private var sidebarColumn: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 ColumnHeader(title: L("section.inbox"))
@@ -1307,94 +1431,135 @@ private struct FullSidebar: View {
                 InboxSelectorMenu()
             }
             .padding(.horizontal, 20).padding(.bottom, 6)
-            ForEach(Tier.visibleOrder(counts: { model.queue?.summary.count(for: $0) ?? 0 })) { tier in
-                Button { selected = .tier(tier) } label: {
+            // 수신함 nav block: capped + scrollable so its boundary is
+            // draggable like every other section (founder 2026-08-19). The
+            // cap is a MAX — short content keeps its natural height.
+            // (ImageRenderer draws nothing inside a ScrollView — the design
+            // renderer gets the plain stack, same rows.)
+            OffscreenFriendlyScroll {
+                VStack(alignment: .leading, spacing: 4) {
+                // Two-level lanes (founder 2026-08-20: nine always-on rows was
+                // too many): action lanes primary, filed lanes behind one
+                // disclosure. The classification itself is untouched.
+                let lanes = Tier.sidebarLanes(counts: tierCount)
+                let filedHoldsSelection = lanes.filed.contains { selected == .tier($0) }
+                ForEach(lanes.primary) { tier in
+                    tierRow(tier)
+                }
+                Button {
+                    withAnimation(.easeOut(duration: 0.15)) { filedExpanded.toggle() }
+                } label: {
                     HStack(spacing: 10) {
-                        Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
-                        Text(tier.label)
-                            .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
-                            .foregroundStyle(Theme.text)
+                        Image(systemName: "tray.full").font(.caption)
+                            .foregroundStyle(Theme.textDim).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
+                        Image(systemName: "chevron.right").font(.caption2)
+                            .foregroundStyle(Theme.textDim)
+                            .rotationEffect((filedExpanded || filedHoldsSelection) ? .degrees(90) : .zero)
+                            .accessibilityHidden(true)
                         Spacer()
-                        Text("\(model.queue?.summary.count(for: tier) ?? 0)")
+                        Text("\(lanes.filedTotal)")
                             .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
                     }
-                    .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
+                    .modifier(SidebarRowChrome(selected: false))
                 }
                 .buttonStyle(.plain)
-                .help(tier.blurb)
-                .accessibilityLabel(
-                    L("tier.row.a11y", tier.label, model.queue?.summary.count(for: tier) ?? 0, tier.blurb))
-            }
-
-            // Commitments: promises made / replies awaited — the follow-through
-            // half of the firewall (what mail asked of you, and of them).
-            Button { selected = .commitments } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "checklist").font(.caption)
-                        .foregroundStyle(Theme.accent).frame(width: 8)
-                        .accessibilityHidden(true)
-                    Text(L("section.commitments"))
-                        .font(.body.weight(selected == .commitments ? .semibold : .regular))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
-                    Text("\(model.commitments?.count ?? 0)")
-                        .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                .help(L("section.filed.help"))
+                .accessibilityLabel(L("filed.a11y", lanes.filedTotal))
+                .accessibilityValue((filedExpanded || filedHoldsSelection) ? L("a11y.expanded") : L("a11y.collapsed"))
+                // Viewing a filed lane keeps its row visible even collapsed —
+                // a selection must never hide its own location.
+                if filedExpanded || filedHoldsSelection {
+                    ForEach(lanes.filed) { tier in
+                        tierRow(tier, indented: true)
+                    }
                 }
-                .modifier(SidebarRowChrome(selected: selected == .commitments))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("commitments.a11y", model.commitments?.count ?? 0))
 
-            // Proposals: what Klorn wants to do and hasn't done yet.
-            Button { selected = .proposals } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "hand.raised").font(.caption)
-                        .foregroundStyle(Theme.accent).frame(width: 8)
-                        .accessibilityHidden(true)
-                    Text(L("proposals.title"))
-                        .font(.body.weight(selected == .proposals ? .semibold : .regular))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
-                    Text("\(model.pendingActions.count)")
-                        .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                // Commitments: promises made / replies awaited — the follow-through
+                // half of the firewall (what mail asked of you, and of them).
+                Button { selected = .commitments } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "checklist").font(.caption)
+                            .foregroundStyle(Theme.accent).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.commitments"))
+                            .font(.body.weight(selected == .commitments ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                        Text("\(model.commitments?.count ?? 0)")
+                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                    }
+                    .modifier(SidebarRowChrome(selected: selected == .commitments))
                 }
-                .modifier(SidebarRowChrome(selected: selected == .proposals))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("proposals.a11y", model.pendingActions.count))
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("commitments.a11y", model.commitments?.count ?? 0))
 
-            // Assistant: ask/act across mail, calendar, and the briefing.
-            Button { selected = .assistant } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "sparkles").font(.caption)
-                        .foregroundStyle(Theme.accent).frame(width: 8)
-                        .accessibilityHidden(true)
-                    Text(L("section.assistant"))
-                        .font(.body.weight(selected == .assistant ? .semibold : .regular))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
+                // Proposals: what Klorn wants to do and hasn't done yet.
+                // Zero-hide (founder 2026-08-20: rows must earn their place);
+                // a live selection keeps the row while the last item clears.
+                if model.pendingActions.count > 0 || selected == .proposals {
+                Button { selected = .proposals } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "hand.raised").font(.caption)
+                            .foregroundStyle(Theme.accent).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("proposals.title"))
+                            .font(.body.weight(selected == .proposals ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                        Text("\(model.pendingActions.count)")
+                            .font(.body.monospacedDigit()).foregroundStyle(Theme.textDim)
+                    }
+                    .modifier(SidebarRowChrome(selected: selected == .proposals))
                 }
-                .modifier(SidebarRowChrome(selected: selected == .assistant))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("section.assistant"))
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("proposals.a11y", model.pendingActions.count))
+                }
 
-            // Calendar: the week as a full list-column screen, not just the
-            // TODAY/UPCOMING crumbs below.
-            Button { selected = .calendar } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "calendar").font(.caption)
-                        .foregroundStyle(Theme.accent).frame(width: 8)
-                        .accessibilityHidden(true)
-                    Text(L("section.calendar"))
-                        .font(.body.weight(selected == .calendar ? .semibold : .regular))
-                        .foregroundStyle(Theme.text)
-                    Spacer()
+                // Assistant: ask/act across mail, calendar, and the briefing.
+                Button { selected = .assistant } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "sparkles").font(.caption)
+                            .foregroundStyle(Theme.accent).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.assistant"))
+                            .font(.body.weight(selected == .assistant ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                    }
+                    .modifier(SidebarRowChrome(selected: selected == .assistant))
                 }
-                .modifier(SidebarRowChrome(selected: selected == .calendar))
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("section.assistant"))
+
+                // Calendar: the week as a full list-column screen, not just the
+                // TODAY/UPCOMING crumbs below.
+                Button { selected = .calendar } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "calendar").font(.caption)
+                            .foregroundStyle(Theme.accent).frame(width: 8)
+                            .accessibilityHidden(true)
+                        Text(L("section.calendar"))
+                            .font(.body.weight(selected == .calendar ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                    }
+                    .modifier(SidebarRowChrome(selected: selected == .calendar))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("section.calendar"))
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("section.calendar"))
+            .frame(maxHeight: model.settings.inboxSectionHeight)
+            .fixedSize(horizontal: false, vertical: true)
+            .measureSectionHeight { navContentHeight = $0 }
+            SectionResizeHandle(
+                height: Binding(
+                    get: { min(model.settings.inboxSectionHeight, max(Double(navContentHeight), 180)) },
+                    set: { model.settings.inboxSectionHeight = AppSettings.resolveInboxSectionHeight($0) }
+                ),
+                growsDown: true)
 
             // TODAY lives in the full view too — the biggest surface must not
             // know less about the day than the compact panel (dogfood 2026-07-16).
@@ -1447,17 +1612,29 @@ private struct FullSidebar: View {
             .frame(maxHeight: hasToday ? model.settings.todaySectionHeight : 0)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .topLeading)
+            .measureSectionHeight { todayContentHeight = $0 }
             if hasToday {
                 SectionResizeHandle(
                     height: Binding(
-                        get: { model.settings.todaySectionHeight },
+                        get: { min(model.settings.todaySectionHeight, max(Double(todayContentHeight), 120)) },
                         set: { model.settings.todaySectionHeight = AppSettings.resolveTodaySectionHeight($0) }
-                    ))
+                    ),
+                    growsDown: true)
             }
             ScrollView(showsIndicators: false) {
                 UpcomingSection(actions: actions).padding(.horizontal, 12).padding(.bottom, 8)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxHeight: model.settings.upcomingSectionHeight)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .measureSectionHeight { upcomingContentHeight = $0 }
+            SectionResizeHandle(
+                height: Binding(
+                    get: { min(model.settings.upcomingSectionHeight, max(Double(upcomingContentHeight), 100)) },
+                    set: { model.settings.upcomingSectionHeight = AppSettings.resolveUpcomingSectionHeight($0) }
+                ),
+                growsDown: true)
+            Spacer(minLength: 0)
 
             SectionResizeHandle(
                 height: Binding(
@@ -2335,24 +2512,62 @@ struct ReadingPane: View {
         .padding(16)
     }
 
-    /// Klorn's per-email intelligence: why it landed in this tier, the AI summary,
-    /// and whether it needs a reply. Hidden when there's nothing to show.
+    /// Klorn's per-email intelligence: why it landed in this tier, the AI summary
+    /// with its key points and action items, and whether it needs a reply.
+    /// Always rendered for an opened email — the "AI 정리" button must stay
+    /// reachable even before any summary exists (founder, 2026-08-20).
     @ViewBuilder
     private func klornBand(_ email: EmailDetail) -> some View {
         let reason = item?.tierReason
-        let hasEngagement = (email.engagement?.outboundCount ?? 0) > 0
-        let show = (reason?.isEmpty == false) || (email.summary?.isEmpty == false) || (email.needsReply == true) || hasEngagement
-        if show {
-            VStack(alignment: .leading, spacing: 6) {
-                if let item, let reason, !reason.isEmpty {
-                    HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    if let item, let reason, !reason.isEmpty {
                         Circle().fill(Theme.tint(item.tier)).frame(width: 7, height: 7)
                         Text(L("mail.whyTier", item.tier.label, reason))
                             .font(.caption).foregroundStyle(Theme.textDim).lineLimit(2)
                     }
+                    Spacer(minLength: 12)
+                    // Deep re-read of THIS mail: longer summary, up to 6 key
+                    // points, deadlines kept — in the UI language.
+                    Button(model.isSummarizing ? L("mail.summarizing") : L("mail.summarize")) {
+                        Task { await model.summarizeOpenedEmail() }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(model.isSummarizing ? Theme.textDim : Theme.accent)
+                    .disabled(model.isSummarizing)
+                }
+                if model.summarizeFailed {
+                    Text(L("mail.summarizeFailed"))
+                        .font(.caption).foregroundStyle(Theme.textDim)
                 }
                 if let summary = email.summary, !summary.isEmpty {
                     Text(summary).font(.callout).foregroundStyle(Theme.text.opacity(0.9))
+                }
+                if let points = email.keyPoints, !points.isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        // Position keys: LLM bullets can repeat verbatim, and
+                        // duplicate \.self identities break SwiftUI diffing.
+                        ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text("•").font(.caption).foregroundStyle(Theme.textDim)
+                                    .accessibilityHidden(true)
+                                Text(point).font(.caption).foregroundStyle(Theme.text.opacity(0.85))
+                            }
+                        }
+                    }
+                }
+                if let actions = email.actionItems, !actions.isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
+                            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                                Image(systemName: "checkmark.circle").font(.caption2)
+                                    .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                                Text(action).font(.caption).foregroundStyle(Theme.text.opacity(0.85))
+                            }
+                        }
+                    }
+                    .accessibilityLabel(L("mail.actionItems"))
                 }
                 // Signal lines carry their hue on the ICON (and meter) only; the
                 // text itself stays dim. Stacked colored text lines (accent blue +
@@ -2388,14 +2603,13 @@ struct ReadingPane: View {
                     .accessibilityLabel(engagement.accessibilityLabel)
                 }
             }
-            // Same measure as the mail body below: intelligence about a document
-            // should not run wider than the document itself.
-            .frame(maxWidth: 640, alignment: .leading)
-            .padding(.horizontal, 24).padding(.vertical, 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surfaceRaised)
-            Divider().overlay(Theme.line)
-        }
+        // Same measure as the mail body below: intelligence about a document
+        // should not run wider than the document itself.
+        .frame(maxWidth: 640, alignment: .leading)
+        .padding(.horizontal, 24).padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surfaceRaised)
+        Divider().overlay(Theme.line)
     }
 
     /// The meeting ↔ calendar cross-reference: the slot this email proposes,

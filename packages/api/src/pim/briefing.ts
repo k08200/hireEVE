@@ -441,8 +441,10 @@ Recent Notes: ${JSON.stringify(data.notes)}`;
  * human-readable briefing without any LLM call. Used when every provider is
  * locked out so the briefing page never goes blank.
  */
+export const FALLBACK_BRIEFING_SENTINEL = "**Briefing (AI summary unavailable — rule-based view)**";
+
 export function buildSignalOnlyBriefing(signals: BriefingSignals): string {
-  const lines: string[] = ["**Briefing (AI summary unavailable — rule-based view)**", ""];
+  const lines: string[] = [FALLBACK_BRIEFING_SENTINEL, ""];
 
   const topActions = signals.topActions.slice(0, 3);
   if (topActions.length > 0) {
@@ -503,6 +505,43 @@ export function buildSignalOnlyBriefing(signals: BriefingSignals): string {
   return lines.join("\n").trim();
 }
 
+/// One heal attempt per user per window — a fallback note otherwise retries
+/// the LLM on EVERY sidebar read. In-process is fine on a single instance;
+/// worst case after a restart is one extra attempt.
+const HEAL_COOLDOWN_MS = 10 * 60 * 1000;
+const healAttemptAt = new Map<string, number>();
+
+/** Test seam: cooldown state is module-held. */
+export function __resetBriefingHealCooldownForTests(): void {
+  healAttemptAt.clear();
+}
+
+/**
+ * If the cached note is the rule-based fallback, try ONE fresh generation.
+ * Returns the healed content (note rewritten in place) or null when the note
+ * is healthy, the cooldown is active, or the LLM is still failing.
+ */
+async function healFallbackBriefing(
+  userId: string,
+  note: { id: string; content: string },
+): Promise<{ content: string; llm: BriefingLlmOutcome } | null> {
+  if (!note.content.startsWith(FALLBACK_BRIEFING_SENTINEL)) return null;
+  const last = healAttemptAt.get(userId) ?? 0;
+  if (Date.now() - last < HEAL_COOLDOWN_MS) return null;
+  healAttemptAt.set(userId, Date.now());
+  try {
+    const { content, llm } = await generateBriefing(userId);
+    // generateBriefing already degraded internally — still no AI. Keep the
+    // cached fallback rather than rewriting it with an identical one.
+    if (llm.source !== "ai") return null;
+    await prisma.note.update({ where: { id: note.id }, data: { content } });
+    return { content, llm };
+  } catch (err) {
+    console.warn(`[BRIEFING] fallback self-heal failed for ${userId}:`, err);
+    return null;
+  }
+}
+
 /**
  * Deliver today's briefing at most once per user per local day.
  *
@@ -532,13 +571,20 @@ export async function createDailyBriefingDelivery(userId: string): Promise<{
     select: { id: true, content: true, createdAt: true },
   });
   if (existing) {
-    const notification = await ensureDailyBriefingNotification(userId, existing.content, dayKey);
+    // Self-heal: a transient LLM failure at generation time persisted the
+    // rule-based fallback as the DAY'S note, so every later read served
+    // "AI summary unavailable" all day even after the provider recovered
+    // (founder screenshots 2026-08-19/20). One retry per cooldown window;
+    // failure keeps the fallback — the page never goes blank.
+    const healed = await healFallbackBriefing(userId, existing);
+    const content = healed?.content ?? existing.content;
+    const notification = await ensureDailyBriefingNotification(userId, content, dayKey);
     return {
-      briefing: existing.content,
+      briefing: content,
       note: { id: existing.id, createdAt: existing.createdAt },
       notification,
       reused: true,
-      llm: cacheLlm,
+      llm: healed?.llm ?? cacheLlm,
     };
   }
 

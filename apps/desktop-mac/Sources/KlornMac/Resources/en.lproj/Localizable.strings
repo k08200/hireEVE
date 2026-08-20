@@ -74,6 +74,13 @@
 "mail.changeTier.a11y" = "Change tier for message from %1$@, currently %2$@";
 "mail.moveTo" = "Move to %1$@%2$@";
 "mail.snoozePrefix" = "Snooze ";
+"mail.summarize" = "AI Summary";
+"mail.summarizing" = "Summarizing…";
+"mail.summarizeFailed" = "Couldn't summarize — try again.";
+"mail.actionItems" = "Action items";
+"section.filed" = "Filed";
+"section.filed.help" = "Mail Klorn already filed — Info records and Silent noise. Click to expand.";
+"filed.a11y" = "Filed mail, %d items";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
 /* Reading pane */
@@ -264,6 +271,7 @@
 "section.recentPush" = "RECENT PUSH";
 "section.todayShort" = "TODAY";
 "push.nothingNeedsYou" = "Nothing needs you right now.";
+"auth.signInApple" = "Continue with Apple";
 "auth.signInGoogle" = "Sign in with Google";
 "calendar.noEvents" = "No events today";
 "calendar.eventRow.a11y" = "%1$@, %2$@. Shows details.";

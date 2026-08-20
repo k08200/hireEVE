@@ -32,7 +32,7 @@ export interface SocialLoginContext {
 export async function completeSocialLogin(
   identity: SocialIdentity,
   ctx: SocialLoginContext,
-): Promise<{ redirect: string }> {
+): Promise<{ redirect: string; token?: string }> {
   const webUrl = process.env.WEB_URL || "http://localhost:8001";
   const fail = (reason: string) => ({
     redirect: `${webUrl}/login?error=${identity.provider}_${reason}`,
@@ -200,5 +200,8 @@ export async function completeSocialLogin(
   triggerDueLoginBriefing(user.id, 10_000);
 
   const code = mintExchangeCode(token);
-  return { redirect: `${webUrl}/auth/callback?code=${code}` };
+  // token: for the DESKTOP callback branch (routes/social-auth.ts), which
+  // relays/parks the JWT instead of redirecting a browser. Web callers use
+  // only `redirect` — the token never lands in a URL there.
+  return { redirect: `${webUrl}/auth/callback?code=${code}`, token };
 }

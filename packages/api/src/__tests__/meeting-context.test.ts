@@ -108,6 +108,7 @@ describe("getMeetingContext", () => {
       proposed: null,
       conflict: null,
       nearby: [],
+      attendeeBusy: [],
       timeZone: "Asia/Seoul",
     });
     expect(checkConflicts).not.toHaveBeenCalled();
@@ -163,7 +164,13 @@ describe("formatCalendarFacts", () => {
 
   it("returns null when there is nothing to say", () => {
     expect(
-      formatCalendarFacts({ proposed: null, conflict: null, nearby: [], timeZone: "Asia/Seoul" }),
+      formatCalendarFacts({
+        proposed: null,
+        conflict: null,
+        nearby: [],
+        attendeeBusy: [],
+        timeZone: "Asia/Seoul",
+      }),
     ).toBeNull();
   });
 });
