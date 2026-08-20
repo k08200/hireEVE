@@ -29,6 +29,7 @@ const FILTERS: Array<{ key: Filter; label: string }> = [
   { key: "REJECTED", label: "Rejected" },
   { key: "ALL", label: "All" },
 ];
+const TOP_N_SOURCES = 5;
 
 function formatDate(iso: string): string {
   try {
@@ -76,18 +77,28 @@ function WaitlistPageInner() {
     }
   }, [filter, toast]);
 
+
   const sourceCounts = entries.reduce<Record<string, number>>((acc, entry) => {
     const key = entry.source ?? "Unknown";
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
   }, {});
 
-  const sources = Object.keys(sourceCounts).sort();
+  const topSources = Object.entries(sourceCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, TOP_N_SOURCES)
+    .map(([key]) => key);
+
+  const otherCount = Object.entries(sourceCounts)
+    .filter(([key]) => !topSources.includes(key))
+    .reduce((sum, [, count]) => sum + count, 0);
 
   const visibleEntries =
     sourceFilter === "ALL"
       ? entries
-      : entries.filter((entry) => (entry.source ?? "Unknown") === sourceFilter);
+      : sourceFilter === "Other"
+        ? entries.filter((entry) => !topSources.includes(entry.source ?? "Unknown"))
+        : entries.filter((entry) => (entry.source ?? "Unknown") === sourceFilter);
 
 
   useEffect(() => {
@@ -187,7 +198,7 @@ function WaitlistPageInner() {
           })}
         </section>
 
-        {sources.length > 0 && (
+        {topSources.length > 0 && (
           <section className="mb-6 flex flex-wrap items-center gap-3">
             <label htmlFor="source-filter" className="text-sm text-ink-mid">
               Source:
@@ -199,11 +210,12 @@ function WaitlistPageInner() {
               className="rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-sm text-ink"
             >
               <option value="ALL">All ({entries.length})</option>
-              {sources.map((s) => (
+              {topSources.map((s) => (
                 <option key={s} value={s}>
                   {s} ({sourceCounts[s]})
                 </option>
               ))}
+              {otherCount > 0 && <option value="Other">Other ({otherCount})</option>}
             </select>
           </section>
         )}
