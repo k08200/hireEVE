@@ -67,6 +67,9 @@ final class AppModel {
     /// Calendar cross-reference for the opened meeting email (nil while
     /// loading, for non-meeting mail, or when the server has nothing).
     private(set) var meetingContext: MeetingContextWire?
+    /// Relationship context for the opened mail's sender (nil while loading
+    /// or when there is no history/provider).
+    private(set) var senderDossier: SenderDossierWire?
     private(set) var isLoadingEmail = false
     private(set) var emailError: String?
     private(set) var replyError: String?
@@ -120,6 +123,94 @@ final class AppModel {
             loginProviders = resp.providers.map(\.id)
         }
     }
+    // MARK: Teams (team mode P1)
+
+    /// The user's saved teams for team-availability questions.
+    private(set) var teams: [TeamWire] = []
+    private(set) var teamError: String?
+    /// False when the server answers 403 TEAM_REQUIRED — team mode is a paid
+    /// team-tier capability shipped dark; every team surface hides.
+    private(set) var teamModeAvailable = false
+
+    func refreshTeams() async {
+        struct Resp: Codable { let teams: [TeamWire] }
+        do {
+            let resp = try await api.get("/api/teams", as: Resp.self)
+            teams = resp.teams
+            teamModeAvailable = true
+        } catch APIError.forbidden {
+            teamModeAvailable = false
+        } catch {
+            // Transient failure — keep the last known availability.
+        }
+    }
+
+    func createTeam(name: String, membersText: String) async {
+        teamError = nil
+        let members = membersText
+            .split(whereSeparator: { $0 == "," || $0 == "\n" || $0 == " " })
+            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+            .filter { !$0.isEmpty }
+        struct Body: Encodable { let name: String; let members: [String] }
+        do {
+            try await api.post("/api/teams", encodable: Body(name: name, members: members))
+            await refreshTeams()
+        } catch {
+            teamError = L("teams.saveFailed")
+            Log.app.error("team create failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Availability for the dedicated team screen. Window = now → +3 days;
+    /// anchored client-side because "when can we meet" means from now.
+    private(set) var teamAvailability: TeamAvailabilityWire?
+    private(set) var checkingTeamId: String?
+    /// One-shot outcome line after booking a team meeting (cleared on next check).
+    private(set) var teamBookingResult: String?
+
+    func checkTeamAvailability(teamId: String, durationMinutes: Int) async {
+        checkingTeamId = teamId
+        teamAvailability = nil
+        teamBookingResult = nil
+        defer { checkingTeamId = nil }
+        let fmt = ISO8601DateFormatter()
+        let start = fmt.string(from: Date())
+        let end = fmt.string(from: Date().addingTimeInterval(3 * 24 * 3600))
+        let path = "/api/teams/\(teamId)/availability?window_start=\(start)&window_end=\(end)&duration_minutes=\(durationMinutes)"
+        teamAvailability = try? await api.get(path, as: TeamAvailabilityWire.self)
+    }
+
+    /// Book a team meeting from a chosen slot. This IS the approval: the
+    /// screen shows the invitee list on the button, and this call posts to
+    /// the human-approval endpoint that sends the invitations.
+    func bookTeamMeeting(title: String, slot: TeamAvailabilityWire.Slot, members: [String]) async -> Bool {
+        struct Body: Encodable {
+            let title: String
+            let startTime: String
+            let endTime: String
+            let attendees: [String]
+        }
+        do {
+            try await api.post(
+                "/api/calendar",
+                encodable: Body(
+                    title: title, startTime: slot.startTime, endTime: slot.endTime,
+                    attendees: members))
+            teamBookingResult = L("teams.booked")
+            Task { await refreshToday() }
+            return true
+        } catch {
+            teamBookingResult = L("teams.bookFailed")
+            Log.app.error("team booking failed: \(String(describing: error), privacy: .private)")
+            return false
+        }
+    }
+
+    func deleteTeam(id: String) async {
+        try? await api.delete("/api/teams/\(id)")
+        await refreshTeams()
+    }
+
     /// Naver IMAP mailboxes, fetched from the ungated status endpoint so the
     /// account list is complete even while the provider selector flag is off.
     private(set) var imapAccounts: [ImapAccount] = []
@@ -327,6 +418,9 @@ final class AppModel {
         Task { await refreshLoginProviders() }
         guard phase == .signedIn else { return }
         Task { await loadQueue() }
+        // Team mode availability probe (403 while dark) — decides whether the
+        // 팀 sidebar row and screen render at all.
+        Task { await refreshTeams() }
     }
 
     /// The in-flight sign-in, so a re-click SUPERSEDES it instead of racing it.
@@ -395,6 +489,7 @@ final class AppModel {
             // reading pane the user already has.
             Task { try? await api.patch("/api/email/\(emailDbId)/read", json: [:]) }
             loadMeetingContext(for: emailDbId, guardId: item.id)
+            loadSenderDossier(for: emailDbId, guardId: item.id)
         } catch APIError.unauthorized {
             signOut()
         } catch {
@@ -419,6 +514,19 @@ final class AppModel {
     /// Meeting mail only: fetch the calendar cross-reference (proposed slot,
     /// conflict verdict, nearby events) without blocking the pane. The guard
     /// keeps a slow response from painting over a different, newer selection.
+    private func loadSenderDossier(for emailDbId: String, guardId: String) {
+        senderDossier = nil
+        Task {
+            let lang = L10n.resolvedCode(override: L10n.override)
+            let dossier = try? await api.get(
+                "/api/email/\(emailDbId)/sender-dossier?lang=\(lang)", as: SenderDossierWire.self)
+            // Empty history answers with an empty summary — nothing to show.
+            if selectedItemId == guardId, let dossier, !dossier.summary.isEmpty {
+                senderDossier = dossier
+            }
+        }
+    }
+
     private func loadMeetingContext(for emailDbId: String, guardId: String) {
         meetingContext = nil
         guard openedEmail?.category == "meeting" else { return }
@@ -433,6 +541,7 @@ final class AppModel {
         selectedItemId = nil
         openedEmail = nil
         meetingContext = nil
+        senderDossier = nil
         emailError = nil
         replyError = nil
     }
@@ -584,10 +693,18 @@ final class AppModel {
     /// server-side), clear the card, and confirm in-thread. Failure keeps the
     /// card so the user can retry, plus a visible failure bubble.
     func createEvent(from draft: EventDraft, messageId: UUID) async {
-        var body = ["title": draft.title, "startTime": draft.startTime, "endTime": draft.endTime]
-        if let location = draft.location { body["location"] = location }
+        struct Body: Encodable {
+            let title: String
+            let startTime: String
+            let endTime: String
+            let location: String?
+            let attendees: [String]?
+        }
+        let body = Body(
+            title: draft.title, startTime: draft.startTime, endTime: draft.endTime,
+            location: draft.location, attendees: draft.attendees)
         do {
-            try await api.post("/api/calendar", json: body)
+            try await api.post("/api/calendar", encodable: body)
             clearEventDraft(messageId)
             chatMessages.append(ChatMessage(
                 role: .assistant, text: L("calendar.addedConfirm", eventDraftLabel(draft))))

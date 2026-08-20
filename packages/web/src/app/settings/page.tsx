@@ -16,6 +16,7 @@ import { OAuthErrorBanner } from "../../components/oauth-error-banner";
 import { OutlookInboxesSection } from "../../components/outlook-inboxes-section";
 import { ListSkeleton } from "../../components/skeleton";
 import { SubscriptionSection } from "../../components/subscription-section";
+import { TeamsSection } from "../../components/teams-section";
 import { TelegramSection } from "../../components/telegram-section";
 import { useToast } from "../../components/toast";
 import Button from "../../components/ui/button";
@@ -1035,6 +1036,15 @@ export default function SettingsPage() {
         </header>
 
         <SubscriptionSection />
+
+        <TeamsSection
+          wrapper={(children) => (
+            <section className="mb-8">
+              <h2 className={SECTION_TITLE}>{t("settings.section.teams")}</h2>
+              <div className={`${PANEL} p-5`}>{children}</div>
+            </section>
+          )}
+        />
 
         {/* Profile */}
         <section className="mb-8">

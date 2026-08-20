@@ -334,6 +334,34 @@ struct MeetingContextWire: Codable, Sendable {
     let alternatives: [AlternativeSlot]?
 }
 
+/// GET /api/teams — a saved member group (team mode P1).
+struct TeamWire: Codable, Sendable, Identifiable {
+    let id: String
+    let name: String
+    let members: [String]
+}
+
+/// GET /api/teams/:id/availability — common free slots for a saved team.
+struct TeamAvailabilityWire: Codable, Sendable {
+    struct Slot: Codable, Sendable, Identifiable {
+        let startTime: String
+        let endTime: String
+        var id: String { startTime }
+    }
+    let slots: [Slot]
+    let checkedMembers: [String]
+    let unknownMembers: [String]
+    let timeZone: String
+}
+
+/// GET /api/email/:id/sender-dossier — relationship context for the sender.
+struct SenderDossierWire: Codable, Sendable {
+    let summary: String
+    let openThreads: [String]
+    let lastPromise: String?
+    let emailCount: Int
+}
+
 // MARK: - Agent activity ("what Klorn did today")
 
 /// GET /api/automations/today-actions — the day's autonomous-agent receipt.
@@ -406,6 +434,8 @@ struct EventDraft: Codable, Sendable, Hashable {
     let startTime: String
     let endTime: String
     let location: String?
+    /// Invitees (team mode P2) — approving the card is what sends invites.
+    let attendees: [String]?
 }
 
 /// POST /api/chat/conversations/:id/messages → one synchronous agent turn.

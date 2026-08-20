@@ -39,9 +39,40 @@ export function suggestAlternativeSlots(input: {
   const proposedEnd = Date.parse(input.proposedEnd);
   if (!Number.isFinite(proposedStart) || !Number.isFinite(proposedEnd)) return [];
   const duration = proposedEnd > proposedStart ? proposedEnd - proposedStart : DEFAULT_DURATION_MS;
-  const max = input.maxSuggestions ?? MAX_SUGGESTIONS;
+  return findFreeSlots({
+    windowStart: input.proposedStart,
+    windowEnd: new Date(proposedStart + SEARCH_WINDOW_MS).toISOString(),
+    durationMs: duration,
+    busy: [...input.myBusy, ...input.attendeeBusy],
+    timeZone: input.timeZone,
+    maxSlots: input.maxSuggestions ?? MAX_SUGGESTIONS,
+    skipStartIso: input.proposedStart,
+  });
+}
 
-  const busy = [...input.myBusy, ...input.attendeeBusy]
+/**
+ * Shared walk (team mode): the first slots inside [windowStart, windowEnd]
+ * clear of every busy interval, half-hour grid, business hours 09:00–18:00
+ * in the given time zone, weekdays only. `skipStartIso` (the alternative-slot
+ * caller's original proposal) is never returned.
+ */
+export function findFreeSlots(input: {
+  windowStart: string;
+  windowEnd: string;
+  durationMs: number;
+  busy: BusyInterval[];
+  timeZone: string;
+  maxSlots?: number;
+  skipStartIso?: string;
+}): SuggestedSlot[] {
+  const windowStart = Date.parse(input.windowStart);
+  const windowEnd = Date.parse(input.windowEnd);
+  if (!Number.isFinite(windowStart) || !Number.isFinite(windowEnd)) return [];
+  const duration = input.durationMs > 0 ? input.durationMs : DEFAULT_DURATION_MS;
+  const max = input.maxSlots ?? MAX_SUGGESTIONS;
+  const skipStart = input.skipStartIso ? Date.parse(input.skipStartIso) : Number.NaN;
+
+  const busy = input.busy
     .map((b) => ({ start: Date.parse(b.start), end: Date.parse(b.end) }))
     .filter((b) => Number.isFinite(b.start) && Number.isFinite(b.end) && b.end > b.start);
 
@@ -62,16 +93,15 @@ export function suggestAlternativeSlots(input: {
   };
 
   const out: SuggestedSlot[] = [];
-  // First grid point at or after the proposal.
-  let cursor = Math.ceil(proposedStart / STEP_MS) * STEP_MS;
-  const windowEnd = proposedStart + SEARCH_WINDOW_MS;
+  // First grid point at or after the window start.
+  let cursor = Math.ceil(windowStart / STEP_MS) * STEP_MS;
 
   while (cursor <= windowEnd && out.length < max) {
     const start = cursor;
     const end = start + duration;
     cursor += STEP_MS;
 
-    if (start === proposedStart) continue; // never re-propose the proposal
+    if (start === skipStart) continue; // never re-propose the proposal
     const local = localParts(start);
     if (local.weekday === "Sat" || local.weekday === "Sun") continue;
     if (local.minutes < BUSINESS_START_HOUR * 60) continue;

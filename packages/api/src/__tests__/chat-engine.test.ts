@@ -91,6 +91,8 @@ describe("CHAT_TOOL_NAMES", () => {
         "list_emails",
         "list_events",
         "read_email",
+        "sender_context",
+        "team_availability",
       ].sort(),
     );
   });
@@ -181,6 +183,23 @@ describe("runChatTurn", () => {
       location: "강남",
     });
     expect(result.reply).toBe("일정 초안을 확인해 주세요.");
+  });
+
+  it("carries validated attendees into the draft (team mode P2)", async () => {
+    createCompletion
+      .mockResolvedValueOnce(
+        toolCallResponse("create_event", {
+          summary: "AX팀 싱크",
+          start_time: "2026-08-27T10:00:00+09:00",
+          end_time: "2026-08-27T11:00:00+09:00",
+          attendees: ["Alice@corp.com", "alice@corp.com", "bob@corp.com", "junk"],
+        }),
+      )
+      .mockResolvedValueOnce(textResponse("초안 확인해 주세요."));
+
+    const result = await runChatTurn({ userId: "u1", history: [], userText: "팀 미팅" });
+    expect(executeToolCall).not.toHaveBeenCalled();
+    expect(result.eventDraft?.attendees).toEqual(["alice@corp.com", "bob@corp.com"]);
   });
 
   it("drops a create_event draft with invalid args instead of crashing", async () => {

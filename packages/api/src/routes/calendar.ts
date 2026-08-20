@@ -128,6 +128,19 @@ export async function calendarRoutes(app: FastifyInstance) {
         color?: string;
         allDay?: boolean;
       };
+    // Team mode P2: invitees from the human-approved draft. Validated here —
+    // this endpoint is the approval gate that actually sends invitations.
+    const rawAttendees = (request.body as { attendees?: unknown }).attendees;
+    const attendees = Array.isArray(rawAttendees)
+      ? [
+          ...new Set(
+            rawAttendees
+              .filter((a): a is string => typeof a === "string")
+              .map((a) => a.trim().toLowerCase())
+              .filter((a) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a)),
+          ),
+        ].slice(0, 20)
+      : [];
 
     // Try to sync to Google Calendar
     let googleId: string | null = null;
@@ -139,6 +152,7 @@ export async function calendarRoutes(app: FastifyInstance) {
         endTime,
         description,
         location,
+        attendees,
       );
       if ("eventId" in result && result.eventId) {
         googleId = result.eventId;

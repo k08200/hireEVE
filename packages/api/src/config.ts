@@ -179,6 +179,17 @@ export function outlookInboxEnabled(): boolean {
 // and GET /api/auth/providers omits them, so neither the DAST-scanned surface
 // nor the login page changes until the provider apps are registered and the
 // flags flip. Read at request time with the lenient truthy parse.
+/// Team mode (saved teams + whole-team availability + invite-carrying
+/// drafts) is a PAID team-tier capability (founder, 2026-08-20). No team
+/// plan exists yet, so it ships DARK behind this flag; when team pricing
+/// lands, replace call sites with a plan check (planHasFeature "team") —
+/// the env flag then becomes the kill switch, not the seat gate.
+export function teamModeEnabled(): boolean {
+  return ["true", "1", "yes", "on"].includes(
+    (process.env.TEAM_MODE_ENABLED ?? "").trim().toLowerCase(),
+  );
+}
+
 export function appleLoginEnabled(): boolean {
   return ["true", "1", "yes", "on"].includes(
     (process.env.APPLE_LOGIN_ENABLED ?? "").trim().toLowerCase(),

@@ -97,6 +97,8 @@ model User {
   candidateIntakes          CandidateIntake[]
   emailRules                EmailRule[]
   attentionItems            AttentionItem[]
+  contactDossiers           ContactDossier[]
+  teams                     Team[]
   commitments               Commitment[]
   feedbackEvents            FeedbackEvent[]
   decisionLabels            DecisionLabel[]
@@ -1601,6 +1603,42 @@ model ContactEngagementScore {
 
   @@unique([userId, contactEmail])
   @@index([userId])
+}
+
+/// A named group of people (team mode P1: "AX팀", "PM팀") whose combined
+/// availability the assistant can check. Per-user; members are bare emails.
+model Team {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   @db.VarChar(80)
+  members   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name])
+}
+
+/// Team-of-one memory: per-sender relationship context distilled from the
+/// mail already exchanged (why this person writes, what is in flight, what
+/// was last promised). Regenerated lazily when new mail from the sender
+/// arrives; consumed by the reading pane and injected into reply drafts.
+model ContactDossier {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderEmail        String   @db.VarChar(320)
+  summary            String   @db.VarChar(600)
+  openThreads        Json?
+  lastPromise        String?  @db.VarChar(300)
+  /// How many stored messages involving this sender the summary covered —
+  /// staleness check: regenerate when the live count differs.
+  analyzedEmailCount Int
+  lastEmailAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([userId, senderEmail])
 }
 
 // Public early-access waitlist. Submissions land here before the founder

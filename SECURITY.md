@@ -174,7 +174,7 @@ promises to ask first.
 
 ## Reporting a vulnerability
 
-- Email **hello@klorn.ai** with a description and reproduction steps.
+- Email **k0820086@gmail.com** with a description and reproduction steps.
   Please do not open a public issue for exploitable findings.
 - You can also use GitHub's private vulnerability reporting on
   [k08200/klorn](https://github.com/k08200/klorn) if enabled.

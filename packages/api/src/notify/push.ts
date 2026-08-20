@@ -34,7 +34,7 @@ import { sendTelegramForPush } from "./telegram-notify.js";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
-const VAPID_EMAIL = process.env.VAPID_EMAIL || "mailto:hello@klorn.ai";
+const VAPID_EMAIL = process.env.VAPID_EMAIL || "mailto:k0820086@gmail.com";
 const PUSH_RECEIPT_BASE_URL =
   process.env.PUSH_RECEIPT_BASE_URL || process.env.RENDER_EXTERNAL_URL || "";
 const AGENT_PROPOSAL_PUSH_COOLDOWN_HOURS = 6;

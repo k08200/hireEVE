@@ -17,6 +17,8 @@ export interface EventDraft {
   startTime: string;
   endTime: string;
   location?: string;
+  /** Invitees (team mode P2) — saving is what sends the invitations. */
+  attendees?: string[];
 }
 
 function formatRange(startIso: string, endIso: string): string {
@@ -58,6 +60,7 @@ export default function EventDraftCard({ draft }: { draft: EventDraft }) {
           startTime: draft.startTime,
           endTime: draft.endTime,
           ...(draft.location ? { location: draft.location } : {}),
+          ...(draft.attendees?.length ? { attendees: draft.attendees } : {}),
         }),
       });
 
@@ -88,6 +91,9 @@ export default function EventDraftCard({ draft }: { draft: EventDraft }) {
       <p className="mt-1.5 font-medium text-ink">{draft.title}</p>
       <p className="mt-0.5 text-ink-mid">{formatRange(draft.startTime, draft.endTime)}</p>
       {draft.location && <p className="mt-0.5 text-ink-mid">{draft.location}</p>}
+      {draft.attendees && draft.attendees.length > 0 && (
+        <p className="mt-0.5 text-ink-mid">{draft.attendees.join(", ")}</p>
+      )}
 
       {state === "saved" ? (
         <p className="mt-2 text-emerald-600">{t("draft.saved")}</p>
