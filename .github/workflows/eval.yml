@@ -60,7 +60,7 @@ jobs:
             echo "::notice::No provider key in this context (fork PR?) — skipping LLM eval. The deterministic eval gate still runs in the CI test job."
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.key.outputs.present == 'true'
 
       - uses: actions/setup-node@v4
@@ -68,7 +68,7 @@ jobs:
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         if: steps.key.outputs.present == 'true'
 
       - name: Install dependencies
