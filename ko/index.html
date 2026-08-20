@@ -715,6 +715,87 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .chip{animation:none}
 }
 </style>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "SoftwareApplication",
+ "name": "Klorn",
+ "operatingSystem": "macOS, Windows, Web",
+ "applicationCategory": "BusinessApplication",
+ "url": "https://klorn.ai/ko/",
+ "inLanguage": "ko",
+ "description": "메일을 다섯 단계 — Push, Meeting, Queue, Info, Silent — 로 분류하고 이유를 보여주는 Mac 앱. 오픈소스(AGPLv3), 셀프호스팅 가능, 정한 규칙 밖으로는 아무것도 보내지 않습니다.",
+ "sameAs": [
+  "https://github.com/k08200/klorn"
+ ],
+ "offers": {
+  "@type": "Offer",
+  "price": "0",
+  "priceCurrency": "USD",
+  "description": "Invite-only beta; mail sorting is free with a daily AI budget cap."
+ },
+ "softwareHelp": {
+  "@type": "CreativeWork",
+  "url": "https://github.com/k08200/klorn#readme"
+ }
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "왜 초대제인가요?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱 공개 전에 보안 검수를 받아야 합니다. 검수가 끝날 때까지 구글이 테스터를 100명으로 제한합니다."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "저 없이 뭔가 보낼 수 있나요?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴 서명된 영수증을 남깁니다."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "제 메일은 어디로 가나요?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "분류기로 갔다가 돌아옵니다. OAuth 토큰은 저장 시 암호화되고, 전체가 AGPLv3이라 그 토큰을 다루는 코드를 직접 읽을 수 있습니다 — 직접 돌려도 됩니다."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "잘못 분류하면요?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 — 콜드 81.1%와 웜 94.3%의 차이가 그겁니다."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "윈도우 앱은 언제인가요?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 4단계로 계속 쓸 수 있습니다."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "AI가 요금을 폭주시킬 수 있나요?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가 당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다."
+   }
+  }
+ ]
+}
+</script>
 </head>
 <body>
 <div class="grain"></div>

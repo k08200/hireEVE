@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://klorn.ai/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+  </url>
+  <url>
+    <loc>https://klorn.ai/ko/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+  </url>
+  <url><loc>https://klorn.ai/privacy/</loc></url>
+  <url><loc>https://klorn.ai/terms/</loc></url>
+</urlset>
