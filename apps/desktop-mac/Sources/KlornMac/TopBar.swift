@@ -1040,7 +1040,7 @@ private struct AccountColumn: View {
         // update/restart/diagnostics actions landed and the TOP silently
         // clipped (founder, 2026-08-10). Scroll instead of clip — never let
         // an added action push the header off-screen again.
-        ScrollView(.vertical, showsIndicators: false) {
+        ScrollView(.vertical, showsIndicators: true) {
         VStack(alignment: .leading, spacing: 14) {
             ColumnHeader(title: L("prefs.section.account"))
             if model.phase == .signedIn {
@@ -1431,7 +1431,7 @@ private struct OffscreenFriendlyScroll<Content: View>: View {
         if Theme.isRenderingOffscreen {
             content()
         } else {
-            ScrollView(showsIndicators: false) { content() }
+            ScrollView(showsIndicators: true) { content() }
         }
     }
 }
@@ -1479,14 +1479,20 @@ private struct SectionResizeHandle: View {
                 startHeight: { height }, apply: { height = $0 }, growsDown: growsDown)
             // macOS-divider look: a hairline across the column with a centred
             // grabber that answers hover — visibly a control, not lint.
+            // Quiet at rest (founder 2026-08-21: four identical grabbers
+            // stacked read as clutter): the boundary is just a hairline until
+            // hovered — then the hairline yields to the accent grabber. One
+            // boundary, one line, and the affordance appears where the
+            // pointer already is.
             VStack(spacing: 0) {
-                Rectangle().fill(Theme.line.opacity(hovering ? 0 : 0.6))
+                Rectangle().fill(Theme.line.opacity(hovering ? 0 : 1))
                     .frame(height: 1)
             }
             .allowsHitTesting(false)
             Capsule()
-                .fill(hovering ? Theme.accent.opacity(0.85) : Theme.line)
-                .frame(width: hovering ? 44 : 28, height: hovering ? 5 : 4)
+                .fill(Theme.accent.opacity(0.85))
+                .frame(width: 44, height: 5)
+                .opacity(hovering ? 1 : 0)
                 .animation(.easeOut(duration: 0.12), value: hovering)
                 .allowsHitTesting(false)
         }
@@ -1819,7 +1825,6 @@ private struct FullSidebar: View {
             // "TODAY" heading over 300pt of nothing reads as a broken pane, not
             // as a calm one.
             let hasToday = model.briefing != nil || (model.today?.total ?? 0) > 0
-            Divider().overlay(Theme.line).padding(.horizontal, 12).padding(.top, 12)
             if hasToday {
                 ColumnHeader(title: L("section.todayShort"))
                     .padding(.horizontal, 20).padding(.top, 10).padding(.bottom, 6)
@@ -1914,7 +1919,7 @@ private struct FullSidebar: View {
             // Own scroll area with a hard ceiling: the list above stays the
             // star, and the account actions can grow without running off the
             // bottom edge (founder, 2026-08-10).
-            ScrollView(.vertical, showsIndicators: false) {
+            ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 0) {
             if model.phase == .signedIn {
                 if let version = model.updateAvailable {
