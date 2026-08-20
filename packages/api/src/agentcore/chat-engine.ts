@@ -22,6 +22,7 @@ import { ALL_TOOLS, executeToolCall } from "./tool-executor.js";
 export const CHAT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "list_emails",
   "read_email",
+  "sender_context",
   "classify_emails",
   "list_events",
   "check_calendar_conflicts",

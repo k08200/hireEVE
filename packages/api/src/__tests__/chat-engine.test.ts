@@ -91,6 +91,7 @@ describe("CHAT_TOOL_NAMES", () => {
         "list_emails",
         "list_events",
         "read_email",
+        "sender_context",
       ].sort(),
     );
   });

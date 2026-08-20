@@ -18,6 +18,7 @@ import { upsertAttentionForCalendarEvent } from "../judge/attention-mirror.js";
 import { forget, MEMORY_TOOLS, recall, remember } from "../learning/memory.js";
 import { classifyEmails, GMAIL_TOOLS, listEmails, readEmail } from "../mail/gmail.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
+import { getSenderDossier } from "../mail/sender-dossier.js";
 import { BRIEFING_TOOLS } from "../pim/briefing.js";
 import {
   CALENDAR_TOOLS,
@@ -43,6 +44,31 @@ const TIME_TOOL = {
     name: "get_current_time",
     description: "Get current date and time in KST (Korean Standard Time) and UTC.",
     parameters: { type: "object", properties: {}, required: [] },
+  },
+};
+
+/// "What were we discussing with this person" — the sender dossier as a chat
+/// tool. Reads only the user's own stored mail; cache-by-count inside the
+/// module keeps repeat questions free.
+const DOSSIER_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "sender_context",
+    description:
+      "Relationship context for one email sender, distilled from mail already exchanged: " +
+      "who they are to the user, topics currently in flight, and the last outstanding " +
+      "promise. Use when the user asks about a person or sender (e.g. 'what were we " +
+      "discussing with alice@…', '이 사람과 무슨 얘기했지').",
+    parameters: {
+      type: "object",
+      properties: {
+        sender_email: {
+          type: "string",
+          description: "The sender's bare email address (user@domain).",
+        },
+      },
+      required: ["sender_email"],
+    },
   },
 };
 
@@ -74,6 +100,7 @@ export const ALWAYS_TOOLS = [
   ...LOCAL_UTILITY_TOOLS,
   ...MEMORY_TOOLS,
   ...SKILL_TOOLS,
+  DOSSIER_TOOL,
   TIME_TOOL,
 ];
 
@@ -192,6 +219,20 @@ async function executeToolCallInternal(
         );
       case "read_email":
         return JSON.stringify(await readEmail(userId, requireString(args.email_id, "email_id")));
+      case "sender_context": {
+        const sender = requireString(args.sender_email, "sender_email").trim().toLowerCase();
+        if (!sender.includes("@")) {
+          return JSON.stringify({ error: "sender_email must be a bare email address." });
+        }
+        const dossier = await getSenderDossier(userId, sender, "en");
+        if (!dossier) {
+          return JSON.stringify({ error: "No AI provider is configured for this account." });
+        }
+        if (dossier.emailCount === 0) {
+          return JSON.stringify({ info: "No stored mail with this sender yet." });
+        }
+        return JSON.stringify(dossier);
+      }
       case "send_email": {
         const to = requireString(args.to, "to");
         const subject = requireString(args.subject, "subject");

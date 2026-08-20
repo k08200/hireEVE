@@ -9,7 +9,7 @@
 
 Every other AI inbox tool *adds* a surface — a suggestion card next to each email, a badge that says "AI thinks you should reply," a draft waiting for review. The inbox gets louder, not quieter.
 
-Klorn does the opposite. Each inbound email gets exactly **one** classification — `SILENT` / `QUEUE` / `PUSH` / `AUTO` — bound to the exact bytes that produced it. No chat surface. No suggestion cards. No 60-tool agent. The output is a single decision, and most of the time that decision is "you don't need to see this."
+Klorn does the opposite. Each inbound email gets exactly **one** classification — `PUSH` / `MEETING` / `QUEUE` / `INFO` / `SILENT` — bound to the exact bytes that produced it. No chat surface. No suggestion cards. No 60-tool agent. The output is a single decision, and most of the time that decision is "you don't need to see this."
 
 **[Read the doctrine](docs/doctrine/deterministic-floor.md) before the code — that's the actual product.**
 
@@ -17,14 +17,27 @@ Klorn does the opposite. Each inbound email gets exactly **one** classification 
 
 ▶️ **[31-second demo](website/media/klorn-demo.mp4)** · 🎬 **[14-second promo](website/media/klorn-promo.mp4)** · 🌐 **[Live demo on klorn.ai](https://klorn.ai)** · 📖 **[Editions](docs/EDITIONS.md)** · 📋 **[CHANGELOG](CHANGELOG.md)**
 
-## The four tiers
+## The five lanes
 
-| Tier | What it means | What happens |
+| Lane | What it means | What happens |
 | --- | --- | --- |
-| **`SILENT`** | Recorded, never rendered | The row exists for ground-truth feedback; you never see it. (marketing, receipts, FYI) |
-| **`QUEUE`** | Review on your own schedule | Visible in the queue. No push, no notification. *This is the default.* |
 | **`PUSH`** | Worth interrupting you | A notification fires. Optionally Telegram or one phone call. |
-| **`AUTO`** | Reversible, hands-off | Classified today; the action side sits behind a deterministic floor (below). |
+| **`MEETING`** | Scheduling mail | Notifies like PUSH, plus a calendar cross-check: the proposed slot, whether it clashes, the sender's availability when their calendar is visible — and, on a clash, the first slots verified free for both sides. |
+| **`QUEUE`** | Review on your own schedule | Visible in the queue. No push, no notification. *This is the default.* |
+| **`INFO`** | Calm transactional record | Receipts, confirmations, status notices — filed, no reply ever expected. |
+| **`SILENT`** | Recorded, never rendered | The row exists for ground-truth feedback; you never see it. (marketing, noise) |
+
+Automation is deliberately **not** a lane. Each answerable email carries an `autoEligible` flag (reversible, high-confidence, trusted, calm), and the account has a mode: **BASIC** (only important mail and calendar events notify; you choose every reply) or **AUTO** (Klorn replies on its own — but only to eligible mail, under guidelines you set and can edit, and every send writes a signed receipt). Classification and delegation stay separate decisions.
+
+## How Klorn compares
+
+| | Klorn | Generic AI email agents | Rule-based filters |
+| --- | --- | --- | --- |
+| Output | One decision per mail, with the reason shown | Chat surface / suggestion cards | Folder moves, no reasons |
+| Acting on your behalf | Approval-gated; unattended replies only in AUTO mode under your written guidelines, each send with a signed receipt | Often acts first, reports later | Never acts |
+| When it's wrong | Move the row — the correction is training signal (81.1% cold → 94.3% on real labeled mail) | Varies | You rewrite the rule |
+| Source & hosting | AGPLv3, self-hostable end to end | Closed SaaS | Built into the client |
+| AI spend | Hard daily budget cap — it stops rather than overspends | Metered | None |
 
 ## How it decides — and why a cheap model runs it
 
@@ -321,7 +334,7 @@ Docker Compose ports: Web `3000`, API `3001`, PostgreSQL `5432`.
 pnpm --filter @klorn/web build
 pnpm --filter @klorn/api build
 pnpm --filter @klorn/api test
-pnpm eval:judge   # run the 4-tier classifier against the committed gate set
+pnpm eval:judge   # run the five-lane classifier against the committed gate set
 packages/api/node_modules/.bin/biome check packages/
 ```
 
