@@ -935,7 +935,9 @@ private struct RecentPushColumn: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ColumnHeader(title: L("section.recentPush"))
-            if items.isEmpty {
+            if model.queue == nil {
+                FirstSyncState()
+            } else if items.isEmpty {
                 EmptyState(icon: Tier.push.emptyIcon, title: Tier.push.emptyTitle)
                     .padding(.top, Theme.s6)
             } else {
@@ -1560,6 +1562,8 @@ private struct FullSidebar: View {
                 Spacer()
                 Text("\(tierCount(tier))")
                     .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
+                    .contentTransition(.numericText())
+                    .animation(.default, value: tierCount(tier))
             }
             .padding(.leading, indented ? 14 : 0)
             .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
@@ -2017,6 +2021,8 @@ private struct FullList: View {
                     Circle().fill(Theme.tint(tier)).frame(width: 9, height: 9)
                     Text(tier.label).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
                     Text("\(items.count)").font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                        .contentTransition(.numericText())
+                        .animation(.default, value: items.count)
                 }
             }
             .padding(.horizontal, 24).padding(.vertical, 18)
@@ -2062,6 +2068,11 @@ private struct FullList: View {
 
             if searching {
                 searchResultsList
+            } else if model.queue == nil {
+                // Never claim "empty" before the first load (P1): the queue
+                // hasn't arrived yet — say so, with placeholder rows.
+                FirstSyncState()
+                Spacer()
             } else if items.isEmpty {
                 Spacer()
                 EmptyState(icon: tier.emptyIcon, title: tier.emptyTitle, hint: tier.blurb)
@@ -2084,12 +2095,29 @@ private struct FullList: View {
                     LazyVStack(spacing: 0) {
                         ForEach(items) { item in
                             FullRow(item: item, actions: actions)
+                                .transition(rowTransition)
                             Divider().overlay(Theme.line).padding(.leading, 24)
                         }
                     }
+                    // The one motion that carries product truth (P1): a new
+                    // classification ARRIVES and a corrected row LEAVES for
+                    // its new lane — state changes are never silent.
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85),
+                        value: items.map(\.id))
                 }
             }
         }
+    }
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var rowTransition: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .asymmetric(
+                insertion: .move(edge: .top).combined(with: .opacity),
+                removal: .opacity)
     }
 
     @ViewBuilder
