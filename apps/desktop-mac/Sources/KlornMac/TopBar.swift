@@ -142,19 +142,24 @@ private extension View {
 }
 
 /// Sidebar feature-row icon: a tinted rounded container in the System
-/// Settings idiom (founder 2026-08-21: bare mismatched glyphs read as
-/// unfinished). One hue family — accent container, deep-accent glyph — so
-/// the column stays quiet; identity comes from the glyph, not a rainbow.
+/// Settings idiom. Two rules against the generic-AI look (founder
+/// 2026-08-21, second pass): the GLYPH must carry product meaning — never
+/// the first-search default (sparkles is banned; the assistant is a
+/// conversation, a promise is a seal, a proposal awaits a signature) —
+/// and the TINT comes from the palette's existing SEMANTIC tokens (engage =
+/// relationships, accent = Klorn asking to act, meeting green = schedule),
+/// so variety reads as meaning, not as a template rainbow.
 struct FeatureIcon: View {
     let systemName: String
+    var tint: Color = Theme.accent
     var body: some View {
         RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(Theme.accent.opacity(0.14))
+            .fill(tint.opacity(0.16))
             .frame(width: 20, height: 20)
             .overlay(
                 Image(systemName: systemName)
                     .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(Theme.accentDeep))
+                    .foregroundStyle(tint))
             .accessibilityHidden(true)
     }
 }
@@ -1713,7 +1718,7 @@ private struct FullSidebar: View {
                 // half of the firewall (what mail asked of you, and of them).
                 Button { selected = .commitments } label: {
                     HStack(spacing: 10) {
-                        FeatureIcon(systemName: "checklist")
+                        FeatureIcon(systemName: "checkmark.seal", tint: Theme.engage)
                         Text(L("section.commitments"))
                             .font(.body.weight(selected == .commitments ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1732,7 +1737,7 @@ private struct FullSidebar: View {
                 if model.pendingActions.count > 0 || selected == .proposals {
                 Button { selected = .proposals } label: {
                     HStack(spacing: 10) {
-                        FeatureIcon(systemName: "hand.raised")
+                        FeatureIcon(systemName: "signature", tint: Theme.accentDeep)
                         Text(L("proposals.title"))
                             .font(.body.weight(selected == .proposals ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1751,7 +1756,7 @@ private struct FullSidebar: View {
                 if model.teamModeAvailable {
                     Button { selected = .teams } label: {
                         HStack(spacing: 10) {
-                            FeatureIcon(systemName: "person.2")
+                            FeatureIcon(systemName: "person.2", tint: Theme.accentDeep)
                             Text(L("teams.title"))
                                 .font(.body.weight(selected == .teams ? .semibold : .regular))
                                 .foregroundStyle(Theme.text)
@@ -1768,7 +1773,7 @@ private struct FullSidebar: View {
                 // Assistant: ask/act across mail, calendar, and the briefing.
                 Button { selected = .assistant } label: {
                     HStack(spacing: 10) {
-                        FeatureIcon(systemName: "sparkles")
+                        FeatureIcon(systemName: "quote.bubble", tint: Theme.accent)
                         Text(L("section.assistant"))
                             .font(.body.weight(selected == .assistant ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1783,7 +1788,7 @@ private struct FullSidebar: View {
                 // TODAY/UPCOMING crumbs below.
                 Button { selected = .calendar } label: {
                     HStack(spacing: 10) {
-                        FeatureIcon(systemName: "calendar")
+                        FeatureIcon(systemName: "calendar", tint: Theme.tint(.meeting))
                         Text(L("section.calendar"))
                             .font(.body.weight(selected == .calendar ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
