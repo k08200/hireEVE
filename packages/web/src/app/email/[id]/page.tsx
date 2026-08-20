@@ -163,7 +163,7 @@ export default function EmailDetailPage() {
 }
 
 function EmailDetailView() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -245,6 +245,25 @@ function EmailDetailView() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const [summarizing, setSummarizing] = useState(false);
+  // On-demand deep re-summary (AI 정리): the server persists richer
+  // summary/keyPoints/actionItems, so a reload IS the merge.
+  const summarize = useCallback(async () => {
+    if (!id || summarizing) return;
+    setSummarizing(true);
+    try {
+      await apiFetch(`/api/email/${id}/summarize`, {
+        method: "POST",
+        body: JSON.stringify({ lang: locale }),
+      });
+      await load();
+    } catch (err) {
+      captureClientError(err, { scope: "email.summarize", id });
+    } finally {
+      setSummarizing(false);
+    }
+  }, [id, summarizing, locale, load]);
 
   const reanalyzeAttachments = async () => {
     if (!id || reanalyzing) return;
@@ -799,7 +818,10 @@ function EmailDetailView() {
               onPriorityChange={(priority) =>
                 setEmail((prev) => (prev ? { ...prev, priority } : prev))
               }
+              onSummarize={summarize}
+              summarizing={summarizing}
             />
+            <SenderContextCard emailId={email.id} />
           </div>
         </article>
       )}
@@ -1438,12 +1460,84 @@ function ReplyDraftBox({
   );
 }
 
+function SummarizeButton({
+  onSummarize,
+  summarizing,
+}: {
+  onSummarize?: () => void;
+  summarizing?: boolean;
+}) {
+  const { t } = useT();
+  if (!onSummarize) return null;
+  return (
+    <button
+      type="button"
+      onClick={onSummarize}
+      disabled={summarizing}
+      className="ml-auto text-xs font-medium text-accent-deep transition hover:text-accent disabled:opacity-50"
+    >
+      {summarizing ? t("emailDetail.analysis.summarizing") : t("emailDetail.analysis.summarize")}
+    </button>
+  );
+}
+
+/** Relationship context for the sender (dossier) — why this person writes. */
+function SenderContextCard({ emailId }: { emailId: string }) {
+  const { t, locale } = useT();
+  const [dossier, setDossier] = useState<{
+    summary: string;
+    openThreads: string[];
+    lastPromise: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setDossier(null);
+    apiFetch<{ summary: string; openThreads: string[]; lastPromise: string | null }>(
+      `/api/email/${emailId}/sender-dossier?lang=${locale}`,
+    )
+      .then((d) => {
+        if (alive && d.summary) setDossier(d);
+      })
+      .catch(() => {
+        // Best-effort context — no history / no provider just shows nothing.
+      });
+    return () => {
+      alive = false;
+    };
+  }, [emailId, locale]);
+
+  if (!dossier) return null;
+  return (
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-dim">
+        {t("emailDetail.senderContext.title")}
+      </p>
+      <p className="text-sm leading-relaxed text-ink">{dossier.summary}</p>
+      {dossier.openThreads.length > 0 && (
+        <p className="mt-1.5 text-xs text-ink-mid">
+          {t("emailDetail.senderContext.inFlight")}: {dossier.openThreads.join(" · ")}
+        </p>
+      )}
+      {dossier.lastPromise && (
+        <p className="mt-1 text-xs text-ink-mid">
+          {t("emailDetail.senderContext.promise")}: {dossier.lastPromise}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function KlornAnalysis({
   email,
   onPriorityChange,
+  onSummarize,
+  summarizing,
 }: {
   email: EmailDetail;
   onPriorityChange: (priority: EmailPriority) => void;
+  onSummarize?: () => void;
+  summarizing?: boolean;
 }) {
   const { t } = useT();
   const hasAnything =
@@ -1452,7 +1546,10 @@ function KlornAnalysis({
   if (!hasAnything) {
     return (
       <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4">
-        <p className="text-xs text-ink-dim">{t("emailDetail.analysis.notAnalyzed")}</p>
+        <div className="flex items-center">
+          <p className="text-xs text-ink-dim">{t("emailDetail.analysis.notAnalyzed")}</p>
+          <SummarizeButton onSummarize={onSummarize} summarizing={summarizing} />
+        </div>
       </section>
     );
   }
@@ -1475,6 +1572,7 @@ function KlornAnalysis({
             currentPriority={email.priority}
             onPriorityChange={onPriorityChange}
           />
+          <SummarizeButton onSummarize={onSummarize} summarizing={summarizing} />
         </div>
 
         {email.summary && <p className="text-sm leading-relaxed text-ink">{email.summary}</p>}
