@@ -76,7 +76,7 @@ export default function EarlyAccessPage() {
     } catch (_err) {
       setStatus("error");
       setErrorMsg(
-        "We could not reach the waitlist server. Check your connection and try again, or email hello@klorn.ai if this keeps happening.",
+        "We could not reach the waitlist server. Check your connection and try again, or email k0820086@gmail.com if this keeps happening.",
       );
     }
   };

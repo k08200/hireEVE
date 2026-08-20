@@ -157,7 +157,7 @@ services:
       - key: VAPID_PRIVATE_KEY
         sync: false
       - key: VAPID_EMAIL
-        value: "mailto:hello@klorn.ai"
+        value: "mailto:k0820086@gmail.com"
       # Token-at-rest encryption + Google OAuth client — ADDITIVE declarations
       # (sync:false, no values), same prune-protection pattern as the VAPID
       # block above: these are required for the API to boot/log in but were

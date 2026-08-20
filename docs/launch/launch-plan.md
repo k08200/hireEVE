@@ -98,7 +98,7 @@ margin improves as the fallback chain (cheap paid SKUs) absorbs spillover.
       Naver live, iCloud/Outlook "coming soon"), mobile "coming soon",
       pricing section once P2 lands. Measured claims only.
 - [ ] Legal before paywall: privacy policy + terms + refund policy pages
-      current; support contact (hello@klorn.ai) surfaced in-app.
+      current; support contact (k0820086@gmail.com) surfaced in-app.
 
 ## P4 — Flag flips (each a separate deliberate decision, post-LoA)
 
