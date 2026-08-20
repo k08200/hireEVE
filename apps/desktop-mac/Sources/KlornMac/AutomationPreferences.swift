@@ -288,7 +288,6 @@ private struct ChoiceRow: View {
                     Text(title).font(.body.weight(selected ? .semibold : .regular))
                         .foregroundStyle(Theme.text)
                     Text(detail).font(.caption).foregroundStyle(Theme.textDim)
-                        .fixedSize(horizontal: false, vertical: true)
                         .multilineTextAlignment(.leading)
                 }
                 Spacer(minLength: 0)
@@ -303,6 +302,13 @@ private struct ChoiceRow: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .strokeBorder(selected ? Theme.accent.opacity(0.5) : Theme.line))
+            // Ideal-height pin on the WHOLE card (background included), not on
+            // the inner Text: inside a Button label a text-level fixedSize can
+            // measure taller than the card draws, painting the last wrapped
+            // line BELOW the border (founder report 2026-08-21); without any
+            // pin the detail truncates instead. Pinning here keeps background
+            // and text one unit — full wrap, never an escape.
+            .fixedSize(horizontal: false, vertical: true)
         }
         .buttonStyle(.plain)
         .disabled(disabled)
