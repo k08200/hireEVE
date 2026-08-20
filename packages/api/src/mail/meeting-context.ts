@@ -19,7 +19,8 @@
 
 import { prisma } from "../db.js";
 import { parseEventText } from "../event-parse.js";
-import { checkAttendeeBusy, checkConflicts } from "../pim/calendar.js";
+import { checkAttendeeBusy, checkConflicts, getAttendeeBusyBlocks } from "../pim/calendar.js";
+import { type SuggestedSlot, suggestAlternativeSlots } from "../pim/slot-suggest.js";
 import { wrapUntrusted } from "../untrusted.js";
 import { getUserTimeZone } from "../user-timezone.js";
 import { extractEmailAddress } from "./email-address.js";
@@ -42,6 +43,12 @@ export interface MeetingContext {
    * this account (same Workspace or shared). Absent ≠ free.
    */
   attendeeBusy: Array<{ email: string; busy: boolean }>;
+  /**
+   * Team mode v2: the first slots verified free for BOTH sides when the
+   * proposal clashes (my conflict or the sender is busy). Empty when the
+   * proposal works or availability is unknown.
+   */
+  alternatives: SuggestedSlot[];
   timeZone: string;
 }
 
@@ -62,6 +69,7 @@ const CACHE_MAX_ENTRIES = 500;
  *  catches times the summarizer dropped. Hard cap keeps the prompt cheap. */
 const BODY_SLICE_CHARS = 500;
 const PARSE_TEXT_CAP = 800;
+const ALTERNATIVES_WINDOW_MS = 5 * 24 * 60 * 60 * 1000;
 const NEARBY_WINDOW_MS = 12 * 60 * 60 * 1000;
 const NEARBY_MAX_EVENTS = 8;
 
@@ -125,6 +133,7 @@ export async function getMeetingContext(
       conflict: null,
       nearby: [],
       attendeeBusy: [],
+      alternatives: [],
       timeZone,
     };
     cacheSet(email.id, empty);
@@ -163,6 +172,51 @@ export async function getMeetingContext(
     console.warn(`[MEETING-CTX] attendee busy check failed for email ${email.id}:`, err);
   }
 
+  // Team mode v2: when the proposal clashes — my calendar conflicts or the
+  // sender is busy at their own proposed time — compute the first slots
+  // where BOTH sides are verified free, so the pane and the reply drafts
+  // can offer concrete alternatives instead of a bare "that doesn't work".
+  let alternatives: SuggestedSlot[] = [];
+  const proposalClashes = conflict?.hasConflicts === true || attendeeBusy.some((a) => a.busy);
+  if (proposalClashes) {
+    try {
+      const windowStart = new Date(proposed.startTime);
+      const windowEnd = new Date(windowStart.getTime() + ALTERNATIVES_WINDOW_MS);
+      const sender = extractEmailAddress(email.from ?? "");
+      const [myEvents, attendeeBlocks] = await Promise.all([
+        prisma.calendarEvent.findMany({
+          where: {
+            userId,
+            startTime: { lte: windowEnd },
+            endTime: { gte: windowStart },
+          },
+          select: { startTime: true, endTime: true },
+          take: 200,
+        }),
+        sender
+          ? getAttendeeBusyBlocks(
+              userId,
+              [sender],
+              windowStart.toISOString(),
+              windowEnd.toISOString(),
+            )
+          : Promise.resolve([]),
+      ]);
+      alternatives = suggestAlternativeSlots({
+        proposedStart: proposed.startTime,
+        proposedEnd: proposed.endTime,
+        myBusy: myEvents.map((e) => ({
+          start: e.startTime.toISOString(),
+          end: e.endTime.toISOString(),
+        })),
+        attendeeBusy: attendeeBlocks,
+        timeZone,
+      });
+    } catch (err) {
+      console.warn(`[MEETING-CTX] alternative slots failed for email ${email.id}:`, err);
+    }
+  }
+
   let nearby: MeetingContextEvent[] = [];
   try {
     const start = new Date(proposed.startTime);
@@ -188,7 +242,14 @@ export async function getMeetingContext(
     console.warn(`[MEETING-CTX] nearby lookup failed for email ${email.id}:`, err);
   }
 
-  const context: MeetingContext = { proposed, conflict, nearby, attendeeBusy, timeZone };
+  const context: MeetingContext = {
+    proposed,
+    conflict,
+    nearby,
+    attendeeBusy,
+    alternatives,
+    timeZone,
+  };
   cacheSet(email.id, context);
   return context;
 }
@@ -245,6 +306,12 @@ export function formatCalendarFacts(context: MeetingContext): string | null {
         `${wrapUntrusted(a.email, "calendar:attendee")} is ${a.busy ? "BUSY" : "free"} at that time`,
     );
     lines.push(`- Attendee availability (their calendar, verified): ${parts.join("; ")}`);
+  }
+  if ((context.alternatives ?? []).length > 0) {
+    const slots = context.alternatives
+      .map((s) => formatSlot(s.startTime, s.endTime, context.timeZone))
+      .join("; ");
+    lines.push(`- Verified free for BOTH sides (offer these instead): ${slots}`);
   }
   if (context.nearby.length > 0) {
     const events = context.nearby
