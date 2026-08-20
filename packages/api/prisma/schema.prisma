@@ -1617,6 +1617,9 @@ model Waitlist {
   /// possible, and self-hosted installs are invisible by design. Never
   /// overwritten once set — the first touch is the one worth attributing.
   source     String?        @db.VarChar(80)
+  /// Automatic inflow attribution (utm_* + referrer host + landing path),
+  /// captured by the funnel itself. First-touch; never overwritten once set.
+  attribution String?       @db.VarChar(300)
   status     WaitlistStatus @default(PENDING)
   approvedAt DateTime?
   createdAt  DateTime       @default(now())
