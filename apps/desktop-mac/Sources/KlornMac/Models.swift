@@ -341,6 +341,19 @@ struct TeamWire: Codable, Sendable, Identifiable {
     let members: [String]
 }
 
+/// GET /api/teams/:id/availability — common free slots for a saved team.
+struct TeamAvailabilityWire: Codable, Sendable {
+    struct Slot: Codable, Sendable, Identifiable {
+        let startTime: String
+        let endTime: String
+        var id: String { startTime }
+    }
+    let slots: [Slot]
+    let checkedMembers: [String]
+    let unknownMembers: [String]
+    let timeZone: String
+}
+
 /// GET /api/email/:id/sender-dossier — relationship context for the sender.
 struct SenderDossierWire: Codable, Sendable {
     let summary: String

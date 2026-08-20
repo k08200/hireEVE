@@ -161,6 +161,51 @@ final class AppModel {
         }
     }
 
+    /// Availability for the dedicated team screen. Window = now → +3 days;
+    /// anchored client-side because "when can we meet" means from now.
+    private(set) var teamAvailability: TeamAvailabilityWire?
+    private(set) var checkingTeamId: String?
+    /// One-shot outcome line after booking a team meeting (cleared on next check).
+    private(set) var teamBookingResult: String?
+
+    func checkTeamAvailability(teamId: String, durationMinutes: Int) async {
+        checkingTeamId = teamId
+        teamAvailability = nil
+        teamBookingResult = nil
+        defer { checkingTeamId = nil }
+        let fmt = ISO8601DateFormatter()
+        let start = fmt.string(from: Date())
+        let end = fmt.string(from: Date().addingTimeInterval(3 * 24 * 3600))
+        let path = "/api/teams/\(teamId)/availability?window_start=\(start)&window_end=\(end)&duration_minutes=\(durationMinutes)"
+        teamAvailability = try? await api.get(path, as: TeamAvailabilityWire.self)
+    }
+
+    /// Book a team meeting from a chosen slot. This IS the approval: the
+    /// screen shows the invitee list on the button, and this call posts to
+    /// the human-approval endpoint that sends the invitations.
+    func bookTeamMeeting(title: String, slot: TeamAvailabilityWire.Slot, members: [String]) async -> Bool {
+        struct Body: Encodable {
+            let title: String
+            let startTime: String
+            let endTime: String
+            let attendees: [String]
+        }
+        do {
+            try await api.post(
+                "/api/calendar",
+                encodable: Body(
+                    title: title, startTime: slot.startTime, endTime: slot.endTime,
+                    attendees: members))
+            teamBookingResult = L("teams.booked")
+            Task { await refreshToday() }
+            return true
+        } catch {
+            teamBookingResult = L("teams.bookFailed")
+            Log.app.error("team booking failed: \(String(describing: error), privacy: .private)")
+            return false
+        }
+    }
+
     func deleteTeam(id: String) async {
         try? await api.delete("/api/teams/\(id)")
         await refreshTeams()
@@ -373,6 +418,9 @@ final class AppModel {
         Task { await refreshLoginProviders() }
         guard phase == .signedIn else { return }
         Task { await loadQueue() }
+        // Team mode availability probe (403 while dark) — decides whether the
+        // 팀 sidebar row and screen render at all.
+        Task { await refreshTeams() }
     }
 
     /// The in-flight sign-in, so a re-click SUPERSEDES it instead of racing it.

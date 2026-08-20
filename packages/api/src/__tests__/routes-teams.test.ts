@@ -61,6 +61,9 @@ vi.mock("../db.js", () => {
   return { prisma, db: prisma };
 });
 
+const getTeamAvailability = vi.hoisted(() => vi.fn());
+vi.mock("../pim/team-availability.js", () => ({ getTeamAvailability }));
+
 import { normalizeMembers, teamRoutes } from "../routes/teams.js";
 
 async function buildApp() {
@@ -136,6 +139,34 @@ describe("/api/teams", () => {
       payload: { name: "AX팀", members: ["c@d.io"] },
     });
     expect(dup.statusCode).toBe(409);
+    await app.close();
+  });
+
+  it("serves availability for an owned team and 404s a foreign one", async () => {
+    state.rows.push({ id: "t-1", userId: "user-1", name: "AX", members: ["a@b.co"] });
+    state.rows.push({ id: "t-x", userId: "user-2", name: "Theirs", members: ["c@d.io"] });
+    getTeamAvailability.mockResolvedValue({
+      slots: [{ startTime: "2026-08-25T02:00:00.000Z", endTime: "2026-08-25T03:00:00.000Z" }],
+      checkedMembers: ["a@b.co"],
+      unknownMembers: [],
+      timeZone: "Asia/Seoul",
+    });
+    const app = await buildApp();
+    const ok = await app.inject({
+      method: "GET",
+      url: "/api/teams/t-1/availability?window_start=2026-08-25T00:00:00Z&window_end=2026-08-27T00:00:00Z&duration_minutes=60",
+    });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().slots).toHaveLength(1);
+    expect(getTeamAvailability).toHaveBeenCalledWith(
+      "user-1",
+      ["a@b.co"],
+      "2026-08-25T00:00:00Z",
+      "2026-08-27T00:00:00Z",
+      60,
+    );
+    const foreign = await app.inject({ method: "GET", url: "/api/teams/t-x/availability" });
+    expect(foreign.statusCode).toBe(404);
     await app.close();
   });
 

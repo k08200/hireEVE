@@ -11,6 +11,7 @@ import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
 import { teamModeEnabled } from "../config.js";
 import { prisma } from "../db.js";
+import { getTeamAvailability } from "../pim/team-availability.js";
 
 const NAME_MAX = 80;
 const MEMBER_MAX = 30;
@@ -110,6 +111,42 @@ export async function teamRoutes(app: FastifyInstance) {
     });
     return team;
   });
+
+  // GET /api/teams/:id/availability — common free slots for the saved team
+  // (the dedicated team screen's data source; the chat tool remains for
+  // ad-hoc member lists). Same Google free/busy semantics: invisible
+  // members come back in unknownMembers, never assumed free.
+  app.get(
+    "/:id/availability",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const userId = getUserId(request);
+      const { id } = request.params as { id: string };
+      const q = request.query as {
+        window_start?: string;
+        window_end?: string;
+        duration_minutes?: string;
+      };
+      const team = await prisma.team.findFirst({
+        where: { id, userId },
+        select: { members: true },
+      });
+      if (!team) return reply.code(404).send({ error: "Team not found" });
+      const members = Array.isArray(team.members)
+        ? team.members.filter((m): m is string => typeof m === "string")
+        : [];
+      const duration = Number.parseInt(q.duration_minutes ?? "60", 10);
+      const result = await getTeamAvailability(
+        userId,
+        members,
+        q.window_start ?? "",
+        q.window_end ?? "",
+        Number.isFinite(duration) && duration > 0 ? Math.min(duration, 480) : 60,
+      );
+      if ("error" in result) return reply.code(400).send(result);
+      return result;
+    },
+  );
 
   // DELETE /api/teams/:id
   app.delete("/:id", async (request, reply) => {
