@@ -81,6 +81,9 @@
 "section.filed" = "Filed";
 "section.filed.help" = "Mail Klorn already filed — Info records and Silent noise. Click to expand.";
 "filed.a11y" = "Filed mail, %d items";
+"dossier.inFlight" = "In flight: %@";
+"dossier.promise" = "Last promise: %@";
+"dossier.a11y" = "Sender context";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
 /* Reading pane */

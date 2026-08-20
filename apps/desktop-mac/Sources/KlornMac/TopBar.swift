@@ -2633,6 +2633,28 @@ struct ReadingPane: View {
                             .font(.caption).foregroundStyle(Theme.textDim)
                     }
                 }
+                if let dossier = model.senderDossier, !dossier.summary.isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Image(systemName: "person.crop.circle").font(.caption2)
+                                .foregroundStyle(Theme.accent).accessibilityHidden(true)
+                            Text(dossier.summary).font(.caption)
+                                .foregroundStyle(Theme.textDim).lineLimit(2)
+                        }
+                        if !dossier.openThreads.isEmpty {
+                            Text(L("dossier.inFlight", dossier.openThreads.joined(separator: " · ")))
+                                .font(.caption2).foregroundStyle(Theme.textDim)
+                                .padding(.leading, 13).lineLimit(2)
+                        }
+                        if let promise = dossier.lastPromise, !promise.isEmpty {
+                            Text(L("dossier.promise", promise))
+                                .font(.caption2).foregroundStyle(Theme.textDim)
+                                .padding(.leading, 13).lineLimit(2)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(L("dossier.a11y"))
+                }
                 if let context = model.meetingContext, let proposed = context.proposed {
                     meetingContextRows(context, proposed)
                 }

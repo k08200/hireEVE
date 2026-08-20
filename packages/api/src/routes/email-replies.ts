@@ -18,6 +18,7 @@ import { buildVoicePromptHint } from "../learning/voice-profile-extractor.js";
 import { describeLlmFailure } from "../llm/describe-failure.js";
 import { getUserLlmCredentials } from "../llm/llm-credentials.js";
 import { createCompletion, DRAFT_MODEL } from "../llm/openai.js";
+import { extractEmailAddress } from "../mail/email-address.js";
 import {
   buildAttachmentCandidateProfile,
   listEmailAttachments,
@@ -27,6 +28,7 @@ import { type GmailDraftAttachment, resolveMailClient } from "../mail/gmail.js";
 import { formatCalendarFacts, getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { buildReplySystemPrompt } from "../mail/reply-prompt.js";
+import { senderDossierFacts } from "../mail/sender-dossier.js";
 import { captureError } from "../sentry.js";
 import { wrapUntrusted } from "../untrusted.js";
 import { parseJsonArray, safeAttachmentFilename } from "./email.js";
@@ -102,6 +104,21 @@ function extractReplyAddress(raw: string): string {
  * "yes, 4 PM works" is a checked claim, not a guess. Fails open — drafting
  * must never break because the calendar is unreachable.
  */
+/** Cached-only relationship context for the draft prompt — never an LLM call. */
+async function senderContextFor(
+  uid: string,
+  from: string | null | undefined,
+): Promise<string | null> {
+  const sender = extractEmailAddress(from ?? "");
+  if (!sender) return null;
+  try {
+    return await senderDossierFacts(uid, sender);
+  } catch (err) {
+    console.warn("[EMAIL] sender dossier unavailable:", err);
+    return null;
+  }
+}
+
 async function calendarFactsFor(
   uid: string,
   dbEmail: {
@@ -141,6 +158,7 @@ async function generateReplyDraft(input: {
   candidateProfile: ReturnType<typeof buildAttachmentCandidateProfile>;
   intent?: string;
   calendarFacts?: string | null;
+  senderContext?: string | null;
 }): Promise<string> {
   const [credentials, voiceHint, toneHint] = await Promise.all([
     getUserLlmCredentials(input.userId),
@@ -185,7 +203,7 @@ Subject: ${wrapUntrusted(input.subject, "email:subject")}
 Klorn summary: ${wrapUntrusted(input.summary || "", "email:summary")}
 Action items: ${wrapUntrusted(input.actionItems.join("; "), "email:actions")}
 ${wrapUntrusted(candidateContext, "email:candidate")}
-${input.calendarFacts ? `\n${input.calendarFacts}\n` : ""}
+${input.calendarFacts ? `\n${input.calendarFacts}\n` : ""}${input.senderContext ? `\n${input.senderContext}\n` : ""}
 Email body:
 ${wrapUntrusted((input.body || "").slice(0, 3000), "email:body")}`,
         },
@@ -245,6 +263,7 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
       const attachments = await listEmailAttachments([dbEmail.id], uid);
       const candidateProfile = buildAttachmentCandidateProfile(attachments);
       const calendarFacts = await calendarFactsFor(uid, dbEmail);
+      const senderContext = await senderContextFor(uid, dbEmail.from);
 
       // The draft is one LLM call. Without this catch a provider outage / quota
       // lockout surfaced as a bare 500 and a generic "Could not draft a reply"
@@ -262,6 +281,7 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
           candidateProfile,
           intent,
           calendarFacts,
+          senderContext,
         });
       } catch (err) {
         // A per-user quota trip (quota-limiter self-throttling) is the user
@@ -345,6 +365,7 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
       // Computed once, shared by all three presets (the meeting-context cache
       // makes this a single parse per email regardless).
       const calendarFacts = await calendarFactsFor(uid, dbEmail);
+      const senderContext = await senderContextFor(uid, dbEmail.from);
 
       let bodies: string[];
       try {
@@ -360,6 +381,7 @@ export async function registerEmailRepliesRoutes(app: FastifyInstance) {
               candidateProfile,
               intent: preset.intent,
               calendarFacts,
+              senderContext,
             }),
           ),
         );

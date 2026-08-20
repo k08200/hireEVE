@@ -29,6 +29,7 @@ import {
   type TrustScoreResult,
 } from "../learning/trust-score.js";
 import { describeLlmFailure } from "../llm/describe-failure.js";
+import { extractEmailAddress } from "../mail/email-address.js";
 import {
   analyzePendingEmailAttachments,
   buildAttachmentCandidateProfile,
@@ -54,6 +55,7 @@ import { coercePlainBody, htmlToPlainText, renderableEmailHtmlFor } from "../mai
 import { getLinkedInboxClients, resolveMailClient } from "../mail/gmail.js";
 import { getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
+import { getSenderDossier } from "../mail/sender-dossier.js";
 import { senderEmail } from "../notify/notification-format.js";
 import { createTask } from "../pim/tasks.js";
 import { captureError } from "../sentry.js";
@@ -1437,6 +1439,57 @@ export async function emailRoutes(app: FastifyInstance) {
 
       const count = await summarizeUnsummarizedEmails(uid, limit || 10);
       return { summarized: count };
+    },
+  );
+
+  // GET /api/email/:id/sender-dossier — relationship context for the mail's
+  // sender ("why did this person write"). Cache-by-count inside the module:
+  // reopening mail costs zero LLM calls until new mail from them arrives.
+  app.get(
+    "/:id/sender-dossier",
+    {
+      preHandler: [requireAuth, requireEntitled],
+      config: { rateLimit: { max: 10, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const uid = getUserId(request);
+      const { lang } = (request.query as { lang?: string }) ?? {};
+
+      const dbEmail = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+        select: { id: true, from: true },
+      });
+      if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+      const sender = extractEmailAddress(dbEmail.from ?? "");
+      if (!sender) return reply.code(404).send({ error: "No sender address" });
+
+      try {
+        const dossier = await getSenderDossier(uid, sender, lang === "ko" ? "ko" : "en");
+        if (!dossier) {
+          return reply
+            .code(503)
+            .send({ error: "No AI provider is configured. Add an API key in Settings." });
+        }
+        return dossier;
+      } catch (err) {
+        if (err instanceof Error && err.name === "DailyCostCapExceededError") {
+          return reply.code(429).send({ error: err.message });
+        }
+        if (err instanceof Error && err.name === "UserRateLimitedError") {
+          const retryAfterMs = (err as { retryAfterMs?: number }).retryAfterMs ?? 1_000;
+          reply.header("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
+          return reply.code(429).send({ error: err.message });
+        }
+        captureError(err, {
+          tags: { scope: "email.sender-dossier" },
+          extra: { userId: uid, emailId: dbEmail.id },
+        });
+        const reason = describeLlmFailure(err);
+        return reply.code(503).send({
+          error: `Relationship context is temporarily unavailable (${reason}).`,
+        });
+      }
     },
   );
 

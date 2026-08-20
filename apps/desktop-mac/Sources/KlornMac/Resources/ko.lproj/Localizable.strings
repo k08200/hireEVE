@@ -80,6 +80,9 @@
 "section.filed" = "정리됨";
 "section.filed.help" = "Klorn이 이미 정리한 메일 — Info 기록과 Silent 차단. 클릭해서 펼치기.";
 "filed.a11y" = "정리된 메일 %d건";
+"dossier.inFlight" = "진행 중: %@";
+"dossier.promise" = "마지막 약속: %@";
+"dossier.a11y" = "발신자 맥락";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */

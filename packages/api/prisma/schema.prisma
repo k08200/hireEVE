@@ -97,6 +97,7 @@ model User {
   candidateIntakes          CandidateIntake[]
   emailRules                EmailRule[]
   attentionItems            AttentionItem[]
+  contactDossiers           ContactDossier[]
   commitments               Commitment[]
   feedbackEvents            FeedbackEvent[]
   decisionLabels            DecisionLabel[]
@@ -1606,6 +1607,28 @@ model ContactEngagementScore {
 // Public early-access waitlist. Submissions land here before the founder
 // adds the email to the Google Cloud Console Test users list and approves
 // access. No FK to User — these are people without accounts yet.
+/// Team-of-one memory: per-sender relationship context distilled from the
+/// mail already exchanged (why this person writes, what is in flight, what
+/// was last promised). Regenerated lazily when new mail from the sender
+/// arrives; consumed by the reading pane and injected into reply drafts.
+model ContactDossier {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderEmail        String   @db.VarChar(320)
+  summary            String   @db.VarChar(600)
+  openThreads        Json?
+  lastPromise        String?  @db.VarChar(300)
+  /// How many stored messages involving this sender the summary covered —
+  /// staleness check: regenerate when the live count differs.
+  analyzedEmailCount Int
+  lastEmailAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([userId, senderEmail])
+}
+
 model Waitlist {
   id      String  @id @default(uuid())
   email   String  @unique

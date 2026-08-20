@@ -67,6 +67,9 @@ final class AppModel {
     /// Calendar cross-reference for the opened meeting email (nil while
     /// loading, for non-meeting mail, or when the server has nothing).
     private(set) var meetingContext: MeetingContextWire?
+    /// Relationship context for the opened mail's sender (nil while loading
+    /// or when there is no history/provider).
+    private(set) var senderDossier: SenderDossierWire?
     private(set) var isLoadingEmail = false
     private(set) var emailError: String?
     private(set) var replyError: String?
@@ -395,6 +398,7 @@ final class AppModel {
             // reading pane the user already has.
             Task { try? await api.patch("/api/email/\(emailDbId)/read", json: [:]) }
             loadMeetingContext(for: emailDbId, guardId: item.id)
+            loadSenderDossier(for: emailDbId, guardId: item.id)
         } catch APIError.unauthorized {
             signOut()
         } catch {
@@ -419,6 +423,19 @@ final class AppModel {
     /// Meeting mail only: fetch the calendar cross-reference (proposed slot,
     /// conflict verdict, nearby events) without blocking the pane. The guard
     /// keeps a slow response from painting over a different, newer selection.
+    private func loadSenderDossier(for emailDbId: String, guardId: String) {
+        senderDossier = nil
+        Task {
+            let lang = L10n.resolvedCode(override: L10n.override)
+            let dossier = try? await api.get(
+                "/api/email/\(emailDbId)/sender-dossier?lang=\(lang)", as: SenderDossierWire.self)
+            // Empty history answers with an empty summary — nothing to show.
+            if selectedItemId == guardId, let dossier, !dossier.summary.isEmpty {
+                senderDossier = dossier
+            }
+        }
+    }
+
     private func loadMeetingContext(for emailDbId: String, guardId: String) {
         meetingContext = nil
         guard openedEmail?.category == "meeting" else { return }
@@ -433,6 +450,7 @@ final class AppModel {
         selectedItemId = nil
         openedEmail = nil
         meetingContext = nil
+        senderDossier = nil
         emailError = nil
         replyError = nil
     }
