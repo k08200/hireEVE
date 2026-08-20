@@ -11,6 +11,11 @@ updates:
       time: "09:00"
       timezone: "Asia/Seoul"
     open-pull-requests-limit: 5
+    # Biome is version-locked to the CI Lint job's setup-biome pin — bumping
+    # one without the other splits local vs CI lint judgments (hit twice on
+    # 2026-08-13, PR #1081). Bump both together, manually.
+    ignore:
+      - dependency-name: "@biomejs/biome"
     # One PR per batch of routine bumps — review load stays flat. Security
     # updates are never grouped by Dependabot and still arrive individually.
     groups:

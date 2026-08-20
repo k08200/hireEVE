@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { captureClientError } from "../lib/sentry";
 import { RelativeTime } from "./relative-time";
+import ErrorAlert from "./ui/error-alert";
 
 type EmailPriority = "URGENT" | "NORMAL" | "LOW";
 
@@ -29,8 +30,8 @@ interface EmailFeedbackResponse {
 
 const PRIORITY_STYLES: Record<EmailPriority, string> = {
   URGENT: "bg-rose-500/10 text-rose-600 ring-rose-500/20",
-  NORMAL: "bg-sky-500/10 text-sky-600 ring-sky-500/20",
-  LOW: "bg-slate-100 text-slate-500 ring-slate-200",
+  NORMAL: "bg-accent/10 text-accent-deep ring-accent/20",
+  LOW: "bg-surface-hover text-ink-mid ring-line",
 };
 
 function PriorityPill({ priority }: { priority: EmailPriority }) {
@@ -87,10 +88,10 @@ export function EmailFeedbackList() {
     <div>
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">
+          <p className="text-sm font-medium text-ink-mid">
             {loading ? "Checking correction logs..." : `${count} correction records`}
           </p>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-ink-dim">
             These corrections sharpen Klorn's mail judgment.
           </p>
         </div>
@@ -98,61 +99,57 @@ export function EmailFeedbackList() {
           <a
             href={exportHref}
             download="klorn-email-feedback-fixtures.json"
-            className="ease-strong inline-flex h-9 w-fit items-center rounded-lg border border-slate-200 bg-white/70 px-3 text-sm font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+            className="ease-strong inline-flex h-9 w-fit items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
           >
             Export JSON
           </a>
         )}
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Could not load correction logs.
-        </div>
-      )}
+      {error && <ErrorAlert>Could not load correction logs.</ErrorAlert>}
 
       {loading && (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-50"
+              className="h-28 animate-pulse rounded-xl border border-line bg-surface-raised"
             />
           ))}
         </div>
       )}
 
       {!loading && !error && fixtures.length === 0 && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-10 text-center">
-          <p className="text-sm font-medium text-slate-500">No corrected classifications yet.</p>
-          <p className="mt-2 text-sm text-slate-400">
+        <div className="rounded-xl border border-line bg-surface-raised px-5 py-10 text-center">
+          <p className="text-sm font-medium text-ink-mid">No corrected classifications yet.</p>
+          <p className="mt-2 text-sm text-ink-dim">
             When a mail classification is wrong, mark it from the mail view and it will appear here.
           </p>
         </div>
       )}
 
       {!loading && fixtures.length > 0 && (
-        <div className="panel-elevated overflow-hidden rounded-2xl border border-slate-200/70 bg-white">
-          <div className="divide-y divide-slate-100">
+        <div className="panel-elevated overflow-hidden rounded-2xl border border-line/70 bg-surface-panel">
+          <div className="divide-y divide-line-soft">
             {fixtures.map((fixture) => (
               <div key={fixture.id} className="row-wash p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900">{fixture.subject}</p>
-                    <p className="mt-1 truncate text-xs text-slate-400">{fixture.from}</p>
+                    <p className="truncate text-sm font-medium text-ink">{fixture.subject}</p>
+                    <p className="mt-1 truncate text-xs text-ink-dim">{fixture.from}</p>
                   </div>
                   <RelativeTime
                     date={fixture.capturedAt}
-                    className="shrink-0 text-xs text-slate-500"
+                    className="shrink-0 text-xs text-ink-mid"
                   />
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <PriorityPill priority={fixture.capturedHeuristic.priority} />
-                  <span className="text-xs text-slate-500">-&gt;</span>
+                  <span className="text-xs text-ink-mid">-&gt;</span>
                   <PriorityPill priority={fixture.expectedSyncPriority} />
                   {fixture.capturedHeuristic.reason && (
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-400">
+                    <span className="rounded-full border border-line bg-surface-raised px-2 py-0.5 text-[10px] text-ink-dim">
                       {fixture.capturedHeuristic.reason}
                     </span>
                   )}
@@ -163,7 +160,7 @@ export function EmailFeedbackList() {
                     {fixture.capturedHeuristic.signals.slice(0, 6).map((signal) => (
                       <span
                         key={signal}
-                        className="max-w-full truncate rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-400"
+                        className="max-w-full truncate rounded-md border border-line bg-surface-raised px-2 py-1 text-[11px] text-ink-dim"
                       >
                         {signal}
                       </span>
@@ -171,7 +168,7 @@ export function EmailFeedbackList() {
                   </div>
                 )}
 
-                {fixture.note && <p className="mt-3 text-xs text-slate-400">{fixture.note}</p>}
+                {fixture.note && <p className="mt-3 text-xs text-ink-dim">{fixture.note}</p>}
               </div>
             ))}
           </div>

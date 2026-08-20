@@ -10,7 +10,8 @@
  */
 
 import { drainActionOutbox } from "./agentcore/action-outbox.js";
-import { sendAutoReplyViaFloor } from "./agentcore/auto-reply-send.js";
+import { runAutoModeSweep } from "./agentcore/auto-mode-sweep.js";
+import { isSingleRecipient, sendAutoReplyViaFloor } from "./agentcore/auto-reply-send.js";
 import { runProactiveActions } from "./agentcore/proactive-actions.js";
 import { isEntitled, planHasFeature } from "./billing/stripe.js";
 import {
@@ -29,8 +30,13 @@ import { parseGoogleDateTime } from "./google-calendar-time.js";
 import { sweepAttentionAging } from "./judge/attention-aging.js";
 import { findOpenEmailAttentionItemId } from "./judge/attention-override.js";
 import { sweepFallbackRejudge } from "./judge/fallback-rejudge.js";
+import {
+  effectiveAutoReplyGuideline,
+  normalizeAttentionMode,
+} from "./learning/auto-reply-guideline.js";
 import { autoReplyEmailWhere } from "./mail/auto-reply-scope.js";
 import { syncRecentCandidateIntakes } from "./mail/email-candidate-intake.js";
+import { generateGuidelineReply } from "./mail/email-reply.js";
 import {
   backfillEmailAttentionItems,
   checkAutoReplyRules,
@@ -39,6 +45,7 @@ import {
   reconcileLinkedInboxes,
   summarizeUnsummarizedEmails,
   syncEmails,
+  syncSpamLane,
 } from "./mail/email-sync.js";
 import { getAuthedClient, getLinkedInboxClients, renewExpiringGmailWatches } from "./mail/gmail.js";
 import { notifyConversationsUpdated } from "./notify/conversations-updated.js";
@@ -47,6 +54,7 @@ import { escalateUnackedPush } from "./notify/phone-escalation.js";
 import { sendPushNotification } from "./notify/push.js";
 import { sendSms } from "./notify/sms.js";
 import { buildUrgentDedupMessage, parseNotifiedGmailIds } from "./notify/urgent-dedup.js";
+import { autoModeSendEnabled, tierV2Enabled } from "./ops/feature-flags.js";
 import { createDailyBriefingDelivery } from "./pim/briefing.js";
 import { recordSchedulerTick, registerScheduler } from "./scheduler-heartbeat.js";
 import { captureError } from "./sentry.js";
@@ -512,6 +520,38 @@ export async function ensureAutoReplyNotification(
 }
 
 /**
+ * Auto-MODE reply ledger entry (ontology v2 — guideline-driven unattended
+ * replies, not EmailRule ones). Same winner-only atomic pattern as
+ * ensureAutoReplyNotification with its own dedupeKey namespace, so a mail can
+ * never receive both a rule reply alert and a mode reply alert twice; the two
+ * SEND paths themselves are mutually exclusive per email at the call site.
+ * Notification-free by design beyond the in-app bell: the founder contract
+ * says auto mode only interrupts for PUSH/MEETING, and an auto-handled reply
+ * is exactly the thing that shouldn't interrupt.
+ */
+export async function ensureAutoModeReplyNotification(
+  userId: string,
+  gmailId: string,
+  toAddr: string,
+): Promise<{ id: string; createdAt: Date } | null> {
+  try {
+    return await prisma.notification.create({
+      data: {
+        userId,
+        type: "email",
+        dedupeKey: `auto-mode-reply:${gmailId}`,
+        title: "Klorn replied for you",
+        message: `Auto-mode replied to ${toAddr} [${gmailId}]`,
+      },
+      select: { id: true, createdAt: true },
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) return null; // already replied to this email
+    throw err;
+  }
+}
+
+/**
  * Urgent-email bell notification — WINNER-ONLY and atomic. The read-based
  * notifiedGmailIds filter (parseNotifiedGmailIds) still does the primary
  * per-message dedup; this closes the residual concurrent-tick race on a single
@@ -646,6 +686,8 @@ async function runAutomations() {
             { phoneEscalationEnabled: true },
             // A user who enabled ONLY proactive actions still needs a tick.
             { proactiveActions: true },
+            // Auto-mode users need the sweep even with everything else off.
+            { attentionMode: "AUTO" },
           ],
         },
         take: BATCH_SIZE,
@@ -1038,6 +1080,11 @@ async function runUserCycle(
         // poll fallback never did, so mail that arrived via THIS path reached
         // clients only when their own polling caught up (desktop: 60 s).
         if (syncResult.newCount > 0) notifyConversationsUpdated(config.userId);
+        // Spam lane (SPAM_INTAKE_ENABLED, no-op while off): catch real mail
+        // Gmail wrongly spammed. Capped snapshot query; never touches the
+        // INBOX watermark.
+        const spamNew = await syncSpamLane(config.userId);
+        if (spamNew > 0) notifyConversationsUpdated(config.userId);
 
         // AI summarize new emails — floor 10 so a zero-new tick still drains
         // the backlog (same #725 floor the interactive routes already have;
@@ -1272,6 +1319,90 @@ async function runUserCycle(
               });
             }
           }
+        }
+
+        // ─── Auto-MODE replies (ontology v2, guideline-driven) ────────────
+        // Klorn answers autoEligible QUEUE/MEETING items unattended when the
+        // user opted into attentionMode=AUTO. Double-flagged: TIER_V2_ENABLED
+        // (autoEligible rows exist at all) and AUTO_MODE_SEND_ENABLED (the
+        // send itself). Reuses the receipt-bound floor send — no new path.
+        if (
+          tierV2Enabled() &&
+          autoModeSendEnabled() &&
+          normalizeAttentionMode(config.attentionMode) === "AUTO" &&
+          planHasFeature(configUserPlan, "email_auto_reply", configUserRole)
+        ) {
+          const guideline = effectiveAutoReplyGuideline(config.autoReplyGuideline);
+          // Ordering contracts (dedupe-before-LLM, ledger-before-send,
+          // failure-ledger rewrite, draft-retry cap) live in
+          // agentcore/auto-mode-sweep.ts and are pinned by its tests.
+          await runAutoModeSweep(config.userId, guideline, {
+            findCandidates: (userId, since, take) =>
+              prisma.attentionItem.findMany({
+                where: {
+                  userId,
+                  source: "EMAIL",
+                  status: "OPEN",
+                  autoEligible: true,
+                  tier: { in: ["QUEUE", "MEETING"] },
+                  isManualOverride: false,
+                  createdAt: { gte: since },
+                },
+                orderBy: { createdAt: "desc" },
+                take,
+                select: { id: true, sourceId: true },
+              }),
+            findEmail: (userId, emailRowId) =>
+              prisma.emailMessage.findFirst({
+                where: { id: emailRowId, userId },
+                select: { id: true, gmailId: true, from: true, subject: true, body: true },
+              }),
+            alreadyReplied: async (userId, gmailId) =>
+              (await prisma.notification.findFirst({
+                where: {
+                  userId,
+                  dedupeKey: { in: [`auto-reply:${gmailId}`, `auto-mode-reply:${gmailId}`] },
+                },
+                select: { id: true },
+              })) !== null,
+            isSingleRecipient,
+            draftReply: generateGuidelineReply,
+            emailStillExists: async (emailRowId) =>
+              (await prisma.emailMessage.findFirst({
+                where: { id: emailRowId },
+                select: { id: true },
+              })) !== null,
+            writeLedger: ensureAutoModeReplyNotification,
+            send: (userId, toAddr, subject, body, inReplyToEmailId) =>
+              sendAutoReplyViaFloor(userId, toAddr, subject, body, inReplyToEmailId),
+            markLedgerFailed: async (ledgerId, toAddr, gmailId) => {
+              await prisma.notification
+                .update({
+                  where: { id: ledgerId },
+                  data: {
+                    title: "Auto-mode reply failed",
+                    message: `Auto-mode reply to ${toAddr} failed — the mail is still in your queue [${gmailId}]`,
+                  },
+                })
+                .catch((updateErr) =>
+                  console.warn(`[AUTOMATION] auto-mode failure-ledger update failed`, updateErr),
+                );
+            },
+            resolveItem: async (itemId) => {
+              await prisma.attentionItem
+                .update({ where: { id: itemId }, data: { status: "RESOLVED" } })
+                .catch((err) =>
+                  console.warn(`[AUTOMATION] auto-mode resolve failed for ${itemId}`, err),
+                );
+            },
+            warn: (message) => console.warn(message),
+            reportError: (err, itemId) =>
+              captureError(err, {
+                tags: { scope: "automation.auto-mode-reply" },
+                extra: { userId: config.userId, itemId },
+              }),
+            now: Date.now,
+          });
         }
 
         // Reconcile DB with Gmail (remove deleted/archived emails).

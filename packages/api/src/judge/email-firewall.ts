@@ -262,6 +262,8 @@ interface JudgeableEmailRow {
   body?: string | null;
   labels: string[];
   receivedAt: Date;
+  /** Bulk-mail marker from sync; feeds the v2 transactional detector. */
+  hasListUnsubscribe?: boolean;
 }
 
 /**
@@ -302,6 +304,7 @@ export async function judgeAndMirrorEmail(
       snippet: email.snippet,
       body: email.body,
       labels: email.labels,
+      hasListUnsubscribe: email.hasListUnsubscribe,
     },
     userId,
     judgeContext,
@@ -334,7 +337,10 @@ export async function judgeAndMirrorEmail(
   // (correctly) tier an email PUSH and the notification never went out. Wire
   // the judge's PUSH decision to a real push. Best-effort: never block or
   // fail classification on the notification.
-  if (judgement.tier === "PUSH") {
+  // MEETING (v2 only — v1 never emits it) notifies like PUSH: the founder's
+  // 기본 모드 contract is "important mail + calendar/scheduling interrupt,
+  // everything else is silent" (docs/design/tier-ontology-v2.md).
+  if (judgement.tier === "PUSH" || judgement.tier === "MEETING") {
     await pushForFirewallEmail(userId, email).catch((err) =>
       captureError(err, {
         tags: { scope: "firewall-push" },

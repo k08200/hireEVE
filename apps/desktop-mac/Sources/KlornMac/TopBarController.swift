@@ -1,12 +1,41 @@
 import AppKit
 import SwiftUI
 
-/// A borderless panel that can still become key — used only for the full state
-/// so its reply text field can receive keyboard input. (A plain borderless
-/// window returns false for canBecomeKey.)
+/// A borderless panel that can still become key — used for the expanded and
+/// full states so they can receive keyboard input and, critically, so the app
+/// has a window Cmd+Tab can actually raise. (A plain borderless window returns
+/// false for canBecomeKey; an app whose only window can't become key never
+/// fronts when picked in the switcher — dogfood 2026-08-15.)
 final class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    /// HARD clamp, at the AppKit layer: no matter who sets the frame — our
+    /// pin, a background drag, a display swap moving the window across
+    /// screens, or any system placement — the top edge may never rise above
+    /// the visible area and the size may never exceed it. A borderless
+    /// window has no title-bar constraint, so without this the header can
+    /// lodge above the menu bar where nothing can grab it (dogfood
+    /// 2026-08-18, twice — the render-time self-heal only ran on state
+    /// changes and missed frames moved between renders).
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        let base = super.constrainFrameRect(frameRect, to: screen)
+        guard let visible = (screen ?? NSScreen.main)?.visibleFrame else { return base }
+        return KeyablePanel.clamped(base, into: visible)
+    }
+
+    /// Pure for the harness: shrink to fit, then shift fully on-screen
+    /// (top-priority: the grab area at the top must stay reachable).
+    nonisolated static func clamped(_ frame: NSRect, into visible: NSRect) -> NSRect {
+        var f = frame
+        f.size.width = min(f.width, visible.width)
+        f.size.height = min(f.height, visible.height)
+        if f.maxY > visible.maxY { f.origin.y = visible.maxY - f.height }
+        if f.minY < visible.minY { f.origin.y = visible.minY }
+        if f.maxX > visible.maxX { f.origin.x = visible.maxX - f.width }
+        if f.minX < visible.minX { f.origin.x = visible.minX }
+        return f
+    }
 }
 
 /// Owns the always-on top bar: a single non-focus-stealing panel pinned to the
@@ -29,10 +58,28 @@ final class TopBarController {
     /// Persists the full window's user-chosen size after a drag-resize.
     private let resizeRecorder = PanelResizeRecorder()
 
+    private var screenObserver: NSObjectProtocol?
+
     init(model: AppModel) {
         self.model = model
+        // A display change can strand or clip the window between renders —
+        // re-clamp immediately rather than waiting for the next state change.
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.reclampIfLost() }
+        }
+        resizeRecorder.onMoveOrResize = { [weak self] in
+            MainActor.assumeIsolated { self?.reclampIfLost() }
+        }
         resizeRecorder.onLiveResizeEnd = { [weak self] size in
-            self?.model.settings.fullWindowSize = size
+            guard let self else { return }
+            switch self.state {
+            case .full: self.model.settings.fullWindowSize = size
+            case .expanded: self.model.settings.expandedWindowSize = size
+            case .collapsed: break  // pill is never resizable
+            }
         }
     }
 
@@ -167,7 +214,11 @@ final class TopBarController {
             panel?.orderOut(nil)
             return
         }
-        let focusable = (state == .full)
+        // Expanded and full are both user-summoned app windows: key-able so
+        // Cmd+Tab has something to raise (policy promotion alone never
+        // registered the app in the switcher — expanded-state bug, 2026-08-15).
+        // Only the ambient pill stays non-focus-stealing.
+        let focusable = (state != .collapsed)
         let size = panelSize(for: state)
         let root = TopBarRoot(state: state, actions: makeActions())
             .environment(model)
@@ -178,13 +229,26 @@ final class TopBarController {
         // Recreate the window when the focus model flips: pill/panel are
         // non-focus-stealing; full is a key-able app window so its reply field
         // can accept keyboard input.
+        var inheritedFrame: NSRect?
         if let existing = self.panel, panelIsFocusable != focusable {
+            // Seed the replacement with the old frame so the pill↔expanded
+            // morph still animates from where the old window sat.
+            inheritedFrame = existing.isVisible ? existing.frame : nil
             existing.orderOut(nil)
             self.panel = nil
         }
         let panel = self.panel ?? makePanel(focusable: focusable)
+        if let inherited = inheritedFrame { panel.setFrame(inherited, display: false) }
         panelIsFocusable = focusable
-        panel.contentView = NSHostingView(rootView: root)
+        let host = NSHostingView(rootView: root)
+        // The controller owns the window frame (setFrame + user drag). The
+        // default sizingOptions let SwiftUI ideal-size changes resize the
+        // window — growing UP in AppKit coordinates, pushing the title bar
+        // off-screen whenever a sidebar section handle made content taller
+        // (clipping recording, 2026-08-19). Content adapts to the window,
+        // never the reverse.
+        host.sizingOptions = []
+        panel.contentView = host
         self.panel = panel
         // Re-pinning on EVERY render fought the user: any same-state
         // refresh() snapped a dragged window back to top-center and
@@ -192,25 +256,29 @@ final class TopBarController {
         // (pill↔expanded↔full morph), a fresh panel, or a window that is no
         // longer on ANY screen (display unplugged/resized) may reposition —
         // a partially off-screen frame is respected as a deliberate drag.
-        let frameLost = !(NSScreen.main?.visibleFrame.intersects(panel.frame) ?? true)
+        let frameLost = Self.isFrameLost(
+            frame: panel.frame, visible: (panel.screen ?? NSScreen.main)?.visibleFrame)
         if Self.shouldSetFrame(
             renderedState: renderedState, state: state,
             panelVisible: panel.isVisible, frameLost: frameLost)
         {
             setFrame(panel, size: size)
         }
+        let stateChanged = renderedState != state
         renderedState = state
         panel.applyGlassShape(cornerRadius: TopBarMetrics.corner(for: state))
+        defer { reclampIfLost() }
         if focusable {
-            // Full is a real, focusable app window, so it takes focus outright —
-            // the reply field has to be able to type. (ignoringOtherApps is
-            // inert on the macOS 14 target — cooperative activate() is the
-            // only sanctioned form; the load-bearing Cmd+Tab fixes are the
-            // policy hoist above and the dismiss()-path policy drop.)
+            // Expanded/full are real app windows the user just summoned
+            // (☰, Show-all, ⌥⌘K) — taking focus is the intent. Activation
+            // also completes the .accessory→.regular promotion; without it
+            // the app never appears in Cmd+Tab (expanded-state bug,
+            // 2026-08-15). Activate only on a state CHANGE so a same-state
+            // refresh() (settings/language) can't yank focus back.
             panel.makeKeyAndOrderFront(nil)
-            NSApp.activate()
+            if stateChanged { NSApp.activate() }
         } else {
-            // Expanded is Cmd+Tab-able but still never steals focus.
+            // The ambient pill must never steal focus.
             panel.orderFrontRegardless()
         }
     }
@@ -293,15 +361,44 @@ final class TopBarController {
             onQuit: { NSApplication.shared.terminate(nil) })
     }
 
-    /// The frame size for a state: full fits the screen (and honors the
-    /// user's drag-resize); pill/expanded stay at their fixed metrics.
+    /// The frame size for a state: expanded and full fit the screen (the
+    /// fixed 1140pt expanded overflowed narrow displays — clipping report,
+    /// 2026-08-15) and honor the user's drag-resize; the pill stays fixed.
     private func panelSize(for state: BarState) -> NSSize {
-        let ideal = state == .full
-            ? (model.settings.fullWindowSize ?? TopBarMetrics.full)
-            : TopBarMetrics.size(for: state)
-        guard state == .full, let visible = NSScreen.main?.visibleFrame else { return ideal }
+        let ideal: NSSize
+        switch state {
+        case .collapsed: return TopBarMetrics.collapsed
+        case .expanded: ideal = model.settings.expandedWindowSize ?? TopBarMetrics.expanded
+        case .full: ideal = model.settings.fullWindowSize ?? TopBarMetrics.full
+        }
+        guard let visible = (panel?.screen ?? NSScreen.main)?.visibleFrame else { return ideal }
         return TopBarMetrics.fittedSize(
-            ideal: ideal, visible: visible.size, floor: TopBarMetrics.fullMin)
+            ideal: ideal, visible: visible.size, floor: Self.minSize(for: state))
+    }
+
+    /// Per-state drag-resize floor. Pure for the harness.
+    nonisolated static func minSize(for state: BarState) -> NSSize {
+        state == .full ? TopBarMetrics.fullMin : TopBarMetrics.expandedMin
+    }
+
+    /// Re-clamp the live panel when its frame went bad between renders
+    /// (drag lodged it, or a display change moved it). Uses the same clamp
+    /// the panel itself enforces, so this can never fight constrainFrameRect.
+    private func reclampIfLost() {
+        guard let panel, panel.isVisible,
+              let visible = (panel.screen ?? NSScreen.main)?.visibleFrame,
+              Self.isFrameLost(frame: panel.frame, visible: visible)
+        else { return }
+        panel.setFrame(KeyablePanel.clamped(panel.frame, into: visible), display: true)
+    }
+
+    /// A frame is lost when it is off every screen OR its top edge is above
+    /// the visible area (the grab/title region is unreachable — the exact
+    /// clipped-after-update failure, dogfood 2026-08-18). Pure for the harness.
+    nonisolated static func isFrameLost(frame: NSRect, visible: NSRect?) -> Bool {
+        guard let visible else { return false }
+        if !visible.intersects(frame) { return true }
+        return frame.maxY > visible.maxY + 2
     }
 
     /// Pure for the harness: when may render() move/resize the panel? Only a
@@ -313,9 +410,15 @@ final class TopBarController {
         renderedState != state || !panelVisible || frameLost
     }
 
-    /// Pure for the harness: full is a resizable key-able window (the fixed
-    /// 1400×860 could not be shrunk — clipped-display report, 2026-08-05);
-    /// pill/expanded stay non-focus-stealing and fixed.
+    /// Whether this window is an ambient utility overlay (the pill) or a real
+    /// app window (expanded/full). Utility overlays float above everything and
+    /// join every Space; real windows live at normal level so Cmd+Tab, Spaces,
+    /// and full-screen treat the app like an app. Pure for the harness.
+    nonisolated static func isUtilityWindow(focusable: Bool) -> Bool { !focusable }
+
+    /// Pure for the harness: expanded/full are resizable key-able windows
+    /// (fixed sizes could not be shrunk — clipped-display reports 2026-08-05
+    /// and 2026-08-15); only the pill stays non-focus-stealing and fixed.
     nonisolated static func styleMask(focusable: Bool) -> NSWindow.StyleMask {
         focusable ? [.borderless, .resizable] : [.borderless, .nonactivatingPanel]
     }
@@ -330,20 +433,34 @@ final class TopBarController {
             : NSPanel(contentRect: rect, styleMask: mask, backing: .buffered, defer: false)
         if focusable {
             // Borderless windows still get native edge-drag with .resizable;
-            // the floor keeps the fixed sidebar + list columns from clipping.
-            // Screen-clamped below in setFrame — a floor wider than the
-            // display would let live-resize park the window off-screen.
-            panel.contentMinSize = TopBarMetrics.fullMin
+            // the per-state floor (set in setFrame, which also screen-clamps
+            // it) keeps fixed columns from clipping.
             panel.delegate = resizeRecorder
         }
-        panel.isFloatingPanel = true
-        panel.level = .floating
+        // The window CLASS decides Cmd+Tab, not just the activation policy
+        // (dogfood 2026-08-18: the FULL view still wasn't switchable). A
+        // floating utility panel with .canJoinAllSpaces is exactly what the
+        // window server treats as an overlay — it never registers the app as
+        // something Cmd+Tab can raise. Expanded/full are the app's real
+        // windows, so they get ordinary managed-window semantics; only the
+        // ambient pill stays a floating always-on-top utility.
+        panel.isFloatingPanel = Self.isUtilityWindow(focusable: focusable)
+        panel.level = Self.isUtilityWindow(focusable: focusable) ? .floating : .normal
         panel.hidesOnDeactivate = false
+        // Managed windows are state-restorable by default; restoration fought
+        // our own pinning after the 2026-08-18 window-class change and
+        // reopened the window top-clipped above the menu bar. Our persisted
+        // sizes are the only restoration we want.
+        panel.isRestorable = false
         panel.becomesKeyOnlyIfNeeded = !focusable
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.collectionBehavior = Self.isUtilityWindow(focusable: focusable)
+            ? [.canJoinAllSpaces, .fullScreenAuxiliary]
+            : [.managed, .fullScreenPrimary]
         // Light v2: the panel is always a light surface — pin the effective
         // appearance so semantic colors resolve light even in system dark mode.
-        panel.appearance = NSAppearance(named: .aqua)
+        // Appearance follows NSApp (system or the Preferences override) —
+        // the light pin predates dark mode (2026-08-15).
+        panel.appearance = nil
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
@@ -353,14 +470,14 @@ final class TopBarController {
 
     /// Keep the bar pinned top-center; animate the frame so expand/collapse morphs.
     private func setFrame(_ panel: NSPanel, size: NSSize) {
-        guard let visible = NSScreen.main?.visibleFrame else { return }
+        guard let visible = (panel.screen ?? NSScreen.main)?.visibleFrame else { return }
         // The drag-resize floor must also respect the CURRENT screen: a
         // contentMinSize wider than the display would let AppKit's live
         // resize (and possibly programmatic frames) exceed the screen, which
         // is the exact clipping fittedSize exists to prevent.
         if panelIsFocusable {
             panel.contentMinSize = TopBarMetrics.fittedSize(
-                ideal: TopBarMetrics.fullMin, visible: visible.size)
+                ideal: Self.minSize(for: state), visible: visible.size)
         }
         // Honor Reduce Motion (WCAG 2.3.3 + CLAUDE.md): a full-window morph up to
         // 1400px is exactly the large motion the setting exists to suppress.
@@ -390,9 +507,25 @@ final class TopBarController {
 @MainActor
 final class PanelResizeRecorder: NSObject, NSWindowDelegate {
     var onLiveResizeEnd: ((NSSize) -> Void)?
+    var onMoveOrResize: (() -> Void)?
 
     func windowDidEndLiveResize(_ notification: Notification) {
         guard let window = notification.object as? NSWindow else { return }
         onLiveResizeEnd?(window.frame.size)
+        onMoveOrResize?()
+    }
+
+    func windowDidMove(_ notification: Notification) {
+        onMoveOrResize?()
+    }
+
+    // Programmatic/content-driven resizes never hit windowDidEndLiveResize or
+    // constrainFrameRect — this is the only hook that sees them (2026-08-19).
+    func windowDidResize(_ notification: Notification) {
+        onMoveOrResize?()
+    }
+
+    func windowDidChangeScreen(_ notification: Notification) {
+        onMoveOrResize?()
     }
 }

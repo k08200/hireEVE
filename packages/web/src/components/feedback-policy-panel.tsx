@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { captureClientError } from "../lib/sentry";
 import Button from "./ui/button";
+import ErrorAlert from "./ui/error-alert";
 
 type FeedbackPolicyKind =
   | "ALLOW_AFTER_SUGGESTION"
@@ -46,13 +47,13 @@ const KIND_COPY: Record<
 > = {
   ALLOW_AFTER_SUGGESTION: {
     label: "Repeated approvals",
-    tone: "bg-sky-500/10 text-sky-600 ring-sky-500/20",
-    dot: "bg-sky-500",
+    tone: "bg-accent/10 text-accent-deep ring-accent/20",
+    dot: "bg-accent",
     summary: "Suggest with more confidence",
   },
   REQUIRE_DRAFT_REVIEW: {
     label: "Keep review",
-    tone: "bg-slate-100 text-slate-500 ring-slate-200",
+    tone: "bg-surface-hover text-ink-mid ring-line",
     dot: "bg-slate-400",
     summary: "Review drafts before running",
   },
@@ -64,7 +65,7 @@ const KIND_COPY: Record<
   },
   LOWER_PRIORITY: {
     label: "Lower priority",
-    tone: "bg-slate-100 text-slate-500 ring-slate-200",
+    tone: "bg-surface-hover text-ink-mid ring-line",
     dot: "bg-slate-400",
     summary: "Watch quietly",
   },
@@ -99,11 +100,11 @@ export function FeedbackPolicyPanel() {
   }, [load]);
 
   return (
-    <div className="panel-elevated rounded-2xl border border-slate-200/70 bg-white p-4">
+    <div className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-medium">Learned operating signals</h3>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-ink-dim">
             {since
               ? `Since ${new Date(since).toLocaleDateString("en-US")}`
               : "Recent feedback patterns"}
@@ -122,18 +123,13 @@ export function FeedbackPolicyPanel() {
 
       {loading ? (
         <div className="mt-4 space-y-2">
-          <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
-          <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
+          <div className="h-16 animate-pulse rounded-lg bg-surface-hover" />
+          <div className="h-16 animate-pulse rounded-lg bg-surface-hover" />
         </div>
       ) : error ? (
-        <div
-          role="alert"
-          className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-        >
-          Could not load operating signals.
-        </div>
+        <ErrorAlert className="mt-4">Could not load operating signals.</ErrorAlert>
       ) : candidates.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-400">
+        <div className="mt-4 rounded-lg border border-line bg-surface-raised px-3 py-3 text-sm text-ink-dim">
           No stable operating signals yet.
         </div>
       ) : (
@@ -143,22 +139,22 @@ export function FeedbackPolicyPanel() {
             return (
               <div
                 key={candidate.id}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3"
+                className="rounded-lg border border-line bg-surface-raised px-3 py-3"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <span className={`h-2 w-2 rounded-full ${copy.dot}`} />
-                      <span className="break-words font-mono text-xs text-slate-900">
+                      <span className="break-words font-mono text-xs text-ink">
                         {candidate.scope.toolName}
                       </span>
                       {candidate.scope.recipient && (
-                        <span className="break-all text-xs text-slate-400">
+                        <span className="break-all text-xs text-ink-dim">
                           {candidate.scope.recipient}
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-slate-400">{copy.summary}</p>
+                    <p className="mt-1 text-xs text-ink-dim">{copy.summary}</p>
                   </div>
                   <span
                     className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ring-1 ring-inset ${copy.tone}`}
@@ -166,7 +162,7 @@ export function FeedbackPolicyPanel() {
                     {copy.label}
                   </span>
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] text-slate-400 sm:grid-cols-6">
+                <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] text-ink-dim sm:grid-cols-6">
                   <SignalCount label="Approved" value={candidate.support.approved} />
                   <SignalCount label="Rejected" value={candidate.support.rejected} />
                   <SignalCount label="Edited" value={candidate.support.edited} />
@@ -175,7 +171,7 @@ export function FeedbackPolicyPanel() {
                   <SignalCount label="Snoozed" value={candidate.support.snoozed} />
                   <SignalCount label="Closed" value={candidate.support.dismissed} />
                 </div>
-                <div className="mt-2 flex items-center justify-between text-[10px] tabular-nums text-slate-500">
+                <div className="mt-2 flex items-center justify-between text-[10px] tabular-nums text-ink-mid">
                   <span>Confidence {Math.round(candidate.confidence * 100)}%</span>
                   <span>{candidate.support.total} events</span>
                 </div>
@@ -198,10 +194,10 @@ function SignalCount({
   tone?: "default" | "critical";
 }) {
   return (
-    <div className="rounded-md bg-slate-100 px-2 py-1">
-      <div className={tone === "critical" ? "text-red-600/80" : "text-slate-500"}>{label}</div>
+    <div className="rounded-md bg-surface-hover px-2 py-1">
+      <div className={tone === "critical" ? "text-red-600/80" : "text-ink-mid"}>{label}</div>
       <div
-        className={`text-xs font-medium tabular-nums ${tone === "critical" ? "text-red-700" : "text-slate-500"}`}
+        className={`text-xs font-medium tabular-nums ${tone === "critical" ? "text-red-700" : "text-ink-mid"}`}
       >
         {value}
       </div>

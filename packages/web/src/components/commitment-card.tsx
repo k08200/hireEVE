@@ -144,7 +144,7 @@ export function CommitmentCard({
   };
 
   return (
-    <article className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+    <article className="rounded-2xl border border-line/70 bg-surface-panel p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -154,14 +154,12 @@ export function CommitmentCard({
               commitment.trustBadge !== "unknown" && (
                 <TrustBadge badge={commitment.trustBadge} label={commitment.trustLabel ?? null} />
               )}
-            <span className="text-[11px] text-slate-400">
-              {commitmentKindLabel(commitment.kind)}
-            </span>
-            <span className="text-[11px] text-slate-500">{commitmentDueLabel(commitment)}</span>
+            <span className="text-[11px] text-ink-dim">{commitmentKindLabel(commitment.kind)}</span>
+            <span className="text-[11px] text-ink-mid">{commitmentDueLabel(commitment)}</span>
           </div>
-          <p className="mt-2 text-sm font-medium text-slate-900 break-words">{commitment.title}</p>
+          <p className="mt-2 text-sm font-medium text-ink break-words">{commitment.title}</p>
           {commitment.description && (
-            <p className="mt-1 text-xs text-slate-500 line-clamp-2">{commitment.description}</p>
+            <p className="mt-1 text-xs text-ink-mid line-clamp-2">{commitment.description}</p>
           )}
         </div>
       </div>
@@ -171,7 +169,7 @@ export function CommitmentCard({
           type="button"
           onClick={onDone}
           disabled={!!loading}
-          className="glow-primary ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-sky-400 to-sky-500 px-3 py-1.5 text-xs font-medium text-white transition duration-150 hover:from-sky-400 hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+          className="glow-primary ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-1.5 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading === "done" ? (
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -183,10 +181,10 @@ export function CommitmentCard({
           type="button"
           onClick={onDismiss}
           disabled={!!loading}
-          className="ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+          className="ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading === "dismiss" ? (
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-300/40 border-t-slate-600" />
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-line-strong/40 border-t-slate-600" />
           ) : (
             "Dismiss"
           )}
@@ -194,7 +192,7 @@ export function CommitmentCard({
         <button
           type="button"
           onClick={togglePath}
-          className="ease-strong inline-flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97]"
+          className="ease-strong inline-flex items-center justify-center gap-1 rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97]"
         >
           {pathExpanded ? "Hide plan" : "View plan"}
         </button>
@@ -203,7 +201,7 @@ export function CommitmentCard({
           onClick={onSnooze}
           disabled={!!loading}
           title="Hide for 24h — will resurface automatically"
-          className="ease-strong inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-slate-400 transition duration-150 hover:bg-sky-50 hover:text-sky-700 active:scale-[0.97] disabled:opacity-50"
+          className="ease-strong inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:opacity-50"
         >
           {loading === "snooze" ? (
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-500" />
@@ -285,17 +283,17 @@ function commitmentOwnerEntry(owner: CommitmentItem["owner"]): {
     case "COUNTERPARTY":
       return {
         label: "Counterparty",
-        className: "bg-sky-500/10 text-sky-600 ring-1 ring-inset ring-sky-500/20",
+        className: "bg-accent/10 text-accent-deep ring-1 ring-inset ring-accent/20",
       };
     case "TEAM":
       return {
         label: "Team",
-        className: "bg-sky-500/10 text-sky-600 ring-1 ring-inset ring-sky-500/20",
+        className: "bg-accent/10 text-accent-deep ring-1 ring-inset ring-accent/20",
       };
     case "UNKNOWN":
       return {
         label: "Needs owner",
-        className: "bg-slate-100 text-slate-500",
+        className: "bg-surface-hover text-ink-mid",
       };
   }
 }
@@ -341,8 +339,8 @@ function CommitmentPathPanel({
 }) {
   if (loading && !pathData) {
     return (
-      <div className="mt-4 border-t border-slate-200 pt-4">
-        <p className="text-xs text-slate-400 animate-pulse">Building fulfillment plan...</p>
+      <div className="mt-4 border-t border-line pt-4">
+        <p className="text-xs text-ink-dim animate-pulse">Building fulfillment plan...</p>
       </div>
     );
   }
@@ -363,16 +361,16 @@ function CommitmentPathPanel({
   };
 
   return (
-    <div className="mt-4 border-t border-slate-200 pt-4">
+    <div className="mt-4 border-t border-line pt-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-semibold text-sky-600">Fulfillment plan</p>
+        <p className="text-xs font-semibold text-accent-deep">Fulfillment plan</p>
         <div className="flex items-center gap-3">
           {!allMaterialized && (
             <button
               type="button"
               onClick={onMaterializeAll}
               disabled={materializingStep !== null}
-              className="text-xs font-medium text-sky-600 transition duration-150 hover:text-sky-700 disabled:opacity-50"
+              className="text-xs font-medium text-accent-deep transition duration-150 hover:text-accent-deeper disabled:opacity-50"
             >
               {materializingStep === "all" ? "Creating..." : "Create all tasks"}
             </button>
@@ -381,7 +379,7 @@ function CommitmentPathPanel({
             type="button"
             onClick={onRebuild}
             disabled={loading}
-            className="text-xs text-slate-400 transition duration-150 hover:text-slate-600 disabled:opacity-50"
+            className="text-xs text-ink-dim transition duration-150 hover:text-ink-muted disabled:opacity-50"
           >
             {loading ? "Rebuilding..." : "Rebuild"}
           </button>
@@ -399,32 +397,32 @@ function CommitmentPathPanel({
             <li
               key={`${step.dueIso}-${i}`}
               className={`flex items-start gap-3 rounded-lg border p-3 text-xs ${
-                isMaterialized ? "border-sky-500/20 bg-sky-500/5" : "border-slate-200 bg-slate-50"
+                isMaterialized ? "border-accent/20 bg-accent/5" : "border-line bg-surface-raised"
               }`}
             >
-              <span className="mt-0.5 w-4 shrink-0 text-center font-mono text-[10px] text-slate-400">
+              <span className="mt-0.5 w-4 shrink-0 text-center font-mono text-[10px] text-ink-dim">
                 {actionIcon(step.action)}
               </span>
               <div className="min-w-0 flex-1">
                 <p
                   className={`leading-5 ${
-                    isMaterialized ? "line-through text-slate-400" : "text-slate-900"
+                    isMaterialized ? "line-through text-ink-dim" : "text-ink"
                   }`}
                 >
                   {step.step}
                 </p>
-                <p className="mt-0.5 text-[11px] text-slate-500">
+                <p className="mt-0.5 text-[11px] text-ink-mid">
                   {dueLabel} · ~{step.estimatedMinutes}m
                 </p>
               </div>
               {isMaterialized ? (
-                <span className="shrink-0 text-[11px] font-medium text-sky-600">task ✓</span>
+                <span className="shrink-0 text-[11px] font-medium text-accent-deep">task ✓</span>
               ) : (
                 <button
                   type="button"
                   onClick={() => onMaterializeStep(i)}
                   disabled={materializingStep !== null}
-                  className="ease-strong shrink-0 rounded-md border border-slate-200 bg-white/70 px-2 py-0.5 text-[11px] font-medium text-slate-500 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-white hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
+                  className="ease-strong shrink-0 rounded-md border border-line bg-surface-panel/70 px-2 py-0.5 text-[11px] font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50"
                 >
                   {materializingStep === i ? "..." : "+ task"}
                 </button>
@@ -434,7 +432,7 @@ function CommitmentPathPanel({
         })}
       </ol>
 
-      <p className="mt-2 text-[10px] text-slate-500">
+      <p className="mt-2 text-[10px] text-ink-mid">
         {pathData.model ?? "AI"} · {new Date(pathData.builtAt).toLocaleDateString("en-US")}
       </p>
     </div>

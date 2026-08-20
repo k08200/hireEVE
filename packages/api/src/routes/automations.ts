@@ -3,11 +3,18 @@ import { listAgentModePolicies, normalizeAgentMode } from "../agentcore/agent-mo
 import { runAgentForUser } from "../agentcore/autonomous-agent.js";
 import { getUserId, requireAuth } from "../auth.js";
 import { db, prisma } from "../db.js";
+import {
+  DEFAULT_AUTO_REPLY_GUIDELINE,
+  normalizeAttentionMode,
+  normalizeAutoReplyGuideline,
+} from "../learning/auto-reply-guideline.js";
 import { listReplyTonePolicies, normalizeReplyTone } from "../learning/reply-tone.js";
+import { createCompletion, DRAFT_MODEL } from "../llm/openai.js";
 import {
   NOTIFICATION_LANGUAGES,
   resolveNotificationLanguage,
 } from "../notify/notification-strings.js";
+import { captureError } from "../sentry.js";
 import { normalizeTimeZone } from "../time-zone.js";
 
 // MEDIUM-risk tools that users may pre-approve for AUTO mode.
@@ -85,6 +92,11 @@ export async function automationRoutes(app: FastifyInstance) {
       autoMarkReadEnabled: configAny.autoMarkReadEnabled ?? false,
       proactiveActions: configAny.proactiveActions ?? false,
       phoneEscalationEnabled: configAny.phoneEscalationEnabled ?? false,
+      attentionMode: normalizeAttentionMode(configAny.attentionMode),
+      autoReplyGuideline: normalizeAutoReplyGuideline(configAny.autoReplyGuideline),
+      // The founder default the UI shows as the editable starting draft when
+      // autoReplyGuideline is null.
+      autoReplyGuidelineDefault: DEFAULT_AUTO_REPLY_GUIDELINE,
     };
   });
 
@@ -120,6 +132,8 @@ export async function automationRoutes(app: FastifyInstance) {
       "autoMarkReadEnabled",
       "proactiveActions",
       "phoneEscalationEnabled",
+      "attentionMode",
+      "autoReplyGuideline",
     ];
     const data: Record<string, unknown> = {};
     for (const key of allowed) {
@@ -129,6 +143,15 @@ export async function automationRoutes(app: FastifyInstance) {
     // Validate agentMode
     if ("agentMode" in data) {
       data.agentMode = normalizeAgentMode(data.agentMode);
+    }
+
+    // Ontology v2 auto mode: unknown mode → BASIC; guideline is trimmed,
+    // capped, and empty → null (null = the founder default applies).
+    if ("attentionMode" in data) {
+      data.attentionMode = normalizeAttentionMode(data.attentionMode);
+    }
+    if ("autoReplyGuideline" in data) {
+      data.autoReplyGuideline = normalizeAutoReplyGuideline(data.autoReplyGuideline);
     }
 
     // Validate replyTone — an unknown register would otherwise be persisted
@@ -194,8 +217,59 @@ export async function automationRoutes(app: FastifyInstance) {
       autoMarkReadEnabled: configAny.autoMarkReadEnabled ?? false,
       proactiveActions: configAny.proactiveActions ?? false,
       phoneEscalationEnabled: configAny.phoneEscalationEnabled ?? false,
+      attentionMode: normalizeAttentionMode(configAny.attentionMode),
+      autoReplyGuideline: normalizeAutoReplyGuideline(configAny.autoReplyGuideline),
+      // The founder default the UI shows as the editable starting draft when
+      // autoReplyGuideline is null.
+      autoReplyGuidelineDefault: DEFAULT_AUTO_REPLY_GUIDELINE,
     };
   });
+
+  // POST /api/automations/guideline-advice — AI feedback on the auto-mode
+  // reply guideline (참고용: never applied automatically — the user reads the
+  // advice and edits their own text). Rate-limited: each call is an LLM spend.
+  app.post(
+    "/guideline-advice",
+    {
+      schema: {
+        body: {
+          type: "object",
+          additionalProperties: false,
+          required: ["guideline"],
+          properties: { guideline: { type: "string", minLength: 1, maxLength: 2000 } },
+        },
+      },
+      config: { rateLimit: { max: 5, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const userId = getUserId(request);
+      const { guideline } = request.body as { guideline: string };
+      try {
+        const response = await createCompletion(
+          {
+            model: DRAFT_MODEL,
+            temperature: 0.3,
+            max_tokens: 600,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You review a user's standing guideline for UNATTENDED email auto-replies (nobody proofreads before sending). Point out concrete risks and gaps: missing deferral rules for commitments/money/deadlines, ambiguity an LLM could misread, privacy leaks, tone problems. Reply in the same language the guideline is written in, as 2-4 short bullet points. Advice only — do not rewrite the whole guideline.",
+              },
+              { role: "user", content: guideline },
+            ],
+          },
+          { userId },
+        );
+        const advice = response.choices[0]?.message?.content?.trim();
+        if (!advice) return reply.code(502).send({ error: "No advice produced" });
+        return { advice };
+      } catch (err) {
+        captureError(err, { tags: { scope: "automations.guideline-advice" }, extra: { userId } });
+        return reply.code(502).send({ error: "Advice generation failed" });
+      }
+    },
+  );
 
   // POST /api/automations/run-now — Manually trigger agent for current user
   app.post(

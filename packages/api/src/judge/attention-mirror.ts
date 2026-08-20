@@ -816,7 +816,9 @@ export async function deleteAttentionForCommitments(
 // work because the route mutates the AttentionItem row directly.
 
 export interface EmailJudgementLike {
-  tier: "SILENT" | "QUEUE" | "PUSH" | "AUTO";
+  tier: "SILENT" | "INFO" | "QUEUE" | "MEETING" | "PUSH" | "AUTO";
+  /** v2: may Klorn answer this unattended (tier-policy floors)? */
+  autoEligible?: boolean;
   reason: string;
   features?: {
     confidence: number;
@@ -904,6 +906,7 @@ export async function upsertAttentionForEmailJudgement(
         surfacedAt: email.receivedAt,
         tier: judgement.tier,
         tierReason: judgement.reason,
+        autoEligible: judgement.autoEligible ?? false,
         // judgement.reason is LLM-authored — never let it set the ground-truth
         // flag, even if it happens to say "Manual override" (GHSA-cxc5-fmqv-pxv6).
         isManualOverride: false,
@@ -926,6 +929,7 @@ export async function upsertAttentionForEmailJudgement(
         ]),
         tier: judgement.tier,
         tierReason: judgement.reason,
+        autoEligible: judgement.autoEligible ?? false,
         // Reset on every re-judge: a prior genuine override must not survive
         // as "true" over fresh judge-authored tierReason text.
         isManualOverride: false,

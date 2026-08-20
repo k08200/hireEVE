@@ -29,7 +29,7 @@ jobs:
       code: ${{ steps.diff.outputs.code }}
       prisma: ${{ steps.diff.outputs.prisma }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: diff
@@ -61,7 +61,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: biomejs/setup-biome@v2
         with:
           version: "2.4.12"
@@ -78,7 +78,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.code == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -108,7 +108,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.code == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -127,7 +127,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.code == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -164,7 +164,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

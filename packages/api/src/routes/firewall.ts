@@ -32,7 +32,7 @@ import { snoozeAttentionItem } from "../judge/attention-snooze.js";
 import { getDecisionMetrics } from "../judge/decision-metrics.js";
 import { collapseEmailThreads } from "../judge/firewall-thread-collapse.js";
 import { resolveTierReason } from "../judge/tier-reason-strings.js";
-import { manualOverrideReason, normalizeTier, TIERS, type Tier } from "../judge/tiers.js";
+import { manualOverrideReason, normalizeTier, type Tier } from "../judge/tiers.js";
 import { getInteractionGraph } from "../learning/interaction-graph.js";
 import { describePolicy } from "../learning/ontology.js";
 import { getTrustScoresBulk } from "../learning/trust-score.js";
@@ -53,6 +53,12 @@ const EMAIL_ID_TOOLS = new Set([
   "reply_to_email",
 ]);
 
+// Manual overrides accept the full vocabulary: the web board renders MEETING
+// as a column and INFO as a strip whenever items exist (2026-08-18), and the
+// desktop shows v2 rows when nonzero — nothing can vanish into a blind lane
+// any more.
+const OVERRIDABLE_TIERS = ["SILENT", "INFO", "QUEUE", "MEETING", "PUSH", "AUTO"] as const;
+
 const overrideBodySchema = {
   type: "object",
   additionalProperties: false,
@@ -60,7 +66,7 @@ const overrideBodySchema = {
   properties: {
     tier: {
       type: "string",
-      enum: TIERS,
+      enum: OVERRIDABLE_TIERS,
     },
   },
 } as const;
@@ -491,7 +497,9 @@ export async function firewallRoutes(app: FastifyInstance) {
 
       const tiers: Record<Tier, FirewallItem[]> = {
         SILENT: [],
+        INFO: [],
         QUEUE: [],
+        MEETING: [],
         PUSH: [],
         AUTO: [],
       };
@@ -649,7 +657,9 @@ export async function firewallRoutes(app: FastifyInstance) {
         tiers,
         summary: {
           SILENT: tiers.SILENT.length,
+          INFO: tiers.INFO.length,
           QUEUE: tiers.QUEUE.length,
+          MEETING: tiers.MEETING.length,
           PUSH: tiers.PUSH.length,
           AUTO: tiers.AUTO.length,
           total: scopedItems.length,

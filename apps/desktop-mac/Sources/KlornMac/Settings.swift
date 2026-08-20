@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 
@@ -12,7 +13,14 @@ final class AppSettings {
     static let shortcutKey = "klorn.toggleShortcut"
     static let showInDockKey = "klorn.showInDock"
     static let fullWindowSizeKey = "klorn.fullWindowSize"
+    static let expandedWindowSizeKey = "klorn.expandedWindowSize"
     static let hasLaunchedKey = "klorn.hasLaunchedBefore"
+    static let loadRemoteImagesKey = "klorn.mail.loadRemoteImages"
+    static let appearanceKey = "klorn.appearance"
+    static let inboxSectionHeightKey = "klorn.inboxSectionHeight"
+    static let upcomingSectionHeightKey = "klorn.upcomingSectionHeight"
+    static let todaySectionHeightKey = "klorn.todaySectionHeight"
+    static let accountSectionHeightKey = "klorn.sidebar.accountHeight"
 
     private let defaults: UserDefaults
 
@@ -35,6 +43,44 @@ final class AppSettings {
     /// count always updates regardless — this only gates the system banner.
     var notificationsEnabled: Bool {
         didSet { defaults.set(notificationsEnabled, forKey: Self.notificationsKey) }
+    }
+
+    /// Whether HTML mail may fetch remote resources (images, styles). ON by
+    /// default — the founder call is real rendering first — but turning it
+    /// off blocks every network load in the reading webview (tracking
+    /// pixels, CSS beacons); data:-inline images keep working.
+    var loadRemoteImages: Bool {
+        didSet { defaults.set(loadRemoteImages, forKey: Self.loadRemoteImagesKey) }
+    }
+
+    /// App appearance: follow the OS, or force light/dark. Applied via
+    /// NSApp.appearance (nil = system) by the launch wiring and on change.
+    var appearance: AppearanceChoice {
+        didSet {
+            defaults.set(appearance.rawValue, forKey: Self.appearanceKey)
+            onAppearanceChanged?(appearance)
+        }
+    }
+
+    /// Fired when the appearance choice changes (wired at launch, not persisted).
+    var onAppearanceChanged: ((AppearanceChoice) -> Void)?
+
+    /// User-dragged height of the sidebar's ACCOUNT section. The TODAY/
+    /// UPCOMING region flexes to absorb whatever this gives or takes.
+    var accountSectionHeight: Double {
+        didSet { defaults.set(accountSectionHeight, forKey: Self.accountSectionHeightKey) }
+    }
+
+    var todaySectionHeight: Double {
+        didSet { defaults.set(todaySectionHeight, forKey: Self.todaySectionHeightKey) }
+    }
+
+    var inboxSectionHeight: Double {
+        didSet { defaults.set(inboxSectionHeight, forKey: Self.inboxSectionHeightKey) }
+    }
+
+    var upcomingSectionHeight: Double {
+        didSet { defaults.set(upcomingSectionHeight, forKey: Self.upcomingSectionHeightKey) }
     }
 
     /// Whether the collapsed pill stays on screen. OFF = ambient-invisible mode:
@@ -63,6 +109,17 @@ final class AppSettings {
             defaults.set(
                 ["width": Double(size.width), "height": Double(size.height)],
                 forKey: Self.fullWindowSizeKey)
+        }
+    }
+
+    /// The expanded panel's user-chosen size — same contract as
+    /// `fullWindowSize`, one slot per resizable state.
+    var expandedWindowSize: NSSize? {
+        didSet {
+            guard let size = expandedWindowSize else { return }
+            defaults.set(
+                ["width": Double(size.width), "height": Double(size.height)],
+                forKey: Self.expandedWindowSizeKey)
         }
     }
 
@@ -128,11 +185,23 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.notificationsEnabled = Self.resolveNotifications(defaults.object(forKey: Self.notificationsKey))
+        self.loadRemoteImages = Self.resolveLoadRemoteImages(defaults.object(forKey: Self.loadRemoteImagesKey))
+        self.appearance = Self.resolveAppearance(defaults.object(forKey: Self.appearanceKey))
+        self.accountSectionHeight = Self.resolveAccountSectionHeight(
+            defaults.object(forKey: Self.accountSectionHeightKey))
+        self.todaySectionHeight = Self.resolveTodaySectionHeight(
+            defaults.object(forKey: Self.todaySectionHeightKey))
+        self.inboxSectionHeight = Self.resolveInboxSectionHeight(
+            defaults.object(forKey: Self.inboxSectionHeightKey))
+        self.upcomingSectionHeight = Self.resolveUpcomingSectionHeight(
+            defaults.object(forKey: Self.upcomingSectionHeightKey))
         self.showInDock = Self.resolveShowInDock(defaults.object(forKey: Self.showInDockKey))
         self.pillVisible = Self.resolvePillVisible(defaults.object(forKey: Self.pillVisibleKey))
         self.shortcut = Self.resolveShortcut(defaults.object(forKey: Self.shortcutKey))
         self.fullWindowSize = Self.resolveFullWindowSize(
             defaults.object(forKey: Self.fullWindowSizeKey), floor: TopBarMetrics.fullMin)
+        self.expandedWindowSize = Self.resolveFullWindowSize(
+            defaults.object(forKey: Self.expandedWindowSizeKey), floor: TopBarMetrics.expandedMin)
     }
 
     /// Restore a stored {width,height}; malformed → nil (the screen-fitted
@@ -178,6 +247,41 @@ final class AppSettings {
         (stored as? Bool) ?? true
     }
 
+    nonisolated static func resolveLoadRemoteImages(_ stored: Any?) -> Bool {
+        (stored as? Bool) ?? true
+    }
+
+    nonisolated static func resolveAppearance(_ stored: Any?) -> AppearanceChoice {
+        AppearanceChoice(rawValue: stored as? String ?? "") ?? .system
+    }
+
+    /// Clamp so a wild stored value can never crush the mail list or push the
+    /// account actions off-screen. Pure.
+    nonisolated static func resolveAccountSectionHeight(_ stored: Any?) -> Double {
+        let raw = (stored as? NSNumber)?.doubleValue ?? (stored as? Double) ?? 260
+        return min(max(raw, 140), 460)
+    }
+    /// TODAY(브리핑+오늘) section height — same clamp discipline as the
+    /// account section: a stored junk value can't collapse or explode the
+    /// sidebar. Pure.
+    nonisolated static func resolveTodaySectionHeight(_ stored: Any?) -> Double {
+        let raw = (stored as? NSNumber)?.doubleValue ?? (stored as? Double) ?? 240
+        return min(max(raw, 120), 520)
+    }
+    /// 수신함 nav cap — default generous so nothing changes until dragged.
+    nonisolated static func resolveInboxSectionHeight(_ stored: Any?) -> Double {
+        let raw = (stored as? NSNumber)?.doubleValue ?? (stored as? Double) ?? 620
+        return min(max(raw, 180), 800)
+    }
+
+    /// 예정(UPCOMING) cap — same clamp discipline.
+    nonisolated static func resolveUpcomingSectionHeight(_ stored: Any?) -> Double {
+        let raw = (stored as? NSNumber)?.doubleValue ?? (stored as? Double) ?? 300
+        return min(max(raw, 100), 600)
+    }
+
+
+
     /// Default ON (pill shown) when never set; otherwise honor the stored flag. Pure.
     nonisolated static func resolvePillVisible(_ stored: Any?) -> Bool {
         (stored as? Bool) ?? true
@@ -195,5 +299,30 @@ final class AppSettings {
 enum AppInfo {
     static var version: String {
         (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "dev"
+    }
+}
+
+
+/// The three appearance options. `nsAppearance` is what NSApp.appearance
+/// takes: nil = inherit the system.
+enum AppearanceChoice: String, CaseIterable, Sendable {
+    case system
+    case light
+    case dark
+
+    var nsAppearance: NSAppearance? {
+        switch self {
+        case .system: nil
+        case .light: NSAppearance(named: .aqua)
+        case .dark: NSAppearance(named: .darkAqua)
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .system: L("appearance.system")
+        case .light: L("appearance.light")
+        case .dark: L("appearance.dark")
+        }
     }
 }

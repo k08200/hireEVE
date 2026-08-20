@@ -4,7 +4,7 @@ import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { forwardRef, useId } from "react";
 
 const baseStyles =
-  "w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25 transition-colors";
+  "w-full bg-surface-panel border border-line rounded-lg px-4 py-2.5 text-sm text-ink placeholder-ink-dim focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25 transition-colors";
 
 const errorStyles = "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30";
 
@@ -27,7 +27,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div>
         {label && (
-          <label htmlFor={inputId} className="block text-xs font-medium text-slate-500 mb-1.5">
+          <label htmlFor={inputId} className="block text-xs font-medium text-ink-mid mb-1.5">
             {label}
           </label>
         )}
@@ -61,7 +61,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div>
         {label && (
-          <label htmlFor={inputId} className="block text-xs font-medium text-slate-500 mb-1.5">
+          <label htmlFor={inputId} className="block text-xs font-medium text-ink-mid mb-1.5">
             {label}
           </label>
         )}
@@ -95,7 +95,7 @@ export function Select({ label, error, children, className = "", id, ...props }:
   return (
     <div>
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-medium text-slate-500 mb-1.5">
+        <label htmlFor={inputId} className="block text-xs font-medium text-ink-mid mb-1.5">
           {label}
         </label>
       )}

@@ -129,7 +129,7 @@ function ToastItem({
           ? "bg-green-700 text-white"
           : toast.type === "error"
             ? "bg-red-700 text-white"
-            : "bg-surface-elevated text-slate-900 border border-slate-200"
+            : "bg-surface-elevated text-ink border border-line"
       }`}
     >
       <span className="min-w-0 flex-1">{toast.message}</span>

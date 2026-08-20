@@ -22,12 +22,21 @@ struct AutomationSettings: Decodable, Sendable, Equatable {
     var notifyEmailCandidate: Bool
     var quietHoursStart: String?
     var quietHoursEnd: String?
+    /// Ontology v2 attention mode: BASIC = notify important + meetings only,
+    /// human answers; AUTO = Klorn also answers eligible routine mail per the
+    /// guideline. Server-normalized; unknown decodes as BASIC.
+    var attentionMode: AttentionMode
+    /// The user's standing reply guideline (nil = the founder default applies)
+    /// and the default itself, for prefilling the editor.
+    var autoReplyGuideline: String?
+    var autoReplyGuidelineDefault: String?
 
     enum CodingKeys: String, CodingKey {
         case agentMode, replyTone
         case notifyEmailUrgent, notifyMeeting, notifyTaskDue
         case notifyAgentProposal, notifyDailyBriefing, notifyEmailCandidate
         case quietHoursStart, quietHoursEnd
+        case attentionMode, autoReplyGuideline, autoReplyGuidelineDefault
     }
 
     init(from decoder: Decoder) throws {
@@ -42,6 +51,12 @@ struct AutomationSettings: Decodable, Sendable, Equatable {
         notifyEmailCandidate = (try? c.decode(Bool.self, forKey: .notifyEmailCandidate)) ?? true
         quietHoursStart = try? c.decodeIfPresent(String.self, forKey: .quietHoursStart)
         quietHoursEnd = try? c.decodeIfPresent(String.self, forKey: .quietHoursEnd)
+        attentionMode =
+            AttentionMode(rawValue: (try? c.decode(String.self, forKey: .attentionMode)) ?? "")
+            ?? .basic
+        autoReplyGuideline = try? c.decodeIfPresent(String.self, forKey: .autoReplyGuideline)
+        autoReplyGuidelineDefault = try? c.decodeIfPresent(
+            String.self, forKey: .autoReplyGuidelineDefault)
     }
 
     /// Server defaults, used before the first fetch lands so the panel renders
@@ -56,8 +71,14 @@ struct AutomationSettings: Decodable, Sendable, Equatable {
         notifyDailyBriefing: Bool = true,
         notifyEmailCandidate: Bool = true,
         quietHoursStart: String? = nil,
-        quietHoursEnd: String? = nil
+        quietHoursEnd: String? = nil,
+        attentionMode: AttentionMode = .basic,
+        autoReplyGuideline: String? = nil,
+        autoReplyGuidelineDefault: String? = nil
     ) {
+        self.attentionMode = attentionMode
+        self.autoReplyGuideline = autoReplyGuideline
+        self.autoReplyGuidelineDefault = autoReplyGuidelineDefault
         self.agentMode = agentMode
         self.replyTone = replyTone
         self.notifyEmailUrgent = notifyEmailUrgent
@@ -106,6 +127,26 @@ enum AgentMode: String, CaseIterable, Sendable {
 /// Founder decision (2026-07-28): this is a separate axis from the
 /// accept/decline/info reply keys — picking a tone here changes how all three
 /// of those drafts sound, it does not replace them.
+/// Ontology v2 account mode. Mirrors learning/auto-reply-guideline.ts.
+enum AttentionMode: String, CaseIterable, Sendable {
+    case basic = "BASIC"
+    case auto = "AUTO"
+
+    var label: String {
+        switch self {
+        case .basic: return L("mode.basic")
+        case .auto: return L("mode.auto")
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .basic: return L("mode.basic.detail")
+        case .auto: return L("mode.auto.detail")
+        }
+    }
+}
+
 enum ReplyTone: String, CaseIterable, Sendable {
     case matchMe = "MATCH_ME"
     case formal = "FORMAL"
@@ -238,6 +279,11 @@ extension AutomationSettings {
         var payload: [String: Any] = [
             "agentMode": agentMode.rawValue,
             "replyTone": replyTone.rawValue,
+            "attentionMode": attentionMode.rawValue,
+            // Send "" when the user cleared it: the server maps empty → null
+            // (= founder default). Omitting the key would silently keep the
+            // old guideline after a clear.
+            "autoReplyGuideline": autoReplyGuideline ?? "",
         ]
         for category in NotifyCategory.all {
             payload[category.id] = category.read(self)

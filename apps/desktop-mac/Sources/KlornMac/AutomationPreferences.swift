@@ -11,9 +11,85 @@ struct AutomationPreferences: View {
 
     var body: some View {
         Group {
+            section(L("mode.section")) { attentionModeSection }
             section(L("auto.section.behaviour")) { modeSection }
             section(L("auto.section.replies")) { replySection }
             section(L("auto.section.interrupts")) { notificationSection }
+        }
+    }
+
+    // MARK: Attention mode (기본 / auto) — the founder's headline switch, so
+    // it leads the panel. BASIC = notify important mail + meetings only, the
+    // human answers; AUTO = Klorn also answers eligible routine mail per the
+    // guideline below (server enforces eligibility + entitlement).
+
+    @State private var guidelineDraft = ""
+    @State private var guidelineLoaded = false
+
+    @ViewBuilder
+    private var attentionModeSection: some View {
+        VStack(alignment: .leading, spacing: Theme.s2) {
+            ForEach(AttentionMode.allCases, id: \.self) { mode in
+                ChoiceRow(
+                    title: mode.label,
+                    detail: mode.explanation,
+                    selected: model.automation.attentionMode == mode,
+                    disabled: model.automationSaving
+                ) {
+                    model.updateAutomation { $0.attentionMode = mode }
+                }
+            }
+            if model.automation.attentionMode == .auto {
+                Text(L("mode.guideline")).font(.body).foregroundStyle(Theme.text)
+                    .padding(.top, Theme.s2)
+                Text(L("mode.guideline.detail"))
+                    .font(.caption).foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+                if Theme.isRenderingOffscreen {
+                    Text(guidelineDraft.isEmpty ? L("mode.guideline") : guidelineDraft)
+                        .font(.callout).foregroundStyle(Theme.textDim)
+                        .frame(maxWidth: .infinity, minHeight: 64, alignment: .topLeading)
+                        .padding(6)
+                        .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.field))
+                } else {
+                    TextEditor(text: $guidelineDraft)
+                        .font(.callout)
+                        .frame(minHeight: 88, maxHeight: 140)
+                        .scrollContentBackground(.hidden)
+                        .padding(4)
+                        .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.field))
+                        .accessibilityLabel(L("mode.guideline"))
+                }
+                HStack(spacing: Theme.s2) {
+                    Button(L("mode.guideline.save")) {
+                        let trimmed = guidelineDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                        model.updateAutomation { $0.autoReplyGuideline = trimmed.isEmpty ? nil : trimmed }
+                    }
+                    .buttonStyle(.bordered).controlSize(.small)
+                    .disabled(model.automationSaving)
+                    Text(L("mode.guideline.resetHint"))
+                        .font(.caption2).foregroundStyle(Theme.textDim)
+                }
+            }
+        }
+        .onChange(of: model.automation.autoReplyGuideline, initial: true) { _, _ in
+            seedGuidelineDraft()
+        }
+        .onChange(of: model.automation.autoReplyGuidelineDefault) { _, _ in
+            seedGuidelineDraft()
+        }
+    }
+
+    /// Prefill once per fresh server state: the user's override, else the
+    /// founder default — the default is the editable starting draft.
+    private func seedGuidelineDraft() {
+        let server = model.automation.autoReplyGuideline
+            ?? model.automation.autoReplyGuidelineDefault ?? ""
+        if !guidelineLoaded || guidelineDraft.isEmpty {
+            guidelineDraft = server
+            guidelineLoaded = true
         }
     }
 

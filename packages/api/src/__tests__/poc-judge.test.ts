@@ -346,7 +346,9 @@ describe("judgeEmail fast-path", () => {
     expect(result.source).not.toBe("fast-path");
     // Without LLM, the keyword fallback marks this as a system notification
     // (senderTrust 0.4) → falls through to the QUEUE default branch.
-    expect(result.tier).toBe("QUEUE");
+    // v2 (default since 2026-08-18): a calm system notification files as
+    // INFO — still visible (strip), never interrupts, never auto-replied.
+    expect(result.tier).toBe("INFO");
   });
 
   it("does NOT fast-path own-product signup notifications", async () => {

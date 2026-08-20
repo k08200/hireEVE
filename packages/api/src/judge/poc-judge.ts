@@ -32,6 +32,7 @@ import { parseLlmJson } from "../llm/llm-json.js";
 import { describeErrorChain } from "../llm/model-fallback.js";
 import { createCompletion, JUDGE_MODEL } from "../llm/openai.js";
 import { resolveNotificationLanguage } from "../notify/notification-strings.js";
+import { tierV2Enabled } from "../ops/feature-flags.js";
 import type { ProviderCredentials } from "../providers/index.js";
 import { captureError } from "../sentry.js";
 import { wrapUntrusted } from "../untrusted.js";
@@ -42,12 +43,14 @@ import { resolveEscalation } from "./judge-dial.js";
 import {
   ACCOUNT_ALERT_ACTION_RE,
   ACCOUNT_CONFIRMATION_RE,
+  detectSchedulingIntent,
+  detectTransactionalNotice,
   isAutomatedSender,
   isClearMarketing,
   keywordFeatures,
   looksUrgent,
 } from "./keyword-policy.js";
-import { type TierFeatures, tierFromFeatures } from "./tier-policy.js";
+import { type TierFeatures, tierFromFeatures, tierFromFeaturesV2 } from "./tier-policy.js";
 import { TIERS, type Tier } from "./tiers.js";
 
 export type { CorrectionExample, SenderFacts, SenderPrior } from "../learning/sender-policy.js";
@@ -80,6 +83,8 @@ export interface PocJudgement {
   features: PocFeatures;
   /** Which path produced this judgement — useful for accuracy diffs. */
   source: "fast-path" | "sender-prior" | "learned-rule" | "llm" | "keyword-fallback";
+  /** v2 only: may Klorn answer this unattended? Absent/false under v1. */
+  autoEligible?: boolean;
 }
 
 // CorrectionExample, SenderPrior, and SenderFacts are the sender-knowledge
@@ -672,7 +677,34 @@ function applyAutomatedSenderFloors(
       );
     }
   }
-  return applyAutomatedSenderPushFloor(email.from, decision);
+  return applySpamFloor(email.labels, applyAutomatedSenderPushFloor(email.from, decision));
+}
+
+/** Gmail put this message in spam. Pure for the tests. */
+export function hasSpamLabel(labels: string[] | undefined): boolean {
+  return labels?.includes("SPAM") ?? false;
+}
+
+/**
+ * Spam-lane floor (SPAM_INTAKE_ENABLED, docs: the value of syncing spam is
+ * catching FALSE POSITIVES — real mail Gmail wrongly spammed). Such mail must
+ * be VISIBLE (so it lands QUEUE, never SILENT-hidden) but must never
+ * interrupt: spam is the most attacker-dense input there is, and a crafted
+ * "urgent" spam earning a push notification would be a free interruption
+ * channel. Callers also force autoEligible=false for spam — an unattended
+ * reply to spam confirms the address to the spammer. Pure, exported for the
+ * tests; a no-op while the intake flag is off (no SPAM rows exist).
+ */
+export function applySpamFloor(
+  labels: string[] | undefined,
+  decision: { tier: Tier; reason: string },
+): { tier: Tier; reason: string } {
+  if (!hasSpamLabel(labels)) return decision;
+  if (decision.tier !== "PUSH" && decision.tier !== "MEETING") return decision;
+  return {
+    tier: "QUEUE",
+    reason: "Gmail marked this spam — surfaced for review, never interrupts",
+  };
 }
 
 /**
@@ -770,23 +802,67 @@ export async function judgeEmail(
       );
     }
     const features = applyRoutineConfirmationCap(email, llm.features);
-    const { tier, reason: ruleReason } = tierFromFeatures(features, getEffectiveThresholds());
+    const decided = decideTier(email, features);
     const floored = applyAutomatedSenderFloors(email, {
-      tier,
-      reason: llm.reason || ruleReason,
+      tier: decided.tier,
+      reason: llm.reason || decided.reason,
     });
     return {
       tier: floored.tier,
       reason: floored.reason,
       features,
       source: "llm",
+      autoEligible:
+        eligibleAfterFloor(decided.autoEligible, floored.tier) && !hasSpamLabel(email.labels),
     };
   }
 
   const features = applyRoutineConfirmationCap(email, keywordFeatures(email));
+  const decided = decideTier(email, features);
+  const floored = applyAutomatedSenderFloors(email, decided);
+  return {
+    tier: floored.tier,
+    reason: floored.reason,
+    features,
+    source: "keyword-fallback",
+    autoEligible:
+      eligibleAfterFloor(decided.autoEligible, floored.tier) && !hasSpamLabel(email.labels),
+  };
+}
+
+/**
+ * autoEligible is only meaningful on the human-answerable lanes. The floors
+ * above can rewrite the tier AFTER the rule computed eligibility (CI-noise →
+ * SILENT, automated PUSH → QUEUE stays fine) — without this guard an item
+ * could persist as tier=SILENT + autoEligible=true and later be picked up by
+ * the auto-mode send path. Pure, exported for the tests.
+ */
+export function eligibleAfterFloor(eligible: boolean, finalTier: Tier): boolean {
+  return eligible && (finalTier === "QUEUE" || finalTier === "MEETING");
+}
+
+/**
+ * Rule dispatch: v1 4-tier while TIER_V2_ENABLED is off; v2 5-tier +
+ * autoEligible when on. Both read the same effective thresholds, so ontology
+ * overrides apply either way. Applied to the SCORING paths only — fast-path,
+ * sender-prior, and learned-rule short-circuits above bypass it by design.
+ */
+function decideTier(
+  email: ClassifiableEmail,
+  features: PocFeatures,
+): { tier: Tier; reason: string; autoEligible: boolean } {
+  if (tierV2Enabled()) {
+    return tierFromFeaturesV2(
+      features,
+      {
+        scheduling: detectSchedulingIntent(email),
+        transactional: detectTransactionalNotice(email),
+      },
+      getEffectiveThresholds(),
+    );
+  }
   const { tier, reason } = tierFromFeatures(features, getEffectiveThresholds());
-  const floored = applyAutomatedSenderFloors(email, { tier, reason });
-  return { tier: floored.tier, reason: floored.reason, features, source: "keyword-fallback" };
+  return { tier, reason, autoEligible: false };
 }
 
 /**

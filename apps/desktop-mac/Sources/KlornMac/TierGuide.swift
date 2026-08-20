@@ -13,8 +13,10 @@ extension Tier {
     var blurb: String {
         switch self {
         case .push: L("tier.push.blurb")
+        case .meeting: L("tier.meeting.blurb")
         case .queue: L("tier.queue.blurb")
         case .silent: L("tier.silent.blurb")
+        case .info: L("tier.info.blurb")
         case .auto: L("tier.auto.blurb")
         }
     }
@@ -24,8 +26,10 @@ extension Tier {
     var emptyTitle: String {
         switch self {
         case .push: L("tier.push.empty")
+        case .meeting: L("tier.meeting.empty")
         case .queue: L("tier.queue.empty")
         case .silent: L("tier.silent.empty")
+        case .info: L("tier.info.empty")
         case .auto: L("tier.auto.empty")
         }
     }
@@ -33,8 +37,10 @@ extension Tier {
     var emptyIcon: String {
         switch self {
         case .push: "checkmark.shield"
+        case .meeting: "calendar"
         case .queue: "tray"
         case .silent: "moon"
+        case .info: "archivebox"
         case .auto: "sparkles"
         }
     }
@@ -61,13 +67,20 @@ struct TierGuide: View {
             }
             .padding(.bottom, Theme.s2)
 
+            // What the "inbox" column even IS — the founder-reported confusion
+            // (2026-08-15) was the name collision: our 수신함/INBOX is the
+            // triage RESULT, not the raw Gmail inbox. Say that first.
+            Text(L("guide.pipeline"))
+                .font(.callout).foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, Theme.s2)
             Text(L("guide.intro"))
                 .font(.callout).foregroundStyle(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, Theme.s4)
 
             VStack(alignment: .leading, spacing: Theme.s3) {
-                ForEach(Tier.displayOrder) { tier in
+                ForEach(Tier.coreOrder) { tier in
                     HStack(alignment: .top, spacing: Theme.s3) {
                         Circle().fill(Theme.tint(tier))
                             .frame(width: 8, height: 8).padding(.top, 6)

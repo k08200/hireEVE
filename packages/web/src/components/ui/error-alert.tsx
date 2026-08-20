@@ -16,7 +16,9 @@ interface ErrorAlertProps {
  * Shared error surface so every page does not invent its own
  * `rounded-lg border border-red-200 bg-red-50 ...` block.
  *
- * Audited 2026-05-19: at least 8 pages reimplemented this from scratch.
+ * Single error surface as of 2026-08-13 — all boxed inline reimplementations
+ * were migrated to this component. New error boxes should use it directly
+ * instead of hand-rolling the border/bg pattern again.
  * Relit for the light+sky v2 system 2026-07-22.
  */
 export default function ErrorAlert({
@@ -43,7 +45,7 @@ export default function ErrorAlert({
         <button
           type="button"
           onClick={onRetry}
-          className="ease-strong mt-3 inline-flex min-h-11 items-center rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+          className="ease-strong mt-3 inline-flex min-h-11 items-center rounded-md border border-red-200 bg-surface-panel px-3 py-1.5 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
         >
           Try again
         </button>

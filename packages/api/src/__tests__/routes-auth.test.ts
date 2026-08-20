@@ -942,6 +942,139 @@ describe("POST /api/auth/login — per-account lockout", () => {
   });
 });
 
+// ── bcrypt cost migration-on-login ─────
+describe("POST /api/auth/login — legacy hash upgrade", () => {
+  beforeEach(async () => {
+    resetStores();
+    const { _resetLoginThrottleForTests } = await import("../security/login-throttle.js");
+    _resetLoginThrottleForTests();
+  });
+
+  it("rehashes a legacy cost-10 hash to cost 12 on successful login (CAS-guarded)", async () => {
+    const bcrypt = (await import("bcryptjs")).default;
+    const legacyHash = await bcrypt.hash("correcthorsebattery", 10);
+    userStore.set("user-1", {
+      id: "user-1",
+      email: "legacy@example.com",
+      passwordHash: legacyHash,
+      name: null,
+      plan: "FREE",
+      role: "USER",
+    });
+    userByEmail.set("legacy@example.com", "user-1");
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "legacy@example.com", password: "correcthorsebattery" },
+    });
+    expect(res.statusCode).toBe(200);
+
+    // The rehash is fire-and-forget — wait for the guarded write to land.
+    const { prisma } = await import("../db.js");
+    await vi.waitFor(() => {
+      expect(prisma.user.updateMany).toHaveBeenCalled();
+    });
+    const call = vi.mocked(prisma.user.updateMany).mock.calls.at(-1)?.[0] as {
+      where: { id: string; passwordHash: string };
+      data: { passwordHash: string };
+    };
+    // CAS guard: only replace the exact hash we verified, so a concurrent
+    // password change is never clobbered.
+    expect(call.where).toEqual({ id: "user-1", passwordHash: legacyHash });
+    expect(bcrypt.getRounds(call.data.passwordHash)).toBe(12);
+    expect(await bcrypt.compare("correcthorsebattery", call.data.passwordHash)).toBe(true);
+    await app.close();
+  });
+
+  it("does not rehash when the hash is already at the current cost", async () => {
+    const { prisma } = await import("../db.js");
+    const app = await buildApp();
+    await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "fresh@example.com", password: "correcthorsebattery" },
+    });
+    vi.mocked(prisma.user.updateMany).mockClear();
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "fresh@example.com", password: "correcthorsebattery" },
+    });
+    expect(res.statusCode).toBe(200);
+    // Give any stray fire-and-forget a tick to surface, then assert none.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it("caps the background rehash at one per user under concurrent logins", async () => {
+    const bcrypt = (await import("bcryptjs")).default;
+    const { prisma } = await import("../db.js");
+    const legacyHash = await bcrypt.hash("correcthorsebattery", 10);
+    userStore.set("user-1", {
+      id: "user-1",
+      email: "legacy@example.com",
+      passwordHash: legacyHash,
+      name: null,
+      plan: "FREE",
+      role: "USER",
+    });
+    userByEmail.set("legacy@example.com", "user-1");
+    vi.mocked(prisma.user.updateMany).mockClear();
+
+    const app = await buildApp();
+    const results = await Promise.all(
+      Array.from({ length: 3 }, () =>
+        app.inject({
+          method: "POST",
+          url: "/api/auth/login",
+          payload: { email: "legacy@example.com", password: "correcthorsebattery" },
+        }),
+      ),
+    );
+    for (const res of results) expect(res.statusCode).toBe(200);
+
+    await vi.waitFor(() => {
+      expect(prisma.user.updateMany).toHaveBeenCalled();
+    });
+    // The in-flight guard admits exactly one background hash; the two other
+    // logins must skip instead of stacking additional cost-12 work.
+    await new Promise((r) => setTimeout(r, 100));
+    expect(vi.mocked(prisma.user.updateMany).mock.calls.length).toBe(1);
+    await app.close();
+  });
+
+  it("does not rehash on a failed login", async () => {
+    const bcrypt = (await import("bcryptjs")).default;
+    const { prisma } = await import("../db.js");
+    const legacyHash = await bcrypt.hash("correcthorsebattery", 10);
+    userStore.set("user-1", {
+      id: "user-1",
+      email: "legacy@example.com",
+      passwordHash: legacyHash,
+      name: null,
+      plan: "FREE",
+      role: "USER",
+    });
+    userByEmail.set("legacy@example.com", "user-1");
+    vi.mocked(prisma.user.updateMany).mockClear();
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: { email: "legacy@example.com", password: "wrong" },
+    });
+    expect(res.statusCode).toBe(401);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+    await app.close();
+  });
+});
+
 // ── Demo account lockout (public fixed-credential auth bypass) ─────
 // The seeded demo-user (demo@klorn.ai / "demo") must not be a login target
 // unless demo access is explicitly enabled in a non-prod environment.

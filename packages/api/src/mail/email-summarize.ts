@@ -66,6 +66,133 @@ export function parseAiSummary(content: string, fallbackSubject: string): AISumm
   };
 }
 
+const DETAILED_BODY_LIMIT = 8000;
+
+/**
+ * On-demand detailed re-summary of ONE email (reading-pane "AI 정리" button,
+ * founder 2026-08-20). Same persisted columns as the batch pass — this call
+ * just reads more of the body, allows more/longer keyPoints, and writes the
+ * output in the requested UI language. Returns null when no provider chain is
+ * configured (env key or BYOK) so the route can answer 503 instead of 500.
+ */
+export async function summarizeEmailOnDemand(
+  userId: string,
+  email: {
+    id: string;
+    from: string;
+    subject: string;
+    body: string | null;
+    htmlBody: string | null;
+    snippet: string | null;
+    labels: string[];
+    priority: string | null;
+  },
+  lang: "en" | "ko",
+): Promise<(AISummaryResult & { needsReply: boolean; needsReplyReason: string | null }) | null> {
+  const credentials = await getUserLlmCredentials(userId);
+  if (getProviderChain(credentials).length === 0) return null;
+
+  const body =
+    email.body || (email.htmlBody ? htmlToPlainText(email.htmlBody) : "") || email.snippet || "";
+  // Read deeper than the batch pass (3000): the user explicitly asked for a
+  // thorough read of THIS email, and it is one foreground call, not a sweep.
+  const truncatedBody =
+    body.length > DETAILED_BODY_LIMIT
+      ? body.slice(0, DETAILED_BODY_LIMIT) + "\n...(truncated)"
+      : body;
+
+  const response = await createCompletion(
+    {
+      model: MODEL,
+      temperature: 0.1,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: detailedAnalysisPrompt(lang) },
+        {
+          role: "user",
+          content: `From: ${wrapUntrusted(email.from, "email:from")}\nSubject: ${wrapUntrusted(email.subject, "email:subject")}\n\n${wrapUntrusted(truncatedBody, "email:body")}`,
+        },
+      ],
+    },
+    { userId, priority: "foreground", credentials },
+  );
+
+  const result = parseAiSummary(response.choices[0]?.message?.content || "{}", email.subject);
+  const userEmail = await resolveUserEmail(userId);
+  const persisted = await persistSummaryResult(email, result, userEmail);
+  return {
+    ...result,
+    priority: persisted.priority,
+    needsReply: persisted.needsReply,
+    needsReplyReason: persisted.needsReplyReason,
+  };
+}
+
+/** Same schema/decision rules as the batch prompt, relaxed for a deliberate
+ *  deep read: summary ≤160 chars, up to 6 keyPoints ≤90 chars keeping concrete
+ *  numbers/dates/names, actionItems naming the concrete move (+ deadline when
+ *  the email states one). Output language follows the user's UI. */
+function detailedAnalysisPrompt(lang: "en" | "ko"): string {
+  const language = lang === "ko" ? "Korean" : "English";
+  return `${EMAIL_ANALYSIS_PROMPT}
+
+## Detailed mode overrides (this request only)
+- summary: <=160 chars, still WHO + WHAT first
+- keyPoints: up to 6 bullets, each <=90 chars; PRESERVE concrete numbers, dates, amounts, names
+- actionItems: include the stated deadline in the phrase when the email names one
+- Write summary, keyPoints, and actionItems in ${language}. Keep the JSON keys and the category/sentiment/priority enum values exactly as specified above.`;
+}
+
+/** LOW-floor clamp + reply-signal derivation + column write shared by the
+ *  batch pass and the on-demand pass — one place decides what lands in the DB. */
+async function persistSummaryResult(
+  email: { id: string; from: string; subject: string; labels: string[]; priority: string | null },
+  result: AISummaryResult,
+  userEmail: string | null,
+): Promise<{
+  priority: AISummaryResult["priority"];
+  needsReply: boolean;
+  needsReplyReason: string | null;
+}> {
+  // Don't let AI upgrade LOW emails (ads/promotions) to ANY higher priority.
+  // The rule-based classifier already tagged this as LOW based on strong signals
+  // (CATEGORY_PROMOTIONS label, noreply sender, unsubscribe footer, etc.) — trust it
+  // over the AI which can be sycophantic on promo language.
+  const aiPriority =
+    email.priority === "LOW" && result.priority !== "LOW" ? "LOW" : result.priority;
+  const replyNeeded = classifyNeedsReplyFromSignals({
+    from: email.from,
+    subject: email.subject,
+    labels: email.labels,
+    category: result.category,
+    actionItems: result.actionItems,
+    priority: aiPriority,
+    userEmail,
+  });
+
+  await prisma.emailMessage.update({
+    where: { id: email.id },
+    data: {
+      summary: result.summary,
+      category: result.category,
+      // JSONB columns after migration 20260519040000 — pass the
+      // arrays directly. Prisma serializes into the column.
+      keyPoints: result.keyPoints,
+      actionItems: result.actionItems,
+      sentiment: result.sentiment,
+      priority: aiPriority,
+      needsReply: replyNeeded.needsReply,
+      needsReplyReason: replyNeeded.reason,
+      needsReplyConfidence: replyNeeded.confidence,
+    },
+  });
+  return {
+    priority: aiPriority,
+    needsReply: replyNeeded.needsReply,
+    needsReplyReason: replyNeeded.reason,
+  };
+}
+
 /**
  * Summarize a batch of emails using LLM.
  * Processes unsummarized emails for a user.
@@ -108,38 +235,7 @@ export async function summarizeUnsummarizedEmails(userId: string, limit = 10): P
         userId,
         credentials,
       );
-      // Don't let AI upgrade LOW emails (ads/promotions) to ANY higher priority.
-      // The rule-based classifier already tagged this as LOW based on strong signals
-      // (CATEGORY_PROMOTIONS label, noreply sender, unsubscribe footer, etc.) — trust it
-      // over the AI which can be sycophantic on promo language.
-      const aiPriority =
-        email.priority === "LOW" && result.priority !== "LOW" ? "LOW" : result.priority;
-      const replyNeeded = classifyNeedsReplyFromSignals({
-        from: email.from,
-        subject: email.subject,
-        labels: email.labels,
-        category: result.category,
-        actionItems: result.actionItems,
-        priority: aiPriority,
-        userEmail,
-      });
-
-      await prisma.emailMessage.update({
-        where: { id: email.id },
-        data: {
-          summary: result.summary,
-          category: result.category,
-          // JSONB columns after migration 20260519040000 — pass the
-          // arrays directly. Prisma serializes into the column.
-          keyPoints: result.keyPoints,
-          actionItems: result.actionItems,
-          sentiment: result.sentiment,
-          priority: aiPriority,
-          needsReply: replyNeeded.needsReply,
-          needsReplyReason: replyNeeded.reason,
-          needsReplyConfidence: replyNeeded.confidence,
-        },
-      });
+      await persistSummaryResult(email, result, userEmail);
       count++;
     } catch (err) {
       // The daily cost cap is expected back-pressure, not a per-email failure:

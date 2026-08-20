@@ -1,20 +1,37 @@
+import AppKit
 import SwiftUI
 
 enum Theme {
-    /// Canvas — web v2 `#f4f8fc`.
-    static let bg = Color(red: 0.957, green: 0.973, blue: 0.988)
+    /// Appearance-following color: AppKit resolves the closure against the
+    /// EFFECTIVE appearance at draw time, so every consumer of these tokens
+    /// flips with the app appearance (system / Preferences override) with no
+    /// per-view work. Light values are byte-identical to the pre-dark theme.
+    private static func dyn(
+        light: (r: Double, g: Double, b: Double, a: Double),
+        dark: (r: Double, g: Double, b: Double, a: Double)
+    ) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let c = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+            return NSColor(srgbRed: c.r, green: c.g, blue: c.b, alpha: c.a)
+        })
+    }
+
+    /// Canvas — web v2 `#f4f8fc`; dark mirrors the web's `#0b1120`.
+    static let bg = dyn(light: (0.957, 0.973, 0.988, 1), dark: (0.043, 0.067, 0.125, 1))
     /// The one interaction accent — CTAs, focus, selection, gauge. Everything
     /// "choose me / chosen" speaks in this; the brand marks themselves are B&W.
     /// Web v2 sky-500 `#0ea5e9`.
     static let accent = Color(red: 0.055, green: 0.647, blue: 0.914)
-    /// Deep end of the accent gradient (gauge fill etc.) — sky-600 `#0284c7`.
-    static let accentDeep = Color(red: 0.008, green: 0.518, blue: 0.780)
-    /// slate-200-grade hairline on the white glass panel.
-    static let line = Color.black.opacity(0.08)
+    /// Deep end of the accent gradient (gauge fill etc.) — sky-600 `#0284c7`
+    /// in light; brightens to sky-400 in the dark like the web's accent-deep.
+    static let accentDeep = dyn(light: (0.008, 0.518, 0.780, 1), dark: (0.220, 0.741, 0.973, 1))
+    /// slate-200-grade hairline on the glass panel; faint white line in dark.
+    static let line = dyn(light: (0, 0, 0, 0.08), dark: (1, 1, 1, 0.10))
 
     /// The top bar is always a LIGHT floating surface regardless of system
     /// appearance, so its text uses explicit slate tones (not semantic colors).
-    static let panel = Color.white.opacity(panelDefaultOpacity)
+    static let panel = dyn(
+        light: (1, 1, 1, panelDefaultOpacity), dark: (0.086, 0.129, 0.227, panelDefaultOpacity))
     static let panelDefaultOpacity = 0.92
 
     /// Panel fill opacity: fully opaque when the user asked to reduce transparency
@@ -23,19 +40,19 @@ enum Theme {
     static func panelOpacity(reduceTransparency: Bool) -> Double {
         reduceTransparency ? 1.0 : panelDefaultOpacity
     }
-    /// slate-900 `#0f172a`.
-    static let text = Color(red: 0.059, green: 0.090, blue: 0.165)
+    /// slate-900 `#0f172a` on light; slate-100 in the dark.
+    static let text = dyn(light: (0.059, 0.090, 0.165, 1), dark: (0.945, 0.961, 0.976, 1))
     /// Secondary text — slate-600 `#475569`. Was slate-500, which measured
     /// 4.09:1 on a raised card over the canvas (below the WCAG AA 4.5:1 text
     /// floor; caption sizes never qualify as "large text"). slate-600 clears
     /// every panel/raised stack with margin (~6.5:1 worst case). Never thin
     /// this with `.opacity()` on the color — the self-check bans the pattern.
-    static let textDim = Color(red: 0.278, green: 0.333, blue: 0.412)
+    static let textDim = dyn(light: (0.278, 0.333, 0.412, 1), dark: (0.561, 0.627, 0.722, 1))
 
     /// Input-field boundary. `line` (black@0.08 ≈ 1.2:1) is fine for decorative
     /// dividers but fails WCAG 1.4.11 (≥3:1) for a control boundary; 0.35 ≈ 3:1
     /// on the white panel. Use only where a control edge must be perceivable.
-    static let field = Color.black.opacity(0.35)
+    static let field = dyn(light: (0, 0, 0, 0.35), dark: (1, 1, 1, 0.45))
 
     /// The web engagement graph's "you engage with this sender" pink — reused by
     /// the reading pane's learned-engagement chip so desktop matches the web signal.
@@ -52,7 +69,11 @@ enum Theme {
     static func tint(_ tier: Tier) -> Color {
         switch tier {
         case .push: Color(red: 1.0, green: 0.30, blue: 0.34)
+        // v2 lanes: meeting sits near push in urgency (teal keeps it distinct
+        // from every v1 hue); info is records-gray, quieter than queue.
+        case .meeting: Color(red: 0.05, green: 0.60, blue: 0.55)
         case .queue: Color(red: 0.851, green: 0.467, blue: 0.024)
+        case .info: Color(red: 0.42, green: 0.47, blue: 0.55)
         case .silent: Color(red: 0.49, green: 0.53, blue: 0.59)
         case .auto: Color(red: 0.231, green: 0.510, blue: 0.965)
         }
@@ -60,7 +81,7 @@ enum Theme {
 
     /// Navy-tinted panel shadow — web v2 `rgba(2,60,110,0.22)`. One shadow
     /// color for every floating light surface.
-    static let panelShadow = Color(red: 0.008, green: 0.235, blue: 0.431).opacity(0.22)
+    static let panelShadow = dyn(light: (0.008, 0.235, 0.431, 0.22), dark: (0, 0, 0, 0.55))
 
     /// White glass tint, layered OVER the real blur material — a faint cool
     /// sky cast at the bottom keeps the surface from reading as flat paper.
@@ -69,8 +90,8 @@ enum Theme {
     static func panelGradient(opacity: Double) -> LinearGradient {
         LinearGradient(
             colors: [
-                Color.white.opacity(opacity * 0.99),
-                Color(red: 0.97, green: 0.98, blue: 0.995).opacity(opacity),
+                dyn(light: (1, 1, 1, opacity * 0.99), dark: (0.086, 0.129, 0.227, opacity * 0.99)),
+                dyn(light: (0.97, 0.98, 0.995, opacity), dark: (0.059, 0.098, 0.184, opacity)),
             ],
             startPoint: .top, endPoint: .bottom)
     }
@@ -85,8 +106,8 @@ enum Theme {
     // One opacity scale for every interactive rest→hover→selected state, so
     // "how raised is this?" reads consistently across the app. Never invent
     // ad-hoc `Color.white.opacity(…)` fills in views — pick a rung.
-    static let surfaceRaised = Color.black.opacity(0.04)   // cards, chips at rest
-    static let surfaceHover = Color.black.opacity(0.07)    // pointer feedback
+    static let surfaceRaised = dyn(light: (0, 0, 0, 0.04), dark: (1, 1, 1, 0.06))  // cards, chips at rest
+    static let surfaceHover = dyn(light: (0, 0, 0, 0.07), dark: (1, 1, 1, 0.10))  // pointer feedback
     /// Selection speaks in the accent — tinted fill (the accent bar still
     /// carries the hard edge, so selection is never color-alone).
     static let surfaceSelected = accent.opacity(0.12)
@@ -119,7 +140,7 @@ struct GlassMaterial: NSViewRepresentable {
 
     func makeNSView(context _: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.appearance = NSAppearance(named: .aqua)
+        // Inherit the app appearance — dark mode turns the glass dark.
         view.material = .popover
         view.blendingMode = .behindWindow
         view.state = .active

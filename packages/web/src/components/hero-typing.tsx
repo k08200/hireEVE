@@ -42,9 +42,9 @@ export default function HeroTyping() {
   const text = PHRASES[phraseIdx].slice(0, charIdx);
 
   return (
-    <span className="text-sky-500">
+    <span className="text-accent">
       {text}
-      <span className="inline-block w-[2px] h-[1em] bg-sky-500 animate-pulse ml-0.5 align-text-bottom" />
+      <span className="inline-block w-[2px] h-[1em] bg-accent animate-pulse ml-0.5 align-text-bottom" />
     </span>
   );
 }

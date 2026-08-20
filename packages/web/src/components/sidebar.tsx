@@ -60,7 +60,7 @@ function NavCountBadge({ count, active }: { count: number; active: boolean }) {
   return (
     <span
       className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
-        active ? "bg-sky-500 text-white shadow-sm" : "bg-slate-100 text-slate-500"
+        active ? "bg-accent text-white shadow-sm" : "bg-surface-hover text-ink-mid"
       }`}
     >
       {count > 99 ? "99+" : count}
@@ -108,18 +108,18 @@ export default function Sidebar() {
 
   return (
     <aside className="hidden md:block w-[260px] h-dvh shrink-0 sticky top-0">
-      <div className="relative flex h-full flex-col overflow-hidden border-r border-slate-200/70 bg-white/55 backdrop-blur-xl pt-safe pb-safe">
+      <div className="relative flex h-full flex-col overflow-hidden border-r border-line/70 bg-surface-panel/55 backdrop-blur-xl pt-safe pb-safe">
         {/* Header */}
         <div className="relative flex items-center justify-between px-3 py-4">
           <Link
             href="/inbox"
             aria-label="Open decision queue"
-            className="flex items-center gap-2.5 rounded-lg px-1 py-1 text-sm font-semibold text-slate-900 transition hover:text-slate-900"
+            className="flex items-center gap-2.5 rounded-lg px-1 py-1 text-sm font-semibold text-ink transition hover:text-ink"
           >
             <img src="/brand/mark.svg?v=matte2" alt="" className="h-8 w-8" />
             <span>
               <span className="block text-[15px] leading-none tracking-tight">Klorn</span>
-              <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+              <span className="mt-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-dim">
                 {t("nav.decisionQueue")}
               </span>
             </span>
@@ -142,14 +142,14 @@ export default function Sidebar() {
                   aria-current={active ? "page" : undefined}
                   className={`focus-ring relative flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition ${
                     active
-                      ? "bg-sky-50 font-medium text-sky-700 shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-sky-100"
-                      : "text-slate-500 hover:bg-slate-100/70 hover:text-slate-900"
+                      ? "bg-sky-50 font-medium text-accent-deeper shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-accent-dim"
+                      : "text-ink-mid hover:bg-surface-hover/70 hover:text-ink"
                   }`}
                 >
                   {active && (
                     <span
                       aria-hidden="true"
-                      className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-sky-500"
+                      className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-accent"
                     />
                   )}
                   <NavIcon type={item.icon} size={16} />
@@ -164,14 +164,14 @@ export default function Sidebar() {
                 aria-current={pathname.startsWith("/admin") ? "page" : undefined}
                 className={`focus-ring relative flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition ${
                   pathname.startsWith("/admin")
-                    ? "bg-sky-50 font-medium text-sky-700 shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-sky-100"
-                    : "text-slate-500 hover:bg-slate-100/70 hover:text-slate-900"
+                    ? "bg-sky-50 font-medium text-accent-deeper shadow-[0_1px_2px_rgba(2,60,110,0.06)] ring-1 ring-inset ring-accent-dim"
+                    : "text-ink-mid hover:bg-surface-hover/70 hover:text-ink"
                 }`}
               >
                 {pathname.startsWith("/admin") && (
                   <span
                     aria-hidden="true"
-                    className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-sky-500"
+                    className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-accent"
                   />
                 )}
                 <NavIcon type="settings" size={16} />
@@ -188,42 +188,42 @@ export default function Sidebar() {
             (the Gmail watch auto-registers on connect), so this is a true
             statement, not decoration. */}
         {user && googleConnected === true && (
-          <div className="mx-2 mb-2 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-3 shadow-[0_1px_2px_rgba(2,60,110,0.05)]">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-sky-700">
+          <div className="mx-2 mb-2 rounded-xl border border-accent-dim bg-gradient-to-br from-sky-50 to-white p-3 shadow-[0_1px_2px_rgba(2,60,110,0.05)]">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-accent-deeper">
               <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:animate-none" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </span>
               Real-time on
             </div>
-            <p className="mt-1 text-[11px] leading-4 text-slate-500">
+            <p className="mt-1 text-[11px] leading-4 text-ink-mid">
               New mail lands in seconds — no refresh.
             </p>
           </div>
         )}
 
         {/* User */}
-        <div className="border-t border-slate-200/70 p-2" ref={userMenuRef}>
+        <div className="border-t border-line/70 p-2" ref={userMenuRef}>
           {authLoading ? (
             <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
-              <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-slate-100" />
-              <div className="h-3 w-24 animate-pulse rounded bg-slate-100" />
+              <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-surface-hover" />
+              <div className="h-3 w-24 animate-pulse rounded bg-surface-hover" />
             </div>
           ) : user ? (
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowUserMenu((p) => !p)}
-                className="w-full flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-slate-100/70 transition text-left"
+                className="w-full flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-hover/70 transition text-left"
               >
-                <div className="avatar-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 text-[11px] font-bold text-white">
+                <div className="avatar-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-indigo-500 text-[11px] font-bold text-white">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-slate-900">
+                  <p className="truncate text-[13px] font-medium text-ink">
                     {user.name || user.email}
                   </p>
-                  {user.name && <p className="truncate text-[11px] text-slate-400">{user.email}</p>}
+                  {user.name && <p className="truncate text-[11px] text-ink-dim">{user.email}</p>}
                 </div>
                 <svg
                   aria-hidden="true"
@@ -233,29 +233,36 @@ export default function Sidebar() {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="text-slate-400 shrink-0"
+                  className="text-ink-dim shrink-0"
                 >
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </button>
 
               {showUserMenu && (
-                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 z-50 py-1 animate-slide-up">
+                <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface-panel border border-line rounded-xl shadow-xl shadow-slate-900/10 z-50 py-1 animate-slide-up">
                   <Link
                     href="/billing"
                     onClick={() => setShowUserMenu(false)}
-                    className="block px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-md mx-1 transition"
+                    className="block px-3 py-2 text-sm text-ink-mid hover:bg-surface-hover rounded-md mx-1 transition"
                   >
                     {t("nav.billing")}
                   </Link>
                   <Link
+                    href="/usage"
+                    onClick={() => setShowUserMenu(false)}
+                    className="block px-3 py-2 text-sm text-ink-mid hover:bg-surface-hover rounded-md mx-1 transition"
+                  >
+                    {t("nav.usage")}
+                  </Link>
+                  <Link
                     href="/settings"
                     onClick={() => setShowUserMenu(false)}
-                    className="block px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 rounded-md mx-1 transition"
+                    className="block px-3 py-2 text-sm text-ink-mid hover:bg-surface-hover rounded-md mx-1 transition"
                   >
                     {t("settings.title")}
                   </Link>
-                  <div className="border-t border-slate-200 my-1" />
+                  <div className="border-t border-line my-1" />
                   <button
                     type="button"
                     onClick={() => {
@@ -272,7 +279,7 @@ export default function Sidebar() {
           ) : (
             <Link
               href="/login"
-              className="flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
+              className="flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-ink-mid hover:bg-surface-hover hover:text-ink transition"
             >
               {t("nav.logIn")}
             </Link>

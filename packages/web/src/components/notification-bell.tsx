@@ -414,37 +414,37 @@ export default function NotificationBell({ userId }: { userId: string }) {
     // invalid nested-interactive pattern for AT).
     <div
       key={n.id}
-      className={`border-b border-slate-200 ${
-        !n.isRead ? "bg-sky-400/5" : ""
-      } ${isAgentNotification(n.title) ? "border-l-2 border-l-sky-400/60" : ""}`}
+      className={`border-b border-line ${
+        !n.isRead ? "bg-accent-light/5" : ""
+      } ${isAgentNotification(n.title) ? "border-l-2 border-l-accent-light/60" : ""}`}
     >
       {/* The row itself is a real button (Enter + Space activate). Action buttons
           live in a sibling block below so we never nest interactive-in-interactive. */}
       <button
         type="button"
         onClick={() => handleNotificationClick(n)}
-        className="focus-ring block w-full min-h-11 cursor-pointer px-4 py-3.5 md:py-3 text-left transition hover:bg-slate-100"
+        className="focus-ring block w-full min-h-11 cursor-pointer px-4 py-3.5 md:py-3 text-left transition hover:bg-surface-hover"
       >
         <div className="flex items-center gap-2">
           <span className="text-sm">
             {isAgentNotification(n.title) ? "🤖" : typeIcon[n.type] || "📌"}
           </span>
           <span
-            className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-slate-500"} ${isAgentNotification(n.title) ? "text-sky-600" : ""}`}
+            className={`text-sm truncate ${!n.isRead ? "font-semibold" : "text-ink-mid"} ${isAgentNotification(n.title) ? "text-accent-deep" : ""}`}
           >
             {notificationTitle(n.title)}
           </span>
           {isAgentNotification(n.title) && (
-            <span className="text-[9px] text-sky-600 bg-sky-400/10 px-1 py-0.5 rounded shrink-0">
+            <span className="text-[9px] text-accent-deep bg-accent-light/10 px-1 py-0.5 rounded shrink-0">
               Klorn
             </span>
           )}
-          {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0 ml-auto" />}
+          {!n.isRead && <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0 ml-auto" />}
         </div>
-        <p className="text-[13px] md:text-xs text-slate-500 mt-1 line-clamp-2 ml-6">{n.message}</p>
+        <p className="text-[13px] md:text-xs text-ink-mid mt-1 line-clamp-2 ml-6">{n.message}</p>
         <div className="flex items-center gap-2 mt-1 ml-6">
-          <span className="text-[10px] text-slate-500">{formatRelative(n.createdAt)}</span>
-          {getNotificationTarget(n) && <span className="text-[10px] text-sky-600">Open</span>}
+          <span className="text-[10px] text-ink-mid">{formatRelative(n.createdAt)}</span>
+          {getNotificationTarget(n) && <span className="text-[10px] text-accent-deep">Open</span>}
         </div>
       </button>
       {n.pendingActionId && n.pendingActionStatus === "PENDING" && (
@@ -453,7 +453,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             type="button"
             onClick={(e) => handleApprovePendingAction(n, e)}
             disabled={!!pendingActionLoading[n.id]}
-            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-sky-500 hover:bg-sky-500 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
+            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-accent hover:bg-accent disabled:bg-surface-inset disabled:text-ink-dim disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
           >
             {pendingActionLoading[n.id] === "approve" ? "..." : "Approve"}
           </button>
@@ -461,7 +461,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             type="button"
             onClick={(e) => handleRejectPendingAction(n, e)}
             disabled={!!pendingActionLoading[n.id]}
-            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 font-medium transition min-w-[72px] md:min-w-0"
+            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-surface-hover hover:bg-surface-inset disabled:opacity-40 disabled:cursor-not-allowed text-ink-soft font-medium transition min-w-[72px] md:min-w-0"
           >
             {pendingActionLoading[n.id] === "reject" ? "..." : "Reject"}
           </button>
@@ -469,7 +469,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
       )}
       {n.pendingActionId && n.pendingActionStatus && n.pendingActionStatus !== "PENDING" && (
         <div className="px-4 pb-2 ml-6">
-          <span className="text-[10px] text-slate-500">
+          <span className="text-[10px] text-ink-mid">
             {n.pendingActionStatus === "EXECUTED"
               ? "Done"
               : n.pendingActionStatus === "REJECTED"
@@ -488,31 +488,31 @@ export default function NotificationBell({ userId }: { userId: string }) {
         key={`${group.key}_header`}
         type="button"
         onClick={() => toggleGroup(group.key)}
-        className={`focus-ring w-full min-h-11 text-left px-4 py-3 border-b border-slate-200 hover:bg-slate-100 transition ${
-          group.unreadCount > 0 ? "bg-sky-400/5" : ""
-        } ${group.isAgent ? "border-l-2 border-l-sky-400/60" : ""}`}
+        className={`focus-ring w-full min-h-11 text-left px-4 py-3 border-b border-line hover:bg-surface-hover transition ${
+          group.unreadCount > 0 ? "bg-accent-light/5" : ""
+        } ${group.isAgent ? "border-l-2 border-l-accent-light/60" : ""}`}
         aria-expanded={expanded}
       >
         <div className="flex items-center gap-2">
           <span className="text-sm">{group.isAgent ? "🤖" : typeIcon[group.type] || "📌"}</span>
           <span
-            className={`text-sm ${group.unreadCount > 0 ? "font-semibold" : "text-slate-500"} ${group.isAgent ? "text-sky-600" : ""}`}
+            className={`text-sm ${group.unreadCount > 0 ? "font-semibold" : "text-ink-mid"} ${group.isAgent ? "text-accent-deep" : ""}`}
           >
             {label} {group.items.length}
           </span>
           {group.unreadCount > 0 && (
-            <span className="text-[10px] text-sky-600 bg-sky-400/10 px-1.5 py-0.5 rounded shrink-0">
+            <span className="text-[10px] text-accent-deep bg-accent-light/10 px-1.5 py-0.5 rounded shrink-0">
               New {group.unreadCount}
             </span>
           )}
-          <span className="text-[10px] text-slate-400 ml-auto shrink-0">
+          <span className="text-[10px] text-ink-dim ml-auto shrink-0">
             {expanded ? "Collapse" : "Expand"}
           </span>
         </div>
-        <p className="text-[13px] md:text-xs text-slate-500 mt-1 line-clamp-1 ml-6">
+        <p className="text-[13px] md:text-xs text-ink-mid mt-1 line-clamp-1 ml-6">
           {notificationTitle(group.latestItem.title)}
         </p>
-        <p className="text-[10px] text-slate-500 mt-1 ml-6">
+        <p className="text-[10px] text-ink-mid mt-1 ml-6">
           Latest {formatRelative(group.latestItem.createdAt)}
         </p>
       </button>
@@ -531,7 +531,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
         ref={bellRef}
         type="button"
         onClick={() => setOpen(!open)}
-        className={`focus-ring relative rounded-md text-slate-500 hover:text-slate-900 transition p-1 ${flash ? "animate-bounce" : ""}`}
+        className={`focus-ring relative rounded-md text-ink-mid hover:text-ink transition p-1 ${flash ? "animate-bounce" : ""}`}
         aria-label="Notifications"
       >
         <svg
@@ -575,9 +575,9 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     zIndex: 9999,
                   }
             }
-            className="md:w-[min(20rem,calc(100vw-2rem))] bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[min(70vh,calc(100vh-6rem))] md:max-h-[28rem]"
+            className="md:w-[min(20rem,calc(100vw-2rem))] bg-surface-panel border border-line rounded-lg shadow-xl overflow-hidden flex flex-col max-h-[min(70vh,calc(100vh-6rem))] md:max-h-[28rem]"
           >
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-line">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Notifications</span>
                 {connected && (
@@ -586,7 +586,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                   </span>
                 )}
                 {unreadCount > 0 && (
-                  <span className="text-[10px] text-sky-600 bg-sky-400/10 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] text-accent-deep bg-accent-light/10 px-1.5 py-0.5 rounded">
                     {unreadCount}
                   </span>
                 )}
@@ -597,7 +597,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     type="button"
                     onClick={markAllRead}
                     disabled={actionLoading}
-                    className="text-xs text-slate-400 hover:text-sky-600 transition disabled:opacity-40"
+                    className="text-xs text-ink-dim hover:text-accent-deep transition disabled:opacity-40"
                   >
                     {actionLoading ? "..." : "Mark all read"}
                   </button>
@@ -607,7 +607,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     type="button"
                     onClick={clearAll}
                     disabled={actionLoading}
-                    className="text-xs text-slate-400 hover:text-red-600 transition disabled:opacity-40"
+                    className="text-xs text-ink-dim hover:text-red-600 transition disabled:opacity-40"
                   >
                     {actionLoading ? "..." : "Clear"}
                   </button>
@@ -616,7 +616,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             </div>
             <div className="flex-1 overflow-y-auto overscroll-contain">
               {notifications.length === 0 ? (
-                <p className="text-center text-slate-400 text-sm py-6">No new notifications</p>
+                <p className="text-center text-ink-dim text-sm py-6">No new notifications</p>
               ) : (
                 groups.map((group) => {
                   if (group.items.length === 1) return renderItem(group.items[0]);
@@ -631,7 +631,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
               )}
             </div>
             {tabCount > 1 && (
-              <div className="px-4 py-2 border-t border-slate-200 text-[10px] text-slate-400">
+              <div className="px-4 py-2 border-t border-line text-[10px] text-ink-dim">
                 {tabCount} tabs connected
               </div>
             )}

@@ -8,6 +8,15 @@ import { executeToolCall } from "./tool-executor.js";
 const SINGLE_EMAIL_RE = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 
 /**
+ * Whether `to` is a single, sendable address. Exported so callers that write
+ * a ledger BEFORE sending (auto-mode sweep) can refuse a malformed recipient
+ * up front instead of recording a send that the guard below will reject.
+ */
+export function isSingleRecipient(to: string): boolean {
+  return SINGLE_EMAIL_RE.test(to.trim());
+}
+
+/**
  * Send an autonomous AUTO_REPLY through the deterministic floor instead of
  * calling gmail.sendEmail directly.
  *

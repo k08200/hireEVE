@@ -42,6 +42,12 @@ vi.mock("../mail/email-sync.js", () => ({
   getEmailThreads: vi.fn(async () => ({ threads: [], total: 0 })),
 }));
 vi.mock("../notify/push.js", () => ({ sendPushNotification: vi.fn() }));
+vi.mock("../mail/meeting-context.js", () => ({
+  getMeetingContext: vi.fn(async () => null),
+}));
+vi.mock("../user-timezone.js", () => ({
+  getUserTimeZone: vi.fn(async () => "Asia/Seoul"),
+}));
 vi.mock("../websocket.js", () => ({ pushNotification: vi.fn() }));
 
 vi.mock("../db.js", () => {
@@ -642,6 +648,74 @@ describe("email routes (demo mode)", () => {
       },
       orderBy: [{ receivedAt: "desc" }, { id: "desc" }],
     });
+    await app.close();
+  });
+
+  it("GET /:id/meeting-context returns the context for meeting mail and an empty shape otherwise", async () => {
+    const { getMeetingContext } = await import("../mail/meeting-context.js");
+    const { prisma } = await import("../db.js");
+    const row = {
+      id: "email-1",
+      gmailId: "gmail-1",
+      userId: "user-1",
+      category: "meeting",
+      summary: "confirms 4 PM tomorrow",
+      keyPoints: null,
+      body: "Can we shift tomorrow to 4pm?",
+      receivedAt: new Date("2026-08-12T19:58:00Z"),
+    };
+    vi.mocked(prisma.emailMessage.findFirst).mockResolvedValueOnce(row as never);
+    vi.mocked(getMeetingContext).mockResolvedValueOnce({
+      proposed: {
+        title: "Meeting",
+        startTime: "2026-08-13T16:00:00+09:00",
+        endTime: "2026-08-13T17:00:00+09:00",
+      },
+      conflict: { hasConflicts: false, message: "No conflicts — this time slot is free." },
+      nearby: [],
+      timeZone: "Asia/Seoul",
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/email/email-1/meeting-context",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().proposed.startTime).toBe("2026-08-13T16:00:00+09:00");
+    expect(res.json().conflict.hasConflicts).toBe(false);
+    // receivedAt must reach the parser as the anchor (wire-through check).
+    const arg = vi.mocked(getMeetingContext).mock.calls.at(-1)?.[1];
+    expect(arg?.receivedAt).toEqual(row.receivedAt);
+
+    // Non-meeting mail: module returns null → route answers the empty shape.
+    vi.mocked(prisma.emailMessage.findFirst).mockResolvedValueOnce({
+      ...row,
+      category: "newsletter",
+    } as never);
+    vi.mocked(getMeetingContext).mockResolvedValueOnce(null);
+    const empty = await app.inject({
+      method: "GET",
+      url: "/api/email/email-1/meeting-context",
+      headers: auth(),
+    });
+    expect(empty.statusCode).toBe(200);
+    expect(empty.json()).toEqual({
+      proposed: null,
+      conflict: null,
+      nearby: [],
+      timeZone: "Asia/Seoul",
+    });
+
+    // Unknown id → 404, user-scoped.
+    vi.mocked(prisma.emailMessage.findFirst).mockResolvedValueOnce(null);
+    const missing = await app.inject({
+      method: "GET",
+      url: "/api/email/nope/meeting-context",
+      headers: auth(),
+    });
+    expect(missing.statusCode).toBe(404);
     await app.close();
   });
 
