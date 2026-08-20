@@ -5,6 +5,8 @@ vi.mock("../event-parse.js", () => ({
 }));
 vi.mock("../pim/calendar.js", () => ({
   checkConflicts: vi.fn(),
+  checkAttendeeBusy: vi.fn(async () => []),
+  getAttendeeBusyBlocks: vi.fn(async () => []),
 }));
 vi.mock("../user-timezone.js", () => ({
   getUserTimeZone: vi.fn(async () => "Asia/Seoul"),
@@ -21,7 +23,7 @@ import {
   formatCalendarFacts,
   getMeetingContext,
 } from "../mail/meeting-context.js";
-import { checkConflicts } from "../pim/calendar.js";
+import { checkAttendeeBusy, checkConflicts, getAttendeeBusyBlocks } from "../pim/calendar.js";
 
 const RECEIVED_AT = new Date("2026-08-12T19:58:00+09:00");
 
@@ -42,6 +44,10 @@ describe("getMeetingContext", () => {
     _resetMeetingContextCacheForTests();
     vi.mocked(parseEventText).mockReset();
     vi.mocked(checkConflicts).mockReset();
+    vi.mocked(checkAttendeeBusy).mockReset();
+    vi.mocked(checkAttendeeBusy).mockResolvedValue([]);
+    vi.mocked(getAttendeeBusyBlocks).mockReset();
+    vi.mocked(getAttendeeBusyBlocks).mockResolvedValue([]);
   });
 
   it("returns null for non-meeting categories without spending an LLM call", async () => {
@@ -109,6 +115,7 @@ describe("getMeetingContext", () => {
       conflict: null,
       nearby: [],
       attendeeBusy: [],
+      alternatives: [],
       timeZone: "Asia/Seoul",
     });
     expect(checkConflicts).not.toHaveBeenCalled();
@@ -119,6 +126,48 @@ describe("getMeetingContext", () => {
     await getMeetingContext("user-1", meetingEmail());
     await getMeetingContext("user-1", meetingEmail());
     expect(parseEventText).toHaveBeenCalledTimes(1);
+  });
+
+  it("suggests both-free alternatives when the proposal clashes (team mode v2)", async () => {
+    vi.mocked(parseEventText).mockResolvedValueOnce({
+      title: "Sync",
+      // Tue 2026-08-25 15:00 KST.
+      startTime: "2026-08-25T15:00:00+09:00",
+      endTime: "2026-08-25T16:00:00+09:00",
+    });
+    vi.mocked(checkConflicts).mockResolvedValueOnce({
+      hasConflicts: true,
+      conflicts: [],
+      message: "Conflicts with Standup.",
+    } as never);
+    // Sender is visible and busy 15:00–17:00 KST.
+    vi.mocked(checkAttendeeBusy).mockResolvedValueOnce([{ email: "terry@corp.com", busy: true }]);
+    vi.mocked(getAttendeeBusyBlocks).mockResolvedValueOnce([
+      { start: "2026-08-25T06:00:00Z", end: "2026-08-25T08:00:00Z" },
+    ]);
+    const ctx = await getMeetingContext("user-1", meetingEmail({ from: "Terry <terry@corp.com>" }));
+    expect(ctx?.alternatives.length).toBeGreaterThan(0);
+    // First both-free slot: 17:00 KST (08:00Z) — after the sender's block.
+    expect(ctx?.alternatives[0]?.startTime).toBe("2026-08-25T08:00:00.000Z");
+    // And the reply-draft facts offer them explicitly.
+    const facts = formatCalendarFacts(ctx as never);
+    expect(facts).toContain("Verified free for BOTH sides");
+  });
+
+  it("computes no alternatives when the proposal works for everyone", async () => {
+    vi.mocked(parseEventText).mockResolvedValueOnce({
+      title: "Sync",
+      startTime: "2026-08-25T15:00:00+09:00",
+      endTime: "2026-08-25T16:00:00+09:00",
+    });
+    vi.mocked(checkConflicts).mockResolvedValueOnce({
+      hasConflicts: false,
+      conflicts: [],
+      message: "No conflicts.",
+    } as never);
+    const ctx = await getMeetingContext("user-1", meetingEmail());
+    expect(ctx?.alternatives).toEqual([]);
+    expect(getAttendeeBusyBlocks).not.toHaveBeenCalled();
   });
 
   it("fails open when the parse itself throws (LLM transport failure)", async () => {
@@ -146,6 +195,8 @@ describe("formatCalendarFacts", () => {
           allDay: false,
         },
       ],
+      attendeeBusy: [],
+      alternatives: [],
       timeZone: "Asia/Seoul",
     });
     expect(block).toContain("Calendar facts");
@@ -169,6 +220,7 @@ describe("formatCalendarFacts", () => {
         conflict: null,
         nearby: [],
         attendeeBusy: [],
+        alternatives: [],
         timeZone: "Asia/Seoul",
       }),
     ).toBeNull();
