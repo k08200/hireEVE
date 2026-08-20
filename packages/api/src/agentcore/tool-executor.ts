@@ -5,6 +5,7 @@
  */
 
 import { planHasFeature, TOOL_FEATURE_MAP } from "../billing/stripe.js";
+import { teamModeEnabled } from "../config.js";
 import { prisma } from "../db.js";
 import {
   type ActionReceipt,
@@ -335,6 +336,12 @@ async function executeToolCallInternal(
       case "list_events":
         return JSON.stringify(await listEvents(userId, safeInt(args.max_results, 10, 200)));
       case "team_availability": {
+        if (!teamModeEnabled()) {
+          return JSON.stringify({
+            error: "Team mode is not part of the current plan.",
+            code: "TEAM_REQUIRED",
+          });
+        }
         // Dedicated throttle (security review 2026-08-20): chat's generic
         // caps still allowed thousands of free/busy probes per minute.
         if (!consumeTeamAvailabilityBudget(userId)) {

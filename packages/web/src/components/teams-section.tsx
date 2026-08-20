@@ -4,7 +4,7 @@
 // around ("AX팀 내일 언제 다 돼?"). Mirrors the desktop Preferences → TEAMS
 // section; availability honesty (unknown ≠ free) lives server-side.
 
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useT } from "../lib/i18n";
 import { captureClientError } from "../lib/sentry";
@@ -15,19 +15,27 @@ interface Team {
   members: string[];
 }
 
-export function TeamsSection() {
+export function TeamsSection({ wrapper }: { wrapper?: (children: ReactNode) => ReactNode }) {
   const { t } = useT();
   const [teams, setTeams] = useState<Team[]>([]);
   const [name, setName] = useState("");
   const [membersText, setMembersText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Team mode is a paid team-tier capability shipped dark; a 403
+  // TEAM_REQUIRED hides the whole section rather than showing a dead form.
+  const [available, setAvailable] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<{ teams: Team[] }>("/api/teams");
       setTeams(data.teams);
+      setAvailable(true);
     } catch (err) {
+      if (err instanceof Error && err.message.startsWith("API 403")) {
+        setAvailable(false);
+        return;
+      }
       captureClientError(err, { scope: "teams.load" });
     }
   }, []);
@@ -68,7 +76,8 @@ export function TeamsSection() {
     }
   };
 
-  return (
+  if (!available) return null;
+  const body = (
     <div className="space-y-4">
       {teams.length === 0 && <p className="text-sm text-ink-dim">{t("settings.teams.empty")}</p>}
       {teams.map((team) => (
@@ -116,4 +125,5 @@ export function TeamsSection() {
       </div>
     </div>
   );
+  return wrapper ? <>{wrapper(body)}</> : body;
 }

@@ -14,6 +14,7 @@
 
 import type OpenAI from "openai";
 import { trackTokenUsage } from "../billing/token-usage.js";
+import { teamModeEnabled } from "../config.js";
 import { getUserLlmCredentials } from "../llm/llm-credentials.js";
 import { AGENT_MODEL, createCompletion } from "../llm/openai.js";
 import { captureError } from "../sentry.js";
@@ -112,7 +113,13 @@ export async function runChatTurn(opts: {
 }): Promise<ChatTurnResult> {
   const { userId, history, userText } = opts;
 
-  const chatTools = ALL_TOOLS.filter((t) => CHAT_TOOL_NAMES.has(t.function.name));
+  const chatTools = ALL_TOOLS.filter(
+    (t) =>
+      CHAT_TOOL_NAMES.has(t.function.name) &&
+      // Team mode ships dark until team pricing exists — don't advertise a
+      // tool the executor will refuse.
+      (t.function.name !== "team_availability" || teamModeEnabled()),
+  );
 
   const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
     { role: "system", content: CHAT_SYSTEM_PROMPT },

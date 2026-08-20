@@ -219,8 +219,10 @@ struct PreferencesView: View {
                 section(L("prefs.section.inboxes")) {
                     InboxAccountsSection(model: model)
                 }
-                section(L("prefs.section.teams")) {
-                    TeamsSection(model: model)
+                if model.teamModeAvailable {
+                    section(L("prefs.section.teams")) {
+                        TeamsSection(model: model)
+                    }
                 }
             }
 

@@ -72,6 +72,7 @@ async function buildApp() {
 beforeEach(() => {
   state.rows = [];
   state.nextId = 1;
+  process.env.TEAM_MODE_ENABLED = "true";
 });
 
 describe("normalizeMembers", () => {
@@ -80,6 +81,17 @@ describe("normalizeMembers", () => {
     expect(normalizeMembers(["not-an-email"])).toBeNull();
     expect(normalizeMembers([])).toBeNull();
     expect(normalizeMembers("a@b.co")).toBeNull();
+  });
+});
+
+describe("/api/teams gate", () => {
+  it("403s with TEAM_REQUIRED while team mode is dark (paid capability)", async () => {
+    process.env.TEAM_MODE_ENABLED = "";
+    const app = await buildApp();
+    const res = await app.inject({ method: "GET", url: "/api/teams" });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().code).toBe("TEAM_REQUIRED");
+    await app.close();
   });
 });
 

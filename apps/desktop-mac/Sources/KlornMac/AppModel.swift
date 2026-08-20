@@ -128,10 +128,21 @@ final class AppModel {
     /// The user's saved teams for team-availability questions.
     private(set) var teams: [TeamWire] = []
     private(set) var teamError: String?
+    /// False when the server answers 403 TEAM_REQUIRED — team mode is a paid
+    /// team-tier capability shipped dark; every team surface hides.
+    private(set) var teamModeAvailable = false
 
     func refreshTeams() async {
         struct Resp: Codable { let teams: [TeamWire] }
-        if let resp = try? await api.get("/api/teams", as: Resp.self) { teams = resp.teams }
+        do {
+            let resp = try await api.get("/api/teams", as: Resp.self)
+            teams = resp.teams
+            teamModeAvailable = true
+        } catch APIError.forbidden {
+            teamModeAvailable = false
+        } catch {
+            // Transient failure — keep the last known availability.
+        }
     }
 
     func createTeam(name: String, membersText: String) async {

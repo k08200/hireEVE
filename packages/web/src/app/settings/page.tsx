@@ -1037,12 +1037,14 @@ export default function SettingsPage() {
 
         <SubscriptionSection />
 
-        <section className="mb-8">
-          <h2 className={SECTION_TITLE}>{t("settings.section.teams")}</h2>
-          <div className={`${PANEL} p-5`}>
-            <TeamsSection />
-          </div>
-        </section>
+        <TeamsSection
+          wrapper={(children) => (
+            <section className="mb-8">
+              <h2 className={SECTION_TITLE}>{t("settings.section.teams")}</h2>
+              <div className={`${PANEL} p-5`}>{children}</div>
+            </section>
+          )}
+        />
 
         {/* Profile */}
         <section className="mb-8">

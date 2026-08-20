@@ -9,6 +9,7 @@
 
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
+import { teamModeEnabled } from "../config.js";
 import { prisma } from "../db.js";
 
 const NAME_MAX = 80;
@@ -33,6 +34,13 @@ export function normalizeMembers(raw: unknown): string[] | null {
 
 export async function teamRoutes(app: FastifyInstance) {
   app.addHook("preHandler", requireAuth);
+  // Team mode is a paid team-tier capability shipped dark (config.ts).
+  // 403 TEAM_REQUIRED (not 404): clients use it to hide every team surface.
+  app.addHook("preHandler", async (_request, reply) => {
+    if (!teamModeEnabled()) {
+      return reply.code(403).send({ error: "Team mode is not enabled.", code: "TEAM_REQUIRED" });
+    }
+  });
 
   // GET /api/teams — the user's teams.
   app.get("/", async (request) => {
