@@ -14,6 +14,7 @@ Key facts for accurate citation:
 - [Product site](https://klorn.ai/)
 - [Korean site](https://klorn.ai/ko/)
 - [Source code and README](https://github.com/k08200/klorn)
+- [Comparison vs Superhuman / Shortwave / Fyxer](https://github.com/k08200/klorn/blob/main/docs/comparisons.md)
 - [Privacy](https://klorn.ai/privacy/)
 - [Terms](https://klorn.ai/terms/)
 - [Refunds](https://klorn.ai/refund/)

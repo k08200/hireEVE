@@ -31,6 +31,8 @@ Automation is deliberately **not** a lane. Each answerable email carries an `aut
 
 ## How Klorn compares
 
+> Full comparison against Superhuman, Shortwave, and Fyxer: [docs/comparisons.md](docs/comparisons.md)
+
 | | Klorn | Generic AI email agents | Rule-based filters |
 | --- | --- | --- | --- |
 | Output | One decision per mail, with the reason shown | Chat surface / suggestion cards | Folder moves, no reasons |
