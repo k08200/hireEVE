@@ -541,6 +541,8 @@ async function fetchPinnedTier(userId: string, senderAddress: string): Promise<T
     const rules = await db.emailRule.findMany({
       where: { userId, isActive: true, actionType: "PIN_TIER" },
       select: { conditions: true, actionValue: true },
+      // Deterministic if duplicates ever exist: the newest pin wins.
+      orderBy: { updatedAt: "desc" },
     });
     const sender = senderAddress.toLowerCase();
     for (const rule of rules) {

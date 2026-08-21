@@ -9,10 +9,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { signToken } from "../auth.js";
 
 const emailFindFirst = vi.hoisted(() => vi.fn());
-const ruleFindFirst = vi.hoisted(() => vi.fn());
+const ruleFindMany = vi.hoisted(() => vi.fn());
 const ruleCreate = vi.hoisted(() => vi.fn());
-const ruleUpdate = vi.hoisted(() => vi.fn());
-const ruleDelete = vi.hoisted(() => vi.fn());
+const ruleDeleteMany = vi.hoisted(() => vi.fn());
+const dbTransaction = vi.hoisted(() => vi.fn(async (ops: unknown[]) => Promise.all(ops)));
 
 vi.mock("../mail/email.js", () => ({
   sendVerificationEmail: vi.fn(),
@@ -61,11 +61,11 @@ vi.mock("../db.js", () => {
       update: vi.fn(async () => ({})),
     },
     emailRule: {
-      findFirst: ruleFindFirst,
+      findMany: ruleFindMany,
       create: ruleCreate,
-      update: ruleUpdate,
-      delete: ruleDelete,
+      deleteMany: ruleDeleteMany,
     },
+    $transaction: dbTransaction,
     linkedInboxAccount: { findMany: vi.fn(async () => []) },
     user: { findUnique: vi.fn(async () => ({ id: "user-1", plan: "FREE", role: "USER" })) },
     device: {
@@ -90,15 +90,14 @@ async function buildApp() {
 
 beforeEach(() => {
   emailFindFirst.mockReset();
-  ruleFindFirst.mockReset();
+  ruleFindMany.mockReset();
   ruleCreate.mockReset();
-  ruleUpdate.mockReset();
-  ruleDelete.mockReset();
+  ruleDeleteMany.mockReset();
+  dbTransaction.mockClear();
   emailFindFirst.mockResolvedValue({ from: "Boss Person <Boss@Acme.com>" });
-  ruleFindFirst.mockResolvedValue(null);
+  ruleFindMany.mockResolvedValue([]);
   ruleCreate.mockResolvedValue({ id: "r1" });
-  ruleUpdate.mockResolvedValue({ id: "r1" });
-  ruleDelete.mockResolvedValue({ id: "r1" });
+  ruleDeleteMany.mockResolvedValue({ count: 1 });
 });
 
 describe("POST /api/email/:id/pin-tier", () => {
@@ -124,8 +123,14 @@ describe("POST /api/email/:id/pin-tier", () => {
     await app.close();
   });
 
-  it("updates the existing rule for the sender instead of duplicating", async () => {
-    ruleFindFirst.mockResolvedValue({ id: "r-old" });
+  it("replaces the sender's existing rule(s) atomically instead of duplicating", async () => {
+    // Two stale rows (a healed double-submit) plus a multi-address rule that
+    // must NOT be touched — exact-shape [sender] scoping.
+    ruleFindMany.mockResolvedValue([
+      { id: "r-old-1", conditions: { from: ["boss@acme.com"] } },
+      { id: "r-old-2", conditions: { from: ["Boss@Acme.com"] } },
+      { id: "r-multi", conditions: { from: ["boss@acme.com", "other@x.com"] } },
+    ]);
     const app = await buildApp();
     const res = await app.inject({
       method: "POST",
@@ -134,11 +139,12 @@ describe("POST /api/email/:id/pin-tier", () => {
       payload: { tier: "PUSH" },
     });
     expect(res.statusCode).toBe(200);
-    expect(ruleCreate).not.toHaveBeenCalled();
-    expect(ruleUpdate.mock.calls[0][0]).toMatchObject({
-      where: { id: "r-old" },
-      data: { actionValue: "PUSH", isActive: true },
+    // delete + create ran inside one transaction
+    expect(dbTransaction).toHaveBeenCalledTimes(1);
+    expect(ruleDeleteMany.mock.calls[0][0]).toEqual({
+      where: { id: { in: ["r-old-1", "r-old-2"] }, userId: "user-1" },
     });
+    expect(ruleCreate.mock.calls[0][0].data.actionValue).toBe("PUSH");
     await app.close();
   });
 
@@ -166,8 +172,11 @@ describe("POST /api/email/:id/pin-tier", () => {
 });
 
 describe("DELETE /api/email/:id/pin-tier", () => {
-  it("deletes the sender's rule when present, no-ops when absent", async () => {
-    ruleFindFirst.mockResolvedValue({ id: "r1" });
+  it("deletes every matching rule when present, no-ops when absent", async () => {
+    ruleFindMany.mockResolvedValue([
+      { id: "r1", conditions: { from: ["boss@acme.com"] } },
+      { id: "r2", conditions: { from: ["boss@acme.com"] } },
+    ]);
     const app = await buildApp();
     const res = await app.inject({
       method: "DELETE",
@@ -176,17 +185,19 @@ describe("DELETE /api/email/:id/pin-tier", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ pinned: false, sender: "boss@acme.com" });
-    expect(ruleDelete.mock.calls[0][0]).toEqual({ where: { id: "r1" } });
+    expect(ruleDeleteMany.mock.calls[0][0]).toEqual({
+      where: { id: { in: ["r1", "r2"] }, userId: "user-1" },
+    });
 
-    ruleFindFirst.mockResolvedValue(null);
-    ruleDelete.mockClear();
+    ruleFindMany.mockResolvedValue([]);
+    ruleDeleteMany.mockClear();
     const again = await app.inject({
       method: "DELETE",
       url: "/api/email/e1/pin-tier",
       headers: auth(),
     });
     expect(again.statusCode).toBe(200);
-    expect(ruleDelete).not.toHaveBeenCalled();
+    expect(ruleDeleteMany).not.toHaveBeenCalled();
     await app.close();
   });
 });
