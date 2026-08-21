@@ -49,6 +49,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const CALIBRATION_USER_BATCH = 500;
 
 export const JUDGE_SOURCES = [
+  "pinned-rule",
   "fast-path",
   "sender-prior",
   "llm",
@@ -129,6 +130,7 @@ export function buildSnapshotPayload(args: {
   for (const tier of TIERS) feedbackCount += feedbackOverrideRate[tier].overridden;
 
   const judgeSourceCounts: JudgeSourceCounts = {
+    "pinned-rule": 0,
     "fast-path": 0,
     "sender-prior": 0,
     llm: 0,

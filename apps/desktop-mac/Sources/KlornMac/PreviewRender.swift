@@ -163,6 +163,7 @@ enum PreviewRender {
             onSignIn: {}, onSignOut: {},
             onOpenInApp: { _ in }, onOpenTier: { _ in }, onOpenFull: {}, onOpenProposals: {},
             onDismiss: { _ in }, onSnooze: { _, _ in }, onSetTier: { _, _ in },
+            onPinSender: { _, _ in }, onUnpinSender: { _ in },
             onSelect: { _ in }, onOpenPreferences: {}, onHideBar: {}, onQuit: {})
     }
 }

@@ -98,6 +98,7 @@ describe("buildJudgeContext", () => {
       senderPrior: null,
       senderFacts: null,
       senderTraits: [],
+      pinnedTier: null,
       learnedRules: [],
     });
   });
@@ -111,6 +112,7 @@ describe("buildJudgeContext", () => {
       senderPrior: null,
       senderFacts: null,
       senderTraits: [],
+      pinnedTier: null,
       learnedRules: [],
     });
   });

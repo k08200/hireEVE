@@ -44,7 +44,7 @@ import { getTrustScore } from "../learning/trust-score.js";
 import { extractEmailAddress } from "../mail/email-address.js";
 import { captureError } from "../sentry.js";
 import { EMPTY_JUDGE_CONTEXT, type JudgeContext } from "./poc-judge.js";
-import { isTier } from "./tiers.js";
+import { isTier, type Tier } from "./tiers.js";
 
 // Sender-prior thresholds live in sender-policy.ts (the single source). Aliased
 // locally for readability where they're used.
@@ -534,6 +534,35 @@ async function fetchLearnedRules(userId: string): Promise<LearnedRule[]> {
   }
 }
 
+/** The user's PIN_TIER rule for this exact sender, if any. Fail-open null. */
+async function fetchPinnedTier(userId: string, senderAddress: string): Promise<Tier | null> {
+  if (!senderAddress) return null;
+  try {
+    const rules = await db.emailRule.findMany({
+      where: { userId, isActive: true, actionType: "PIN_TIER" },
+      select: { conditions: true, actionValue: true },
+    });
+    const sender = senderAddress.toLowerCase();
+    for (const rule of rules) {
+      const from = (rule.conditions as { from?: unknown })?.from;
+      if (
+        Array.isArray(from) &&
+        from.some((f) => typeof f === "string" && f.toLowerCase() === sender)
+      ) {
+        // Junk actionValue must NOT pin to the normalizeTier fallback (QUEUE).
+        return isTier(rule.actionValue) ? rule.actionValue : null;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn(
+      "[judge-context] pin fetch failed:",
+      err instanceof Error ? err.message : String(err),
+    );
+    return null;
+  }
+}
+
 /**
  * Fetch correction few-shots, sender prior, and sender facts for one email.
  * Never throws — a broken correction loop must degrade to plain
@@ -564,6 +593,7 @@ export async function buildJudgeContext(
       commitments,
       senderTraits,
       learnedRules,
+      pinnedTier,
       engagement,
       readBehavior,
     ] = await Promise.all([
@@ -573,6 +603,7 @@ export async function buildJudgeContext(
       fetchCommitmentFact(userId, senderAddress),
       fetchSenderTraits(userId, senderAddress),
       fetchLearnedRules(userId),
+      fetchPinnedTier(userId, senderAddress),
       fetchLearnedImportanceFact(userId, senderAddress),
       fetchReadBehaviorFact(userId, senderAddress),
     ]);
@@ -591,7 +622,7 @@ export async function buildJudgeContext(
           }
         : null;
 
-    return { corrections, senderPrior, senderFacts, senderTraits, learnedRules };
+    return { corrections, senderPrior, senderFacts, senderTraits, learnedRules, pinnedTier };
   } catch (err) {
     // console + captureError: captureError is a no-op when Sentry is off, so a
     // failed judge-context build would otherwise degrade silently (CLAUDE.md).

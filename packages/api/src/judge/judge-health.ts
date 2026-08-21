@@ -18,6 +18,7 @@
 import { captureError } from "../sentry.js";
 
 export type JudgeSource =
+  | "pinned-rule"
   | "fast-path"
   | "sender-prior"
   | "learned-rule"

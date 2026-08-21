@@ -22,6 +22,7 @@ import { requireAppAccess, requireEntitled } from "../billing/entitlement-guard.
 import { planHasFeature } from "../billing/stripe.js";
 import { MULTI_INBOX_SYNC_ENABLED, providerInboxSelectorEnabled } from "../config.js";
 import { prisma } from "../db.js";
+import { isTier, normalizeTier } from "../judge/tiers.js";
 import { getCachedInteractionNode } from "../learning/interaction-graph.js";
 import {
   getTrustScore,
@@ -1441,6 +1442,80 @@ export async function emailRoutes(app: FastifyInstance) {
       return { summarized: count };
     },
   );
+
+  // POST /api/email/:id/pin-tier {tier} — "this sender is ALWAYS this lane".
+  // Creates/updates a PIN_TIER EmailRule for the mail's sender; the judge
+  // honors it at cascade rank 0 ("enforced, not predicted"). DELETE unpins.
+  app.post("/:id/pin-tier", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const uid = getUserId(request);
+    const { tier } = (request.body as { tier?: string }) || {};
+    const pinned = normalizeTier(tier ?? "");
+    if (!tier || !isTier(tier)) {
+      return reply.code(400).send({ error: "tier must be one of the known lanes." });
+    }
+    const dbEmail = await prisma.emailMessage.findFirst({
+      where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      select: { from: true },
+    });
+    if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+    const sender = extractEmailAddress(dbEmail.from ?? "")?.toLowerCase();
+    if (!sender) return reply.code(404).send({ error: "No sender address" });
+
+    // One rule per sender keeps unpin unambiguous; find the sender's own rule.
+    const senderRule = await prisma.emailRule
+      .findFirst({
+        where: {
+          userId: uid,
+          actionType: "PIN_TIER",
+          conditions: { path: ["from"], array_contains: sender },
+        },
+        select: { id: true },
+      })
+      .catch(() => null);
+    if (senderRule) {
+      await prisma.emailRule.update({
+        where: { id: senderRule.id },
+        data: { actionValue: pinned, isActive: true },
+      });
+    } else {
+      await prisma.emailRule.create({
+        data: {
+          userId: uid,
+          name: `Pin: ${sender}`,
+          conditions: { from: [sender] },
+          actionType: "PIN_TIER",
+          actionValue: pinned,
+        },
+      });
+    }
+    return { pinned: true, sender, tier: pinned };
+  });
+
+  // DELETE /api/email/:id/pin-tier — remove the sender's pin.
+  app.delete("/:id/pin-tier", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const uid = getUserId(request);
+    const dbEmail = await prisma.emailMessage.findFirst({
+      where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+      select: { from: true },
+    });
+    if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+    const sender = extractEmailAddress(dbEmail.from ?? "")?.toLowerCase();
+    if (!sender) return reply.code(404).send({ error: "No sender address" });
+    const senderRule = await prisma.emailRule
+      .findFirst({
+        where: {
+          userId: uid,
+          actionType: "PIN_TIER",
+          conditions: { path: ["from"], array_contains: sender },
+        },
+        select: { id: true },
+      })
+      .catch(() => null);
+    if (senderRule) await prisma.emailRule.delete({ where: { id: senderRule.id } });
+    return { pinned: false, sender };
+  });
 
   // GET /api/email/:id/sender-dossier — relationship context for the mail's
   // sender ("why did this person write"). Cache-by-count inside the module:

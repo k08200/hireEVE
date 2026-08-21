@@ -1059,6 +1059,7 @@ model EmailRule {
 }
 
 enum EmailRuleAction {
+  PIN_TIER // User-enforced lane for a sender — judge cascade rank 0
   AUTO_REPLY // Send canned reply
   DRAFT_REPLY // Create draft for user review
   LABEL // Apply label

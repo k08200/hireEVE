@@ -446,3 +446,7 @@
 "mode.guideline.save" = "지침 저장";
 "mode.guideline.resetHint" = "비우고 저장하면 기본값으로 돌아갑니다.";
 "mode.sidebar.a11y" = "동작 모드";
+
+/* Sender pin (TierMenu) */
+"pin.always" = "이 발신자는 항상…";
+"pin.remove" = "발신자 고정 해제";

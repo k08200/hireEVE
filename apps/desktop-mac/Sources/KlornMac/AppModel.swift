@@ -888,6 +888,36 @@ final class AppModel {
         }
     }
 
+    /// Sender pin — "this sender is ALWAYS this lane". Persists a PIN_TIER rule
+    /// the judge obeys before any prediction (rank 0), and moves the current
+    /// item via the normal correction path so the change is visible instantly.
+    func pinSender(_ item: FirewallItem, to tier: Tier) async {
+        guard let emailId = item.email?.emailDbId else { return }
+        await setTier(item, to: tier)
+        do {
+            try await api.post("/api/email/\(emailId)/pin-tier", json: ["tier": tier.rawValue])
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            loadError = Self.describe(error)
+            Log.app.warning("pin sender failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Remove the sender's pin. Idempotent server-side; no local state to roll
+    /// back — future mails simply go back to predicted tiers.
+    func unpinSender(_ item: FirewallItem) async {
+        guard let emailId = item.email?.emailDbId else { return }
+        do {
+            try await api.delete("/api/email/\(emailId)/pin-tier")
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            loadError = Self.describe(error)
+            Log.app.warning("unpin sender failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
     /// Snooze a PUSH item until `until`; it resurfaces server-side when the time
     /// passes. Works for any source (uses the AttentionItem id, not the email id).
     func snooze(_ item: FirewallItem, until: Date = AppModel.tomorrow9am()) async {

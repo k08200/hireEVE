@@ -82,7 +82,13 @@ export interface PocJudgement {
   reason: string;
   features: PocFeatures;
   /** Which path produced this judgement — useful for accuracy diffs. */
-  source: "fast-path" | "sender-prior" | "learned-rule" | "llm" | "keyword-fallback";
+  source:
+    | "pinned-rule"
+    | "fast-path"
+    | "sender-prior"
+    | "learned-rule"
+    | "llm"
+    | "keyword-fallback";
   /** v2 only: may Klorn answer this unattended? Absent/false under v1. */
   autoEligible?: boolean;
 }
@@ -103,6 +109,10 @@ export interface JudgeContext {
   // when LEARNED_RULES_IN_JUDGE is on (real path, via judge-context); empty on
   // the eval path (EMPTY_JUDGE_CONTEXT), so the eval gate is unaffected.
   learnedRules?: LearnedRule[] | null;
+  /// User-enforced lane for this sender (PIN_TIER rule) — cascade rank 0:
+  /// beats the marketing fast-path, priors, learned rules, and the LLM.
+  /// "The AI doesn't predict this — it enforces it."
+  pinnedTier?: Tier | null;
 }
 
 export const EMPTY_JUDGE_CONTEXT: JudgeContext = {
@@ -111,6 +121,7 @@ export const EMPTY_JUDGE_CONTEXT: JudgeContext = {
   senderFacts: null,
   senderTraits: [],
   learnedRules: [],
+  pinnedTier: null,
 };
 
 interface LlmFeatureResponse {
@@ -737,6 +748,17 @@ export async function judgeEmail(
   // Anything else, including no-reply / notifications@ system mail, falls
   // through to the LLM (or keyword fallback) so the rule can decide between
   // QUEUE and SILENT based on senderTrust + urgency + reversibility.
+  // Rank 0 — the user's own pin. Above EVERYTHING, including the marketing
+  // fast-path: pinning a newsletter to PUSH must win, that is the point.
+  if (context.pinnedTier) {
+    return {
+      tier: context.pinnedTier,
+      reason: `Pinned — you set this sender to always ${context.pinnedTier}`,
+      features: priorFeatures(context.pinnedTier),
+      source: "pinned-rule",
+    };
+  }
+
   if (isClearMarketing(email)) {
     return {
       tier: "SILENT",

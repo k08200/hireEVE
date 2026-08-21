@@ -347,6 +347,14 @@ final class TopBarController {
                 guard let self else { return }
                 Task { await self.model.setTier(item, to: tier) }
             },
+            onPinSender: { [weak self] item, tier in
+                guard let self else { return }
+                Task { await self.model.pinSender(item, to: tier) }
+            },
+            onUnpinSender: { [weak self] item in
+                guard let self else { return }
+                Task { await self.model.unpinSender(item) }
+            },
             onSelect: { [weak self] item in guard let self else { return }; Task { await self.model.select(item) } },
             onOpenPreferences: { [weak self] in
                 guard let self else { return }

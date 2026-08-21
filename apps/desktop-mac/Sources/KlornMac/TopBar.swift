@@ -29,6 +29,11 @@ struct TopBarActions {
     let onSnooze: (FirewallItem, SnoozeOption) -> Void
     /// Tier correction — move an item to a different tier (teaches the judge).
     let onSetTier: (FirewallItem, Tier) -> Void
+    /// Sender pin — "this sender is ALWAYS this lane" (a rule the judge obeys
+    /// before any prediction, unlike corrections which only train a prior).
+    let onPinSender: (FirewallItem, Tier) -> Void
+    /// Remove the sender's pin; triage goes back to learned/predicted tiers.
+    let onUnpinSender: (FirewallItem) -> Void
     /// Select a row in the full view — loads its email into the reading pane.
     let onSelect: (FirewallItem) -> Void
     /// Open the Preferences overlay (switches to the full view first).
@@ -261,6 +266,8 @@ private struct SnoozeMenu<Label: View>: View {
 private struct TierMenu<Label: View>: View {
     let item: FirewallItem
     let onSetTier: (FirewallItem, Tier) -> Void
+    let onPinSender: (FirewallItem, Tier) -> Void
+    let onUnpinSender: (FirewallItem) -> Void
     @ViewBuilder let label: () -> Label
 
     var body: some View {
@@ -275,6 +282,16 @@ private struct TierMenu<Label: View>: View {
                     }
                 }
                 .disabled(tier == item.tier)
+            }
+            // Pins only make sense for mail (the judge keys them by sender).
+            if item.email != nil {
+                Divider()
+                Menu(L("pin.always")) {
+                    ForEach(Tier.displayOrder) { tier in
+                        Button(tier.label) { onPinSender(item, tier) }
+                    }
+                }
+                Button(L("pin.remove")) { onUnpinSender(item) }
             }
         } label: { label() }
     }
@@ -2576,7 +2593,10 @@ struct FullRow: View {
                 ZStack {
                     Circle().fill(Theme.tint(item.tier)).frame(width: 8, height: 8)
                     if !Theme.isRenderingOffscreen {
-                        TierMenu(item: item, onSetTier: actions.onSetTier) {
+                        TierMenu(
+                            item: item, onSetTier: actions.onSetTier,
+                            onPinSender: actions.onPinSender, onUnpinSender: actions.onUnpinSender
+                        ) {
                             Color.clear.iconTarget()
                         }
                         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
@@ -2723,7 +2743,10 @@ struct ReadingPane: View {
                             }
                             .menuStyle(.button).buttonStyle(.bordered).controlSize(.small)
                             .menuIndicator(.hidden).fixedSize()
-                            TierMenu(item: item, onSetTier: actions.onSetTier) {
+                            TierMenu(
+                            item: item, onSetTier: actions.onSetTier,
+                            onPinSender: actions.onPinSender, onUnpinSender: actions.onUnpinSender
+                        ) {
                                 Text(L("mail.moveTo", item.tier.label,
                                        L10n.josaRoIfKorean(after: item.tier.label)))
                                     + Text(Image(systemName: "chevron.down"))

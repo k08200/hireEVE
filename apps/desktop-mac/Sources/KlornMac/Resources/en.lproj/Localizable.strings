@@ -447,3 +447,7 @@
 "mode.guideline.save" = "Save guideline";
 "mode.guideline.resetHint" = "Clear and save to restore the default.";
 "mode.sidebar.a11y" = "Attention mode";
+
+/* Sender pin (TierMenu) */
+"pin.always" = "Always this sender…";
+"pin.remove" = "Remove sender pin";
