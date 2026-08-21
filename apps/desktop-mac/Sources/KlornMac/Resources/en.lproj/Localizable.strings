@@ -110,6 +110,8 @@
 "calendar.invitees" = "Invites: %@";
 "list.firstSync" = "Reading your mailbox…";
 "list.firstSync.detail" = "Klorn is sorting every message into its lane. The first decisions land here as soon as they're made.";
+"auto.focusWindow" = "Focus window";
+"auto.focusWindow.detail" = "During calendar events, only urgent mail and meetings interrupt. Everything else arrives as one summary when the event ends.";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
 /* Reading pane */

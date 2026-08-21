@@ -56,6 +56,7 @@ import { sendSms } from "./notify/sms.js";
 import { buildUrgentDedupMessage, parseNotifiedGmailIds } from "./notify/urgent-dedup.js";
 import { autoModeSendEnabled, tierV2Enabled } from "./ops/feature-flags.js";
 import { createDailyBriefingDelivery } from "./pim/briefing.js";
+import { sendFocusWindowDigests } from "./pim/focus-digest.js";
 import { recordSchedulerTick, registerScheduler } from "./scheduler-heartbeat.js";
 import { captureError } from "./sentry.js";
 import {
@@ -688,6 +689,8 @@ async function runAutomations() {
             { proactiveActions: true },
             // Auto-mode users need the sweep even with everything else off.
             { attentionMode: "AUTO" },
+            // Focus-window users need the block-end digest sweep.
+            { focusWindowEnabled: true },
           ],
         },
         take: BATCH_SIZE,
@@ -766,6 +769,13 @@ async function runAutomations() {
     // Gate the once-per-day / once-per-week jobs below so they fire once, not on
     // every 60s tick. In-memory is fine: a restart re-running an idempotent job
     // the same day is harmless.
+    // --- Focus window: release one digest when a calendar block ends ---
+    try {
+      await sendFocusWindowDigests();
+    } catch (err) {
+      console.warn("[SCHEDULER] focus digest sweep failed:", err);
+    }
+
     const todayUtc = new Date().toISOString().slice(0, 10);
     const isSunday = new Date().getDay() === 0;
 

@@ -440,6 +440,10 @@ model AutomationConfig {
   emailAutoClassify      Boolean  @default(true)
   reminderAutoCheck      Boolean  @default(true)
   dailyBriefing          Boolean  @default(true)
+  /// Focus window (aiindigo-derived design, 2026-08-21): during calendar
+  /// busy blocks only urgent/meeting/system notifications fire; the rest
+  /// arrive as one digest when the block ends.
+  focusWindowEnabled     Boolean  @default(false)
   briefingTime           String   @default("06:00")
   timezone               String   @default("Asia/Seoul")
   downloadAutoOrganize   Boolean  @default(false)

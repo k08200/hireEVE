@@ -109,6 +109,8 @@
 "calendar.invitees" = "초대: %@";
 "list.firstSync" = "메일함 읽는 중…";
 "list.firstSync.detail" = "Klorn이 모든 메일을 레인별로 분류하고 있습니다. 첫 결정이 끝나는 대로 여기에 도착합니다.";
+"auto.focusWindow" = "집중 창";
+"auto.focusWindow.detail" = "캘린더 일정 중에는 급한 메일과 회의만 알립니다. 나머지는 일정이 끝날 때 요약 한 건으로 도착합니다.";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */

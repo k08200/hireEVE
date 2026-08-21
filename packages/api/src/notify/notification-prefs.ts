@@ -29,6 +29,7 @@ interface NotifPrefs {
   timezone: string;
   quietHoursStart: string | null;
   quietHoursEnd: string | null;
+  focusWindowEnabled: boolean;
 }
 
 function categoryEnabled(prefs: NotifPrefs, category: NotifCategory): boolean {
@@ -51,7 +52,7 @@ function categoryEnabled(prefs: NotifPrefs, category: NotifCategory): boolean {
 }
 
 /** Why a notification was blocked — doubles as the PushDeliveryLog skipReason. */
-export type NotificationGateReason = "user_preferences" | "quiet_hours";
+export type NotificationGateReason = "user_preferences" | "quiet_hours" | "focus_window";
 
 export type NotificationGateResult =
   | { allowed: true }
@@ -85,6 +86,8 @@ export async function evaluateNotificationGate(
     quietHoursStart:
       (config as unknown as { quietHoursStart?: string | null }).quietHoursStart ?? null,
     quietHoursEnd: (config as unknown as { quietHoursEnd?: string | null }).quietHoursEnd ?? null,
+    focusWindowEnabled:
+      (config as unknown as { focusWindowEnabled?: boolean }).focusWindowEnabled ?? false,
   };
 
   if (!categoryEnabled(prefs, category)) {
@@ -93,7 +96,28 @@ export async function evaluateNotificationGate(
   if (isWithinQuietHours(now, prefs, prefs.timezone)) {
     return { allowed: false, reason: "quiet_hours" };
   }
+  // Focus window: during a calendar busy block only the interrupts that
+  // cannot wait pass — urgent mail, meetings, system. Everything else is
+  // released as one digest when the block ends (automation-scheduler).
+  if (
+    prefs.focusWindowEnabled &&
+    category !== "email_urgent" &&
+    category !== "meeting" &&
+    category !== "system" &&
+    (await isUserInFocusBlock(userId, now))
+  ) {
+    return { allowed: false, reason: "focus_window" };
+  }
   return { allowed: true };
+}
+
+/** True while the user is inside a (non-all-day) calendar event. */
+export async function isUserInFocusBlock(userId: string, now: Date = new Date()): Promise<boolean> {
+  const block = await prisma.calendarEvent.findFirst({
+    where: { userId, allDay: false, startTime: { lte: now }, endTime: { gt: now } },
+    select: { id: true },
+  });
+  return block !== null;
 }
 
 /**

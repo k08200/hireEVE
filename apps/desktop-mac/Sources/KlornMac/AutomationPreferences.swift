@@ -199,6 +199,26 @@ struct AutomationPreferences: View {
         }
         .padding(.top, Theme.s1)
 
+        // Focus window: during calendar blocks only urgent mail and meetings
+        // interrupt; the rest arrive as one digest when the block ends.
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L("auto.focusWindow")).font(Theme.Typo.body).foregroundStyle(Theme.text)
+                Text(L("auto.focusWindow.detail"))
+                    .font(Theme.Typo.caption).foregroundStyle(Theme.textDim)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { model.automation.focusWindowEnabled },
+                set: { on in model.updateAutomation { $0.focusWindowEnabled = on } }
+            ))
+            .toggleStyle(.switch).labelsHidden()
+            .disabled(model.automationSaving)
+            .accessibilityLabel(L("auto.focusWindow"))
+        }
+        .padding(.top, Theme.s2)
+
         QuietHoursField(
             start: model.automation.quietHoursStart,
             end: model.automation.quietHoursEnd,

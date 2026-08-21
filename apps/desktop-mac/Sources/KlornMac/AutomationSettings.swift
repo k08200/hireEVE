@@ -22,6 +22,9 @@ struct AutomationSettings: Decodable, Sendable, Equatable {
     var notifyEmailCandidate: Bool
     var quietHoursStart: String?
     var quietHoursEnd: String?
+    /// Focus window: during calendar blocks only urgent/meeting interrupt;
+    /// the rest arrive as one digest when the block ends.
+    var focusWindowEnabled: Bool
     /// Ontology v2 attention mode: BASIC = notify important + meetings only,
     /// human answers; AUTO = Klorn also answers eligible routine mail per the
     /// guideline. Server-normalized; unknown decodes as BASIC.
@@ -35,7 +38,7 @@ struct AutomationSettings: Decodable, Sendable, Equatable {
         case agentMode, replyTone
         case notifyEmailUrgent, notifyMeeting, notifyTaskDue
         case notifyAgentProposal, notifyDailyBriefing, notifyEmailCandidate
-        case quietHoursStart, quietHoursEnd
+        case quietHoursStart, quietHoursEnd, focusWindowEnabled
         case attentionMode, autoReplyGuideline, autoReplyGuidelineDefault
     }
 
@@ -48,6 +51,7 @@ struct AutomationSettings: Decodable, Sendable, Equatable {
         notifyTaskDue = (try? c.decode(Bool.self, forKey: .notifyTaskDue)) ?? true
         notifyAgentProposal = (try? c.decode(Bool.self, forKey: .notifyAgentProposal)) ?? true
         notifyDailyBriefing = (try? c.decode(Bool.self, forKey: .notifyDailyBriefing)) ?? true
+        focusWindowEnabled = (try? c.decode(Bool.self, forKey: .focusWindowEnabled)) ?? false
         notifyEmailCandidate = (try? c.decode(Bool.self, forKey: .notifyEmailCandidate)) ?? true
         quietHoursStart = try? c.decodeIfPresent(String.self, forKey: .quietHoursStart)
         quietHoursEnd = try? c.decodeIfPresent(String.self, forKey: .quietHoursEnd)
@@ -72,6 +76,7 @@ struct AutomationSettings: Decodable, Sendable, Equatable {
         notifyEmailCandidate: Bool = true,
         quietHoursStart: String? = nil,
         quietHoursEnd: String? = nil,
+        focusWindowEnabled: Bool = false,
         attentionMode: AttentionMode = .basic,
         autoReplyGuideline: String? = nil,
         autoReplyGuidelineDefault: String? = nil
@@ -89,6 +94,7 @@ struct AutomationSettings: Decodable, Sendable, Equatable {
         self.notifyEmailCandidate = notifyEmailCandidate
         self.quietHoursStart = quietHoursStart
         self.quietHoursEnd = quietHoursEnd
+        self.focusWindowEnabled = focusWindowEnabled
     }
 }
 
@@ -293,6 +299,7 @@ extension AutomationSettings {
         // window instead.
         payload["quietHoursStart"] = quietHoursStart ?? NSNull()
         payload["quietHoursEnd"] = quietHoursEnd ?? NSNull()
+        payload["focusWindowEnabled"] = focusWindowEnabled
         return payload
     }
 }
