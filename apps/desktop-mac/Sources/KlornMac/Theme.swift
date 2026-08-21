@@ -303,6 +303,51 @@ struct PrimaryButtonStyle: ButtonStyle {
 /// The standard quiet empty/guidance state: dim icon, one calm line, and an
 /// optional hint. Every "nothing here" moment uses this instead of a bare
 /// dim string, so emptiness reads as designed rather than unfinished.
+/// First-sync truth (design renewal P1): while the queue has never loaded,
+/// the list must say "reading your mailbox", not "empty" — an EmptyState
+/// before the first load is a lie that makes a new tester think Klorn found
+/// nothing. Placeholder bars pulse gently unless Reduce Motion is on.
+struct FirstSyncState: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulsing = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.s4) {
+            ForEach(0..<4, id: \.self) { row in
+                HStack(spacing: Theme.s3) {
+                    Circle().fill(Theme.surfaceHover).frame(width: 8, height: 8)
+                    VStack(alignment: .leading, spacing: Theme.s1) {
+                        RoundedRectangle(cornerRadius: 3).fill(Theme.surfaceHover)
+                            .frame(width: 90, height: 8)
+                        RoundedRectangle(cornerRadius: 3).fill(Theme.surfaceHover)
+                            .frame(width: row.isMultiple(of: 2) ? 260 : 200, height: 11)
+                    }
+                    Spacer()
+                }
+            }
+            HStack(spacing: Theme.s2) {
+                if !Theme.isRenderingOffscreen {
+                    ProgressView().controlSize(.small)
+                }
+                Text(L("list.firstSync")).font(Theme.Typo.body).foregroundStyle(Theme.textDim)
+            }
+            Text(L("list.firstSync.detail"))
+                .font(Theme.Typo.caption).foregroundStyle(Theme.textDim)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 24).padding(.vertical, Theme.s4)
+        .opacity(pulsing ? 0.55 : 1)
+        .onAppear {
+            guard !reduceMotion, !Theme.isRenderingOffscreen else { return }
+            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                pulsing = true
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L("list.firstSync"))
+    }
+}
+
 struct EmptyState: View {
     let icon: String
     let title: String

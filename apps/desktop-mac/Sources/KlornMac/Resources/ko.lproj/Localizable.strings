@@ -107,6 +107,8 @@
 "teams.saveFailed" = "팀을 저장하지 못했습니다 — 멤버 주소를 확인하세요.";
 "teams.visibilityNote" = "가용성은 Google free/busy 기준입니다: 멤버가 캘린더를 공유했거나 같은 Workspace여야 보입니다. 안 보이는 멤버는 '확인 불가'로 표시하며 비어 있다고 가정하지 않습니다.";
 "calendar.invitees" = "초대: %@";
+"list.firstSync" = "메일함 읽는 중…";
+"list.firstSync.detail" = "Klorn이 모든 메일을 레인별로 분류하고 있습니다. 첫 결정이 끝나는 대로 여기에 도착합니다.";
 "mail.whyTier" = "%1$@인 이유 · %2$@";
 
 /* Reading pane */

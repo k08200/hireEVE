@@ -141,6 +141,29 @@ private extension View {
     }
 }
 
+/// Sidebar feature-row icon: a tinted rounded container in the System
+/// Settings idiom. Two rules against the generic-AI look (founder
+/// 2026-08-21, second pass): the GLYPH must carry product meaning — never
+/// the first-search default (sparkles is banned; the assistant is a
+/// conversation, a promise is a seal, a proposal awaits a signature) —
+/// and the TINT comes from the palette's existing SEMANTIC tokens (engage =
+/// relationships, accent = Klorn asking to act, meeting green = schedule),
+/// so variety reads as meaning, not as a template rainbow.
+struct FeatureIcon: View {
+    let systemName: String
+    var tint: Color = Theme.accent
+    var body: some View {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(tint.opacity(0.16))
+            .frame(width: 20, height: 20)
+            .overlay(
+                Image(systemName: systemName)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(tint))
+            .accessibilityHidden(true)
+    }
+}
+
 struct ColumnHeader: View {
     let title: String
 
@@ -935,7 +958,9 @@ private struct RecentPushColumn: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ColumnHeader(title: L("section.recentPush"))
-            if items.isEmpty {
+            if model.queue == nil {
+                FirstSyncState()
+            } else if items.isEmpty {
                 EmptyState(icon: Tier.push.emptyIcon, title: Tier.push.emptyTitle)
                     .padding(.top, Theme.s6)
             } else {
@@ -1015,7 +1040,7 @@ private struct AccountColumn: View {
         // update/restart/diagnostics actions landed and the TOP silently
         // clipped (founder, 2026-08-10). Scroll instead of clip — never let
         // an added action push the header off-screen again.
-        ScrollView(.vertical, showsIndicators: false) {
+        ScrollView(.vertical, showsIndicators: true) {
         VStack(alignment: .leading, spacing: 14) {
             ColumnHeader(title: L("prefs.section.account"))
             if model.phase == .signedIn {
@@ -1260,7 +1285,7 @@ private struct TeamsColumn: View {
 /// tier — a real desktop-app view of the whole firewall.
 /// What the full view's list column shows: a firewall tier, commitments, or
 /// the assistant chat.
-enum ListMode: Equatable {
+enum ListMode: Equatable, Hashable {
     case tier(Tier)
     case commitments
     case assistant
@@ -1406,7 +1431,7 @@ private struct OffscreenFriendlyScroll<Content: View>: View {
         if Theme.isRenderingOffscreen {
             content()
         } else {
-            ScrollView(showsIndicators: false) { content() }
+            ScrollView(showsIndicators: true) { content() }
         }
     }
 }
@@ -1454,14 +1479,20 @@ private struct SectionResizeHandle: View {
                 startHeight: { height }, apply: { height = $0 }, growsDown: growsDown)
             // macOS-divider look: a hairline across the column with a centred
             // grabber that answers hover — visibly a control, not lint.
+            // Quiet at rest (founder 2026-08-21: four identical grabbers
+            // stacked read as clutter): the boundary is just a hairline until
+            // hovered — then the hairline yields to the accent grabber. One
+            // boundary, one line, and the affordance appears where the
+            // pointer already is.
             VStack(spacing: 0) {
-                Rectangle().fill(Theme.line.opacity(hovering ? 0 : 0.6))
+                Rectangle().fill(Theme.line.opacity(hovering ? 0 : 1))
                     .frame(height: 1)
             }
             .allowsHitTesting(false)
             Capsule()
-                .fill(hovering ? Theme.accent.opacity(0.85) : Theme.line)
-                .frame(width: hovering ? 44 : 28, height: hovering ? 5 : 4)
+                .fill(Theme.accent.opacity(0.85))
+                .frame(width: 44, height: 5)
+                .opacity(hovering ? 1 : 0)
                 .animation(.easeOut(duration: 0.12), value: hovering)
                 .allowsHitTesting(false)
         }
@@ -1553,13 +1584,18 @@ private struct FullSidebar: View {
     private func tierRow(_ tier: Tier, indented: Bool = false) -> some View {
         Button { selected = .tier(tier) } label: {
             HStack(spacing: 10) {
+                // 20pt slot so tier dots and FeatureIcon containers share one
+                // text column — mixed leading widths read as misalignment.
                 Circle().fill(Theme.tint(tier)).frame(width: 8, height: 8)
+                    .frame(width: 20)
                 Text(tier.label)
                     .font(.body.weight(selected == .tier(tier) ? .semibold : .regular))
                     .foregroundStyle(Theme.text)
                 Spacer()
                 Text("\(tierCount(tier))")
                     .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
+                    .contentTransition(.numericText())
+                    .animation(.default, value: tierCount(tier))
             }
             .padding(.leading, indented ? 14 : 0)
             .modifier(SidebarRowChrome(selected: selected == .tier(tier)))
@@ -1653,8 +1689,13 @@ private struct FullSidebar: View {
                     withAnimation(.easeOut(duration: 0.15)) { filedExpanded.toggle() }
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "tray.full").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.textDim).frame(width: 8)
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Theme.surfaceRaised)
+                            .frame(width: 20, height: 20)
+                            .overlay(
+                                Image(systemName: "tray.full")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(Theme.textDim))
                             .accessibilityHidden(true)
                         Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
                         Image(systemName: "chevron.right").font(.caption2)
@@ -1683,9 +1724,7 @@ private struct FullSidebar: View {
                 // half of the firewall (what mail asked of you, and of them).
                 Button { selected = .commitments } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "checklist").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.accent).frame(width: 8)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "checkmark.seal", tint: Theme.engage)
                         Text(L("section.commitments"))
                             .font(.body.weight(selected == .commitments ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1704,9 +1743,7 @@ private struct FullSidebar: View {
                 if model.pendingActions.count > 0 || selected == .proposals {
                 Button { selected = .proposals } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "hand.raised").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.accent).frame(width: 8)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "signature", tint: Theme.accentDeep)
                         Text(L("proposals.title"))
                             .font(.body.weight(selected == .proposals ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1725,9 +1762,7 @@ private struct FullSidebar: View {
                 if model.teamModeAvailable {
                     Button { selected = .teams } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: "person.2").font(Theme.Typo.icon)
-                                .foregroundStyle(Theme.accent).frame(width: 8)
-                                .accessibilityHidden(true)
+                            FeatureIcon(systemName: "person.2", tint: Theme.accentDeep)
                             Text(L("teams.title"))
                                 .font(.body.weight(selected == .teams ? .semibold : .regular))
                                 .foregroundStyle(Theme.text)
@@ -1744,9 +1779,7 @@ private struct FullSidebar: View {
                 // Assistant: ask/act across mail, calendar, and the briefing.
                 Button { selected = .assistant } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "sparkles").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.accent).frame(width: 8)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "quote.bubble", tint: Theme.accent)
                         Text(L("section.assistant"))
                             .font(.body.weight(selected == .assistant ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1761,9 +1794,7 @@ private struct FullSidebar: View {
                 // TODAY/UPCOMING crumbs below.
                 Button { selected = .calendar } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "calendar").font(Theme.Typo.icon)
-                            .foregroundStyle(Theme.accent).frame(width: 8)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "calendar", tint: Theme.tint(.meeting))
                         Text(L("section.calendar"))
                             .font(.body.weight(selected == .calendar ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1794,7 +1825,6 @@ private struct FullSidebar: View {
             // "TODAY" heading over 300pt of nothing reads as a broken pane, not
             // as a calm one.
             let hasToday = model.briefing != nil || (model.today?.total ?? 0) > 0
-            Divider().overlay(Theme.line).padding(.horizontal, 12).padding(.top, 12)
             if hasToday {
                 ColumnHeader(title: L("section.todayShort"))
                     .padding(.horizontal, 20).padding(.top, 10).padding(.bottom, 6)
@@ -1889,7 +1919,7 @@ private struct FullSidebar: View {
             // Own scroll area with a hard ceiling: the list above stays the
             // star, and the account actions can grow without running off the
             // bottom edge (founder, 2026-08-10).
-            ScrollView(.vertical, showsIndicators: false) {
+            ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 0) {
             if model.phase == .signedIn {
                 if let version = model.updateAvailable {
@@ -1993,16 +2023,26 @@ private struct FullList: View {
     private var items: [FirewallItem] { model.queue?.items(for: tier) ?? [] }
     private var searching: Bool { isSearchActive(query) }
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotionSwitch
+
     var body: some View {
-        switch mode {
-        case .commitments: CommitmentsList()
-        case .assistant: AssistantColumn()
-        case .proposals: ProposalsList()
-        case .calendar: CalendarAgendaColumn(actions: actions)
-        case .teams: TeamsColumn()
-        case .tier: tierList
+        // P3: lane/screen switches crossfade instead of hard-cutting — the
+        // last silent state change in the main window.
+        Group {
+            switch mode {
+            case .commitments: CommitmentsList()
+            case .assistant: AssistantColumn()
+            case .proposals: ProposalsList()
+            case .calendar: CalendarAgendaColumn(actions: actions)
+            case .teams: TeamsColumn()
+            case .tier: tierList
+            }
         }
+        .id(mode)
+        .transition(.opacity)
+        .animation(reduceMotionSwitch ? nil : .easeOut(duration: 0.15), value: mode)
     }
+
 
     private var tierList: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -2017,6 +2057,8 @@ private struct FullList: View {
                     Circle().fill(Theme.tint(tier)).frame(width: 9, height: 9)
                     Text(tier.label).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
                     Text("\(items.count)").font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                        .contentTransition(.numericText())
+                        .animation(.default, value: items.count)
                 }
             }
             .padding(.horizontal, 24).padding(.vertical, 18)
@@ -2062,6 +2104,11 @@ private struct FullList: View {
 
             if searching {
                 searchResultsList
+            } else if model.queue == nil {
+                // Never claim "empty" before the first load (P1): the queue
+                // hasn't arrived yet — say so, with placeholder rows.
+                FirstSyncState()
+                Spacer()
             } else if items.isEmpty {
                 Spacer()
                 EmptyState(icon: tier.emptyIcon, title: tier.emptyTitle, hint: tier.blurb)
@@ -2084,12 +2131,29 @@ private struct FullList: View {
                     LazyVStack(spacing: 0) {
                         ForEach(items) { item in
                             FullRow(item: item, actions: actions)
+                                .transition(rowTransition)
                             Divider().overlay(Theme.line).padding(.leading, 24)
                         }
                     }
+                    // The one motion that carries product truth (P1): a new
+                    // classification ARRIVES and a corrected row LEAVES for
+                    // its new lane — state changes are never silent.
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85),
+                        value: items.map(\.id))
                 }
             }
         }
+    }
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var rowTransition: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .asymmetric(
+                insertion: .move(edge: .top).combined(with: .opacity),
+                removal: .opacity)
     }
 
     @ViewBuilder
@@ -2541,9 +2605,17 @@ struct FullRow: View {
         }
         .padding(.horizontal, 20).padding(.vertical, 11)
         // Selection is not color-only: an accent leading bar + a stronger fill (both
-        // perceivable), plus the .isSelected trait above.
+        // perceivable), plus the .isSelected trait above. At REST the bar
+        // carries the row's TIER instead (design renewal P2): in mixed-lane
+        // surfaces (전체 수신함, search) the lane identity used to live in one
+        // 8px dot at the far right — now every row wears its lane on the
+        // scan edge. Muted so the list stays quiet; selection still wins.
         .background(alignment: .leading) {
-            if selected { Rectangle().fill(Theme.accent).frame(width: 3) }
+            if selected {
+                Rectangle().fill(Theme.accent).frame(width: 3)
+            } else {
+                Rectangle().fill(Theme.tint(item.tier).opacity(0.45)).frame(width: 3)
+            }
         }
         .background(selected ? Theme.surfaceSelected : hovering ? Theme.surfaceHover : .clear)
         .onHover { hovering = $0 }

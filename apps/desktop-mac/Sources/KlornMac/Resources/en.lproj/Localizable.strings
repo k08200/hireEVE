@@ -108,6 +108,8 @@
 "teams.saveFailed" = "Couldn't save the team — check the member addresses.";
 "teams.visibilityNote" = "Availability uses Google free/busy: members must share their calendar with you (or share a Workspace). Members Klorn can't see are reported as unknown, never assumed free.";
 "calendar.invitees" = "Invites: %@";
+"list.firstSync" = "Reading your mailbox…";
+"list.firstSync.detail" = "Klorn is sorting every message into its lane. The first decisions land here as soon as they're made.";
 "mail.whyTier" = "Why %1$@ · %2$@";
 
 /* Reading pane */
