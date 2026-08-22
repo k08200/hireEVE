@@ -5,6 +5,7 @@
 // panel; conversation state/cache is shared with /chat via useAssistantChat,
 // so the thread follows the user across surfaces.
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { type AssistantChatMessage, useAssistantChat } from "../lib/use-assistant-chat";
@@ -22,7 +23,12 @@ const SUGGESTION_KEYS = [
 export default function AssistantDock() {
   const { t } = useT();
   const [open, setOpen] = useState(false);
-  const chat = useAssistantChat({ enabled: open });
+  // The dock floats over whatever page the user is on; on an email page that
+  // means the mail they are reading. Sending its id is what makes "이 메일"
+  // answerable without the model guessing through tools.
+  const pathname = usePathname();
+  const contextEmailId = pathname?.startsWith("/email/") ? (pathname.split("/")[2] ?? null) : null;
+  const chat = useAssistantChat({ enabled: open, contextEmailId });
   const threadEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);

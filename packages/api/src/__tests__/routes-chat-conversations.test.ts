@@ -28,6 +28,7 @@ const conversationCreate = vi.fn(async () => ({
 const conversationUpdate = vi.fn(async () => ({}));
 const messageFindMany = vi.fn(async () => [] as unknown[]);
 const messageCreate = vi.fn(async () => ({ id: "msg-1" }));
+const emailFindFirst = vi.fn(async (): Promise<unknown> => null);
 
 vi.mock("../db.js", () => {
   const prisma = {
@@ -48,6 +49,9 @@ vi.mock("../db.js", () => {
     message: {
       findMany: (...a: unknown[]) => messageFindMany(...a),
       create: (...a: unknown[]) => messageCreate(...a),
+    },
+    emailMessage: {
+      findFirst: (...a: unknown[]) => emailFindFirst(...a),
     },
   };
   return { prisma, db: prisma };
@@ -73,6 +77,8 @@ beforeEach(() => {
   conversationUpdate.mockClear();
   messageFindMany.mockClear();
   messageCreate.mockClear();
+  emailFindFirst.mockReset();
+  emailFindFirst.mockResolvedValue(null);
 });
 
 describe("chat conversation routes", () => {
@@ -235,6 +241,54 @@ describe("chat conversation routes", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ reply: "expensive answer" });
+    await app.close();
+  });
+
+  it("passes the open mail to the engine as untrusted view context", async () => {
+    conversationFindFirst.mockResolvedValue({ id: "conv-1", userId: "user-1" });
+    emailFindFirst.mockResolvedValue({
+      id: "email-1",
+      from: "Sarah <sarah@acme.com>",
+      subject: "Contract review",
+      summary: "Needs sign-off before 17:00",
+      snippet: null,
+    });
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations/conv-1/messages",
+      headers: auth(),
+      payload: { text: "이 메일 어떻게 답장하지?", context: { emailId: "email-1" } },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const turnArgs = runChatTurn.mock.calls[0][0] as { viewContext?: string | null };
+    expect(turnArgs.viewContext).toContain("email id: email-1");
+    // Mail-derived text is DATA: it must reach the model wrapped.
+    expect(turnArgs.viewContext).toContain('<untrusted_content source="email-subject">');
+    expect(turnArgs.viewContext).toContain("Needs sign-off before 17:00");
+    // Ownership is enforced in the lookup itself, never post-hoc.
+    const where = (emailFindFirst.mock.calls[0][0] as { where: { userId: string } }).where;
+    expect(where.userId).toBe("user-1");
+    await app.close();
+  });
+
+  it("degrades to a normal turn for a foreign or missing email id", async () => {
+    conversationFindFirst.mockResolvedValue({ id: "conv-1", userId: "user-1" });
+    emailFindFirst.mockResolvedValue(null); // not the caller's mail
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/chat/conversations/conv-1/messages",
+      headers: auth(),
+      payload: { text: "hi", context: { emailId: "someone-elses" } },
+    });
+
+    expect(res.statusCode).toBe(200);
+    const turnArgs = runChatTurn.mock.calls[0][0] as { viewContext?: string | null };
+    expect(turnArgs.viewContext).toBeNull();
     await app.close();
   });
 

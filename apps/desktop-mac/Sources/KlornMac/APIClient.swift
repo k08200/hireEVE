@@ -123,6 +123,21 @@ struct APIClient: Sendable {
     }
 
     /// POST a JSON object and decode the response (e.g. an AI reply draft).
+    /// Encodable body + decoded response — for payloads a [String: String]
+    /// can't express (nested objects, optional fields).
+    func post<T: Decodable>(
+        _ path: String, encodable: some Encodable, as _: T.Type = T.self, authed: Bool = true
+    ) async throws -> T {
+        let reqBody = try JSONEncoder().encode(encodable)
+        let data = try await data(path, method: "POST", body: reqBody, contentType: "application/json", authed: authed)
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            Log.net.debug("decode failed for \(path, privacy: .public): \(String(describing: error), privacy: .private)")
+            throw APIError.decoding(path)
+        }
+    }
+
     func post<T: Decodable>(_ path: String, json: [String: String], as _: T.Type = T.self, authed: Bool = true) async throws -> T {
         let reqBody = try JSONEncoder().encode(json)
         let data = try await data(path, method: "POST", body: reqBody, contentType: "application/json", authed: authed)

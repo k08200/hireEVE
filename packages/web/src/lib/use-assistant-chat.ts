@@ -32,8 +32,14 @@ interface TurnResponse {
   error?: string;
 }
 
-export function useAssistantChat(options?: { enabled?: boolean; onSendError?: () => void }) {
+export function useAssistantChat(options?: {
+  enabled?: boolean;
+  onSendError?: () => void;
+  /** Id of the mail the user is currently reading, so "this email" resolves. */
+  contextEmailId?: string | null;
+}) {
   const enabled = options?.enabled ?? true;
+  const contextEmailId = options?.contextEmailId ?? null;
   const queryClient = useQueryClient();
   const [conversationId, setConversationId] = useState<string | null>(null);
   // Optimistic echo of the user's message while the turn is in flight.
@@ -71,7 +77,10 @@ export function useAssistantChat(options?: { enabled?: boolean; onSendError?: ()
       }
       const turn = await apiFetch<TurnResponse>(`/api/chat/conversations/${id}/messages`, {
         method: "POST",
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({
+          text,
+          ...(contextEmailId ? { context: { emailId: contextEmailId } } : {}),
+        }),
       });
       return { id, turn };
     },
