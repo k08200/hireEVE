@@ -171,7 +171,7 @@ export function SubscriptionSection() {
                 type="button"
                 onClick={native ? startAppPurchase : startWebTrial}
                 disabled={loading}
-                className="glow-primary ease-strong mt-5 flex min-h-11 w-full items-center justify-center rounded-lg bg-gradient-to-b from-accent-light to-accent text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
+                className="glow-primary ease-strong mt-5 flex min-h-11 w-full items-center justify-center rounded-lg bg-accent-solid text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:opacity-50"
               >
                 {loading ? "Starting..." : "Start 7-day free trial"}
               </button>

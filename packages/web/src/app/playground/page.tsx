@@ -439,7 +439,7 @@ export default function PlaygroundPage() {
               type="button"
               onClick={classify}
               disabled={loading}
-              className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep disabled:bg-surface-hover disabled:text-ink-dim"
+              className="flex h-11 w-full items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:bg-surface-hover disabled:text-ink-dim"
             >
               {loading ? "Classifying…" : "Classify"}
             </button>

@@ -24,7 +24,7 @@ function ErrorPage({
       <button
         type="button"
         onClick={reset}
-        className="bg-accent hover:bg-accent/90 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition focus-ring"
+        className="bg-accent-solid hover:bg-accent-solid-hover text-accent-solid-ink px-5 py-2.5 rounded-lg text-sm font-medium transition focus-ring"
       >
         Try again
       </button>

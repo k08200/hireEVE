@@ -168,7 +168,7 @@ export default function EarlyAccessPage() {
           <div className="mt-5 grid grid-cols-2 gap-3">
             <Link
               href="/"
-              className="flex min-h-11 items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep"
+              className="flex min-h-11 items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover"
             >
               Back home
             </Link>
@@ -253,7 +253,7 @@ export default function EarlyAccessPage() {
           <button
             type="submit"
             disabled={status === "submitting"}
-            className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-all hover:bg-accent-deep hover:shadow-xl hover:shadow-accent/40 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim disabled:shadow-none"
+            className="flex h-11 w-full items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink shadow-lg shadow-accent/30 transition-all hover:bg-accent-solid-hover hover:shadow-xl hover:shadow-accent/40 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim disabled:shadow-none"
           >
             {status === "submitting" ? "Submitting..." : "Request early access"}
           </button>

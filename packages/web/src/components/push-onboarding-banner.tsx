@@ -120,7 +120,7 @@ export default function PushOnboardingBanner() {
             type="button"
             onClick={enable}
             disabled={submitting}
-            className="px-3 py-1.5 text-xs font-medium bg-accent hover:bg-accent-deep disabled:bg-surface-hover disabled:text-ink-dim text-white rounded-lg transition"
+            className="px-3 py-1.5 text-xs font-medium bg-accent-solid hover:bg-accent-solid-hover disabled:bg-surface-hover disabled:text-ink-dim text-accent-solid-ink rounded-lg transition"
           >
             {submitting ? "Enabling..." : "Enable"}
           </button>

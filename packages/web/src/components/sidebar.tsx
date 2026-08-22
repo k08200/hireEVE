@@ -60,7 +60,7 @@ function NavCountBadge({ count, active }: { count: number; active: boolean }) {
   return (
     <span
       className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
-        active ? "bg-accent text-white shadow-sm" : "bg-surface-hover text-ink-mid"
+        active ? "bg-accent-solid text-accent-solid-ink shadow-sm" : "bg-surface-hover text-ink-mid"
       }`}
     >
       {count > 99 ? "99+" : count}
