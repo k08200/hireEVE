@@ -375,7 +375,7 @@ When touching core UX, verify at least:
 
 ## Contributing
 
-Issues and pull requests are welcome. For anything non-trivial, open an issue first to discuss the approach. Run `pnpm -r test` and `biome check packages/` before submitting.
+Issues and pull requests are welcome. For anything non-trivial, open an issue first to discuss the approach. Run `pnpm -r test` and `biome check packages/` before submitting. This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Security
 
