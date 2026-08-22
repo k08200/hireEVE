@@ -351,14 +351,18 @@ export async function syncLinkedInboxesForUser(userId: string): Promise<{ newCou
   if (!MULTI_INBOX_SYNC_ENABLED) return { newCount: 0 };
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true, role: true },
+    select: { plan: true, role: true, email: true },
   });
   if (!user || !planHasFeature(user.plan, "multi_account", user.role)) {
     return { newCount: 0 };
   }
   const linked = await getLinkedInboxClients(userId);
+  // A linked row mirroring the primary address (pre-guard data) would sync
+  // the same mailbox twice per pass — skip it; the primary sync covers it.
+  const primaryEmail = (user.email ?? "").trim().toLowerCase();
   let newCount = 0;
   for (const inbox of linked) {
+    if (inbox.email.trim().toLowerCase() === primaryEmail) continue;
     try {
       const r = await syncEmails(userId, 20, undefined, {
         id: inbox.id,
