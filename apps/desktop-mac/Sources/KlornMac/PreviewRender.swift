@@ -44,8 +44,9 @@ enum PreviewRender {
      "headline":"오전 10시 전에 3건. 나머지는 비어 있습니다.",
      "segments":[
        {"label":"오전 10시 이전","summary":"3건: 싱크, 주간 회의, 벤더 체크인","kind":"busy"},
-       {"label":"오전 10시 이후","summary":"10시간 비어 있습니다.","kind":"free"}],
-     "curve":[1,3,0,0,0,0,0,0,0,0,0,0],
+       {"label":"오전 10시 – 오후 3시","summary":"5시간 비어 있습니다.","kind":"free"},
+       {"label":"오후 3시 이후","summary":"1건: 파트너 콜","kind":"busy"}],
+     "curve":[1,3,0,0,0,0,0,1,0,0,0,0],
      "dayStartHour":8,
      "attention":[{"rank":1,"action":"회고 생각 두세 가지 준비","reason":"오후 2시 디자인 회고"}]}
     """
@@ -109,6 +110,11 @@ enum PreviewRender {
 
         print("Rendering previews to \(dir.path):")
         shot("briefing", size: CGSize(width: 380, height: 260), align: .top) {
+            BriefingCardRenderProbe()
+        }
+        // The narrowest real embedding (full-mode sidebar is 220pt wide) —
+        // the card must survive it, not just the roomy probe.
+        shot("briefing-narrow", size: CGSize(width: 220, height: 340), align: .top) {
             BriefingCardRenderProbe()
         }
         shot("full", size: TopBarMetrics.size(for: .full)) {

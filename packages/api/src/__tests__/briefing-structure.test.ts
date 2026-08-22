@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   timezone: "Asia/Seoul",
   language: "ko" as string | null,
   events: [] as Array<{ title: string; startTime: Date; endTime: Date }>,
+  pushItems: [] as Array<{ title: string; tierReason: string | null }>,
 }));
 
 vi.mock("../db.js", () => {
@@ -17,6 +18,7 @@ vi.mock("../db.js", () => {
       findUnique: vi.fn(async () => ({ notificationLanguage: state.language })),
     },
     calendarEvent: { findMany: vi.fn(async () => state.events) },
+    attentionItem: { findMany: vi.fn(async () => state.pushItems) },
   };
   return { prisma, db: prisma };
 });
@@ -24,7 +26,6 @@ vi.mock("../user-timezone.js", () => ({
   getUserTimeZone: vi.fn(async () => state.timezone),
 }));
 
-import type { BriefingTopAction } from "../pim/briefing-signals.js";
 import { buildBriefingStructure } from "../pim/briefing-structure.js";
 
 // Saturday 2026-08-22, 07:00 KST.
@@ -39,19 +40,11 @@ function kstEvent(title: string, hour: number, endHour: number) {
   };
 }
 
-const ACTION = (rank: number): BriefingTopAction => ({
-  id: `a${rank}`,
-  rank,
-  score: 10 - rank,
-  action: `Action ${rank}`,
-  reason: `Reason ${rank}`,
-  refs: [],
-});
-
 beforeEach(() => {
   state.timezone = "Asia/Seoul";
   state.language = "ko";
   state.events = [];
+  state.pushItems = [];
 });
 
 describe("buildBriefingStructure", () => {
@@ -61,10 +54,14 @@ describe("buildBriefingStructure", () => {
       kstEvent("주간 회의", 9, 10),
       kstEvent("벤더 체크인", 9, 10),
     ];
-    const s = await buildBriefingStructure("u1", [ACTION(1), ACTION(2)], NOW);
+    state.pushItems = [
+      { title: "회고 생각 두세 가지 준비", tierReason: "오후 2시 디자인 회고" },
+      { title: "계약서 서명", tierReason: null },
+    ];
+    const s = await buildBriefingStructure("u1", NOW);
 
     expect(s.dateLabel).toBe("2026년 8월 22일 토요일");
-    expect(s.headline).toBe("오전 10시 전에 3건. 나머지는 비어 있습니다.");
+    expect(s.headline).toBe("오전 10시 전에 회의 3건. 나머지는 비어 있습니다.");
     expect(s.segments).toHaveLength(2);
     expect(s.segments[0]).toMatchObject({ label: "오전 10시 이전", kind: "busy" });
     expect(s.segments[0].summary).toContain("3건");
@@ -72,14 +69,14 @@ describe("buildBriefingStructure", () => {
     expect(s.segments[1].summary).toBe("10시간 비어 있습니다.");
     expect(s.curve[1]).toBe(3); // 09:00 local
     expect(s.attention).toEqual([
-      { rank: 1, action: "Action 1", reason: "Reason 1" },
-      { rank: 2, action: "Action 2", reason: "Reason 2" },
+      { rank: 1, action: "회고 생각 두세 가지 준비", reason: "오후 2시 디자인 회고" },
+      { rank: 2, action: "계약서 서명", reason: "" },
     ]);
   });
 
   it("marks an empty weekend as a day off, localized in English", async () => {
     state.language = "en";
-    const s = await buildBriefingStructure("u1", [], NOW);
+    const s = await buildBriefingStructure("u1", NOW);
     expect(s.headline).toBe("Nothing on the calendar. It's a day off.");
     expect(s.segments).toEqual([
       { label: "Today", summary: "Nothing scheduled. It's a day off.", kind: "off" },
@@ -98,14 +95,25 @@ describe("buildBriefingStructure", () => {
       },
     ];
     // 08:00 EDT
-    const s = await buildBriefingStructure("u1", [], new Date("2026-08-22T12:00:00Z"));
+    const s = await buildBriefingStructure("u1", new Date("2026-08-22T12:00:00Z"));
     const busy = s.segments.find((seg) => seg.kind === "busy");
     expect(busy?.label).toBe("10 AM – 11 AM");
     expect(s.curve[2]).toBe(1); // index 2 = 10:00 local
   });
 
-  it("caps attention at three entries", async () => {
-    const s = await buildBriefingStructure("u1", [1, 2, 3, 4].map(ACTION), NOW);
-    expect(s.attention).toHaveLength(3);
+  it("clamps events crossing midnight to today's window edges", async () => {
+    state.language = "en";
+    // 23:00 KST yesterday → 09:00 KST today: only 8-9h of today is busy.
+    state.events = [
+      {
+        title: "Overnight deploy",
+        startTime: new Date("2026-08-21T14:00:00Z"),
+        endTime: new Date("2026-08-22T00:00:00Z"),
+      },
+    ];
+    const s = await buildBriefingStructure("u1", NOW);
+    expect(s.curve[0]).toBe(1); // 08h
+    expect(s.curve[1]).toBe(0); // 09h onward free
+    expect(s.headline).toContain("1 meeting");
   });
 });

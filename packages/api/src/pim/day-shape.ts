@@ -57,8 +57,13 @@ const HOURS = DAY_END_HOUR - DAY_START_HOUR;
  */
 export function buildDayShape(events: DayShapeEvent[], isOffDay = false): DayShape {
   const curve = new Array<number>(HOURS).fill(0);
+  // Zero/negative-duration rows (calendar "notes", bad syncs) are not
+  // narratable time and previously left the cluster math with nothing to
+  // stand on — filter them with the window check.
   const sorted = [...events]
-    .filter((e) => e.endHour > DAY_START_HOUR && e.startHour < DAY_END_HOUR)
+    .filter(
+      (e) => e.endHour > e.startHour && e.endHour > DAY_START_HOUR && e.startHour < DAY_END_HOUR,
+    )
     .sort((a, b) => a.startHour - b.startHour);
 
   for (const event of sorted) {
@@ -81,6 +86,19 @@ export function buildDayShape(events: DayShapeEvent[], isOffDay = false): DaySha
       ],
       curve,
       meetingCount: 0,
+      freeHours,
+    };
+  }
+
+  // Defensive: if the curve somehow stayed all-zero despite events, degrade
+  // to the no-events shape instead of indexing into an empty cluster list.
+  if (!curve.some((c) => c > 0)) {
+    return {
+      segments: [
+        { startHour: DAY_START_HOUR, endHour: DAY_END_HOUR, kind: "free", eventTitles: [] },
+      ],
+      curve,
+      meetingCount: sorted.length,
       freeHours,
     };
   }

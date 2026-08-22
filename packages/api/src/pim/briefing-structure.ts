@@ -11,8 +11,8 @@
 import { prisma } from "../db.js";
 import { resolveNotificationLanguage } from "../notify/notification-strings.js";
 import { localDayUtcRange } from "../time-zone.js";
+import { stripUntrusted } from "../untrusted.js";
 import { getUserTimeZone } from "../user-timezone.js";
-import type { BriefingTopAction } from "./briefing-signals.js";
 import {
   buildDayShape,
   DAY_END_HOUR,
@@ -104,16 +104,18 @@ function headline(segments: DaySegment[], meetingCount: number, lang: Lang): str
     // The screenshot shape: front-loaded, then open.
     const boundary = hourLabel(firstBusy.endHour, lang);
     return lang === "ko"
-      ? `${boundary} 전에 ${n}건. 나머지는 비어 있습니다.`
-      : `${n} before ${boundary}. The rest is open.`;
+      ? `${boundary} 전에 회의 ${n}건. 나머지는 비어 있습니다.`
+      : `${n} meeting${n === 1 ? "" : "s"} before ${boundary}. The rest is open.`;
   }
   if (lastFree) {
     const free = lastFree.endHour - lastFree.startHour;
     return lang === "ko"
-      ? `오늘 ${n}건, 비는 시간은 ${free}시간입니다.`
-      : `${n} on the calendar, with ${free} open hours.`;
+      ? `오늘 회의 ${n}건, 비는 시간은 ${free}시간입니다.`
+      : `${n} meeting${n === 1 ? "" : "s"} today, with ${free} open hours.`;
   }
-  return lang === "ko" ? `오늘 ${n}건이 이어집니다.` : `${n} back to back today.`;
+  return lang === "ko"
+    ? `오늘 회의 ${n}건이 이어집니다.`
+    : `${n} meeting${n === 1 ? "" : "s"} back to back today.`;
 }
 
 function dateLabel(now: Date, timeZone: string, lang: Lang): string {
@@ -138,7 +140,6 @@ function isWeekend(now: Date, timeZone: string): boolean {
  */
 export async function buildBriefingStructure(
   userId: string,
-  topActions: BriefingTopAction[],
   now: Date = new Date(),
 ): Promise<BriefingStructure> {
   const [timeZone, config] = await Promise.all([
@@ -151,16 +152,30 @@ export async function buildBriefingStructure(
   const lang = resolveNotificationLanguage(config?.notificationLanguage) as Lang;
 
   const { gte, lt } = localDayUtcRange(now, timeZone);
-  const rows = await prisma.calendarEvent.findMany({
-    where: { userId, allDay: false, startTime: { gte, lt } },
-    orderBy: { startTime: "asc" },
-    take: 50,
-    select: { title: true, startTime: true, endTime: true },
-  });
+  // OVERLAP with today (not started-today): an event that began yesterday
+  // and runs into this morning still occupies today's narrated window.
+  const [rows, pushItems] = await Promise.all([
+    prisma.calendarEvent.findMany({
+      where: { userId, allDay: false, startTime: { lt }, endTime: { gt: gte } },
+      orderBy: { startTime: "asc" },
+      take: 50,
+      select: { title: true, startTime: true, endTime: true },
+    }),
+    // "Needs attention" = the open PUSH lane, cheapest honest source (pure
+    // DB — this endpoint is polled, so it must never touch the Gmail API).
+    prisma.attentionItem.findMany({
+      where: { userId, status: "OPEN", tier: "PUSH" },
+      orderBy: { priority: "desc" },
+      take: 3,
+      select: { title: true, tierReason: true },
+    }),
+  ]);
   const events = rows.map((row) => ({
     title: row.title,
-    startHour: localHour(row.startTime, timeZone),
-    endHour: localHour(row.endTime, timeZone),
+    // Clamp instants outside today's local day to the day edges — localHour
+    // alone is date-blind and would wrap (23:00 yesterday → "23h today").
+    startHour: row.startTime <= gte ? 0 : localHour(row.startTime, timeZone),
+    endHour: row.endTime >= lt ? 24 : localHour(row.endTime, timeZone),
   }));
 
   const shape = buildDayShape(events, isWeekend(now, timeZone) && events.length === 0);
@@ -175,9 +190,11 @@ export async function buildBriefingStructure(
     })),
     curve: shape.curve,
     dayStartHour: DAY_START_HOUR,
-    attention: topActions
-      .slice(0, 3)
-      .map((a) => ({ rank: a.rank, action: a.action, reason: a.reason })),
+    attention: pushItems.map((item, i) => ({
+      rank: i + 1,
+      action: stripUntrusted(item.title),
+      reason: stripUntrusted(item.tierReason ?? ""),
+    })),
   };
 }
 

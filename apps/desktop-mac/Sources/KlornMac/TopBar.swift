@@ -677,28 +677,41 @@ private struct BriefingSegmentsRow: View {
     let segments: [BriefingStructure.Segment]
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            ForEach(Array(segments.enumerated()), id: \.offset) { i, seg in
-                if i > 0 {
-                    Rectangle().fill(Theme.line)
-                        .frame(width: 1).padding(.vertical, 1)
-                        .padding(.horizontal, 7)
+        // Columns where they fit (expanded panel); the 220pt full-mode
+        // sidebar can't hold three columns, so it stacks instead.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { i, seg in
+                    if i > 0 {
+                        Rectangle().fill(Theme.line)
+                            .frame(width: 1).padding(.vertical, 1)
+                            .padding(.horizontal, 7)
+                    }
+                    cell(seg).frame(minWidth: 76, maxWidth: .infinity, alignment: .leading)
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(seg.label)
-                        .font(Theme.Typo.micro)
-                        .foregroundStyle(seg.kind == "busy" ? Theme.accent : Theme.textDim)
-                    Text(seg.summary)
-                        .font(.caption2).foregroundStyle(Theme.text)
-                        .lineLimit(2).multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, seg in
+                    cell(seg)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         // Hug content height — otherwise the hairline dividers stretch the
         // row to fill whatever the parent proposes.
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder
+    private func cell(_ seg: BriefingStructure.Segment) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(seg.label)
+                .font(Theme.Typo.micro)
+                .foregroundStyle(seg.kind == "busy" ? Theme.accent : Theme.textDim)
+            Text(seg.summary)
+                .font(.caption2).foregroundStyle(Theme.text)
+                .lineLimit(2).multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

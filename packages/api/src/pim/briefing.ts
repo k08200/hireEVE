@@ -807,9 +807,8 @@ export function briefingRoutes(app: FastifyInstance) {
     // Deterministic at read time; fail-open null keeps old clients working.
     let structured = null;
     try {
-      const data = await gatherBriefingData(userId);
       const { buildBriefingStructure } = await import("./briefing-structure.js");
-      structured = await buildBriefingStructure(userId, data.signals.topActions);
+      structured = await buildBriefingStructure(userId);
     } catch (err) {
       console.warn(
         "[BRIEFING] structure build failed:",

@@ -116,7 +116,7 @@ function DayShapeCard({ structure }: { structure: BriefingStructure }) {
             ))}
         </svg>
       )}
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         {structure.segments.map((seg) => (
           <div
             key={seg.label}
