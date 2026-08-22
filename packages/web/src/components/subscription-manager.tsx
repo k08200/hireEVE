@@ -18,6 +18,28 @@ const BUTTON =
   "ease-strong min-h-11 rounded-lg border border-line bg-surface-panel/70 px-4 py-2 text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring disabled:opacity-50";
 
 /**
+ * The one-line answer to "what happens next, and when" — renewal date, trial
+ * first charge, pending cancellation, or a payment problem.
+ *
+ * Split out of the action group so the page can place it under the plan name,
+ * where it belongs: it describes the subscription, not the buttons.
+ */
+export function SubscriptionStatusLine({ state }: { state: SubscriptionState }) {
+  const { t, locale } = useT();
+  if (isNativePlatform()) return null;
+  const line = subscriptionStatusLine(state, locale);
+  if (!line) return null;
+  const attention = state.subscriptionStatus === "past_due" || hasPendingCancel(state);
+  return (
+    <p
+      className={`mt-1.5 text-xs ${attention ? "font-medium text-state-warn-ink" : "text-ink-mid"}`}
+    >
+      {line.date ? t(line.key, { date: line.date }) : t(line.key)}
+    </p>
+  );
+}
+
+/**
  * Subscription state + the actions on it, shared by /billing and Settings so
  * the two surfaces can never disagree about what a subscriber sees.
  *
@@ -46,7 +68,6 @@ export function SubscriptionManager({
 
   if (isNativePlatform()) return null;
 
-  const statusLine = subscriptionStatusLine(state, locale);
   const pendingCancel = hasPendingCancel(state);
   const canCancel = Boolean(state.canCancelInApp) && !pendingCancel;
 
@@ -122,43 +143,38 @@ export function SubscriptionManager({
   }
 
   const showPortal = Boolean(state.hasPortal);
-  if (!statusLine && !showPortal && !canCancel && !pendingCancel) return null;
+  if (!showPortal && !canCancel && !pendingCancel) return null;
 
   return (
-    <div className="flex flex-col gap-3 sm:items-end">
-      {statusLine && (
-        <p
-          className={`text-xs ${
-            state.subscriptionStatus === "past_due" || pendingCancel
-              ? "font-medium text-amber-600"
-              : "text-ink-dim"
-          }`}
+    // Resuming is the recovery action, so it leads and carries the accent.
+    // Cancel stays last and quiet: reachable, never the thing you hit by
+    // reflex. shrink-0 keeps the group intact when the plan name is long.
+    <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+      {pendingCancel && state.canCancelInApp && (
+        <button
+          type="button"
+          onClick={keepSubscription}
+          disabled={busy}
+          className="ease-strong focus-ring min-h-11 rounded-lg bg-accent-solid px-4 py-2 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:opacity-50"
         >
-          {statusLine.date ? t(statusLine.key, { date: statusLine.date }) : t(statusLine.key)}
-        </p>
+          {t("billing.keepSubscription")}
+        </button>
       )}
-      <div className="flex flex-wrap items-center gap-2">
-        {pendingCancel && state.canCancelInApp && (
-          <button type="button" onClick={keepSubscription} disabled={busy} className={BUTTON}>
-            {t("billing.keepSubscription")}
-          </button>
-        )}
-        {showPortal && (
-          <button type="button" onClick={openPortal} disabled={busy} className={BUTTON}>
-            {t("billing.manageSubscription")}
-          </button>
-        )}
-        {canCancel && (
-          <button
-            type="button"
-            onClick={cancelSubscription}
-            disabled={busy}
-            className="ease-strong min-h-11 rounded-lg px-3 py-2 text-sm text-ink-dim underline-offset-4 transition duration-150 hover:text-ink hover:underline focus-ring disabled:opacity-50"
-          >
-            {t("billing.cancelSubscription")}
-          </button>
-        )}
-      </div>
+      {showPortal && (
+        <button type="button" onClick={openPortal} disabled={busy} className={BUTTON}>
+          {t("billing.manageSubscription")}
+        </button>
+      )}
+      {canCancel && (
+        <button
+          type="button"
+          onClick={cancelSubscription}
+          disabled={busy}
+          className="ease-strong focus-ring min-h-11 rounded-lg px-4 py-2 text-sm text-ink-mid underline-offset-4 transition duration-150 hover:text-ink hover:underline disabled:opacity-50"
+        >
+          {t("billing.cancelSubscription")}
+        </button>
+      )}
     </div>
   );
 }

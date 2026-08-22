@@ -6,7 +6,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { PaddleLoader } from "../../components/paddle-loader";
 import { CardSkeleton } from "../../components/skeleton";
-import { SubscriptionManager } from "../../components/subscription-manager";
+import { SubscriptionManager, SubscriptionStatusLine } from "../../components/subscription-manager";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 import { isSafeBillingRedirect } from "../../lib/billing-redirect";
@@ -203,12 +203,12 @@ function BillingContent() {
       </header>
 
       {success && (
-        <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+        <div className="mb-6 rounded-xl border border-state-ok-line bg-state-ok-bg p-4 text-sm text-state-ok-ink">
           {t("billing.subscriptionActive")}
         </div>
       )}
       {canceled && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+        <div className="mb-6 rounded-xl border border-state-warn-line bg-state-warn-bg p-4 text-sm text-state-warn-ink">
           {t("billing.checkoutCanceled")}
         </div>
       )}
@@ -223,26 +223,30 @@ function BillingContent() {
 
       {!loading && status && (
         <div className="panel-elevated mb-8 rounded-2xl border border-line/70 bg-surface-panel p-5">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-dim">
+          {/* Identity on the left, actions on the right. The renewal line
+              sits under the plan name because it is a fact ABOUT the plan,
+              not a caption for the buttons — floated up next to them it read
+              as an orphan. The month-to-date cost moved down to the usage
+              grid, where the other spend numbers live. */}
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-mid">
                 {t("billing.currentPlan")}
               </p>
               <p className="mt-1 text-xl font-semibold text-ink">{status.planName}</p>
+              <SubscriptionStatusLine state={toSubscriptionState(status)} />
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              {status.estimatedCost > 0 && (
-                <span className="rounded-full border border-line bg-surface-raised px-3 py-1 text-xs text-ink-mid tabular-nums">
-                  {t("billing.aboutCostThisMonth", { amount: formatUsd(status.estimatedCost) })}
-                </span>
-              )}
-              {/* Renewal/cancel state plus the portal + in-app cancel
-                  actions. Renders nothing inside the native app (App Store
-                  anti-steering 3.1.1) and nothing for an account with no
-                  billing record — the gate lives in the component. */}
-              <SubscriptionManager state={toSubscriptionState(status)} onChanged={loadStatus} />
-            </div>
+            {/* Portal + in-app cancel. Renders nothing inside the native app
+                (App Store anti-steering 3.1.1) and nothing for an account
+                with no billing record — the gate lives in the component. */}
+            <SubscriptionManager state={toSubscriptionState(status)} onChanged={loadStatus} />
           </div>
+
+          {status.estimatedCost > 0 && (
+            <p className="mb-3 text-xs text-ink-mid tabular-nums">
+              {t("billing.aboutCostThisMonth", { amount: formatUsd(status.estimatedCost) })}
+            </p>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Decision turns usage */}
@@ -301,7 +305,7 @@ function BillingContent() {
           </div>
           <Link
             href="/usage"
-            className="focus-ring mt-4 inline-block rounded text-sm text-accent hover:underline"
+            className="focus-ring mt-3 inline-flex min-h-11 items-center rounded text-sm font-medium text-accent-deeper hover:underline"
           >
             {t("billing.viewDetailedUsage")}
           </Link>
@@ -323,14 +327,14 @@ function BillingContent() {
               }`}
             >
               {plan.key === "PRO" && (
-                <span className="mb-2 self-start rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
+                <span className="mb-2 self-start rounded-full bg-accent-solid px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-solid-ink">
                   {t("billing.recommended")}
                 </span>
               )}
               <p className="mb-1 text-lg font-semibold text-ink">{t(plan.nameKey)}</p>
               <p className="mb-1 text-2xl font-semibold text-ink tabular-nums">
                 {plan.priceKey ? t(plan.priceKey) : plan.price}
-                <span className="text-sm font-normal text-ink-dim">
+                <span className="text-sm font-normal text-ink-mid">
                   {plan.periodKey ? t(plan.periodKey) : ""}
                 </span>
               </p>
@@ -344,7 +348,7 @@ function BillingContent() {
               <ul className="mb-6 flex-1 space-y-2">
                 {plan.featureKeys.map((fKey) => (
                   <li key={fKey} className="flex items-start gap-2 text-sm text-ink-mid">
-                    <span aria-hidden="true" className="mt-0.5 text-emerald-500">
+                    <span aria-hidden="true" className="mt-0.5 text-emerald-600">
                       ✓
                     </span>
                     {t(fKey)}
@@ -353,7 +357,7 @@ function BillingContent() {
               </ul>
 
               {isCurrent ? (
-                <div className="rounded-lg border border-sky-200 bg-sky-50 py-2 text-center text-sm font-medium text-accent-deeper">
+                <div className="rounded-lg border border-accent-muted/45 bg-accent/8 py-2 text-center text-sm font-medium text-accent-deeper">
                   {t("billing.currentPlan")}
                 </div>
               ) : plan.key === "FREE" ? (
@@ -387,7 +391,7 @@ function BillingContent() {
                 <button
                   type="button"
                   onClick={() => handleUpgrade(plan.key as "PRO")}
-                  className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-accent-light to-accent py-2.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring min-h-11"
+                  className="glow-primary ease-strong focus-ring min-h-11 rounded-lg bg-accent-solid py-2.5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97]"
                 >
                   {t("billing.startTrial")}
                 </button>

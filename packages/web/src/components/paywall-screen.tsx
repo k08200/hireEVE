@@ -160,7 +160,7 @@ export default function PaywallScreen() {
               type="button"
               onClick={native ? startAppPurchase : startWebTrial}
               disabled={loading}
-              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent text-[15px] font-semibold text-white transition active:bg-accent disabled:opacity-50"
+              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-solid text-[15px] font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:opacity-50"
             >
               {loading ? "Starting..." : "Start free trial"}
             </button>
