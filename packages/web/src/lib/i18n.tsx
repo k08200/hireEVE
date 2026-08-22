@@ -583,6 +583,26 @@ const enTranslations: Record<string, string> = {
   "billing.error.unsafeRedirect": "Unsafe billing redirect URL.",
   "billing.error.checkoutFailed": "Could not create checkout session.",
   "billing.error.portalFailed": "Could not open billing portal.",
+  "billing.cancelSubscription": "Cancel subscription",
+  "billing.keepSubscription": "Keep subscription",
+  "billing.renewsOn": "Renews on {date}",
+  "billing.trialFirstCharge": "Free trial · first charge on {date}",
+  "billing.accessEndsOn": "Cancelled · Pro stays active until {date}",
+  "billing.accessEndsSoon": "Cancelled · Pro stays active until the end of the paid period",
+  "billing.statusPastDue": "Payment failed — update your payment method to keep Pro",
+  "billing.statusPaused": "Subscription paused",
+  "billing.cancelConfirm.title": "Cancel Klorn Pro?",
+  "billing.cancelConfirm.message":
+    "Pro stays active until {date}. You will not be charged again, and nothing is deleted — your account drops to Free after that date. You can undo this any time before it takes effect.",
+  "billing.cancelConfirm.messageNoDate":
+    "Pro stays active until the end of the period you already paid for. You will not be charged again, and nothing is deleted — your account drops to Free after that. You can undo this any time before it takes effect.",
+  "billing.cancelConfirm.confirm": "Cancel subscription",
+  "billing.toast.cancelScheduled": "Cancelled. Pro stays active until {date}.",
+  "billing.toast.cancelScheduledNoDate":
+    "Cancelled. Pro stays active until the end of the paid period.",
+  "billing.error.cancelFailed": "Could not cancel the subscription. Please try again.",
+  "billing.toast.resumed": "Subscription resumed — billing continues as before.",
+  "billing.error.resumeFailed": "Could not resume the subscription. Please try again.",
   "billing.plan.free.name": "Free",
   "billing.plan.free.limit": "50 decisions/mo · 500K tokens",
   "billing.plan.free.feature.mailCalendar": "Mail and calendar reading",
@@ -619,7 +639,10 @@ const enTranslations: Record<string, string> = {
     "Custom limits instead of fixed quotas, Claude Opus model selection, on-prem deployment options, SLA-backed support, and custom integrations. Pricing depends on scope — contact sales.",
   "billing.faq.manage.q": "How do I cancel or manage my subscription?",
   "billing.faq.manage.a":
-    '"Manage subscription" on this page opens the billing portal of Paddle, our merchant of record, where you can cancel, change the payment method, or download invoices. After cancelling, Pro stays active until the end of the period you already paid for.',
+    '"Cancel subscription" on this page ends the subscription at the end of the period you already paid for — Pro keeps working until that date, you are not charged again, and nothing is deleted. Until it takes effect you can undo it with "Keep subscription". "Manage subscription" opens the billing portal of Paddle, our merchant of record, for payment method changes and invoice downloads.',
+  "billing.faq.paymentMethods.q": "Which payment methods can I use?",
+  "billing.faq.paymentMethods.a":
+    "Checkout is handled by Paddle, our merchant of record. Cards, PayPal, Apple Pay, and Google Pay are available in most countries. Paddle decides which additional local methods to show from your country, your currency, and your device, so the list at checkout can differ from this one.",
   // Usage
   "usage.title": "Usage",
   "usage.subtitlePre":
@@ -1668,6 +1691,26 @@ const koTranslations: Record<string, string> = {
   "billing.error.unsafeRedirect": "안전하지 않은 결제 리디렉션 URL입니다.",
   "billing.error.checkoutFailed": "결제 세션을 생성하지 못했습니다.",
   "billing.error.portalFailed": "결제 포털을 열지 못했습니다.",
+  "billing.cancelSubscription": "구독 취소",
+  "billing.keepSubscription": "구독 유지",
+  "billing.renewsOn": "{date}에 갱신",
+  "billing.trialFirstCharge": "무료 체험 · {date}에 첫 결제",
+  "billing.accessEndsOn": "취소됨 · {date}까지 Pro 유지",
+  "billing.accessEndsSoon": "취소됨 · 결제한 기간이 끝날 때까지 Pro 유지",
+  "billing.statusPastDue": "결제 실패 — Pro를 유지하려면 결제 수단을 업데이트하세요",
+  "billing.statusPaused": "구독 일시중지됨",
+  "billing.cancelConfirm.title": "Klorn Pro를 취소할까요?",
+  "billing.cancelConfirm.message":
+    "{date}까지는 Pro가 그대로 유지됩니다. 추가 결제는 없으며 삭제되는 데이터도 없습니다 — 그 날짜 이후 무료 플랜으로 전환됩니다. 적용 전에는 언제든 되돌릴 수 있습니다.",
+  "billing.cancelConfirm.messageNoDate":
+    "이미 결제한 기간이 끝날 때까지는 Pro가 유지됩니다. 추가 결제는 없으며 삭제되는 데이터도 없습니다 — 이후 무료 플랜으로 전환됩니다. 적용 전에는 언제든 되돌릴 수 있습니다.",
+  "billing.cancelConfirm.confirm": "구독 취소",
+  "billing.toast.cancelScheduled": "취소되었습니다. {date}까지 Pro가 유지됩니다.",
+  "billing.toast.cancelScheduledNoDate":
+    "취소되었습니다. 결제한 기간이 끝날 때까지 Pro가 유지됩니다.",
+  "billing.error.cancelFailed": "구독을 취소하지 못했습니다. 다시 시도해 주세요.",
+  "billing.toast.resumed": "구독이 다시 유지됩니다 — 결제는 기존대로 진행됩니다.",
+  "billing.error.resumeFailed": "구독을 다시 유지하지 못했습니다. 다시 시도해 주세요.",
   "billing.plan.free.name": "무료",
   "billing.plan.free.limit": "월 50건 결정 · 토큰 50만",
   "billing.plan.free.feature.mailCalendar": "메일과 캘린더 읽기",
@@ -1704,7 +1747,10 @@ const koTranslations: Record<string, string> = {
     "고정 한도 대신 맞춤 한도, Claude Opus 모델 선택, 온프레미스 배포 옵션, SLA 기반 지원, 맞춤 연동이 제공됩니다. 가격은 범위에 따라 달라지니 영업팀에 문의하세요.",
   "billing.faq.manage.q": "구독을 취소하거나 관리하려면 어떻게 하나요?",
   "billing.faq.manage.a":
-    '이 페이지의 "구독 관리"를 누르면 결제 대행사 Paddle의 결제 포털이 열리며, 여기서 취소, 결제 수단 변경, 인보이스 다운로드가 가능합니다. 취소 후에도 Pro는 이미 결제한 기간이 끝날 때까지 유지됩니다.',
+    '이 페이지의 "구독 취소"를 누르면 이미 결제한 기간이 끝나는 시점에 구독이 종료됩니다 — 그때까지 Pro는 그대로 동작하고, 추가 결제는 없으며, 삭제되는 데이터도 없습니다. 적용 전에는 "구독 유지"로 되돌릴 수 있습니다. "구독 관리"는 결제 대행사 Paddle의 결제 포털을 열어 결제 수단 변경과 인보이스 다운로드를 처리합니다.',
+  "billing.faq.paymentMethods.q": "어떤 결제 수단을 쓸 수 있나요?",
+  "billing.faq.paymentMethods.a":
+    "결제는 결제 대행사 Paddle이 처리합니다. 카드, PayPal, Apple Pay, Google Pay는 대부분의 국가에서 사용할 수 있습니다. 그 밖의 현지 결제 수단은 국가, 통화, 기기에 따라 Paddle이 결정해 노출하므로 실제 결제창의 목록은 이 안내와 다를 수 있습니다.",
   // Usage
   "usage.title": "사용량",
   "usage.subtitlePre": "어시스턴트가 실제로 사용한 토큰, 메시지, 예상 모델 비용입니다. 플랜 한도는",

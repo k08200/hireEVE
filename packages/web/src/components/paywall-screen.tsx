@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { isSafeBillingRedirect } from "../lib/billing-redirect";
 import { isNativePlatform } from "../lib/native/capacitor";
 import { iapAvailable, restoreNativePurchases, startNativePurchase } from "../lib/native/iap";
 import { proPrice } from "../lib/pricing";
@@ -42,7 +43,14 @@ export default function PaywallScreen() {
         method: "POST",
         body: JSON.stringify({ plan: "PRO" }),
       });
-      window.location.href = url;
+      // The URL comes from an API response — same open-redirect guard the
+      // /billing page applies, so this path can't be the weak one.
+      if (url && isSafeBillingRedirect(url, window.location.origin)) {
+        window.location.href = url;
+        return;
+      }
+      toast("Unsafe billing redirect URL.", "error");
+      setLoading(false);
     } catch {
       toast("Could not start checkout. Please try again.", "error");
       setLoading(false);

@@ -191,10 +191,14 @@ export async function webhookRoutes(app: FastifyInstance) {
       const body = request.body as {
         event_id?: string;
         event_type?: string;
+        occurred_at?: string;
         data?: {
+          id?: string;
           status?: string;
           customer_id?: string;
           custom_data?: { userId?: string } | null;
+          next_billed_at?: string | null;
+          scheduled_change?: { action?: string; effective_at?: string | null } | null;
         };
       };
       if (!body?.event_id || !body?.event_type || !body?.data) {
@@ -230,20 +234,72 @@ export async function webhookRoutes(app: FastifyInstance) {
             extra: { eventId: body.event_id, customer: data.customer_id },
           });
         } else {
+          // paddleCustomerId and paddleSubscriptionId are both @unique. If
+          // either id is currently recorded on a DIFFERENT account (a
+          // subscription moved between accounts, or a mapping drift through
+          // the customer-id fallback above), the update below throws P2002 —
+          // and because the event is only marked processed AFTER the work,
+          // Paddle would retry that same failing event forever while this
+          // subscriber's state never syncs. Detach the ids from the other row
+          // first and surface it, rather than deadlocking the webhook.
+          await detachPaddleIdsFromOtherUsers(mapped.id, data.id, data.customer_id);
+
+          // Ordering guard. Dedup by event_id stops a REPLAY, not an
+          // out-of-order pair: a retried "cancel scheduled" landing after the
+          // newer "cancel removed" would otherwise resurrect the cancellation
+          // in the UI. Entitlement (plan) stays unconditional either way —
+          // it is order-insensitive; only the display detail is skipped.
+          const eventAt = body.occurred_at ? new Date(body.occurred_at) : null;
+          const priorEventAt = mapped.subscriptionEventAt;
+          const stale = Boolean(
+            eventAt && !Number.isNaN(eventAt.getTime()) && priorEventAt && eventAt < priorEventAt,
+          );
+          const detail = (fields: Record<string, unknown>) =>
+            stale ? {} : { ...fields, subscriptionEventAt: eventAt ?? undefined };
+
           const entitled = data.status === "active" || data.status === "trialing";
           if (entitled) {
             // Unconditional + idempotent (like Stripe/RevenueCat) so an
             // out-of-order past_due followed by active can't leave a live
             // subscriber downgraded. Store the customer id for the portal
-            // route and for custom_data-less future events.
+            // route and for custom_data-less future events, plus the live
+            // subscription detail the /billing page renders: the sub id (the
+            // in-app cancel route's target), renewal date, and — when a
+            // period-end cancel is scheduled — the date access ends. Paddle
+            // nulls next_billed_at while a cancel is pending, so the two
+            // dates are mutually exclusive by construction.
             await prisma.user.update({
               where: { id: mapped.id },
-              data: { plan: "PRO", paddleCustomerId: data.customer_id ?? undefined },
+              data: {
+                plan: "PRO",
+                paddleCustomerId: data.customer_id ?? undefined,
+                paddleSubscriptionId: data.id ?? undefined,
+                ...detail({
+                  subscriptionStatus: data.status,
+                  subscriptionRenewsAt: data.next_billed_at ? new Date(data.next_billed_at) : null,
+                  subscriptionCancelAt:
+                    data.scheduled_change?.action === "cancel" && data.scheduled_change.effective_at
+                      ? new Date(data.scheduled_change.effective_at)
+                      : null,
+                }),
+              },
             });
           } else {
-            if (mapped.plan !== "FREE") {
-              await prisma.user.update({ where: { id: mapped.id }, data: { plan: "FREE" } });
-            }
+            // canceled is terminal — clear the sub id so the in-app cancel
+            // route can't target a dead subscription; past_due/paused keep it
+            // (the subscription is still recoverable via the portal).
+            await prisma.user.update({
+              where: { id: mapped.id },
+              data: {
+                plan: "FREE",
+                paddleSubscriptionId: data.status === "canceled" ? null : (data.id ?? undefined),
+                ...detail({
+                  subscriptionStatus: data.status ?? null,
+                  subscriptionRenewsAt: null,
+                  subscriptionCancelAt: null,
+                }),
+              },
+            });
             if (data.status === "canceled") {
               await notifyUser(
                 mapped.id,
@@ -363,6 +419,36 @@ export async function webhookRoutes(app: FastifyInstance) {
 }
 
 /** Create DB notification + WebSocket push + browser push */
+/**
+ * Release Paddle's unique ids from any account other than `keepUserId`.
+ *
+ * Only ever a no-op in the normal case; when it does fire it means two rows
+ * claimed the same subscription or customer, which is worth a human's
+ * attention even though the webhook recovers on its own.
+ */
+async function detachPaddleIdsFromOtherUsers(
+  keepUserId: string,
+  subscriptionId: string | undefined,
+  customerId: string | undefined,
+): Promise<void> {
+  const claims = [];
+  if (subscriptionId) claims.push({ paddleSubscriptionId: subscriptionId });
+  if (customerId) claims.push({ paddleCustomerId: customerId });
+  if (claims.length === 0) return;
+
+  const { count } = await prisma.user.updateMany({
+    where: { id: { not: keepUserId }, OR: claims },
+    data: { paddleSubscriptionId: null, paddleCustomerId: null },
+  });
+  if (count > 0) {
+    console.warn(`[PADDLE] detached paddle ids from ${count} other account(s)`);
+    captureError(new Error("paddle ids were claimed by another account"), {
+      tags: { scope: "paddle.webhook.detach" },
+      extra: { keepUserId, subscriptionId, customerId, count },
+    });
+  }
+}
+
 async function notifyUser(
   userId: string,
   type: string,
