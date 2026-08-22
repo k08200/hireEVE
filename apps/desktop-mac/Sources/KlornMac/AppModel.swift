@@ -401,11 +401,18 @@ final class AppModel {
     /// (`--render-previews`). Lives here because the state it fills is
     /// `private(set)`; nothing in the running app calls it, and it performs no
     /// network or disk I/O.
-    func seedForPreview(firewallJSON: String, emailJSON: String, selectedItemId: String?) {
+    func seedForPreview(
+        firewallJSON: String, emailJSON: String, selectedItemId: String?,
+        briefingJSON: String? = nil
+    ) {
         phase = .signedIn
         queue = try? JSONDecoder().decode(FirewallResponse.self, from: Data(firewallJSON.utf8))
         openedEmail = try? JSONDecoder().decode(EmailDetail.self, from: Data(emailJSON.utf8))
         self.selectedItemId = selectedItemId
+        if let briefingJSON {
+            briefingStructure = try? JSONDecoder().decode(
+                BriefingStructure.self, from: Data(briefingJSON.utf8))
+        }
     }
 
     /// Kick off the headless lifecycle at app launch. With no window driving it,
@@ -975,6 +982,7 @@ final class AppModel {
         weekAhead = nil
         usage = nil
         briefing = nil
+        briefingStructure = nil
         inboxes = []
         selectedInbox = "all"
         UserDefaults.standard.removeObject(forKey: Self.selectedInboxKey)
@@ -996,6 +1004,7 @@ final class AppModel {
 
     /// Today's daily-briefing preview (TODAY column). Best-effort like the rest.
     private(set) var briefing: String?
+    private(set) var briefingStructure: BriefingStructure?
 
     /// Newer release version ("0.3.5") when GitHub has one; nil otherwise.
     /// Surfaced as a quiet ACCOUNT-column button — never a popup
@@ -1092,6 +1101,7 @@ final class AppModel {
         do {
             let today = try await api.get("/api/briefing/today", as: TodayBriefing.self)
             briefing = briefingPreview(today.briefing?.content)
+            briefingStructure = today.structured
         } catch {
             Log.app.debug("briefing fetch failed: \(String(describing: error), privacy: .private)")
         }

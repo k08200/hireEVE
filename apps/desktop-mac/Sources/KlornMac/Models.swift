@@ -800,10 +800,34 @@ func isSearchActive(_ query: String) -> Bool {
 
 // MARK: - Daily briefing
 
-/// GET /api/briefing/today → { briefing: { content } | null }.
+/// GET /api/briefing/today → { briefing: { content } | null, structured }.
 struct TodayBriefing: Codable, Sendable {
     struct Note: Codable, Sendable { let content: String }
     let briefing: Note?
+    let structured: BriefingStructure?
+}
+
+/// Briefing v2 glanceable layer (pim/briefing-structure.ts): the server
+/// computes AND localizes everything — the client only draws. `kind` stays a
+/// raw string so unknown future kinds degrade to the free style, not a crash.
+struct BriefingStructure: Codable, Sendable, Hashable {
+    struct Segment: Codable, Sendable, Hashable {
+        let label: String
+        let summary: String
+        let kind: String  // "busy" | "free" | "off"
+    }
+    struct Attention: Codable, Sendable, Hashable, Identifiable {
+        let rank: Int
+        let action: String
+        let reason: String
+        var id: Int { rank }
+    }
+    let dateLabel: String
+    let headline: String
+    let segments: [Segment]
+    let curve: [Int]
+    let dayStartHour: Int
+    let attention: [Attention]
 }
 
 /// One-line preview of the briefing note for the TODAY column: strip markdown

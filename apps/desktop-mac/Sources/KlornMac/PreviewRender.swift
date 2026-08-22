@@ -39,6 +39,17 @@ enum PreviewRender {
      "summary":{"PUSH":3,"QUEUE":12,"SILENT":41,"AUTO":8,"total":64}}
     """
 
+    private static let briefingJSON = """
+    {"dateLabel":"2026년 8월 22일 토요일",
+     "headline":"오전 10시 전에 3건. 나머지는 비어 있습니다.",
+     "segments":[
+       {"label":"오전 10시 이전","summary":"3건: 싱크, 주간 회의, 벤더 체크인","kind":"busy"},
+       {"label":"오전 10시 이후","summary":"10시간 비어 있습니다.","kind":"free"}],
+     "curve":[1,3,0,0,0,0,0,0,0,0,0,0],
+     "dayStartHour":8,
+     "attention":[{"rank":1,"action":"회고 생각 두세 가지 준비","reason":"오후 2시 디자인 회고"}]}
+    """
+
     private static let emailJSON = """
     {"id":"d1","from":"Sarah Kim <sarah.kim@northwind-partners.com>",
      "subject":"Re: Contract review — needs your sign-off today",
@@ -58,7 +69,8 @@ enum PreviewRender {
         model.seedForPreview(
             firewallJSON: firewallJSON,
             emailJSON: emailJSON,
-            selectedItemId: "p1")
+            selectedItemId: "p1",
+            briefingJSON: briefingJSON)
         GuideSeen.value = true
 
         var ok = true
@@ -96,6 +108,9 @@ enum PreviewRender {
         let actions = previewActions()
 
         print("Rendering previews to \(dir.path):")
+        shot("briefing", size: CGSize(width: 380, height: 260), align: .top) {
+            BriefingCardRenderProbe()
+        }
         shot("full", size: TopBarMetrics.size(for: .full)) {
             TopBarRoot(state: .full, actions: actions)
         }
