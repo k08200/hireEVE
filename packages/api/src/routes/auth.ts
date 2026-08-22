@@ -293,8 +293,10 @@ export async function runLoginBriefingCatchUp(userId: string): Promise<void> {
   const configAny = config as unknown as { timezone?: string | null };
   if (!config.dailyBriefing) return;
   if (!isLoginBriefingDue(config.briefingTime, configAny.timezone)) {
+    // Weekly signal reports also stamp dayKey ("YYYY-Www"), so the briefing
+    // marker must be the title, not dayKey existence (briefing-status.ts idiom).
     const everBriefed = await prisma.note.findFirst({
-      where: { userId, dayKey: { not: null } },
+      where: { userId, dayKey: { not: null }, title: { startsWith: "Daily Briefing" } },
       select: { id: true },
     });
     if (everBriefed) return; // not day zero — respect the schedule

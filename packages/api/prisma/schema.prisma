@@ -357,8 +357,9 @@ model Note {
   title     String
   content   String
   category  String   @default("general")
-  // Local calendar day (YYYY-MM-DD) this note dedupes on. Set only for the
-  // daily briefing note; NULL for every other note. Postgres treats NULLs as
+  // Dedupe key for scheduled notes: local calendar day (YYYY-MM-DD) for the
+  // daily briefing, ISO week (YYYY-Www) for the weekly signal report; NULL
+  // for every other note. Postgres treats NULLs as
   // DISTINCT in a unique index, so ordinary notes never collide — only the one
   // briefing-per-user-per-day row is deduped, atomically closing the TOCTOU
   // race in createDailyBriefingDelivery.
