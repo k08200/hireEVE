@@ -50,6 +50,24 @@ model User {
   // subscription event; used for the customer portal and as the fallback
   // mapping for events that arrive without custom_data.userId.
   paddleCustomerId          String?                    @unique
+  // Paddle subscription (sub_…) currently attached to this account, so the
+  // in-app cancel route can call the Paddle API without a lookup. Cleared when
+  // the subscription reaches its terminal `canceled` status.
+  paddleSubscriptionId      String?                    @unique
+  // Live provider subscription status (active/trialing/past_due/paused/
+  // canceled) as last reported by webhook. Entitlement still lives in `plan` —
+  // this is display/guard state, never an entitlement source.
+  subscriptionStatus        String?
+  // Next automatic charge (Paddle next_billed_at). Null when a cancel is
+  // scheduled or there is no live subscription.
+  subscriptionRenewsAt      DateTime?
+  // When a cancellation is scheduled (in-app or portal), the date access ends
+  // (scheduled_change.effective_at). Null = no pending cancel.
+  subscriptionCancelAt      DateTime?
+  // occurred_at of the newest provider event whose detail we applied. Paddle
+  // does not guarantee delivery order, so a late retry carrying an older
+  // scheduled_change must not resurrect a cancellation the user already undid.
+  subscriptionEventAt       DateTime?
   emailVerified             Boolean                    @default(false)
   // SHA-256 hash of the emailed one-time token (one-time-token.ts) — the raw
   // token is never stored, same standard as Device.tokenHash.

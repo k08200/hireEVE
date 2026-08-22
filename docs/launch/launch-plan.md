@@ -48,12 +48,12 @@ JWT and does not touch the Google token.
 
 - Multi-account = paid is ALREADY the shipped shape (link/connect routes are
   requireEntitled; entitlement inert while PAYWALL_ENABLED=false). LOCKED.
-- [ ] PENDING founder decision: price $7.99 vs $8.99 /mo. Recommendation:
-      $8.99/mo + ~$79/yr (2 months free) — mid-point between SaneBox ($7–12)
-      and Superhuman ($25–30), and the 4-tier firewall + multi-provider story
-      supports the higher anchor; drop to $7.99 only if beta conversion says so.
-- [ ] Create Stripe (web) + RevenueCat (mobile) price objects; verify webhook
-      plan sync end-to-end in test mode.
+- Price DECIDED 2026-08-10: `$8.99`/mo web, `$9.99`/mo native. LOCKED. The
+  single source of truth is `packages/web/src/lib/pricing.ts`; an annual tier
+  (~$79/yr) is still open. Paddle live checkout was verified end-to-end with a
+  real transaction on 2026-08-22.
+- [ ] Create the RevenueCat (mobile) price objects; verify webhook plan sync
+      end-to-end. The Paddle (web) side is done.
 - [ ] PAYWALL flip per docs/launch/paywall-flip-runbook.md (trial stays 7d
       card-required). Flip AFTER beta cohort feedback, not with it.
 

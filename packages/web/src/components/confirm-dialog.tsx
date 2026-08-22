@@ -6,6 +6,13 @@ interface ConfirmOptions {
   title: string;
   message: string;
   confirmLabel?: string;
+  /**
+   * Label for the dismiss button. Defaults to "Cancel", which is ambiguous
+   * when the ACTION itself is a cancellation ("Cancel subscription?" with a
+   * "Cancel" button reads as if it cancels the subscription) — those callers
+   * pass an explicit opposite ("Keep subscription").
+   */
+  dismissLabel?: string;
   danger?: boolean;
 }
 
@@ -109,7 +116,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 onClick={() => handleClose(false)}
                 className="min-h-11 px-4 py-2 rounded-lg text-sm text-ink-mid hover:text-ink transition"
               >
-                Cancel
+                {options.dismissLabel || "Cancel"}
               </button>
               <button
                 type="button"
