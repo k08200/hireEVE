@@ -233,7 +233,11 @@ export async function getThreadBrief(
   const lastMessageAt = messages[messages.length - 1]?.receivedAt ?? null;
   const data = {
     whyNow,
-    asks: asStringArray(parsed.asks).slice(0, ASKS_MAX),
+    asks: asStringArray(parsed.asks)
+      .slice(0, ASKS_MAX)
+      // Per-item clamp, not just a count cap: one manipulated entry would
+      // otherwise reach downstream prompts unbounded.
+      .map((ask) => ask.slice(0, FIELD_MAX)),
     weOwe: clamp(asString(parsed.weOwe), FIELD_MAX),
     theyOwe: clamp(asString(parsed.theyOwe), FIELD_MAX),
     stance: clamp(asString(parsed.stance), FIELD_MAX),

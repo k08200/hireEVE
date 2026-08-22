@@ -177,6 +177,19 @@ describe("getThreadBrief", () => {
     expect(state.upserts).toHaveLength(0);
   });
 
+  it("clamps each ask, not just the count", async () => {
+    state.thread = THREAD;
+    state.llmJson = JSON.stringify({
+      whyNow: "chasing",
+      // A manipulated entry must not reach downstream prompts unbounded.
+      asks: ["x".repeat(5000), "b", "c", "d", "e"],
+    });
+
+    const brief = await getThreadBrief("u1", "t1");
+    expect(brief.asks).toHaveLength(4);
+    expect(brief.asks[0].length).toBe(300);
+  });
+
   it("never persists a brief with no trigger", async () => {
     state.thread = THREAD;
     state.llmJson = JSON.stringify({ whyNow: "", asks: ["something"] });
@@ -210,5 +223,24 @@ describe("cachedThreadBrief + threadBriefFacts", () => {
     expect(facts).not.toContain("They still owe you");
 
     expect(threadBriefFacts(null)).toBe("");
+  });
+
+  it("renders every ask, count- and length-clamped by the generator", async () => {
+    // threadBriefFacts itself is a plain renderer: consumers wrap. Both of
+    // them do (chat-conversations.ts, email-replies.ts) — this asserts the
+    // renderer stays plain so a consumer never double-wraps.
+    state.cached = {
+      whyNow: "why",
+      asks: ["a", "b"],
+      weOwe: null,
+      theyOwe: "their draft",
+      stance: null,
+      analyzedMessageCount: 2,
+      lastMessageAt: null,
+    };
+    const facts = threadBriefFacts(await cachedThreadBrief("u1", "t1"));
+    expect(facts).toContain("They are asking for: a; b");
+    expect(facts).toContain("They still owe you: their draft");
+    expect(facts).not.toContain("<untrusted_content");
   });
 });

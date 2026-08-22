@@ -222,7 +222,7 @@ Subject: ${wrapUntrusted(input.subject, "email:subject")}
 Klorn summary: ${wrapUntrusted(input.summary || "", "email:summary")}
 Action items: ${wrapUntrusted(input.actionItems.join("; "), "email:actions")}
 ${wrapUntrusted(candidateContext, "email:candidate")}
-${input.calendarFacts ? `\n${input.calendarFacts}\n` : ""}${input.senderContext ? `\n${input.senderContext}\n` : ""}${input.threadBrief ? `\nThread context (why this arrived now — answer THIS, not just the last message):\n${input.threadBrief}\n` : ""}
+${input.calendarFacts ? `\n${input.calendarFacts}\n` : ""}${input.senderContext ? `\n${input.senderContext}\n` : ""}${input.threadBrief ? `\nThread context (why this arrived now — answer THIS, not just the last message):\n${wrapUntrusted(input.threadBrief, "thread-brief")}\n` : ""}
 Email body:
 ${wrapUntrusted((input.body || "").slice(0, 3000), "email:body")}`,
         },
