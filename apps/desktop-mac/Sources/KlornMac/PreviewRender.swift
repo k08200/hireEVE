@@ -79,18 +79,22 @@ enum PreviewRender {
             selectedItemId: "p1",
             briefingJSON: briefingJSON)
         GuideSeen.value = true
+        model.showAssistantDock = true
 
         var ok = true
         // A view taller than the frame is centred by default, which silently cuts
         // the title off the top. Surfaces that read top-down pass .top.
         func shot(_ name: String, size: CGSize, align: Alignment = .center,
                   @ViewBuilder _ content: () -> some View) {
+            // .background LAST would sit OUTSIDE the forced colorScheme and
+            // paint the light ground behind a dark render — the shot has to
+            // carry the environment all the way out.
             let view = content()
                 .environment(model)
-                .environment(\.colorScheme, renderDark ? .dark : .light)
                 .frame(width: size.width, height: size.height, alignment: align)
                 .clipped()
                 .background(Theme.bg)
+                .environment(\.colorScheme, renderDark ? .dark : .light)
             let renderer = ImageRenderer(content: view)
             // 2x so type rendering is judged at the density a Mac actually shows.
             renderer.scale = 2
@@ -116,6 +120,9 @@ enum PreviewRender {
         let actions = previewActions()
 
         print("Rendering previews to \(dir.path):")
+        shot("assistant-dock", size: CGSize(width: 440, height: 560), align: .bottomTrailing) {
+            AssistantDockRenderProbe()
+        }
         shot("compose", size: CGSize(width: 600, height: 470), align: .top) {
             ComposePanelRenderProbe()
         }

@@ -439,6 +439,14 @@ struct EventDraft: Codable, Sendable, Hashable {
 }
 
 /// POST /api/chat/conversations/:id/messages → one synchronous agent turn.
+/// POST /api/chat/conversations/:id/messages body. `context` tells the server
+/// which mail the reading pane currently shows; omitted when nothing is open.
+struct ChatTurnRequest: Codable, Sendable {
+    struct Context: Codable, Sendable { let emailId: String }
+    let text: String
+    let context: Context?
+}
+
 struct ChatTurnResponse: Codable, Sendable {
     let reply: String
     let error: String?
