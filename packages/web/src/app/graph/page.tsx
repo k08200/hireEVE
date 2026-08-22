@@ -132,7 +132,9 @@ function GraphPageInner() {
               aria-pressed={mode === mKey}
               onClick={() => setMode(mKey)}
               className={`rounded-lg px-3 py-1.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                mode === mKey ? "bg-accent font-semibold text-white" : "text-ink-mid hover:text-ink"
+                mode === mKey
+                  ? "bg-accent-solid font-semibold text-accent-solid-ink"
+                  : "text-ink-mid hover:text-ink"
               }`}
             >
               {mKey === "relationships" ? "Relationships" : "Decision brain"}

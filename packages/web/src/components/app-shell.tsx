@@ -77,7 +77,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           the content on every route. */}
       <a
         href="#main"
-        className="sr-only rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-50"
+        className="sr-only rounded-md bg-accent-solid px-4 py-2 text-sm font-semibold text-accent-solid-ink focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-50"
       >
         Skip to content
       </a>

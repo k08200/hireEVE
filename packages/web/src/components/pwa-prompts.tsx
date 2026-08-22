@@ -168,7 +168,7 @@ export default function PwaPrompts() {
           <button
             type="button"
             onClick={handleUpdate}
-            className="min-h-10 px-3 py-1 text-xs font-medium bg-accent hover:bg-accent-deep text-white rounded-lg transition whitespace-nowrap"
+            className="min-h-10 px-3 py-1 text-xs font-medium bg-accent-solid hover:bg-accent-solid-hover text-accent-solid-ink rounded-lg transition whitespace-nowrap"
           >
             Refresh
           </button>
