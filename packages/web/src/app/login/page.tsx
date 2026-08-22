@@ -10,6 +10,7 @@ import AuthScreen from "../../components/auth-screen";
 import { useToast } from "../../components/toast";
 import { Input } from "../../components/ui/input";
 import { apiFetch } from "../../lib/api";
+import { captureFirstTouchAttribution } from "../../lib/attribution";
 import { useAuth } from "../../lib/auth";
 import { readCachedProviders, writeCachedProviders } from "../../lib/auth-providers-cache";
 import { useT } from "../../lib/i18n";
@@ -114,6 +115,13 @@ function LoginForm() {
   const [nativeShell, setNativeShell] = useState(false);
   useEffect(() => {
     setNativeShell(isNativeShell());
+  }, []);
+
+  // First-touch inflow capture. This used to live on /early-access; once
+  // sign-up opened, nobody had a reason to go there, so every direct signup
+  // reported nothing. The login page is the one surface both lanes cross.
+  useEffect(() => {
+    captureFirstTouchAttribution();
   }, []);
   const extraProviders: AuthProviderId[] = nativeShell
     ? []

@@ -747,10 +747,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "mainEntity": [
   {
    "@type": "Question",
-   "name": "왜 초대제인가요?",
+   "name": "로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱 공개 전에 보안 검수를 받아야 합니다. 검수가 끝날 때까지 구글이 테스터를 100명으로 제한합니다."
+    "text": "메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를 받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로 제한됩니다."
    }
   },
   {
@@ -828,7 +828,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       그 이유까지 알려주는 맥 앱.</b> 다른 AI 에이전트는 당신을 대신해 행동합니다.
       Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.</p>
     <div class="actions rv">
-      <a class="btn btn-1" href="https://app.klorn.ai/early-access">베타 신청하기 <i>↗</i></a>
+      <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">무료로 시작 <i>↗</i></a>
     </div>
     <div class="dl-row rv" id="dl-row">
       <a class="dl" data-os="mac" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener">
@@ -841,7 +841,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <!-- The app needs an approved account, so the download alone is a dead end.
          Say so next to the button rather than after the click. -->
     <p class="actions-note rv">무료, AGPLv3. 앱은 Klorn 계정으로 로그인하며,
-      구글 검수가 끝날 때까지 베타는 초대제입니다.
+      계정 만드는 데 1분이면 됩니다.
       <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
   </div>
 
@@ -1106,7 +1106,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <li>모닝 브리핑과 캘린더 뷰</li>
         <li>당신의 메일을 근거로 답하는 어시스턴트</li>
       </ul>
-      <a class="btn btn-2 full" href="https://app.klorn.ai/early-access">무료로 시작</a>
+      <a class="btn btn-2 full" href="https://app.klorn.ai/login?mode=register">무료로 시작</a>
     </div></article>
     <article class="price feat rv"><div class="price-in">
       <span class="chip-s dark">얼리 가격</span>
@@ -1119,7 +1119,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <li>음성이나 채팅으로 캘린더 일정 생성</li>
         <li>여러 개의 Gmail 받은편지함, 자동 처리되는 소음</li>
       </ul>
-      <a class="btn btn-1 full" href="https://app.klorn.ai/early-access">7일 Pro 체험 시작 <i>↗</i></a>
+      <a class="btn btn-1 full" href="https://app.klorn.ai/login?mode=register">7일 Pro 체험 시작 <i>↗</i></a>
     </div></article>
   </div>
 </section>
@@ -1133,9 +1133,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
   </div>
   <div class="faq">
-    <details class="faq-i rv"><summary>왜 초대제인가요?</summary>
-      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱 공개 전에 보안 검수를 받아야 합니다.
-        검수가 끝날 때까지 구글이 테스터를 100명으로 제한합니다.</p></details>
+    <details class="faq-i rv"><summary>로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?</summary>
+      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를
+        받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로
+        제한됩니다.</p></details>
     <details class="faq-i rv"><summary>저 없이 뭔가 보낼 수 있나요?</summary>
       <p>아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴
         서명된 영수증을 남깁니다.</p></details>
@@ -1165,9 +1166,9 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
   <div class="wrapl rv">
     <h2 class="final-h">다음 세대의 받은편지함은<br><span class="ser">결정 대기열</span>입니다.</h2>
-    <p class="final-p">초대제 베타 — 승인은 몇 분 안에, 구글 검수가 끝날 때까지 테스터 100명.</p>
+    <p class="final-p">베타 기간 무료 — 구글 검수가 끝날 때까지 선착순 100명.</p>
     <div class="actions">
-      <a class="btn btn-1" href="https://app.klorn.ai/early-access">베타 신청하기 <i>↗</i></a>
+      <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">무료로 시작 <i>↗</i></a>
       <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
          data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="윈도우용 다운로드">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -1674,7 +1675,8 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 </script>
 <script>
 // Inflow attribution: pass utm_*/referrer/landing-path along to the app so
-// the early-access form can report which channel brought the signup.
+// the signup can report which channel brought the person in. The selector
+// covers every app.klorn.ai link, so it keeps working wherever the CTAs point.
 (function () {
   try {
     var p = new URLSearchParams(location.search);

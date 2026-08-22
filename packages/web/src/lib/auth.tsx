@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { apiFetch, clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from "./api";
+import { storedAttribution } from "./attribution";
 import { clearSensitiveStorage, revokeServerSession } from "./logout-cleanup";
 import { trackAppOpenOnce } from "./track";
 
@@ -186,7 +187,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, password: string, name?: string, redirectTo = "/onboarding") => {
       const data = await apiFetch<{ token: string; user: User }>("/api/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          attribution: storedAttribution() ?? undefined,
+        }),
       });
       setStoredAuthToken(data.token);
       setToken(data.token);

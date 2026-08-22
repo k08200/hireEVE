@@ -1,8 +1,9 @@
 "use client";
 
 import type { AuthProviderId } from "@klorn/contract";
-import type { MouseEvent } from "react";
+import { type MouseEvent, useEffect, useState } from "react";
 import { API_BASE } from "../../lib/api";
+import { storedAttribution } from "../../lib/attribution";
 import { useT } from "../../lib/i18n";
 import { AppleMark, GoogleMark, NaverMark } from "./provider-marks";
 
@@ -54,9 +55,21 @@ export default function ProviderButtons({
   const { t } = useT();
   const extras = EXTRA_ORDER.filter((id) => extraProviders.includes(id));
 
+  // Google's leg leaves our origin, so the captured inflow has to ride the
+  // request itself — the server signs it into the OAuth state and stamps it on
+  // the account it creates. Read after mount, never during render: localStorage
+  // is not available on the server and would desync hydration.
+  const [attr, setAttr] = useState<string | null>(null);
+  useEffect(() => {
+    setAttr(storedAttribution());
+  }, []);
+  const googleHref = attr
+    ? `${API_BASE}/api/auth/google/login?attr=${encodeURIComponent(attr)}`
+    : `${API_BASE}/api/auth/google/login`;
+
   return (
     <div>
-      <a href={`${API_BASE}/api/auth/google/login`} onClick={onGoogleClick} className={ROW_CLASS}>
+      <a href={googleHref} onClick={onGoogleClick} className={ROW_CLASS}>
         <GoogleMark />
         {googleLabel ?? t("auth.continueWithGoogle")}
       </a>

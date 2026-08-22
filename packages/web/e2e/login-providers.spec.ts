@@ -327,3 +327,38 @@ test.describe("Login — motion", () => {
       .toBe(1);
   });
 });
+
+test.describe("Login — retired early-access funnel", () => {
+  test("/early-access lands on the sign-up tab", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+    await page.goto("/early-access");
+
+    await expect(page).toHaveURL(/\/login\?mode=register/);
+    await expect(page.getByRole("button", { name: "Create account" })).toBeVisible();
+  });
+
+  test("a redirect target rides through to the login page", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+    await page.goto("/early-access?next=%2Fbriefing");
+
+    await expect(page).toHaveURL(/next=%2Fbriefing/);
+  });
+
+  test("the redirect cannot be pointed off-site", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+    await page.goto("/early-access?next=https%3A%2F%2Fevil.example");
+
+    await expect(page).toHaveURL(/\/login\?mode=register$/);
+  });
+
+  test("inflow attribution survives the hop and reaches the Google URL", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+    await page.goto("/early-access?utm_source=hn&utm_medium=post");
+
+    const google = page.getByRole("link", { name: "Continue with Google" });
+    await expect(google).toBeVisible();
+    // The capture happens on both surfaces; what matters is that the value
+    // leaves with the request, since Google's leg exits our origin.
+    await expect.poll(() => google.getAttribute("href")).toMatch(/attr=.*utm_source%3Dhn/);
+  });
+});
