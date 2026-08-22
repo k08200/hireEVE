@@ -172,6 +172,7 @@ let lastCalibrationSnapshotDate = "";
 // Sunday; these in-memory date gates make them fire once (mirrors the catalog /
 // calibration gates above).
 let lastVoiceProfileDate = "";
+let lastWeeklyReportDate = "";
 let lastSenderTraitDate = "";
 let lastLearnedRuleDate = "";
 
@@ -778,6 +779,21 @@ async function runAutomations() {
 
     const todayUtc = new Date().toISOString().slice(0, 10);
     const isSunday = new Date().getDay() === 0;
+
+    // --- Weekly: Signal report (Monday only) ---
+    // Measured last-7-days numbers per active user (no LLM). Idempotent per
+    // ISO week via the Note (userId, dayKey) unique key, so the in-memory
+    // date gate is just a cheap same-day re-run guard.
+    const isMonday = new Date().getDay() === 1;
+    if (isMonday && lastWeeklyReportDate !== todayUtc) {
+      lastWeeklyReportDate = todayUtc;
+      import("./pim/weekly-report.js")
+        .then(({ sendWeeklySignalReports }) => sendWeeklySignalReports())
+        .catch((err) => {
+          console.error("[AUTOMATION] Weekly signal report failed:", err);
+          captureError(err, { tags: { scope: "automation.weekly-report" } });
+        });
+    }
 
     // --- Weekly: Voice Profile Extraction (Sunday only) ---
     // Runs once per week for all users with Google connected. Each user is
