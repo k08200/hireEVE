@@ -124,7 +124,7 @@ export default function AuthScreen({
             {children}
           </div>
 
-          {footer && <div className="mt-5 text-center text-xs text-ink-dim">{footer}</div>}
+          {footer && <div className="mt-5 text-center text-xs text-ink-muted">{footer}</div>}
         </div>
       </section>
     </main>

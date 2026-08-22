@@ -1,15 +1,17 @@
 "use client";
 
-import type { AuthProvidersResponse } from "@klorn/contract";
+import type { AuthProviderId, AuthProvidersResponse } from "@klorn/contract";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import ProviderButtons from "../../components/auth/provider-buttons";
 import AuthScreen from "../../components/auth-screen";
 import { useToast } from "../../components/toast";
 import { Input } from "../../components/ui/input";
-import { API_BASE, apiFetch } from "../../lib/api";
+import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { readCachedProviders, writeCachedProviders } from "../../lib/auth-providers-cache";
 import { useT } from "../../lib/i18n";
 import { startNativeGoogleLogin } from "../../lib/native/native-auth";
 import { isNativeShell } from "../../lib/native/shell";
@@ -92,22 +94,35 @@ function LoginForm() {
   }, [signupOpen, mode]);
 
   // Server-advertised sign-in providers (GET /api/auth/providers). Google
-  // renders unconditionally — it must never be held hostage to this probe;
-  // Apple/Naver buttons appear only when the deployment enables them.
-  // Hidden in the native shell: those providers block WebView OAuth like
-  // Google does, and the external-browser relay currently speaks Google only.
+  // renders unconditionally inside ProviderButtons — it must never be held
+  // hostage to this probe; Apple/Naver appear only when the deployment
+  // enables them. Hidden in the native shell: those providers block WebView
+  // OAuth like Google does, and the external-browser relay speaks Google only.
   const providersQuery = useQuery({
     queryKey: ["auth", "providers"],
-    queryFn: () => apiFetch<AuthProvidersResponse>("/api/auth/providers"),
+    queryFn: async () => {
+      const res = await apiFetch<AuthProvidersResponse>("/api/auth/providers");
+      writeCachedProviders(res);
+      return res;
+    },
+    // Seeded from the last visit so the lane renders at its true height on
+    // first paint instead of expanding once the probe lands. The query still
+    // runs and replaces this, so a disabled provider corrects itself.
+    initialData: readCachedProviders,
     staleTime: 5 * 60_000,
   });
   const [nativeShell, setNativeShell] = useState(false);
   useEffect(() => {
     setNativeShell(isNativeShell());
   }, []);
-  const extraProviders = nativeShell
+  const extraProviders: AuthProviderId[] = nativeShell
     ? []
-    : (providersQuery.data?.providers ?? []).filter((p) => p.id === "apple" || p.id === "naver");
+    : (providersQuery.data?.providers ?? [])
+        .map((p) => p.id)
+        .filter((id): id is AuthProviderId => id === "apple" || id === "naver");
+  // Reveal as soon as we have an answer — the seeded cache counts, so a
+  // repeat visitor never sees the lane grow.
+  const providersResolved = !nativeShell && providersQuery.data !== undefined;
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -201,105 +216,91 @@ function LoginForm() {
       title={mode === "login" ? t("auth.titleLogin") : t("auth.titleRegister")}
       description={mode === "login" ? t("auth.descLogin") : t("auth.descRegister")}
       footer={
-        <Link href="/" className="transition hover:text-ink-soft">
-          {t("auth.backHome")}
-        </Link>
+        <div className="space-y-3">
+          {/* Doctrine / scope copy is context ABOUT the product, not part of
+              signing in — it sits under the card instead of inside it so the
+              panel stays one task. Desktop only: on a phone the card already
+              fills the viewport. */}
+          <div className="hidden space-y-2 leading-5 md:block">
+            <p>{t("auth.betaScope")}</p>
+            <p>{t("auth.noSilentActions")}</p>
+          </div>
+          <p>
+            <a
+              href="https://github.com/k08200/klorn/blob/main/docs/doctrine/deterministic-floor.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-line-strong underline-offset-2 transition hover:text-accent-deep hover:decoration-accent-muted"
+            >
+              {t("auth.readDoctrine")}
+            </a>
+            <span className="ml-2">{t("auth.openSourceVersion")}</span>
+          </p>
+          <Link href="/" className="inline-block transition hover:text-ink-soft">
+            {t("auth.backHome")}
+          </Link>
+        </div>
       }
     >
       {nextPath !== "/inbox" && (
-        <div className="mb-4 rounded-md border border-accent-muted/40 bg-accent-muted/10 px-3 py-2 text-xs leading-5 text-sky-800">
+        <div className="mb-4 rounded-md border border-notice-border bg-notice-bg px-3 py-2 text-xs leading-5 text-notice-ink">
           {t("auth.signInToContinue", { destination: returnDestinationLabel(nextPath, t) })}
         </div>
       )}
 
       {/* Invite-only cohort: request access is the action almost every visitor
-          needs, so it leads. Google sign-in 403s for the un-invited, so it drops
-          to a clearly-labelled secondary path. One gate message replaces the old
-          three-way callouts. When the beta gate is off, Google leads as before. */}
-      {!signupOpen ? (
-        <div className="space-y-4">
-          <div className="rounded-md border border-accent-muted/40 bg-accent-muted/10 px-3 py-2.5 text-xs leading-5 text-sky-800">
-            <span className="font-semibold text-sky-900">{t("auth.inviteOnlyTitle")}</span>{" "}
+          needs, so it leads. Social sign-in 403s for the un-invited, so it
+          drops to a clearly-labelled secondary path. When the beta gate is
+          off — the normal production state — the provider lane leads. */}
+      {!signupOpen && (
+        <div className="mb-5 space-y-4">
+          <div className="rounded-md border border-notice-border bg-notice-bg px-3 py-2.5 text-xs leading-5 text-notice-ink">
+            <span className="font-semibold text-notice-ink-strong">
+              {t("auth.inviteOnlyTitle")}
+            </span>{" "}
             {t("auth.inviteOnlyBody")}
           </div>
 
           <Link
             href="/early-access"
-            className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-accent-deep focus-ring"
+            className="flex h-12 w-full items-center justify-center rounded-lg bg-accent-solid text-sm font-semibold text-accent-solid-ink shadow-sm transition duration-200 hover:bg-accent-solid-hover active:translate-y-px motion-reduce:transition-none motion-reduce:active:translate-y-0 focus-ring"
           >
             {t("auth.requestEarlyAccess")}
           </Link>
 
-          <a
-            href={`${API_BASE}/api/auth/google/login`}
-            onClick={handleGoogleClick}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-transparent text-sm font-medium text-ink-mid transition hover:border-line-strong hover:text-ink focus-ring"
-          >
-            <GoogleMark />
-            {t("auth.googleApprovedSignIn")}
-          </a>
+          <p className="text-center text-xs text-ink-mid">{t("auth.alreadyApproved")}</p>
         </div>
-      ) : (
-        <>
-          <a
-            href={`${API_BASE}/api/auth/google/login`}
-            onClick={handleGoogleClick}
-            className="flex h-11 w-full items-center justify-center gap-3 rounded-md bg-stone-100 text-sm font-semibold text-stone-900 shadow-sm transition hover:bg-surface-panel focus-ring"
-          >
-            <GoogleMark />
-            {t("auth.continueWithGoogle")}
-          </a>
-          {extraProviders.map((provider) => (
-            <a
-              key={provider.id}
-              href={`${API_BASE}/api/auth/${provider.id}/login`}
-              className="mt-3 flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-transparent text-sm font-medium text-ink-soft transition hover:border-line-strong hover:text-ink focus-ring"
-            >
-              {provider.id === "apple" ? <AppleMark /> : <NaverMark />}
-              {provider.id === "apple" ? t("auth.continueWithApple") : t("auth.continueWithNaver")}
-            </a>
-          ))}
-          {/* Marketing/doctrine copy is landing-page context — hide it on the app
-              (mobile) for a clean login; keep it on desktop. */}
-          <div className="mt-3 hidden space-y-2 text-center text-[11px] leading-5 text-ink-mid md:block">
-            <p>{t("auth.betaScope")}</p>
-            <p>{t("auth.noSilentActions")}</p>
-            <p>
-              <a
-                href="https://github.com/k08200/klorn/blob/main/docs/doctrine/deterministic-floor.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-slate-300 underline-offset-2 hover:text-accent-deep hover:decoration-accent-muted"
-              >
-                {t("auth.readDoctrine")}
-              </a>
-              <span className="ml-2 text-ink-dim">{t("auth.openSourceVersion")}</span>
-            </p>
-          </div>
-        </>
       )}
 
+      <section aria-label={t("auth.providerLaneLabel")}>
+        <ProviderButtons
+          extraProviders={extraProviders}
+          resolved={providersResolved}
+          onGoogleClick={handleGoogleClick}
+        />
+      </section>
+
       <div className="my-5 flex items-center gap-3">
-        <div className="h-px flex-1 bg-surface-inset" />
+        <div className="h-px flex-1 bg-line" />
         <span className="text-xs text-ink-mid">
           {signupOpen ? t("auth.orContinueEmail") : t("auth.orSignInEmail")}
         </span>
-        <div className="h-px flex-1 bg-surface-inset" />
+        <div className="h-px flex-1 bg-line" />
       </div>
 
       {signupOpen && (
         <div
           role="group"
           aria-label={t("auth.formGroupLabel")}
-          className="mb-5 grid grid-cols-2 rounded-md border border-line bg-surface-raised p-1"
+          className="mb-5 grid grid-cols-2 rounded-lg border border-line bg-surface-raised p-1"
         >
           <button
             type="button"
             aria-pressed={mode === "login"}
             onClick={() => changeMode("login")}
-            className={`h-11 rounded px-3 text-sm font-medium transition focus-ring ${
+            className={`h-10 rounded-md px-3 text-sm font-medium transition duration-200 focus-ring ${
               mode === "login"
-                ? "bg-surface-panel text-ink shadow-sm"
+                ? "bg-surface-panel text-ink shadow-sm dark:bg-surface-hover"
                 : "text-ink-mid hover:text-ink"
             }`}
           >
@@ -309,9 +310,9 @@ function LoginForm() {
             type="button"
             aria-pressed={mode === "register"}
             onClick={() => changeMode("register")}
-            className={`h-11 rounded px-3 text-sm font-medium transition focus-ring ${
+            className={`h-10 rounded-md px-3 text-sm font-medium transition duration-200 focus-ring ${
               mode === "register"
-                ? "bg-surface-panel text-ink shadow-sm"
+                ? "bg-surface-panel text-ink shadow-sm dark:bg-surface-hover"
                 : "text-ink-mid hover:text-ink"
             }`}
           >
@@ -356,7 +357,7 @@ function LoginForm() {
             {mode === "login" && (
               <Link
                 href="/reset-password"
-                className="inline-flex min-h-10 items-center text-xs text-ink-mid transition hover:text-accent-deep"
+                className="inline-flex min-h-10 items-center text-xs text-ink-mid transition hover:text-accent-deeper"
               >
                 {t("auth.resetPassword")}
               </Link>
@@ -380,11 +381,14 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading || !email || !password}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white shadow-sm shadow-accent-muted/20 transition hover:bg-accent-deep disabled:cursor-not-allowed disabled:bg-surface-inset disabled:text-ink-dim focus-ring"
+          aria-busy={loading}
+          className="flex h-12 w-full items-center justify-center rounded-lg bg-accent-solid text-sm font-semibold text-accent-solid-ink shadow-sm transition duration-200 hover:bg-accent-solid-hover active:translate-y-px disabled:cursor-not-allowed disabled:bg-surface-inset disabled:text-ink-mid disabled:shadow-none motion-reduce:transition-none motion-reduce:active:translate-y-0 focus-ring"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
+              {/* currentColor, not a pinned slate — the ring inverts with the
+                  filled accent when the theme swaps. */}
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
               {mode === "login" ? t("auth.signingIn") : t("auth.creatingAccount")}
             </span>
           ) : mode === "login" ? (
@@ -395,14 +399,14 @@ function LoginForm() {
         </button>
       </form>
 
-      <div className="mt-5 border-t border-line pt-4 text-center text-xs text-ink-dim">
+      <div className="mt-5 border-t border-line pt-4 text-center text-xs text-ink-mid">
         {signupOpen ? (
           <>
             {mode === "login" ? t("auth.needAccount") : t("auth.haveAccount")}{" "}
             <button
               type="button"
               onClick={() => changeMode(mode === "login" ? "register" : "login")}
-              className="inline-flex min-h-10 items-center font-medium text-accent-deep transition hover:text-accent focus-ring"
+              className="inline-flex min-h-10 items-center font-medium text-accent-deeper underline-offset-2 transition hover:underline focus-ring"
             >
               {mode === "login" ? t("auth.switchToSignUp") : t("auth.switchToLogIn")}
             </button>
@@ -415,7 +419,7 @@ function LoginForm() {
             {t("auth.approvedCantSignIn")}{" "}
             <Link
               href="/reset-password"
-              className="inline-flex min-h-10 items-center font-medium text-accent-deep transition hover:text-accent"
+              className="inline-flex min-h-10 items-center font-medium text-accent-deeper underline-offset-2 transition hover:underline"
             >
               {t("auth.resetYourPassword")}
             </Link>
@@ -443,46 +447,6 @@ function socialErrorMessage(error: string, t: (key: string) => string): string |
     default:
       return t("auth.socialSignInError");
   }
-}
-
-function AppleMark() {
-  return (
-    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M16.7 12.9c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.9-1.6 0-3.1 1-4 2.4-1.7 2.9-.4 7.2 1.2 9.6.8 1.2 1.8 2.5 3.1 2.4 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.6-1-2.7-3.6zM14.4 5.6c.7-.8 1.1-1.9 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z" />
-    </svg>
-  );
-}
-
-function NaverMark() {
-  return (
-    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24">
-      <rect width="24" height="24" rx="4" fill="#03C75A" />
-      <path fill="#fff" d="M13.9 6.5v5.4L10.1 6.5H6.5v11h3.6v-5.4l3.8 5.4h3.6v-11z" />
-    </svg>
-  );
-}
-
-function GoogleMark() {
-  return (
-    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24">
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-      />
-    </svg>
-  );
 }
 
 function safeNextPath(value: string | null): string {

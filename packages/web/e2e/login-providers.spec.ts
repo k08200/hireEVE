@@ -1,0 +1,249 @@
+import { expect, type Page, test } from "@playwright/test";
+
+/**
+ * The login page's two server-driven states and the contrast floors the
+ * previous build broke.
+ *
+ * Both probes are mocked: the deployment's real BETA_GATE_ENABLED /
+ * APPLE_LOGIN_ENABLED values must not decide whether these tests pass.
+ */
+
+type Provider = "google" | "apple" | "naver";
+
+async function mockAuthProbes(
+  page: Page,
+  opts: { signupOpen: boolean; providers: Provider[]; providersDelayMs?: number },
+) {
+  await page.route("**/api/auth/signup-status", (route) =>
+    route.fulfill({ json: { open: opts.signupOpen } }),
+  );
+  await page.route("**/api/auth/providers", async (route) => {
+    if (opts.providersDelayMs) await new Promise((r) => setTimeout(r, opts.providersDelayMs));
+    await route.fulfill({ json: { providers: opts.providers.map((id) => ({ id })) } });
+  });
+  // A stale seed from another test must not leak into the lane under test.
+  await page.addInitScript(() => window.localStorage.removeItem("klorn.auth.providers.v1"));
+}
+
+/** WCAG 2.x relative luminance / contrast, computed on the live rendered DOM. */
+const CONTRAST_HELPERS = `
+  const parse = (c) => {
+    const ctx = document.createElement("canvas").getContext("2d");
+    ctx.fillStyle = "#000";
+    ctx.fillStyle = c;
+    const h = ctx.fillStyle;
+    if (h.startsWith("#")) return [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16)).concat([1]);
+    const m = h.match(/[\\d.]+/g).map(Number);
+    return [m[0], m[1], m[2], m[3] === undefined ? 1 : m[3]];
+  };
+  const lum = (a) => {
+    const f = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(a[0]) + 0.7152 * f(a[1]) + 0.0722 * f(a[2]);
+  };
+  const over = (fg, bg) => [0, 1, 2].map((i) => fg[i] * fg[3] + bg[i] * (1 - fg[3]));
+  const effBg = (el) => {
+    let cur = el; const stack = [];
+    while (cur) {
+      const bg = parse(getComputedStyle(cur).backgroundColor);
+      if (bg[3] > 0) stack.push(bg);
+      if (bg[3] === 1) break;
+      cur = cur.parentElement;
+    }
+    let base = parse(getComputedStyle(document.documentElement).backgroundColor);
+    if (base[3] !== 1) base = [255, 255, 255, 1];
+    let out = [base[0], base[1], base[2]];
+    for (let i = stack.length - 1; i >= 0; i--) out = over(stack[i], out);
+    return out;
+  };
+  const contrast = (el) => {
+    const fg = over(parse(getComputedStyle(el).color), effBg(el));
+    const bg = effBg(el);
+    const l1 = lum(fg), l2 = lum(bg);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+`;
+
+function contrastOf(page: Page, selectorFn: string): Promise<number> {
+  return page.evaluate(
+    `(() => { ${CONTRAST_HELPERS} const el = ${selectorFn}; return contrast(el); })()`,
+  );
+}
+
+const AA_TEXT = 4.5;
+
+test.describe("Login — provider lane", () => {
+  test("open signup lists every enabled provider", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google", "apple", "naver"] });
+    await page.goto("/login");
+
+    await expect(page.getByRole("link", { name: "Continue with Google" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Continue with Apple" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Continue with Naver" })).toBeVisible();
+    // Open signup means the sign-up tab exists and no access wall is shown.
+    await expect(page.getByRole("button", { name: "Sign up" })).toBeVisible();
+    await expect(page.getByText("Klorn is invite-only.")).toBeHidden();
+  });
+
+  test("a disabled provider renders no button", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+    await page.goto("/login");
+
+    await expect(page.getByRole("link", { name: "Continue with Google" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Continue with Apple" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Continue with Naver" })).toHaveCount(0);
+  });
+
+  test("Google survives a providers probe that never answers", async ({ page }) => {
+    await page.route("**/api/auth/signup-status", (route) =>
+      route.fulfill({ json: { open: true } }),
+    );
+    await page.route("**/api/auth/providers", (route) => route.abort());
+    await page.goto("/login");
+
+    await expect(page.getByRole("link", { name: "Continue with Google" })).toBeVisible();
+  });
+
+  test("provider rows meet the 44px touch-target floor", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google", "apple", "naver"] });
+    await page.goto("/login");
+
+    for (const name of ["Continue with Google", "Continue with Apple", "Continue with Naver"]) {
+      const box = await page.getByRole("link", { name }).boundingBox();
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test("a cached provider list renders the full lane on first paint", async ({ page }) => {
+    await page.route("**/api/auth/signup-status", (route) =>
+      route.fulfill({ json: { open: true } }),
+    );
+    // The probe hangs, so anything rendered came from the seed alone.
+    await page.route("**/api/auth/providers", () => {});
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "klorn.auth.providers.v1",
+        JSON.stringify({
+          at: Date.now(),
+          value: { providers: [{ id: "google" }, { id: "apple" }] },
+        }),
+      );
+    });
+    await page.goto("/login");
+
+    await expect(page.getByRole("link", { name: "Continue with Apple" })).toBeVisible();
+  });
+});
+
+test.describe("Login — invite-only deployment", () => {
+  test("leads with the access request and keeps sign-up closed", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: false, providers: ["google"] });
+    await page.goto("/login");
+
+    await expect(page.getByRole("link", { name: "Request early access" })).toBeVisible();
+    await expect(page.getByText("Already approved? Sign in below.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Continue with Google" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign up" })).toHaveCount(0);
+  });
+});
+
+test.describe("Login — contrast floors", () => {
+  for (const scheme of ["light", "dark"] as const) {
+    test(`primary CTA clears AA in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await mockAuthProbes(page, { signupOpen: false, providers: ["google"] });
+      await page.goto("/login");
+      await expect(page.getByRole("link", { name: "Request early access" })).toBeVisible();
+
+      const ratio = await contrastOf(
+        page,
+        `[...document.querySelectorAll("a")].find((a) => /Request early access/.test(a.textContent))`,
+      );
+      expect(ratio).toBeGreaterThanOrEqual(AA_TEXT);
+    });
+
+    test(`access notice clears AA in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await mockAuthProbes(page, { signupOpen: false, providers: ["google"] });
+      await page.goto("/login");
+      await expect(page.getByText("Klorn is invite-only.")).toBeVisible();
+
+      const ratio = await contrastOf(
+        page,
+        `[...document.querySelectorAll("div")].find((d) => /invite-only/i.test(d.textContent) && d.children.length <= 2)`,
+      );
+      expect(ratio).toBeGreaterThanOrEqual(AA_TEXT);
+    });
+
+    test(`copy under the card clears AA in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+      await page.goto("/login");
+      await expect(page.getByRole("link", { name: "Back to home" })).toBeVisible();
+
+      const ratio = await contrastOf(
+        page,
+        `[...document.querySelectorAll("a")].find((a) => /Back to home/.test(a.textContent))`,
+      );
+      expect(ratio).toBeGreaterThanOrEqual(AA_TEXT);
+    });
+
+    test(`the mode-switch link clears AA in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+      await page.goto("/login");
+      await expect(page.getByRole("button", { name: "Switch to sign-up" })).toBeVisible();
+
+      const ratio = await contrastOf(
+        page,
+        `[...document.querySelectorAll("button")].find((b) => /Switch to sign-up/.test(b.textContent))`,
+      );
+      expect(ratio).toBeGreaterThanOrEqual(AA_TEXT);
+    });
+
+    test(`the selected mode tab reads as raised in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+      await page.goto("/login");
+      const active = page.getByRole("button", { name: "Log in" });
+      await expect(active).toBeVisible();
+
+      // surface-panel is lighter than surface-raised in light but DARKER in
+      // dark, which sank the selected tab into its own well. The selected tab
+      // must always sit further from the page background than the well.
+      const {
+        tab,
+        well,
+        page: pageBg,
+      } = await active.evaluate((el) => {
+        const lum = (c: string) => {
+          const m = c.match(/[\d.]+/g)!.map(Number);
+          const f = (v: number) => {
+            v /= 255;
+            return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+          };
+          return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]);
+        };
+        return {
+          tab: lum(getComputedStyle(el).backgroundColor),
+          well: lum(getComputedStyle(el.parentElement!).backgroundColor),
+          page: lum(getComputedStyle(document.body).backgroundColor),
+        };
+      });
+      const away = (v: number) => Math.abs(v - pageBg);
+      expect(away(tab)).toBeGreaterThan(away(well));
+    });
+
+    test(`provider rows clear AA in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await mockAuthProbes(page, { signupOpen: true, providers: ["google", "apple", "naver"] });
+      await page.goto("/login");
+      await expect(page.getByRole("link", { name: "Continue with Naver" })).toBeVisible();
+
+      const ratio = await contrastOf(
+        page,
+        `[...document.querySelectorAll("a")].find((a) => /Continue with Apple/.test(a.textContent))`,
+      );
+      expect(ratio).toBeGreaterThanOrEqual(AA_TEXT);
+    });
+  }
+});
