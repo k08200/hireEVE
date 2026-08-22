@@ -813,6 +813,9 @@ final class AppModel {
 
     /// In-memory thread for this app session (one conversation, lazily created
     /// server-side on the first send so an unopened Assistant costs nothing).
+    /// Floating assistant dock (full view). Session-scoped on purpose: the
+    /// dock is a glance surface, not a mode to get stuck in.
+    var showAssistantDock = false
     private(set) var chatMessages: [ChatMessage] = []
     private(set) var isChatting = false
     private var chatConversationId: String?
@@ -832,9 +835,14 @@ final class AppModel {
                 chatConversationId = conv.id
             }
             guard let convId = chatConversationId else { return }
+            // Tell the server what the user is looking at, so "이 메일 어떻게
+            // 답장하지" resolves to the open mail instead of a tool guess.
             let turn: ChatTurnResponse = try await api.post(
                 "/api/chat/conversations/\(convId)/messages",
-                json: ["text": trimmed], as: ChatTurnResponse.self)
+                encodable: ChatTurnRequest(
+                    text: trimmed,
+                    context: openedEmail.map { ChatTurnRequest.Context(emailId: $0.id) }),
+                as: ChatTurnResponse.self)
             chatMessages.append(
                 ChatMessage(role: .assistant, text: turn.reply, eventDraft: turn.eventDraft))
             if let error = turn.error {

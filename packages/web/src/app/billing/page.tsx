@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { PaddleLoader } from "../../components/paddle-loader";
 import { CardSkeleton } from "../../components/skeleton";
+import { SubscriptionManager } from "../../components/subscription-manager";
 import { useToast } from "../../components/toast";
 import { apiFetch } from "../../lib/api";
 import { isSafeBillingRedirect } from "../../lib/billing-redirect";
@@ -13,6 +14,7 @@ import { checkoutReturnUrl } from "../../lib/checkout-return";
 import { useT } from "../../lib/i18n";
 import { isNativePlatform } from "../../lib/native/capacitor";
 import { PRO_PRICE_WEB } from "../../lib/pricing";
+import { toSubscriptionState } from "../../lib/subscription";
 
 /** Server-side Infinity arrives as null through JSON — treat both as "unlimited". */
 function isFiniteLimit(value: number | null): value is number {
@@ -35,6 +37,14 @@ interface BillingStatus {
   // the upgrade button shows a disabled state instead of firing a checkout
   // that 400s. Undefined (older API) = assume available.
   webCheckoutAvailable?: boolean;
+  /** Provider status: active | trialing | past_due | paused | canceled. */
+  subscriptionStatus?: string | null;
+  /** ISO date of the next automatic charge; null while a cancel is scheduled. */
+  renewsAt?: string | null;
+  /** ISO date access ends when a cancellation is scheduled. */
+  cancelAt?: string | null;
+  /** True when the in-app cancel route can act (Paddle subscription on file). */
+  canCancelInApp?: boolean;
 }
 
 function formatTokens(n: number): string {
@@ -149,12 +159,18 @@ function BillingContent() {
   const success = searchParams.get("success");
   const canceled = searchParams.get("canceled");
 
+  const loadStatus = useCallback(
+    () =>
+      apiFetch<BillingStatus>("/api/billing/status")
+        .then(setStatus)
+        .catch(() => toast(t("billing.error.loadStatus"), "error"))
+        .finally(() => setLoading(false)),
+    [toast, t],
+  );
+
   useEffect(() => {
-    apiFetch<BillingStatus>("/api/billing/status")
-      .then(setStatus)
-      .catch(() => toast(t("billing.error.loadStatus"), "error"))
-      .finally(() => setLoading(false));
-  }, [toast, t]);
+    void loadStatus();
+  }, [loadStatus]);
 
   /** Refuse any redirect target that is not us or a payment provider. */
   function safeRedirect(url: string) {
@@ -174,18 +190,6 @@ function BillingContent() {
       if (url) safeRedirect(url);
     } catch {
       toast(t("billing.error.checkoutFailed"), "error");
-    }
-  }
-
-  async function handleManage() {
-    try {
-      const { url } = await apiFetch<{ url: string }>("/api/billing/portal", {
-        method: "POST",
-        body: JSON.stringify({}),
-      });
-      if (url) safeRedirect(url);
-    } catch {
-      toast(t("billing.error.portalFailed"), "error");
     }
   }
 
@@ -232,18 +236,11 @@ function BillingContent() {
                   {t("billing.aboutCostThisMonth", { amount: formatUsd(status.estimatedCost) })}
                 </span>
               )}
-              {/* No Stripe checkout/portal inside the iOS app (App Store
-                  anti-steering 3.1.1). Billing is managed on the web; the app
-                  offers IAP at launch. */}
-              {(status.stripeId || status.hasPaddleCustomer) && !isNativePlatform() && (
-                <button
-                  type="button"
-                  onClick={handleManage}
-                  className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-4 py-2 text-sm font-medium text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] focus-ring min-h-11"
-                >
-                  {t("billing.manageSubscription")}
-                </button>
-              )}
+              {/* Renewal/cancel state plus the portal + in-app cancel
+                  actions. Renders nothing inside the native app (App Store
+                  anti-steering 3.1.1) and nothing for an account with no
+                  billing record — the gate lives in the component. */}
+              <SubscriptionManager state={toSubscriptionState(status)} onChanged={loadStatus} />
             </div>
           </div>
 
@@ -416,6 +413,7 @@ const PLAN_FAQ = [
   { qKey: "billing.faq.freeVsPro.q", aKey: "billing.faq.freeVsPro.a" },
   { qKey: "billing.faq.enterprise.q", aKey: "billing.faq.enterprise.a" },
   { qKey: "billing.faq.manage.q", aKey: "billing.faq.manage.a" },
+  { qKey: "billing.faq.paymentMethods.q", aKey: "billing.faq.paymentMethods.a" },
 ];
 
 function PlanDetails() {

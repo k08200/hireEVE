@@ -78,6 +78,8 @@ export function LinkedInboxesSection() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.inbox.linkedAccounts() });
     } else if (linked === "unverified") {
       toast("That Google account's email isn't verified — couldn't link it.", "error");
+    } else if (linked === "self") {
+      toast("That's already your primary inbox — no need to link it.", "error");
     } else {
       toast("Couldn't connect that inbox. Try again.", "error");
     }

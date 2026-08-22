@@ -1118,6 +1118,15 @@ export function authRoutes(app: FastifyInstance) {
             return reply.redirect(`${webUrl}/calendar?linked=failed`);
           }
           const linkedEmail = normalizeEmail(profile.email);
+          // Linking your own primary address duplicates the mailbox: the
+          // selector shows it twice and every sync runs double. Refuse it.
+          const linkOwner = await prisma.user.findUnique({
+            where: { id: statePayload.userId },
+            select: { email: true },
+          });
+          if (linkOwner?.email && normalizeEmail(linkOwner.email) === linkedEmail) {
+            return reply.redirect(`${webUrl}/settings?inbox=self`);
+          }
           const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
           await prisma.linkedCalendarAccount.upsert({
             where: { userId_email: { userId: statePayload.userId, email: linkedEmail } },

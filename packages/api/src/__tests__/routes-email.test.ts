@@ -290,6 +290,37 @@ describe("email routes (demo mode)", () => {
     await app.close();
   });
 
+  it("GET /inboxes hides a linked row that mirrors the primary address", async () => {
+    const { prisma } = await import("../db.js");
+    const primaryUser = {
+      id: "user-1",
+      email: "Primary@Example.com",
+      plan: "PRO",
+      role: "USER",
+    } as never;
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce(primaryUser)
+      .mockResolvedValueOnce(primaryUser);
+    // Pre-guard data: the user OAuth-linked their own primary account. The
+    // selector must not show the same mailbox twice.
+    vi.mocked(prisma.linkedInboxAccount.findMany).mockResolvedValueOnce([
+      { id: "dup", email: "primary@example.com", needsReconnect: false, provider: "GOOGLE" },
+      { id: "ok", email: "second@school.edu", needsReconnect: false, provider: "GOOGLE" },
+    ] as never);
+
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/email/inboxes",
+      headers: auth(),
+    });
+
+    expect(res.statusCode).toBe(200);
+    const emails = res.json().inboxes.map((i: { email: string }) => i.email.toLowerCase());
+    expect(emails).toEqual(["primary@example.com", "second@school.edu"]);
+    await app.close();
+  });
+
   it("GET /inboxes reports a REAL primary needsReconnect when the token was invalidated", async () => {
     const { prisma } = await import("../db.js");
     // invalidateGoogleToken keeps the row but empties the refresh token —

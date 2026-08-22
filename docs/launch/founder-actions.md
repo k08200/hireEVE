@@ -63,6 +63,10 @@ trader / individual** can sign up — no company registration needed.
 3. Create the product and a **$8.99/mo** price. Copy the price id.
 4. Render → klorn-api: `PADDLE_API_KEY`, `PADDLE_PRO_PRICE_ID`,
    `PADDLE_WEBHOOK_SECRET`, `PADDLE_ENV` — start at `sandbox`.
+4b. Vercel → klorn-web: `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` (and
+   `NEXT_PUBLIC_PADDLE_ENV=sandbox` while testing). **Easy to miss** — the
+   server env alone is not enough: without the client token Paddle.js never
+   loads and the upgrade button silently does nothing.
 5. Paddle → Notifications → webhook to
    `https://klorn-api.onrender.com/api/webhook/paddle`, signed with the same
    secret.
@@ -71,6 +75,12 @@ trader / individual** can sign up — no company registration needed.
 7. `PAYWALL_ENABLED=true` is a **separate, deliberate** flip
    (`docs/launch/paywall-flip-runbook.md`). Until it flips every gate is inert
    and multi-inbox is free.
+8. Local payment methods (KakaoPay, Pix, iDEAL, …) need **local currency**, not
+   just a dashboard checkbox: the PRO price is USD-only, so a Korean buyer is
+   quoted USD and KakaoPay is never eligible for them. Turn on automatic
+   currency conversion or add local unit prices to the price. Full rules and
+   the per-method country/currency table are in
+   `docs/launch/paywall-flip-runbook.md` → "Payment methods at checkout".
 
 Keep three numbers in sync: the landing copy ($8.99, EN + KO), the Paddle
 price, and `TRIAL_DAYS` (7).
