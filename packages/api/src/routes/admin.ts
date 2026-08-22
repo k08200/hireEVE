@@ -122,6 +122,29 @@ const senderTraitsQuerySchema = {
   },
 } as const;
 
+/**
+ * Google's unverified-app allowance.
+ *
+ * While the OAuth consent screen is "In production, unverified", the project
+ * can create a fixed number of new users over its LIFETIME — the count does
+ * not reset, and clicking through the unverified warning spends a slot. The
+ * beta gate used to hold this line; with sign-up open it is spending, so the
+ * remaining room needs to be visible somewhere other than the Cloud console.
+ *
+ * Approximate by design: this counts accounts Klorn created, which is a lower
+ * bound on slots Google has actually charged. It tracks the trend, and the
+ * console stays the authority. GOOGLE_UNVERIFIED_USER_CAP lets the number move
+ * (or go effectively away) once CASA verification clears.
+ */
+const DEFAULT_GOOGLE_USER_CAP = 100;
+
+function googleQuota(consumed: number): { consumed: number; cap: number; remaining: number } {
+  const parsed = Number.parseInt(process.env.GOOGLE_UNVERIFIED_USER_CAP ?? "", 10);
+  const cap = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_GOOGLE_USER_CAP;
+  // An over-cap project must read as zero room left, never as negative room.
+  return { consumed, cap, remaining: Math.max(0, cap - consumed) };
+}
+
 export async function adminRoutes(app: FastifyInstance) {
   // All admin routes require ADMIN role
   app.addHook("preHandler", requireAdmin);
@@ -252,15 +275,21 @@ export async function adminRoutes(app: FastifyInstance) {
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [totalUsers, totalConversations, totalMessages, planDistribution] = await Promise.all([
-      prisma.user.count(),
-      prisma.conversation.count(),
-      prisma.message.count({ where: { createdAt: { gte: periodStart } } }),
-      prisma.user.groupBy({ by: ["plan"], _count: { id: true } }),
-    ]);
+    const [totalUsers, totalConversations, totalMessages, planDistribution, googleUsers] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.conversation.count(),
+        prisma.message.count({ where: { createdAt: { gte: periodStart } } }),
+        prisma.user.groupBy({ by: ["plan"], _count: { id: true } }),
+        // Google-origin accounts only: no password, and no Apple/Naver
+        // identity. Counting every user would over-report the burn the moment
+        // another provider is enabled.
+        prisma.user.count({ where: { passwordHash: null, identities: { none: {} } } }),
+      ]);
 
     return {
       totalUsers,
+      googleQuota: googleQuota(googleUsers),
       totalConversations,
       monthlyMessages: totalMessages,
       planDistribution: Object.fromEntries(

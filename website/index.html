@@ -747,10 +747,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "mainEntity": [
   {
    "@type": "Question",
-   "name": "Why is it invite-only?",
+   "name": "Why does Google warn me when I sign in?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "Reading your mail needs Google's restricted scopes, and those need a security review before the app can be published. Until it clears, Google caps testers at 100."
+    "text": "Reading your mail needs Google's restricted scopes, and those need a security review before an app is marked verified. Until that clears you see an unverified-app screen once, and the beta is limited to the first 100 accounts."
    }
   },
   {
@@ -828,7 +828,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       five lanes and tells you why.</b> Other AI agents act on your behalf. Klorn decides what deserves
       your attention and acts only by rules you set.</p>
     <div class="actions rv">
-      <a class="btn btn-1" href="https://app.klorn.ai/early-access">Request early access <i>↗</i></a>
+      <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">Start free <i>↗</i></a>
     </div>
     <div class="dl-row rv" id="dl-row">
       <a class="dl" data-os="mac" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener">
@@ -838,10 +838,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.2-1v7.1H3V5.6zm0 12.8l7.2 1v-7H3v6zM11.2 4.4L21 3v8.7h-9.8V4.4zm0 15.2L21 21v-8.6h-9.8v7.2z"/></svg>
         <span class="t"><b>Download for Windows</b><span>Windows 10+ · unsigned beta, SmartScreen warns once</span></span></a>
     </div>
-    <!-- The app needs an approved account, so the download alone is a dead end.
-         Say so next to the button rather than after the click. -->
+    <!-- The download alone is a dead end without an account, so say what the
+         app expects next to the button rather than after the click. -->
     <p class="actions-note rv">Free, AGPLv3. The app signs in to your Klorn account —
-      beta access is invite-only while Google's review clears.
+      create one in about a minute.
       <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">First-launch note ↗</a></p>
   </div>
 
@@ -1107,7 +1107,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <li>Morning briefing and calendar view</li>
         <li>Assistant that answers from your own mail</li>
       </ul>
-      <a class="btn btn-2 full" href="https://app.klorn.ai/early-access">Start free</a>
+      <a class="btn btn-2 full" href="https://app.klorn.ai/login?mode=register">Start free</a>
     </div></article>
     <article class="price feat rv"><div class="price-in">
       <span class="chip-s dark">Founding price</span>
@@ -1120,7 +1120,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <li>Create calendar events by voice or chat</li>
         <li>Multiple Gmail inboxes, auto-handled noise</li>
       </ul>
-      <a class="btn btn-1 full" href="https://app.klorn.ai/early-access">Start 7-day Pro trial <i>↗</i></a>
+      <a class="btn btn-1 full" href="https://app.klorn.ai/login?mode=register">Start 7-day Pro trial <i>↗</i></a>
     </div></article>
   </div>
 </section>
@@ -1134,9 +1134,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
   </div>
   <div class="faq">
-    <details class="faq-i rv"><summary>Why is it invite-only?</summary>
+    <details class="faq-i rv"><summary>Why does Google warn me when I sign in?</summary>
       <p>Reading your mail needs Google's restricted scopes, and those need a security review before
-        the app can be published. Until it clears, Google caps testers at 100.</p></details>
+        an app is marked verified. Until that clears you see an unverified-app screen once, and the
+        beta is limited to the first 100 accounts.</p></details>
     <details class="faq-i rv"><summary>Can it send something without me?</summary>
       <p>No. Send, delete and forward always wait for an explicit approval and each one writes a signed
         receipt with a hash of exactly what went out.</p></details>
@@ -1167,9 +1168,9 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
   <div class="wrapl rv">
     <h2 class="final-h">The next inbox is<br>a <span class="ser">decision queue.</span></h2>
-    <p class="final-p">Invite-only beta — approved within minutes, 100 testers until Google's review clears.</p>
+    <p class="final-p">Free while the beta runs — the first 100 accounts, until Google's review clears.</p>
     <div class="actions">
-      <a class="btn btn-1" href="https://app.klorn.ai/early-access">Request early access <i>↗</i></a>
+      <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">Start free <i>↗</i></a>
       <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
          data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download for Windows">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
@@ -1676,7 +1677,8 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 </script>
 <script>
 // Inflow attribution: pass utm_*/referrer/landing-path along to the app so
-// the early-access form can report which channel brought the signup.
+// the signup can report which channel brought the person in. The selector
+// covers every app.klorn.ai link, so it keeps working wherever the CTAs point.
 (function () {
   try {
     var p = new URLSearchParams(location.search);

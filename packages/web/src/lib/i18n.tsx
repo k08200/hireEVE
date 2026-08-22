@@ -31,6 +31,7 @@ const enTranslations: Record<string, string> = {
   "nav.logout": "Log out",
   "nav.home": "Home",
   "nav.earlyAccess": "Early access",
+  "nav.getStarted": "Get started",
   // Bottom tabs (mobile)
   "tabs.queue": "Queue",
   "tabs.account": "Account",
@@ -1148,6 +1149,7 @@ const koTranslations: Record<string, string> = {
   "nav.logout": "로그아웃",
   "nav.home": "홈",
   "nav.earlyAccess": "얼리 액세스",
+  "nav.getStarted": "시작하기",
   // Bottom tabs (mobile)
   "tabs.queue": "큐",
   "tabs.account": "계정",

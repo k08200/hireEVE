@@ -35,7 +35,7 @@ export default function AuthScreen({
   asideBody,
   asideItems,
   footer,
-  navCtaHref = "/early-access",
+  navCtaHref = "/login?mode=register",
   navCtaLabel,
 }: AuthScreenProps) {
   const { t } = useT();
@@ -48,7 +48,7 @@ export default function AuthScreen({
     { label: t("auth.stepContext"), value: t("auth.stepContextDesc") },
     { label: t("auth.stepApproval"), value: t("auth.stepApprovalDesc") },
   ];
-  const resolvedNavCtaLabel = navCtaLabel ?? t("nav.earlyAccess");
+  const resolvedNavCtaLabel = navCtaLabel ?? t("nav.getStarted");
   return (
     <main id="main" className="min-h-[100dvh] overflow-x-hidden sky-bg text-ink">
       <nav className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-6">

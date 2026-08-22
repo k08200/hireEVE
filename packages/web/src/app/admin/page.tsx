@@ -25,6 +25,7 @@ interface Stats {
   totalConversations: number;
   monthlyMessages: number;
   planDistribution: Record<string, number>;
+  googleQuota?: { consumed: number; cap: number; remaining: number };
 }
 
 interface OpsMetrics {
@@ -350,6 +351,8 @@ function AdminDashboard() {
           </div>
         )}
 
+        {stats?.googleQuota && <GoogleQuotaCard quota={stats.googleQuota} />}
+
         {tab === "ops" && ops && (
           <div className="space-y-6">
             <section>
@@ -628,6 +631,54 @@ function AdminDashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Google's unverified-app allowance — the one number that can quietly end
+ * sign-ups. The allowance is spent over the project's LIFETIME and does not
+ * reset, so this gets a bar rather than another stat tile: the shape of what
+ * is left is the point, not the digit.
+ *
+ * The count is a lower bound (accounts Klorn created); the Cloud console
+ * stays the authority. Said on the card so nobody treats it as exact.
+ */
+function GoogleQuotaCard({
+  quota,
+}: {
+  quota: { consumed: number; cap: number; remaining: number };
+}) {
+  const pct = Math.min(100, Math.round((quota.consumed / quota.cap) * 100));
+  const critical = quota.remaining <= 10;
+  const caution = !critical && quota.remaining <= 25;
+  const fill = critical ? "bg-rose-500" : caution ? "bg-amber-500" : "bg-accent-solid";
+
+  return (
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs text-ink-mid">Google unverified-app slots</p>
+        <p className="text-xs tabular-nums text-ink-mid">
+          <span className={`text-lg font-semibold ${critical ? "text-rose-500" : "text-ink"}`}>
+            {quota.remaining}
+          </span>{" "}
+          left of {quota.cap}
+        </p>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={quota.consumed}
+        aria-valuemin={0}
+        aria-valuemax={quota.cap}
+        aria-label="Google unverified-app slots consumed"
+        className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-inset"
+      >
+        <div className={`h-full rounded-full ${fill}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mt-2 text-[11px] leading-5 text-ink-mid">
+        {quota.consumed} accounts created. Spent over the project lifetime and never reset — CASA
+        verification is what removes the ceiling. Approximate: the Cloud console is the authority.
+      </p>
+    </section>
   );
 }
 

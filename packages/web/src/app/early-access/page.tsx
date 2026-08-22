@@ -1,282 +1,44 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import AuthScreen from "@/components/auth-screen";
-import { Input, Textarea } from "@/components/ui/input";
-import { API_BASE } from "@/lib/api";
-import { captureFirstTouchAttribution, storedAttribution } from "@/lib/attribution";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { captureFirstTouchAttribution } from "@/lib/attribution";
 
-type Status = "idle" | "submitting" | "success" | "already" | "error";
-
-const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{1,63}$/;
-
+/**
+ * Retired funnel step.
+ *
+ * Sign-up is open — the OAuth consent screen is in production and the beta
+ * gate is off, so there is nothing here to request. The route survives because
+ * the landing site, old DMs, and the Slack invite all still point at it; it
+ * captures first-touch attribution (the one job it still had) and hands the
+ * visitor to the sign-up tab rather than a form that no longer gates anything.
+ *
+ * `replace`, not `push`: back from /login must reach wherever the visitor came
+ * from, not bounce through this redirect again.
+ */
 export default function EarlyAccessPage() {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [useCase, setUseCase] = useState("");
-  const [source, setSource] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  return (
+    <Suspense>
+      <EarlyAccessRedirect />
+    </Suspense>
+  );
+}
 
-  // First-touch: the landing site decorates its links with utm/ref/lp — pin
-  // whatever brought this person in before they navigate further.
+function EarlyAccessRedirect() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     captureFirstTouchAttribution();
-  }, []);
+    const next = searchParams.get("next");
+    const target =
+      next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/early-access")
+        ? `/login?mode=register&next=${encodeURIComponent(next)}`
+        : "/login?mode=register";
+    router.replace(target);
+  }, [router, searchParams]);
 
-  const resetFormError = () => {
-    if (errorMsg) setErrorMsg(null);
-    if (emailError) setEmailError(null);
-    if (status === "error") setStatus("idle");
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg(null);
-    setEmailError(null);
-
-    const cleanEmail = email.trim().toLowerCase();
-    if (!EMAIL_RE.test(cleanEmail)) {
-      // Field-associated inline error (WCAG 3.3.1): attach to the email input.
-      setEmailError("Enter a valid email address.");
-      return;
-    }
-
-    setStatus("submitting");
-    try {
-      const res = await fetch(`${API_BASE}/api/waitlist`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: cleanEmail,
-          name: name.trim() || undefined,
-          useCase: useCase.trim() || undefined,
-          source: source.trim() || undefined,
-          attribution: storedAttribution() ?? undefined,
-        }),
-      });
-
-      if (res.status === 429) {
-        setStatus("error");
-        setErrorMsg("Too many requests. Please try again shortly.");
-        return;
-      }
-
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        setStatus("error");
-        setErrorMsg(body.error || "Something went wrong. Please try again shortly.");
-        return;
-      }
-
-      const body = (await res.json()) as { ok: boolean; alreadyOnList?: boolean };
-      setStatus(body.alreadyOnList ? "already" : "success");
-    } catch (_err) {
-      setStatus("error");
-      setErrorMsg(
-        "We could not reach the waitlist server. Check your connection and try again, or email k0820086@gmail.com if this keeps happening.",
-      );
-    }
-  };
-
-  const isDone = status === "success" || status === "already";
-
-  return (
-    <AuthScreen
-      eyebrow="Early access"
-      title="Apply for the private Klorn beta"
-      description="Klorn uses Gmail's restricted scope, so the beta is capped at 100 accounts until Google's security review clears. I approve every one of them by hand — this form is that request."
-      navCtaHref="/login"
-      navCtaLabel="Log in"
-      asideTitle="What happens after you submit"
-      asideBody="Three steps. The third one is the one you actually wait on."
-      asideItems={[
-        {
-          label: "1. Submit",
-          value: "Your email lands in my inbox as a noreply@klorn.ai alert.",
-        },
-        {
-          label: "2. Approve",
-          value:
-            "I approve your email by hand (~30 seconds). Within 5 min when I'm awake (KST), within a few hours otherwise.",
-        },
-        {
-          label: "3. Log in",
-          value:
-            "You get an email from noreply@klorn.ai. Open klorn.ai/login, Continue with Google. Google still shows an unverified-app notice until review clears — choose Advanced, then Continue.",
-        },
-      ]}
-      footer={
-        <span>
-          <Link
-            href="/privacy"
-            className="inline-flex min-h-10 items-center px-1 transition hover:text-ink-mid"
-          >
-            Privacy
-          </Link>
-          <span className="mx-2 text-slate-300">/</span>
-          <Link
-            href="/terms"
-            className="inline-flex min-h-10 items-center px-1 transition hover:text-ink-mid"
-          >
-            Terms
-          </Link>
-        </span>
-      }
-    >
-      {isDone ? (
-        <div>
-          <div className="rounded-md border border-accent-muted/25 bg-accent-muted/10 p-4">
-            <h2 className="text-base font-semibold text-ink">
-              {status === "already"
-                ? "You're already on the list"
-                : "Request received — here's what's next"}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-ink-mid">
-              {status === "already" ? (
-                <>
-                  Your previous request is still in the queue. If it's been more than a few hours
-                  and you haven't heard back, email{" "}
-                  <a
-                    href="mailto:k0820086@gmail.com"
-                    className="underline decoration-stone-600 underline-offset-2 hover:text-ink"
-                  >
-                    k0820086@gmail.com
-                  </a>{" "}
-                  with the same email and I'll surface it.
-                </>
-              ) : (
-                <>
-                  I'll approve your email by hand{" "}
-                  <span className="font-medium text-ink">within 5 minutes</span> if I'm awake (KST),
-                  otherwise within a few hours. You'll get an email from{" "}
-                  <span className="font-mono text-ink">noreply@klorn.ai</span> the moment you're
-                  approved — then{" "}
-                  <Link
-                    href="/login"
-                    className="underline decoration-accent-light/60 underline-offset-2 hover:text-accent-dim"
-                  >
-                    Log in
-                  </Link>{" "}
-                  works.
-                </>
-              )}
-            </p>
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <Link
-              href="/"
-              className="flex min-h-11 items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover"
-            >
-              Back home
-            </Link>
-            <Link
-              href="/login"
-              className="flex min-h-11 items-center justify-center rounded-md border border-line text-sm text-ink-mid transition hover:border-line"
-            >
-              Log in after approval
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <form onSubmit={submit} className="space-y-4" noValidate>
-          <Input
-            id="email"
-            label="Email"
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => {
-              resetFormError();
-              setEmail(e.target.value);
-            }}
-            placeholder="you@example.com"
-            error={emailError ?? undefined}
-          />
-
-          <Input
-            id="name"
-            label="Name (optional)"
-            type="text"
-            autoComplete="name"
-            value={name}
-            onChange={(e) => {
-              resetFormError();
-              setName(e.target.value);
-            }}
-            maxLength={120}
-            placeholder="Optional"
-          />
-
-          <div>
-            <Textarea
-              id="useCase"
-              label="Work pattern (optional)"
-              value={useCase}
-              onChange={(e) => {
-                resetFormError();
-                setUseCase(e.target.value);
-              }}
-              maxLength={500}
-              rows={3}
-              placeholder="Example: 50+ emails/day, follow-ups, meeting prep."
-            />
-            <p className="mt-2 text-xs leading-5 text-ink-dim">
-              This helps us understand which workflow to tune first.
-            </p>
-          </div>
-
-          <Input
-            id="source"
-            label="How did you hear about Klorn? (optional)"
-            value={source}
-            onChange={(e) => {
-              resetFormError();
-              setSource(e.target.value);
-            }}
-            maxLength={80}
-            placeholder="Hacker News, a friend, a video…"
-          />
-
-          {errorMsg && (
-            <p
-              role="alert"
-              className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
-            >
-              {errorMsg}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={status === "submitting"}
-            className="flex h-11 w-full items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink shadow-lg shadow-accent/30 transition-all hover:bg-accent-solid-hover hover:shadow-xl hover:shadow-accent/40 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim disabled:shadow-none"
-          >
-            {status === "submitting" ? "Submitting..." : "Request early access"}
-          </button>
-
-          <p className="text-xs leading-5 text-ink-dim">
-            By applying, you agree to the{" "}
-            <Link
-              href="/privacy"
-              className="inline-flex min-h-10 items-center underline hover:text-ink-mid"
-            >
-              Privacy Policy
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/terms"
-              className="inline-flex min-h-10 items-center underline hover:text-ink-mid"
-            >
-              Terms
-            </Link>
-            .
-          </p>
-        </form>
-      )}
-    </AuthScreen>
-  );
+  // Deliberately blank: this is a redirect, and a flash of "Early access" copy
+  // would be the exact claim we are here to stop making.
+  return null;
 }

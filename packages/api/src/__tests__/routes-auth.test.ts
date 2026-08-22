@@ -406,6 +406,64 @@ describe("desktop /google/login — appScheme relay binding", () => {
   });
 });
 
+describe("inflow attribution", () => {
+  it("stores the attribution the client captured at first touch", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: {
+        email: "attr@example.com",
+        password: "password123",
+        attribution: "utm_source=hn utm_medium=post lp=/",
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    const { prisma } = (await import("../db.js")) as unknown as {
+      prisma: { user: { create: ReturnType<typeof vi.fn> } };
+    };
+    const created = prisma.user.create.mock.calls.at(-1)?.[0] as { data: { attribution?: string } };
+    expect(created.data.attribution).toBe("utm_source=hn utm_medium=post lp=/");
+    await app.close();
+  });
+
+  it("registers fine with no attribution at all", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { email: "noattr@example.com", password: "password123" },
+    });
+
+    expect(res.statusCode).toBe(201);
+    const { prisma } = (await import("../db.js")) as unknown as {
+      prisma: { user: { create: ReturnType<typeof vi.fn> } };
+    };
+    const created = prisma.user.create.mock.calls.at(-1)?.[0] as { data: { attribution?: string } };
+    expect(created.data.attribution).toBeUndefined();
+    await app.close();
+  });
+
+  it("caps a hand-forged attribution string instead of storing it whole", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: {
+        email: "longattr@example.com",
+        password: "password123",
+        // The value is client-supplied, so the column must not inherit whatever
+        // length an attacker feels like sending.
+        attribution: "x".repeat(5000),
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+});
+
 describe("POST /api/auth/register", () => {
   beforeEach(resetStores);
 

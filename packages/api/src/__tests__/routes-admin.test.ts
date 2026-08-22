@@ -391,6 +391,46 @@ describe("admin routes", () => {
     await app.close();
   });
 
+  it("reports the Google unverified-app quota in stats", async () => {
+    const { prisma } = (await import("../db.js")) as unknown as {
+      prisma: { user: { count: ReturnType<typeof vi.fn> } };
+    };
+    prisma.user.count.mockClear();
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/stats",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().googleQuota).toEqual({ consumed: 2, cap: 100, remaining: 98 });
+    // Consumed must count Google-origin accounts only — no password and no
+    // Apple/Naver identity. Counting every user would over-report the slot
+    // burn the moment another provider is enabled.
+    expect(prisma.user.count).toHaveBeenCalledWith({
+      where: { passwordHash: null, identities: { none: {} } },
+    });
+    await app.close();
+  });
+
+  it("clamps the Google quota so an over-cap project never reports negative room", async () => {
+    const { prisma } = (await import("../db.js")) as unknown as {
+      prisma: { user: { count: ReturnType<typeof vi.fn> } };
+    };
+    prisma.user.count.mockImplementation(async () => 137);
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/admin/stats",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+
+    expect(res.json().googleQuota).toEqual({ consumed: 137, cap: 100, remaining: 0 });
+    prisma.user.count.mockImplementation(async () => 2);
+    await app.close();
+  });
+
   it("includes trust-loop metrics in ops", async () => {
     const app = await buildApp();
     const res = await app.inject({

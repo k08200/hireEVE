@@ -150,6 +150,10 @@ const registerBodySchema = {
     email: { type: "string", minLength: 3, maxLength: 320 },
     password: { type: "string", minLength: 1, maxLength: 200 },
     name: { type: "string", minLength: 1, maxLength: 120 },
+    // First-touch inflow attribution the login surface captured. 300 mirrors
+    // the client's own cap (lib/attribution.ts TOTAL_MAX); the value is
+    // client-supplied, so the column must not inherit an arbitrary length.
+    attribution: { type: "string", minLength: 1, maxLength: 300 },
   },
 } as const;
 
@@ -215,6 +219,9 @@ const googleLoginQuerySchema = {
     source: { type: "string", maxLength: 500 },
     nonce: { type: "string", maxLength: 500 },
     appScheme: { type: "string", maxLength: 500 },
+    // Rides the signed state to the callback — Google is the path most people
+    // take, so attribution that skipped it would report almost nothing.
+    attr: { type: "string", maxLength: 300 },
   },
 } as const;
 
@@ -371,10 +378,11 @@ export function authRoutes(app: FastifyInstance) {
       config: { rateLimit: { max: 5, timeWindow: "15 minutes" } },
     },
     async (request, reply) => {
-      const { email, password, name } = request.body as {
+      const { email, password, name, attribution } = request.body as {
         email: string;
         password: string;
         name?: string;
+        attribution?: string;
       };
       const normalizedEmail = normalizeEmail(email);
       const normalizedName = hasMeaningfulText(name) ? name.trim() : undefined;
@@ -425,6 +433,7 @@ export function authRoutes(app: FastifyInstance) {
           name: normalizedName || normalizedEmail.split("@")[0],
           ...(betaGateEnabled && { plan: "PRO" }),
           ...(betaAutoProGrant ?? {}),
+          ...(attribution ? { attribution } : {}),
           verifyToken: verifyTokenHash,
           verifyTokenExp,
         },
@@ -897,10 +906,11 @@ export function authRoutes(app: FastifyInstance) {
     "/google/login",
     { schema: { querystring: googleLoginQuerySchema } },
     async (request, reply) => {
-      const { source, nonce, appScheme } = request.query as {
+      const { source, nonce, appScheme, attr } = request.query as {
         source?: string;
         nonce?: string;
         appScheme?: string;
+        attr?: string;
       };
       const isDesktop = source === "desktop" && nonce;
       if (isDesktop) {
@@ -918,6 +928,7 @@ export function authRoutes(app: FastifyInstance) {
           // Carry an allowlisted native scheme so the callback can deep-link the
           // token back to the user's own app instead of parking it for polling.
           ...(isDesktop && isAllowedNativeScheme(appScheme) ? { appScheme } : {}),
+          ...(attr ? { attr } : {}),
         },
         // Same short replay window as every other OAuth-initiating route — an
         // intercepted state URL must not be honored for the default 7-day
@@ -1081,7 +1092,7 @@ export function authRoutes(app: FastifyInstance) {
       if (!state) {
         return reply.code(400).send({ error: "Missing state parameter" });
       }
-      let statePayload: { userId: string; email: string; appScheme?: string };
+      let statePayload: { userId: string; email: string; appScheme?: string; attr?: string };
       try {
         statePayload = verifyToken(state);
       } catch {
@@ -1296,6 +1307,7 @@ export function authRoutes(app: FastifyInstance) {
                     emailVerified: true, // Google accounts are pre-verified
                     ...(betaGateEnabled && { plan: "PRO" }),
                     ...(betaAutoProGrant ?? {}),
+                    ...(statePayload.attr ? { attribution: statePayload.attr } : {}),
                   },
                 }),
               { label: "oauth.create_user" },
