@@ -230,20 +230,23 @@ function LoginForm() {
               href="https://github.com/k08200/klorn/blob/main/docs/doctrine/deterministic-floor.md"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline decoration-line-strong underline-offset-2 transition hover:text-accent-deep hover:decoration-accent-muted"
+              className="underline decoration-line-strong underline-offset-2 transition duration-300 ease-fluid hover:text-accent-deep hover:decoration-accent-muted"
             >
               {t("auth.readDoctrine")}
             </a>
             <span className="ml-2">{t("auth.openSourceVersion")}</span>
           </p>
-          <Link href="/" className="inline-block transition hover:text-ink-soft">
+          <Link
+            href="/"
+            className="inline-block transition duration-300 ease-fluid hover:text-ink-soft"
+          >
             {t("auth.backHome")}
           </Link>
         </div>
       }
     >
       {nextPath !== "/inbox" && (
-        <div className="mb-4 rounded-md border border-notice-border bg-notice-bg px-3 py-2 text-xs leading-5 text-notice-ink">
+        <div className="mb-4 rounded-lg border border-notice-border bg-notice-bg px-3.5 py-2.5 text-xs leading-5 text-notice-ink">
           {t("auth.signInToContinue", { destination: returnDestinationLabel(nextPath, t) })}
         </div>
       )}
@@ -254,7 +257,10 @@ function LoginForm() {
           off — the normal production state — the provider lane leads. */}
       {!signupOpen && (
         <div className="mb-5 space-y-4">
-          <div className="rounded-md border border-notice-border bg-notice-bg px-3 py-2.5 text-xs leading-5 text-notice-ink">
+          <div
+            data-testid="access-notice"
+            className="rounded-lg border border-notice-border bg-notice-bg px-3.5 py-3 text-xs leading-5 text-notice-ink"
+          >
             <span className="font-semibold text-notice-ink-strong">
               {t("auth.inviteOnlyTitle")}
             </span>{" "}
@@ -263,7 +269,7 @@ function LoginForm() {
 
           <Link
             href="/early-access"
-            className="flex h-12 w-full items-center justify-center rounded-lg bg-accent-solid text-sm font-semibold text-accent-solid-ink shadow-sm transition duration-200 hover:bg-accent-solid-hover active:translate-y-px motion-reduce:transition-none motion-reduce:active:translate-y-0 focus-ring"
+            className="flex h-12 w-full items-center justify-center rounded-lg bg-accent-solid text-sm font-semibold text-accent-solid-ink shadow-sm transition duration-300 ease-fluid hover:bg-accent-solid-hover active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100 focus-ring"
           >
             {t("auth.requestEarlyAccess")}
           </Link>
@@ -298,7 +304,7 @@ function LoginForm() {
             type="button"
             aria-pressed={mode === "login"}
             onClick={() => changeMode("login")}
-            className={`h-10 rounded-md px-3 text-sm font-medium transition duration-200 focus-ring ${
+            className={`h-10 rounded-md px-3 text-sm font-medium transition duration-300 ease-fluid focus-ring ${
               mode === "login"
                 ? "bg-surface-panel text-ink shadow-sm dark:bg-surface-hover"
                 : "text-ink-mid hover:text-ink"
@@ -310,7 +316,7 @@ function LoginForm() {
             type="button"
             aria-pressed={mode === "register"}
             onClick={() => changeMode("register")}
-            className={`h-10 rounded-md px-3 text-sm font-medium transition duration-200 focus-ring ${
+            className={`h-10 rounded-md px-3 text-sm font-medium transition duration-300 ease-fluid focus-ring ${
               mode === "register"
                 ? "bg-surface-panel text-ink shadow-sm dark:bg-surface-hover"
                 : "text-ink-mid hover:text-ink"
@@ -357,7 +363,7 @@ function LoginForm() {
             {mode === "login" && (
               <Link
                 href="/reset-password"
-                className="inline-flex min-h-10 items-center text-xs text-ink-mid transition hover:text-accent-deeper"
+                className="inline-flex min-h-10 items-center text-xs text-ink-mid transition duration-300 ease-fluid hover:text-accent-deeper"
               >
                 {t("auth.resetPassword")}
               </Link>
@@ -382,7 +388,7 @@ function LoginForm() {
           type="submit"
           disabled={loading || !email || !password}
           aria-busy={loading}
-          className="flex h-12 w-full items-center justify-center rounded-lg bg-accent-solid text-sm font-semibold text-accent-solid-ink shadow-sm transition duration-200 hover:bg-accent-solid-hover active:translate-y-px disabled:cursor-not-allowed disabled:bg-surface-inset disabled:text-ink-mid disabled:shadow-none motion-reduce:transition-none motion-reduce:active:translate-y-0 focus-ring"
+          className="flex h-12 w-full items-center justify-center rounded-lg bg-accent-solid text-sm font-semibold text-accent-solid-ink shadow-sm transition duration-300 ease-fluid hover:bg-accent-solid-hover active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-surface-inset disabled:text-ink-mid disabled:shadow-none disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100 focus-ring"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -406,7 +412,7 @@ function LoginForm() {
             <button
               type="button"
               onClick={() => changeMode(mode === "login" ? "register" : "login")}
-              className="inline-flex min-h-10 items-center font-medium text-accent-deeper underline-offset-2 transition hover:underline focus-ring"
+              className="inline-flex min-h-10 items-center font-medium text-accent-deeper underline-offset-2 transition duration-300 ease-fluid hover:underline focus-ring"
             >
               {mode === "login" ? t("auth.switchToSignUp") : t("auth.switchToLogIn")}
             </button>
@@ -419,7 +425,7 @@ function LoginForm() {
             {t("auth.approvedCantSignIn")}{" "}
             <Link
               href="/reset-password"
-              className="inline-flex min-h-10 items-center font-medium text-accent-deeper underline-offset-2 transition hover:underline"
+              className="inline-flex min-h-10 items-center font-medium text-accent-deeper underline-offset-2 transition duration-300 ease-fluid hover:underline"
             >
               {t("auth.resetYourPassword")}
             </Link>

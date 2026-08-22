@@ -25,11 +25,14 @@ import { AppleMark, GoogleMark, NaverMark } from "./provider-marks";
 /** Order is deliberate: Google first — it is also the Gmail connection. */
 const EXTRA_ORDER: readonly AuthProviderId[] = ["apple", "naver"];
 
+// Radius steps down from the card core (16px) so the curves nest instead of
+// competing. Press feedback is a scale, not a translate: a 1px nudge reads as
+// a rendering glitch at this size, a 1% squash reads as the surface giving.
 const ROW_CLASS =
   "flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-line " +
-  "bg-surface-raised text-sm font-medium text-ink transition duration-200 " +
-  "hover:border-line-strong hover:bg-surface-hover active:translate-y-px " +
-  "motion-reduce:transition-none motion-reduce:active:translate-y-0 focus-ring";
+  "bg-surface-raised text-sm font-medium text-ink transition duration-300 ease-fluid " +
+  "hover:border-line-strong hover:bg-surface-hover active:scale-[0.99] " +
+  "motion-reduce:transition-none motion-reduce:active:scale-100 focus-ring";
 
 interface ProviderButtonsProps {
   /** Extra providers advertised by the server (google is implicit). */
@@ -62,7 +65,7 @@ export default function ProviderButtons({
           without a hardcoded max-height, so the reveal cannot clip a button
           if a third provider ever lands here. */}
       <div
-        className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
+        className={`grid transition-[grid-template-rows] duration-500 ease-fluid motion-reduce:transition-none ${
           resolved && extras.length > 0 ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         }`}
       >
