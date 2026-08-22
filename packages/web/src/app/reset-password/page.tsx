@@ -74,7 +74,7 @@ function ForgotPasswordForm() {
         </div>
         <Link
           href="/login"
-          className="mt-5 flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep focus-ring"
+          className="mt-5 flex h-11 w-full items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover focus-ring"
         >
           {t("resetPassword.openLogin")}
         </Link>
@@ -111,7 +111,7 @@ function ForgotPasswordForm() {
         <button
           type="submit"
           disabled={loading || !email}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
         >
           {loading ? t("resetPassword.sending") : t("resetPassword.sendLink")}
         </button>
@@ -168,7 +168,7 @@ function NewPasswordForm({ token }: { token: string }) {
       >
         <Link
           href="/login"
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover focus-ring"
         >
           {t("nav.logIn")}
         </Link>
@@ -221,7 +221,7 @@ function NewPasswordForm({ token }: { token: string }) {
         <button
           type="submit"
           disabled={loading || !password || !confirm}
-          className="flex h-11 w-full items-center justify-center rounded-md bg-accent text-sm font-semibold text-white transition hover:bg-accent-deep disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
+          className="flex h-11 w-full items-center justify-center rounded-md bg-accent-solid text-sm font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-ink-dim focus-ring"
         >
           {loading ? t("resetPassword.resetting") : t("auth.resetPassword")}
         </button>

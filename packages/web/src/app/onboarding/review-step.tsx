@@ -172,7 +172,7 @@ export function ReviewStep({ onContinue }: { onContinue: () => void }) {
       <button
         type="button"
         onClick={onContinue}
-        className="mt-8 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-accent-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-muted/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+        className="mt-8 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent-solid px-5 py-3.5 text-sm font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-muted/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
       >
         {reviewedCount > 0
           ? t("onboarding.review.continueReviewed", { count: String(reviewedCount) })

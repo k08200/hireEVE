@@ -151,7 +151,7 @@ export default function PaywallScreen() {
             <button
               type="button"
               disabled
-              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-light/60 text-[15px] font-semibold text-white"
+              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-surface-inset text-[15px] font-semibold text-ink-mid"
             >
               Subscription coming soon
             </button>
@@ -160,7 +160,7 @@ export default function PaywallScreen() {
               type="button"
               onClick={native ? startAppPurchase : startWebTrial}
               disabled={loading}
-              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-solid text-[15px] font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:opacity-50"
+              className="flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-solid text-[15px] font-semibold text-accent-solid-ink transition active:bg-accent-solid-hover disabled:opacity-50"
             >
               {loading ? "Starting..." : "Start free trial"}
             </button>

@@ -453,7 +453,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             type="button"
             onClick={(e) => handleApprovePendingAction(n, e)}
             disabled={!!pendingActionLoading[n.id]}
-            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-accent hover:bg-accent disabled:bg-surface-inset disabled:text-ink-dim disabled:cursor-not-allowed text-white font-medium transition min-w-[72px] md:min-w-0"
+            className="focus-ring text-sm md:text-[11px] px-4 py-2 md:px-2.5 md:py-1 rounded-md md:rounded bg-accent-solid hover:bg-accent-solid-hover disabled:bg-surface-inset disabled:text-ink-dim disabled:cursor-not-allowed text-accent-solid-ink font-medium transition min-w-[72px] md:min-w-0"
           >
             {pendingActionLoading[n.id] === "approve" ? "..." : "Approve"}
           </button>

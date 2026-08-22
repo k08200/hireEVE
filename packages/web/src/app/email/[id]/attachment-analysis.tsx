@@ -556,7 +556,7 @@ function AttachmentCorrectionForm({
           type="button"
           onClick={save}
           disabled={saving}
-          className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white transition hover:bg-accent-deep disabled:opacity-50 focus-ring"
+          className="rounded bg-accent-solid px-3 py-1.5 text-xs font-medium text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:opacity-50 focus-ring"
         >
           {saving
             ? t("emailDetail.attachment.form.saving")

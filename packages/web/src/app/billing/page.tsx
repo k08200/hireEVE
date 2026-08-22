@@ -327,7 +327,7 @@ function BillingContent() {
               }`}
             >
               {plan.key === "PRO" && (
-                <span className="mb-2 self-start rounded-full bg-accent-solid px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-solid-ink">
+                <span className="mb-2 self-start rounded-full bg-accent-solid px-2 py-0.5 text-[10px] font-semibold uppercase text-accent-solid-ink">
                   {t("billing.recommended")}
                 </span>
               )}
