@@ -169,7 +169,7 @@ test.describe("Login — contrast floors", () => {
 
       const ratio = await contrastOf(
         page,
-        `[...document.querySelectorAll("div")].find((d) => /invite-only/i.test(d.textContent) && d.children.length <= 2)`,
+        `document.querySelector("[data-testid='access-notice']")`,
       );
       expect(ratio).toBeGreaterThanOrEqual(AA_TEXT);
     });
@@ -263,6 +263,21 @@ test.describe("Login — contrast floors", () => {
       expect(ring.contrast).toBeGreaterThanOrEqual(3);
     });
 
+    test(`the card eyebrow clears AA in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+      await page.goto("/login");
+      await expect(page.getByText("Welcome back", { exact: true })).toBeVisible();
+
+      // ink-dim is a label colour against a panel; against the page backdrop
+      // it measured 2.45:1, and the eyebrow sits outside the card.
+      const ratio = await contrastOf(
+        page,
+        `[...document.querySelectorAll("p")].find((el) => el.textContent.trim() === "Welcome back")`,
+      );
+      expect(ratio).toBeGreaterThanOrEqual(AA_TEXT);
+    });
+
     test(`provider rows clear AA in ${scheme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await mockAuthProbes(page, { signupOpen: true, providers: ["google", "apple", "naver"] });
@@ -276,4 +291,39 @@ test.describe("Login — contrast floors", () => {
       expect(ratio).toBeGreaterThanOrEqual(AA_TEXT);
     });
   }
+});
+
+test.describe("Login — motion", () => {
+  test("entry animation is dropped under prefers-reduced-motion", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google", "apple"] });
+    await page.goto("/login");
+    const google = page.getByRole("link", { name: "Continue with Google" });
+    await google.waitFor();
+
+    const names = await page.evaluate(() =>
+      [...document.querySelectorAll(".rise")].map((el) => getComputedStyle(el).animationName),
+    );
+    expect(names.length).toBeGreaterThan(0);
+    expect(names.every((n) => n === "none")).toBe(true);
+  });
+
+  test("the staggered entry settles fully opaque", async ({ page }) => {
+    await mockAuthProbes(page, { signupOpen: true, providers: ["google", "apple"] });
+    await page.goto("/login");
+    await page.getByRole("link", { name: "Continue with Apple" }).waitFor();
+    // `both` fill holds the from-state; a wrong delay or a dropped keyframe
+    // would strand a shelf at opacity 0 forever.
+    await expect
+      .poll(async () =>
+        page.evaluate(() =>
+          Math.min(
+            ...[...document.querySelectorAll(".rise")].map((el) =>
+              Number(getComputedStyle(el).opacity),
+            ),
+          ),
+        ),
+      )
+      .toBe(1);
+  });
 });
