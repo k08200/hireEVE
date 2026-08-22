@@ -1452,17 +1452,15 @@ struct FullView: View {
         // overflow must clip at the BOTTOM — a centered ZStack ate the header
         // first (clipping screenshots, 2026-08-20).
         ZStack(alignment: .top) {
-            // Sky behind everything. The header sits directly on it so the view
-            // opens on air rather than on a toolbar; the working columns get a
-            // translucent panel so running text never lands on a gradient.
+            // Sky stays BEHIND the surface only as depth for the 10%
+            // translucency — it must never show as a margin. The old "card
+            // lifted off the sky" inset read as a thick bright frame around
+            // the dark panel (founder, 2026-08-22: "테두리 그대로 있는데?")
+            // — content now runs edge-to-edge like every serious mail client.
             AmbientBackdrop()
             VStack(spacing: 0) {
-                // Chrome floats directly on the sky, the way the reference's
-                // nav pill does — the window opens on air, not on a toolbar.
                 header
-                // The working columns are one card lifted off that sky. The
-                // inset is the whole point: without a margin the panel is just
-                // an opaque page and the backdrop may as well not exist.
+                Rectangle().fill(Theme.line).frame(height: 1)
                 HStack(spacing: 0) {
                     FullSidebar(selected: $model.listMode, actions: actions).frame(width: 220)
                     Rectangle().fill(Theme.line).frame(width: 1)
@@ -1470,13 +1468,10 @@ struct FullView: View {
                     Rectangle().fill(Theme.line).frame(width: 1)
                     ReadingPane(actions: actions).frame(maxWidth: .infinity)
                 }
-                .background(Theme.panelGradient(opacity: 0.90))
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-                .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(Theme.line))
-                .shadow(color: Theme.panelShadow.opacity(0.5), radius: 20, y: 6)
-                .padding(.horizontal, 14)
-                .padding(.bottom, 14)
             }
+            // ONE surface, header included — any band around the header reads
+            // as chrome-on-chrome.
+            .background(Theme.panelGradient(opacity: 0.90))
             // Modal overlays block POINTER input with the scrim, but Tab/
             // VoiceOver traversal follows the view tree — disable the
             // background so keyboard focus can't wander behind the modal.
@@ -1549,19 +1544,12 @@ struct FullView: View {
             .help(L("bar.close"))
             .accessibilityLabel(L("bar.close.a11y"))
         }
-        // Chrome carries its own light surface instead of sitting bare on the
-        // sky. Two reasons, and the accessibility one is the binding constraint:
-        // secondary labels are slate-500, which clears 4.5:1 on the near-white
-        // panel but not on the gradient's darker top, and a floating bar with
-        // its own ground is also what the reference does with its nav.
+        // A plain row of the ONE window surface — no capsule, no stroke, no
+        // shadow. The old floating-pill header was chrome-on-chrome once the
+        // content went edge-to-edge (its ground is now the same panelGradient,
+        // so the slate-500 contrast argument holds unchanged).
         .padding(.horizontal, 18)
         .frame(height: 48)
-        .background(Theme.panelGradient(opacity: 0.92), in: Capsule())
-        .overlay(Capsule().strokeBorder(Theme.line))
-        .shadow(color: Theme.panelShadow.opacity(0.35), radius: 14, y: 4)
-        .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
     }
 }
 
