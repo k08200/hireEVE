@@ -1385,6 +1385,10 @@ export async function emailRoutes(app: FastifyInstance) {
       select: { id: true, email: true, needsReconnect: true, provider: true },
       orderBy: { email: "asc" },
     });
+    // A pre-guard row that mirrors the primary address (user OAuth-linked
+    // their own account) must not show as a second inbox.
+    const primaryEmail = (user?.email ?? "").trim().toLowerCase();
+    const distinctLinked = linked.filter((l) => l.email.trim().toLowerCase() !== primaryEmail);
     return {
       inboxes: [
         {
@@ -1397,7 +1401,7 @@ export async function emailRoutes(app: FastifyInstance) {
           needsReconnect: Boolean(googleToken) && !googleToken?.refreshToken,
           provider: "GOOGLE" as const,
         },
-        ...linked.map((l) => ({
+        ...distinctLinked.map((l) => ({
           id: l.id,
           email: l.email,
           kind: "linked" as const,

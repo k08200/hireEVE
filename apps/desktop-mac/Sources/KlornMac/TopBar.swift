@@ -1710,6 +1710,7 @@ private struct FullSidebar: View {
     @State private var navContentHeight: CGFloat = 0
     @State private var todayContentHeight: CGFloat = 0
     @State private var upcomingContentHeight: CGFloat = 0
+    @State private var accountContentHeight: CGFloat = 0
 
     private func tierCount(_ tier: Tier) -> Int { model.queue?.summary.count(for: tier) ?? 0 }
 
@@ -2029,7 +2030,13 @@ private struct FullSidebar: View {
 
             SectionResizeHandle(
                 height: Binding(
-                    get: { model.settings.accountSectionHeight },
+                    // Clamp to real content so a drag can't wander into a dead
+                    // zone past what the section can actually show.
+                    get: {
+                        min(
+                            model.settings.accountSectionHeight,
+                            max(Double(accountContentHeight), 120))
+                    },
                     set: { model.settings.accountSectionHeight = AppSettings.resolveAccountSectionHeight($0) }
                 ))
             // One-click 기본/Auto switch, right in the sidebar (founder
@@ -2110,7 +2117,13 @@ private struct FullSidebar: View {
             sidebarAction(L("prefs.title"), dim: true) { model.showPreferences = true }
             }
             }
-            .frame(height: CGFloat(model.settings.accountSectionHeight))
+            // A CAP, not a fixed height (same rule as TODAY/UPCOMING): short
+            // content collapses to its own size instead of holding a dead gap
+            // below 환경설정 (founder, 2026-08-22).
+            .frame(maxHeight: CGFloat(model.settings.accountSectionHeight))
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .measureSectionHeight { accountContentHeight = $0 }
         }
         .padding(.horizontal, 8).padding(.vertical, 18)
     }
