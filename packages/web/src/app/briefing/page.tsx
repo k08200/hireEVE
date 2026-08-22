@@ -13,8 +13,18 @@ import { queryKeys } from "../../lib/query-keys";
 import { captureClientError } from "../../lib/sentry";
 import { TodayActionsCard } from "./today-actions-card";
 
+interface BriefingStructure {
+  dateLabel: string;
+  headline: string;
+  segments: Array<{ label: string; summary: string; kind: "busy" | "free" | "off" }>;
+  curve: number[];
+  dayStartHour: number;
+  attention: Array<{ rank: number; action: string; reason: string }>;
+}
+
 interface BriefingResponse {
   briefing: { id: string; content: string; createdAt: string } | null;
+  structured?: BriefingStructure | null;
 }
 
 interface GenerateResponse {
@@ -64,6 +74,80 @@ export default function BriefingPage() {
   );
 }
 
+/** The glanceable day-shape hero (briefing v2): date, one-sentence verdict,
+ * intensity sparkline, 2-3 time segments, ranked attention list. All text is
+ * server-localized — this component only draws. */
+function DayShapeCard({ structure }: { structure: BriefingStructure }) {
+  const width = 280;
+  const height = 36;
+  const maxCount = Math.max(...structure.curve, 1);
+  const stepX = width / Math.max(structure.curve.length - 1, 1);
+  const points = structure.curve.map((count, i) => ({
+    x: i * stepX,
+    y: height - (count / maxCount) * (height - 6) - 3,
+    busy: count > 0,
+  }));
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+
+  return (
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5 md:p-6">
+      <p className="text-xs text-ink-dim">{structure.dateLabel}</p>
+      <h1 className="mt-1 text-xl font-semibold leading-snug text-ink md:text-2xl">
+        {structure.headline}
+      </h1>
+      {structure.curve.some((c) => c > 0) && (
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="mt-3 h-9 w-full"
+          role="img"
+          aria-hidden="true"
+        >
+          <path
+            d={path}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="text-line"
+          />
+          {points
+            .filter((p) => p.busy)
+            .map((p) => (
+              <circle key={p.x} cx={p.x} cy={p.y} r="2.5" className="fill-accent" />
+            ))}
+        </svg>
+      )}
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        {structure.segments.map((seg) => (
+          <div
+            key={seg.label}
+            className="border-l border-line-soft pl-3 first:border-l-0 first:pl-0"
+          >
+            <p
+              className={`text-xs font-semibold ${seg.kind === "busy" ? "text-accent-deep" : "text-ink-dim"}`}
+            >
+              {seg.label}
+            </p>
+            <p className="mt-1 text-sm text-ink">{seg.summary}</p>
+          </div>
+        ))}
+      </div>
+      {structure.attention.length > 0 && (
+        <ol className="mt-4 space-y-1.5 border-t border-line-soft pt-3">
+          {structure.attention.map((item) => (
+            <li key={item.rank} className="flex gap-2 text-sm text-ink">
+              <span className="text-xs font-semibold leading-5 text-ink-dim">{item.rank}</span>
+              <span>
+                {item.action}
+                {item.reason ? <span className="text-ink-mid"> — {item.reason}</span> : null}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
 function BriefingView() {
   const { t } = useT();
   const queryClient = useQueryClient();
@@ -83,6 +167,7 @@ function BriefingView() {
   });
 
   const noteId = briefingQuery.data?.briefing?.id ?? null;
+  const structured = briefingQuery.data?.structured ?? null;
   const content = briefingQuery.data?.briefing?.content ?? null;
   const createdAt = briefingQuery.data?.briefing?.createdAt ?? null;
   const status = statusQuery.data ?? null;
@@ -317,6 +402,8 @@ function BriefingView() {
           </button>
         </div>
       )}
+
+      {structured && !loading && <DayShapeCard structure={structured} />}
 
       {content && (
         <div className="space-y-4">

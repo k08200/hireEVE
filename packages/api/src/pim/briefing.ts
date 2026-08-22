@@ -12,6 +12,7 @@ import { recordFeedback } from "../learning/feedback.js";
 import { getUserLlmCredentials } from "../llm/llm-credentials.js";
 import { createCompletion, MODEL } from "../llm/openai.js";
 import { listEmails } from "../mail/gmail.js";
+import { resolveNotificationLanguage } from "../notify/notification-strings.js";
 import { sendPushNotification } from "../notify/push.js";
 import { localDayUtcRange, normalizeTimeZone } from "../time-zone.js";
 import { stripUntrusted } from "../untrusted.js";
@@ -327,6 +328,17 @@ export default async function generateBriefing(
   userId: string,
 ): Promise<{ content: string; llm: BriefingLlmOutcome }> {
   const data = await gatherBriefingData(userId);
+  // The briefing follows the user's UI/notification language (en/ko fixed
+  // per setting — unlike replies, which mirror the mail's language).
+  const langConfig = await prisma.automationConfig.findUnique({
+    where: { userId },
+    select: { notificationLanguage: true },
+  });
+  const lang = resolveNotificationLanguage(langConfig?.notificationLanguage);
+  const langLine =
+    lang === "ko"
+      ? "Korean only (자연스러운 한국어; keep product/tool names and email subjects as-is)."
+      : "English only.";
 
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -357,7 +369,7 @@ Klorn is the clear signal worth acting on. You are not summarizing today; you ar
 - **Top 3 Today** — numbered actions with one short reason each.
 - **Connected items** — only if useful; explain how mail/tasks/calendar relate.
 - **Everything else** — 2 or 3 short bullets for lower-priority context.
-- English only.
+- ${langLine}
 - Calm, direct, decision-partner tone. Not a report.
 - 120-220 words.
 
@@ -791,7 +803,20 @@ export function briefingRoutes(app: FastifyInstance) {
       select: { id: true, content: true, createdAt: true },
     });
 
-    return { briefing: note };
+    // The glanceable v2 layer (verdict + segments + curve + attention).
+    // Deterministic at read time; fail-open null keeps old clients working.
+    let structured = null;
+    try {
+      const { buildBriefingStructure } = await import("./briefing-structure.js");
+      structured = await buildBriefingStructure(userId);
+    } catch (err) {
+      console.warn(
+        "[BRIEFING] structure build failed:",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+
+    return { briefing: note, structured };
   });
 
   // GET /api/briefing/:id/top-actions/feedback — latest feedback per Top 3 rank
