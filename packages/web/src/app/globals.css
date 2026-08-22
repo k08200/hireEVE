@@ -30,6 +30,20 @@
   --accent-deep: #0284c7; /* sky-600 — link text, pressed accent */
   --accent-deeper: #0369a1; /* sky-700 */
 
+  /* Semantic state surfaces for banners and inline notices. They exist
+     because the raw Tailwind recipes they replace (bg-emerald-50 /
+     bg-amber-50) are light-theme literals: on the dark panel they rendered
+     as near-white blocks — worst of all on the post-checkout success banner,
+     the first thing a new subscriber sees. Filled accent CONTROLS are not
+     here; --accent-solid below already owns that contract.
+     Both pairs clear 4.5:1 in both themes, verified in-browser. */
+  --state-ok-bg: #ecfdf5;
+  --state-ok-line: #a7f3d0;
+  --state-ok-ink: #047857; /* 4.9:1 on its own surface */
+  --state-warn-bg: #fffbeb;
+  --state-warn-line: #fde68a;
+  --state-warn-ink: #b45309; /* 4.9:1 */
+
   /* FILLED-control accent. --color-accent (#0ea5e9) is a surface/tint value:
      white text on it measures 2.77:1, well under the 4.5:1 AA floor (verified
      on production 2026-08-22). Filled buttons use this pair instead, and it
@@ -75,6 +89,15 @@
   /* Links brighten in the dark instead of darkening: 8.1:1 on panel. */
   --accent-deep: #38bdf8;
   --accent-deeper: #7dd3fc;
+
+  /* State surfaces darken and their ink brightens: the mirror of light,
+     never the same literals (that was the bug these replace). */
+  --state-ok-bg: #0c2a20;
+  --state-ok-line: #1d5c46;
+  --state-ok-ink: #6ee7b7; /* 10.1:1 */
+  --state-warn-bg: #2c220c;
+  --state-warn-line: #6b5320;
+  --state-warn-ink: #fcd34d; /* 10.9:1 */
   /* Filled CTA inverts in the dark: bright fill, dark ink — 8.3:1. */
   --accent-solid: #38bdf8;
   --accent-solid-hover: #7dd3fc;
@@ -108,6 +131,12 @@
   --color-ink-muted: var(--ink-muted);
   --color-accent-deep: var(--accent-deep);
   --color-accent-deeper: var(--accent-deeper);
+  --color-state-ok-bg: var(--state-ok-bg);
+  --color-state-ok-line: var(--state-ok-line);
+  --color-state-ok-ink: var(--state-ok-ink);
+  --color-state-warn-bg: var(--state-warn-bg);
+  --color-state-warn-line: var(--state-warn-line);
+  --color-state-warn-ink: var(--state-warn-ink);
   --color-accent-solid: var(--accent-solid);
   --color-accent-solid-hover: var(--accent-solid-hover);
   --color-accent-solid-ink: var(--accent-solid-ink);
