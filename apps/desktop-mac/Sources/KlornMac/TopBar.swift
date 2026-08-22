@@ -1477,10 +1477,14 @@ struct FullView: View {
                 .padding(.horizontal, 14)
                 .padding(.bottom, 14)
             }
+            // Modal overlays block POINTER input with the scrim, but Tab/
+            // VoiceOver traversal follows the view tree — disable the
+            // background so keyboard focus can't wander behind the modal.
+            .disabled(model.showCompose || model.showPreferences || model.showTierGuide)
             .onAppear { model.presentTierGuideIfFirstRun() }
             if model.showCompose && !model.showPreferences {
                 Theme.text.opacity(0.45)
-                    .onTapGesture { model.showCompose = false }
+                    .onTapGesture { if !model.composeSending { model.showCompose = false } }
                     .accessibilityHidden(true)
                 ComposePanel()
             }
@@ -3429,37 +3433,34 @@ private struct UpdateRow: View {
 /// loop here, so there is nothing to approve. Server enforces the Pro gate.
 private struct ComposePanel: View {
     @Environment(AppModel.self) private var model
-    @State private var to = ""
-    @State private var subject = ""
-    @State private var bodyText = ""
-    @State private var sending = false
-    @State private var error: String?
     @FocusState private var focusTo: Bool
 
     var body: some View {
+        @Bindable var model = model
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(L("compose.title")).font(Theme.Typo.head).foregroundStyle(Theme.text)
                 Spacer()
                 Button {
-                    model.showCompose = false
+                    if !model.composeSending { model.showCompose = false }
                 } label: { Image(systemName: "xmark").font(.caption.weight(.semibold)).iconTarget(28) }
                     .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+                    .disabled(model.composeSending)
                     .accessibilityLabel(L("compose.close.a11y"))
             }
 
-            field(L("compose.to"), text: $to)
+            field(L("compose.to"), text: $model.composeTo)
                 .focused($focusTo)
-            field(L("compose.subject"), text: $subject)
+            field(L("compose.subject"), text: $model.composeSubject)
 
             Group {
                 if Theme.isRenderingOffscreen {
-                    Text(bodyText.isEmpty ? L("compose.bodyPlaceholder") : bodyText)
+                    Text(model.composeBody.isEmpty ? L("compose.bodyPlaceholder") : model.composeBody)
                         .font(.callout).foregroundStyle(Theme.textDim)
                         .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
                         .padding(8)
                 } else {
-                    TextEditor(text: $bodyText)
+                    TextEditor(text: $model.composeBody)
                         .font(.callout).foregroundStyle(Theme.text)
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 170)
@@ -3469,39 +3470,32 @@ private struct ComposePanel: View {
             }
             .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 8))
 
-            if let error {
+            if let error = model.composeError {
                 Text(error).font(.caption).foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack {
                 Spacer()
-                Button(L("compose.cancel")) { model.showCompose = false }
+                Button(L("compose.cancel")) {
+                    model.discardComposeDraft()
+                    model.showCompose = false
+                }
                     .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+                    .disabled(model.composeSending)
                     .keyboardShortcut(.cancelAction)
                 Button {
-                    guard !sending else { return }
-                    sending = true
-                    error = nil
-                    Task {
-                        let result = await model.sendNewEmail(
-                            to: to, subject: subject, body: bodyText)
-                        sending = false
-                        if let result {
-                            error = result
-                        } else {
-                            model.showCompose = false
-                        }
-                    }
+                    Task { await model.submitCompose() }
                 } label: {
-                    Text(sending ? L("compose.sending") : L("compose.send"))
+                    Text(model.composeSending ? L("compose.sending") : L("compose.send"))
                         .font(.callout.weight(.semibold))
                         .padding(.horizontal, 14).padding(.vertical, 6)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.white)
                 .background(Theme.accent, in: Capsule())
-                .opacity(sending ? 0.6 : 1)
+                .opacity(model.composeSending ? 0.6 : 1)
+                .disabled(model.composeSending)
                 .keyboardShortcut(.return, modifiers: .command)
                 .accessibilityLabel(L("compose.send"))
             }
@@ -3526,6 +3520,7 @@ private struct ComposePanel: View {
             } else {
                 TextField("", text: text)
                     .textFieldStyle(.plain).font(.callout).foregroundStyle(Theme.text)
+                    .accessibilityLabel(label)
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 8)

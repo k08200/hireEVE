@@ -32,8 +32,11 @@ enum Theme {
     /// on a dark desktop reads as a drawn box; a fading bevel reads as light
     /// catching the material (founder feedback 2026-08-22: the border made
     /// the design worse).
-    static let bevelTop = dyn(light: (1, 1, 1, 0.60), dark: (1, 1, 1, 0.16))
-    static let bevelBottom = dyn(light: (1, 1, 1, 0.10), dark: (1, 1, 1, 0.02))
+    /// Light mode: white-on-near-white is invisible (~1.02:1, render-verified)
+    /// — the light rim is a faint NEUTRAL hairline instead, still fading down
+    /// so it never reads as a drawn box. Dark keeps the white bevel.
+    static let bevelTop = dyn(light: (0, 0, 0, 0.07), dark: (1, 1, 1, 0.16))
+    static let bevelBottom = dyn(light: (0, 0, 0, 0.03), dark: (1, 1, 1, 0.02))
     /// Interior top-edge light. Was a hardcoded white 0.9 — glaring in dark.
     static let edgeLight = dyn(light: (1, 1, 1, 0.90), dark: (1, 1, 1, 0.14))
 

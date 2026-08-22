@@ -652,6 +652,40 @@ final class AppModel {
 
     /// Compose overlay visibility (full view). Preferences wins if both are up.
     var showCompose = false
+    /// Draft lives on the MODEL, not the panel: SwiftUI drops a conditionally
+    /// mounted view's @State (e.g. when Preferences overlays the composer via
+    /// the menu bar), and a draft must survive that. There is exactly one
+    /// composer identity, so an orphaned send can never race a "new" session.
+    var composeTo = ""
+    var composeSubject = ""
+    var composeBody = ""
+    var composeError: String?
+    private(set) var composeSending = false
+
+    /// Send the current draft. Success clears the draft and closes the panel;
+    /// failure surfaces composeError and keeps everything for retry.
+    func submitCompose() async {
+        guard !composeSending else { return }
+        composeSending = true
+        composeError = nil
+        defer { composeSending = false }
+        let error = await sendNewEmail(to: composeTo, subject: composeSubject, body: composeBody)
+        if let error {
+            composeError = error
+        } else {
+            discardComposeDraft()
+            showCompose = false
+        }
+    }
+
+    /// Explicit discard (the Cancel button). Hiding the panel via ✕/scrim/Esc
+    /// deliberately KEEPS the draft — ⌘N reopens where the user left off.
+    func discardComposeDraft() {
+        composeTo = ""
+        composeSubject = ""
+        composeBody = ""
+        composeError = nil
+    }
 
     /// Send a BRAND-NEW email (POST /api/email/send — Pro-gated server-side).
     /// Returns nil on success or a user-facing error message. Same error
