@@ -451,3 +451,16 @@
 /* Sender pin (TierMenu) */
 "pin.always" = "Always this sender…";
 "pin.remove" = "Remove sender pin";
+
+/* Compose (new mail) */
+"compose.new" = "New email (⌘N)";
+"compose.title" = "New email";
+"compose.to" = "To";
+"compose.subject" = "Subject";
+"compose.bodyPlaceholder" = "Message";
+"compose.send" = "Send";
+"compose.sending" = "Sending…";
+"compose.cancel" = "Cancel";
+"compose.missingFields" = "Recipient, subject, and message are all required.";
+"compose.needsPro" = "Sending mail needs the Pro plan.";
+"compose.close.a11y" = "Close composer";

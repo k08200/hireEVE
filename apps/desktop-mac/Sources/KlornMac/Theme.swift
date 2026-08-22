@@ -27,6 +27,15 @@ enum Theme {
     static let accentDeep = dyn(light: (0.008, 0.518, 0.780, 1), dark: (0.220, 0.741, 0.973, 1))
     /// slate-200-grade hairline on the glass panel; faint white line in dark.
     static let line = dyn(light: (0, 0, 0, 0.08), dark: (1, 1, 1, 0.10))
+    /// Panel bevel (GlassPanel edge): a top highlight that FADES DOWN the rim
+    /// instead of outlining it — the Raycast/Sonoma panel edge. A flat stroke
+    /// on a dark desktop reads as a drawn box; a fading bevel reads as light
+    /// catching the material (founder feedback 2026-08-22: the border made
+    /// the design worse).
+    static let bevelTop = dyn(light: (1, 1, 1, 0.60), dark: (1, 1, 1, 0.16))
+    static let bevelBottom = dyn(light: (1, 1, 1, 0.10), dark: (1, 1, 1, 0.02))
+    /// Interior top-edge light. Was a hardcoded white 0.9 — glaring in dark.
+    static let edgeLight = dyn(light: (1, 1, 1, 0.90), dark: (1, 1, 1, 0.14))
 
     /// The top bar is always a LIGHT floating surface regardless of system
     /// appearance, so its text uses explicit slate tones (not semantic colors).
@@ -224,16 +233,24 @@ struct GlassPanel: ViewModifier {
                     Theme.panelGradient(
                         opacity: Theme.glassTintOpacity(reduceTransparency: reduceTransparency))
                     LinearGradient(
-                        colors: [Color.white.opacity(0.9), .clear],
+                        colors: [Theme.edgeLight, .clear],
                         startPoint: .top, endPoint: .center)
                         .frame(height: 1.5, alignment: .top)
                         .frame(maxHeight: .infinity, alignment: .top)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                .overlay(RoundedRectangle(cornerRadius: cornerRadius).strokeBorder(Theme.line))
+                // No outline. The rim is a bevel — light catching the top of
+                // the material, gone by the bottom — and the shadow does the
+                // figure-ground separation.
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Theme.bevelTop, Theme.bevelBottom],
+                                startPoint: .top, endPoint: .bottom)))
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .shadow(color: Theme.panelShadow, radius: 24, y: 8)
+            .shadow(color: Theme.panelShadow, radius: 28, y: 10)
     }
 }
 

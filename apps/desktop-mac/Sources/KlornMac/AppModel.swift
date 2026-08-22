@@ -650,6 +650,33 @@ final class AppModel {
         }
     }
 
+    /// Compose overlay visibility (full view). Preferences wins if both are up.
+    var showCompose = false
+
+    /// Send a BRAND-NEW email (POST /api/email/send — Pro-gated server-side).
+    /// Returns nil on success or a user-facing error message. Same error
+    /// taxonomy as sendReply; a 403 is "needs Pro", never a sign-out.
+    func sendNewEmail(to: String, subject: String, body: String) async -> String? {
+        let toTrimmed = to.trimmingCharacters(in: .whitespacesAndNewlines)
+        let subjectTrimmed = subject.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !toTrimmed.isEmpty, !subjectTrimmed.isEmpty,
+              !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return L("compose.missingFields") }
+        do {
+            try await api.post(
+                "/api/email/send",
+                json: ["to": toTrimmed, "subject": subjectTrimmed, "body": body])
+            return nil
+        } catch APIError.unauthorized {
+            signOut()
+            return L("error.sessionExpired")
+        } catch APIError.forbidden {
+            return L("compose.needsPro")
+        } catch {
+            return Self.describe(error)
+        }
+    }
+
     /// Send a threaded reply to an email's sender (POST /api/email/:id/reply).
     /// Returns nil on success or a user-facing error message. Deliberately does
     /// NOT touch the shared `replyError` slot: the PushCard and the reading-pane

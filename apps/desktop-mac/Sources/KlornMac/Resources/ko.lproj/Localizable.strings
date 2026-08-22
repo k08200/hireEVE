@@ -450,3 +450,16 @@
 /* Sender pin (TierMenu) */
 "pin.always" = "이 발신자는 항상…";
 "pin.remove" = "발신자 고정 해제";
+
+/* Compose (new mail) */
+"compose.new" = "새 메일 (⌘N)";
+"compose.title" = "새 메일";
+"compose.to" = "받는 사람";
+"compose.subject" = "제목";
+"compose.bodyPlaceholder" = "본문";
+"compose.send" = "보내기";
+"compose.sending" = "보내는 중…";
+"compose.cancel" = "취소";
+"compose.missingFields" = "받는 사람, 제목, 본문을 모두 입력해야 합니다.";
+"compose.needsPro" = "메일 발송은 Pro 플랜이 필요합니다.";
+"compose.close.a11y" = "작성 닫기";
