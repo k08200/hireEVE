@@ -359,8 +359,6 @@ test.describe("Login — retired early-access funnel", () => {
     await expect(google).toBeVisible();
     // The capture happens on both surfaces; what matters is that the value
     // leaves with the request, since Google's leg exits our origin.
-    await expect
-      .poll(() => google.getAttribute("href"))
-      .toMatch(/attr=.*utm_source%3Dhn/);
+    await expect.poll(() => google.getAttribute("href")).toMatch(/attr=.*utm_source%3Dhn/);
   });
 });
