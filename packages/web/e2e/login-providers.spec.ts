@@ -233,6 +233,36 @@ test.describe("Login — contrast floors", () => {
       expect(away(tab)).toBeGreaterThan(away(well));
     });
 
+    test(`the focus ring clears the non-text floor in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await mockAuthProbes(page, { signupOpen: true, providers: ["google"] });
+      await page.goto("/login");
+      const google = page.getByRole("link", { name: "Continue with Google" });
+      await google.focus();
+
+      // The ring used to fake its gap with a hardcoded white box-shadow, which
+      // painted a bright white line around every focused control in the dark
+      // theme. outline-offset draws the gap from the real backdrop instead.
+      const ring = (await page.evaluate(
+        `(() => { ${CONTRAST_HELPERS}
+          const el = [...document.querySelectorAll("a")].find((a) => /Continue with Google/.test(a.textContent));
+          const cs = getComputedStyle(el);
+          const stroke = parse(cs.outlineColor);
+          const bg = effBg(el);
+          const l1 = lum(over(stroke, bg)), l2 = lum(bg);
+          return {
+            boxShadow: cs.boxShadow,
+            width: Number.parseFloat(cs.outlineWidth),
+            contrast: (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05),
+          };
+        })()`,
+      )) as { boxShadow: string; width: number; contrast: number };
+      expect(ring.boxShadow).toBe("none");
+      expect(ring.width).toBeGreaterThanOrEqual(2);
+      // WCAG 1.4.11 non-text contrast.
+      expect(ring.contrast).toBeGreaterThanOrEqual(3);
+    });
+
     test(`provider rows clear AA in ${scheme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await mockAuthProbes(page, { signupOpen: true, providers: ["google", "apple", "naver"] });

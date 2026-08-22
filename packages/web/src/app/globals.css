@@ -558,10 +558,14 @@ body::before {
    mouse click. Primitives (button/input/modal) route their rings through this
    so the ring color lives in exactly one place. */
 .focus-ring:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px #ffffff,
-    0 0 0 4px rgba(14, 165, 233, 0.55);
+  /* outline-offset draws the gap out of whatever is actually behind the
+     control, so the ring needs no knowledge of the surface it sits on. The
+     previous box-shadow faked that gap with a hardcoded white ring, which in
+     the dark theme rendered as a bright white line around the control. The
+     stroke uses --accent-solid (5.9:1 light / 8.3:1 dark) rather than the
+     55%-alpha accent, which sat near the 3:1 non-text floor on white. */
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 2px;
 }
 
 /* ── Selection ──────────────────────────────────── */
