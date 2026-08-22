@@ -63,6 +63,12 @@ enum PreviewRender {
 
     static func run(outputDir: String) -> Bool {
         Theme.isRenderingOffscreen = true
+        // `-klorn.appearance dark` renders the token set the dark desktop
+        // actually shows — chrome decisions must be judged in both modes.
+        // NSApplication.appearance alone is not honored by ImageRenderer, so
+        // the SwiftUI colorScheme environment is forced too (below).
+        let renderDark = UserDefaults.standard.string(forKey: "klorn.appearance") == "dark"
+        NSApplication.shared.appearance = NSAppearance(named: renderDark ? .darkAqua : .aqua)
         let dir = URL(fileURLWithPath: outputDir)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
@@ -81,6 +87,7 @@ enum PreviewRender {
                   @ViewBuilder _ content: () -> some View) {
             let view = content()
                 .environment(model)
+                .environment(\.colorScheme, renderDark ? .dark : .light)
                 .frame(width: size.width, height: size.height, alignment: align)
                 .clipped()
                 .background(Theme.bg)
@@ -109,6 +116,9 @@ enum PreviewRender {
         let actions = previewActions()
 
         print("Rendering previews to \(dir.path):")
+        shot("compose", size: CGSize(width: 600, height: 470), align: .top) {
+            ComposePanelRenderProbe()
+        }
         shot("briefing", size: CGSize(width: 380, height: 260), align: .top) {
             BriefingCardRenderProbe()
         }
