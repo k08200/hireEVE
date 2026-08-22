@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { isSafeBillingRedirect } from "../lib/billing-redirect";
 import { isNativePlatform } from "../lib/native/capacitor";
 import { iapAvailable, restoreNativePurchases, startNativePurchase } from "../lib/native/iap";
 import { proPrice } from "../lib/pricing";
+import { useSubscriptionState } from "../lib/subscription";
+import { SubscriptionManager } from "./subscription-manager";
 import { useToast } from "./toast";
 
 const PRO_PLANS = new Set(["PRO", "TEAM", "ENTERPRISE"]);
@@ -25,6 +28,12 @@ export function SubscriptionSection() {
   const { toast } = useToast();
   const native = isNativePlatform();
   const [loading, setLoading] = useState(false);
+  // Provider state for the manager below. The hook runs before the early
+  // return so hook order stays stable; it skips the fetch for signed-out and
+  // native sessions, which have nothing to manage here.
+  const { state: subscription, reload: reloadSubscription } = useSubscriptionState(
+    Boolean(user) && !native,
+  );
 
   if (!user) return null;
   const isPro = PRO_PLANS.has(user.plan) || user.role === "ADMIN";
@@ -41,7 +50,14 @@ export function SubscriptionSection() {
         method: "POST",
         body: JSON.stringify({ plan: "PRO" }),
       });
-      window.location.href = url;
+      // Same guard as /billing: the URL comes from an API response, so it must
+      // never be able to send a signed-in user to an arbitrary origin.
+      if (url && isSafeBillingRedirect(url, window.location.origin)) {
+        window.location.href = url;
+        return;
+      }
+      toast("Unsafe billing redirect URL.", "error");
+      setLoading(false);
     } catch {
       toast("Could not start checkout. Please try again.", "error");
       setLoading(false);
@@ -67,18 +83,6 @@ export function SubscriptionSection() {
       "error",
     );
     setLoading(false);
-  };
-
-  const manageWeb = async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const { url } = await apiFetch<{ url: string }>("/api/billing/portal", { method: "POST" });
-      window.location.href = url;
-    } catch {
-      toast("Could not open the billing portal.", "error");
-      setLoading(false);
-    }
   };
 
   const restore = async () => {
@@ -115,14 +119,11 @@ export function SubscriptionSection() {
                 Restore purchase
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={manageWeb}
-                disabled={loading}
-                className="ease-strong min-h-10 rounded-lg border border-line bg-surface-panel/70 px-4 text-sm text-ink-mid shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-50"
-              >
-                Manage subscription
-              </button>
+              // Real provider state, not an inference from user.plan: a beta
+              // grant, an ADMIN account or an IAP subscriber viewed on web has
+              // no web billing record, and offering them a portal button here
+              // only ever produced "No billing account".
+              <SubscriptionManager state={subscription} onChanged={reloadSubscription} />
             )}
           </div>
         ) : (

@@ -19,7 +19,7 @@ mechanism is the per-user daily LLM cost cap.
 
 | # | Decision | Where it lands |
 |---|----------|----------------|
-| D1 | **Final price — DECIDED 2026-07-06: founding `$7.99` web / `$9.99` native.** UI copy is consistent across `packages/web/src/app/billing/page.tsx`, `components/paywall-screen.tsx:30`, `components/subscription-section.tsx:30`. The payment provider price/offering must charge exactly these amounts. | Provider dashboard price/offering (UI already aligned) |
+| D1 | **Final price — DECIDED 2026-08-10, live-verified 2026-08-22: `$8.99` web / `$9.99` native.** The web number's single source of truth is `packages/web/src/lib/pricing.ts` (`PRO_PRICE_WEB`); quote it from there, never inline. UI copy reads it from `pricing.ts`. The payment provider price/offering must charge exactly these amounts. | Provider dashboard price/offering (UI already aligned) |
 | D2 | **Free-tier daily AI budget.** `FREE_DAILY_COST_CAP_CENTS` (default 10¢/day) bounds free-user COGS once the paywall is on. | Render env |
 | D3 | **Trial length.** `TRIAL_DAYS` (default 7) drives the Stripe path and the paywall copy; on Paddle the trial lives on the price itself — keep both at 7 days. | Render env + Paddle price |
 | D4 | **Web payment provider — DECIDED 2026-07-06: Paddle** (merchant of record — Paddle is the legal seller, so no Korean business registration is needed; individual/sole-trader onboarding with identity verification only). The integration is fully coded and inert until `PADDLE_*` env is set. Stripe code remains as the dormant alternative for a future entity. | Paddle account (founder) + `PADDLE_*` env on Render |
@@ -30,7 +30,7 @@ mechanism is the per-user daily LLM cost cap.
 1. Sign up at paddle.com as an individual/sole trader (identity + product/domain
    review; approval can take a few days — start early). A sandbox account is
    separate and instant; use it for the end-to-end test first.
-2. Create the Pro product + recurring Price at the D1 amount (`$7.99`/mo) with
+2. Create the Pro product + recurring Price at the D1 amount (`$8.99`/mo) with
    a **7-day trial configured on the price** (the code does not pass a trial —
    Paddle applies the price's own trial).
 3. Checkout settings → set the **default payment link** domain (app.klorn.ai).
@@ -47,6 +47,53 @@ mechanism is the per-user daily LLM cost cap.
 6. The moment `PADDLE_API_KEY` + `PADDLE_PRO_PRICE_ID` are set, the web
    subscribe buttons come alive automatically (`webCheckoutAvailable` flips)
    and `/api/billing/checkout` returns Paddle checkout URLs. No web deploy needed.
+
+**Payment methods at checkout (why KakaoPay / Pix / Alipay do not appear)**
+
+Nothing in this repo selects payment methods. The checkout overlay is opened by
+Paddle itself from the `_ptxn` default-payment-link URL, not by a
+`Paddle.Checkout.open()` call, so `allowedPaymentMethods` is not passed and
+cannot be — the list is 100% dashboard- and context-driven. Paddle decides what
+to show from three things: **the transaction currency, the customer's country,
+and their device.**
+
+That is the whole explanation for "we enabled them and they never show up".
+Ticking a method in `Paddle → Checkout → Checkout settings → General` only makes
+it *eligible*; it still has to match the currency and country of the buyer:
+
+| Method | Shows only when | Recurring? |
+|---|---|---|
+| Card, PayPal | almost everywhere | yes |
+| Apple Pay / Google Pay | compatible device + browser (no India) | yes |
+| KakaoPay, Naver Pay | price is in **KRW** and the customer address is in **South Korea** | yes |
+| Pix | **BRL** / Brazil | yes |
+| iDEAL | **EUR** / Netherlands | yes |
+| Bancontact | **EUR** / Belgium | yes |
+| BLIK | **PLN** / Poland | yes |
+| MB WAY | **EUR** / Portugal | yes |
+| Alipay, WeChat Pay | regional, and **Alipay needs separate Paddle approval** | yes |
+
+The PRO price is configured in **USD only**. A Korean buyer is therefore quoted
+USD, and because the item is not priced in KRW, KakaoPay and Naver Pay are
+*never* eligible for them — no matter how the dashboard checkboxes are set. Same
+for Pix (BRL), iDEAL/Bancontact/MB WAY (EUR), BLIK (PLN).
+
+To actually surface them (founder action, dashboard only — no code change):
+
+1. `Paddle → Checkout → Checkout settings → General` — confirm each wanted
+   method is ticked, and request approval for Alipay if it is wanted.
+2. Turn on **automatic currency conversion** (localized pricing) for the
+   account, or add explicit local-currency unit prices (KRW, BRL, EUR, PLN) to
+   the PRO price `pri_…`. This is the step that was missing: without a local
+   currency there is no local payment method.
+3. Re-test from the target country (or with a billing address in it) — the
+   method list is computed per buyer, so a Korean address on a USD-only price
+   will keep showing only card/PayPal/wallets.
+
+Sanity check before blaming the code: `Paddle.PricePreview()` /
+`POST /transactions/preview` return `available_payment_methods` for a given
+country + currency. If a method is absent there, it is a Paddle configuration
+issue and no app change will fix it.
 
 **Stripe (dormant alternative — only with a future business entity)**
 1. Create the Pro Price, webhook endpoint (`/api/webhook/stripe`, events:
@@ -70,10 +117,27 @@ mechanism is the per-user daily LLM cost cap.
 - [ ] `curl -s https://<api-host>/api/billing/status` (authed) returns plan data
       with `webCheckoutAvailable: true` once `PADDLE_*` is set.
 - [ ] Paddle **sandbox** end-to-end once on a staging user: checkout → webhook
-      fires → `user.plan` becomes `PRO` and `paddleCustomerId` is stored →
-      portal ("Manage subscription") opens → cancel → plan reverts to `FREE`.
+      fires → `user.plan` becomes `PRO`, and `paddleCustomerId`,
+      `paddleSubscriptionId`, `subscriptionStatus`, `subscriptionRenewsAt` are
+      all stored → portal ("Manage subscription") opens.
       Webhook idempotency: re-deliver the same event from the Paddle dashboard;
       the `WebhookEvent` table must dedupe it (no double grant).
+- [ ] In-app cancel round trip on that same user:
+      `POST /api/billing/cancel` → Paddle shows a `scheduled_change: cancel`
+      → `/billing` shows "Cancelled · Pro stays active until <date>" and the
+      plan is **still PRO** → `POST /api/billing/cancel/undo` → the scheduled
+      change is gone and the renewal date is back. Then let a cancel run to its
+      effective date (or cancel immediately from the Paddle dashboard) and
+      confirm the terminal `subscription.canceled` webhook drops the plan to
+      `FREE` and clears `paddleSubscriptionId`.
+- [ ] **Cancel while `trialing`** — this is the most common real cancellation
+      and the one path Paddle's docs do not spell out. We always send
+      `effective_from: next_billing_period`; for a trialing subscription that
+      boundary is the trial end, so the expected result is a `scheduled_change`
+      at the trial end date and **no charge**. Verify in sandbox that the call
+      returns 2xx (not a 4xx rejecting `next_billing_period` for trials) and
+      that no transaction is billed afterwards. If Paddle does reject it, the
+      user sees "Could not cancel the subscription" — fix before the flip.
 - [ ] RevenueCat sandbox purchase on a real device → webhook grants plan →
       "Restore purchase" works after app reinstall.
 - [ ] UI copy in the three D1 files matches the live Paddle/RevenueCat price.

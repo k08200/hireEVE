@@ -42,6 +42,18 @@ vi.mock("../billing/stripe.js", () => ({
   isWebCheckoutAvailable: vi.fn(() => true),
 }));
 
+vi.mock("../sentry.js", () => ({ captureError: vi.fn() }));
+
+vi.mock("../billing/paddle.js", () => ({
+  // Default unconfigured so existing checkout/portal tests stay on the Stripe
+  // path; the cancel tests flip isPaddleConfigured per call.
+  isPaddleConfigured: vi.fn(() => false),
+  createPaddleCheckout: vi.fn(async () => "https://buy.paddle.com/txn_1"),
+  createPaddlePortalUrl: vi.fn(async () => "https://customer-portal.paddle.com/x"),
+  cancelPaddleSubscription: vi.fn(async () => ({ effectiveAt: "2026-09-21T00:00:00.000Z" })),
+  undoPaddleCancellation: vi.fn(async () => ({ renewsAt: "2026-10-21T00:00:00.000Z" })),
+}));
+
 vi.mock("../db.js", () => {
   const prisma = {
     user: {
@@ -313,6 +325,186 @@ describe("billing routes", () => {
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toMatch(/rejected|invalid/i);
     expect(updateMock).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it("status exposes subscription detail fields (renewsAt/cancelAt/status/canCancelInApp)", async () => {
+    const { prisma } = await import("../db.js");
+    const { isPaddleConfigured } = await import("../billing/paddle.js");
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    const findMock = prisma.user.findUnique as ReturnType<typeof vi.fn>;
+    findMock.mockResolvedValueOnce({ sessionsInvalidatedAt: null }); // auth call
+    findMock.mockResolvedValueOnce({
+      id: "user-1",
+      email: "t@e.com",
+      plan: "PRO",
+      role: "USER",
+      stripeId: null,
+      paddleCustomerId: "ctm_1",
+      paddleSubscriptionId: "sub_1",
+      subscriptionStatus: "active",
+      subscriptionRenewsAt: new Date("2026-09-21T00:00:00Z"),
+      subscriptionCancelAt: null,
+    });
+    const app = await buildApp();
+    const res = await app.inject({ method: "GET", url: "/api/billing/status", headers: auth() });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.subscriptionStatus).toBe("active");
+    expect(body.renewsAt).toBe("2026-09-21T00:00:00.000Z");
+    expect(body.cancelAt).toBeNull();
+    expect(body.canCancelInApp).toBe(true);
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    await app.close();
+  });
+
+  it("POST /cancel with no Paddle subscription returns 400 and calls nothing", async () => {
+    const { cancelPaddleSubscription } = await import("../billing/paddle.js");
+    (cancelPaddleSubscription as ReturnType<typeof vi.fn>).mockClear();
+    const app = await buildApp();
+    const res = await app.inject({ method: "POST", url: "/api/billing/cancel", headers: auth() });
+    expect(res.statusCode).toBe(400);
+    expect(cancelPaddleSubscription).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it("POST /cancel schedules a period-end cancel and persists the end date", async () => {
+    const { prisma } = await import("../db.js");
+    const { isPaddleConfigured, cancelPaddleSubscription } = await import("../billing/paddle.js");
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    (cancelPaddleSubscription as ReturnType<typeof vi.fn>).mockClear();
+    const findMock = prisma.user.findUnique as ReturnType<typeof vi.fn>;
+    findMock.mockResolvedValueOnce({ sessionsInvalidatedAt: null }); // auth call
+    findMock.mockResolvedValueOnce({
+      id: "user-1",
+      plan: "PRO",
+      paddleSubscriptionId: "sub_1",
+      subscriptionCancelAt: null,
+    });
+    const updateMock = prisma.user.update as ReturnType<typeof vi.fn>;
+    updateMock.mockClear();
+    const app = await buildApp();
+    const res = await app.inject({ method: "POST", url: "/api/billing/cancel", headers: auth() });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().cancelAt).toBe("2026-09-21T00:00:00.000Z");
+    expect(cancelPaddleSubscription).toHaveBeenCalledWith("sub_1");
+    expect(
+      updateMock.mock.calls.some(
+        (call) =>
+          call[0]?.data?.subscriptionCancelAt instanceof Date &&
+          call[0].data.subscriptionCancelAt.toISOString() === "2026-09-21T00:00:00.000Z",
+      ),
+    ).toBe(true);
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    await app.close();
+  });
+
+  it("POST /cancel/undo removes the scheduled cancel and clears the end date", async () => {
+    const { prisma } = await import("../db.js");
+    const { isPaddleConfigured, undoPaddleCancellation } = await import("../billing/paddle.js");
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    (undoPaddleCancellation as ReturnType<typeof vi.fn>).mockClear();
+    const findMock = prisma.user.findUnique as ReturnType<typeof vi.fn>;
+    findMock.mockResolvedValueOnce({ sessionsInvalidatedAt: null }); // auth call
+    findMock.mockResolvedValueOnce({
+      id: "user-1",
+      plan: "PRO",
+      paddleSubscriptionId: "sub_1",
+      subscriptionCancelAt: new Date("2026-09-21T00:00:00Z"),
+    });
+    const updateMock = prisma.user.update as ReturnType<typeof vi.fn>;
+    updateMock.mockClear();
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/billing/cancel/undo",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().renewsAt).toBe("2026-10-21T00:00:00.000Z");
+    expect(undoPaddleCancellation).toHaveBeenCalledWith("sub_1");
+    expect(
+      updateMock.mock.calls.some(
+        (call) =>
+          call[0]?.data?.subscriptionCancelAt === null &&
+          call[0]?.data?.subscriptionRenewsAt instanceof Date,
+      ),
+    ).toBe(true);
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    await app.close();
+  });
+
+  it("POST /cancel/undo with no scheduled cancel returns 400", async () => {
+    const { isPaddleConfigured, undoPaddleCancellation } = await import("../billing/paddle.js");
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    (undoPaddleCancellation as ReturnType<typeof vi.fn>).mockClear();
+    const { prisma } = await import("../db.js");
+    const findMock = prisma.user.findUnique as ReturnType<typeof vi.fn>;
+    findMock.mockResolvedValueOnce({ sessionsInvalidatedAt: null }); // auth call
+    findMock.mockResolvedValueOnce({
+      id: "user-1",
+      plan: "PRO",
+      paddleSubscriptionId: "sub_1",
+      subscriptionCancelAt: null,
+    });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/billing/cancel/undo",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(400);
+    expect(undoPaddleCancellation).not.toHaveBeenCalled();
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    await app.close();
+  });
+
+  it("POST /cancel is idempotent — an already-scheduled cancel does not re-call Paddle", async () => {
+    const { prisma } = await import("../db.js");
+    const { isPaddleConfigured, cancelPaddleSubscription } = await import("../billing/paddle.js");
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    (cancelPaddleSubscription as ReturnType<typeof vi.fn>).mockClear();
+    const findMock = prisma.user.findUnique as ReturnType<typeof vi.fn>;
+    findMock.mockResolvedValueOnce({ sessionsInvalidatedAt: null }); // auth call
+    findMock.mockResolvedValueOnce({
+      id: "user-1",
+      plan: "PRO",
+      paddleSubscriptionId: "sub_1",
+      subscriptionCancelAt: new Date("2026-09-21T00:00:00Z"),
+    });
+    const app = await buildApp();
+    const res = await app.inject({ method: "POST", url: "/api/billing/cancel", headers: auth() });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().cancelAt).toBe("2026-09-21T00:00:00.000Z");
+    expect(cancelPaddleSubscription).not.toHaveBeenCalled();
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    await app.close();
+  });
+
+  it("POST /cancel reports the provider/DB drift when the local write fails", async () => {
+    const { prisma } = await import("../db.js");
+    const { isPaddleConfigured, cancelPaddleSubscription } = await import("../billing/paddle.js");
+    const { captureError } = await import("../sentry.js");
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    (cancelPaddleSubscription as ReturnType<typeof vi.fn>).mockClear();
+    (captureError as ReturnType<typeof vi.fn>).mockClear();
+    const findMock = prisma.user.findUnique as ReturnType<typeof vi.fn>;
+    findMock.mockResolvedValueOnce({ sessionsInvalidatedAt: null }); // auth call
+    findMock.mockResolvedValueOnce({
+      id: "user-1",
+      plan: "PRO",
+      paddleSubscriptionId: "sub_1",
+      subscriptionCancelAt: null,
+    });
+    const updateMock = prisma.user.update as ReturnType<typeof vi.fn>;
+    updateMock.mockRejectedValueOnce(new Error("db down"));
+    const app = await buildApp();
+    const res = await app.inject({ method: "POST", url: "/api/billing/cancel", headers: auth() });
+    // Paddle already scheduled the cancel, so the user is NOT told it failed;
+    // the divergence is reported for a human and the webhook reconciles it.
+    expect(res.statusCode).toBe(200);
+    expect(captureError).toHaveBeenCalled();
+    (isPaddleConfigured as ReturnType<typeof vi.fn>).mockReturnValue(false);
     await app.close();
   });
 

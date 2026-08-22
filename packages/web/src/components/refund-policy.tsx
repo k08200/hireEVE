@@ -25,8 +25,10 @@ export default function RefundPolicy() {
       </p>
       <ul className="list-disc space-y-2 pl-5">
         <li>
-          <strong>Cancel anytime.</strong> Cancellation stops future renewals. Your Pro access
-          continues until the end of the period you already paid for.
+          <strong>Cancel anytime, yourself.</strong> Settings &rarr; Subscription, or the Billing
+          page, has a &ldquo;Cancel subscription&rdquo; button — no email required. Cancellation
+          stops future renewals; your Pro access continues until the end of the period you already
+          paid for, and you can undo it any time before that date.
         </li>
         <li>
           <strong>14-day refund on a first paid month.</strong> If Klorn is not for you, email us
@@ -45,7 +47,7 @@ export default function RefundPolicy() {
         </li>
       </ul>
       <p>
-        To cancel or request a refund, email{" "}
+        To request a refund — or to cancel if you cannot reach the in-app button — email{" "}
         <a
           className="text-accent-deep hover:text-accent-deeper"
           href={`mailto:${BILLING_CONTACT_EMAIL}`}
