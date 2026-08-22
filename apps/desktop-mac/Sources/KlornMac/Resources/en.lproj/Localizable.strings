@@ -464,3 +464,8 @@
 "compose.missingFields" = "Recipient, subject, and message are all required.";
 "compose.needsPro" = "Sending mail needs the Pro plan.";
 "compose.close.a11y" = "Close composer";
+
+/* Assistant dock */
+"assistant.dock.toggle" = "Assistant (⌘J)";
+"assistant.dock.close.a11y" = "Close assistant";
+"assistant.dock.context.a11y" = "Asking about: %@";
