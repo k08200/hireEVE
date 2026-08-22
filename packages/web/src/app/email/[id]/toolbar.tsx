@@ -49,7 +49,7 @@ export function UndoActionBanner({
           type="button"
           onClick={onUndo}
           disabled={busy}
-          className="min-h-10 rounded-md bg-accent px-3 text-xs font-semibold text-white transition hover:bg-accent-deep disabled:opacity-50 focus-ring"
+          className="min-h-10 rounded-md bg-accent-solid px-3 text-xs font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:opacity-50 focus-ring"
         >
           {busy ? t("emailDetail.toolbar.undo.restoring") : t("emailDetail.toolbar.undo.undo")}
         </button>

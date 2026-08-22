@@ -237,7 +237,7 @@ function CalendarView() {
               setNewEventOpen(true);
             }}
             aria-label="New event"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white transition active:bg-accent/90"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-solid text-accent-solid-ink transition active:bg-accent-solid-hover"
           >
             <svg
               aria-hidden="true"
@@ -675,7 +675,7 @@ function DayCell({
     if (events.length > 0) router.push(`/calendar/${events[0].id}`);
   };
   const dayNumberClass = `inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[11px] font-medium tabular-nums transition ${
-    isToday ? "bg-accent text-white" : inMonth ? "text-ink-muted" : "text-ink-dim"
+    isToday ? "bg-accent-solid text-accent-solid-ink" : inMonth ? "text-ink-muted" : "text-ink-dim"
   }`;
 
   return (

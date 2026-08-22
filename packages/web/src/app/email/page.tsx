@@ -724,7 +724,7 @@ function EmailView() {
             onClick={() => setComposeOpen(true)}
             disabled={source === "demo"}
             aria-label="Compose"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-white transition active:bg-accent disabled:opacity-40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent-solid text-accent-solid-ink transition active:bg-accent-solid-hover disabled:opacity-40"
           >
             <svg
               aria-hidden="true"
@@ -1138,7 +1138,7 @@ function EmailView() {
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 <Link
                   href="/settings"
-                  className="inline-flex min-h-11 items-center rounded-md bg-accent-light px-4 text-xs font-medium text-white transition hover:bg-accent-muted"
+                  className="inline-flex min-h-11 items-center rounded-md bg-accent-solid px-4 text-xs font-medium text-accent-solid-ink transition hover:bg-accent-solid-hover"
                 >
                   {t("mail.connectGoogle")}
                 </Link>
@@ -1299,7 +1299,7 @@ function UndoActionBanner({
           type="button"
           onClick={onUndo}
           disabled={busy}
-          className="min-h-10 rounded-md bg-accent-light px-3 text-xs font-semibold text-white transition hover:bg-accent-muted disabled:opacity-50"
+          className="min-h-10 rounded-md bg-accent-solid px-3 text-xs font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:opacity-50"
         >
           {busy ? "Restoring..." : "Undo"}
         </button>
@@ -1347,7 +1347,7 @@ function BulkUndoActionBanner({
           type="button"
           onClick={onUndo}
           disabled={busy}
-          className="min-h-10 rounded-md bg-accent-light px-3 text-xs font-semibold text-white transition hover:bg-accent-muted disabled:opacity-50"
+          className="min-h-10 rounded-md bg-accent-solid px-3 text-xs font-semibold text-accent-solid-ink transition hover:bg-accent-solid-hover disabled:opacity-50"
         >
           {busy ? "Restoring..." : "Undo all"}
         </button>
@@ -1395,7 +1395,7 @@ function BulkActionBar({
           aria-hidden="true"
           className={`flex h-4 w-4 items-center justify-center rounded border transition ${
             allVisibleSelected
-              ? "border-accent bg-accent text-white"
+              ? "border-accent-solid bg-accent-solid text-accent-solid-ink"
               : "border-line-strong bg-surface-panel group-hover:border-slate-400"
           }`}
         >
@@ -1528,7 +1528,7 @@ function InboxSelector({
             onClick={() => onChange(o.value)}
             className={`inline-flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
               active
-                ? "bg-accent/90 text-white"
+                ? "bg-accent-solid text-accent-solid-ink"
                 : "border border-line bg-surface-raised text-ink-mid hover:bg-surface-hover hover:text-ink"
             }`}
           >
@@ -1717,7 +1717,7 @@ function EmailRowItem({
           onClick={() => onToggleSelected(email.id)}
           className={`mt-2.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
             selected
-              ? "border-accent bg-accent text-white"
+              ? "border-accent-solid bg-accent-solid text-accent-solid-ink"
               : "border-line-strong bg-surface-panel hover:border-slate-400"
           }`}
         >
