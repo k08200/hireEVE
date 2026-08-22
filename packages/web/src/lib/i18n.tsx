@@ -57,7 +57,8 @@ const enTranslations: Record<string, string> = {
   "auth.inviteOnlyBody":
     "The beta is capped while Google's security review clears, so every account is approved by hand. Request access first — you can sign in the moment you're approved.",
   "auth.requestEarlyAccess": "Request early access",
-  "auth.googleApprovedSignIn": "Already approved? Sign in with Google",
+  "auth.alreadyApproved": "Already approved? Sign in below.",
+  "auth.providerLaneLabel": "Sign in with a connected account",
   "auth.continueWithGoogle": "Continue with Google",
   "auth.orContinueEmail": "or continue with email",
   "auth.orSignInEmail": "or sign in with email",
@@ -1172,7 +1173,8 @@ const koTranslations: Record<string, string> = {
   "auth.inviteOnlyBody":
     "Google 보안 심사가 끝날 때까지 베타 인원이 제한되어, 모든 계정을 직접 승인하고 있습니다. 먼저 액세스를 요청하세요 — 승인되는 즉시 로그인할 수 있어요.",
   "auth.requestEarlyAccess": "얼리 액세스 요청",
-  "auth.googleApprovedSignIn": "이미 승인되셨나요? Google로 로그인",
+  "auth.alreadyApproved": "이미 승인되셨나요? 아래에서 로그인하세요.",
+  "auth.providerLaneLabel": "연결된 계정으로 로그인",
   "auth.continueWithGoogle": "Google로 계속하기",
   "auth.orContinueEmail": "또는 이메일로 계속하기",
   "auth.orSignInEmail": "또는 이메일로 로그인",

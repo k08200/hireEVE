@@ -17,16 +17,14 @@ test.describe("Authentication", () => {
     await expect(page.locator('input[id="name"]')).toBeVisible();
   });
 
-  test("shows Google login button with Beta badge", async ({ page }) => {
+  test("shows the Google sign-in row", async ({ page }) => {
     await page.goto("/login");
-    await expect(
-      page.getByRole("button", { name: "Google sign-in coming soon Beta" }),
-    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Continue with Google" })).toBeVisible();
   });
 
-  test("explains private beta access", async ({ page }) => {
+  test("states the beta scope under the card", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByText("Private beta access is email-based.")).toBeVisible();
+    await expect(page.getByText(/Free during the private beta/)).toBeVisible();
   });
 
   test("shows reset password link", async ({ page }) => {
