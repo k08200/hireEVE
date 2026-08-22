@@ -125,27 +125,33 @@ export async function sendWeeklySignalReports(now: Date = new Date()): Promise<n
         throw err;
       }
 
+      let notificationId: string | null = null;
       try {
-        await prisma.notification.create({
+        const notification = await prisma.notification.create({
           data: {
             userId,
             type: "email",
             dedupeKey: `weekly:${week}`,
             title: "Your week in signals",
             message: content,
-            link: "/notes",
+            link: "/inbox",
           },
           select: { id: true },
         });
+        notificationId = notification.id;
       } catch (err) {
         if ((err as { code?: string })?.code !== "P2002") throw err;
       }
 
+      // Deliberate category reuse: the weekly report is digest-class content,
+      // so the daily_briefing toggle governs both — one switch for digests.
       await sendPushNotification(
         userId,
         {
           title: "Your week in signals",
           body: `${stats.total} triaged, ${stats.filtered} filtered (${stats.filteredPct}%).`,
+          url: "/inbox",
+          ...(notificationId ? { notificationId } : {}),
         },
         "daily_briefing",
       );
