@@ -84,7 +84,7 @@ export function PaddleLoader({ onCheckoutCompleted }: { onCheckoutCompleted?: ()
       {blocked && (
         <div
           role="alert"
-          className="fixed inset-x-4 top-4 z-50 mx-auto max-w-xl rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 shadow-lg"
+          className="fixed inset-x-4 top-4 z-50 mx-auto max-w-xl rounded-xl border border-state-warn-line bg-state-warn-bg p-4 text-sm text-amber-900 shadow-lg"
         >
           <p className="font-semibold">The payment window could not open.</p>
           <p className="mt-1">
@@ -95,7 +95,7 @@ export function PaddleLoader({ onCheckoutCompleted }: { onCheckoutCompleted?: ()
           <button
             type="button"
             onClick={() => setBlocked(false)}
-            className="mt-2 rounded-lg border border-amber-300 px-3 py-1.5 font-medium hover:bg-amber-100"
+            className="mt-2 rounded-lg border border-state-warn-line px-3 py-1.5 font-medium hover:bg-amber-100"
           >
             Dismiss
           </button>

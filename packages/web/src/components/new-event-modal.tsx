@@ -256,7 +256,7 @@ export function NewEventModal({
             </div>
           </div>
           {!startsBeforeEnds && (
-            <p className="text-xs text-red-600">End time must be after the start time.</p>
+            <p className="text-xs text-state-danger-ink">End time must be after the start time.</p>
           )}
 
           <div>

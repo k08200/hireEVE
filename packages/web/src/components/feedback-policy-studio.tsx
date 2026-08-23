@@ -136,7 +136,7 @@ export default function FeedbackPolicyStudio() {
                   <div className="flex flex-wrap items-center gap-2">
                     <PolicyBadge kind={candidate.kind} />
                     {candidate.active && (
-                      <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+                      <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-state-ok-ink ring-1 ring-inset ring-emerald-500/20">
                         Active
                       </span>
                     )}
@@ -167,7 +167,7 @@ export default function FeedbackPolicyStudio() {
                     type="button"
                     onClick={() => setPreference(candidate, "ACTIVE")}
                     disabled={updating === candidate.id}
-                    className="ease-strong h-8 rounded-md border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-accent-dim active:scale-[0.97] disabled:opacity-50"
+                    className="ease-strong h-8 rounded-md border border-state-info-line bg-state-info-bg px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-accent-dim active:scale-[0.97] disabled:opacity-50"
                   >
                     Apply
                   </button>

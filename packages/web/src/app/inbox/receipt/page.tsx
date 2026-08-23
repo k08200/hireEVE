@@ -137,7 +137,7 @@ function ReceiptView() {
           <SummaryMetric
             label={t("receipt.autoHandled.title")}
             value={receipt.summary.autoHandled}
-            color="text-emerald-600"
+            color="text-state-ok-ink"
           />
         </div>
       </header>
@@ -149,7 +149,7 @@ function ReceiptView() {
             title={t("receipt.autoHandled.title")}
             description={t("receipt.autoHandled.description")}
             accentBar="bg-gradient-to-b from-emerald-400 to-emerald-500"
-            labelClass="text-emerald-600"
+            labelClass="text-state-ok-ink"
             items={receipt.auto}
             renderActions={(item) => (
               <button
@@ -309,14 +309,14 @@ function PushStatusBadge({ status, clickedAt }: { status: string; clickedAt: str
   const { t } = useT();
   if (clickedAt) {
     return (
-      <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+      <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-state-ok-ink ring-1 ring-inset ring-emerald-500/20">
         {t("receipt.status.opened")}
       </span>
     );
   }
   if (status === "SENT") {
     return (
-      <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-amber-600 ring-1 ring-inset ring-amber-500/20">
+      <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-state-warn-ink ring-1 ring-inset ring-amber-500/20">
         {t("receipt.status.sent")}
       </span>
     );

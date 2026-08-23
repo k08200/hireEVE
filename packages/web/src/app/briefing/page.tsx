@@ -370,7 +370,7 @@ function BriefingView() {
 
       {status && <BriefingDeliveryStatus status={status} />}
       {statusError && (
-        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="mb-4 rounded-lg border border-state-warn-line bg-state-warn-bg px-4 py-3 text-sm text-state-warn-ink">
           {statusError}
         </div>
       )}
@@ -505,12 +505,12 @@ function BriefingDeliveryStatus({ status }: { status: BriefingStatus }) {
         <DeliveryFact label="Push" value={push.label} tone={push.tone} />
       </div>
       {guidance && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-700">
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-state-warn-line bg-state-warn-bg px-3 py-2 text-[11px] leading-5 text-state-warn-ink">
           <span>{guidance.message}</span>
           {guidance.action && (
             <Link
               href={guidance.action.href}
-              className="rounded-md border border-amber-300 px-2 py-0.5 font-medium text-amber-700 transition hover:bg-amber-100 focus-ring"
+              className="rounded-md border border-state-warn-line px-2 py-0.5 font-medium text-state-warn-ink transition hover:bg-amber-100 focus-ring"
             >
               {guidance.action.label}
             </Link>
@@ -597,8 +597,8 @@ function DeliveryFact({
   tone: "ok" | "warn" | "muted";
 }) {
   const toneClass = {
-    ok: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    warn: "border-amber-200 bg-amber-50 text-amber-700",
+    ok: "border-state-ok-line bg-state-ok-bg text-state-ok-ink",
+    warn: "border-state-warn-line bg-state-warn-bg text-state-warn-ink",
     muted: "border-line bg-surface-raised text-ink-mid",
   }[tone];
   return (

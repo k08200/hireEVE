@@ -33,7 +33,7 @@ const TIER_VISUAL: Record<Tier, { label: string; blurb: string; ring: string; te
   QUEUE: {
     label: "QUEUE",
     blurb: "Visible when you choose to look. No interruption.",
-    ring: "border-amber-300/40 bg-amber-300/10",
+    ring: "border-state-warn-line bg-amber-300/10",
     text: "text-amber-300",
   },
   SILENT: {
@@ -447,7 +447,7 @@ export default function PlaygroundPage() {
             {error && (
               <div
                 role="alert"
-                className="mt-4 whitespace-pre-line rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+                className="mt-4 whitespace-pre-line rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-state-danger-ink"
               >
                 {error}
               </div>

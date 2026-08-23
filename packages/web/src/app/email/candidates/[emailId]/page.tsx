@@ -175,7 +175,7 @@ function CandidateDetailView() {
       {commitmentToast && (
         <div
           role="status"
-          className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          className="mb-3 rounded-lg border border-state-ok-line bg-state-ok-bg px-4 py-3 text-sm text-state-ok-ink"
         >
           {commitmentToast}
         </div>
@@ -226,8 +226,8 @@ function CandidateDetailView() {
               )}
 
               {(profile.missingFields.length > 0 || profile.manualReviewFiles.length > 0) && (
-                <div className="mt-5 rounded-xl border border-sky-200/70 bg-gradient-to-r from-sky-50 to-white p-3">
-                  <p className="text-xs font-medium text-sky-800">{profile.nextAction}</p>
+                <div className="mt-5 rounded-xl border border-state-info-line bg-state-info-bg p-3">
+                  <p className="text-xs font-medium text-state-info-ink">{profile.nextAction}</p>
                   {profile.manualReviewFiles.map((file) => (
                     <p key={file.filename} className="mt-1 text-[11px] text-accent-deeper/80">
                       {file.filename}: {file.reason}

@@ -37,7 +37,7 @@ export function UndoActionBanner({
       ? t("emailDetail.toolbar.undo.actionArchived")
       : t("emailDetail.toolbar.undo.actionMovedToTrash");
   return (
-    <div className="mb-4 flex flex-col gap-3 rounded-lg border border-accent-light/30 bg-sky-50 px-4 py-3 text-sm text-ink shadow-lg shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-4 flex flex-col gap-3 rounded-lg border border-accent-light/30 bg-state-info-bg px-4 py-3 text-sm text-ink shadow-lg shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="font-medium">
           {t("emailDetail.toolbar.undo.emailActionDone", { action: actionLabel })}

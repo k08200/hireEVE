@@ -61,11 +61,11 @@ interface PrepPack {
 const READINESS_META: Record<Readiness, { label: string; className: string }> = {
   ready: {
     label: "Ready",
-    className: "bg-emerald-500/10 text-emerald-600 ring-1 ring-inset ring-emerald-500/20",
+    className: "bg-emerald-500/10 text-state-ok-ink ring-1 ring-inset ring-emerald-500/20",
   },
   watch: {
     label: "Watch items",
-    className: "bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20",
+    className: "bg-amber-500/10 text-state-warn-ink ring-1 ring-inset ring-amber-500/20",
   },
   needs_review: {
     label: "Needs review",
@@ -315,7 +315,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                     type="button"
                     onClick={handleDelete}
                     disabled={deleting}
-                    className="ease-strong rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-50 focus-ring min-h-9 min-w-9"
+                    className="ease-strong rounded-md border border-state-danger-line bg-state-danger-bg px-2 py-1 text-[11px] font-medium text-state-danger-ink transition duration-150 hover:bg-state-danger-bg active:scale-[0.97] disabled:opacity-50 focus-ring min-h-9 min-w-9"
                   >
                     {deleting ? "Deleting…" : "Delete"}
                   </button>
@@ -324,7 +324,7 @@ function CalendarEventDetail({ id }: { id: string }) {
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(true)}
-                  className="ease-strong rounded-md p-1.5 text-slate-300 transition duration-150 hover:text-red-500 focus-ring min-h-9 min-w-9"
+                  className="ease-strong rounded-md p-1.5 text-slate-300 transition duration-150 hover:text-state-danger-ink focus-ring min-h-9 min-w-9"
                   aria-label="Delete event"
                 >
                   <svg

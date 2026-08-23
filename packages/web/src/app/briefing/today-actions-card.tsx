@@ -118,7 +118,7 @@ export function TodayActionsCard() {
         <div className="mt-3 border-t border-line pt-3">
           <Link
             href="/inbox"
-            className="text-[11px] text-amber-300 transition hover:text-amber-200"
+            className="text-[11px] text-amber-300 transition hover:text-state-warn-ink"
           >
             See all {data.totals.pending} pending decision{data.totals.pending === 1 ? "" : "s"} →
           </Link>
@@ -138,8 +138,8 @@ function TodayStat({
   tone: "good" | "warn" | "hot" | "idle";
 }) {
   const toneClasses = {
-    good: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
-    warn: "border-amber-300/30 bg-amber-300/10 text-amber-100",
+    good: "border-emerald-400/30 bg-emerald-500/10 text-state-ok-ink",
+    warn: "border-state-warn-line bg-amber-300/10 text-amber-100",
     hot: "border-rose-400/30 bg-rose-400/10 text-rose-100",
     idle: "border-line bg-surface-panel text-ink-mid",
   }[tone];

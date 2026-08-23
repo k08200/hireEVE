@@ -120,7 +120,7 @@ function PlaybookCard({
               {Math.round(recommendation.confidence * 100)}%
             </span>
             {active && (
-              <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+              <span className="rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-state-ok-ink ring-1 ring-inset ring-emerald-500/20">
                 Active
               </span>
             )}
@@ -156,7 +156,7 @@ function PlaybookCard({
         className={`ease-strong mt-3 h-8 rounded-md border px-3 text-xs font-medium transition duration-150 active:scale-[0.97] disabled:opacity-50 ${
           active
             ? "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
-            : "border-sky-200 bg-sky-50 text-accent-deeper hover:bg-accent-dim"
+            : "border-state-info-line bg-state-info-bg text-accent-deeper hover:bg-accent-dim"
         }`}
       >
         {updating ? "Saving..." : active ? "Pause" : "Apply"}
@@ -198,7 +198,7 @@ function domainMeta(domain: KlornPlaybookDomain): { label: string; className: st
     case "investment":
       return {
         label: "Investors",
-        className: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20",
+        className: "bg-emerald-500/10 text-state-ok-ink ring-emerald-500/20",
       };
     case "customer_success":
       return { label: "Customers", className: "bg-accent/10 text-accent-deep ring-accent/20" };
@@ -208,7 +208,10 @@ function domainMeta(domain: KlornPlaybookDomain): { label: string; className: st
         className: "bg-fuchsia-500/10 text-fuchsia-600 ring-fuchsia-500/20",
       };
     case "hiring":
-      return { label: "Hiring", className: "bg-amber-500/10 text-amber-600 ring-amber-500/20" };
+      return {
+        label: "Hiring",
+        className: "bg-amber-500/10 text-state-warn-ink ring-amber-500/20",
+      };
   }
 }
 

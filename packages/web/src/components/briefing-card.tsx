@@ -108,7 +108,7 @@ export default function BriefingCard() {
             {status.note?.preview || emptyMessage(status)}
           </p>
           {time && <p className="mt-2 text-[11px] text-ink-mid">{time}</p>}
-          {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+          {error && <p className="mt-2 text-xs text-state-danger-ink">{error}</p>}
         </div>
 
         {status.generated ? (
@@ -148,15 +148,15 @@ function pushMeta(
 ): { label: string; className: string; dotClassName: string } {
   switch (state) {
     case "received":
-      return { label: "Received", className: "text-emerald-600", dotClassName: "bg-emerald-500" };
+      return { label: "Received", className: "text-state-ok-ink", dotClassName: "bg-emerald-500" };
     case "accepted":
       return { label: "Sent", className: "text-ink-mid", dotClassName: "bg-slate-400" };
     case "failed":
-      return { label: "Failed", className: "text-red-700", dotClassName: "bg-red-500" };
+      return { label: "Failed", className: "text-state-danger-ink", dotClassName: "bg-red-500" };
     case "skipped":
       return {
         label: skipReasonLabel(reason),
-        className: "text-amber-600",
+        className: "text-state-warn-ink",
         dotClassName: "bg-amber-400",
       };
     case "pending":

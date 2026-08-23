@@ -116,7 +116,7 @@ export function RejectReasonDialog({ open, onCancel, onReject }: RejectReasonDia
           <button
             type="button"
             onClick={() => onReject(trimmed || null)}
-            className="ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-red-500 to-red-600 px-4 py-2 text-sm font-medium text-white shadow-[0_1px_2px_rgba(127,29,29,0.3),0_8px_18px_-8px_rgba(220,38,38,0.5)] transition duration-150 hover:from-red-500 hover:to-red-700 active:scale-[0.97]"
+            className="ease-strong inline-flex min-h-11 items-center rounded-lg bg-danger-solid px-4 py-2 text-sm font-medium text-danger-solid-ink shadow-[0_1px_2px_rgba(127,29,29,0.3),0_8px_18px_-8px_rgba(220,38,38,0.5)] transition duration-150 hover:from-red-500 hover:to-red-700 active:scale-[0.97]"
           >
             Reject
           </button>

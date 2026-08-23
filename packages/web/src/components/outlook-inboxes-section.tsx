@@ -128,7 +128,7 @@ export function OutlookInboxesSection() {
               <div className="min-w-0">
                 <span className="block truncate text-ink">{account.email}</span>
                 {account.needsReconnect ? (
-                  <span className="block truncate text-[11px] text-amber-600">
+                  <span className="block truncate text-[11px] text-state-warn-ink">
                     Reconnect needed — access was revoked
                   </span>
                 ) : (
@@ -143,7 +143,7 @@ export function OutlookInboxesSection() {
                     type="button"
                     onClick={() => connect.mutate()}
                     disabled={connect.isPending}
-                    className="ease-strong rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 transition duration-150 hover:bg-amber-100 active:scale-[0.97] disabled:opacity-50"
+                    className="ease-strong rounded-md border border-state-warn-line bg-state-warn-bg px-2 py-1 text-xs font-medium text-state-warn-ink transition duration-150 hover:bg-amber-100 active:scale-[0.97] disabled:opacity-50"
                   >
                     Reconnect
                   </button>
@@ -152,7 +152,7 @@ export function OutlookInboxesSection() {
                   type="button"
                   onClick={() => disconnect.mutate(account.id)}
                   disabled={disconnect.isPending}
-                  className="ease-strong rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-50"
+                  className="ease-strong rounded-md border border-state-danger-line bg-state-danger-bg px-2 py-1 text-xs font-medium text-state-danger-ink transition duration-150 hover:bg-state-danger-bg active:scale-[0.97] disabled:opacity-50"
                 >
                   Disconnect
                 </button>
@@ -172,7 +172,7 @@ export function OutlookInboxesSection() {
           Connect Outlook inbox
         </button>
       ) : (
-        <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50/60 p-4">
+        <div className="mt-3 rounded-xl border border-state-info-line bg-state-info-bg p-4">
           <p className="text-sm text-ink">
             Multiple inboxes is a <span className="font-semibold text-accent-deep">Pro</span>{" "}
             feature.
