@@ -21,6 +21,16 @@ export interface SubscriptionState {
   canCancelInApp?: boolean;
   /** True when a provider portal exists for this account (Stripe or Paddle). */
   hasPortal?: boolean;
+  /** The plan itself, so a paid account with nothing to manage can say why. */
+  plan?: string;
+}
+
+/** Plans that cost money, and therefore owe the user an explanation when the
+ *  page shows no subscription controls at all. */
+const PAID_PLANS = new Set(["PRO", "TEAM", "ENTERPRISE"]);
+
+export function isPaidPlan(plan: string | undefined): boolean {
+  return Boolean(plan && PAID_PLANS.has(plan));
 }
 
 /** A cancellation is pending when the provider gave us an end date. */
@@ -75,6 +85,7 @@ export function subscriptionStatusLine(
 
 /** The subset of GET /api/billing/status this module reads. */
 interface BillingStatusPayload {
+  plan?: string;
   stripeId?: string | null;
   hasPaddleCustomer?: boolean;
   subscriptionStatus?: string | null;
@@ -95,6 +106,7 @@ export function toSubscriptionState(status: BillingStatusPayload): SubscriptionS
     cancelAt: status.cancelAt,
     canCancelInApp: status.canCancelInApp,
     hasPortal: Boolean(status.stripeId || status.hasPaddleCustomer),
+    plan: status.plan,
   };
 }
 
