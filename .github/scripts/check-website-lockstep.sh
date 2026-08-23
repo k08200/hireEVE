@@ -1,30 +1,56 @@
 #!/usr/bin/env bash
-# The EN (website/index.html) and KO (website/ko/index.html) landings are full
-# parallel copies with no shared template — every structural edit must land in
-# both files. This compares the structure-bearing skeleton of each page (element
-# ids, /media/ video sources and posters, CSS class definitions) and fails on
-# drift. Copy (translated text) is free to differ; structure is not.
+# The landing pages are full parallel copies with no shared template — every
+# structural edit must land in every language. This compares the
+# structure-bearing skeleton of each page (element ids, /media/ video sources
+# and posters, CSS class definitions) against English and fails on drift.
+# Copy (translated text) is free to differ; structure is not.
+#
+# Generic over N languages: every website/<code>/index.html is discovered, so
+# adding a language needs no edit here. With two pages this was a nicety; with
+# seven it is the only thing standing between a copy edit and a page that
+# silently loses a section.
 set -euo pipefail
 
 EN=website/index.html
-KO=website/ko/index.html
 
 skeleton() {
   {
     grep -o 'id="[^"]*"' "$1" || true
-    # Localized app screenshots (/media/app/ko/…) are the one sanctioned
-    # per-language asset divergence — normalize the prefix so the KO page may
+    # Localized app screenshots (/media/app/<code>/…) are the one sanctioned
+    # per-language asset divergence — normalize the prefix so each language may
     # point at its own set while the FILENAMES still must match the EN page.
-    grep -o 'src="/media/[^"]*"' "$1" | sed 's|/media/app/ko/|/media/app/|' || true
+    grep -o 'src="/media/[^"]*"' "$1" | sed -E 's|/media/app/[a-z]{2}/|/media/app/|' || true
     grep -o 'poster="/media/[^"]*"' "$1" || true
     grep -oE '^[[:space:]]*\.[a-z][a-zA-Z0-9., :()-]*\{' "$1" | sed 's/[[:space:]]//g' || true
   } | sort
 }
 
-if ! diff <(skeleton "$EN") <(skeleton "$KO") > /tmp/lockstep.diff; then
-  echo "::error::website EN/KO structural drift — edit both landings in lockstep (< only in EN, > only in KO):"
-  cat /tmp/lockstep.diff
+# Two-letter directories only. website/ also holds privacy/, terms/, refund/
+# and oauth-native/ — separate pages, not translations of the landing, and
+# comparing them against it would fail on every run.
+langs=()
+for dir in website/*/; do
+  code="$(basename "$dir")"
+  [[ "$code" =~ ^[a-z]{2}$ ]] || continue
+  [ -f "${dir}index.html" ] || continue
+  langs+=("$code")
+done
+
+if [ ${#langs[@]} -eq 0 ]; then
+  echo "::error::no website/<code>/index.html found — did the landings move?"
   exit 1
 fi
 
-echo "EN/KO structural skeleton matches ($(skeleton "$EN" | wc -l | tr -d ' ') anchors)."
+failed=0
+for code in "${langs[@]}"; do
+  page="website/${code}/index.html"
+  if ! diff <(skeleton "$EN") <(skeleton "$page") > "/tmp/lockstep-${code}.diff"; then
+    echo "::error::website EN/${code} structural drift — edit every landing in lockstep (< only in EN, > only in ${code}):"
+    cat "/tmp/lockstep-${code}.diff"
+    failed=1
+  fi
+done
+
+[ "$failed" -eq 0 ] || exit 1
+
+echo "EN skeleton matches ${#langs[@]} translated landing(s) [${langs[*]}] ($(skeleton "$EN" | wc -l | tr -d ' ') anchors)."
