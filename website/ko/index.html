@@ -643,7 +643,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   74%{opacity:1;transform:translateY(0)}
   100%{opacity:0;transform:translateY(-9px)}
 }
-.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
 .bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
   transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
 .bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
@@ -652,12 +652,17 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
 .bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
-.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
-.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
+.bk[data-t=push]{--c:#ff4d57}.bk[data-t=meeting]{--c:#818cf8}.bk[data-t=queue]{--c:#d97706}
+.bk[data-t=info]{--c:#22d3ee}.bk[data-t=silent]{--c:#7c848e}
+/* A lane the labelled set never exercised. Shown, dimmed, not hidden — the
+   point of publishing the set is that its gaps are visible too. */
+.bk.none{opacity:.62}
+.bk.none .v{color:var(--ink-3)}
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
-@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}
+  .buckets .bk:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
 
 
@@ -892,20 +897,26 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="demo-in"><div class="demo-core">
       <div class="demo-top">
         <span class="lab">오늘 아침 받은편지함 분류 중</span>
-        <span class="cnt">64통 중 <b id="dm-done">0</b> · <span id="dm-state">분류 중</span></span>
+        <span class="cnt">53통 중 <b id="dm-done">0</b> · <span id="dm-state">분류 중</span></span>
       </div>
       <div class="demo-stage" id="dm-stage" aria-hidden="true"></div>
       <div class="buckets" id="dm-buckets">
         <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
           <div class="v" data-v>0</div><p class="d">지금 당신을 끊습니다</p></div>
+        <div class="bk none" data-t="meeting"><div class="top"><span class="dot"></span><span class="nm">MEETING</span></div>
+          <div class="v" data-v>0</div><p class="d">일정 — 캘린더와 대조합니다</p></div>
         <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
           <div class="v" data-v>0</div><p class="d">오늘 안에 읽으면 됩니다</p></div>
+        <div class="bk none" data-t="info"><div class="top"><span class="dot"></span><span class="nm">INFO</span></div>
+          <div class="v" data-v>0</div><p class="d">기록입니다. 답장이 필요 없습니다</p></div>
         <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
           <div class="v" data-v>0</div><p class="d">보관됩니다, 삭제가 아닙니다</p></div>
-        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
-          <div class="v" data-v>0</div><p class="d">당신 없이 처리됐습니다</p></div>
       </div>
-      <p class="demo-foot">직접 라벨링한 받은편지함에 대한 실제 분류기 출력 — 64통 중 3통만 당신이 필요했습니다.</p>
+      <p class="demo-foot">이 숫자는 리포에 커밋된 라벨링 세트 그대로입니다 &mdash;
+        PII를 지운 실제 메일 53통, 그중 당신을 끊은 것은 4통.
+        <a href="https://github.com/k08200/klorn/blob/main/packages/api/eval/real-eval-set.json" rel="noreferrer noopener">파일을 열어</a>
+        직접 세어 보세요. MEETING과 INFO가 0인 이유는 이 세트를 7월에 라벨링했고 그때는 두 레인이
+        없었기 때문입니다. 조용히 다시 라벨링하느니 이 구멍을 보여주는 쪽을 택했습니다.</p>
     </div></div>
   </div>
 
@@ -949,7 +960,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
         <b>이유가 붙은 대기열</b><span>모든 줄이 거기 간 이유를 말합니다 — 클릭 한 번으로 정정.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
-        <b>네 단어, 설명까지</b><span>Silent는 삭제가 아니고 Auto는 답장이 아닙니다.</span></button>
+        <b>다섯 레인, 설명까지</b><span>Silent는 삭제가 아니고, Info는 Silent가 아니며, 무엇도 스스로 답장하지 않습니다.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
         <b>설정은 당신 몫</b><span>혼자 어디까지 할지, 무엇이 당신을 끊어도 되는지.</span></button>
     </div>
@@ -986,12 +997,12 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="steps">
     <article class="step rv"><span class="sn">아침</span>
       <h3>이미 분류돼 있음</h3>
-      <p>밤새 온 메일은 당신이 앉기 전에 각자의 단계에 들어가 있고, 거기 간 이유를 달고 있습니다.
-        64통 중 당신 몫은 3통이었습니다.</p></article>
+      <p>밤새 온 메일은 당신이 앉기 전에 각자의 레인에 들어가 있고, 거기 간 이유를 달고 있습니다.
+        라벨링 세트 기준 53통 중 당신을 끊은 것은 4통이었습니다.</p></article>
     <article class="step rv"><span class="sn">일하는 중</span>
       <h3>한 줄, 배너 없음</h3>
-      <p>Klorn은 화면 맨 위 네이티브 한 줄로 머뭅니다. QUEUE·SILENT·AUTO는 절대 끊지 않고,
-        진짜 PUSH만 끊습니다 — 무엇이 PUSH인지는 당신이 정합니다.</p></article>
+      <p>Klorn은 화면 맨 위 네이티브 한 줄로 머뭅니다. QUEUE·INFO·SILENT는 절대 끊지 않습니다.
+        끊는 것은 PUSH, 그리고 제안된 시간에 답이 필요한 MEETING뿐입니다 — 기준은 당신이 정합니다.</p></article>
     <article class="step rv"><span class="sn">답장할 때</span>
       <h3>초안 셋, 결정은 당신</h3>
       <p>수락·거절·질문 각각 한 키로. 당신 어투로, 발신자가 쓴 언어로. 저절로 나가는 건 없고,
@@ -1536,7 +1547,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 })();
 
 // The hero demonstration. A visitor who reads only the headline still sees the
-// product do its one job: sixty-four messages arrive, four of them are yours.
+// product do its one job, on the numbers the committed eval set actually produced.
 (function () {
   var stage = document.getElementById('dm-stage');
   if (!stage) return;
@@ -1546,13 +1557,15 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     ['이준호', '스탠드업 10:30으로 변경', 'push'],
     ['Product Hunt', '오늘의 테크: 신규 런칭 12건', 'silent'],
     ['박정우', '대시보드 스펙 수정본', 'queue'],
-    ['캘린더', '3명이 초대를 수락했습니다', 'auto'],
+    ['Google', '보안 알림', 'queue'],
     ['billing@vendor.io', '인보이스 #4821 연체', 'push'],
     ['모닝브루', '오늘 알아야 할 5가지', 'silent'],
     ['최다은', '온보딩 플로우 아이디어', 'queue'],
-    ['Stripe', '결제 영수증', 'auto']
+    ['LinkedIn', '1촌 신청 3건', 'silent']
   ];
-  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
+  // eval/real-eval-set.json, 2026-07-15: PUSH 4 / QUEUE 28 / SILENT 21 = 53.
+  // MEETING and INFO postdate the set, so they are rendered and left at zero.
+  var totals = { push: 4, meeting: 0, queue: 28, info: 0, silent: 21 };
   var cells = {};
   document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
     cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
@@ -1564,7 +1577,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   // Reduced motion gets the answer, not the animation.
   if (reduce) {
     Object.keys(totals).forEach(function (k) { cells[k].num.textContent = totals[k]; });
-    doneEl.textContent = '64';
+    doneEl.textContent = '53';
     stateEl.textContent = '분류 완료';
     return;
   }
@@ -1594,7 +1607,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       c.num.textContent = c.n;
       shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
       doneEl.textContent = shown;
-      if (shown >= 64) {
+      if (shown >= 53) {
         stateEl.textContent = '분류 완료';
         // Hold the finished board, then run the morning again. A demo that
         // stops dead reads as broken to anyone who scrolls back to it.
@@ -1608,7 +1621,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     }, 560);
 
     i++;
-    if (shown < 64) setTimeout(step, 1120);
+    if (shown < 53) setTimeout(step, 1120);
   }
   // Only run once the strip is actually on screen.
   new IntersectionObserver(function (es, ob) {
@@ -1626,10 +1639,11 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: '지금 당신을 끊습니다' },
-    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: '오늘 안에 읽으면 됩니다' },
-    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: '보관됩니다, 삭제가 아닙니다' },
-    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: '당신 없이 처리됐습니다' }
+    { id: 'push',    name: 'Push',    c: '#ff4d57', blurb: '지금 당신을 끊습니다' },
+    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: '일정 — 캘린더와 대조합니다' },
+    { id: 'queue',   name: 'Queue',   c: '#d97706', blurb: '오늘 안에 읽으면 됩니다' },
+    { id: 'info',    name: 'Info',    c: '#22d3ee', blurb: '기록입니다. 답장이 필요 없습니다' },
+    { id: 'silent',  name: 'Silent',  c: '#7c848e', blurb: '보관됩니다, 삭제가 아닙니다' }
   ];
   var mail = [
     { id: 1, t: 'push', from: '김서연', subj: 'Re: 계약서 검토 — 오늘 중 승인 필요',
@@ -1672,10 +1686,17 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       why: '자동 발송 영수증',
       sum: '월간 인프라 인보이스이며, 조치할 것이 없습니다.',
       body: '결제 콘솔에서 인보이스를 확인하실 수 있습니다.', r: null },
-    { id: 8, t: 'auto', from: '캘린더', subj: '3명이 초대를 수락했습니다',
-      why: 'Klorn이 묻지 않고 처리했습니다',
+    { id: 8, t: 'info', from: '캘린더', subj: '3명이 초대를 수락했습니다',
+      why: '기록입니다 — 답장을 기다리는 것이 없습니다',
       sum: '목요일 리뷰에 참석자 3명이 수락했습니다.',
-      body: '수락: 박정우, 최다은, 김서연.', r: null }
+      body: '수락: 박정우, 최다은, 김서연.', r: null },
+    { id: 9, t: 'meeting', from: '한지우', subj: '목요일 14시로 옮길 수 있을까요?',
+      why: '제안된 시간이 디자인 리뷰(14:00\u201315:00)와 겹칩니다',
+      sum: '로드맵 미팅을 목요일 14시로 옮기자는 제안입니다. 그 시간은 이미 차 있고, 15시는 양쪽 캘린더 모두 비어 있습니다.',
+      body: '안녕하세요,\n\n로드맵 미팅을 목요일 14시로 옮기면 저희 쪽은 더 좋습니다 \u2014 가능하실까요?\n\n한지우 드림',
+      r: ['목요일 14시는 이미 차 있습니다. 15시는 양쪽 다 비어 있는데 그때 괜찮으실까요?',
+          '이번 주 목요일은 어렵습니다. 금요일 오전이라면 가능합니다.',
+          '옮기기 전에 \u2014 가격 안건은 그대로 유지되는 건가요?'] }
   ];
   var TONE = ['수락', '거절', '질문'];
 

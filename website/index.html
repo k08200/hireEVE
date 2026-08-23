@@ -643,7 +643,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   74%{opacity:1;transform:translateY(0)}
   100%{opacity:0;transform:translateY(-9px)}
 }
-.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
 .bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
   transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
 .bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
@@ -652,12 +652,17 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
 .bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
-.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
-.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
+.bk[data-t=push]{--c:#ff4d57}.bk[data-t=meeting]{--c:#818cf8}.bk[data-t=queue]{--c:#d97706}
+.bk[data-t=info]{--c:#22d3ee}.bk[data-t=silent]{--c:#7c848e}
+/* A lane the labelled set never exercised. Shown, dimmed, not hidden — the
+   point of publishing the set is that its gaps are visible too. */
+.bk.none{opacity:.62}
+.bk.none .v{color:var(--ink-3)}
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
-@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}
+  .buckets .bk:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
 
 
@@ -892,20 +897,26 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="demo-in"><div class="demo-core">
       <div class="demo-top">
         <span class="lab">Sorting this morning's inbox</span>
-        <span class="cnt"><b id="dm-done">0</b> of 64 · <span id="dm-state">running</span></span>
+        <span class="cnt"><b id="dm-done">0</b> of 53 · <span id="dm-state">running</span></span>
       </div>
       <div class="demo-stage" id="dm-stage" aria-hidden="true"></div>
       <div class="buckets" id="dm-buckets">
         <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
           <div class="v" data-v>0</div><p class="d">Interrupts you now</p></div>
+        <div class="bk none" data-t="meeting"><div class="top"><span class="dot"></span><span class="nm">MEETING</span></div>
+          <div class="v" data-v>0</div><p class="d">Scheduling, checked against your calendar</p></div>
         <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
           <div class="v" data-v>0</div><p class="d">Read it today</p></div>
+        <div class="bk none" data-t="info"><div class="top"><span class="dot"></span><span class="nm">INFO</span></div>
+          <div class="v" data-v>0</div><p class="d">Records. No reply expected</p></div>
         <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
           <div class="v" data-v>0</div><p class="d">Filed, not deleted</p></div>
-        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
-          <div class="v" data-v>0</div><p class="d">Handled without you</p></div>
       </div>
-      <p class="demo-foot">Real classifier output on a hand-labeled inbox — 3 of 64 needed you.</p>
+      <p class="demo-foot">These counts are the hand-labelled set committed to the repo &mdash;
+        53 real, PII-scrubbed emails, 4 of which interrupted you.
+        <a href="https://github.com/k08200/klorn/blob/main/packages/api/eval/real-eval-set.json" rel="noreferrer noopener">Open the file</a>
+        and count them yourself. Meeting and Info read zero because the set was labelled in July,
+        before those two lanes existed; we would rather show you the gap than relabel it quietly.</p>
     </div></div>
   </div>
 
@@ -949,7 +960,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
         <b>The queue, with reasons</b><span>Every row says what put it there — correct it in one click.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
-        <b>Four words, explained</b><span>Silent isn't deleted. Auto isn't replied. The app says so.</span></button>
+        <b>Five lanes, explained</b><span>Silent isn't deleted, Info isn't Silent, and nothing here replies on its own.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
         <b>Yours to set</b><span>How much it does alone, and what may interrupt you.</span></button>
     </div>
@@ -986,12 +997,12 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="steps">
     <article class="step rv"><span class="sn">Morning</span>
       <h3>Already sorted</h3>
-      <p>Overnight mail is in its tier before you sit down, each one carrying the reason it landed there.
-        Sixty-four messages, three that were yours.</p></article>
+      <p>Overnight mail is in its lane before you sit down, each one carrying the reason it landed there.
+        In the labelled set: fifty-three messages, four that interrupted you.</p></article>
     <article class="step rv"><span class="sn">While you work</span>
       <h3>One line, no banners</h3>
-      <p>Klorn stays a single native line at the top of the screen. Queue, Silent and Auto never
-        interrupt — only a real Push does, and you set what counts.</p></article>
+      <p>Klorn stays a single native line at the top of the screen. Queue, Info and Silent never
+        interrupt — only Push does, and Meeting when a proposed time needs an answer. You set what counts.</p></article>
     <article class="step rv"><span class="sn">When you reply</span>
       <h3>Three drafts, your call</h3>
       <p>Accept, decline or ask — one key each, in your tone and the sender's language. Nothing sends
@@ -1537,7 +1548,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 })();
 
 // The hero demonstration. A visitor who reads only the headline still sees the
-// product do its one job: sixty-four messages arrive, four of them are yours.
+// product do its one job, on the numbers the committed eval set actually produced.
 (function () {
   var stage = document.getElementById('dm-stage');
   if (!stage) return;
@@ -1547,13 +1558,15 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     ['Alex Carter', 'Standup moved to 10:30', 'push'],
     ['Product Hunt', 'Today in tech: 12 new launches', 'silent'],
     ['Jordan Lee', 'Revised dashboard specs', 'queue'],
-    ['Calendar', 'Invitation accepted by 3 people', 'auto'],
+    ['Google', 'Security alert', 'queue'],
     ['billing@vendor.io', 'Invoice #4821 is overdue', 'push'],
     ['Morning Brew', 'The 5 things you need to know', 'silent'],
     ['Casey Park', 'Onboarding flow ideas', 'queue'],
-    ['Stripe', 'Payment receipt', 'auto']
+    ['LinkedIn', '3 new connection invitations', 'silent']
   ];
-  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
+  // eval/real-eval-set.json, 2026-07-15: PUSH 4 / QUEUE 28 / SILENT 21 = 53.
+  // MEETING and INFO postdate the set, so they are rendered and left at zero.
+  var totals = { push: 4, meeting: 0, queue: 28, info: 0, silent: 21 };
   var cells = {};
   document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
     cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
@@ -1565,7 +1578,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   // Reduced motion gets the answer, not the animation.
   if (reduce) {
     Object.keys(totals).forEach(function (k) { cells[k].num.textContent = totals[k]; });
-    doneEl.textContent = '64';
+    doneEl.textContent = '53';
     stateEl.textContent = 'sorted';
     return;
   }
@@ -1595,7 +1608,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       c.num.textContent = c.n;
       shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
       doneEl.textContent = shown;
-      if (shown >= 64) {
+      if (shown >= 53) {
         stateEl.textContent = 'sorted';
         // Hold the finished board, then run the morning again. A demo that
         // stops dead reads as broken to anyone who scrolls back to it.
@@ -1609,7 +1622,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     }, 560);
 
     i++;
-    if (shown < 64) setTimeout(step, 1120);
+    if (shown < 53) setTimeout(step, 1120);
   }
   // Only run once the strip is actually on screen.
   new IntersectionObserver(function (es, ob) {
@@ -1627,10 +1640,11 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: 'Interrupts you now' },
-    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: 'Read it today' },
-    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: 'Filed, not deleted' },
-    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: 'Handled without you' }
+    { id: 'push',    name: 'Push',    c: '#ff4d57', blurb: 'Interrupts you now' },
+    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: 'Scheduling, checked against your calendar' },
+    { id: 'queue',   name: 'Queue',   c: '#d97706', blurb: 'Read it today' },
+    { id: 'info',    name: 'Info',    c: '#22d3ee', blurb: 'Records. No reply expected' },
+    { id: 'silent',  name: 'Silent',  c: '#7c848e', blurb: 'Filed, not deleted' }
   ];
   var mail = [
     { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
@@ -1673,10 +1687,17 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       why: 'Automated receipt',
       sum: 'Monthly infrastructure invoice, no action needed.',
       body: 'Your invoice is available in the billing console.', r: null },
-    { id: 8, t: 'auto', from: 'Calendar', subj: 'Invitation accepted by 3 people',
-      why: 'Klorn filed this without asking',
+    { id: 8, t: 'info', from: 'Calendar', subj: 'Invitation accepted by 3 people',
+      why: 'A record — nothing here expects a reply',
       sum: 'Three attendees accepted the Thursday review.',
-      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null }
+      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null },
+    { id: 9, t: 'meeting', from: 'Priya Raman', subj: 'Can we do Thursday 14:00 instead?',
+      why: 'Proposed slot clashes with Design review (14:00\u201315:00)',
+      sum: 'Priya wants to move the roadmap call to Thursday 14:00. That hour is already booked; 15:00 is free on both calendars.',
+      body: 'Hi,\n\nThursday 14:00 works better on our side for the roadmap call \u2014 can you make that?\n\nPriya',
+      r: ['Thursday 14:00 is booked here. 15:00 is free on both of our calendars \u2014 does that work?',
+          "Thursday doesn't work this week. Friday morning is open if that helps.",
+          'Before we move it \u2014 is the pricing section still on the agenda?'] }
   ];
   var TONE = ['Accept', 'Decline', 'Ask'];
 
