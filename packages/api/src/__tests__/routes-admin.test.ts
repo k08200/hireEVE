@@ -1,5 +1,5 @@
 import Fastify from "fastify";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { signToken } from "../auth.js";
 
 const sendBetaInviteEmailSpy = vi.fn(async () => true);
@@ -429,6 +429,94 @@ describe("admin routes", () => {
     expect(res.json().googleQuota).toEqual({ consumed: 137, cap: 100, remaining: 0 });
     prisma.user.count.mockImplementation(async () => 2);
     await app.close();
+  });
+
+  describe("provider config health", () => {
+    const APPLE_VARS = [
+      "APPLE_CLIENT_ID",
+      "APPLE_TEAM_ID",
+      "APPLE_KEY_ID",
+      "APPLE_PRIVATE_KEY",
+      "APPLE_REDIRECT_URI",
+    ] as const;
+
+    afterEach(() => {
+      for (const key of APPLE_VARS) delete process.env[key];
+      delete process.env.APPLE_LOGIN_ENABLED;
+    });
+
+    async function fetchHealth() {
+      const app = await buildApp();
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/admin/provider-config",
+        headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      });
+      await app.close();
+      return res;
+    }
+
+    it("names the vars that are missing without ever returning a value", async () => {
+      process.env.APPLE_LOGIN_ENABLED = "true";
+      process.env.APPLE_CLIENT_ID = "ai.klorn.web";
+      process.env.APPLE_REDIRECT_URI = "https://api.example/api/auth/apple/callback";
+      process.env.APPLE_PRIVATE_KEY =
+        "-----BEGIN PRIVATE KEY-----\nnot-a-key\n-----END PRIVATE KEY-----";
+
+      const res = await fetchHealth();
+
+      expect(res.statusCode).toBe(200);
+      const apple = res.json().apple as { enabled: boolean; missing: string[]; present: string[] };
+      expect(apple.enabled).toBe(true);
+      expect(apple.missing).toEqual(["APPLE_TEAM_ID", "APPLE_KEY_ID"]);
+      expect(apple.present).toContain("APPLE_CLIENT_ID");
+      // Booleans and names only — a config screen must never become a way to
+      // read the signing key back out.
+      expect(JSON.stringify(res.json())).not.toContain("ai.klorn.web");
+      expect(JSON.stringify(res.json())).not.toContain("not-a-key");
+    });
+
+    it("reports a private key that cannot be parsed as ES256", async () => {
+      process.env.APPLE_LOGIN_ENABLED = "true";
+      for (const key of APPLE_VARS) process.env[key] = "set";
+      // The shape a stripped-newline paste leaves behind.
+      process.env.APPLE_PRIVATE_KEY =
+        "-----BEGIN PRIVATE KEY-----MIGTAgEAMBMGBy-----END PRIVATE KEY-----";
+
+      const apple = (await fetchHealth()).json().apple as {
+        privateKey: { present: boolean; parses: boolean; detail: string };
+      };
+
+      expect(apple.privateKey.present).toBe(true);
+      expect(apple.privateKey.parses).toBe(false);
+      expect(apple.privateKey.detail).toBeTruthy();
+    });
+
+    it("passes a well-formed ES256 key", async () => {
+      const { generateKeyPair, exportPKCS8 } = await import("jose");
+      const { privateKey } = await generateKeyPair("ES256", { extractable: true });
+      process.env.APPLE_LOGIN_ENABLED = "true";
+      for (const key of APPLE_VARS) process.env[key] = "set";
+      process.env.APPLE_PRIVATE_KEY = await exportPKCS8(privateKey);
+
+      const apple = (await fetchHealth()).json().apple as {
+        missing: string[];
+        privateKey: { parses: boolean };
+      };
+
+      expect(apple.missing).toEqual([]);
+      expect(apple.privateKey.parses).toBe(true);
+    });
+
+    it("reports a dark provider as disabled rather than broken", async () => {
+      const naver = (await fetchHealth()).json().naver as { enabled: boolean; missing: string[] };
+      expect(naver.enabled).toBe(false);
+      expect(naver.missing).toEqual([
+        "NAVER_CLIENT_ID",
+        "NAVER_CLIENT_SECRET",
+        "NAVER_REDIRECT_URI",
+      ]);
+    });
   });
 
   it("includes trust-loop metrics in ops", async () => {
