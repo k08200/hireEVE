@@ -2,32 +2,31 @@
 /**
  * Web i18n parity guard.
  *
- * `packages/web/src/lib/i18n.tsx` holds one flat table per locale. The module
- * already had a symmetry check, but it only `console.warn`s, only in dev — a
- * warning nobody reads while the build stays green. With two locales that was
- * survivable; the moment a third exists, silent drift is guaranteed, and a
- * missing key renders as the raw key string in the product.
+ * `packages/web/src/lib/locales/<code>.ts` holds one flat table per locale.
+ * The module already had a symmetry check, but it only `console.warn`s, only
+ * in dev — a warning nobody reads while the build stays green. With two
+ * locales that was survivable; the moment a third exists, silent drift is
+ * guaranteed, and a missing key renders as the raw key string in the product.
  *
- * This is the CI teeth, deliberately generic over N locales: it discovers
- * every `const <locale>Translations` table in the file, so adding a language
- * needs no edit here.
+ * This is the CI teeth, deliberately generic over N locales: it reads every
+ * file in the locales directory, so adding a language needs no edit here.
  *
  * Parsing note: the tables are FLAT `Record<string, string>` literals, so
  * brace-matching the block and taking depth-1 quoted keys is exact. If the
  * shape ever nests, this script fails loudly rather than silently passing.
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
-const FILE = "packages/web/src/lib/i18n.tsx";
-const TABLE_RE = /const\s+(\w+)Translations\s*:\s*Record<string,\s*string>\s*=\s*\{/g;
+const DIR = "packages/web/src/lib/locales";
+const TABLE_RE = /const\s+(\w+)\s*:\s*Record<string,\s*string>\s*=\s*\{/;
 
 function fail(message) {
   console.error(`✗ i18n parity: ${message}`);
   process.exit(1);
 }
 
-const source = readFileSync(FILE, "utf8");
+
 
 /** Slice the object literal that starts at `openIndex` (the `{`). */
 function readObjectBody(text, openIndex) {
@@ -95,20 +94,34 @@ function tableKeys(body, locale) {
 }
 
 const tables = new Map();
-let match = TABLE_RE.exec(source);
-while (match) {
+let files;
+try {
+  files = readdirSync(DIR)
+    .filter((f) => f.endsWith(".ts"))
+    .sort();
+} catch {
+  fail(`could not read ${DIR} — did the locale files move?`);
+}
+
+for (const file of files) {
+  const locale = file.replace(/\.ts$/, "");
+  const source = readFileSync(`${DIR}/${file}`, "utf8");
+  const match = TABLE_RE.exec(source);
+  if (!match) fail(`${file} has no 'const <locale>: Record<string, string> = {' table`);
   const openIndex = source.indexOf("{", match.index + match[0].length - 1);
   const body = readObjectBody(source, openIndex);
-  if (body === null) fail(`could not parse the ${match[1]} table`);
-  tables.set(match[1], tableKeys(body, match[1]));
-  match = TABLE_RE.exec(source);
+  if (body === null) fail(`could not parse the table in ${file}`);
+  tables.set(locale, tableKeys(body, locale));
 }
 
 if (tables.size < 2) {
-  fail(`expected at least 2 locale tables in ${FILE}, found ${tables.size}`);
+  fail(`expected at least 2 locale files in ${DIR}, found ${tables.size}`);
 }
 
-const [baseLocale, baseKeys] = [...tables][0];
+// English is the source of truth for keys, not whichever file sorts first.
+if (!tables.has("en")) fail(`${DIR} has no en.ts — English is the key source of truth`);
+const baseLocale = "en";
+const baseKeys = tables.get(baseLocale);
 const baseSet = new Set(baseKeys);
 
 // Duplicate keys inside one table silently shadow each other — the later wins
@@ -122,7 +135,8 @@ for (const [locale, keys] of tables) {
 }
 
 let problems = 0;
-for (const [locale, keys] of [...tables].slice(1)) {
+for (const [locale, keys] of tables) {
+  if (locale === baseLocale) continue;
   const localeSet = new Set(keys);
   const missing = baseKeys.filter((k) => !localeSet.has(k));
   const extra = keys.filter((k) => !baseSet.has(k));
