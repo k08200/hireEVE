@@ -1442,7 +1442,7 @@ export default function SettingsPage() {
                       !notifPrefs.notifyDailyBriefing &&
                       !notifPrefs.notifyEmailCandidate
                     }
-                    className="ease-strong min-h-11 rounded-lg border border-line-strong px-3 py-2 text-sm text-ink-soft transition duration-150 hover:bg-surface-hover active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent"
+                    className="ease-strong min-h-11 rounded-lg border border-line-strong px-3 py-2 text-sm text-ink-soft transition duration-150 hover:bg-surface-hover active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 aria-pressed:border-accent aria-pressed:text-accent-deep"
                   >
                     {t("settings.notifPrefs.essentialsOnly")}
                   </button>
@@ -1485,7 +1485,7 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={notifPrefs[row.key]}
                       onChange={(e) => updateNotifPref(row.key, e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-line-strong bg-surface-raised text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
+                      className="mt-0.5 w-4 h-4 rounded border-line-strong bg-surface-raised text-accent-deep focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
                     />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-ink">{row.label}</p>
@@ -1879,7 +1879,7 @@ export default function SettingsPage() {
                           type="button"
                           onClick={testSlack}
                           disabled={slackTesting}
-                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-accent transition duration-150 hover:bg-surface-panel hover:border-accent/50 active:scale-[0.97] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-accent-deep transition duration-150 hover:bg-surface-panel hover:border-accent/50 active:scale-[0.97] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                         >
                           {slackTesting ? t("settings.state.sending") : t("settings.sendTest")}
                         </button>

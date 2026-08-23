@@ -164,7 +164,7 @@ function ApiOfflineScreen() {
       role="status"
       aria-live="polite"
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-deep">
         Connection issue
       </p>
       <h1 className="mt-3 text-2xl font-semibold text-ink">

@@ -60,7 +60,7 @@ export default function BottomTabs() {
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
                   className={`focus-ring flex min-h-[62px] flex-col items-center justify-center gap-1 py-2 text-[10px] transition ${
-                    active ? "text-accent" : "text-ink-mid"
+                    active ? "text-accent-deep" : "text-ink-mid"
                   }`}
                 >
                   <NavIcon type={tab.icon} size={22} strokeWidth={active ? 2 : 1.6} />
@@ -76,7 +76,7 @@ export default function BottomTabs() {
               aria-haspopup="dialog"
               aria-expanded={accountOpen}
               className={`focus-ring flex w-full min-h-[62px] flex-col items-center justify-center gap-1 py-2 text-[10px] transition ${
-                accountActive || accountOpen ? "text-accent" : "text-ink-mid"
+                accountActive || accountOpen ? "text-accent-deep" : "text-ink-mid"
               }`}
             >
               <span

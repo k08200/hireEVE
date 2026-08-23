@@ -2056,8 +2056,8 @@ function CandidatePreview({ profile }: { profile: CandidateProfilePreview }) {
   return (
     <div className="mt-2 rounded-lg border border-accent/15 bg-accent/5 px-2.5 py-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[11px] font-medium text-accent-muted">{title}</p>
-        <span className="shrink-0 text-[10px] tabular-nums text-accent-light/80">
+        <p className="truncate text-[11px] font-medium text-accent-deep">{title}</p>
+        <span className="shrink-0 text-[10px] tabular-nums text-accent-deep">
           {Math.round(profile.confidence * 100)}%
         </span>
       </div>
@@ -2066,7 +2066,7 @@ function CandidatePreview({ profile }: { profile: CandidateProfilePreview }) {
         {profile.contact && <span className="truncate">Contact {profile.contact}</span>}
         {profile.intakeStatus && <span>{candidateIntakeLabel(profile.intakeStatus)}</span>}
         <span>Files {profile.evidenceCount}</span>
-        {missing && <span className="text-accent/80">{missing}</span>}
+        {missing && <span className="text-accent-deep">{missing}</span>}
       </div>
     </div>
   );

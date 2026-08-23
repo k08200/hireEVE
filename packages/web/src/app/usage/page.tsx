@@ -200,7 +200,7 @@ function UsageView() {
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-ink-mid">
           {t("usage.subtitlePre")}{" "}
-          <Link href="/billing" className="focus-ring rounded text-accent hover:underline">
+          <Link href="/billing" className="focus-ring rounded text-accent-deep hover:underline">
             {t("usage.subtitleLinkLabel")}
           </Link>
           {t("usage.subtitlePost")}

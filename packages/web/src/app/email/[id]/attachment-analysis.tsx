@@ -184,7 +184,7 @@ export function AttachmentAnalysis({
             type="button"
             onClick={downloadBrief}
             disabled={downloading === "brief"}
-            className="rounded border border-accent/25 bg-accent/10 px-2 py-1 text-[11px] text-accent-muted transition hover:bg-accent/15 disabled:opacity-50 focus-ring"
+            className="rounded border border-accent/25 bg-accent/10 px-2 py-1 text-[11px] text-accent-deep transition hover:bg-accent/15 disabled:opacity-50 focus-ring"
           >
             {downloading === "brief"
               ? t("emailDetail.attachment.creatingBrief")
@@ -204,7 +204,7 @@ export function AttachmentAnalysis({
             type="button"
             onClick={onOcr}
             disabled={ocring}
-            className="rounded border border-accent/25 bg-accent/10 px-2 py-1 text-[11px] text-accent-muted transition hover:bg-accent/15 disabled:opacity-50 focus-ring"
+            className="rounded border border-accent/25 bg-accent/10 px-2 py-1 text-[11px] text-accent-deep transition hover:bg-accent/15 disabled:opacity-50 focus-ring"
           >
             {ocring
               ? t("emailDetail.attachment.runningOcr")
@@ -327,7 +327,7 @@ export function AttachmentAnalysis({
               </details>
             )}
             {attachment.analysisError && (
-              <p className="mt-2 text-[11px] leading-relaxed text-accent/70">
+              <p className="mt-2 text-[11px] leading-relaxed text-accent-deep">
                 {t("emailDetail.attachment.fallbackPrefix", { reason: attachment.analysisError })}
               </p>
             )}
@@ -335,7 +335,7 @@ export function AttachmentAnalysis({
               <button
                 type="button"
                 onClick={() => setEditingId(editingId === attachment.id ? null : attachment.id)}
-                className="rounded border border-line bg-surface-panel px-2 py-1 text-[10px] text-ink-mid transition hover:border-accent/30 hover:text-accent-muted focus-ring"
+                className="rounded border border-line bg-surface-panel px-2 py-1 text-[10px] text-ink-mid transition hover:border-accent/30 hover:text-accent-deep focus-ring"
               >
                 {editingId === attachment.id
                   ? t("emailDetail.attachment.closeEdit")
