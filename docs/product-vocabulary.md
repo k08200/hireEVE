@@ -7,30 +7,43 @@ the tier board — and nothing in the repo said which was correct.
 Founder decision (2026-08-04): **"inbox" means a connected mail account.** It
 never names a screen.
 
+Updated 2026-08-23: the tier list below was stale at four (PUSH/QUEUE/SILENT/AUTO)
+while the schema had moved to five lanes. Realigned to the schema.
+
 ## The nouns
 
 | Term | Means | Where it appears | Never means |
 |---|---|---|---|
 | **inbox** | One connected mail account (a Gmail account, a Naver IMAP account). A user can have several. | Settings → "Connected inboxes", the account switcher on Mail | A screen. Not the decision queue, not the firewall board. |
 | **Decision queue** | The list of things waiting for the user's approval. The app's home surface. | Sidebar nav, `/inbox` (URL is historical), desktop panel | A mail list. Nothing lands here unless it needs a decision. |
-| **Firewall board** | The 4-tier view of how mail was classified: PUSH / QUEUE / SILENT / AUTO. | `/inbox/firewall`, the desktop tier columns | A place to read mail. It shows *judgments*, not threads. |
+| **Firewall board** | The lane view of how mail was classified: PUSH / MEETING / QUEUE / INFO / SILENT. | `/inbox/firewall`, the desktop tier columns | A place to read mail. It shows *judgments*, not threads. |
 | **Receipt** | The record of what Klorn did today, after the fact. | `/inbox/receipt` | Something to act on. It is read-only history. |
 | **Mail** | The actual message list and reading view. | `/email`, desktop reading pane | The decision queue. |
 
-## The tiers
+## The lanes
 
-Exactly four, fixed (POC.md, LOCKED). Never invent a fifth, and never rename
-one:
+Exactly five, fixed. Never invent a sixth, and never rename one. The
+canonical list lives in `packages/api/prisma/schema.prisma` on
+`AttentionItem.tier`:
 
-| Tier | Means |
+| Lane | Means |
 |---|---|
 | **PUSH** | Interrupt the user now. |
-| **QUEUE** | Worth reading today; no banner. |
-| **SILENT** | Filed, not deleted. Still there when they look. |
-| **AUTO** | Klorn was confident enough not to ask. **Classification only** — it does not mean "Klorn replied for me." |
+| **MEETING** | Scheduling mail. Notifies like PUSH, plus a calendar cross-check: proposed slot, conflicts, slots verified free for both sides. |
+| **QUEUE** | Worth reading today; no banner. This is the default. |
+| **INFO** | Calm transactional record — receipts, confirmations, status notices. Filed; no reply ever expected. |
+| **SILENT** | Recorded, never rendered. The row exists for ground-truth feedback. |
 
-`AUTO` is the one users misread most, which is why the desktop ships a tier
-guide explaining it. Copy that implies AUTO acts on its own is wrong.
+### Legacy values
+
+`AUTO` and `CALL` are **v1 tiers, retired**. Rows written before v2 still
+carry them and are folded into the live lanes by `normalizeTier` on read.
+Never emit them from new code, and never show them in UI copy.
+
+`AUTO` in particular was the value users misread most — it meant "Klorn was
+confident enough not to ask," a *classification*, never "Klorn replied for
+me." Any copy implying a lane acts on its own is wrong, which is why the
+desktop ships a lane guide.
 
 ## Two different "language" settings
 
@@ -49,7 +62,8 @@ announced by an English banner:
 
 Also distinct, also easy to conflate:
 
-- **AUTO tier** — a classification label (above). Takes no action.
+- **AUTO (retired lane)** — a v1 classification label. Took no action, and
+  no longer exists in new writes. See "Legacy values" above.
 - **Agent mode = AUTO** — how much the agent may do without asking
   (`SHADOW` / `SUGGEST` / `AUTO`). Even here, sending mail is excluded from
   pre-approval on purpose: a bad auto-reply costs more trust than the saved
