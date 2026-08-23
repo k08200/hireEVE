@@ -39,6 +39,8 @@ interface AuthContextType {
   loading: boolean;
   authError: "api_unavailable" | null;
   googleConnected: boolean | null;
+  /** Google was connected once and the grant is now unusable — reconnect. */
+  googleNeedsReconnect: boolean;
   // Whether ANY mail source is attached (primary Google grant OR a linked/
   // IMAP inbox) — server-computed on /api/auth/me. The AuthGuard keys its
   // onboarding redirect on this, so an Apple/Naver-login user who connected
@@ -85,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<"api_unavailable" | null>(null);
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
+  const [googleNeedsReconnect, setGoogleNeedsReconnect] = useState(false);
   const [hasMailSource, setHasMailSource] = useState<boolean | null>(null);
   const [initSync, setInitSync] = useState<InitSyncState>(INIT_SYNC_IDLE);
   const router = useRouter();
@@ -99,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!data.synced) {
           if (data.reason === "google_not_connected") {
             setGoogleConnected(false);
+            setGoogleNeedsReconnect(false);
           }
           setInitSync({
             status: "skipped",
@@ -130,15 +134,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (stored) {
       setToken(stored);
       // Verify token
-      apiFetch<{ user: User & { googleConnected?: boolean; hasAnyMailSource?: boolean } }>(
-        "/api/auth/me",
-        {
-          headers: { Authorization: `Bearer ${stored}` },
-        },
-      )
+      apiFetch<{
+        user: User & {
+          googleConnected?: boolean;
+          googleNeedsReconnect?: boolean;
+          hasAnyMailSource?: boolean;
+        };
+      }>("/api/auth/me", {
+        headers: { Authorization: `Bearer ${stored}` },
+      })
         .then((data) => {
           setUser(data.user);
           setGoogleConnected(data.user.googleConnected ?? false);
+          setGoogleNeedsReconnect(data.user.googleNeedsReconnect ?? false);
           // Older API without the field: fall back to googleConnected so the
           // guard behaves exactly as before this field existed.
           setHasMailSource(data.user.hasAnyMailSource ?? data.user.googleConnected ?? false);
@@ -199,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
       setAuthError(null);
       setGoogleConnected(false);
+      setGoogleNeedsReconnect(false);
       setHasMailSource(false); // fresh account — nothing attached yet
       router.push(redirectTo);
     },
@@ -264,6 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         authError,
         googleConnected,
+        googleNeedsReconnect,
         hasMailSource,
         initSync,
         login,

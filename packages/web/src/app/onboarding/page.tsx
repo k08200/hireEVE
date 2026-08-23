@@ -113,8 +113,24 @@ function WelcomeStep({
   onConnectClick: () => void;
 }) {
   const { t } = useT();
+  const { googleNeedsReconnect } = useAuth();
   return (
     <div>
+      {/* Same screen, different situation: this person already connected once
+          and the grant died on its own. Without saying so, the first-run
+          headline reads as though their account was reset. */}
+      {googleNeedsReconnect && (
+        <div
+          data-testid="google-reconnect-notice"
+          role="status"
+          className="mb-6 rounded-lg border border-notice-border bg-notice-bg px-3.5 py-3 text-xs leading-5 text-notice-ink"
+        >
+          <span className="font-semibold text-notice-ink-strong">
+            {t("reconnect.googleExpiredTitle")}
+          </span>{" "}
+          {t("reconnect.googleExpiredBody")}
+        </div>
+      )}
       <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] text-ink">
         {t("onboarding.welcome.titleLine1")}
         <br />
