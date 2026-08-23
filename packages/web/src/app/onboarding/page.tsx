@@ -139,7 +139,7 @@ function WelcomeStep({
           {t("onboarding.welcome.preferNaver")}{" "}
           <Link
             href="/settings"
-            className="font-medium text-accent-deep underline decoration-sky-200 underline-offset-2 hover:text-accent"
+            className="font-medium text-accent-deep underline decoration-sky-200 underline-offset-2 hover:text-accent-deep"
           >
             {t("onboarding.welcome.connectViaImap")}
           </Link>

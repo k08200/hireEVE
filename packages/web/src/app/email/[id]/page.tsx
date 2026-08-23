@@ -1363,7 +1363,7 @@ function ReplyDraftBox({
                   type="checkbox"
                   checked={includeBriefAttachment}
                   onChange={(e) => onIncludeBriefAttachmentChange(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent-deep focus:ring-accent focus:ring-offset-white"
                 />
                 <span>
                   <span className="block text-[11px] font-medium text-accent-deeper">
@@ -1404,7 +1404,7 @@ function ReplyDraftBox({
                       type="checkbox"
                       checked={selectedAttachmentIds.includes(attachment.id)}
                       onChange={() => toggleAttachment(attachment.id)}
-                      className="h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
+                      className="h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent-deep focus:ring-accent focus:ring-offset-white"
                     />
                     <span className="min-w-0 flex-1 truncate text-[11px] text-ink-muted">
                       {attachment.filename}
@@ -1475,7 +1475,7 @@ function SummarizeButton({
       type="button"
       onClick={onSummarize}
       disabled={summarizing}
-      className="ml-auto text-xs font-medium text-accent-deep transition hover:text-accent disabled:opacity-50"
+      className="ml-auto text-xs font-medium text-accent-deep transition hover:text-accent-deep disabled:opacity-50"
     >
       {summarizing ? t("emailDetail.analysis.summarizing") : t("emailDetail.analysis.summarize")}
     </button>
@@ -1642,7 +1642,7 @@ function KlornAnalysis({
             <ul className="space-y-1">
               {email.keyPoints.map((k, i) => (
                 <li key={i} className="flex gap-1.5 text-xs text-ink-mid">
-                  <span className="text-accent/75">•</span>
+                  <span className="text-accent-deep">•</span>
                   <span>{k}</span>
                 </li>
               ))}

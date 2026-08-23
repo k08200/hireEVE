@@ -615,7 +615,7 @@ function CandidateCard({
           type="checkbox"
           checked={selected}
           onChange={onToggle}
-          className="mt-1 h-4 w-4 rounded border-line-strong bg-surface-panel text-accent"
+          className="mt-1 h-4 w-4 rounded border-line-strong bg-surface-panel text-accent-deep"
           aria-label={t("candidates.card.selectAria", { title })}
         />
         <span

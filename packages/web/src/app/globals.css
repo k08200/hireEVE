@@ -34,7 +34,13 @@
   --line-strong: #cbd5e1; /* slate-300 — emphasized borders */
   --surface-inset: #e2e8f0; /* slate-200 wells/tracks */
   --ink-muted: #475569; /* slate-600 */
-  --accent-deep: #0284c7; /* sky-600 — link text, pressed accent */
+  /* Both are link/text values, so both have to clear the AA text floor on
+     every light surface. sky-600 did not: 4.10:1 on white, 3.74 on
+     --surface-hover, 3.32 on an --surface-inset well (measured 2026-08-23).
+     In light there is no AA-passing "link blue" between sky-600 and sky-700,
+     so the two steps converge here and stay distinct only in the dark block
+     below, where the surfaces are dark and the range opens back up. */
+  --accent-deep: #0369a1; /* 4.81:1 worst light surface */
   --accent-deeper: #0369a1; /* sky-700 */
 
   /* Semantic state surfaces for banners and inline notices. They exist
