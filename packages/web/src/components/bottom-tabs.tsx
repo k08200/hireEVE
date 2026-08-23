@@ -194,7 +194,7 @@ function AccountSheet({ onClose, initials }: { onClose: () => void; initials: st
               onClose();
               logout();
             }}
-            className="focus-ring flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10"
+            className="focus-ring flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-state-danger-ink transition hover:bg-red-500/10"
           >
             <span className="flex h-5 w-5 items-center justify-center" aria-hidden="true">
               <svg

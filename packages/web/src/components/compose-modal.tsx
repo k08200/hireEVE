@@ -290,7 +290,7 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
                     onClick={() => removeFile(index)}
                     disabled={sending}
                     aria-label={`Remove ${file.name}`}
-                    className="shrink-0 rounded px-1 text-ink-dim transition hover:text-red-600 disabled:opacity-50"
+                    className="shrink-0 rounded px-1 text-ink-dim transition hover:text-state-danger-ink disabled:opacity-50"
                   >
                     ✕
                   </button>
@@ -300,10 +300,12 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
           )}
 
           {tooMany && (
-            <p className="text-xs text-red-600">You can attach at most {MAX_ATTACHMENTS} files.</p>
+            <p className="text-xs text-state-danger-ink">
+              You can attach at most {MAX_ATTACHMENTS} files.
+            </p>
           )}
           {overSize && (
-            <p className="text-xs text-red-600">
+            <p className="text-xs text-state-danger-ink">
               Attachments are {formatBytes(totalBytes)} — the limit is{" "}
               {formatBytes(MAX_TOTAL_BYTES)}.
             </p>

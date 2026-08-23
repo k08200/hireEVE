@@ -377,7 +377,7 @@ function CalendarView() {
       {error && <ErrorAlert className="mb-4">{error}</ErrorAlert>}
 
       {syncMessage && !error && (
-        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mb-4 rounded-lg border border-state-ok-line bg-state-ok-bg px-4 py-3 text-sm text-state-ok-ink">
           {syncMessage}
         </div>
       )}

@@ -201,7 +201,7 @@ export function CommitmentCard({
           onClick={onSnooze}
           disabled={!!loading}
           title="Hide for 24h — will resurface automatically"
-          className="ease-strong inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:opacity-50"
+          className="ease-strong inline-flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs text-ink-dim transition duration-150 hover:bg-state-info-bg hover:text-accent-deeper active:scale-[0.97] disabled:opacity-50"
         >
           {loading === "snooze" ? (
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-500" />
@@ -247,11 +247,11 @@ function TrustBadge({
   const map: Record<string, { shortLabel: string; className: string }> = {
     reliable: {
       shortLabel: "Reliable",
-      className: "bg-emerald-500/10 text-emerald-600 ring-1 ring-inset ring-emerald-500/20",
+      className: "bg-emerald-500/10 text-state-ok-ink ring-1 ring-inset ring-emerald-500/20",
     },
     mostly_reliable: {
       shortLabel: "Usually reliable",
-      className: "bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20",
+      className: "bg-amber-500/10 text-state-warn-ink ring-1 ring-inset ring-amber-500/20",
     },
     unreliable: {
       shortLabel: "Often late",
@@ -278,7 +278,7 @@ function commitmentOwnerEntry(owner: CommitmentItem["owner"]): {
     case "USER":
       return {
         label: "Mine",
-        className: "bg-emerald-500/10 text-emerald-600 ring-1 ring-inset ring-emerald-500/20",
+        className: "bg-emerald-500/10 text-state-ok-ink ring-1 ring-inset ring-emerald-500/20",
       };
     case "COUNTERPARTY":
       return {

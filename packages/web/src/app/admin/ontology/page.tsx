@@ -244,7 +244,7 @@ function Proposals({
   onDismiss: (id: string) => void;
 }) {
   return (
-    <section className="panel-elevated mb-4 rounded-2xl border border-sky-200/70 bg-surface-panel p-4 md:p-5">
+    <section className="panel-elevated mb-4 rounded-2xl border border-state-info-line bg-surface-panel p-4 md:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-accent-deep">
           Proposals (advisory)
@@ -320,8 +320,8 @@ function Applied({
   onRevert: (id: string) => void;
 }) {
   return (
-    <section className="panel-elevated mb-4 rounded-2xl border border-emerald-200/70 bg-surface-panel p-4 md:p-5">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-600">
+    <section className="panel-elevated mb-4 rounded-2xl border border-state-ok-line bg-surface-panel p-4 md:p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-state-ok-ink">
         Live overrides
       </h2>
       <p className="mb-3 text-xs text-ink-mid">

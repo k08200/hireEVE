@@ -9,7 +9,7 @@ function ErrorPage({
 }) {
   return (
     <main className="flex flex-col items-center justify-center min-h-[60vh] px-6">
-      <p className="mb-4 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+      <p className="mb-4 rounded-full border border-state-danger-line bg-state-danger-bg px-3 py-1 text-xs font-semibold text-state-danger-ink">
         Screen paused
       </p>
       <h1 className="text-xl font-semibold mb-2">Something went wrong on this screen.</h1>

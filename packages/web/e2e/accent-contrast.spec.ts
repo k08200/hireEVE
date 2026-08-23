@@ -22,7 +22,28 @@ const SRC = join(process.cwd(), "src");
 // buttons and avatars carried white text at 2.14:1 straight through it
 // (found 2026-08-23). from-/to-/via- are covered explicitly.
 const BANNED = /\b(?:bg|from|via|to)-accent(-light)?\b(?!-)/;
+// Notice surfaces and semantic text. Every shade listed is a single Tailwind
+// value that does NOT swap with the theme, so it is wrong in one theme by
+// construction: the -50/-200 surfaces painted near-white slabs on the dark
+// panel, and the -600/-700 inks dropped under 4.5:1 there.
+// Deliberately NOT banned: bare -400/-500 fills (status dots, quota bars) and
+// every alpha variant (bg-emerald-500/10) — graphical washes carrying no text
+// of their own, judged against 1.4.11's 3:1.
+const BANNED_DANGER =
+  /\b(?:bg-red-(?:50|100)|border-red-200|text-red-(?:200|400|500|600|700)|bg-red-(?:600|700))(?![\w/])/;
+const BANNED_STATE =
+  /\b(?:bg-(?:emerald|amber|sky)-50|border-(?:emerald|amber|sky)-200|border-amber-300|text-(?:emerald|amber)-(?:200|600|700)|text-sky-800)(?![\w/])/;
 const CLASS_STRING = /"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g;
+
+/**
+ * Drop block comments before scanning. A JSDoc that quotes the banned recipe
+ * to explain why it is banned is documentation, not a violation — and
+ * error-alert.tsx does exactly that.
+ */
+function withoutBlockComments(text: string): string {
+  // Same length out as in, so match.index still maps to the real line.
+  return text.replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "));
+}
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -39,7 +60,7 @@ test.describe("Accent contrast", () => {
       // Scan the whole file, not line by line: a className template literal
       // can span several lines, and the per-line version could never match
       // one — which is how the bottom-tabs account badge slipped through.
-      const text = readFileSync(file, "utf8");
+      const text = withoutBlockComments(readFileSync(file, "utf8"));
       for (const match of text.matchAll(CLASS_STRING)) {
         const body = match[1] ?? match[2] ?? "";
         if (BANNED.test(body) && /\btext-white\b/.test(body)) {
@@ -49,6 +70,33 @@ test.describe("Accent contrast", () => {
       }
     }
     expect(offenders, "use bg-accent-solid + text-accent-solid-ink instead").toEqual([]);
+  });
+
+  test("no source file pins a raw semantic colour for a notice surface or its text", () => {
+    // Same failure mode as the accent one, opposite direction: these Tailwind
+    // reds are single values that do not swap, so text-red-600 read 3.6:1 on
+    // the dark panel while text-red-400 read 2.5:1 in light, and the
+    // bg-red-50/border-red-200 notice box painted as a near-white slab in
+    // dark. --state-danger-* / --danger-solid carry both themes instead.
+    //
+    // Deliberately NOT banned: bg-red-400/500 as a bare fill (status dots,
+    // over-quota bars) and every alpha variant (bg-red-500/10) — those are
+    // graphical washes carrying no text, judged against 1.4.11's 3:1.
+    const offenders: string[] = [];
+    for (const file of sourceFiles(SRC)) {
+      const text = withoutBlockComments(readFileSync(file, "utf8"));
+      for (const match of text.matchAll(CLASS_STRING)) {
+        const body = match[1] ?? match[2] ?? "";
+        if (BANNED_DANGER.test(body) || BANNED_STATE.test(body)) {
+          const line = text.slice(0, match.index).split("\n").length;
+          offenders.push(`${file.slice(SRC.length + 1)}:${line}`);
+        }
+      }
+    }
+    expect(
+      offenders,
+      "use the --state-{ok,warn,info,danger}-* tokens, or bg-danger-solid + text-danger-solid-ink for a filled destructive control",
+    ).toEqual([]);
   });
 
   for (const scheme of ["light", "dark"] as const) {

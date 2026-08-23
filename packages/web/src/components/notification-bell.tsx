@@ -549,7 +549,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 bg-danger-solid text-danger-solid-ink text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -607,7 +607,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                     type="button"
                     onClick={clearAll}
                     disabled={actionLoading}
-                    className="text-xs text-ink-dim hover:text-red-600 transition disabled:opacity-40"
+                    className="text-xs text-ink-dim hover:text-state-danger-ink transition disabled:opacity-40"
                   >
                     {actionLoading ? "..." : "Clear"}
                   </button>

@@ -72,8 +72,8 @@ interface UserProfile {
 function agentModeLightClasses(mode: AgentMode, active: boolean): string {
   if (!active) return "border-line bg-surface-panel/70 text-ink-mid hover:border-line-strong";
   if (mode === "SHADOW") return "border-line-strong bg-surface-hover text-ink-soft";
-  if (mode === "AUTO") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return "border-amber-200 bg-amber-50 text-amber-700";
+  if (mode === "AUTO") return "border-state-ok-line bg-state-ok-bg text-state-ok-ink";
+  return "border-state-warn-line bg-state-warn-bg text-state-warn-ink";
 }
 
 // PRIMARY_BTN: kept only for the two spots ui/Button can't take over — an
@@ -1116,7 +1116,7 @@ export default function SettingsPage() {
                 onClick={saveProfile}
                 className={
                   profileSaved
-                    ? "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg bg-emerald-500 px-4 text-sm font-medium text-white transition duration-150 active:scale-[0.97]"
+                    ? "ease-strong inline-flex min-h-10 items-center justify-center rounded-lg border border-state-ok-line bg-state-ok-bg px-4 text-sm font-medium text-state-ok-ink transition duration-150 active:scale-[0.97]"
                     : PRIMARY_BTN
                 }
               >
@@ -1596,7 +1596,7 @@ export default function SettingsPage() {
                     </p>
                   )}
                   {agentMode === "AUTO" && (
-                    <p className="text-[10px] text-emerald-600 mt-2">
+                    <p className="text-[10px] text-state-ok-ink mt-2">
                       {t("settings.agentMode.autoNote")}
                     </p>
                   )}
@@ -1618,7 +1618,7 @@ export default function SettingsPage() {
                             onClick={() => toggleAlwaysAllowedTool(tool)}
                             className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                               enabled
-                                ? "bg-sky-50 border-sky-200 text-accent-deeper"
+                                ? "bg-state-info-bg border-state-info-line text-accent-deeper"
                                 : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                             }`}
                             aria-pressed={enabled}
@@ -1665,7 +1665,7 @@ export default function SettingsPage() {
                     onClick={() => updateAutoMarkRead(!autoMarkReadEnabled)}
                     className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                       autoMarkReadEnabled
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        ? "bg-state-ok-bg border-state-ok-line text-state-ok-ink"
                         : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                     }`}
                     aria-pressed={autoMarkReadEnabled}
@@ -1701,7 +1701,7 @@ export default function SettingsPage() {
                     }}
                     className={`ease-strong flex min-h-11 w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition duration-150 active:scale-[0.97] ${
                       proactiveActionsEnabled
-                        ? "bg-sky-50 border-sky-200 text-accent-deeper"
+                        ? "bg-state-info-bg border-state-info-line text-accent-deeper"
                         : "bg-surface-panel/70 border-line text-ink-mid hover:border-line-strong"
                     }`}
                     aria-pressed={proactiveActionsEnabled}
@@ -1808,12 +1808,12 @@ export default function SettingsPage() {
                               : t("settings.confidence.low");
                         const typeColor =
                           p.type === "rejection"
-                            ? "border-red-200 bg-red-50 text-red-600"
+                            ? "border-state-danger-line bg-state-danger-bg text-state-danger-ink"
                             : p.type === "temporal"
                               ? "border-blue-200 bg-blue-50 text-blue-600"
                               : p.type === "tool_preference"
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                                : "border-sky-200 bg-sky-50 text-accent-deep";
+                                ? "border-state-ok-line bg-state-ok-bg text-state-ok-ink"
+                                : "border-state-info-line bg-state-info-bg text-accent-deep";
                         return (
                           <div
                             key={i}
@@ -1866,7 +1866,7 @@ export default function SettingsPage() {
                         <button
                           type="button"
                           onClick={disconnectGoogle}
-                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-state-danger-line bg-state-danger-bg px-3 text-xs font-medium text-state-danger-ink transition duration-150 hover:bg-state-danger-bg active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                         >
                           {t("settings.disconnect")}
                         </button>
@@ -2024,10 +2024,10 @@ export default function SettingsPage() {
 
         {/* Workspace Reset */}
         <section className="mb-8">
-          <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-red-400">
+          <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-state-danger-ink">
             {t("settings.dangerZone")}
           </h2>
-          <div className="panel-elevated rounded-2xl border border-red-200 bg-surface-panel divide-y divide-red-100">
+          <div className="panel-elevated rounded-2xl border border-state-danger-line bg-surface-panel divide-y divide-state-danger-line">
             <div className="flex items-center justify-between gap-4 p-4">
               <div>
                 <h3 className="font-medium">{t("settings.confirm.deleteWorkspace.title")}</h3>

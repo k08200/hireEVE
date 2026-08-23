@@ -50,6 +50,18 @@
   --state-warn-bg: #fffbeb;
   --state-warn-line: #fde68a;
   --state-warn-ink: #b45309; /* 4.9:1 */
+  --state-danger-bg: #fef2f2;
+  --state-danger-line: #fecaca;
+  --state-danger-ink: #b91c1c; /* 5.9:1 on its own surface, 6.5:1 on white */
+  /* Filled destructive control. Unlike --accent-solid this does NOT invert in
+     the dark: a destructive button has to keep reading as red-with-white, and
+     a red fill carries white in both themes anyway. Only the depth changes. */
+  --danger-solid: #b91c1c; /* white 6.5:1 */
+  --danger-solid-hover: #991b1b; /* 8.3:1 */
+  --danger-solid-ink: #ffffff;
+  --state-info-bg: #eff6ff;
+  --state-info-line: #bfdbfe;
+  --state-info-ink: #0369a1; /* 5.5:1 on its own surface */
 
   /* FILLED-control accent. --color-accent (#0ea5e9) is a surface/tint value:
      white text on it measures 2.77:1, well under the 4.5:1 AA floor (verified
@@ -105,6 +117,15 @@
   --state-warn-bg: #2c220c;
   --state-warn-line: #6b5320;
   --state-warn-ink: #fcd34d; /* 10.9:1 */
+  --state-danger-bg: #2b1116;
+  --state-danger-line: #6b2430;
+  --state-danger-ink: #fca5a5; /* 9.1:1 on panel */
+  --danger-solid: #dc2626; /* white 4.8:1 */
+  --danger-solid-hover: #b91c1c; /* hover goes DARKER, 6.5:1 */
+  --danger-solid-ink: #ffffff;
+  --state-info-bg: #0d2233;
+  --state-info-line: #1e4a66;
+  --state-info-ink: #7dd3fc; /* 9.7:1 */
   /* Filled CTA inverts in the dark: bright fill, dark ink — 8.3:1. */
   --accent-solid: #38bdf8;
   --accent-solid-hover: #7dd3fc;
@@ -144,6 +165,15 @@
   --color-state-warn-bg: var(--state-warn-bg);
   --color-state-warn-line: var(--state-warn-line);
   --color-state-warn-ink: var(--state-warn-ink);
+  --color-state-danger-bg: var(--state-danger-bg);
+  --color-state-danger-line: var(--state-danger-line);
+  --color-state-danger-ink: var(--state-danger-ink);
+  --color-danger-solid: var(--danger-solid);
+  --color-danger-solid-hover: var(--danger-solid-hover);
+  --color-danger-solid-ink: var(--danger-solid-ink);
+  --color-state-info-bg: var(--state-info-bg);
+  --color-state-info-line: var(--state-info-line);
+  --color-state-info-ink: var(--state-info-ink);
   --color-accent-solid: var(--accent-solid);
   --color-accent-solid-hover: var(--accent-solid-hover);
   --color-accent-solid-ink: var(--accent-solid-ink);

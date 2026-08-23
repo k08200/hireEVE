@@ -359,7 +359,7 @@ function CandidateIntakeView() {
       </div>
 
       {quality?.correctionSummary && quality.correctionSummary.total > 0 && (
-        <div className="mb-3 rounded-xl border border-sky-200/70 bg-gradient-to-r from-sky-50 to-white px-3 py-2 text-[11px] text-sky-800">
+        <div className="mb-3 rounded-xl border border-state-info-line bg-state-info-bg px-3 py-2 text-[11px] text-state-info-ink">
           {t("candidates.correctionSummary", {
             total: String(quality.correctionSummary.total),
             categories: String(quality.correctionSummary.categoryCorrectionCount),
@@ -509,7 +509,7 @@ function QualityIssuesStrip({ issues }: { issues: NonNullable<AttachmentQuality[
   const [expanded, setExpanded] = useState(false);
   const count = issues.length;
   return (
-    <div className="mb-3 overflow-hidden rounded-lg border border-amber-200/70 bg-amber-50/60">
+    <div className="mb-3 overflow-hidden rounded-lg border border-state-warn-line bg-state-warn-bg">
       <div className="flex items-center gap-3 px-3 py-2">
         <p className="min-w-0 flex-1 truncate text-xs text-amber-800">
           {t("candidates.qualityIssues.prefix")}
@@ -522,18 +522,18 @@ function QualityIssuesStrip({ issues }: { issues: NonNullable<AttachmentQuality[
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
-          className="ease-strong shrink-0 rounded-md px-2 py-1 text-[11px] font-medium text-amber-700 transition duration-150 hover:bg-amber-100 hover:text-amber-900 active:scale-[0.97] focus-ring"
+          className="ease-strong shrink-0 rounded-md px-2 py-1 text-[11px] font-medium text-state-warn-ink transition duration-150 hover:bg-amber-100 hover:text-amber-900 active:scale-[0.97] focus-ring"
         >
           {expanded ? t("candidates.qualityIssues.hide") : t("candidates.qualityIssues.details")}
         </button>
       </div>
       {expanded && (
-        <ul className="divide-y divide-amber-200/50 border-t border-amber-200/50 bg-surface-panel/60">
+        <ul className="divide-y divide-amber-200/50 border-t border-state-warn-line bg-surface-panel/60">
           {issues.slice(0, 4).map((issue) => (
             <li key={issue.attachmentId}>
               <Link
                 href={`/email/${issue.emailId}`}
-                className="ease-strong flex items-baseline gap-2 px-3 py-2 text-[11px] transition duration-150 hover:bg-amber-50 focus-ring"
+                className="ease-strong flex items-baseline gap-2 px-3 py-2 text-[11px] transition duration-150 hover:bg-state-warn-bg focus-ring"
               >
                 <span className="truncate font-medium text-ink-soft">{issue.filename}</span>
                 <span className="min-w-0 truncate text-ink-dim">{issue.reason}</span>
@@ -578,7 +578,7 @@ function BulkStatusButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+      className="ease-strong rounded-lg border border-line bg-surface-panel/70 px-3 py-1.5 text-xs font-medium text-ink-mid transition duration-150 hover:bg-state-info-bg hover:text-accent-deeper active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
     >
       {label}
     </button>
@@ -604,7 +604,7 @@ function CandidateCard({
       className={`panel-elevated relative overflow-hidden rounded-2xl border bg-surface-panel p-4 transition duration-150 ease-out ${
         selected
           ? "border-accent-muted ring-2 ring-accent/20"
-          : "border-line/70 hover:border-sky-200"
+          : "border-line/70 hover:border-state-info-line"
       }`}
     >
       {selected && (
@@ -633,7 +633,7 @@ function CandidateCard({
               {Math.round(candidate.confidence * 100)}%
             </span>
             {candidate.duplicateCount > 1 && (
-              <span className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-inset ring-amber-500/20">
+              <span className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-state-warn-ink ring-1 ring-inset ring-amber-500/20">
                 {t("candidates.card.duplicateBadge", { count: String(candidate.duplicateCount) })}
               </span>
             )}
@@ -655,7 +655,7 @@ function CandidateCard({
           {t("emailDetail.attachment.fileCount", { count: String(candidate.evidenceFiles.length) })}
         </span>
         {candidate.evidenceFiles.some((file) => file.needsManualReview) && (
-          <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-amber-700 ring-1 ring-inset ring-amber-500/20">
+          <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-state-warn-ink ring-1 ring-inset ring-amber-500/20">
             {t("candidates.card.sourceCheckCount", {
               count: String(
                 candidate.evidenceFiles.filter((file) => file.needsManualReview).length,

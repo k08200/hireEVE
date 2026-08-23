@@ -29,7 +29,7 @@ interface StatusMeta {
 const STATUS_META: Record<Status, StatusMeta> = {
   connected: {
     label: "Connected",
-    chip: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    chip: "bg-state-ok-bg text-state-ok-ink border-state-ok-line",
     // filled dot
     dot: "bg-emerald-400",
   },

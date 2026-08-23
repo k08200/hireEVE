@@ -123,7 +123,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 onClick={() => handleClose(true)}
                 className={`min-h-11 px-4 py-2 rounded-lg text-sm font-medium transition ${
                   options.danger
-                    ? "bg-red-600 hover:bg-red-500 text-white"
+                    ? "bg-danger-solid hover:bg-danger-solid-hover text-danger-solid-ink"
                     : "bg-accent-solid hover:bg-accent-solid-hover text-accent-solid-ink"
                 }`}
               >

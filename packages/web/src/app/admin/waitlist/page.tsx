@@ -150,11 +150,11 @@ function WaitlistPageInner() {
           </p>
         </header>
 
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+        <div className="mb-6 rounded-xl border border-state-warn-line bg-state-warn-bg p-4 text-sm leading-6 text-amber-800">
           <p className="font-semibold text-amber-800">
             ⚠️ Do this BEFORE clicking Approve — every time.
           </p>
-          <ol className="mt-2 list-decimal space-y-1 pl-6 text-[13px] text-amber-700">
+          <ol className="mt-2 list-decimal space-y-1 pl-6 text-[13px] text-state-warn-ink">
             <li>Copy the email from the row below (click the address to copy).</li>
             <li>
               Open{" "}
@@ -190,7 +190,7 @@ function WaitlistPageInner() {
                 }}
                 className={`ease-strong rounded-xl border px-4 py-3 text-left transition duration-150 active:scale-[0.97] ${
                   isActive
-                    ? "panel-elevated border-accent-muted bg-sky-50 text-ink"
+                    ? "panel-elevated border-accent-muted bg-state-info-bg text-ink"
                     : "border-line bg-surface-panel/70 text-ink-mid hover:bg-surface-panel hover:text-ink"
                 }`}
               >
@@ -292,7 +292,7 @@ function WaitlistPageInner() {
                           type="button"
                           onClick={() => updateStatus(entry.id, "REJECTED")}
                           disabled={updating === entry.id}
-                          className="ease-strong inline-flex h-9 items-center rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-60"
+                          className="ease-strong inline-flex h-9 items-center rounded-lg border border-state-danger-line bg-state-danger-bg px-3 text-sm font-medium text-state-danger-ink transition duration-150 hover:bg-state-danger-bg active:scale-[0.97] disabled:opacity-60"
                         >
                           Reject
                         </button>
@@ -321,8 +321,8 @@ function WaitlistPageInner() {
 
 function StatusBadge({ status }: { status: WaitlistEntry["status"] }) {
   const map: Record<WaitlistEntry["status"], { label: string; cls: string }> = {
-    PENDING: { label: "Pending", cls: "bg-amber-500/10 text-amber-600 ring-amber-500/20" },
-    APPROVED: { label: "Approved", cls: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20" },
+    PENDING: { label: "Pending", cls: "bg-amber-500/10 text-state-warn-ink ring-amber-500/20" },
+    APPROVED: { label: "Approved", cls: "bg-emerald-500/10 text-state-ok-ink ring-emerald-500/20" },
     REJECTED: { label: "Rejected", cls: "bg-surface-hover text-ink-mid ring-line" },
   };
   const s = map[status];

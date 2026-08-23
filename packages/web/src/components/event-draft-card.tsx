@@ -96,7 +96,7 @@ export default function EventDraftCard({ draft }: { draft: EventDraft }) {
       )}
 
       {state === "saved" ? (
-        <p className="mt-2 text-emerald-600">{t("draft.saved")}</p>
+        <p className="mt-2 text-state-ok-ink">{t("draft.saved")}</p>
       ) : state === "paywalled" ? (
         <p className="mt-2 text-ink-mid">
           {t("draft.paywall")}{" "}
@@ -114,7 +114,9 @@ export default function EventDraftCard({ draft }: { draft: EventDraft }) {
           >
             {state === "saving" ? t("draft.saving") : t("draft.save")}
           </button>
-          {state === "error" && errorMessage && <p className="text-red-700">{errorMessage}</p>}
+          {state === "error" && errorMessage && (
+            <p className="text-state-danger-ink">{errorMessage}</p>
+          )}
         </div>
       )}
     </div>

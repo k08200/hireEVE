@@ -29,7 +29,7 @@ export function EveSignalField({ className = "", tone = "panel" }: EveSignalFiel
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-dim">
             Work signals
           </span>
-          <span className="rounded-full border border-emerald-400/20 px-2 py-0.5 text-[10px] text-emerald-200">
+          <span className="rounded-full border border-emerald-400/20 px-2 py-0.5 text-[10px] text-state-ok-ink">
             Live
           </span>
         </div>

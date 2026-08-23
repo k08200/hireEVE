@@ -40,7 +40,7 @@ export const BADGE_META: Record<TrustBadge, BadgeStyle> = {
   },
   unreliable: {
     label: "Unreliable",
-    chip: "text-red-400 bg-red-400/10 border-red-400/20",
+    chip: "text-state-danger-ink bg-red-400/10 border-red-400/20",
     dot: "bg-red-400",
   },
   unknown: {

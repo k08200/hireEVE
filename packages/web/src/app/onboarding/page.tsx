@@ -269,7 +269,7 @@ function SyncRow({
     <div className="flex items-center gap-3 px-4 py-3">
       <span className="shrink-0 text-base text-ink-mid">{icon}</span>
       <p className="flex-1 text-sm text-ink-mid">{label}</p>
-      {done && <span className="shrink-0 text-[11px] font-semibold text-emerald-600">✓</span>}
+      {done && <span className="shrink-0 text-[11px] font-semibold text-state-ok-ink">✓</span>}
       {loading && (
         <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" />
       )}
@@ -294,7 +294,7 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
         <StatCard value={initSync.contacts} label={t("onboarding.ready.stat.contacts")} />
       </div>
 
-      <div className="panel-elevated mt-4 rounded-2xl border border-sky-200/70 bg-surface-panel p-4">
+      <div className="panel-elevated mt-4 rounded-2xl border border-state-info-line bg-surface-panel p-4">
         <p className="text-xs font-semibold text-accent-deeper">
           {t("onboarding.ready.whatNext.title")}
         </p>

@@ -6,7 +6,8 @@ import { forwardRef, useId } from "react";
 const baseStyles =
   "w-full bg-surface-panel border border-line rounded-lg px-4 py-2.5 text-sm text-ink placeholder-ink-dim focus:outline-none focus-visible:border-accent focus-visible:ring-1 focus-visible:ring-accent/25 transition-colors";
 
-const errorStyles = "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30";
+const errorStyles =
+  "border-danger-solid focus-visible:border-danger-solid focus-visible:ring-danger-solid/30";
 
 /** Prefer an explicit id, then a label-derived slug, then a stable useId(). */
 function useControlId(id: string | undefined, label: string | undefined): string {
@@ -40,7 +41,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p id={`${inputId}-error`} className="text-xs text-red-600 mt-1" role="alert">
+          <p id={`${inputId}-error`} className="text-xs text-state-danger-ink mt-1" role="alert">
             {error}
           </p>
         )}
@@ -74,7 +75,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {error && (
-          <p id={`${inputId}-error`} className="text-xs text-red-600 mt-1" role="alert">
+          <p id={`${inputId}-error`} className="text-xs text-state-danger-ink mt-1" role="alert">
             {error}
           </p>
         )}
@@ -109,7 +110,7 @@ export function Select({ label, error, children, className = "", id, ...props }:
         {children}
       </select>
       {error && (
-        <p id={`${inputId}-error`} className="text-xs text-red-600 mt-1" role="alert">
+        <p id={`${inputId}-error`} className="text-xs text-state-danger-ink mt-1" role="alert">
           {error}
         </p>
       )}

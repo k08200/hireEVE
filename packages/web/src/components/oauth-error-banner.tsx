@@ -28,7 +28,7 @@ export function OAuthErrorBanner() {
     <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-red-600">
+          <h3 className="text-sm font-semibold text-state-danger-ink">
             Gmail offline access wasn't granted
           </h3>
           <p className="mt-1 text-[13px] leading-5 text-ink-mid">
