@@ -53,6 +53,50 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
+/** A plan is metered when at least one of its two limits is a real number. */
+function isMetered(status: BillingStatus): boolean {
+  return isFiniteLimit(status.messageLimit) || isFiniteLimit(status.tokenLimit);
+}
+
+/**
+ * One usage row: label, used/limit, and a bar. The two metrics used to be the
+ * same thirty lines written twice.
+ */
+function UsageMeter({
+  label,
+  used,
+  limit,
+  format,
+}: {
+  label: string;
+  used: number;
+  limit: number | null;
+  format: (n: number) => string;
+}) {
+  const metered = isFiniteLimit(limit) && limit > 0;
+  const ratio = metered ? used / limit : 0;
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-sm">
+        <span className="text-ink-mid">{label}</span>
+        <span className="text-ink-mid tabular-nums">
+          {format(used)} / {isFiniteLimit(limit) ? format(limit) : "\u221e"}
+        </span>
+      </div>
+      {metered && (
+        <div className="h-2 w-full rounded-full bg-surface-hover">
+          <div
+            className={`h-2 rounded-full transition-[width] duration-500 ${
+              ratio > 0.9 ? "bg-red-500" : ratio > 0.7 ? "bg-amber-400" : "bg-emerald-400"
+            }`}
+            style={{ width: `${Math.min(ratio * 100, 100)}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Round to cents; sub-cent spend reads "< $0.01" instead of a noisy $0.0001. */
 function formatUsd(amount: number): string {
   if (amount > 0 && amount < 0.01) return "< $0.01";
@@ -242,73 +286,69 @@ function BillingContent() {
             <SubscriptionManager state={toSubscriptionState(status)} onChanged={loadStatus} />
           </div>
 
-          {status.estimatedCost > 0 && (
-            <p className="mb-3 text-xs text-ink-mid tabular-nums">
-              {t("billing.aboutCostThisMonth", { amount: formatUsd(status.estimatedCost) })}
-            </p>
+          {isMetered(status) ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <UsageMeter
+                label={t("billing.decisions")}
+                used={status.messageCount}
+                limit={status.messageLimit}
+                format={(n) => n.toLocaleString()}
+              />
+              <UsageMeter
+                label={t("billing.tokens")}
+                used={status.tokenUsage}
+                limit={status.tokenLimit}
+                format={formatTokens}
+              />
+            </div>
+          ) : (
+            // Unlimited plan: no bar to draw, and the metered layout flung
+            // each label to the opposite end of a half-width grid cell, then
+            // stacked cost and the usage link under it — five rows of mostly
+            // air. Everything that is left collapses into one dense line.
+            <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm text-ink-mid">
+              <span>
+                {t("billing.decisions")}{" "}
+                <span className="font-medium text-ink tabular-nums">
+                  {status.messageCount.toLocaleString()}
+                </span>
+              </span>
+              <span>
+                {t("billing.tokens")}{" "}
+                <span className="font-medium text-ink tabular-nums">
+                  {formatTokens(status.tokenUsage)}
+                </span>
+              </span>
+              <span>{t("billing.unlimitedOnPlan")}</span>
+              {status.estimatedCost > 0 && (
+                <span className="tabular-nums">
+                  {t("billing.aboutCostThisMonth", { amount: formatUsd(status.estimatedCost) })}
+                </span>
+              )}
+              <Link
+                href="/usage"
+                className="focus-ring rounded font-medium text-accent-deeper hover:underline"
+              >
+                {t("billing.viewDetailedUsage")}
+              </Link>
+            </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Decision turns usage */}
-            <div>
-              <div className="mb-1 flex justify-between text-sm">
-                <span className="text-ink-mid">{t("billing.decisions")}</span>
-                <span className="text-ink-mid tabular-nums">
-                  {status.messageCount} /{" "}
-                  {isFiniteLimit(status.messageLimit) ? status.messageLimit.toLocaleString() : "∞"}
-                </span>
-              </div>
-              {isFiniteLimit(status.messageLimit) && status.messageLimit > 0 && (
-                <div className="h-2 w-full rounded-full bg-surface-hover">
-                  <div
-                    className={`h-2 rounded-full transition-[width] duration-500 ${
-                      status.messageCount / status.messageLimit > 0.9
-                        ? "bg-red-500"
-                        : status.messageCount / status.messageLimit > 0.7
-                          ? "bg-amber-400"
-                          : "bg-emerald-400"
-                    }`}
-                    style={{
-                      width: `${Math.min((status.messageCount / status.messageLimit) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
+          {isMetered(status) && (
+            <>
+              {status.estimatedCost > 0 && (
+                <p className="mt-2 text-xs text-ink-mid tabular-nums">
+                  {t("billing.aboutCostThisMonth", { amount: formatUsd(status.estimatedCost) })}
+                </p>
               )}
-            </div>
-
-            {/* Tokens usage */}
-            <div>
-              <div className="mb-1 flex justify-between text-sm">
-                <span className="text-ink-mid">{t("billing.tokens")}</span>
-                <span className="text-ink-mid tabular-nums">
-                  {formatTokens(status.tokenUsage)} /{" "}
-                  {isFiniteLimit(status.tokenLimit) ? formatTokens(status.tokenLimit) : "∞"}
-                </span>
-              </div>
-              {isFiniteLimit(status.tokenLimit) && status.tokenLimit > 0 && (
-                <div className="h-2 w-full rounded-full bg-surface-hover">
-                  <div
-                    className={`h-2 rounded-full transition-[width] duration-500 ${
-                      status.tokenUsage / status.tokenLimit > 0.9
-                        ? "bg-red-500"
-                        : status.tokenUsage / status.tokenLimit > 0.7
-                          ? "bg-amber-400"
-                          : "bg-emerald-400"
-                    }`}
-                    style={{
-                      width: `${Math.min((status.tokenUsage / status.tokenLimit) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-          <Link
-            href="/usage"
-            className="focus-ring mt-3 inline-flex min-h-11 items-center rounded text-sm font-medium text-accent-deeper hover:underline"
-          >
-            {t("billing.viewDetailedUsage")}
-          </Link>
+              <Link
+                href="/usage"
+                className="focus-ring mt-3 inline-flex min-h-11 items-center rounded text-sm font-medium text-accent-deeper hover:underline"
+              >
+                {t("billing.viewDetailedUsage")}
+              </Link>
+            </>
+          )}
         </div>
       )}
 

@@ -590,6 +590,11 @@ const enTranslations: Record<string, string> = {
   "billing.error.checkoutFailed": "Could not create checkout session.",
   "billing.error.portalFailed": "Could not open billing portal.",
   "billing.cancelSubscription": "Cancel subscription",
+  "billing.unlimitedOnPlan": "Unlimited on this plan",
+  "billing.noWebSubscription":
+    "This plan isn't billed on the web, so there is nothing to cancel here. If you subscribed in the mobile app, manage it there.",
+  "billing.enterpriseBilling":
+    "Enterprise is billed by agreement — contact sales to change the plan.",
   "billing.keepSubscription": "Keep subscription",
   "billing.renewsOn": "Renews on {date}",
   "billing.trialFirstCharge": "Free trial · first charge on {date}",
@@ -1706,6 +1711,11 @@ const koTranslations: Record<string, string> = {
   "billing.error.checkoutFailed": "결제 세션을 생성하지 못했습니다.",
   "billing.error.portalFailed": "결제 포털을 열지 못했습니다.",
   "billing.cancelSubscription": "구독 취소",
+  "billing.unlimitedOnPlan": "이 플랜은 무제한",
+  "billing.noWebSubscription":
+    "이 플랜은 웹에서 결제된 것이 아니라 여기서 취소할 것이 없습니다. 모바일 앱에서 구독했다면 앱에서 관리하세요.",
+  "billing.enterpriseBilling":
+    "엔터프라이즈는 별도 계약으로 청구됩니다 — 플랜 변경은 영업팀에 문의하세요.",
   "billing.keepSubscription": "구독 유지",
   "billing.renewsOn": "{date}에 갱신",
   "billing.trialFirstCharge": "무료 체험 · {date}에 첫 결제",
