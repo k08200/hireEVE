@@ -173,6 +173,8 @@ let lastCalibrationSnapshotDate = "";
 // calibration gates above).
 let lastVoiceProfileDate = "";
 let lastWeeklyReportDate = "";
+// UTC date of the last daily-digest sweep, same tick-guard pattern.
+let lastDailyDigestDate = "";
 let lastSenderTraitDate = "";
 let lastLearnedRuleDate = "";
 
@@ -779,6 +781,18 @@ async function runAutomations() {
 
     const todayUtc = new Date().toISOString().slice(0, 10);
     const isSunday = new Date().getDay() === 0;
+
+    // --- Daily: digest of what was filed out of the way ---
+    // Once per UTC day. The sweep is itself idempotent (Note dayKey), so this
+    // guard is only about not re-running the query set on every tick.
+    if (lastDailyDigestDate !== todayUtc) {
+      lastDailyDigestDate = todayUtc;
+      import("./pim/daily-digest.js")
+        .then(({ sendDailyDigests }) => sendDailyDigests())
+        .catch((err) => {
+          console.error("[AUTOMATION] Daily digest failed:", err);
+        });
+    }
 
     // --- Weekly: Signal report (Monday only) ---
     // Measured last-7-days numbers per active user (no LLM). Idempotent per
