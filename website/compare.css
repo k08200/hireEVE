@@ -61,7 +61,12 @@ body {
 .top a { color: var(--ink-2); text-decoration: none; }
 .top a:hover { color: var(--sky-ink); }
 .home { font-weight: 650; color: var(--ink) !important; letter-spacing: -.01em; }
-.lang { display: flex; gap: 2px; }
+/* #1217 replaced the landing's two-button toggle with a menu, on the grounds
+ * that a control needing a redesign per shipped language is the wrong shape.
+ * These are text pages with a sparse top bar rather than a tight nav pill, so
+ * they do not need the menu — but they must not overflow either. Wrapping is
+ * what makes seven languages a second row instead of a horizontal scrollbar. */
+.lang { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
 /* 44px minimum touch target — the label is small, the hit area is not. */
 .lang a {
   min-width: 44px;
