@@ -9,7 +9,10 @@
  */
 
 import { prisma } from "../db.js";
-import { resolveNotificationLanguage } from "../notify/notification-strings.js";
+import {
+  type NotificationLanguage,
+  resolveNotificationLanguage,
+} from "../notify/notification-strings.js";
 import { localDayUtcRange } from "../time-zone.js";
 import { stripUntrusted } from "../untrusted.js";
 import { getUserTimeZone } from "../user-timezone.js";
@@ -39,87 +42,126 @@ export interface BriefingStructure {
   attention: Array<{ rank: number; action: string; reason: string }>;
 }
 
-type Lang = "en" | "ko";
+type Lang = NotificationLanguage;
+
+/**
+ * Every sentence this module can produce, in one table.
+ *
+ * It used to be ~13 inline `lang === "ko" ? … : …` ternaries scattered through
+ * the formatters. That shape does not scale past two languages: a third means
+ * touching every branch, and nothing tells you which sentence you forgot.
+ * As a table typed by NotificationLanguage, adding a language is one column
+ * and tsc names every entry still missing it.
+ *
+ * Functions, not plain strings, because these sentences interpolate measured
+ * numbers — and the grammar around a count differs per language.
+ */
+const COPY: Record<Lang, BriefingCopy> = {
+  en: {
+    today: "Today",
+    beforeHour: (h) => `Before ${h}`,
+    afterHour: (h) => `After ${h}`,
+    hourRange: (from, to) => `${from} – ${to}`,
+    offSummary: "Nothing scheduled. It's a day off.",
+    freeSummary: (hours) => `${hours} hours open.`,
+    busySummary: (count, list) => `${count} scheduled: ${list}`,
+    offHeadline: "Nothing on the calendar. It's a day off.",
+    clearHeadline: "A clear day. Long focus blocks are yours.",
+    frontLoaded: (n, boundary) =>
+      `${n} meeting${n === 1 ? "" : "s"} before ${boundary}. The rest is open.`,
+    withOpenHours: (n, free) => `${n} meeting${n === 1 ? "" : "s"} today, with ${free} open hours.`,
+    backToBack: (n) => `${n} meeting${n === 1 ? "" : "s"} back to back today.`,
+    hourLabel: (hour) => {
+      const meridiem = hour < 12 ? "AM" : "PM";
+      const h = hour === 12 ? 12 : hour % 12;
+      return `${h} ${meridiem}`;
+    },
+    dateLocale: "en-US",
+  },
+  ko: {
+    today: "오늘",
+    beforeHour: (h) => `${h} 이전`,
+    afterHour: (h) => `${h} 이후`,
+    hourRange: (from, to) => `${from} – ${to}`,
+    offSummary: "일정이 없습니다. 쉬는 날입니다.",
+    freeSummary: (hours) => `${hours}시간 비어 있습니다.`,
+    busySummary: (count, list) => `${count}건: ${list}`,
+    offHeadline: "일정이 없습니다. 휴일입니다.",
+    clearHeadline: "일정 없는 하루입니다. 긴 집중 블록을 쓸 수 있습니다.",
+    frontLoaded: (n, boundary) => `${boundary} 전에 회의 ${n}건. 나머지는 비어 있습니다.`,
+    withOpenHours: (n, free) => `오늘 회의 ${n}건, 비는 시간은 ${free}시간입니다.`,
+    backToBack: (n) => `오늘 회의 ${n}건이 이어집니다.`,
+    hourLabel: (hour) => {
+      const meridiem = hour < 12 ? "오전" : "오후";
+      const h = hour <= 12 ? hour : hour - 12;
+      return `${meridiem} ${h}시`;
+    },
+    dateLocale: "ko-KR",
+  },
+};
+
+interface BriefingCopy {
+  today: string;
+  beforeHour: (hourLabel: string) => string;
+  afterHour: (hourLabel: string) => string;
+  hourRange: (from: string, to: string) => string;
+  offSummary: string;
+  freeSummary: (hours: number) => string;
+  busySummary: (count: number, list: string) => string;
+  offHeadline: string;
+  clearHeadline: string;
+  frontLoaded: (count: number, boundary: string) => string;
+  withOpenHours: (count: number, freeHours: number) => string;
+  backToBack: (count: number) => string;
+  hourLabel: (hour: number) => string;
+  /** BCP-47 tag for Intl date formatting. */
+  dateLocale: string;
+}
 
 /** "10 AM" / "오전 10시" — segment labels use whole hours only. */
 function hourLabel(hour: number, lang: Lang): string {
-  if (lang === "ko") {
-    const meridiem = hour < 12 ? "오전" : "오후";
-    const h = hour <= 12 ? hour : hour - 12;
-    return `${meridiem} ${h}시`;
-  }
-  const meridiem = hour < 12 ? "AM" : "PM";
-  const h = hour === 12 ? 12 : hour % 12;
-  return `${h} ${meridiem}`;
+  return COPY[lang].hourLabel(hour);
 }
 
 function segmentLabel(seg: DaySegment, index: number, count: number, lang: Lang): string {
-  if (count === 1) return lang === "ko" ? "오늘" : "Today";
-  if (index === 0) {
-    return lang === "ko"
-      ? `${hourLabel(seg.endHour, lang)} 이전`
-      : `Before ${hourLabel(seg.endHour, lang)}`;
-  }
-  if (index === count - 1) {
-    return lang === "ko"
-      ? `${hourLabel(seg.startHour, lang)} 이후`
-      : `After ${hourLabel(seg.startHour, lang)}`;
-  }
-  return `${hourLabel(seg.startHour, lang)} – ${hourLabel(seg.endHour, lang)}`;
+  const copy = COPY[lang];
+  if (count === 1) return copy.today;
+  if (index === 0) return copy.beforeHour(hourLabel(seg.endHour, lang));
+  if (index === count - 1) return copy.afterHour(hourLabel(seg.startHour, lang));
+  return copy.hourRange(hourLabel(seg.startHour, lang), hourLabel(seg.endHour, lang));
 }
 
 /** Measured, template-only summaries — no LLM, no invented numbers. */
 function segmentSummary(seg: DaySegment, lang: Lang): string {
-  if (seg.kind === "off") {
-    return lang === "ko" ? "일정이 없습니다. 쉬는 날입니다." : "Nothing scheduled. It's a day off.";
-  }
-  if (seg.kind === "free") {
-    const hours = seg.endHour - seg.startHour;
-    return lang === "ko" ? `${hours}시간 비어 있습니다.` : `${hours} hours open.`;
-  }
+  const copy = COPY[lang];
+  if (seg.kind === "off") return copy.offSummary;
+  if (seg.kind === "free") return copy.freeSummary(seg.endHour - seg.startHour);
   const titles = seg.eventTitles.slice(0, 3).join(", ");
   const extra = seg.eventTitles.length - 3;
   const list = extra > 0 ? `${titles} +${extra}` : titles;
-  return lang === "ko"
-    ? `${seg.eventTitles.length}건: ${list}`
-    : `${seg.eventTitles.length} scheduled: ${list}`;
+  return copy.busySummary(seg.eventTitles.length, list);
 }
 
 function headline(segments: DaySegment[], meetingCount: number, lang: Lang): string {
+  const copy = COPY[lang];
   const only = segments.length === 1 ? segments[0] : null;
-  if (only?.kind === "off") {
-    return lang === "ko"
-      ? "일정이 없습니다. 휴일입니다."
-      : "Nothing on the calendar. It's a day off.";
-  }
-  if (only?.kind === "free" || meetingCount === 0) {
-    return lang === "ko"
-      ? "일정 없는 하루입니다. 긴 집중 블록을 쓸 수 있습니다."
-      : "A clear day. Long focus blocks are yours.";
-  }
+  if (only?.kind === "off") return copy.offHeadline;
+  if (only?.kind === "free" || meetingCount === 0) return copy.clearHeadline;
+
   const firstBusy = segments.find((s) => s.kind === "busy");
   const lastFree = [...segments].reverse().find((s) => s.kind === "free");
-  const n = meetingCount;
   if (firstBusy && segments[0] === firstBusy && lastFree === segments[segments.length - 1]) {
     // The screenshot shape: front-loaded, then open.
-    const boundary = hourLabel(firstBusy.endHour, lang);
-    return lang === "ko"
-      ? `${boundary} 전에 회의 ${n}건. 나머지는 비어 있습니다.`
-      : `${n} meeting${n === 1 ? "" : "s"} before ${boundary}. The rest is open.`;
+    return copy.frontLoaded(meetingCount, hourLabel(firstBusy.endHour, lang));
   }
   if (lastFree) {
-    const free = lastFree.endHour - lastFree.startHour;
-    return lang === "ko"
-      ? `오늘 회의 ${n}건, 비는 시간은 ${free}시간입니다.`
-      : `${n} meeting${n === 1 ? "" : "s"} today, with ${free} open hours.`;
+    return copy.withOpenHours(meetingCount, lastFree.endHour - lastFree.startHour);
   }
-  return lang === "ko"
-    ? `오늘 회의 ${n}건이 이어집니다.`
-    : `${n} meeting${n === 1 ? "" : "s"} back to back today.`;
+  return copy.backToBack(meetingCount);
 }
 
 function dateLabel(now: Date, timeZone: string, lang: Lang): string {
-  return new Intl.DateTimeFormat(lang === "ko" ? "ko-KR" : "en-US", {
+  return new Intl.DateTimeFormat(COPY[lang].dateLocale, {
     timeZone,
     year: "numeric",
     month: "long",
@@ -149,7 +191,7 @@ export async function buildBriefingStructure(
       select: { notificationLanguage: true },
     }),
   ]);
-  const lang = resolveNotificationLanguage(config?.notificationLanguage) as Lang;
+  const lang = resolveNotificationLanguage(config?.notificationLanguage);
 
   const { gte, lt } = localDayUtcRange(now, timeZone);
   // OVERLAP with today (not started-today): an event that began yesterday
