@@ -1093,6 +1093,7 @@ export default function SettingsPage() {
                   <option value="ja">日本語</option>
                   <option value="zh">中文（简体）</option>
                   <option value="es">Español</option>
+                  <option value="fr">Français</option>
                 </select>
               </div>
               <div>
