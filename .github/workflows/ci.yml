@@ -72,6 +72,9 @@ jobs:
       - name: Website EN/KO lockstep
         run: bash .github/scripts/check-website-lockstep.sh
 
+      - name: Web i18n locale parity
+        run: node .github/scripts/check-i18n-parity.mjs
+
   typecheck:
     name: TypeScript
     runs-on: ubuntu-latest
