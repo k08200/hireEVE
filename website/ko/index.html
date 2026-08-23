@@ -8,10 +8,10 @@
 <link rel="canonical" href="https://klorn.ai/ko/">
 <!-- The KO page never auto-redirects: the language script only runs on the site
      root, so a visitor who lands here stays here. -->
-<title>Klorn — 소음은 들어오고, 신호만 남는다</title>
-<meta name="description" content="메일을 Push / Meeting / Queue / Info / Silent 다섯 단계로 분류하고, 그 이유까지 알려줍니다. 웹·macOS·Windows. 오픈소스, 셀프호스팅 가능, 당신이 정한 규칙 밖에서는 아무것도 보내지 않습니다.">
-<meta property="og:title" content="Klorn — 소음은 들어오고, 신호만 남는다">
-<meta property="og:description" content="메일을 다섯 단계로 분류하고 그 이유를 알려줍니다. 웹·macOS·Windows. 다른 AI 에이전트는 당신을 대신해 행동합니다. Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.">
+<title>Klorn — 덜 방해받는 것, 빨리 처리하는 게 아니라</title>
+<meta name="description" content="모든 메일을 다섯 레인으로 분류하고 한 통마다 이유를 붙입니다. Superhuman·Fyxer는 월 $30인데 이유는 안 알려줍니다. AGPL-3.0, 셀프호스팅, 월 $8.99.">
+<meta property="og:title" content="Klorn — 덜 방해받는 것, 빨리 처리하는 게 아니라">
+<meta property="og:description" content="Klorn은 모든 메일을 다섯 레인 — Push, Meeting, Queue, Info, Silent — 으로 분류하고 한 통마다 그 이유를 붙입니다. Superhuman은 속도를, Fyxer는 답장을 팝니다. 둘 다 월 $30이고 어느 쪽도 이 메일이 왜 도달했는지는 말하지 않습니다. AGPL-3.0, 셀프호스팅 가능, 승인하지 않은 것은 보내지 않습니다.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://klorn.ai/ko/">
 <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
@@ -661,6 +661,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
+/* Three checkable facts under the fold-line. Every competitor in this category
+   puts a number on its hero; ours have to be ones a reader can go and verify. */
+.proof{list-style:none;margin:22px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:9px 26px;max-width:760px}
+.proof li{font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+.proof b{color:var(--ink);font-weight:700}
+.price-anchor{margin:22px auto 0;max-width:760px;text-align:center;font-size:12.5px;line-height:1.65;color:var(--ink-3)}
+.price-anchor b{color:var(--ink-2);font-weight:650}
 @media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}
   .buckets .bk:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
@@ -766,7 +773,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "applicationCategory": "BusinessApplication",
  "url": "https://klorn.ai/ko/",
  "inLanguage": "ko",
- "description": "메일을 다섯 단계 — Push, Meeting, Queue, Info, Silent — 로 분류하고 이유를 보여줍니다. 웹·macOS·Windows. 오픈소스(AGPLv3), 셀프호스팅 가능, 정한 규칙 밖으로는 아무것도 보내지 않습니다.",
+ "description": "모든 메일을 다섯 레인 — Push, Meeting, Queue, Info, Silent — 으로 분류하고 한 통마다 이유를 붙입니다. 오픈소스(AGPL-3.0, 덧붙인 조항 없음), 셀프호스팅 가능, 승인하지 않은 것은 보내지 않습니다.",
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
@@ -787,14 +794,6 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "@context": "https://schema.org",
  "@type": "FAQPage",
  "mainEntity": [
-  {
-   "@type": "Question",
-   "name": "로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?",
-   "acceptedAnswer": {
-    "@type": "Answer",
-    "text": "메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를 받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로 제한됩니다."
-   }
-  },
   {
    "@type": "Question",
    "name": "저 없이 뭔가 보낼 수 있나요?",
@@ -824,7 +823,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "윈도우 앱은 언제인가요?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 단계로 계속 쓸 수 있습니다."
+    "text": "나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 레인으로 계속 쓸 수 있습니다."
    }
   },
   {
@@ -833,6 +832,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "acceptedAnswer": {
     "@type": "Answer",
     "text": "아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가 당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를 받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로 제한됩니다."
    }
   }
  ]
@@ -870,10 +877,11 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
   <div class="wrap">
     <span class="eyebrow rv">실제 메일로 측정 <b>94.3%</b></span>
-    <h1 class="rv">소음은 들어오고,<br><span class="ser">신호</span>만 남는다.</h1>
-    <p class="lead rv"><b style="color:var(--ink);font-weight:650">메일을 다섯 단계로 분류하고,
-      그 이유까지 알려줍니다. 웹·macOS·Windows.</b> 다른 AI 에이전트는 당신을 대신해 행동합니다.
-      Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.</p>
+    <h1 class="rv">덜 방해받는 것.<br><span class="ser">빨리</span> 처리하는 게 아니라.</h1>
+    <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn은 모든 메일을 다섯 레인으로
+      분류하고, 한 통마다 그 이유를 붙입니다.</b> 웹·macOS·Windows. Superhuman은 속도를 팝니다.
+      Fyxer는 답장을 대신 씁니다. 둘 다 월 $30이고, 어느 쪽도 이 메일이 왜 당신에게 도달했는지는
+      말해주지 않습니다. Klorn은 그 질문에 먼저 답하고, 당신이 승인하지 않은 것은 보내지 않습니다.</p>
     <div class="actions rv">
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">무료로 시작 <i>↗</i></a>
     </div>
@@ -890,6 +898,11 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <p class="actions-note rv">무료, AGPLv3. 앱은 Klorn 계정으로 로그인하며,
       계정 만드는 데 1분이면 됩니다.
       <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
+    <ul class="proof rv">
+      <li><b>94.3%</b> — 직접 라벨링한 메일 53통 중 50통. 그 세트가 리포에 있습니다</li>
+      <li><b>0개</b> — AGPL-3.0 뒤에 덧붙인 조항</li>
+      <li><b>당신의 서버</b>가 당신 메일을 읽습니다 — 셀프호스트, 내 키 또는 로컬 모델</li>
+    </ul>
   </div>
 
 
@@ -921,7 +934,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </div>
 
   <div class="stage rv">
-    <p class="stage-cap"><b>LIVE</b> 실제로 동작하는 복제본 — 단계, 메일, 답장, 재분류 모두 눌러보세요.
+    <p class="stage-cap"><b>LIVE</b> 실제로 동작하는 복제본 — 레인, 메일, 답장, 재분류 모두 눌러보세요.
       아래에 있는 스크린샷은 출시 중인 앱 그 자체입니다.</p>
     <div class="shell" data-tilt>
       <div class="core">
@@ -968,9 +981,9 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="tour-panel" role="tabpanel" id="tp-1" aria-labelledby="tt-1">
         <img src="/media/app/ko/reading.jpg" alt="근거가 붙은 PUSH 메일: 왜 그렇게 매겨졌는지, 기한, 그리고 한 키 답장 버튼" width="1040" height="660" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-2" aria-labelledby="tt-2" hidden>
-        <img src="/media/app/ko/rows.jpg" alt="발신자, 제목, 그리고 각 메일이 그 단계로 간 이유를 보여주는 메일 행" width="1040" height="660" loading="lazy" decoding="async"></div>
+        <img src="/media/app/ko/rows.jpg" alt="발신자, 제목, 그리고 각 메일이 그 레인으로 간 이유를 보여주는 메일 행" width="1040" height="660" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-3" aria-labelledby="tt-3" hidden>
-        <img src="/media/app/ko/tier-guide.jpg" alt="다섯 단계 분류를 설명하는 첫 실행 안내" width="1040" height="1040" loading="lazy" decoding="async"></div>
+        <img src="/media/app/ko/tier-guide.jpg" alt="다섯 레인 분류를 설명하는 첫 실행 안내" width="1040" height="1040" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-4" aria-labelledby="tt-4" hidden>
         <img src="/media/app/ko/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" width="1040" height="1800" loading="lazy" decoding="async"></div>
     </div>
@@ -1028,7 +1041,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">01 &middot; 무엇이 당신에게 닿을지 누가 정하나</span>
-        <p>Klorn이 정합니다 — 메일 하나당 <b>다섯 단계</b> 중 하나로. 전송·삭제·전달은 여전히 당신을
+        <p>Klorn이 정합니다 — 메일 하나당 <b>다섯 레인</b> 중 하나로. 전송·삭제·전달은 여전히 당신을
           기다리고, 각각 영수증을 남깁니다.</p></div>
       <div class="vscell them" data-who="Fyxer &middot; Superhuman"><span class="k">01 &middot; 무엇이 당신에게 닿을지 누가 정하나</span>
         <p><b>Fyxer</b>와 <b>Superhuman</b>은 이미 연 메일을 더 빨리 처리하게 해줍니다. 무엇을 열 만했는지
@@ -1086,47 +1099,23 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <h2 class="rv">실제 받은편지함에서 나온 숫자.</h2>
     </div>
     <p class="rv">모든 릴리스는 출시 전에 직접 라벨링한 실제 메일 데이터셋으로 채점합니다.
-      아래는 최신 수치이고, 평가셋은 공개 저장소에 있습니다.</p>
+      데이터셋은 커밋돼 있고, 실행기는 <b>pnpm eval:judge</b>이며, 데이터셋이 바뀌지 않는 한
+      수치도 바뀌지 않습니다 — 이 페이지에 나오는 네 제품 중 어느 쪽도 공개하지 않는 것입니다.</p>
   </div>
   <div class="stats">
     <div class="stat rv"><div class="sv">94.3%</div><div class="sl">실제 메일 정확도</div>
-      <p>직접 라벨링한 실제 메일 53통 중 50통이 올바른 단계로 분류.</p></div>
+      <p>직접 라벨링한 실제 메일 53통 중 50통이 올바른 레인으로 분류.</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT 정밀도</div>
       <p>Klorn이 소음으로 보관할 때, 진짜 신호를 묻어버리는 일은 거의 없습니다.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">미승인 실행</div>
       <p>전송·삭제·전달은 전부 당신을 기다리고 서명된 영수증을 남깁니다.</p></div>
   </div>
-  <p class="foot rv">2026년 7월, 실사용 받은편지함에서 뽑은 53통 직접 라벨링 데이터셋으로 측정.
-    학습된 컨텍스트가 있는 웜 스타트 기준입니다 (콜드 스타트: 81.1%).
+  <p class="foot rv">2026년 7월, <b>eval/real-eval-set.json</b>에 커밋된 53통 직접 라벨링
+    데이터셋으로 측정했습니다. 학습된 컨텍스트가 있는 웜 스타트 기준이고 콜드 스타트는 81.1%입니다 —
+    그 차이가 당신의 교정이 만들어내는 값입니다. 범위도 저희가 보는 그대로 읽어주세요: 이 데이터셋은
+    <b>Push · Queue · Silent만</b> 다룹니다. MEETING과 INFO 레인이 생기기 전에 라벨링한 것이라
+    두 레인에는 아직 정확도 수치가 없고, 이 페이지는 없는 수치를 만들어내지 않습니다.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">측정 방법과 평가셋 →</a></p>
-</section>
-
-<!-- ══ WORKS WITH ═══════════════════════════════════ -->
-<section class="sec" id="works">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">연동 범위</span>
-      <h2 class="rv">받기 전에<br>이것부터 확인하세요.</h2>
-    </div>
-    <p class="rv">Klorn은 당신의 메일을 읽습니다. 그래서 무엇에 연결되는지가 가장 먼저 알아야 할 것입니다 —
-      아직 연결되지 않는 것까지 포함해서.</p>
-  </div>
-  <div class="works rv">
-    <div class="work"><b>Gmail</b><span>구글 로그인. Pro에서는 여러 개.</span></div>
-    <div class="work"><b>네이버 메일</b><span>설정에서 IMAP으로 연결.</span></div>
-    <div class="work"><b>Google 캘린더</b><span>읽고, 당신 승인으로 일정 생성.</span></div>
-    <div class="work"><b>macOS 14+</b><span>유니버설 — 애플 실리콘과 인텔.</span></div>
-    <div class="work"><b>메일 언어 그대로</b><span>온 메일의 언어로 답장이 나갑니다.</span></div>
-    <div class="work"><b>인터페이스 7개 언어</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
-  </div>
-  <p class="works-note rv"><b>미지원:</b> 네이버 외의 IMAP 호스트. Klorn 로그인은 아직 구글만 되고,
-    네이티브 모바일 앱은 없습니다 — 지금 모바일은 브라우저로 실행됩니다.
-    윈도우 데스크탑 앱은 서명 전 베타입니다(SmartScreen 경고 1회) — 리눅스는 브라우저로 실행됩니다.
-    셀프호스팅은 당신의 DB와 모델 키로 동작합니다.</p>
-  <p class="works-note rv"><b>곧 지원:</b> Outlook·Microsoft 365, iCloud 메일 — 구현은 끝났고,
-    보안 심사 후 순차 공개됩니다. Apple·네이버 로그인은 웹과 맥 앱, 모바일 모두에 예정되어 있어
-    Klorn 계정 하나로 모든 기기를 씁니다. 네이티브 모바일 앱도 준비 중입니다.
-    나온 것은 아직 없고, 나오면 이 페이지에 올라옵니다.</p>
 </section>
 
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
@@ -1164,19 +1153,22 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">가격</span>
-      <h2 class="rv">무료로 시작하고, Klorn이<br>대신 실행할 때 업그레이드.</h2>
+      <h2 class="rv">$8.99. 이 카테고리의<br>나머지는 $30입니다.</h2>
     </div>
-    <p class="rv">분류는 영원히 무료입니다. Klorn이 당신 승인으로 초안을 쓰고 보내기 시작할 때만
-      결제합니다 — 실제로 돈이 드는 부분입니다.</p>
+    <p class="rv">분류는 영원히 무료입니다. 여기서 무료는 체험판이 아니라 요금제입니다 — 레인,
+      한 통마다 붙는 이유, 교정 루프까지 전부 값이 0입니다. 결제는 Klorn이 당신 승인으로 초안을 쓰고
+      보내기 시작할 때부터, 즉 메일당 실제 청구가 발생하는 부분부터입니다.</p>
   </div>
   <div class="prices">
     <article class="price rv"><div class="price-in">
       <span class="chip-s">무료</span>
       <h3>방화벽</h3>
       <div class="amt">$0<span>/월</span></div>
-      <p class="note">카드 등록 없음. 하루 AI 예산으로 지속 가능하게 유지합니다.</p>
+      <p class="note">카드 등록 없음, 만료 없음. Klorn은 하루 지출에 상한을 두고 초과하는 대신
+        멈춥니다 — 폭주 루프가 돌아도 당신이 물 돈이 없습니다. 그 상한이 있어서 분류가 체험판이
+        아니라 무료로 남을 수 있습니다.</p>
       <ul>
-        <li>다섯 단계 메일 방화벽 — 진짜 신호만 당신을 끊습니다</li>
+        <li>다섯 레인 메일 방화벽 — 진짜 신호만 당신을 끊습니다</li>
         <li>카드마다 근거가 붙는 결정 대기열</li>
         <li>모닝 브리핑과 캘린더 뷰</li>
         <li>당신의 메일을 근거로 답하는 어시스턴트</li>
@@ -1187,7 +1179,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <span class="chip-s dark">얼리 가격</span>
       <h3>Klorn Pro</h3>
       <div class="amt">$8.99<span>/월</span></div>
-      <p class="note">7일 Pro 체험 후 웹에서 월 $8.99. 언제든 해지할 수 있습니다.</p>
+      <p class="note">7일 Pro 체험 후 웹에서 월 $8.99 — 네이티브 앱은 스토어 수수료가 붙어 $9.99입니다.
+        언제든 해지할 수 있습니다.</p>
       <ul>
         <li>무료의 모든 것 + 더 큰 AI 예산</li>
         <li>Klorn에서 승인하고 바로 보내는 답장 초안</li>
@@ -1197,6 +1190,38 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <a class="btn btn-1 full" href="https://app.klorn.ai/login?mode=register">7일 Pro 체험 시작 <i>↗</i></a>
     </div></article>
   </div>
+  <p class="price-anchor rv">각 회사가 스스로 공시한 월 가격, 2026-08-23 확인:
+    <b>Fyxer $30</b> · <b>Superhuman $30</b> · <b>Inbox Zero $20</b> · <b>SaneBox $3.49–16.99</b>.
+    어느 쪽과도 맞대결 테스트를 돌린 적 없고, 이 페이지는 돌린 척하지 않습니다 —
+    <a href="/ko/vs/fyxer/">비교 페이지</a>에 무엇이 측정된 것이고 무엇이 아닌지 그대로 적어뒀습니다.</p>
+</section>
+
+<!-- ══ WORKS WITH ═══════════════════════════════════ -->
+<section class="sec" id="works">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">연동 범위</span>
+      <h2 class="rv">받기 전에<br>이것부터 확인하세요.</h2>
+    </div>
+    <p class="rv">Klorn은 당신의 메일을 읽습니다. 그래서 무엇에 연결되는지가 가장 먼저 알아야 할 것입니다 —
+      아직 연결되지 않는 것까지 포함해서.</p>
+  </div>
+  <div class="works rv">
+    <div class="work"><b>Gmail</b><span>구글 로그인. Pro에서는 여러 개.</span></div>
+    <div class="work"><b>네이버 메일</b><span>설정에서 IMAP으로 연결.</span></div>
+    <div class="work"><b>Google 캘린더</b><span>읽고, 당신 승인으로 일정 생성.</span></div>
+    <div class="work"><b>macOS 14+</b><span>유니버설 — 애플 실리콘과 인텔.</span></div>
+    <div class="work"><b>메일 언어 그대로</b><span>온 메일의 언어로 답장이 나갑니다.</span></div>
+    <div class="work"><b>인터페이스 7개 언어</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
+  </div>
+  <p class="works-note rv"><b>미지원:</b> 네이버 외의 IMAP 호스트. Klorn 로그인은 아직 구글만 되고,
+    네이티브 모바일 앱은 없습니다 — 지금 모바일은 브라우저로 실행됩니다.
+    윈도우 데스크탑 앱은 서명 전 베타입니다(SmartScreen 경고 1회) — 리눅스는 브라우저로 실행됩니다.
+    셀프호스팅은 당신의 DB와 모델 키로 동작합니다.</p>
+  <p class="works-note rv"><b>곧 지원:</b> Outlook·Microsoft 365, iCloud 메일 — 구현은 끝났고,
+    보안 심사 후 순차 공개됩니다. Apple·네이버 로그인은 웹과 맥 앱, 모바일 모두에 예정되어 있어
+    Klorn 계정 하나로 모든 기기를 씁니다. 네이티브 모바일 앱도 준비 중입니다.
+    나온 것은 아직 없고, 나오면 이 페이지에 올라옵니다.</p>
 </section>
 
 <!-- ══ FAQ ══════════════════════════════════════════ -->
@@ -1208,10 +1233,6 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
   </div>
   <div class="faq">
-    <details class="faq-i rv"><summary>로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?</summary>
-      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를
-        받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로
-        제한됩니다.</p></details>
     <details class="faq-i rv"><summary>저 없이 뭔가 보낼 수 있나요?</summary>
       <p>아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴
         서명된 영수증을 남깁니다.</p></details>
@@ -1223,10 +1244,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <p>옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 —
         콜드 81.1%와 웜 94.3%의 차이가 그겁니다.</p></details>
     <details class="faq-i rv"><summary>윈도우 앱은 언제인가요?</summary>
-      <p>나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 단계로 계속 쓸 수 있습니다.</p></details>
+      <p>나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 레인으로 계속 쓸 수 있습니다.</p></details>
     <details class="faq-i rv"><summary>AI가 요금을 폭주시킬 수 있나요?</summary>
       <p>아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가
         당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다.</p></details>
+    <details class="faq-i rv"><summary>로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?</summary>
+      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를
+        받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로
+        제한됩니다.</p></details>
   </div>
 </section>
 
@@ -1258,7 +1283,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="wrapl foot-grid">
     <div>
       <a class="foot-brand" href="#top" data-top>Klorn</a>
-      <p class="foot-note">혼자서는 아무것도 결정하지 않는 이메일 비서실장.</p>
+      <p class="foot-note">읽고, 직접 돌리고, 언제든 떠날 수 있는 주의 방화벽. AGPL-3.0, 덧붙인 조항 없음.</p>
       <div class="socials">
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
         <a href="https://x.com/klornai" rel="noreferrer noopener" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
