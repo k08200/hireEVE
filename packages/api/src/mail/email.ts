@@ -456,3 +456,40 @@ export async function sendWelcomeEmail(
     return "failed";
   }
 }
+
+/**
+ * Send one daily-digest mail.
+ *
+ * Plain text is the payload; the HTML part is the same text in a monospace
+ * block, escaped. A digest is a list of addresses and counts — there is nothing
+ * here that a layout would make clearer, and an address rendered as unescaped
+ * HTML is an injection waiting to happen.
+ *
+ * Returns false rather than throwing: the digest sweep runs over every user,
+ * and one bad address must not end it.
+ */
+export async function sendDigestEmail(to: string, subject: string, text: string): Promise<boolean> {
+  if (!resend) {
+    console.log("[EMAIL] No RESEND_API_KEY — digest not sent to", maskEmail(to));
+    return false;
+  }
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      text,
+      html:
+        `<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;` +
+        `margin:0 auto;padding:32px 20px;color:#374151;font-size:15px;line-height:1.6">` +
+        `<pre style="font-family:inherit;white-space:pre-wrap;margin:0">${escapeHtml(text)}</pre>` +
+        `<p style="color:#6b7280;font-size:13px;margin-top:28px">` +
+        `<a href="${WEB_URL}/settings" style="color:#6b7280">Turn digests off</a></p></div>`,
+    });
+    return true;
+  } catch (err) {
+    console.warn("[EMAIL] digest send failed for", maskEmail(to));
+    captureError(err, { tags: { scope: "digest-email" } });
+    return false;
+  }
+}
