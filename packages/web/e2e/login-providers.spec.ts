@@ -113,6 +113,31 @@ test.describe("Login — provider lane", () => {
     }
   });
 
+  test("a stale cache does not freeze the lane — a newly enabled provider appears", async ({
+    page,
+  }) => {
+    await page.route("**/api/auth/signup-status", (route) =>
+      route.fulfill({ json: { open: true } }),
+    );
+    // The server has since turned Apple on.
+    await page.route("**/api/auth/providers", (route) =>
+      route.fulfill({ json: { providers: [{ id: "google" }, { id: "apple" }] } }),
+    );
+    // The browser is holding a seed from before that, older than staleTime.
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "klorn.auth.providers.v1",
+        JSON.stringify({ at: Date.now() - 10 * 60_000, value: { providers: [{ id: "google" }] } }),
+      );
+    });
+    await page.goto("/login");
+
+    // Seeding react-query without initialDataUpdatedAt makes it treat the seed
+    // as fetched-just-now on EVERY mount, so the query never refetches and the
+    // stale list sticks for the cache's full 24h lifetime.
+    await expect(page.getByRole("link", { name: "Continue with Apple" })).toBeVisible();
+  });
+
   test("a cached provider list renders the full lane on first paint", async ({ page }) => {
     await page.route("**/api/auth/signup-status", (route) =>
       route.fulfill({ json: { open: true } }),
