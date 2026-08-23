@@ -1002,7 +1002,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">02 · What you see</span>
-        <p>Four fixed tiers, and <b>the reason on every message</b>. Move one and the classifier learns.</p></div>
+        <p>Five fixed lanes, and <b>the reason on every message</b>. Move one and the classifier learns.</p></div>
       <div class="vscell them" data-who="Everyone else"><span class="k">02 · What you see</span>
         <p>Priority flags and unlimited labels. No reason given, and nothing to correct.</p></div>
     </div>
@@ -1010,13 +1010,13 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="vscell ours" data-who="Klorn"><span class="k">03 · What it claims</span>
         <p><b>94.3%</b> on a hand-labeled set that ships in the repo, cold and warm reported separately.</p></div>
       <div class="vscell them" data-who="Everyone else"><span class="k">03 · What it claims</span>
-        <p>"AI-powered." No number, no eval set, no way to check it yourself.</p></div>
+        <p>$30/user/month for "AI-powered." No number, no eval set, nothing you can re-run.</p></div>
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">04 · If you want out</span>
         <p><b>AGPLv3</b>. Read it, self-host it against your own keys, or fork it and leave.</p></div>
       <div class="vscell them" data-who="Everyone else"><span class="k">04 · If you want out</span>
-        <p>Closed. Your mail is the training surface, and export is the only exit.</p></div>
+        <p>Closed — or open with terms bolted onto the end. Either way you cannot read what decided.</p></div>
     </div>
   </div>
 </section>
@@ -1088,7 +1088,12 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
           <span class="tag">Open source</span>
           <h2 class="os-h">Read it. Run it yourself.<br>Leave whenever you like.</h2>
           <p class="os-p">An email agent sees everything you receive, so "trust us" is not an answer.
-            The classifier, the prompts and the eval set are all in the repo.</p>
+            <b>You can own the server that reads your mail</b> — self-host the whole stack against your
+            own model key, or a local model, and message text never leaves your machine. The classifier,
+            the prompts and the eval set are all in the repo.</p>
+          <p class="os-p">And check the licence, not the word. Klorn is the unmodified GNU AGPL v3:
+            no commercial-use restriction, no employee-count clause, nothing appended.
+            <a href="/vs/inbox-zero/">The nearest open-source alternative adds both</a>.</p>
           <div class="os-cta">
             <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">View the repository <i>↗</i></a>
             <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">See the eval set</a>
