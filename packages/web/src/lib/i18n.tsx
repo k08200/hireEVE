@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import en from "./locales/en";
+import ja from "./locales/ja";
 import ko from "./locales/ko";
 
 /**
@@ -9,12 +10,12 @@ import ko from "./locales/ko";
  * a user reads and the notifications they receive can speak the same language
  * (packages/api/src/notify/notification-strings.ts).
  */
-export type Locale = "en" | "ko";
+export type Locale = "en" | "ko" | "ja";
 
 // English is the source of truth for keys; every other locale is a full
 // mirror, enforced in CI by .github/scripts/check-i18n-parity.mjs. Tables
 // live one-per-file under ./locales.
-const translations: Record<Locale, Record<string, string>> = { en, ko };
+const translations: Record<Locale, Record<string, string>> = { en, ko, ja };
 
 /**
  * Dev-time echo of the CI parity guard. The guard
@@ -68,15 +69,26 @@ function getStoredProfile(): string | null {
   return legacyStored;
 }
 
+/** Every locale that has a table — derived, so adding a file is enough. */
+const LOCALES = Object.keys(translations) as Locale[];
+
+function isLocale(value: unknown): value is Locale {
+  return typeof value === "string" && (LOCALES as string[]).includes(value);
+}
+
 function detectLocale(): Locale {
-  // English is the default. Korean is opt-in only — a Korean-locale browser
-  // still lands in English unless the user explicitly picks 한국어 in
+  // English is the default and every other locale is opt-in — a Japanese
+  // browser still lands in English unless the user picks 日本語 in
   // Settings → Language. We intentionally do NOT follow navigator.language.
+  //
+  // The check is against the locale LIST, not a hardcoded code: this used to
+  // read `language === "ko"`, which silently ignored every language added
+  // after Korean.
   try {
     const stored = getStoredProfile();
     if (stored) {
       const { language } = JSON.parse(stored);
-      if (language === "ko") return "ko";
+      if (isLocale(language)) return language;
     }
   } catch {
     // ignore a malformed profile
