@@ -17,6 +17,8 @@ const noteCreate = vi.hoisted(() => vi.fn());
 const sendDigestEmail = vi.hoisted(() => vi.fn());
 const evaluateNotificationGate = vi.hoisted(() => vi.fn());
 const getUserNotificationLanguage = vi.hoisted(() => vi.fn());
+const listPendingScreener = vi.hoisted(() => vi.fn());
+const isScreenerEnabled = vi.hoisted(() => vi.fn(() => false));
 
 vi.mock("../db.js", () => ({
   prisma: {
@@ -29,6 +31,7 @@ vi.mock("../db.js", () => ({
 vi.mock("../mail/email.js", () => ({ sendDigestEmail }));
 vi.mock("../notify/notification-prefs.js", () => ({ evaluateNotificationGate }));
 vi.mock("../notify/notification-strings.js", () => ({ getUserNotificationLanguage }));
+vi.mock("../judge/screener.js", () => ({ listPendingScreener, isScreenerEnabled }));
 vi.mock("../sentry.js", () => ({ captureError: vi.fn() }));
 
 import {
@@ -54,6 +57,8 @@ beforeEach(() => {
   sendDigestEmail.mockResolvedValue(true);
   evaluateNotificationGate.mockResolvedValue({ allowed: true });
   getUserNotificationLanguage.mockResolvedValue("en");
+  isScreenerEnabled.mockReturnValue(false);
+  listPendingScreener.mockResolvedValue([]);
 });
 
 describe("dayKeyUtc", () => {
@@ -202,5 +207,48 @@ describe("sendDailyDigests", () => {
     sendDigestEmail.mockRejectedValueOnce(new Error("resend down"));
     await expect(sendDailyDigests(NOW)).resolves.toBe(1);
     expect(sendDigestEmail).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("pending screener senders in the digest", () => {
+  it("says nothing about the screener when the screener is off", async () => {
+    isScreenerEnabled.mockReturnValue(false);
+    await sendDailyDigests(NOW);
+    expect(listPendingScreener).not.toHaveBeenCalled();
+    const body = sendDigestEmail.mock.calls[0][2];
+    expect(body.toLowerCase()).not.toContain("first time");
+  });
+
+  it("says nothing when the screener is on but nobody is waiting", async () => {
+    isScreenerEnabled.mockReturnValue(true);
+    listPendingScreener.mockResolvedValue([]);
+    await sendDailyDigests(NOW);
+    const body = sendDigestEmail.mock.calls[0][2];
+    expect(body.toLowerCase()).not.toContain("first time");
+  });
+
+  it("names the count and links the queue when senders are waiting", async () => {
+    isScreenerEnabled.mockReturnValue(true);
+    listPendingScreener.mockResolvedValue([{ sender: "new@example.com" }, { sender: "b@x.com" }]);
+    await sendDailyDigests(NOW);
+    const body = sendDigestEmail.mock.calls[0][2];
+    expect(body).toContain("2");
+    expect(body).toContain("/inbox");
+  });
+
+  it("still sends the digest when the screener lookup fails", async () => {
+    isScreenerEnabled.mockReturnValue(true);
+    listPendingScreener.mockRejectedValue(new Error("db down"));
+    await expect(sendDailyDigests(NOW)).resolves.toBe(1);
+    expect(sendDigestEmail).toHaveBeenCalled();
+  });
+
+  it("does not send a digest for the screener alone — filed mail is the trigger", async () => {
+    labelCount.mockResolvedValue(0);
+    labelGroupBy.mockResolvedValue([]);
+    isScreenerEnabled.mockReturnValue(true);
+    listPendingScreener.mockResolvedValue([{ sender: "new@example.com" }]);
+    await expect(sendDailyDigests(NOW)).resolves.toBe(0);
+    expect(sendDigestEmail).not.toHaveBeenCalled();
   });
 });

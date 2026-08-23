@@ -31,6 +31,7 @@
  */
 
 import { prisma } from "../db.js";
+import { isScreenerEnabled, listPendingScreener } from "../judge/screener.js";
 import { sendDigestEmail } from "../mail/email.js";
 import { evaluateNotificationGate } from "../notify/notification-prefs.js";
 import {
@@ -40,6 +41,9 @@ import {
 import { captureError } from "../sentry.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Where the digest points when it has something for the user to act on. */
+const WEB_URL = process.env.WEB_URL || "https://app.klorn.ai";
 
 /**
  * How many senders the mail names. A digest long enough to scroll is a digest
@@ -57,6 +61,11 @@ export interface DigestStats {
   /** Everything filed to SILENT/INFO in the window — not just the named senders. */
   filed: number;
   senders: DigestSender[];
+  /**
+   * How many first-contact senders are waiting on a screener ruling. Zero when
+   * the screener is off, so the digest simply never mentions it.
+   */
+  pendingScreener: number;
 }
 
 /** UTC calendar date, e.g. "2026-08-23". Pure; used as the once-per-day key. */
@@ -99,7 +108,22 @@ export async function collectDigest(userId: string, now: Date): Promise<DigestSt
     .sort((a, b) => b.count - a.count)
     .slice(0, SENDER_LIMIT);
 
-  return { filed, senders };
+  // The screener is a separate, independently-flagged feature. Ask it nothing
+  // when it is off, and never let its failure cost the user their digest — the
+  // digest's own job (what got filed) does not depend on it.
+  let pendingScreener = 0;
+  if (isScreenerEnabled()) {
+    try {
+      pendingScreener = (await listPendingScreener(userId)).length;
+    } catch (err) {
+      console.warn(
+        "[digest] screener lookup failed, sending without it:",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+
+  return { filed, senders, pendingScreener };
 }
 
 interface DigestCopy {
@@ -107,6 +131,7 @@ interface DigestCopy {
   lead: (n: number) => string;
   from: string;
   more: string;
+  screener: (n: number) => string;
 }
 
 const COPY: Record<"en" | "ko", DigestCopy> = {
@@ -117,6 +142,9 @@ const COPY: Record<"en" | "ko", DigestCopy> = {
       `Filed, not deleted — everything below is still in your mailbox.`,
     from: "Who they were from:",
     more: "Nothing here looks wrong? Then there is nothing to do.",
+    screener: (n: number) =>
+      `${n} sender${n === 1 ? "" : "s"} wrote for the first time and ${n === 1 ? "is" : "are"} ` +
+      `waiting on a ruling. Deciding once is permanent: ${WEB_URL}/inbox`,
   },
   ko: {
     subject: (n: number) => `Klorn이 오늘 ${n}통을 정리했습니다`,
@@ -125,6 +153,8 @@ const COPY: Record<"en" | "ko", DigestCopy> = {
       `지운 게 아니라 정리한 것이라, 아래 메일은 전부 메일함에 그대로 있습니다.`,
     from: "보낸 사람:",
     more: "이상한 게 없다면, 하실 일도 없습니다.",
+    screener: (n: number) =>
+      `처음 온 발신자 ${n}명이 판단을 기다리고 있습니다. 한 번 정하면 계속 적용됩니다: ${WEB_URL}/inbox`,
   },
 };
 
@@ -141,6 +171,7 @@ export function formatDigest(stats: DigestStats, language: NotificationLanguage)
     lines.push("", c.from);
     for (const s of stats.senders) lines.push(`  ${s.sender} — ${s.count}`);
   }
+  if (stats.pendingScreener > 0) lines.push("", c.screener(stats.pendingScreener));
   lines.push("", c.more);
   return lines.join("\n");
 }
