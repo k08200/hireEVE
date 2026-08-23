@@ -107,9 +107,14 @@ function LoginForm() {
       return res;
     },
     // Seeded from the last visit so the lane renders at its true height on
-    // first paint instead of expanding once the probe lands. The query still
-    // runs and replaces this, so a disabled provider corrects itself.
-    initialData: readCachedProviders,
+    // first paint instead of expanding once the probe lands.
+    initialData: () => readCachedProviders()?.value,
+    // Required, not optional: without the seed's real age react-query treats it
+    // as fetched just-now on every mount, so the query never goes stale and
+    // never refetches — the seed then outlives any server-side change to the
+    // provider list. Passing the timestamp makes a seed older than staleTime
+    // refetch immediately, which is the whole point of keeping one.
+    initialDataUpdatedAt: () => readCachedProviders()?.at,
     staleTime: 5 * 60_000,
   });
   const [nativeShell, setNativeShell] = useState(false);
