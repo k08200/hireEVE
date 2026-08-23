@@ -9,9 +9,9 @@
 <!-- The KO page never auto-redirects: the language script only runs on the site
      root, so a visitor who lands here stays here. -->
 <title>Klorn — 소음은 들어오고, 신호만 남는다</title>
-<meta name="description" content="메일을 Push / Meeting / Queue / Info / Silent 다섯 단계로 분류하고, 그 이유까지 알려주는 맥 앱. 오픈소스, 셀프호스팅 가능, 당신이 정한 규칙 밖에서는 아무것도 보내지 않습니다.">
+<meta name="description" content="메일을 Push / Meeting / Queue / Info / Silent 다섯 단계로 분류하고, 그 이유까지 알려줍니다. 웹·macOS·Windows. 오픈소스, 셀프호스팅 가능, 당신이 정한 규칙 밖에서는 아무것도 보내지 않습니다.">
 <meta property="og:title" content="Klorn — 소음은 들어오고, 신호만 남는다">
-<meta property="og:description" content="메일을 다섯 단계로 분류하고 그 이유를 알려주는 맥 앱. 다른 AI 에이전트는 당신을 대신해 행동합니다. Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.">
+<meta property="og:description" content="메일을 다섯 단계로 분류하고 그 이유를 알려줍니다. 웹·macOS·Windows. 다른 AI 에이전트는 당신을 대신해 행동합니다. Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://klorn.ai/ko/">
 <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
@@ -546,6 +546,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .vscell.them::before{color:var(--ink-3)}
 }
 
+/* The four products a buyer is actually deciding between, named, each linked to
+   the page that carries the receipt. These pages existed but were reachable only
+   from the footer, which is the same as not existing: a comparison nobody
+   reaches persuades nobody. Kept below the grid, not above it — the argument
+   earns the click, the click does not replace the argument. */
+.vslinks{max-width:1180px;margin:24px auto 0;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:12px}
+.vslink{display:block;padding:16px 18px;border:1px solid var(--line);border-radius:14px;
+  background:#fff;transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.vslink:hover{border-color:rgba(3,105,161,.34);transform:translateY(-2px)}
+.vslink b{display:block;font-size:14px;font-weight:650;color:var(--sky-ink);
+  letter-spacing:-.01em;margin-bottom:5px}
+.vslink b::after{content:' \2192';font-weight:500}
+.vslink span{display:block;font-size:12.5px;line-height:1.5;color:var(--ink-3)}
+.vsnote{max-width:1180px;margin:16px auto 0;padding:0 24px;font-size:12px;line-height:1.6;
+  color:var(--ink-3)}
+.vsnote a{color:var(--sky-ink);font-weight:600}
+@media(max-width:980px){.vslinks{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.vslinks{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.vslink{transition:none}.vslink:hover{transform:none}}
+
 /* Language switch, in the nav where it belongs.
    A menu, not a row of buttons: two languages fit side by side, seven do not,
    and a control that has to be redesigned every time a language ships is the
@@ -740,7 +761,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "applicationCategory": "BusinessApplication",
  "url": "https://klorn.ai/ko/",
  "inLanguage": "ko",
- "description": "메일을 다섯 단계 — Push, Meeting, Queue, Info, Silent — 로 분류하고 이유를 보여주는 Mac 앱. 오픈소스(AGPLv3), 셀프호스팅 가능, 정한 규칙 밖으로는 아무것도 보내지 않습니다.",
+ "description": "메일을 다섯 단계 — Push, Meeting, Queue, Info, Silent — 로 분류하고 이유를 보여줍니다. 웹·macOS·Windows. 오픈소스(AGPLv3), 셀프호스팅 가능, 정한 규칙 밖으로는 아무것도 보내지 않습니다.",
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
@@ -748,7 +769,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   "@type": "Offer",
   "price": "0",
   "priceCurrency": "USD",
-  "description": "Invite-only beta; mail sorting is free with a daily AI budget cap."
+  "description": "Free to start, no invite needed; mail sorting is free with a daily AI budget cap."
  },
  "softwareHelp": {
   "@type": "CreativeWork",
@@ -985,40 +1006,58 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <span class="tag rv">우리가 동의하지 않는 지점</span>
       <h2 class="rv">대부분의 이메일 AI가<br>갖지 않는 네 가지 입장.</h2>
     </div>
-    <p class="rv">기능이 아니라 선택입니다 — 각각은 Klorn에게 대가를 치르게 합니다. 이미 메일에 딸려 온
-      어시스턴트가 대신 무엇을 결정하는지와 나란히 놓았습니다.</p>
+    <p class="rv">기능이 아니라 선택입니다 — 각각은 Klorn에게 대가를 치르게 합니다. 당신이 실제로 저울질하고 있는
+      네 제품과, 실명으로 나란히 놓았습니다. 모든 주장의 근거는 각 비교 페이지에 있습니다.</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
       <div class="vscol ours"><span class="mk">K</span><b>Klorn</b></div>
-      <div class="vscol them"><span class="mk">—</span><b>당신 받은편지함의 어시스턴트</b></div>
+      <div class="vscol them"><span class="mk">4</span><b>Fyxer &middot; Superhuman &middot; Inbox Zero &middot; SaneBox</b></div>
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">01 · 누가 결정하나</span>
-        <p>분류하고 초안까지 쓴 뒤 <b>멈춥니다</b>. 전송·삭제·전달은 전부 당신을 기다리고 영수증을 남깁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">01 · 누가 결정하나</span>
-        <p>당신을 대신해 실행하고 나중에 알려줍니다. 안전장치는 실행 취소뿐입니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 &middot; 무엇이 당신에게 닿을지 누가 정하나</span>
+        <p>Klorn이 정합니다 — 메일 하나당 <b>다섯 단계</b> 중 하나로. 전송·삭제·전달은 여전히 당신을
+          기다리고, 각각 영수증을 남깁니다.</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; Superhuman"><span class="k">01 &middot; 무엇이 당신에게 닿을지 누가 정하나</span>
+        <p><b>Fyxer</b>와 <b>Superhuman</b>은 이미 연 메일을 더 빨리 처리하게 해줍니다. 무엇을 열 만했는지
+          판단하는 일은 여전히 당신 몫입니다. 하루 종일, 메일마다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">02 · 무엇이 보이나</span>
-        <p>고정된 다섯 단계, 그리고 <b>메일마다 붙는 이유</b>. 하나 옮기면 분류기가 배웁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">02 · 무엇이 보이나</span>
-        <p>중요 표시와 무제한 라벨. 이유는 없고, 고칠 것도 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 &middot; 왜 그렇게 판단했나</span>
+        <p><b>이유가 메일마다 붙습니다.</b> 옮기면 그 교정이 학습 신호가 되고, 같은 교정 두 번이면 그 발신자는
+          결정론적으로 고정됩니다.</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; SaneBox"><span class="k">02 &middot; 왜 그렇게 판단했나</span>
+        <p><b>Fyxer</b>는 이유를 보여주지 않습니다. <b>SaneBox</b>는 메일이 떨어진 폴더를 보고 당신이 추측해야
+          합니다. 둘 다 나중에 검증할 방법이 없습니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">03 · 무엇을 주장하나</span>
-        <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b>, 콜드/웜 별도 보고.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">03 · 무엇을 주장하나</span>
-        <p>월 $30에 "AI 기반." 숫자도, 평가셋도, 직접 돌려볼 것도 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; 무엇을 주장하나</span>
+        <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b> — <b>pnpm eval:judge</b>로 직접
+          다시 돌릴 수 있고, 콜드/웜을 따로 보고합니다.</p></div>
+      <div class="vscell them" data-who="네 곳 전부"><span class="k">03 &middot; 무엇을 주장하나</span>
+        <p>&ldquo;AI 기반.&rdquo; 공개된 평가셋도, 콜드/웜 구분도, 그 숫자를 직접 대조해볼 방법도
+          없습니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">04 · 나가고 싶다면</span>
-        <p><b>AGPLv3</b>. 읽고, 당신 키로 셀프호스팅하고, 포크해서 떠나면 됩니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">04 · 나가고 싶다면</span>
-        <p>닫혀 있거나, 열려 있어도 뒤에 조항이 덧붙어 있습니다. 어느 쪽이든 무엇이 판단했는지는 읽을 수 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 &middot; 나가고 싶다면</span>
+        <p><b>수정 없는 AGPL-3.0.</b> 추가 조항 없음, 상업적 이용 제한 없음, 5인 조항 없음. 당신 키로
+          셀프호스팅하거나, 포크해서 떠나면 됩니다.</p></div>
+      <div class="vscell them" data-who="Inbox Zero"><span class="k">04 &middot; 나가고 싶다면</span>
+        <p><b>Inbox Zero</b>는 AGPL 뒤에 ADDITIONAL TERMS를 붙입니다 — 상업적 수익화 제한, 5인 이상 조직은
+          별도 라이선스 취득 의무. GitHub은 그 파일을 <b>NOASSERTION</b>으로 판정합니다. 나머지 셋은
+          닫혀 있습니다.</p></div>
     </div>
   </div>
+  <div class="vslinks rv">
+    <a class="vslink" href="/ko/vs/fyxer/"><b>vs Fyxer</b><span>당신 문체로 초안을 써주는 대가가 사용자당 월 $30. 닫혀 있고, 클라우드 전용이고, 이유는 없습니다.</span></a>
+    <a class="vslink" href="/ko/vs/superhuman/"><b>vs Superhuman</b><span>메일 한 통에 드는 시간을 절반으로 줄이는 것은, 당신이 고르지 않은 숫자에 곱하는 일입니다.</span></a>
+    <a class="vslink" href="/ko/vs/inbox-zero/"><b>vs Inbox Zero</b><span>두 LICENSE 파일을 탭 두 개로 열어보세요. 하나는 AGPL에서 끝납니다.</span></a>
+    <a class="vslink" href="/ko/vs/sanebox/"><b>vs SaneBox</b><span>본문을 읽지 않습니다 — 더 강한 프라이버시 문장, 그리고 그 대가.</span></a>
+  </div>
+  <p class="vsnote rv">가격과 제품 사실은 각 벤더가 공개한 내용이며 2026-08-23에 확인했습니다. 어느 쪽과도
+    정확도 직접 비교 테스트는 하지 않았고, 이 페이지는 그런 척하지 않습니다.
+    틀린 내용이 있나요? <a href="mailto:k0820086@gmail.com">알려주시면 고치겠습니다.</a></p>
 </section>
 
 <!-- ══ MEASURED ═════════════════════════════════════ -->

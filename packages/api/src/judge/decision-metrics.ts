@@ -203,7 +203,7 @@ export interface UserDecisionSummary {
 /**
  * Per-tier accuracy from CONFIRMED overrides only. A user override ("OVERRIDE:X"
  * to a different tier) is the ONLY ground truth in the ledger, so this reports
- * the confirmed-error picture across all four tiers — never inferring
+ * the confirmed-error picture across every tier in the vocabulary — never inferring
  * correctness from a null/terminal outcome (honest-by-design, like the bounds
  * above). This is the accuracy instrument that SCALES: it grows automatically
  * with real user overrides, per-user, and needs no synthetic labels.
