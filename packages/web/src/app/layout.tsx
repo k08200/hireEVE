@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import AppShell from "../components/app-shell";
 import CommandPalette from "../components/command-palette";
+import GoogleReconnectBanner from "../components/google-reconnect-banner";
 import KeyboardShortcuts from "../components/keyboard-shortcuts";
 import Providers from "../components/providers";
 import PushOnboardingBanner from "../components/push-onboarding-banner";
@@ -94,6 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AppShell>{children}</AppShell>
           <ServiceWorkerRegister />
           <PushRegister />
+          <GoogleReconnectBanner />
           <PushOnboardingBanner />
           <PwaPrompts />
         </Providers>
