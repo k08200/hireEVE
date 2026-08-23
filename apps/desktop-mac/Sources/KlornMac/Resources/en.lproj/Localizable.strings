@@ -326,8 +326,8 @@
 
 /* First-run guide */
 "guide.title" = "How Klorn sorts your mail";
-"guide.pipeline" = "Klorn reads every connected mailbox and sorts each message into the four tiers below. This INBOX column is that sorted result — not your raw Gmail inbox.";
-"guide.intro" = "Every message lands in one of four tiers. Nothing is deleted and nothing is answered without you — the tier only decides how loudly it reaches you.";
+"guide.pipeline" = "Klorn reads every connected mailbox and sorts each message into the five lanes below. This INBOX column is that sorted result — not your raw Gmail inbox.";
+"guide.intro" = "Every message lands in one of five lanes. Nothing is deleted and nothing is answered without you — the lane only decides how loudly it reaches you.";
 "guide.correcting" = "Got one wrong? Move it to another tier and Klorn learns from the correction. Each message also shows why it landed where it did.";
 "guide.done" = "Got it";
 "guide.reopen" = "How sorting works";

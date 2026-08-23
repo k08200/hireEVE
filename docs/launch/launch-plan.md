@@ -92,7 +92,7 @@ margin improves as the fallback chain (cheap paid SKUs) absorbs spillover.
 
 ## P3 — Product surface for launch
 
-- [ ] Demo video: script around the 4-tier firewall + Decision queue +
+- [ ] Demo video: script around the five-lane firewall + Decision queue +
       multi-inbox; record on web (desktop app b-roll optional).
 - [ ] Landing (EN/KO lockstep + parity CI): providers row (Gmail live,
       Naver live, iCloud/Outlook "coming soon"), mobile "coming soon",
