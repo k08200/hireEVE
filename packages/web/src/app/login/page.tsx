@@ -454,7 +454,10 @@ function LoginForm() {
  * routes). null = not a social error; the caller shows the raw code.
  */
 function socialErrorMessage(error: string, t: (key: string) => string): string | null {
-  const match = /^(?:apple|naver)_(denied|failed|email_in_use|email_unverified)$/.exec(error);
+  const match =
+    /^(?:apple|naver)_(denied|failed|config|exchange|token|claims|email_in_use|email_unverified)$/.exec(
+      error,
+    );
   if (!match) return null;
   switch (match[1]) {
     case "denied":
@@ -463,6 +466,14 @@ function socialErrorMessage(error: string, t: (key: string) => string): string |
       return t("auth.socialEmailInUse");
     case "email_unverified":
       return t("auth.socialEmailUnverified");
+    // The deployment's provider credentials are wrong or half-set. Retrying
+    // cannot fix that, so say so instead of inviting a pointless second try.
+    case "config":
+      return t("auth.socialNotConfigured");
+    // A valid sign-in that carried no email. The visitor CAN fix this by
+    // choosing to share an address, which is worth telling them.
+    case "claims":
+      return t("auth.socialNoEmail");
     default:
       return t("auth.socialSignInError");
   }

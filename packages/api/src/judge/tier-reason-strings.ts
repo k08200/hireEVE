@@ -13,7 +13,10 @@
  * poc-judge.ts) and rows written before this change keep working.
  */
 
-import { resolveNotificationLanguage } from "../notify/notification-strings.js";
+import {
+  type NotificationLanguage,
+  resolveNotificationLanguage,
+} from "../notify/notification-strings.js";
 
 /** Keys are dotted and namespaced so free prose can never collide with one. */
 export const STATIC_TIER_REASONS = {
@@ -73,7 +76,11 @@ export const STATIC_TIER_REASONS = {
     en: "Tracked commitment — added to review queue",
     ko: "추적 중인 약속 — 검토 큐에 추가함",
   },
-} as const;
+} as const satisfies Record<string, Record<NotificationLanguage, string>>;
+// `satisfies`, not an annotation: it checks language completeness at the TABLE
+// (a new NOTIFICATION_LANGUAGES entry errors on the exact reason missing a
+// translation) while keeping the literal key union that StaticTierReasonKey
+// and its type guard depend on.
 
 export type StaticTierReasonKey = keyof typeof STATIC_TIER_REASONS;
 
