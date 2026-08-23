@@ -4,18 +4,19 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import en from "./locales/en";
 import ja from "./locales/ja";
 import ko from "./locales/ko";
+import zh from "./locales/zh";
 
 /**
  * Shipped UI locales. Mirrors the server's NOTIFICATION_LANGUAGES so the app
  * a user reads and the notifications they receive can speak the same language
  * (packages/api/src/notify/notification-strings.ts).
  */
-export type Locale = "en" | "ko" | "ja";
+export type Locale = "en" | "ko" | "ja" | "zh";
 
 // English is the source of truth for keys; every other locale is a full
 // mirror, enforced in CI by .github/scripts/check-i18n-parity.mjs. Tables
 // live one-per-file under ./locales.
-const translations: Record<Locale, Record<string, string>> = { en, ko, ja };
+const translations: Record<Locale, Record<string, string>> = { en, ko, ja, zh };
 
 /**
  * Dev-time echo of the CI parity guard. The guard
