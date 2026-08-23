@@ -63,18 +63,18 @@ vi.mock("../auth/naver.js", () => ({
 }));
 
 const appleVerify = vi.hoisted(() =>
-  vi.fn(
-    async (): Promise<{ sub: string; email: string; emailVerified: boolean } | null> => ({
-      sub: "apple-sub-1",
-      email: "relay@privaterelay.appleid.com",
-      emailVerified: true,
-    }),
-  ),
+  vi.fn(async () => ({
+    ok: true as const,
+    claims: { sub: "apple-sub-1", email: "relay@privaterelay.appleid.com", emailVerified: true },
+  })),
+);
+const appleExchange = vi.hoisted(() =>
+  vi.fn(async () => ({ ok: true as const, idToken: "apple-id-token" })),
 );
 vi.mock("../auth/apple.js", () => ({
   buildAppleAuthUrl: (state: string) =>
     `https://appleid.apple.com/auth/authorize?client_id=cid&state=${encodeURIComponent(state)}`,
-  exchangeAppleCode: vi.fn(async () => "apple-id-token"),
+  exchangeAppleCode: appleExchange,
   verifyAppleIdToken: appleVerify,
 }));
 
@@ -193,10 +193,10 @@ beforeEach(() => {
     .mockClear()
     .mockResolvedValue({ id: "naver-uid-1", email: "user@naver.com", name: "네이버유저" });
   appleVerify.mockClear().mockResolvedValue({
-    sub: "apple-sub-1",
-    email: "relay@privaterelay.appleid.com",
-    emailVerified: true,
+    ok: true,
+    claims: { sub: "apple-sub-1", email: "relay@privaterelay.appleid.com", emailVerified: true },
   });
+  appleExchange.mockClear().mockResolvedValue({ ok: true, idToken: "apple-id-token" });
   linkedCount.mockClear().mockResolvedValue(0);
   deviceFindUnique.mockReset().mockResolvedValue(DEVICE_ROW);
   deviceFindFirst.mockReset().mockResolvedValue(DEVICE_ROW);
@@ -404,11 +404,55 @@ describe("Apple login flow (form_post callback)", () => {
     expect(createArgs.data.identities.create.provider).toBe("apple");
   });
 
+  // `apple_failed` covered four unrelated causes, so a broken deployment and a
+  // user who declined to share an email produced the same URL and the same
+  // toast. Diagnosing it required server logs the operator may not have.
+  it.each([
+    [
+      "config",
+      { ok: false, reason: "config" as const, detail: "APPLE_KEY_ID missing" },
+      "apple_config",
+    ],
+    [
+      "exchange",
+      { ok: false, reason: "exchange" as const, detail: "invalid_client" },
+      "apple_exchange",
+    ],
+  ])("reports a %s failure in the redirect", async (_label, exchangeResult, expected) => {
+    appleExchange.mockResolvedValue(exchangeResult as never);
+    const app = await buildApp();
+    const state = signToken({ userId: "__login__", email: "__apple_login__" }, "10m");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/apple/callback",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      payload: `code=abc&state=${encodeURIComponent(state)}`,
+    });
+
+    expect(res.headers.location).toBe(`http://localhost:8001/login?error=${expected}`);
+  });
+
+  it.each([
+    ["token", "apple_token"],
+    ["claims", "apple_claims"],
+  ])("reports an id_token %s failure in the redirect", async (reason, expected) => {
+    appleVerify.mockResolvedValue({ ok: false, reason } as never);
+    const app = await buildApp();
+    const state = signToken({ userId: "__login__", email: "__apple_login__" }, "10m");
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/apple/callback",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      payload: `code=abc&state=${encodeURIComponent(state)}`,
+    });
+
+    expect(res.headers.location).toBe(`http://localhost:8001/login?error=${expected}`);
+  });
+
   it("attaches a verified Apple identity to the existing owner of the email", async () => {
     appleVerify.mockResolvedValue({
-      sub: "apple-sub-9",
-      email: "user@naver.com",
-      emailVerified: true,
+      ok: true,
+      claims: { sub: "apple-sub-9", email: "user@naver.com", emailVerified: true },
     });
     userFindUnique.mockImplementation(async (args: { where: { email?: string; id?: string } }) =>
       args.where.email === "user@naver.com" || args.where.id === "u1" ? USER_ROW : null,

@@ -20,8 +20,18 @@ export interface SocialAuthProvider {
   buildAuthUrl: (state: string) => string;
   /** Apple mandates response_mode=form_post for scoped requests → POST callback. */
   callbackMethod: "GET" | "POST";
-  resolveIdentity: (params: { code: string; state: string }) => Promise<SocialIdentity | null>;
+  resolveIdentity: (params: { code: string; state: string }) => Promise<SocialResolution>;
 }
+
+/**
+ * The outcome of turning a provider's callback into an identity. A failure
+ * names its stage so the redirect can say WHERE it broke — one `_failed` for
+ * a misconfigured deployment, a refused client secret, a bad token and a
+ * missing email meant only server logs could tell them apart.
+ */
+export type SocialResolution =
+  | { ok: true; identity: SocialIdentity }
+  | { ok: false; reason: string };
 
 export const appleAuthProvider: SocialAuthProvider = {
   id: "apple",
@@ -29,15 +39,18 @@ export const appleAuthProvider: SocialAuthProvider = {
   buildAuthUrl: buildAppleAuthUrl,
   callbackMethod: "POST",
   resolveIdentity: async ({ code }) => {
-    const idToken = await exchangeAppleCode(code);
-    if (!idToken) return null;
-    const claims = await verifyAppleIdToken(idToken);
-    if (!claims) return null;
+    const exchanged = await exchangeAppleCode(code);
+    if (!exchanged.ok) return { ok: false, reason: exchanged.reason };
+    const verified = await verifyAppleIdToken(exchanged.idToken);
+    if (!verified.ok) return { ok: false, reason: verified.reason };
     return {
-      provider: "apple",
-      subject: claims.sub,
-      email: claims.email,
-      emailVerified: claims.emailVerified,
+      ok: true,
+      identity: {
+        provider: "apple",
+        subject: verified.claims.sub,
+        email: verified.claims.email,
+        emailVerified: verified.claims.emailVerified,
+      },
     };
   },
 };
@@ -49,15 +62,18 @@ export const naverAuthProvider: SocialAuthProvider = {
   callbackMethod: "GET",
   resolveIdentity: async ({ code, state }) => {
     const accessToken = await exchangeNaverCode(code, state);
-    if (!accessToken) return null;
+    if (!accessToken) return { ok: false, reason: "exchange" };
     const profile = await fetchNaverProfile(accessToken);
-    if (!profile) return null;
+    if (!profile) return { ok: false, reason: "claims" };
     return {
-      provider: "naver",
-      subject: profile.id,
-      email: profile.email,
-      emailVerified: isNaverVerifiedEmail(profile.email),
-      name: profile.name,
+      ok: true,
+      identity: {
+        provider: "naver",
+        subject: profile.id,
+        email: profile.email,
+        emailVerified: isNaverVerifiedEmail(profile.email),
+        name: profile.name,
+      },
     };
   },
 };
@@ -206,13 +222,17 @@ export function socialAuthRoutes(
       // A browser navigation must land back on /login with a retryable toast,
       // never Fastify's raw JSON 500 — same degradation as the Google callback.
       try {
-        const identity = await provider.resolveIdentity({
+        const resolved = await provider.resolveIdentity({
           code: params.code,
           state: params.state,
         });
-        if (!identity) {
-          return reply.redirect(`${webUrl}/login?error=${provider.id}_failed`);
+        if (!resolved.ok) {
+          // The stage rides in the URL so a failure is diagnosable without
+          // server-log access — `apple_config` is an operator's problem,
+          // `apple_claims` is the visitor's, and they used to look identical.
+          return reply.redirect(`${webUrl}/login?error=${provider.id}_${resolved.reason}`);
         }
+        const identity = resolved.identity;
         const { redirect, token } = await completeSocialLogin(identity, { ip, userAgent });
         if (isDesktopLogin) {
           if (!token) {
