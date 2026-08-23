@@ -82,15 +82,13 @@ Three writeups walk through the architecture, with the tradeoffs and the honest 
 
 > **Why is a CI check red?** `Scope Budget` fails *on purpose*. It's a self-imposed ratchet that trips when a change grows the route / page / schema surface past a fixed budget, forcing a conscious "yes, this scope is worth it" instead of silent sprawl. A red Scope Budget is by design, not a broken build — every other check (lint, types, tests, build, security, eval) is green.
 
-## Trying the hosted demo (klorn.ai)
+## Trying the hosted app (klorn.ai)
 
-The hosted demo runs in **Google OAuth testing mode** while we hold off on CASA Tier 2 verification (Klorn uses Gmail's restricted `gmail.modify` scope). To try it without self-hosting, you have to be added as a test user first. Three paths, fastest first:
+**Sign in with Google at [klorn.ai](https://klorn.ai). That's the whole flow.** No waitlist, no approval step, nobody to email — the OAuth screen is in production, so any Google account can complete it.
 
-- **Open an issue** with the Google email you want to use: [new oauth-tester issue](https://github.com/k08200/klorn/issues/new?title=oauth-tester&labels=oauth-tester) — we add you, comment "added", you log in.
-- **Email** `k0820086@gmail.com` with the same info.
-- **Or skip the gating entirely** and [self-host](#local-development) — full feature parity, you bring your own Google OAuth credentials, no verification needed.
+One limit, and it is a real one: **the first 100 accounts.** Klorn reads Gmail's restricted `gmail.modify` scope, and until CASA Tier 2 verification lands the app is capped at 100 lifetime users. Seats are first-come. When it fills, it fills.
 
-Google caps test-user slots at 100 in this mode. Once CASA verification ships (gated on PoC retention measurement), the OAuth screen flips to production and the gating goes away. **For most people landing here, self-host is the fastest way in.**
+[Self-hosting](#local-development) has no cap at all — you register your own Google OAuth client, so the verification question is between you and Google, not you and us.
 
 ## What we're building
 
