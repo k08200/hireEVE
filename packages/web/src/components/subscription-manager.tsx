@@ -8,6 +8,7 @@ import { isNativePlatform } from "../lib/native/capacitor";
 import {
   formatBillingDate,
   hasPendingCancel,
+  isPaidPlan,
   type SubscriptionState,
   subscriptionStatusLine,
 } from "../lib/subscription";
@@ -143,7 +144,18 @@ export function SubscriptionManager({
   }
 
   const showPortal = Boolean(state.hasPortal);
-  if (!showPortal && !canCancel && !pendingCancel) return null;
+  if (!showPortal && !canCancel && !pendingCancel) {
+    // Nothing to manage. For a FREE account that is self-evident, but a PAID
+    // account with no billing record — an Enterprise agreement, a beta grant,
+    // an admin comp, or an IAP subscriber looking at the web — was shown a
+    // blank space and no way to tell why the cancel button is missing.
+    if (!isPaidPlan(state.plan)) return null;
+    return (
+      <p className="max-w-xs text-xs leading-relaxed text-ink-mid sm:text-right">
+        {t(state.plan === "ENTERPRISE" ? "billing.enterpriseBilling" : "billing.noWebSubscription")}
+      </p>
+    );
+  }
 
   return (
     // Resuming is the recovery action, so it leads and carries the accent.

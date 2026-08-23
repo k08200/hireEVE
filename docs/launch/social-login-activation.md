@@ -86,6 +86,16 @@ deploy — it reads the same probe. Walk one real sign-in end to end: Apple's
 callback is a **POST** (`response_mode=form_post`, mandatory once a scope is
 requested), so a proxy that drops POST bodies breaks it silently.
 
+### 2c-bis. Check the deployment's own view first
+
+`/admin` shows a **Social login configuration** card: which variables this
+deployment actually has, and whether the Apple key still parses as ES256. Names
+and booleans only — it never returns a value.
+
+Reach for it the moment a sign-in returns `apple_config`. A `.p8` pasted into a
+field that strips newlines looks, from outside, exactly like a variable that was
+never set, and the card separates the two in a glance.
+
 ### 2d. When it fails, read the redirect
 
 A failed sign-in lands on `/login?error=<provider>_<stage>`. The stage is the

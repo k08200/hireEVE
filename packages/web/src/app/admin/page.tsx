@@ -20,6 +20,18 @@ interface UserRow {
   _count: { conversations: number; tasks: number };
 }
 
+interface ProviderConfig {
+  enabled: boolean;
+  present: string[];
+  missing: string[];
+  privateKey?: { present: boolean; parses: boolean; detail: string };
+}
+
+interface ProviderConfigHealth {
+  apple: ProviderConfig;
+  naver: ProviderConfig;
+}
+
 interface Stats {
   totalUsers: number;
   totalConversations: number;
@@ -113,6 +125,7 @@ function AdminDashboard() {
   const { confirm } = useConfirm();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [providerConfig, setProviderConfig] = useState<ProviderConfigHealth | null>(null);
   const [ops, setOps] = useState<OpsMetrics | null>(null);
   const [perf, setPerf] = useState<PerfSnapshot | null>(null);
   const [evalData, setEvalData] = useState<EvalReport | null>(null);
@@ -128,10 +141,11 @@ function AdminDashboard() {
     Promise.allSettled([
       apiFetch<{ users: UserRow[] }>("/api/admin/users"),
       apiFetch<Stats>("/api/admin/stats"),
+      apiFetch<ProviderConfigHealth>("/api/admin/provider-config"),
       apiFetch<OpsMetrics>("/api/admin/ops"),
       apiFetch<PerfSnapshot>("/api/admin/perf"),
     ])
-      .then(([usersRes, statsRes, opsRes, perfRes]) => {
+      .then(([usersRes, statsRes, providerRes, opsRes, perfRes]) => {
         const failed: SectionError[] = [];
 
         if (usersRes.status === "fulfilled") setUsers(usersRes.value.users);
@@ -139,6 +153,12 @@ function AdminDashboard() {
 
         if (statsRes.status === "fulfilled") setStats(statsRes.value);
         else failed.push({ endpoint: "/api/admin/stats", message: errMsg(statsRes.reason) });
+        if (providerRes.status === "fulfilled") setProviderConfig(providerRes.value);
+        else
+          failed.push({
+            endpoint: "/api/admin/provider-config",
+            message: errMsg(providerRes.reason),
+          });
 
         if (opsRes.status === "fulfilled") setOps(opsRes.value);
         else failed.push({ endpoint: "/api/admin/ops", message: errMsg(opsRes.reason) });
@@ -356,6 +376,8 @@ function AdminDashboard() {
         )}
 
         {stats?.googleQuota && <GoogleQuotaCard quota={stats.googleQuota} />}
+
+        {providerConfig && <ProviderConfigCard health={providerConfig} />}
 
         {tab === "ops" && ops && (
           <div className="space-y-6">
@@ -682,6 +704,61 @@ function GoogleQuotaCard({
         {quota.consumed} accounts created. Spent over the project lifetime and never reset — CASA
         verification is what removes the ceiling. Approximate: the Cloud console is the authority.
       </p>
+    </section>
+  );
+}
+
+/**
+ * Social-login configuration, as names and booleans. `?error=apple_config`
+ * says a deployment is misconfigured but not which of five vars is at fault —
+ * and a key pasted into a field that strips newlines looks, from outside,
+ * exactly like a missing one.
+ */
+function ProviderConfigCard({ health }: { health: ProviderConfigHealth }) {
+  const rows = [
+    ["Apple", health.apple],
+    ["Naver", health.naver],
+  ] as const;
+
+  return (
+    <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-4">
+      <p className="text-xs text-ink-mid">Social login configuration</p>
+      <div className="mt-3 space-y-3">
+        {rows.map(([label, cfg]) => {
+          const keyBroken = cfg.privateKey?.present && !cfg.privateKey.parses;
+          const broken = cfg.enabled && (cfg.missing.length > 0 || keyBroken);
+          return (
+            <div key={label} className="rounded-xl border border-line/70 p-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-sm font-medium text-ink">{label}</span>
+                <span
+                  className={`text-xs font-medium ${
+                    broken ? "text-rose-500" : cfg.enabled ? "text-ink-mid" : "text-ink-dim"
+                  }`}
+                >
+                  {broken ? "misconfigured" : cfg.enabled ? "enabled" : "off"}
+                </span>
+              </div>
+              {cfg.missing.length > 0 && (
+                <p className="mt-1.5 text-[11px] leading-5 text-ink-mid">
+                  Not set: <span className="font-mono text-ink">{cfg.missing.join(", ")}</span>
+                </p>
+              )}
+              {keyBroken && (
+                <p className="mt-1.5 text-[11px] leading-5 text-rose-500">
+                  Private key does not parse as ES256 — {cfg.privateKey?.detail}. A paste that lost
+                  its newlines lands here.
+                </p>
+              )}
+              {cfg.enabled && cfg.missing.length === 0 && !keyBroken && (
+                <p className="mt-1.5 text-[11px] leading-5 text-ink-mid">
+                  All variables set{cfg.privateKey ? ", signing key parses" : ""}.
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
