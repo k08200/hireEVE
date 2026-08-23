@@ -114,6 +114,7 @@ model User {
   emailAttachments          EmailAttachment[]
   candidateIntakes          CandidateIntake[]
   emailRules                EmailRule[]
+  screenerDecisions         ScreenerDecision[]
   attentionItems            AttentionItem[]
   contactDossiers           ContactDossier[]
   threadBriefs              ThreadBrief[]
@@ -1340,6 +1341,31 @@ model SenderTrait {
   @@unique([userId, sender, factKind])
   @@index([userId, sender])
   @@index([userId, factKind, status])
+}
+
+/// A standing, user-made decision about whether a sender may reach them.
+///
+/// Written by the screener (first-contact gate). BLOCK also creates a
+/// `PIN_TIER -> SILENT` EmailRule — that rule is what the judge enforces at
+/// rank 0; this table is the record of the decision itself, so the screener
+/// can stop asking and so ALLOW can be told apart from "never seen".
+model ScreenerDecision {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Normalized (trimmed, lowercased) sender address.
+  sender    String
+  verdict   ScreenerVerdict
+  decidedAt DateTime        @default(now())
+
+  @@unique([userId, sender])
+  @@index([userId, decidedAt])
+}
+
+enum ScreenerVerdict {
+  ALLOW
+  BLOCK
 }
 
 enum AttentionSource {
