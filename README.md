@@ -4,7 +4,7 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Self-hosted](https://img.shields.io/badge/deploy-self--hosted-success.svg)](docs/self-hosting.md)
-[![Version](https://img.shields.io/badge/version-v0.3.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.4.0-blue.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 Every other AI inbox tool *adds* a surface — a suggestion card next to each email, a badge that says "AI thinks you should reply," a draft waiting for review. The inbox gets louder, not quieter.
@@ -75,9 +75,9 @@ Three writeups walk through the architecture, with the tradeoffs and the honest 
 
 ## What it's NOT
 
-- **Not finished.** This is an early PoC with one real user (me); ICP retention measurement is what's happening now. The [CHANGELOG](CHANGELOG.md) is honest about what's solid vs. what's stitched.
+- **Not finished.** The cloud is live and billing is real, but the user base is early and the beta cohort is still forming. The [CHANGELOG](CHANGELOG.md) is honest about what's solid vs. what's stitched.
 - **Not a "chat with your inbox" thing.** There is no chat surface.
-- **Not multi-tenant cloud.** Self-host is the only path right now.
+- **Not unlimited.** The hosted cloud is capped at 100 accounts while Gmail scope verification is pending. Self-host has no cap.
 - **Not feature-gated against open source.** [`docs/EDITIONS.md`](docs/EDITIONS.md) lists what Cloud will sell on top (managed hosting, verified Gmail scope, team workspaces) — the firewall doctrine and code stay in the repo on both editions.
 
 > **Why is a CI check red?** `Scope Budget` fails *on purpose*. It's a self-imposed ratchet that trips when a change grows the route / page / schema surface past a fixed budget, forcing a conscious "yes, this scope is worth it" instead of silent sprawl. A red Scope Budget is by design, not a broken build — every other check (lint, types, tests, build, security, eval) is green.
@@ -120,16 +120,17 @@ Klorn's first screen is not a chat or an inbox — it's a decision queue. Scatte
 | Auth | JWT, bcrypt, Google OAuth |
 | AI | OpenAI-compatible (local-first), OpenRouter / Gemini failover |
 | Realtime | WebSocket, Web Push |
-| Billing | Stripe |
+| Billing | Paddle (web, live) · RevenueCat (mobile) · Stripe (legacy accounts) |
 | Monorepo | pnpm workspaces |
 
 ```text
 packages/
   api/          Fastify API, Prisma schema, agent/tool orchestration
   web/          Next.js app: decision queue, mail, calendar, briefing, settings
-  core/         shared utilities and CLI-facing primitives
+  contract/     shared types and the API contract between web and api
 apps/
   desktop-mac/  native macOS app — the always-on top-bar firewall (SwiftUI)
+  desktop-win/  Windows client (Tauri shell)
   mobile/       Capacitor shell (iOS / Android)
 docs/           doctrine, screenshots, operational notes
 ```
