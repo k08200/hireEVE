@@ -32,6 +32,11 @@ const enTranslations: Record<string, string> = {
   "nav.home": "Home",
   "nav.earlyAccess": "Early access",
   "nav.getStarted": "Get started",
+  "reconnect.googleExpired": "Your Google connection expired — Gmail and Calendar stopped syncing.",
+  "reconnect.googleAction": "Reconnect Google",
+  "reconnect.googleExpiredTitle": "Your Google connection expired.",
+  "reconnect.googleExpiredBody":
+    "Nothing was lost — Google stopped renewing the access Klorn was granted, so reconnecting picks up where you left off.",
   // Bottom tabs (mobile)
   "tabs.queue": "Queue",
   "tabs.account": "Account",
@@ -1161,6 +1166,11 @@ const koTranslations: Record<string, string> = {
   "nav.home": "홈",
   "nav.earlyAccess": "얼리 액세스",
   "nav.getStarted": "시작하기",
+  "reconnect.googleExpired": "Google 연결이 만료됐습니다 — Gmail·캘린더 동기화가 멈췄어요.",
+  "reconnect.googleAction": "Google 다시 연결",
+  "reconnect.googleExpiredTitle": "Google 연결이 만료됐습니다.",
+  "reconnect.googleExpiredBody":
+    "사라진 데이터는 없습니다 — Google이 Klorn에 준 접근 권한 갱신을 멈춘 것이라, 다시 연결하면 하던 곳에서 이어집니다.",
   // Bottom tabs (mobile)
   "tabs.queue": "큐",
   "tabs.account": "계정",
