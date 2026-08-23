@@ -20,6 +20,7 @@ import {
 import { classifyNeedsReplyFromSignals, classifyPriority } from "../mail/email-priority.js";
 import { coercePlainBody } from "../mail/email-text.js";
 import type { GmailRawEmail } from "../mail/gmail-fetch.js";
+import { applyLaneLabel } from "../mail/gmail-labels.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { notifyConversationsUpdated } from "../notify/conversations-updated.js";
 import { getUserNotificationLanguage } from "../notify/notification-strings.js";
@@ -179,6 +180,7 @@ export async function persistGmailEmail(
     body: email.body,
     labels: email.labels,
     receivedAt: email.receivedAt,
+    linkedInboxAccountId: options.linkedInboxAccountId ?? null,
   })
     .then((tier) => {
       // Actionable tiers (PUSH/QUEUE) trigger an immediate agent run so the
@@ -264,6 +266,12 @@ interface JudgeableEmailRow {
   receivedAt: Date;
   /** Bulk-mail marker from sync; feeds the v2 transactional detector. */
   hasListUnsubscribe?: boolean;
+  /**
+   * Which linked inbox this message belongs to (null = the primary account).
+   * Threaded so label mode writes to the account the message actually lives
+   * in — CLAUDE.md: never assume the primary account for a Gmail action.
+   */
+  linkedInboxAccountId?: string | null;
 }
 
 /**
@@ -348,6 +356,23 @@ export async function judgeAndMirrorEmail(
       }),
     );
   }
+
+  // Label mode: mirror the decided lane back into Gmail so the classification
+  // is visible in whatever client the user already reads mail in. Best-effort
+  // and flag-gated — applyLaneLabel never throws, and returns "skipped" when
+  // the flag is off, the account is IMAP, or the tier is the retired AUTO.
+  void applyLaneLabel(
+    userId,
+    email.gmailId,
+    judgement.tier,
+    email.linkedInboxAccountId ?? null,
+  ).catch((err) =>
+    captureError(err, {
+      tags: { scope: "firewall-label-mode" },
+      extra: { userId, emailId: email.id },
+    }),
+  );
+
   return judgement.tier;
 }
 
@@ -492,6 +517,7 @@ export async function backfillEmailAttentionItems(userId: string): Promise<numbe
       body: true,
       labels: true,
       receivedAt: true,
+      linkedInboxAccountId: true,
     },
     orderBy: { receivedAt: "desc" },
     take: BACKFILL_SCAN_LIMIT,
