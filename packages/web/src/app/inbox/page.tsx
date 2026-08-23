@@ -9,6 +9,7 @@ import BriefingCard from "../../components/briefing-card";
 import CommandCenterSummary from "../../components/command-center-summary";
 import type { CommitmentItem } from "../../components/commitment-card";
 import { FirewallBoard } from "../../components/firewall-board";
+import PmfCard from "../../components/pmf-card";
 import { RejectReasonDialog } from "../../components/reject-reason-dialog";
 import ScreenerCard from "../../components/screener-card";
 import { useToast } from "../../components/toast";
@@ -386,6 +387,7 @@ function DecisionsBody({
             decision queue — mounting it only on desktop would hide the feature
             from half the surface. */}
         <ScreenerCard />
+        <PmfCard />
         <MobileDecisionQueue
           actions={actions}
           commitments={commitments}
@@ -544,6 +546,7 @@ function DecisionsBody({
             )}
 
             <ScreenerCard />
+            <PmfCard />
             <CommandCenterSummary />
             <CommitmentsPanel commitments={commitments} />
           </section>
