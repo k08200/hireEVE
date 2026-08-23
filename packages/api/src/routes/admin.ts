@@ -7,6 +7,7 @@ import { getUserId, requireAdmin } from "../auth.js";
 import { checkGlobalCostGate } from "../billing/cost-guard.js";
 import { getCostTripSnapshot } from "../billing/cost-trip-alert.js";
 import { getUsageSummary } from "../billing/llm-usage.js";
+import { appleLoginEnabled, naverLoginEnabled } from "../config.js";
 import { db, prisma } from "../db.js";
 import { withTenant } from "../db-tenant.js";
 import type { CalibrationSnapshotPayload } from "../judge/calibration-snapshot.js";
@@ -143,6 +144,51 @@ function googleQuota(consumed: number): { consumed: number; cap: number; remaini
   const cap = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_GOOGLE_USER_CAP;
   // An over-cap project must read as zero room left, never as negative room.
   return { consumed, cap, remaining: Math.max(0, cap - consumed) };
+}
+
+/**
+ * Which social-login vars a deployment actually has, and whether its signing
+ * key is usable — reported as names and booleans, never values.
+ *
+ * `?error=apple_config` says the deployment is misconfigured but not which of
+ * five vars is at fault, and the only thing that knew was a service log line.
+ * A key pasted into a field that strips newlines is the common case and looks
+ * identical to a missing one from outside.
+ */
+const APPLE_VARS = [
+  "APPLE_CLIENT_ID",
+  "APPLE_TEAM_ID",
+  "APPLE_KEY_ID",
+  "APPLE_PRIVATE_KEY",
+  "APPLE_REDIRECT_URI",
+] as const;
+
+const NAVER_VARS = ["NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET", "NAVER_REDIRECT_URI"] as const;
+
+function splitByPresence(names: readonly string[]): { present: string[]; missing: string[] } {
+  const present: string[] = [];
+  const missing: string[] = [];
+  for (const name of names) {
+    (process.env[name] ? present : missing).push(name);
+  }
+  return { present, missing };
+}
+
+/** Parse-only: proves the paste survived, never returns the key. */
+async function checkApplePrivateKey(): Promise<{
+  present: boolean;
+  parses: boolean;
+  detail: string;
+}> {
+  const raw = process.env.APPLE_PRIVATE_KEY;
+  if (!raw) return { present: false, parses: false, detail: "not set" };
+  try {
+    const { importPKCS8 } = await import("jose");
+    await importPKCS8(raw.replace(/\\n/g, "\n"), "ES256");
+    return { present: true, parses: true, detail: "ok" };
+  } catch (err) {
+    return { present: true, parses: false, detail: (err as Error).message };
+  }
 }
 
 export async function adminRoutes(app: FastifyInstance) {
@@ -298,6 +344,21 @@ export async function adminRoutes(app: FastifyInstance) {
           p._count.id,
         ]),
       ),
+    };
+  });
+
+  // GET /api/admin/provider-config — which social-login vars this deployment
+  // has and whether the Apple key parses. Names and booleans only.
+  app.get("/provider-config", async () => {
+    const apple = splitByPresence(APPLE_VARS);
+    const naver = splitByPresence(NAVER_VARS);
+    return {
+      apple: {
+        enabled: appleLoginEnabled(),
+        ...apple,
+        privateKey: await checkApplePrivateKey(),
+      },
+      naver: { enabled: naverLoginEnabled(), ...naver },
     };
   });
 
