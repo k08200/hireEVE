@@ -42,8 +42,8 @@ export const TIER_VISUAL: Record<
     plane:
       "tier-plane-push border-tier-push/35 bg-gradient-to-b from-tier-push/[0.07] to-transparent",
     card: "border-tier-push/15 bg-surface-panel hover:border-tier-push/45",
-    accent: "text-tier-push",
-    dot: "text-tier-push",
+    accent: "text-tier-push-ink",
+    dot: "text-tier-push-ink",
   },
   QUEUE: {
     label: "QUEUE",
@@ -51,8 +51,8 @@ export const TIER_VISUAL: Record<
     plane:
       "tier-plane-queue border-tier-queue/25 bg-gradient-to-b from-tier-queue/[0.05] to-transparent",
     card: "border-tier-queue/10 bg-surface-panel hover:border-tier-queue/35",
-    accent: "text-tier-queue",
-    dot: "text-tier-queue",
+    accent: "text-tier-queue-ink",
+    dot: "text-tier-queue-ink",
   },
   SILENT: {
     label: "SILENT",
@@ -68,38 +68,44 @@ export const TIER_VISUAL: Record<
     plane:
       "tier-plane-auto border-tier-auto/30 bg-gradient-to-b from-tier-auto/[0.05] to-transparent",
     card: "border-tier-auto/15 bg-surface-panel hover:border-tier-auto/40",
-    accent: "text-tier-auto",
-    dot: "text-tier-auto",
+    accent: "text-tier-auto-ink",
+    dot: "text-tier-auto-ink",
   },
-  // Ontology v2 lanes (TIER_V2_ENABLED, off today — dormant until the flip;
-  // dedicated lane design lands with the flip work).
+  // Ontology v2 lanes. TIER_V2_ENABLED has been default-on since #1138
+  // (2026-08-18); the "dedicated lane design lands with the flip work" that
+  // the previous comment here promised did not, so both of these borrowed a
+  // neighbour's colour on every surface — MEETING was indistinguishable from
+  // PUSH, INFO from SILENT. They own their hue now.
   MEETING: {
     label: "MEETING",
     description: "Scheduling. Accept, decline, or propose — calendar checked.",
     plane:
-      "tier-plane-push border-tier-push/25 bg-gradient-to-b from-tier-push/[0.05] to-transparent",
-    card: "border-tier-push/10 bg-surface-panel hover:border-tier-push/35",
-    accent: "text-tier-push",
-    dot: "text-tier-push",
+      "tier-plane-meeting border-tier-meeting/30 bg-gradient-to-b from-tier-meeting/[0.06] to-transparent",
+    card: "border-tier-meeting/12 bg-surface-panel hover:border-tier-meeting/40",
+    accent: "text-tier-meeting-ink",
+    dot: "text-tier-meeting-ink",
   },
   INFO: {
     label: "INFO",
+    // Quieter than QUEUE, but NOT silent: INFO is a lane with content you can
+    // open, SILENT is suppression. Reusing silent's grey said the opposite.
     description: "Transactional record. Filed — no reply expected.",
-    plane: "tier-plane-silent border-line bg-surface-raised opacity-90 hover:opacity-100",
-    card: "border-line bg-surface-panel hover:border-line-strong",
-    accent: "text-ink-dim",
-    dot: "text-ink-dim",
+    plane:
+      "tier-plane-info border-tier-info/20 bg-gradient-to-b from-tier-info/[0.04] to-transparent",
+    card: "border-tier-info/10 bg-surface-panel hover:border-tier-info/30",
+    accent: "text-tier-info-ink",
+    dot: "text-tier-info-ink",
   },
 };
 
 // Per-target tint for the override pills, so "Move → PUSH" hints its tier hue.
 const TARGET_BUTTON: Record<Tier, string> = {
-  PUSH: "hover:border-tier-push/50 hover:text-tier-push",
-  QUEUE: "hover:border-tier-queue/50 hover:text-tier-queue",
+  PUSH: "hover:border-tier-push/50 hover:text-tier-push-ink",
+  QUEUE: "hover:border-tier-queue/50 hover:text-tier-queue-ink",
   SILENT: "hover:border-line-strong hover:text-ink-muted",
-  AUTO: "hover:border-tier-auto/50 hover:text-tier-auto",
-  MEETING: "hover:border-tier-push/50 hover:text-tier-push",
-  INFO: "hover:border-line-strong hover:text-ink-muted",
+  AUTO: "hover:border-tier-auto/50 hover:text-tier-auto-ink",
+  MEETING: "hover:border-tier-meeting/50 hover:text-tier-meeting-ink",
+  INFO: "hover:border-tier-info/50 hover:text-tier-info-ink",
 };
 
 const OVERRIDE_TARGETS: Tier[] = ["SILENT", "QUEUE", "PUSH"];
@@ -665,7 +671,7 @@ function AutoStrip({ count, items }: { count: number; items: FirewallItem[] }) {
     <section className={`glass mt-4 rounded-2xl border p-4 ${v.plane}`}>
       <header className="flex items-center gap-2">
         <TierGlyph tier="AUTO" className={v.dot} />
-        <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-tier-auto">
+        <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-tier-auto-ink">
           AUTO
         </h2>
         <CountChip value={count} className={`ml-auto text-sm font-semibold ${v.accent}`} />
@@ -676,7 +682,7 @@ function AutoStrip({ count, items }: { count: number; items: FirewallItem[] }) {
       <ul className="mt-3 space-y-1.5 text-xs text-ink-mid">
         {items.slice(0, 5).map((item) => (
           <li key={item.id} className="flex items-center gap-2 line-clamp-1">
-            <span className="text-tier-auto/60">·</span>
+            <span className="text-tier-auto-ink/60">·</span>
             <span className="truncate">{item.title}</span>
           </li>
         ))}
