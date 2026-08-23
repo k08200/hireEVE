@@ -546,14 +546,30 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .vscell.them::before{color:var(--ink-3)}
 }
 
-/* Language switch, in the nav where it belongs */
-.nav-lang{display:inline-flex;align-items:center;gap:1px;margin-left:8px;padding:3px;border-radius:9999px;
-  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12)}
-.nav-lang a{font-size:11.5px;font-weight:650;letter-spacing:.04em;color:rgba(255,255,255,.66);
-  padding:5px 10px;border-radius:9999px;transition:color .4s var(--ease),background .4s var(--ease)}
-.nav-lang a:hover{color:#fff}
-.nav-lang a[aria-current]{background:#fff;color:var(--ink)}
+/* Language switch, in the nav where it belongs.
+   A menu, not a row of buttons: two languages fit side by side, seven do not,
+   and a control that has to be redesigned every time a language ships is the
+   wrong shape. The trigger names the CURRENT language; the choices open
+   below it. */
+.nav-lang{position:relative;margin-left:8px}
+.nav-lang-btn{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:650;
+  letter-spacing:.04em;color:rgba(255,255,255,.82);padding:6px 10px;border-radius:9999px;
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);cursor:pointer;
+  font-family:inherit;transition:color .4s var(--ease),background .4s var(--ease)}
+.nav-lang-btn:hover{color:#fff;background:rgba(255,255,255,.16)}
+.nav-lang-btn i{font-style:normal;font-size:9px;opacity:.7;transition:transform .3s var(--ease)}
+.nav-lang-btn[aria-expanded="true"] i{transform:rotate(180deg)}
+.nav-lang-menu{position:absolute;top:calc(100% + 8px);right:0;min-width:132px;padding:5px;
+  border-radius:14px;background:rgba(24,26,32,.96);border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 18px 40px rgba(0,0,0,.34);display:none;flex-direction:column;gap:1px;z-index:40}
+.nav-lang-menu[data-open]{display:flex}
+.nav-lang-menu a{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.72);
+  padding:7px 11px;border-radius:9px;white-space:nowrap;
+  transition:color .3s var(--ease),background .3s var(--ease)}
+.nav-lang-menu a:hover,.nav-lang-menu a:focus-visible{color:#fff;background:rgba(255,255,255,.10)}
+.nav-lang-menu a[aria-current]{color:#fff;background:rgba(255,255,255,.14)}
 @media(max-width:880px){.nav-lang{margin-left:4px}}
+@media(prefers-reduced-motion:reduce){.nav-lang-btn i{transition:none}}
 /* Phones: the pill carries brand + Log in + Download, and the language switch is
    the one control here that is not load-bearing — the first visit is routed by
    navigator.languages, the choice persists in localStorage, and the footer keeps
@@ -805,7 +821,12 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <a class="nav-brand" href="#top" data-top>Klorn</a>
   <span class="nav-links"><a href="#cards">제품</a><a href="#day">동작 방식</a><a href="#compare">왜 Klorn인가</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
   <span class="nav-lang">
-    <a href="/" data-lang-pick="en">EN</a><a href="/ko/" data-lang-pick="ko" aria-current="true">한국어</a>
+    <button type="button" class="nav-lang-btn" data-lang-toggle
+            aria-haspopup="true" aria-expanded="false" aria-controls="lang-menu">한국어 <i aria-hidden="true">▾</i></button>
+    <span class="nav-lang-menu" id="lang-menu" role="menu">
+      <a href="/" data-lang-pick="en" role="menuitem">English</a>
+      <a href="/ko/" data-lang-pick="ko" role="menuitem" aria-current="true">한국어</a>
+    </span>
   </span>
   <a class="nav-login" href="https://app.klorn.ai/login">로그인</a>
   <a class="nav-cta" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
@@ -1396,6 +1417,42 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     history.replaceState(null, '', location.pathname + location.search);
   });
 });
+
+// The language menu. Click to open, click away or Escape to close — the same
+// contract every OS menu has, so nothing here needs explaining.
+(function () {
+  var btn = document.querySelector('[data-lang-toggle]');
+  var menu = document.getElementById('lang-menu');
+  if (!btn || !menu) return;
+
+  function close() {
+    menu.removeAttribute('data-open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+  function open() {
+    menu.setAttribute('data-open', '');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (menu.hasAttribute('data-open')) close();
+    else open();
+  });
+  // Clicking a choice navigates; closing first avoids a menu flashing over
+  // the new page during the load.
+  menu.addEventListener('click', function () { close(); });
+  document.addEventListener('click', function (e) {
+    if (!menu.hasAttribute('data-open')) return;
+    if (menu.contains(e.target) || btn.contains(e.target)) return;
+    close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !menu.hasAttribute('data-open')) return;
+    close();
+    btn.focus();          // Escape must return focus, not strand it
+  });
+})();
 
 // Language: follow the OS/browser preference on a first visit, and never again.
 // Rules that keep this from being hostile: an explicit EN/KO click is remembered
