@@ -1181,6 +1181,17 @@ const de: Record<string, string> = {
     "Diese Entscheidung konnte nicht gespeichert werden. Am Absender hat sich nichts geändert — bitte erneut versuchen.",
   "screener.noHold":
     "Es wird nichts zurückgehalten. Mails dieser Absender werden wie gewohnt sortiert und zugestellt, ob du hier entscheidest oder nicht.",
+  "pmf.title": "Wie würdest du dich fühlen, wenn du Klorn nicht mehr nutzen könntest?",
+  "pmf.subtitle":
+    "Eine Frage, einmal gestellt. Die Antwort fließt direkt in die Preisgestaltung ein.",
+  "pmf.very": "Sehr enttäuscht",
+  "pmf.somewhat": "Etwas enttäuscht",
+  "pmf.not": "Nicht enttäuscht",
+  "pmf.working": "Wird gespeichert…",
+  "pmf.thanks": "Danke — ist erfasst.",
+  "pmf.failed":
+    "Konnte nicht erfasst werden. Es wurde nichts gespeichert — bitte erneut versuchen.",
+  "pmf.later": "Später",
 };
 
 export default de;

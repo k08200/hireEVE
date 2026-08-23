@@ -48,6 +48,10 @@ export const queryKeys = {
     all: ["screener"] as const,
     pending: () => ["screener", "pending"] as const,
   },
+  pmf: {
+    all: ["pmf"] as const,
+    eligible: () => ["pmf", "eligible"] as const,
+  },
   email: {
     all: ["email"] as const,
     list: (params?: {
