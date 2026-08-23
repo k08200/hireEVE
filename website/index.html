@@ -9,9 +9,9 @@
 <!-- English is always the default at klorn.ai. Korean is reached via the language
      toggle in the nav, which also auto-redirects a Korean-locale first visit. -->
 <title>Klorn — Noise in. Signal out.</title>
-<meta name="description" content="A Mac app that sorts your mail into five lanes — Push, Meeting, Queue, Info, Silent — and tells you why. Open source, self-hostable, and it never sends anything outside rules you set.">
+<meta name="description" content="Sorts your mail into five lanes — Push, Meeting, Queue, Info, Silent — and tells you why. Open source, self-hostable, and it never sends anything outside rules you set.">
 <meta property="og:title" content="Klorn — Noise in. Signal out.">
-<meta property="og:description" content="A Mac app that sorts your mail into five lanes and tells you why. Other AI agents act on your behalf; Klorn decides what deserves your attention and acts only by rules you set.">
+<meta property="og:description" content="Sorts your mail into five lanes and tells you why, on the web, macOS and Windows. Other AI agents act on your behalf; Klorn decides what deserves your attention and acts only by rules you set.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://klorn.ai/">
 <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
@@ -546,6 +546,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .vscell.them::before{color:var(--ink-3)}
 }
 
+/* The four products a buyer is actually deciding between, named, each linked to
+   the page that carries the receipt. These pages existed but were reachable only
+   from the footer, which is the same as not existing: a comparison nobody
+   reaches persuades nobody. Kept below the grid, not above it — the argument
+   earns the click, the click does not replace the argument. */
+.vslinks{max-width:1180px;margin:24px auto 0;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:12px}
+.vslink{display:block;padding:16px 18px;border:1px solid var(--line);border-radius:14px;
+  background:#fff;transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.vslink:hover{border-color:rgba(3,105,161,.34);transform:translateY(-2px)}
+.vslink b{display:block;font-size:14px;font-weight:650;color:var(--sky-ink);
+  letter-spacing:-.01em;margin-bottom:5px}
+.vslink b::after{content:' \2192';font-weight:500}
+.vslink span{display:block;font-size:12.5px;line-height:1.5;color:var(--ink-3)}
+.vsnote{max-width:1180px;margin:16px auto 0;padding:0 24px;font-size:12px;line-height:1.6;
+  color:var(--ink-3)}
+.vsnote a{color:var(--sky-ink);font-weight:600}
+@media(max-width:980px){.vslinks{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.vslinks{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.vslink{transition:none}.vslink:hover{transform:none}}
+
 /* Language switch, in the nav where it belongs.
    A menu, not a row of buttons: two languages fit side by side, seven do not,
    and a control that has to be redesigned every time a language ships is the
@@ -740,7 +761,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "applicationCategory": "BusinessApplication",
  "url": "https://klorn.ai/",
  "inLanguage": "en",
- "description": "A Mac app that sorts your mail into five lanes — Push, Meeting, Queue, Info, Silent — and tells you why. Open source (AGPLv3), self-hostable, and it never sends anything outside rules you set.",
+ "description": "Sorts your mail into five lanes — Push, Meeting, Queue, Info, Silent — and tells you why. Open source (AGPLv3), self-hostable, and it never sends anything outside rules you set.",
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
@@ -748,7 +769,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   "@type": "Offer",
   "price": "0",
   "priceCurrency": "USD",
-  "description": "Invite-only beta; mail sorting is free with a daily AI budget cap."
+  "description": "Free to start, no invite needed; mail sorting is free with a daily AI budget cap."
  },
  "softwareHelp": {
   "@type": "CreativeWork",
@@ -985,40 +1006,58 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <span class="tag rv">Where we disagree</span>
       <h2 class="rv">Four opinions most<br>email AI doesn't hold.</h2>
     </div>
-    <p class="rv">These are choices, not features — each one costs Klorn something. Set against what the
-      assistant already bundled with your mail decides to do instead.</p>
+    <p class="rv">These are choices, not features — each one costs Klorn something. Set against the four
+      products you are actually deciding between, by name, with the receipt for every claim on its own page.</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
       <div class="vscol ours"><span class="mk">K</span><b>Klorn</b></div>
-      <div class="vscol them"><span class="mk">—</span><b>The assistant in your inbox</b></div>
+      <div class="vscol them"><span class="mk">4</span><b>Fyxer &middot; Superhuman &middot; Inbox Zero &middot; SaneBox</b></div>
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">01 · Who decides</span>
-        <p>Sorts and drafts, then <b>stops</b>. Every send, delete and forward waits for you and mints a receipt.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">01 · Who decides</span>
-        <p>Acts on your behalf and tells you afterwards. Undo is the safety net.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 &middot; Who decides what reaches you</span>
+        <p>Klorn does — one classification per message into <b>five lanes</b>. Sending, deleting and
+          forwarding still wait for you, and each one mints a receipt.</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; Superhuman"><span class="k">01 &middot; Who decides what reaches you</span>
+        <p><b>Fyxer</b> and <b>Superhuman</b> make the mail you already opened faster to get through. The
+          decision about what was worth opening stays yours, on every message, all day.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">02 · What you see</span>
-        <p>Four fixed tiers, and <b>the reason on every message</b>. Move one and the classifier learns.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">02 · What you see</span>
-        <p>Priority flags and unlimited labels. No reason given, and nothing to correct.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 &middot; Why it decided that</span>
+        <p><b>The reason is on every row.</b> Move the row and the correction becomes training signal —
+          two matching corrections make that sender deterministic.</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; SaneBox"><span class="k">02 &middot; Why it decided that</span>
+        <p><b>Fyxer</b> does not surface it. <b>SaneBox</b> leaves you to infer it from the folder the mail
+          landed in. Neither decision can be audited after the fact.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">03 · What it claims</span>
-        <p><b>94.3%</b> on a hand-labeled set that ships in the repo, cold and warm reported separately.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">03 · What it claims</span>
-        <p>"AI-powered." No number, no eval set, no way to check it yourself.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; What it claims</span>
+        <p><b>94.3%</b> on a hand-labeled set that ships in the repo — re-runnable with
+          <b>pnpm eval:judge</b>, cold and warm reported separately.</p></div>
+      <div class="vscell them" data-who="All four"><span class="k">03 &middot; What it claims</span>
+        <p>&ldquo;AI-powered.&rdquo; No published evaluation set, no cold-versus-warm split, and nothing you
+          can run yourself to check the number against.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">04 · If you want out</span>
-        <p><b>AGPLv3</b>. Read it, self-host it against your own keys, or fork it and leave.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">04 · If you want out</span>
-        <p>Closed. Your mail is the training surface, and export is the only exit.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 &middot; If you want out</span>
+        <p><b>Unmodified AGPL-3.0.</b> No additional terms, no commercial-use restriction, no 5-employee
+          clause. Self-host it against your own key, or fork it and leave.</p></div>
+      <div class="vscell them" data-who="Inbox Zero"><span class="k">04 &middot; If you want out</span>
+        <p><b>Inbox Zero</b> appends ADDITIONAL TERMS to its AGPL — commercial monetization restricted,
+          organisations of 5+ must obtain a licence. GitHub resolves that file as <b>NOASSERTION</b>.
+          The other three are closed source.</p></div>
     </div>
   </div>
+  <div class="vslinks rv">
+    <a class="vslink" href="/vs/fyxer/"><b>vs Fyxer</b><span>$30 per user per month for drafts in your voice. Closed, cloud-only, no reason attached.</span></a>
+    <a class="vslink" href="/vs/superhuman/"><b>vs Superhuman</b><span>Halving the time each email takes is a multiplier on a number you did not choose.</span></a>
+    <a class="vslink" href="/vs/inbox-zero/"><b>vs Inbox Zero</b><span>Open both LICENSE files in two tabs. One is the AGPL and stops there.</span></a>
+    <a class="vslink" href="/vs/sanebox/"><b>vs SaneBox</b><span>It never reads the body — the stronger privacy sentence, and what it costs.</span></a>
+  </div>
+  <p class="vsnote rv">Prices and product facts as published by each vendor, checked 2026-08-23. No
+    head-to-head accuracy test has been run against any of them, and this page does not pretend otherwise.
+    Something here wrong? <a href="mailto:k0820086@gmail.com">Tell us and we will fix it.</a></p>
 </section>
 
 <!-- ══ MEASURED ═════════════════════════════════════ -->
