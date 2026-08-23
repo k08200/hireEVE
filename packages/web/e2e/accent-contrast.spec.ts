@@ -33,6 +33,11 @@ const BANNED_DANGER =
   /\b(?:bg-red-(?:50|100)|border-red-200|text-red-(?:200|400|500|600|700)|bg-red-(?:600|700))(?![\w/])/;
 const BANNED_STATE =
   /\b(?:bg-(?:emerald|amber|sky)-50|border-(?:emerald|amber|sky)-200|border-amber-300|text-(?:emerald|amber)-(?:200|600|700)|text-sky-800)(?![\w/])/;
+// --color-accent and its -light/-muted tints are SURFACE values: as text they
+// measure 2.77 / 2.14 / 1.6:1 on white. --accent-deep is the text step, and in
+// the dark it resolves to the same bright blue those were reaching for.
+const BANNED_ACCENT_TEXT =
+  /\b(?:hover:|focus:|group-hover:)?text-accent(?:-light|-muted)?(?:\/\d+)?(?![-\w])/;
 const CLASS_STRING = /"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g;
 
 /**
@@ -72,7 +77,7 @@ test.describe("Accent contrast", () => {
     expect(offenders, "use bg-accent-solid + text-accent-solid-ink instead").toEqual([]);
   });
 
-  test("no source file pins a raw semantic colour for a notice surface or its text", () => {
+  test("no source file pins a raw semantic colour, or an accent tint used as text", () => {
     // Same failure mode as the accent one, opposite direction: these Tailwind
     // reds are single values that do not swap, so text-red-600 read 3.6:1 on
     // the dark panel while text-red-400 read 2.5:1 in light, and the
@@ -87,7 +92,7 @@ test.describe("Accent contrast", () => {
       const text = withoutBlockComments(readFileSync(file, "utf8"));
       for (const match of text.matchAll(CLASS_STRING)) {
         const body = match[1] ?? match[2] ?? "";
-        if (BANNED_DANGER.test(body) || BANNED_STATE.test(body)) {
+        if (BANNED_DANGER.test(body) || BANNED_STATE.test(body) || BANNED_ACCENT_TEXT.test(body)) {
           const line = text.slice(0, match.index).split("\n").length;
           offenders.push(`${file.slice(SRC.length + 1)}:${line}`);
         }
@@ -95,7 +100,7 @@ test.describe("Accent contrast", () => {
     }
     expect(
       offenders,
-      "use the --state-{ok,warn,info,danger}-* tokens, or bg-danger-solid + text-danger-solid-ink for a filled destructive control",
+      "use the --state-{ok,warn,info,danger}-* tokens, text-accent-deep for accent TEXT, or bg-danger-solid + text-danger-solid-ink for a filled destructive control",
     ).toEqual([]);
   });
 
