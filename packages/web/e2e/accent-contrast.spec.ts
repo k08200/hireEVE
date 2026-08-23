@@ -17,7 +17,11 @@ import { expect, type Page, test } from "@playwright/test";
 
 // Playwright resolves testDir from the package root, so cwd is packages/web.
 const SRC = join(process.cwd(), "src");
-const BANNED = /\bbg-accent(-light)?\b(?!-)/;
+// A bare fill is either the flat token or a gradient STOP built from it — the
+// first version of this guard only matched the flat form, so 37 gradient
+// buttons and avatars carried white text at 2.14:1 straight through it
+// (found 2026-08-23). from-/to-/via- are covered explicitly.
+const BANNED = /\b(?:bg|from|via|to)-accent(-light)?\b(?!-)/;
 const CLASS_STRING = /"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g;
 
 function sourceFiles(dir: string): string[] {
@@ -32,15 +36,17 @@ test.describe("Accent contrast", () => {
   test("no source file paints white text on a bare accent fill", () => {
     const offenders: string[] = [];
     for (const file of sourceFiles(SRC)) {
-      const lines = readFileSync(file, "utf8").split("\n");
-      lines.forEach((line, i) => {
-        for (const match of line.matchAll(CLASS_STRING)) {
-          const body = match[1] ?? match[2] ?? "";
-          if (BANNED.test(body) && /\btext-white\b/.test(body)) {
-            offenders.push(`${file.slice(SRC.length + 1)}:${i + 1}`);
-          }
+      // Scan the whole file, not line by line: a className template literal
+      // can span several lines, and the per-line version could never match
+      // one — which is how the bottom-tabs account badge slipped through.
+      const text = readFileSync(file, "utf8");
+      for (const match of text.matchAll(CLASS_STRING)) {
+        const body = match[1] ?? match[2] ?? "";
+        if (BANNED.test(body) && /\btext-white\b/.test(body)) {
+          const line = text.slice(0, match.index).split("\n").length;
+          offenders.push(`${file.slice(SRC.length + 1)}:${line}`);
         }
-      });
+      }
     }
     expect(offenders, "use bg-accent-solid + text-accent-solid-ink instead").toEqual([]);
   });

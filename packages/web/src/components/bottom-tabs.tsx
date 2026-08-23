@@ -81,7 +81,7 @@ export default function BottomTabs() {
             >
               <span
                 aria-hidden="true"
-                className={`flex h-[22px] w-[22px] items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[9px] font-bold text-white ring-1 transition ${
+                className={`flex h-[22px] w-[22px] items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-[9px] font-bold text-accent-solid-ink ring-1 transition ${
                   accountActive || accountOpen ? "ring-accent" : "ring-transparent"
                 }`}
               >
@@ -167,7 +167,7 @@ function AccountSheet({ onClose, initials }: { onClose: () => void; initials: st
           <div className="flex items-center gap-3 px-5 py-4">
             <span
               aria-hidden="true"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-xs font-bold text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-xs font-bold text-accent-solid-ink"
             >
               {initials || "?"}
             </span>

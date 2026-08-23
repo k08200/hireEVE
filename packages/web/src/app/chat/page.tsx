@@ -111,7 +111,7 @@ function ChatView() {
               <div role="status" className="flex items-center gap-2.5">
                 <span
                   aria-hidden="true"
-                  className="avatar-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[11px] font-semibold text-white"
+                  className="avatar-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-[11px] font-semibold text-accent-solid-ink"
                 >
                   K
                 </span>
@@ -157,7 +157,7 @@ function ChatView() {
         <button
           type="submit"
           disabled={!input.trim() || sending}
-          className="focus-ring glow-primary ease-strong inline-flex min-h-[44px] items-center rounded-xl bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+          className="focus-ring glow-primary ease-strong inline-flex min-h-[44px] items-center rounded-xl bg-accent-solid px-4 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {t("chat.send")}
         </button>
@@ -182,7 +182,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
     <div className="flex justify-start gap-2.5 transition duration-150 ease-strong starting:translate-y-1 starting:opacity-0 motion-reduce:transition-none">
       <span
         aria-hidden="true"
-        className="avatar-ring mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[11px] font-semibold text-white"
+        className="avatar-ring mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-[11px] font-semibold text-accent-solid-ink"
       >
         K
       </span>

@@ -20,8 +20,15 @@
   --ink: #0f172a; /* slate-900 — primary text */
   --ink-strong: #1e293b; /* slate-800 */
   --ink-soft: #334155; /* slate-700 */
-  --ink-mid: #64748b; /* slate-500 — secondary text */
-  --ink-dim: #94a3b8; /* slate-400 — tertiary/labels */
+  /* NOT the slate-500/400 pair they used to be. Measured 2026-08-23 against
+     the lightest surface these ever sit on (--surface-hover #f1f5f9, not
+     white): slate-500 landed at 4.34:1 and slate-400 at 2.40:1, so the whole
+     secondary ramp failed the AA text floor in light — the mirror of the fix
+     the dark block below already carries. Both steps move down until they
+     clear 4.5:1 on EVERY light surface, keeping the ramp monotonic against
+     --ink-muted (6.9:1) above them. */
+  --ink-mid: #556275; /* 5.65:1 worst-surface */
+  --ink-dim: #5f6e84; /* 4.73:1 worst-surface */
   --line: #e2e8f0; /* slate-200 — borders */
   --line-soft: #f1f5f9; /* slate-100 — hairlines */
   --line-strong: #cbd5e1; /* slate-300 — emphasized borders */

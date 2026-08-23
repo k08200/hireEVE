@@ -65,7 +65,7 @@ export default function AssistantDock() {
           <div className="flex items-center gap-2.5 border-b border-line-soft px-4 py-3">
             <span
               aria-hidden="true"
-              className="avatar-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[11px] font-semibold text-white"
+              className="avatar-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-[11px] font-semibold text-accent-solid-ink"
             >
               K
             </span>
@@ -140,7 +140,7 @@ export default function AssistantDock() {
                   <div role="status" className="flex items-center gap-2">
                     <span
                       aria-hidden="true"
-                      className="avatar-ring flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[10px] font-semibold text-white"
+                      className="avatar-ring flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-[10px] font-semibold text-accent-solid-ink"
                     >
                       K
                     </span>
@@ -187,7 +187,7 @@ export default function AssistantDock() {
                 type="submit"
                 disabled={!chat.input.trim() || chat.sending}
                 aria-label={t("chat.send")}
-                className="glow-primary ease-strong flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-b from-accent-light to-accent text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+                className="glow-primary ease-strong flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-solid text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg
                   aria-hidden="true"
@@ -215,7 +215,7 @@ export default function AssistantDock() {
         onClick={() => setOpen((p) => !p)}
         aria-expanded={open}
         aria-label={open ? "Close assistant" : "Open assistant"}
-        className="glow-primary ease-strong fixed bottom-24 right-4 z-[81] flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-white transition duration-150 hover:from-accent-light hover:to-sky-700 active:scale-[0.94] md:bottom-5 md:right-5"
+        className="glow-primary ease-strong fixed bottom-24 right-4 z-[81] flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-accent-solid-ink transition duration-150 hover:opacity-90 active:scale-[0.94] md:bottom-5 md:right-5"
       >
         {open ? (
           <svg
@@ -255,7 +255,7 @@ function DockBubble({ message }: { message: AssistantChatMessage }) {
     <div className="ease-strong flex justify-start gap-2 transition duration-150 starting:translate-y-1 starting:opacity-0 motion-reduce:transition-none">
       <span
         aria-hidden="true"
-        className="avatar-ring mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[10px] font-semibold text-white"
+        className="avatar-ring mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-[10px] font-semibold text-accent-solid-ink"
       >
         K
       </span>

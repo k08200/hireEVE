@@ -314,7 +314,7 @@ function CalendarView() {
               setVoiceInitial(null);
               setNewEventOpen(true);
             }}
-            className="glow-primary ease-strong inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97]"
+            className="glow-primary ease-strong inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent-solid px-3.5 text-sm font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97]"
           >
             <svg
               aria-hidden="true"
