@@ -98,6 +98,99 @@ const COPY: Record<Lang, BriefingCopy> = {
     },
     dateLocale: "ko-KR",
   },
+  ja: {
+    today: "今日",
+    beforeHour: (h) => `${h}より前`,
+    afterHour: (h) => `${h}以降`,
+    hourRange: (from, to) => `${from} – ${to}`,
+    offSummary: "予定はありません。休みの日です。",
+    freeSummary: (hours) => `${hours}時間空いています。`,
+    busySummary: (count, list) => `${count}件: ${list}`,
+    offHeadline: "カレンダーは空です。休みの日です。",
+    clearHeadline: "予定のない一日です。長い集中時間が取れます。",
+    frontLoaded: (n, boundary) => `${boundary}までに会議${n}件。あとは空いています。`,
+    withOpenHours: (n, free) => `今日は会議${n}件、空き時間は${free}時間です。`,
+    backToBack: (n) => `今日は会議${n}件が続きます。`,
+    hourLabel: (hour) => {
+      const meridiem = hour < 12 ? "午前" : "午後";
+      const h = hour <= 12 ? hour : hour - 12;
+      return `${meridiem}${h}時`;
+    },
+    dateLocale: "ja-JP",
+  },
+  zh: {
+    today: "今天",
+    beforeHour: (h) => `${h}之前`,
+    afterHour: (h) => `${h}之后`,
+    hourRange: (from, to) => `${from} – ${to}`,
+    offSummary: "没有日程。今天休息。",
+    freeSummary: (hours) => `空出 ${hours} 小时。`,
+    busySummary: (count, list) => `${count} 项：${list}`,
+    offHeadline: "日历是空的。今天休息。",
+    clearHeadline: "今天没有日程，可以安排长时间专注。",
+    frontLoaded: (n, boundary) => `${boundary}前有 ${n} 场会议，其余时间空闲。`,
+    withOpenHours: (n, free) => `今天有 ${n} 场会议，空闲 ${free} 小时。`,
+    backToBack: (n) => `今天有 ${n} 场会议接连进行。`,
+    hourLabel: (hour) => {
+      const meridiem = hour < 12 ? "上午" : "下午";
+      const h = hour <= 12 ? hour : hour - 12;
+      return `${meridiem}${h}点`;
+    },
+    dateLocale: "zh-CN",
+  },
+  es: {
+    today: "Hoy",
+    beforeHour: (h) => `Antes de las ${h}`,
+    afterHour: (h) => `Después de las ${h}`,
+    hourRange: (from, to) => `${from} – ${to}`,
+    offSummary: "Nada agendado. Es un día libre.",
+    freeSummary: (hours) => `${hours} horas libres.`,
+    busySummary: (count, list) => `${count} agendados: ${list}`,
+    offHeadline: "Nada en el calendario. Es un día libre.",
+    clearHeadline: "Un día despejado. Los bloques largos de foco son tuyos.",
+    frontLoaded: (n, boundary) =>
+      `${n} reunión${n === 1 ? "" : "es"} antes de las ${boundary}. El resto está libre.`,
+    withOpenHours: (n, free) => `${n} reunión${n === 1 ? "" : "es"} hoy, con ${free} horas libres.`,
+    backToBack: (n) => `${n} reunión${n === 1 ? "" : "es"} seguidas hoy.`,
+    hourLabel: (hour) => `${hour}:00`,
+    dateLocale: "es-ES",
+  },
+  fr: {
+    today: "Aujourd'hui",
+    beforeHour: (h) => `Avant ${h}`,
+    afterHour: (h) => `Après ${h}`,
+    hourRange: (from, to) => `${from} – ${to}`,
+    offSummary: "Rien de prévu. C'est un jour de repos.",
+    freeSummary: (hours) => `${hours} heures de libre.`,
+    busySummary: (count, list) => `${count} prévus : ${list}`,
+    offHeadline: "Rien au calendrier. C'est un jour de repos.",
+    clearHeadline: "Une journée dégagée. Les longues plages de concentration sont à vous.",
+    frontLoaded: (n, boundary) =>
+      `${n} réunion${n === 1 ? "" : "s"} avant ${boundary}. Le reste est libre.`,
+    withOpenHours: (n, free) =>
+      `${n} réunion${n === 1 ? "" : "s"} aujourd'hui, avec ${free} heures de libre.`,
+    backToBack: (n) => `${n} réunion${n === 1 ? "" : "s"} à la suite aujourd'hui.`,
+    hourLabel: (hour) => `${hour} h`,
+    dateLocale: "fr-FR",
+  },
+  de: {
+    today: "Heute",
+    beforeHour: (h) => `Vor ${h}`,
+    afterHour: (h) => `Nach ${h}`,
+    hourRange: (from, to) => `${from} – ${to}`,
+    offSummary: "Nichts geplant. Ein freier Tag.",
+    freeSummary: (hours) => `${hours} Stunden frei.`,
+    busySummary: (count, list) => `${count} geplant: ${list}`,
+    offHeadline: "Nichts im Kalender. Ein freier Tag.",
+    clearHeadline: "Ein freier Tag. Lange Fokusblöcke gehören dir.",
+    frontLoaded: (n, boundary) =>
+      `${n} Meeting${n === 1 ? "" : "s"} vor ${boundary}. Der Rest ist frei.`,
+    withOpenHours: (n, free) =>
+      `${n} Meeting${n === 1 ? "" : "s"} heute, mit ${free} freien Stunden.`,
+    backToBack: (n) => `${n} Meeting${n === 1 ? "" : "s"} hintereinander heute.`,
+    hourLabel: (hour) => `${hour}:00 Uhr`,
+    dateLocale: "de-DE",
+  },
 };
 
 interface BriefingCopy {

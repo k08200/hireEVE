@@ -143,12 +143,13 @@ describe("notification language", () => {
   });
 
   it("falls back to English for a language it does not ship", () => {
+    // fr shipped in 2026-08-23; pt is the current stand-in for "unshipped".
     const out = formatUrgentEmailBody(
       [
         { from: "A <a@x.com>", subject: "First", summary: null },
         { from: "B <b@y.com>", subject: "Second", summary: null },
       ],
-      "fr",
+      "pt",
     );
     expect(out).toContain("2 urgent emails");
   });
