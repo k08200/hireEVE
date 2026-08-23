@@ -216,7 +216,7 @@ export default function Sidebar() {
                 onClick={() => setShowUserMenu((p) => !p)}
                 className="w-full flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-hover/70 transition text-left"
               >
-                <div className="avatar-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-indigo-500 text-[11px] font-bold text-white">
+                <div className="avatar-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-[11px] font-bold text-accent-solid-ink">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">

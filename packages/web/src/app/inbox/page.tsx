@@ -1327,7 +1327,7 @@ function ActionCard({
             type="button"
             onClick={onApprove}
             disabled={!!loading}
-            className="glow-primary ease-strong inline-flex min-h-11 min-w-[120px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+            className="glow-primary ease-strong inline-flex min-h-11 min-w-[120px] items-center justify-center gap-1.5 rounded-lg bg-accent-solid px-5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading === "approve" ? (
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -1786,7 +1786,7 @@ function MobileActionCard({
             type="button"
             onClick={onApprove}
             disabled={!!loading}
-            className="glow-primary ease-strong flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-b from-accent-light to-accent text-[15px] font-semibold text-white transition duration-150 active:scale-[0.97] disabled:opacity-50"
+            className="glow-primary ease-strong flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-solid text-[15px] font-semibold text-accent-solid-ink transition duration-150 active:scale-[0.97] disabled:opacity-50"
           >
             {loading === "approve" ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />

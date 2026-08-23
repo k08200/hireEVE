@@ -110,7 +110,7 @@ export default function EventDraftCard({ draft }: { draft: EventDraft }) {
             type="button"
             onClick={() => void save()}
             disabled={state === "saving"}
-            className="focus-ring glow-primary ease-strong min-h-[44px] rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+            className="focus-ring glow-primary ease-strong min-h-[44px] rounded-lg bg-accent-solid px-4 text-sm font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {state === "saving" ? t("draft.saving") : t("draft.save")}
           </button>

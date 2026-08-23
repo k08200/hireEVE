@@ -127,7 +127,7 @@ function WelcomeStep({
           type="button"
           onClick={onConnectClick}
           disabled={connecting}
-          className="glow-primary ease-strong flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
+          className="glow-primary ease-strong flex w-full items-center justify-center gap-2 rounded-xl bg-accent-solid px-5 py-3.5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
         >
           {connecting ? t("onboarding.welcome.connecting") : t("onboarding.welcome.connectButton")}
           {!connecting && <span aria-hidden>→</span>}
@@ -242,7 +242,7 @@ function SyncingStep({ initSync, onContinue }: { initSync: SyncState; onContinue
         <button
           type="button"
           onClick={onContinue}
-          className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring"
+          className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-solid px-5 py-3.5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] focus-ring"
         >
           {isDone
             ? t("onboarding.syncing.continueSeeFound")
@@ -308,7 +308,7 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
       <button
         type="button"
         onClick={onDone}
-        className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring"
+        className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-solid px-5 py-3.5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] focus-ring"
       >
         {t("onboarding.ready.openQueue")}
         <span aria-hidden>→</span>

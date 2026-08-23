@@ -309,7 +309,7 @@ function CandidateDetailView() {
                 type="button"
                 onClick={() => update({ notes })}
                 disabled={saving}
-                className="glow-primary ease-strong mt-2 w-full rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-2 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                className="glow-primary ease-strong mt-2 w-full rounded-lg bg-accent-solid px-3 py-2 text-xs font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? t("candidates.detail.saving") : t("candidates.detail.saveNotes")}
               </button>
@@ -332,7 +332,7 @@ function CandidateDetailView() {
           <div className="mt-5 flex flex-wrap gap-2">
             <Link
               href={`/email/${email.id}`}
-              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97]"
+              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-accent-solid px-4 text-sm font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97]"
             >
               {t("candidates.detail.noProfile.openSourceEmail")}
             </Link>

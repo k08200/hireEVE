@@ -169,7 +169,7 @@ export function CommitmentCard({
           type="button"
           onClick={onDone}
           disabled={!!loading}
-          className="glow-primary ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-1.5 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+          className="glow-primary ease-strong inline-flex min-w-[72px] items-center justify-center gap-1.5 rounded-lg bg-accent-solid px-3 py-1.5 text-xs font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading === "done" ? (
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />

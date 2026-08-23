@@ -283,7 +283,7 @@ function AdminDashboard() {
               type="button"
               onClick={runEval}
               disabled={evalLoading}
-              className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-xs font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-accent-solid px-3.5 text-xs font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {evalLoading ? "Running..." : "Run eval"}
             </button>

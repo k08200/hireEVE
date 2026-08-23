@@ -316,7 +316,7 @@ function CandidateIntakeView() {
             type="button"
             onClick={() => load(status, attention, true)}
             disabled={refreshing}
-            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
+            className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-accent-solid px-3.5 text-sm font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
           >
             {refreshing ? t("candidates.refreshing") : t("candidates.rescan")}
           </button>
