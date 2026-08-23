@@ -839,7 +839,7 @@ function EmailView() {
               {source === "gmail" && (
                 <span
                   title="Real-time sync is on — new mail lands in seconds"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-600"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-state-ok-line bg-state-ok-bg px-2 py-0.5 text-[11px] font-medium text-state-ok-ink"
                 >
                   <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:animate-none" />
@@ -876,7 +876,7 @@ function EmailView() {
               onClick={() => setComposeOpen(true)}
               disabled={source === "demo"}
               title={source === "demo" ? "Connect Gmail to send email" : "Compose a new email"}
-              className="glow-primary ease-strong inline-flex h-9 items-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+              className="glow-primary ease-strong inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent-solid px-3.5 text-sm font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg
                 aria-hidden="true"
@@ -1047,7 +1047,7 @@ function EmailView() {
         {candidateCount > 0 && (
           <Link
             href="/email/candidates"
-            className="group mb-4 flex items-center justify-between gap-3 overflow-hidden rounded-xl border border-sky-200/70 bg-gradient-to-r from-sky-50 to-white px-4 py-2.5 text-sm text-sky-800 shadow-[0_1px_2px_rgba(2,60,110,0.05)] transition duration-150 ease-out hover:from-accent-dim/70"
+            className="group mb-4 flex items-center justify-between gap-3 overflow-hidden rounded-xl border border-state-info-line bg-state-info-bg px-4 py-2.5 text-sm text-state-info-ink shadow-[0_1px_2px_rgba(2,60,110,0.05)] transition duration-150 ease-out hover:from-accent-dim/70"
           >
             <span className="inline-flex items-center gap-2.5">
               <span
@@ -1289,7 +1289,7 @@ function UndoActionBanner({
 }) {
   const actionLabel = notice.action === "archive" ? "archived" : "moved to trash";
   return (
-    <div className="mb-4 flex flex-col gap-3 rounded-lg border border-accent-light/30 bg-sky-50 px-4 py-3 text-sm text-ink shadow-lg shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-4 flex flex-col gap-3 rounded-lg border border-accent-light/30 bg-state-info-bg px-4 py-3 text-sm text-ink shadow-lg shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="font-medium">Email {actionLabel}.</p>
         {notice.subject && <p className="mt-0.5 truncate text-xs text-ink-mid">{notice.subject}</p>}
@@ -1335,7 +1335,7 @@ function BulkUndoActionBanner({
     .map((email) => email.subject)
     .join(", ");
   return (
-    <div className="mb-4 flex flex-col gap-3 rounded-lg border border-accent-light/30 bg-sky-50 px-4 py-3 text-sm text-ink shadow-lg shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-4 flex flex-col gap-3 rounded-lg border border-accent-light/30 bg-state-info-bg px-4 py-3 text-sm text-ink shadow-lg shadow-black/10 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="font-medium">
           {count} {count === 1 ? "email" : "emails"} archived.
@@ -1473,7 +1473,7 @@ function BulkButton({
       disabled={disabled}
       className={`h-8 rounded-md border px-2.5 text-xs font-medium transition disabled:opacity-50 ${
         danger
-          ? "border-red-500/25 bg-red-500/10 text-red-200 hover:bg-red-500/15"
+          ? "border-red-500/25 bg-red-500/10 text-state-danger-ink hover:bg-red-500/15"
           : "border-line bg-surface-raised text-ink-mid hover:bg-surface-hover"
       }`}
     >
@@ -1912,7 +1912,7 @@ function EmailRowReminderActions({
             type="button"
             onClick={() => onCreateReminder(email, option)}
             disabled={busyKey !== null}
-            className="ease-strong rounded-md px-2 py-1 text-[11px] font-medium text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45"
+            className="ease-strong rounded-md px-2 py-1 text-[11px] font-medium text-ink-dim transition duration-150 hover:bg-state-info-bg hover:text-accent-deeper active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45"
           >
             {busyKey === key ? "Setting…" : option.label}
           </button>
@@ -2056,8 +2056,8 @@ function CandidatePreview({ profile }: { profile: CandidateProfilePreview }) {
   return (
     <div className="mt-2 rounded-lg border border-accent/15 bg-accent/5 px-2.5 py-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[11px] font-medium text-accent-muted">{title}</p>
-        <span className="shrink-0 text-[10px] tabular-nums text-accent-light/80">
+        <p className="truncate text-[11px] font-medium text-accent-deep">{title}</p>
+        <span className="shrink-0 text-[10px] tabular-nums text-accent-deep">
           {Math.round(profile.confidence * 100)}%
         </span>
       </div>
@@ -2066,7 +2066,7 @@ function CandidatePreview({ profile }: { profile: CandidateProfilePreview }) {
         {profile.contact && <span className="truncate">Contact {profile.contact}</span>}
         {profile.intakeStatus && <span>{candidateIntakeLabel(profile.intakeStatus)}</span>}
         <span>Files {profile.evidenceCount}</span>
-        {missing && <span className="text-accent/80">{missing}</span>}
+        {missing && <span className="text-accent-deep">{missing}</span>}
       </div>
     </div>
   );
@@ -2240,7 +2240,7 @@ function MobileEmailRow({
           {(email.priority === "URGENT" || inboxLabel) && (
             <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
               {email.priority === "URGENT" && (
-                <span className="inline-flex items-center rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                <span className="inline-flex items-center rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-state-danger-ink">
                   Urgent
                 </span>
               )}

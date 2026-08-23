@@ -165,13 +165,13 @@ function SmsContent() {
           />
           <p className="text-[11px] text-ink-dim">{E164_HINT}</p>
 
-          {formError && <p className="text-[12px] text-red-600">{formError}</p>}
+          {formError && <p className="text-[12px] text-state-danger-ink">{formError}</p>}
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <button
               type="submit"
               disabled={saveMutation.isPending}
-              className="glow-primary ease-strong rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-1.5 text-[12px] font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-50"
+              className="glow-primary ease-strong rounded-lg bg-accent-solid px-3 py-1.5 text-[12px] font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:opacity-50"
             >
               {saveMutation.isPending ? "Saving…" : "Save"}
             </button>
@@ -180,7 +180,7 @@ function SmsContent() {
               type="button"
               disabled={!saved || removeMutation.isPending}
               onClick={() => removeMutation.mutate()}
-              className="ease-strong rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[12px] font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] disabled:opacity-40"
+              className="ease-strong rounded-lg border border-state-danger-line bg-state-danger-bg px-3 py-1.5 text-[12px] font-medium text-state-danger-ink transition duration-150 hover:bg-state-danger-bg active:scale-[0.97] disabled:opacity-40"
             >
               {removeMutation.isPending ? "Removing…" : "Remove"}
             </button>

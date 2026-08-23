@@ -153,13 +153,13 @@ export function NaverImapSection() {
             </div>
           </div>
           {error && (
-            <p role="alert" className="text-xs text-red-600">
+            <p role="alert" className="text-xs text-state-danger-ink">
               {error}
             </p>
           )}
         </div>
       ) : !entitled ? (
-        <div className="rounded-xl border border-sky-200 bg-sky-50/60 p-4">
+        <div className="rounded-xl border border-state-info-line bg-state-info-bg p-4">
           <p className="text-sm text-ink">
             Connecting a second inbox is a{" "}
             <span className="font-semibold text-accent-deep">Pro</span> feature.

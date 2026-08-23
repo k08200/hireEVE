@@ -20,14 +20,27 @@
   --ink: #0f172a; /* slate-900 — primary text */
   --ink-strong: #1e293b; /* slate-800 */
   --ink-soft: #334155; /* slate-700 */
-  --ink-mid: #64748b; /* slate-500 — secondary text */
-  --ink-dim: #94a3b8; /* slate-400 — tertiary/labels */
+  /* NOT the slate-500/400 pair they used to be. Measured 2026-08-23 against
+     the lightest surface these ever sit on (--surface-hover #f1f5f9, not
+     white): slate-500 landed at 4.34:1 and slate-400 at 2.40:1, so the whole
+     secondary ramp failed the AA text floor in light — the mirror of the fix
+     the dark block below already carries. Both steps move down until they
+     clear 4.5:1 on EVERY light surface, keeping the ramp monotonic against
+     --ink-muted (6.9:1) above them. */
+  --ink-mid: #556275; /* 5.65:1 worst-surface */
+  --ink-dim: #5f6e84; /* 4.73:1 worst-surface */
   --line: #e2e8f0; /* slate-200 — borders */
   --line-soft: #f1f5f9; /* slate-100 — hairlines */
   --line-strong: #cbd5e1; /* slate-300 — emphasized borders */
   --surface-inset: #e2e8f0; /* slate-200 wells/tracks */
   --ink-muted: #475569; /* slate-600 */
-  --accent-deep: #0284c7; /* sky-600 — link text, pressed accent */
+  /* Both are link/text values, so both have to clear the AA text floor on
+     every light surface. sky-600 did not: 4.10:1 on white, 3.74 on
+     --surface-hover, 3.32 on an --surface-inset well (measured 2026-08-23).
+     In light there is no AA-passing "link blue" between sky-600 and sky-700,
+     so the two steps converge here and stay distinct only in the dark block
+     below, where the surfaces are dark and the range opens back up. */
+  --accent-deep: #0369a1; /* 4.81:1 worst light surface */
   --accent-deeper: #0369a1; /* sky-700 */
 
   /* Semantic state surfaces for banners and inline notices. They exist
@@ -43,6 +56,18 @@
   --state-warn-bg: #fffbeb;
   --state-warn-line: #fde68a;
   --state-warn-ink: #b45309; /* 4.9:1 */
+  --state-danger-bg: #fef2f2;
+  --state-danger-line: #fecaca;
+  --state-danger-ink: #b91c1c; /* 5.9:1 on its own surface, 6.5:1 on white */
+  /* Filled destructive control. Unlike --accent-solid this does NOT invert in
+     the dark: a destructive button has to keep reading as red-with-white, and
+     a red fill carries white in both themes anyway. Only the depth changes. */
+  --danger-solid: #b91c1c; /* white 6.5:1 */
+  --danger-solid-hover: #991b1b; /* 8.3:1 */
+  --danger-solid-ink: #ffffff;
+  --state-info-bg: #eff6ff;
+  --state-info-line: #bfdbfe;
+  --state-info-ink: #0369a1; /* 5.5:1 on its own surface */
 
   /* FILLED-control accent. --color-accent (#0ea5e9) is a surface/tint value:
      white text on it measures 2.77:1, well under the 4.5:1 AA floor (verified
@@ -98,6 +123,15 @@
   --state-warn-bg: #2c220c;
   --state-warn-line: #6b5320;
   --state-warn-ink: #fcd34d; /* 10.9:1 */
+  --state-danger-bg: #2b1116;
+  --state-danger-line: #6b2430;
+  --state-danger-ink: #fca5a5; /* 9.1:1 on panel */
+  --danger-solid: #dc2626; /* white 4.8:1 */
+  --danger-solid-hover: #b91c1c; /* hover goes DARKER, 6.5:1 */
+  --danger-solid-ink: #ffffff;
+  --state-info-bg: #0d2233;
+  --state-info-line: #1e4a66;
+  --state-info-ink: #7dd3fc; /* 9.7:1 */
   /* Filled CTA inverts in the dark: bright fill, dark ink — 8.3:1. */
   --accent-solid: #38bdf8;
   --accent-solid-hover: #7dd3fc;
@@ -137,6 +171,15 @@
   --color-state-warn-bg: var(--state-warn-bg);
   --color-state-warn-line: var(--state-warn-line);
   --color-state-warn-ink: var(--state-warn-ink);
+  --color-state-danger-bg: var(--state-danger-bg);
+  --color-state-danger-line: var(--state-danger-line);
+  --color-state-danger-ink: var(--state-danger-ink);
+  --color-danger-solid: var(--danger-solid);
+  --color-danger-solid-hover: var(--danger-solid-hover);
+  --color-danger-solid-ink: var(--danger-solid-ink);
+  --color-state-info-bg: var(--state-info-bg);
+  --color-state-info-line: var(--state-info-line);
+  --color-state-info-ink: var(--state-info-ink);
   --color-accent-solid: var(--accent-solid);
   --color-accent-solid-hover: var(--accent-solid-hover);
   --color-accent-solid-ink: var(--accent-solid-ink);

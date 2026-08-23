@@ -114,7 +114,7 @@ export default function PushOnboardingBanner() {
         <p className="text-xs text-ink-mid mt-0.5">
           Get briefings and urgent mail the moment they land.
         </p>
-        {error && <p className="text-xs text-red-400 mt-1.5">{error}</p>}
+        {error && <p className="text-xs text-state-danger-ink mt-1.5">{error}</p>}
         <div className="flex gap-2 mt-2.5">
           <button
             type="button"

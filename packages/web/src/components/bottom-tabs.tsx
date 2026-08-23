@@ -60,7 +60,7 @@ export default function BottomTabs() {
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
                   className={`focus-ring flex min-h-[62px] flex-col items-center justify-center gap-1 py-2 text-[10px] transition ${
-                    active ? "text-accent" : "text-ink-mid"
+                    active ? "text-accent-deep" : "text-ink-mid"
                   }`}
                 >
                   <NavIcon type={tab.icon} size={22} strokeWidth={active ? 2 : 1.6} />
@@ -76,12 +76,12 @@ export default function BottomTabs() {
               aria-haspopup="dialog"
               aria-expanded={accountOpen}
               className={`focus-ring flex w-full min-h-[62px] flex-col items-center justify-center gap-1 py-2 text-[10px] transition ${
-                accountActive || accountOpen ? "text-accent" : "text-ink-mid"
+                accountActive || accountOpen ? "text-accent-deep" : "text-ink-mid"
               }`}
             >
               <span
                 aria-hidden="true"
-                className={`flex h-[22px] w-[22px] items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-[9px] font-bold text-white ring-1 transition ${
+                className={`flex h-[22px] w-[22px] items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-[9px] font-bold text-accent-solid-ink ring-1 transition ${
                   accountActive || accountOpen ? "ring-accent" : "ring-transparent"
                 }`}
               >
@@ -167,7 +167,7 @@ function AccountSheet({ onClose, initials }: { onClose: () => void; initials: st
           <div className="flex items-center gap-3 px-5 py-4">
             <span
               aria-hidden="true"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-accent-light to-sky-600 text-xs font-bold text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-accent-solid to-accent-solid-hover text-xs font-bold text-accent-solid-ink"
             >
               {initials || "?"}
             </span>
@@ -194,7 +194,7 @@ function AccountSheet({ onClose, initials }: { onClose: () => void; initials: st
               onClose();
               logout();
             }}
-            className="focus-ring flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10"
+            className="focus-ring flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-state-danger-ink transition hover:bg-red-500/10"
           >
             <span className="flex h-5 w-5 items-center justify-center" aria-hidden="true">
               <svg

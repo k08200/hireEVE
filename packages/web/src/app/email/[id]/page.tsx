@@ -1278,7 +1278,7 @@ function ReplyDraftBox({
           type="button"
           onClick={onGenerate}
           disabled={drafting}
-          className="ease-strong inline-flex h-9 shrink-0 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] disabled:opacity-50 focus-ring"
+          className="ease-strong inline-flex h-9 shrink-0 items-center rounded-lg border border-state-info-line bg-state-info-bg px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-state-info-bg hover:text-state-info-ink active:scale-[0.97] disabled:opacity-50 focus-ring"
         >
           {drafting
             ? t("emailDetail.replyDraft.drafting")
@@ -1319,7 +1319,7 @@ function ReplyDraftBox({
               key={item.label}
               type="button"
               onClick={() => onIntentChange(item.intent)}
-              className="ease-strong rounded-full border border-line bg-surface-panel/70 px-3 py-1.5 text-[11px] text-ink-mid transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] focus-ring"
+              className="ease-strong rounded-full border border-line bg-surface-panel/70 px-3 py-1.5 text-[11px] text-ink-mid transition duration-150 hover:bg-state-info-bg hover:text-accent-deeper active:scale-[0.97] focus-ring"
             >
               {item.label}
             </button>
@@ -1358,12 +1358,12 @@ function ReplyDraftBox({
           />
           {attachments.length > 0 && (
             <div className="space-y-2 rounded-lg border border-line-soft bg-surface-raised/70 px-3 py-2">
-              <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-sky-200/70 bg-sky-50/60 px-2 py-1.5">
+              <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-state-info-line bg-state-info-bg px-2 py-1.5">
                 <input
                   type="checkbox"
                   checked={includeBriefAttachment}
                   onChange={(e) => onIncludeBriefAttachmentChange(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent-deep focus:ring-accent focus:ring-offset-white"
                 />
                 <span>
                   <span className="block text-[11px] font-medium text-accent-deeper">
@@ -1398,13 +1398,13 @@ function ReplyDraftBox({
                 {attachments.map((attachment) => (
                   <label
                     key={attachment.id}
-                    className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-panel px-2 py-1.5 transition duration-150 ease-out hover:border-sky-200"
+                    className="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-panel px-2 py-1.5 transition duration-150 ease-out hover:border-state-info-line"
                   >
                     <input
                       type="checkbox"
                       checked={selectedAttachmentIds.includes(attachment.id)}
                       onChange={() => toggleAttachment(attachment.id)}
-                      className="h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent focus:ring-accent focus:ring-offset-white"
+                      className="h-3.5 w-3.5 rounded border-line-strong bg-surface-panel text-accent-deep focus:ring-accent focus:ring-offset-white"
                     />
                     <span className="min-w-0 flex-1 truncate text-[11px] text-ink-muted">
                       {attachment.filename}
@@ -1424,7 +1424,7 @@ function ReplyDraftBox({
                   href={gmailDraftUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="ease-strong inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50/70 px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-sky-50 hover:text-sky-800 active:scale-[0.97] focus-ring"
+                  className="ease-strong inline-flex h-9 items-center rounded-lg border border-state-info-line bg-state-info-bg px-3 text-xs font-medium text-accent-deeper transition duration-150 hover:bg-state-info-bg hover:text-state-info-ink active:scale-[0.97] focus-ring"
                 >
                   {t("emailDetail.replyDraft.openGmailDraft")}
                 </a>
@@ -1447,7 +1447,7 @@ function ReplyDraftBox({
                 type="button"
                 onClick={onSend}
                 disabled={sending || !draft.to || !draft.subject || !draft.body}
-                className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
+                className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-accent-solid px-3.5 text-xs font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 focus-ring"
               >
                 {sending
                   ? t("emailDetail.replyDraft.sending")
@@ -1475,7 +1475,7 @@ function SummarizeButton({
       type="button"
       onClick={onSummarize}
       disabled={summarizing}
-      className="ml-auto text-xs font-medium text-accent-deep transition hover:text-accent disabled:opacity-50"
+      className="ml-auto text-xs font-medium text-accent-deep transition hover:text-accent-deep disabled:opacity-50"
     >
       {summarizing ? t("emailDetail.analysis.summarizing") : t("emailDetail.analysis.summarize")}
     </button>
@@ -1521,7 +1521,7 @@ function ThreadBriefCard({ emailId }: { emailId: string }) {
       </p>
       <p className="text-sm leading-relaxed text-ink">{brief.whyNow}</p>
       {brief.weOwe && (
-        <p className="mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+        <p className="mt-1.5 text-xs font-medium text-state-warn-ink dark:text-amber-400">
           {t("emailDetail.threadBrief.weOwe")}: {brief.weOwe}
         </p>
       )}
@@ -1642,7 +1642,7 @@ function KlornAnalysis({
             <ul className="space-y-1">
               {email.keyPoints.map((k, i) => (
                 <li key={i} className="flex gap-1.5 text-xs text-ink-mid">
-                  <span className="text-accent/75">•</span>
+                  <span className="text-accent-deep">•</span>
                   <span>{k}</span>
                 </li>
               ))}
@@ -1746,7 +1746,7 @@ function ActionItemsPanel({ emailId, actionItems }: { emailId: string; actionIte
                 type="button"
                 onClick={() => createTask(i)}
                 disabled={creating !== null}
-                className="ease-strong shrink-0 rounded-md border border-line bg-surface-panel/70 px-1.5 py-0.5 text-[10px] font-medium text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:opacity-40 focus-ring"
+                className="ease-strong shrink-0 rounded-md border border-line bg-surface-panel/70 px-1.5 py-0.5 text-[10px] font-medium text-ink-dim transition duration-150 hover:bg-state-info-bg hover:text-accent-deeper active:scale-[0.97] disabled:opacity-40 focus-ring"
               >
                 {creating === i ? "…" : t("emailDetail.actionItems.addTask")}
               </button>
@@ -1878,7 +1878,7 @@ function LabelFeedbackControl({
       >
         {t("common.cancel")}
       </button>
-      {error && <span className="text-[11px] text-red-600">{error}</span>}
+      {error && <span className="text-[11px] text-state-danger-ink">{error}</span>}
     </div>
   );
 }
@@ -1966,7 +1966,7 @@ function ReplyNeededFeedbackControl({ emailId }: { emailId: string }) {
             </button>
           );
         })}
-        {error && <span className="text-[11px] text-red-600">{error}</span>}
+        {error && <span className="text-[11px] text-state-danger-ink">{error}</span>}
       </div>
     </div>
   );

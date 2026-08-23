@@ -175,7 +175,7 @@ function CandidateDetailView() {
       {commitmentToast && (
         <div
           role="status"
-          className="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          className="mb-3 rounded-lg border border-state-ok-line bg-state-ok-bg px-4 py-3 text-sm text-state-ok-ink"
         >
           {commitmentToast}
         </div>
@@ -226,8 +226,8 @@ function CandidateDetailView() {
               )}
 
               {(profile.missingFields.length > 0 || profile.manualReviewFiles.length > 0) && (
-                <div className="mt-5 rounded-xl border border-sky-200/70 bg-gradient-to-r from-sky-50 to-white p-3">
-                  <p className="text-xs font-medium text-sky-800">{profile.nextAction}</p>
+                <div className="mt-5 rounded-xl border border-state-info-line bg-state-info-bg p-3">
+                  <p className="text-xs font-medium text-state-info-ink">{profile.nextAction}</p>
                   {profile.manualReviewFiles.map((file) => (
                     <p key={file.filename} className="mt-1 text-[11px] text-accent-deeper/80">
                       {file.filename}: {file.reason}
@@ -309,7 +309,7 @@ function CandidateDetailView() {
                 type="button"
                 onClick={() => update({ notes })}
                 disabled={saving}
-                className="glow-primary ease-strong mt-2 w-full rounded-lg bg-gradient-to-b from-accent-light to-accent px-3 py-2 text-xs font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                className="glow-primary ease-strong mt-2 w-full rounded-lg bg-accent-solid px-3 py-2 text-xs font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? t("candidates.detail.saving") : t("candidates.detail.saveNotes")}
               </button>
@@ -332,7 +332,7 @@ function CandidateDetailView() {
           <div className="mt-5 flex flex-wrap gap-2">
             <Link
               href={`/email/${email.id}`}
-              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97]"
+              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-accent-solid px-4 text-sm font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97]"
             >
               {t("candidates.detail.noProfile.openSourceEmail")}
             </Link>

@@ -50,7 +50,7 @@ export function EmailActionButton({
       disabled={disabled}
       className={`focus-ring h-8 rounded-md border px-2.5 text-xs font-medium transition disabled:opacity-50 ${
         danger
-          ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+          ? "border-state-danger-line bg-state-danger-bg text-state-danger-ink hover:bg-state-danger-bg"
           : "border-line bg-surface-panel text-ink-mid hover:border-line hover:bg-surface-hover"
       }`}
     >

@@ -205,14 +205,14 @@ function DecisionPulseCard({ pulse }: { pulse: OperatingPlanDecisionPulse }) {
     <div className="rounded-xl border border-line bg-surface-raised p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-600">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-state-ok-ink">
             Recent decisions
           </p>
           <p className="mt-1 text-xs text-ink-dim">Last {pulse.windowHours}h results</p>
         </div>
         <div className="shrink-0 text-right text-[11px] leading-5 text-ink-dim">
           <p>
-            Done <span className="font-semibold text-emerald-600">{pulse.executed}</span>
+            Done <span className="font-semibold text-state-ok-ink">{pulse.executed}</span>
           </p>
           <p>
             Rejected <span className="font-semibold text-ink-soft">{pulse.rejected}</span> · Failed{" "}
@@ -377,19 +377,20 @@ function outcomeStatusLabel(status: OperatingPlanOutcome["status"]): string {
 }
 
 function outcomeStatusClass(status: OperatingPlanOutcome["status"]): string {
-  if (status === "executed") return "text-emerald-600";
+  if (status === "executed") return "text-state-ok-ink";
   if (status === "rejected") return "text-ink-dim";
   return "text-rose-600";
 }
 
 function toneClass(tone: OperatingPlanTone): string {
   if (tone === "critical") return "bg-rose-500/10 text-rose-600 ring-1 ring-inset ring-rose-500/20";
-  if (tone === "warn") return "bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20";
+  if (tone === "warn")
+    return "bg-amber-500/10 text-state-warn-ink ring-1 ring-inset ring-amber-500/20";
   return "bg-surface-hover text-ink-mid";
 }
 
 function metricColor(tone: OperatingPlanTone): string {
   if (tone === "critical") return "text-rose-600";
-  if (tone === "warn") return "text-amber-600";
+  if (tone === "warn") return "text-state-warn-ink";
   return "text-ink";
 }

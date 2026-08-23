@@ -19,7 +19,7 @@ const variantStyles: Record<Variant, string> = {
   secondary:
     "bg-surface-panel hover:bg-surface-hover text-ink border border-line hover:border-line-strong",
   danger:
-    "bg-red-600/10 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600",
+    "bg-danger-solid/10 hover:bg-danger-solid text-state-danger-ink hover:text-danger-solid-ink border border-state-danger-line hover:border-danger-solid",
   ghost: "bg-transparent hover:bg-surface-hover text-ink-mid hover:text-ink",
 };
 

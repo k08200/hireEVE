@@ -127,7 +127,7 @@ function WelcomeStep({
           type="button"
           onClick={onConnectClick}
           disabled={connecting}
-          className="glow-primary ease-strong flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
+          className="glow-primary ease-strong flex w-full items-center justify-center gap-2 rounded-xl bg-accent-solid px-5 py-3.5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
         >
           {connecting ? t("onboarding.welcome.connecting") : t("onboarding.welcome.connectButton")}
           {!connecting && <span aria-hidden>→</span>}
@@ -139,7 +139,7 @@ function WelcomeStep({
           {t("onboarding.welcome.preferNaver")}{" "}
           <Link
             href="/settings"
-            className="font-medium text-accent-deep underline decoration-sky-200 underline-offset-2 hover:text-accent"
+            className="font-medium text-accent-deep underline decoration-sky-200 underline-offset-2 hover:text-accent-deep"
           >
             {t("onboarding.welcome.connectViaImap")}
           </Link>
@@ -242,7 +242,7 @@ function SyncingStep({ initSync, onContinue }: { initSync: SyncState; onContinue
         <button
           type="button"
           onClick={onContinue}
-          className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring"
+          className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-solid px-5 py-3.5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] focus-ring"
         >
           {isDone
             ? t("onboarding.syncing.continueSeeFound")
@@ -269,7 +269,7 @@ function SyncRow({
     <div className="flex items-center gap-3 px-4 py-3">
       <span className="shrink-0 text-base text-ink-mid">{icon}</span>
       <p className="flex-1 text-sm text-ink-mid">{label}</p>
-      {done && <span className="shrink-0 text-[11px] font-semibold text-emerald-600">✓</span>}
+      {done && <span className="shrink-0 text-[11px] font-semibold text-state-ok-ink">✓</span>}
       {loading && (
         <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" />
       )}
@@ -294,7 +294,7 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
         <StatCard value={initSync.contacts} label={t("onboarding.ready.stat.contacts")} />
       </div>
 
-      <div className="panel-elevated mt-4 rounded-2xl border border-sky-200/70 bg-surface-panel p-4">
+      <div className="panel-elevated mt-4 rounded-2xl border border-state-info-line bg-surface-panel p-4">
         <p className="text-xs font-semibold text-accent-deeper">
           {t("onboarding.ready.whatNext.title")}
         </p>
@@ -308,7 +308,7 @@ function ReadyStep({ initSync, onDone }: { initSync: SyncState; onDone: () => vo
       <button
         type="button"
         onClick={onDone}
-        className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent-light to-accent px-5 py-3.5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] focus-ring"
+        className="ease-strong mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-accent-solid px-5 py-3.5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] focus-ring"
       >
         {t("onboarding.ready.openQueue")}
         <span aria-hidden>→</span>

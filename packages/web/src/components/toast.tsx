@@ -128,7 +128,7 @@ function ToastItem({
         toast.type === "success"
           ? "bg-green-700 text-white"
           : toast.type === "error"
-            ? "bg-red-700 text-white"
+            ? "bg-danger-solid text-danger-solid-ink"
             : "bg-surface-elevated text-ink border border-line"
       }`}
     >

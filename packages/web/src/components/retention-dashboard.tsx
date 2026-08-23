@@ -28,7 +28,7 @@ function Stat({
   return (
     <div
       className={`rounded-xl border p-4 ${
-        highlight ? "border-accent-muted bg-sky-50" : "border-line/70 bg-surface-panel"
+        highlight ? "border-accent-muted bg-state-info-bg" : "border-line/70 bg-surface-panel"
       }`}
     >
       <div className="text-2xl font-semibold tracking-tight text-ink tabular-nums">{value}</div>
@@ -58,7 +58,7 @@ export default function RetentionDashboard() {
       </div>
 
       {error ? (
-        <p className="text-sm text-red-600">Could not load analytics: {error}</p>
+        <p className="text-sm text-state-danger-ink">Could not load analytics: {error}</p>
       ) : !data ? (
         <p className="text-sm text-ink-dim">Loading…</p>
       ) : (

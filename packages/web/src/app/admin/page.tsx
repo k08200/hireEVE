@@ -231,8 +231,8 @@ function AdminDashboard() {
     <div className="h-full overflow-y-auto px-4 pb-28 pt-6 sm:px-6 md:py-10">
       <div className="mx-auto max-w-6xl space-y-6">
         {errors.length > 0 && (
-          <div className="space-y-1 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs">
-            <p className="font-medium text-amber-700">Some sections could not load</p>
+          <div className="space-y-1 rounded-xl border border-state-warn-line bg-state-warn-bg p-3 text-xs">
+            <p className="font-medium text-state-warn-ink">Some sections could not load</p>
             {errors.map((e) => (
               <p key={e.endpoint} className="font-mono text-amber-600/80">
                 {e.endpoint} — {e.message}
@@ -283,7 +283,7 @@ function AdminDashboard() {
               type="button"
               onClick={runEval}
               disabled={evalLoading}
-              className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-xs font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-accent-solid px-3.5 text-xs font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {evalLoading ? "Running..." : "Run eval"}
             </button>
@@ -295,7 +295,7 @@ function AdminDashboard() {
                   {evalData.summary.passed}/{evalData.summary.total} passed
                 </span>
                 <span
-                  className={`font-medium ${evalData.summary.failed === 0 ? "text-emerald-600" : "text-red-600"}`}
+                  className={`font-medium ${evalData.summary.failed === 0 ? "text-state-ok-ink" : "text-state-danger-ink"}`}
                 >
                   Pass rate {(evalData.summary.passRate * 100).toFixed(0)}%
                 </span>
@@ -308,14 +308,16 @@ function AdminDashboard() {
                   <div
                     key={r.id}
                     className={`flex items-start gap-2 text-xs p-2 rounded-md ${
-                      r.passed ? "bg-surface-raised" : "border border-red-200 bg-red-50"
+                      r.passed
+                        ? "bg-surface-raised"
+                        : "border border-state-danger-line bg-state-danger-bg"
                     }`}
                   >
                     <span
                       className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center ${
                         r.passed
-                          ? "bg-emerald-500/15 text-emerald-600"
-                          : "bg-red-500/15 text-red-600"
+                          ? "bg-emerald-500/15 text-state-ok-ink"
+                          : "bg-red-500/15 text-state-danger-ink"
                       }`}
                     >
                       <span className="sr-only">{r.passed ? "Passed" : "Failed"}</span>
@@ -327,7 +329,9 @@ function AdminDashboard() {
                         <span className="text-ink-mid">{r.name}</span>
                         <span className="text-[10px] uppercase text-ink-mid">[{r.severity}]</span>
                       </div>
-                      {!r.passed && r.message && <p className="text-red-700 mt-0.5">{r.message}</p>}
+                      {!r.passed && r.message && (
+                        <p className="text-state-danger-ink mt-0.5">{r.message}</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -492,12 +496,12 @@ function AdminDashboard() {
                           </td>
                           <td className="p-3 tabular-nums text-ink-mid">{r.p50}ms</td>
                           <td
-                            className={`p-3 tabular-nums ${r.p95 > 1000 ? "text-amber-600" : "text-ink-mid"}`}
+                            className={`p-3 tabular-nums ${r.p95 > 1000 ? "text-state-warn-ink" : "text-ink-mid"}`}
                           >
                             {r.p95}ms
                           </td>
                           <td
-                            className={`p-3 tabular-nums ${r.p99 > 1000 ? "text-amber-600" : "text-ink-mid"}`}
+                            className={`p-3 tabular-nums ${r.p99 > 1000 ? "text-state-warn-ink" : "text-ink-mid"}`}
                           >
                             {r.p99}ms
                           </td>
@@ -616,7 +620,7 @@ function AdminDashboard() {
                           <button
                             type="button"
                             onClick={() => deleteUser(u.id, u.email)}
-                            className="ease-strong inline-flex min-h-11 items-center rounded-md border border-red-200 bg-red-50 px-2.5 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+                            className="ease-strong inline-flex min-h-11 items-center rounded-md border border-state-danger-line bg-state-danger-bg px-2.5 text-xs font-medium text-state-danger-ink transition duration-150 hover:bg-state-danger-bg active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
                           >
                             Delete
                           </button>
@@ -701,7 +705,7 @@ function RouteStat({
   tone?: "muted" | "warn" | "error";
 }) {
   const valueTone =
-    tone === "error" ? "text-rose-600" : tone === "warn" ? "text-amber-600" : "text-ink-mid";
+    tone === "error" ? "text-rose-600" : tone === "warn" ? "text-state-warn-ink" : "text-ink-mid";
   return (
     <div>
       <dt className="text-[10px] uppercase tracking-wide text-ink-dim">{label}</dt>
@@ -738,7 +742,7 @@ function UserCard({
           <button
             type="button"
             onClick={() => onDelete(user.id, user.email)}
-            className="ease-strong inline-flex min-h-11 shrink-0 items-center rounded-md border border-red-200 bg-red-50 px-2.5 text-xs font-medium text-red-700 transition duration-150 hover:bg-red-100 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+            className="ease-strong inline-flex min-h-11 shrink-0 items-center rounded-md border border-state-danger-line bg-state-danger-bg px-2.5 text-xs font-medium text-state-danger-ink transition duration-150 hover:bg-state-danger-bg active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
           >
             Delete
           </button>

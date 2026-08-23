@@ -290,7 +290,7 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
                     onClick={() => removeFile(index)}
                     disabled={sending}
                     aria-label={`Remove ${file.name}`}
-                    className="shrink-0 rounded px-1 text-ink-dim transition hover:text-red-600 disabled:opacity-50"
+                    className="shrink-0 rounded px-1 text-ink-dim transition hover:text-state-danger-ink disabled:opacity-50"
                   >
                     ✕
                   </button>
@@ -300,10 +300,12 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
           )}
 
           {tooMany && (
-            <p className="text-xs text-red-600">You can attach at most {MAX_ATTACHMENTS} files.</p>
+            <p className="text-xs text-state-danger-ink">
+              You can attach at most {MAX_ATTACHMENTS} files.
+            </p>
           )}
           {overSize && (
-            <p className="text-xs text-red-600">
+            <p className="text-xs text-state-danger-ink">
               Attachments are {formatBytes(totalBytes)} — the limit is{" "}
               {formatBytes(MAX_TOTAL_BYTES)}.
             </p>
@@ -334,7 +336,7 @@ export function ComposeModal({ open, onClose }: ComposeModalProps) {
               type="button"
               onClick={send}
               disabled={!canSend}
-              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-4 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              className="glow-primary ease-strong inline-flex min-h-11 items-center rounded-lg bg-accent-solid px-4 text-sm font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sending ? "Sending…" : "Send"}
             </button>

@@ -134,7 +134,7 @@ export default function PaywallScreen() {
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="mt-0.5 shrink-0 text-accent"
+                className="mt-0.5 shrink-0 text-accent-deep"
               >
                 <polyline points="20 6 9 17 4 12" />
               </svg>

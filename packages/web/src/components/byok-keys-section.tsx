@@ -211,10 +211,10 @@ export function ByokKeysSection() {
           </div>
 
           {status?.hasGeminiApiKey && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+            <div className="rounded-xl border border-state-warn-line bg-state-warn-bg p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-sm font-medium text-ink">
-                  Google Gemini <span className="text-[11px] text-amber-600">legacy</span>
+                  Google Gemini <span className="text-[11px] text-state-warn-ink">legacy</span>
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">

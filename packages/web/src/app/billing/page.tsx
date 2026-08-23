@@ -340,7 +340,7 @@ function BillingContent() {
               </p>
               <p className="mb-1 text-sm text-ink-mid">{t(plan.limitKey)}</p>
               {plan.trialNoteKey ? (
-                <p className="mb-4 text-xs font-medium text-emerald-600">{t(plan.trialNoteKey)}</p>
+                <p className="mb-4 text-xs font-medium text-state-ok-ink">{t(plan.trialNoteKey)}</p>
               ) : (
                 <div className="mb-4" />
               )}
@@ -348,7 +348,7 @@ function BillingContent() {
               <ul className="mb-6 flex-1 space-y-2">
                 {plan.featureKeys.map((fKey) => (
                   <li key={fKey} className="flex items-start gap-2 text-sm text-ink-mid">
-                    <span aria-hidden="true" className="mt-0.5 text-emerald-600">
+                    <span aria-hidden="true" className="mt-0.5 text-state-ok-ink">
                       ✓
                     </span>
                     {t(fKey)}

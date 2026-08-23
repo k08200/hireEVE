@@ -244,7 +244,7 @@ function Proposals({
   onDismiss: (id: string) => void;
 }) {
   return (
-    <section className="panel-elevated mb-4 rounded-2xl border border-sky-200/70 bg-surface-panel p-4 md:p-5">
+    <section className="panel-elevated mb-4 rounded-2xl border border-state-info-line bg-surface-panel p-4 md:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-accent-deep">
           Proposals (advisory)
@@ -289,7 +289,7 @@ function Proposals({
                   type="button"
                   onClick={() => onApprove(p.id)}
                   disabled={busy}
-                  className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-gradient-to-b from-accent-light to-accent px-3.5 text-sm font-medium text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:opacity-60"
+                  className="glow-primary ease-strong inline-flex h-9 items-center rounded-lg bg-accent-solid px-3.5 text-sm font-medium text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:opacity-60"
                 >
                   Approve
                 </button>
@@ -320,8 +320,8 @@ function Applied({
   onRevert: (id: string) => void;
 }) {
   return (
-    <section className="panel-elevated mb-4 rounded-2xl border border-emerald-200/70 bg-surface-panel p-4 md:p-5">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-600">
+    <section className="panel-elevated mb-4 rounded-2xl border border-state-ok-line bg-surface-panel p-4 md:p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-state-ok-ink">
         Live overrides
       </h2>
       <p className="mb-3 text-xs text-ink-mid">

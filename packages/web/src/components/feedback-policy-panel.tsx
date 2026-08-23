@@ -195,9 +195,9 @@ function SignalCount({
 }) {
   return (
     <div className="rounded-md bg-surface-hover px-2 py-1">
-      <div className={tone === "critical" ? "text-red-600/80" : "text-ink-mid"}>{label}</div>
+      <div className={tone === "critical" ? "text-state-danger-ink" : "text-ink-mid"}>{label}</div>
       <div
-        className={`text-xs font-medium tabular-nums ${tone === "critical" ? "text-red-700" : "text-ink-mid"}`}
+        className={`text-xs font-medium tabular-nums ${tone === "critical" ? "text-state-danger-ink" : "text-ink-mid"}`}
       >
         {value}
       </div>

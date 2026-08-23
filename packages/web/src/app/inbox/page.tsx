@@ -500,7 +500,7 @@ function DecisionsBody({
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm font-semibold text-ink">Decisions</h2>
                     {pendingCount > 0 && (
-                      <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-amber-600 ring-1 ring-inset ring-amber-500/20">
+                      <span className="rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-state-warn-ink ring-1 ring-inset ring-amber-500/20">
                         {pendingCount} pending
                       </span>
                     )}
@@ -621,7 +621,8 @@ function CommitmentsPanel({ commitments }: { commitments: CommitmentItem[] }) {
             unexplained AI output ("뭔지 모르겠고", founder 2026-07-22). */}
         <p className="mt-1 text-[11px] leading-4 text-ink-dim">
           Promises Klorn spotted in your mail — <span className="text-accent-deep">Waiting on</span>{" "}
-          = they promised you, <span className="text-amber-600">I owe</span> = you promised them.
+          = they promised you, <span className="text-state-warn-ink">I owe</span> = you promised
+          them.
         </p>
       </div>
       <ul className="divide-y divide-line-soft">
@@ -639,7 +640,7 @@ function CommitmentsPanel({ commitments }: { commitments: CommitmentItem[] }) {
                 <span
                   className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wide ring-1 ring-inset ${
                     iOwe
-                      ? "bg-amber-500/10 text-amber-600 ring-amber-500/20"
+                      ? "bg-amber-500/10 text-state-warn-ink ring-amber-500/20"
                       : "bg-accent/10 text-accent-deeper ring-accent/20"
                   }`}
                 >
@@ -1327,7 +1328,7 @@ function ActionCard({
             type="button"
             onClick={onApprove}
             disabled={!!loading}
-            className="glow-primary ease-strong inline-flex min-h-11 min-w-[120px] items-center justify-center gap-1.5 rounded-lg bg-gradient-to-b from-accent-light to-accent px-5 text-sm font-semibold text-white transition duration-150 hover:from-accent-light hover:to-sky-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+            className="glow-primary ease-strong inline-flex min-h-11 min-w-[120px] items-center justify-center gap-1.5 rounded-lg bg-accent-solid px-5 text-sm font-semibold text-accent-solid-ink transition duration-150 hover:bg-accent-solid-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading === "approve" ? (
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -1352,7 +1353,7 @@ function ActionCard({
             onClick={onSnooze}
             disabled={!!loading}
             title="Remind me in 1 hour"
-            className="ease-strong inline-flex min-h-11 items-center justify-center gap-1 rounded-lg px-3 text-xs text-ink-dim transition duration-150 hover:bg-sky-50 hover:text-accent-deeper active:scale-[0.97] disabled:opacity-50"
+            className="ease-strong inline-flex min-h-11 items-center justify-center gap-1 rounded-lg px-3 text-xs text-ink-dim transition duration-150 hover:bg-state-info-bg hover:text-accent-deeper active:scale-[0.97] disabled:opacity-50"
           >
             {loading === "snooze" ? (
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-500" />
@@ -1376,11 +1377,11 @@ function RiskBadge({ risk }: { risk: "low" | "medium" | "high" }) {
   const map = {
     low: {
       label: "Low risk",
-      className: "bg-emerald-500/10 text-emerald-600 ring-1 ring-inset ring-emerald-500/20",
+      className: "bg-emerald-500/10 text-state-ok-ink ring-1 ring-inset ring-emerald-500/20",
     },
     medium: {
       label: "Needs approval",
-      className: "bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20",
+      className: "bg-amber-500/10 text-state-warn-ink ring-1 ring-inset ring-amber-500/20",
     },
     high: {
       label: "High risk",
@@ -1439,11 +1440,11 @@ function StatusBadge({ status }: { status: PendingActionItem["status"] }) {
   const map: Record<PendingActionItem["status"], { label: string; className: string }> = {
     PENDING: {
       label: "Pending",
-      className: "bg-amber-500/10 text-amber-600 ring-1 ring-inset ring-amber-500/20",
+      className: "bg-amber-500/10 text-state-warn-ink ring-1 ring-inset ring-amber-500/20",
     },
     EXECUTED: {
       label: "Done",
-      className: "bg-emerald-500/10 text-emerald-600 ring-1 ring-inset ring-emerald-500/20",
+      className: "bg-emerald-500/10 text-state-ok-ink ring-1 ring-inset ring-emerald-500/20",
     },
     REJECTED: {
       label: "Rejected",
@@ -1786,7 +1787,7 @@ function MobileActionCard({
             type="button"
             onClick={onApprove}
             disabled={!!loading}
-            className="glow-primary ease-strong flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-b from-accent-light to-accent text-[15px] font-semibold text-white transition duration-150 active:scale-[0.97] disabled:opacity-50"
+            className="glow-primary ease-strong flex min-h-12 w-full items-center justify-center rounded-xl bg-accent-solid text-[15px] font-semibold text-accent-solid-ink transition duration-150 active:scale-[0.97] disabled:opacity-50"
           >
             {loading === "approve" ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
