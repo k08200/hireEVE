@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import en from "./locales/en";
+import es from "./locales/es";
 import ja from "./locales/ja";
 import ko from "./locales/ko";
 import zh from "./locales/zh";
@@ -11,12 +12,12 @@ import zh from "./locales/zh";
  * a user reads and the notifications they receive can speak the same language
  * (packages/api/src/notify/notification-strings.ts).
  */
-export type Locale = "en" | "ko" | "ja" | "zh";
+export type Locale = "en" | "ko" | "ja" | "zh" | "es";
 
 // English is the source of truth for keys; every other locale is a full
 // mirror, enforced in CI by .github/scripts/check-i18n-parity.mjs. Tables
 // live one-per-file under ./locales.
-const translations: Record<Locale, Record<string, string>> = { en, ko, ja, zh };
+const translations: Record<Locale, Record<string, string>> = { en, ko, ja, zh, es };
 
 /**
  * Dev-time echo of the CI parity guard. The guard
