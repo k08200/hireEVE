@@ -1478,8 +1478,16 @@ func runSelfChecks() async -> Bool {
           L10n.resolvedCode(override: .system, preferred: ["ko-KR", "en-US"]) == "ko")
     check("region tags are matched on the base language",
           L10n.resolvedCode(override: .system, preferred: ["ko-Hang-KR"]) == "ko")
+    // fr/de shipped 2026-08-23; pt/it stand in for "unshipped" now.
     check("an unshipped language falls back to English",
-          L10n.resolvedCode(override: .system, preferred: ["fr-FR", "de-DE"]) == "en")
+          L10n.resolvedCode(override: .system, preferred: ["pt-BR", "it-IT"]) == "en")
+    check("every shipped language is actually selectable",
+          L10n.shipped.allSatisfy { code in
+              L10n.resolvedCode(override: .system, preferred: ["\(code)-XX"]) == code
+          })
+    // A language in the picker with no catalogue would render raw keys.
+    check("every shipped language has a catalogue",
+          L10n.shipped.allSatisfy { !L10n.keys(forLanguage: $0).isEmpty })
     check("no preferred language falls back to English",
           L10n.resolvedCode(override: .system, preferred: []) == "en")
 

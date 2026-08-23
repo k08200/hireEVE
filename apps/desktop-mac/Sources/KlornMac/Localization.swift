@@ -10,6 +10,11 @@ enum AppLanguage: String, CaseIterable, Sendable {
     case system
     case english = "en"
     case korean = "ko"
+    case japanese = "ja"
+    case chinese = "zh"
+    case spanish = "es"
+    case french = "fr"
+    case german = "de"
 
     /// Shown in its own language — a language picker the user can't read is
     /// useless. "System" is the exception: it names a behaviour, not a language.
@@ -18,6 +23,11 @@ enum AppLanguage: String, CaseIterable, Sendable {
         case .system: return L10n.t("lang.system")
         case .english: return "English"
         case .korean: return "한국어"
+        case .japanese: return "日本語"
+        case .chinese: return "中文（简体）"
+        case .spanish: return "Español"
+        case .french: return "Français"
+        case .german: return "Deutsch"
         }
     }
 }
@@ -42,7 +52,7 @@ enum L10n {
     static func resolvedCode(
         override: AppLanguage,
         preferred: [String] = Locale.preferredLanguages,
-        available: [String] = ["en", "ko"]
+        available: [String] = L10n.shipped
     ) -> String {
         if override != .system { return override.rawValue }
         for tag in preferred {
@@ -105,7 +115,7 @@ extension L10n {
 
     /// Languages Klorn ships. The picker and the drift check read this, so
     /// adding a translation is one .lproj folder plus one case.
-    static let shipped = ["en", "ko"]
+    static let shipped = ["en", "ko", "ja", "zh", "es", "fr", "de"]
 }
 
 /// Shorthand so a view reads `L("prefs.done")` rather than `L10n.t("prefs.done")`.
