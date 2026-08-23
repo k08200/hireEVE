@@ -4,7 +4,7 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Self-hosted](https://img.shields.io/badge/deploy-self--hosted-success.svg)](docs/self-hosting.md)
-[![Version](https://img.shields.io/badge/version-v0.3.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v0.4.0-blue.svg)](CHANGELOG.md)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
 Every other AI inbox tool *adds* a surface — a suggestion card next to each email, a badge that says "AI thinks you should reply," a draft waiting for review. The inbox gets louder, not quieter.
@@ -75,22 +75,20 @@ Three writeups walk through the architecture, with the tradeoffs and the honest 
 
 ## What it's NOT
 
-- **Not finished.** This is an early PoC with one real user (me); ICP retention measurement is what's happening now. The [CHANGELOG](CHANGELOG.md) is honest about what's solid vs. what's stitched.
+- **Not finished.** The cloud is live and billing is real, but the user base is early and the beta cohort is still forming. The [CHANGELOG](CHANGELOG.md) is honest about what's solid vs. what's stitched.
 - **Not a "chat with your inbox" thing.** There is no chat surface.
-- **Not multi-tenant cloud.** Self-host is the only path right now.
+- **Not unlimited.** The hosted cloud is capped at 100 accounts while Gmail scope verification is pending. Self-host has no cap.
 - **Not feature-gated against open source.** [`docs/EDITIONS.md`](docs/EDITIONS.md) lists what Cloud will sell on top (managed hosting, verified Gmail scope, team workspaces) — the firewall doctrine and code stay in the repo on both editions.
 
 > **Why is a CI check red?** `Scope Budget` fails *on purpose*. It's a self-imposed ratchet that trips when a change grows the route / page / schema surface past a fixed budget, forcing a conscious "yes, this scope is worth it" instead of silent sprawl. A red Scope Budget is by design, not a broken build — every other check (lint, types, tests, build, security, eval) is green.
 
-## Trying the hosted demo (klorn.ai)
+## Trying the hosted app (klorn.ai)
 
-The hosted demo runs in **Google OAuth testing mode** while we hold off on CASA Tier 2 verification (Klorn uses Gmail's restricted `gmail.modify` scope). To try it without self-hosting, you have to be added as a test user first. Three paths, fastest first:
+**Sign in with Google at [klorn.ai](https://klorn.ai). That's the whole flow.** No waitlist, no approval step, nobody to email — the OAuth screen is in production, so any Google account can complete it.
 
-- **Open an issue** with the Google email you want to use: [new oauth-tester issue](https://github.com/k08200/klorn/issues/new?title=oauth-tester&labels=oauth-tester) — we add you, comment "added", you log in.
-- **Email** `k0820086@gmail.com` with the same info.
-- **Or skip the gating entirely** and [self-host](#local-development) — full feature parity, you bring your own Google OAuth credentials, no verification needed.
+One limit, and it is a real one: **the first 100 accounts.** Klorn reads Gmail's restricted `gmail.modify` scope, and until CASA Tier 2 verification lands the app is capped at 100 lifetime users. Seats are first-come. When it fills, it fills.
 
-Google caps test-user slots at 100 in this mode. Once CASA verification ships (gated on PoC retention measurement), the OAuth screen flips to production and the gating goes away. **For most people landing here, self-host is the fastest way in.**
+[Self-hosting](#local-development) has no cap at all — you register your own Google OAuth client, so the verification question is between you and Google, not you and us.
 
 ## What we're building
 
@@ -120,16 +118,17 @@ Klorn's first screen is not a chat or an inbox — it's a decision queue. Scatte
 | Auth | JWT, bcrypt, Google OAuth |
 | AI | OpenAI-compatible (local-first), OpenRouter / Gemini failover |
 | Realtime | WebSocket, Web Push |
-| Billing | Stripe |
+| Billing | Paddle (web, live) · RevenueCat (mobile) · Stripe (legacy accounts) |
 | Monorepo | pnpm workspaces |
 
 ```text
 packages/
   api/          Fastify API, Prisma schema, agent/tool orchestration
   web/          Next.js app: decision queue, mail, calendar, briefing, settings
-  core/         shared utilities and CLI-facing primitives
+  contract/     shared types and the API contract between web and api
 apps/
   desktop-mac/  native macOS app — the always-on top-bar firewall (SwiftUI)
+  desktop-win/  Windows client (Tauri shell)
   mobile/       Capacitor shell (iOS / Android)
 docs/           doctrine, screenshots, operational notes
 ```

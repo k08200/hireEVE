@@ -33,25 +33,40 @@ What you do NOT get on self-host:
 - Team-mode collaboration surfaces (not yet shipped on Cloud either —
   this is the roadmap line, not a behind-paywall feature today)
 
-## Cloud demo access (today)
+## Cloud access (today)
 
-The hosted klorn.ai is in **Google OAuth testing mode** pending CASA
-Tier 2 verification. Test-user slots are added manually until then:
+Sign in with Google at [klorn.ai](https://klorn.ai). The OAuth screen is
+in **production**, so there is no test-user list, no approval step, and
+nobody to email first.
 
-- **Issue:** [open an `oauth-tester` issue](https://github.com/k08200/klorn/issues/new?title=oauth-tester&labels=oauth-tester) with the email you want to use
-- **Email:** `k0820086@gmail.com`
+The cap is the real constraint: Klorn uses Gmail's restricted
+`gmail.modify` scope, and until CASA Tier 2 verification lands the app
+is limited to **100 lifetime accounts**, first-come. Verification
+removes the cap; it does not change how you sign in.
 
-We add the address in Google Cloud Console (~5 minutes), comment
-"added" on the issue, and you can complete the OAuth flow.
-
-Google caps this at 100 test users — once we ship verification, the
-gate goes away and anyone with a Google account can sign in.
+Support: `k0820086@gmail.com`.
 
 Self-host bypasses this gate entirely. You bring your own OAuth client
 ID/secret, register them in your own Cloud Console, and the verification
 question is between you and Google.
 
-## Why AGPLv3 and not MIT
+## Pure AGPLv3 — no additional terms
+
+Klorn is AGPL-3.0 and nothing else. No commercial-use restriction, no
+employee-count clause, no "contact us for an enterprise licence" gate.
+The `LICENSE` file is the unmodified GNU AGPL v3, and GitHub resolves it
+as `AGPL-3.0` rather than `NOASSERTION`.
+
+That is worth stating because it is not the norm in this category. The
+nearest open-source AI email tool, [Inbox Zero], ships AGPL v3 with
+`ADDITIONAL TERMS` appended: a `COMMERCIAL MONETIZATION RESTRICTION`,
+and an `ENTERPRISE USE LIMITATION` requiring organisations with five or
+more people to buy a separate licence. Read both licences and compare —
+that is the whole argument.
+
+[Inbox Zero]: https://github.com/elie222/inbox-zero/blob/main/LICENSE
+
+### Why AGPL and not MIT
 
 The moat is the doctrine + the implementation discipline, not the
 license. AGPL is here so a hosted fork can't strip the source and
