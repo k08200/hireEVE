@@ -24,7 +24,7 @@ Blank cells mean "not that product's focus," not a deficiency; the rows are the 
 
 - It does not send, delete, or forward anything without explicit approval (or, in AUTO mode, outside your written guidelines) — every outbound action carries a signed receipt with a hash of exactly what left.
 - It does not read your mail on someone else's server if you don't want it to: the entire stack is AGPLv3 and self-hostable.
-- It does not claim accuracy it hasn't measured: the numbers above come from the committed, PII-scrubbed evaluation sets in [`packages/api/eval/`](../packages/api/eval/), runnable with `pnpm eval:judge`.
+- It does not claim accuracy it hasn't measured: the 81.1%/94.3% figures come from the committed, PII-scrubbed [`eval/real-eval-set.json`](../packages/api/eval/real-eval-set.json), runnable with `pnpm eval:real`. `pnpm eval:judge` runs a different file — the synthetic gate set — and reports a different number.
 
 ## Corrections
 

@@ -335,7 +335,8 @@ Docker Compose ports: Web `3000`, API `3001`, PostgreSQL `5432`.
 pnpm --filter @klorn/web build
 pnpm --filter @klorn/api build
 pnpm --filter @klorn/api test
-pnpm eval:judge   # run the five-lane classifier against the committed gate set
+pnpm eval:judge   # classifier vs the synthetic gate set (judge-eval-set.json)
+pnpm eval:real    # classifier vs the 53 hand-labelled real emails (the 94.3% figure)
 packages/api/node_modules/.bin/biome check packages/
 ```
 
