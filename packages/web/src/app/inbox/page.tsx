@@ -10,6 +10,7 @@ import CommandCenterSummary from "../../components/command-center-summary";
 import type { CommitmentItem } from "../../components/commitment-card";
 import { FirewallBoard } from "../../components/firewall-board";
 import { RejectReasonDialog } from "../../components/reject-reason-dialog";
+import ScreenerCard from "../../components/screener-card";
 import { useToast } from "../../components/toast";
 import ErrorAlert from "../../components/ui/error-alert";
 import { apiFetch } from "../../lib/api";
@@ -381,6 +382,10 @@ function DecisionsBody({
       <div className="px-4 pb-8 pt-3 md:hidden">
         <SegmentControl view={view} onSelect={onSelectView} />
         <OnboardingHint />
+        {/* The screener is a decision queue, and this screen IS the mobile
+            decision queue — mounting it only on desktop would hide the feature
+            from half the surface. */}
+        <ScreenerCard />
         <MobileDecisionQueue
           actions={actions}
           commitments={commitments}
@@ -538,6 +543,7 @@ function DecisionsBody({
               </div>
             )}
 
+            <ScreenerCard />
             <CommandCenterSummary />
             <CommitmentsPanel commitments={commitments} />
           </section>

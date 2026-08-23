@@ -1152,6 +1152,24 @@ const fr: Record<string, string> = {
     "Klorn a trouvé ce message, mais les pièces jointes n'ont pas produit de profil structuré. Ouvrez le courrier d'origine, réanalysez les pièces jointes, ou ajoutez des notes tant que l'état de relecture est clair.",
   "candidates.detail.noProfile.openSourceEmail": "Ouvrir le courrier d'origine",
   "candidates.detail.noProfile.backToQueue": "Retour à la file",
+
+  "screener.title": "Nouveaux expéditeurs",
+  "screener.count": "{count} en attente",
+  "screener.subtitle":
+    "Ces personnes vous écrivent pour la première fois. Trancher maintenant rend la décision permanente et évite un appel au modèle sur chacun de leurs messages suivants.",
+  "screener.meta": "{count} messages · dernier {when}",
+  "screener.metaNoDate": "{count} messages",
+  "screener.justNow": "à l'instant",
+  "screener.allow": "Autoriser",
+  "screener.block": "Bloquer",
+  "screener.working": "Enregistrement…",
+  "screener.showAll": "Afficher {count} de plus",
+  "screener.allowed": "{sender} autorisé.",
+  "screener.blocked": "{sender} bloqué — ses messages iront désormais dans Silent.",
+  "screener.failed":
+    "Impossible d'enregistrer cette décision. L'expéditeur est inchangé — réessayez.",
+  "screener.noHold":
+    "Rien n'est retenu. Le courrier de ces expéditeurs est trié et livré comme d'habitude, que vous décidiez ici ou non.",
 };
 
 export default fr;

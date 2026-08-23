@@ -44,6 +44,10 @@ export const queryKeys = {
     linkedAccounts: () => ["inbox", "linked-accounts"] as const,
     outlookAccounts: () => ["inbox", "outlook-accounts"] as const,
   },
+  screener: {
+    all: ["screener"] as const,
+    pending: () => ["screener", "pending"] as const,
+  },
   email: {
     all: ["email"] as const,
     list: (params?: {

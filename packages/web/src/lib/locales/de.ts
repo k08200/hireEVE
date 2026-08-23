@@ -1163,6 +1163,24 @@ const de: Record<string, string> = {
     "Klorn hat diese Nachricht gefunden, aber die Anhänge haben kein strukturiertes Profil ergeben. Öffne die Ursprungsmail, analysiere die Anhänge neu, oder halte Notizen fest, solange der Prüfstand noch klar ist.",
   "candidates.detail.noProfile.openSourceEmail": "Ursprungsmail öffnen",
   "candidates.detail.noProfile.backToQueue": "Zurück zur Liste",
+
+  "screener.title": "Neue Absender",
+  "screener.count": "{count} wartend",
+  "screener.subtitle":
+    "Diese Personen haben zum ersten Mal geschrieben. Wer jetzt entscheidet, entscheidet dauerhaft — und spart bei jeder weiteren Nachricht dieser Absender einen Modellaufruf.",
+  "screener.meta": "{count} Nachrichten · zuletzt {when}",
+  "screener.metaNoDate": "{count} Nachrichten",
+  "screener.justNow": "gerade eben",
+  "screener.allow": "Zulassen",
+  "screener.block": "Blockieren",
+  "screener.working": "Wird gespeichert…",
+  "screener.showAll": "{count} weitere anzeigen",
+  "screener.allowed": "{sender} zugelassen.",
+  "screener.blocked": "{sender} blockiert — Mails dieses Absenders gehen ab jetzt an Silent.",
+  "screener.failed":
+    "Diese Entscheidung konnte nicht gespeichert werden. Am Absender hat sich nichts geändert — bitte erneut versuchen.",
+  "screener.noHold":
+    "Es wird nichts zurückgehalten. Mails dieser Absender werden wie gewohnt sortiert und zugestellt, ob du hier entscheidest oder nicht.",
 };
 
 export default de;
