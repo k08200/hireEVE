@@ -86,6 +86,23 @@ deploy — it reads the same probe. Walk one real sign-in end to end: Apple's
 callback is a **POST** (`response_mode=form_post`, mandatory once a scope is
 requested), so a proxy that drops POST bodies breaks it silently.
 
+### 2d. When it fails, read the redirect
+
+A failed sign-in lands on `/login?error=<provider>_<stage>`. The stage is the
+diagnosis:
+
+| error | what broke | what fixes it |
+| --- | --- | --- |
+| `apple_denied` | the visitor cancelled at Apple, or Apple sent no code | nothing — they can retry |
+| `apple_config` | env missing, or `APPLE_PRIVATE_KEY` is not a usable ES256 key | check the six vars; a truncated `.p8` paste lands here |
+| `apple_exchange` | Apple refused the token exchange | the server log carries Apple's slug: `invalid_client` = wrong Team ID / Key ID / key / Services ID (an APNs key looks identical to a Sign in with Apple key); `invalid_grant` = the code, not the secret |
+| `apple_token` | the id_token failed verification | usually `aud` — `APPLE_CLIENT_ID` must equal the Services ID byte for byte |
+| `apple_claims` | valid token, no email claim | the visitor declined to share an address; they can retry and share |
+| `apple_failed` | something else in the tail (DB, session) | server logs |
+
+Apple's own error slug is logged, never redirected — `[APPLE] token exchange
+failed: 400 invalid_client` in the service log is the line to grep for.
+
 ---
 
 ## 3. Naver login

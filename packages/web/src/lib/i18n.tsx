@@ -97,6 +97,10 @@ const enTranslations: Record<string, string> = {
   "auth.continueWithApple": "Continue with Apple",
   "auth.continueWithNaver": "Continue with Naver",
   "auth.socialSignInError": "Sign-in could not be completed. Please try again.",
+  "auth.socialNotConfigured":
+    "This sign-in method is not set up correctly on this deployment. Use another method, or contact the operator.",
+  "auth.socialNoEmail":
+    "That provider did not share an email address, so no account could be created. Try again and choose to share your email.",
   "auth.socialDenied": "Sign-in was canceled — just try again whenever you're ready.",
   "auth.socialEmailInUse":
     "This email already has a Klorn account. Sign in the way you originally did — you can link other accounts from Settings.",
@@ -1216,6 +1220,10 @@ const koTranslations: Record<string, string> = {
   "auth.continueWithApple": "Apple로 계속하기",
   "auth.continueWithNaver": "네이버로 계속하기",
   "auth.socialSignInError": "로그인을 완료하지 못했습니다. 다시 시도해 주세요.",
+  "auth.socialNotConfigured":
+    "이 로그인 방식이 이 서버에 올바르게 설정되어 있지 않습니다. 다른 방법을 쓰시거나 운영자에게 알려주세요.",
+  "auth.socialNoEmail":
+    "해당 서비스가 이메일 주소를 전달하지 않아 계정을 만들 수 없습니다. 다시 시도하면서 이메일 공유를 선택해 주세요.",
   "auth.socialDenied": "로그인이 취소되었어요 — 준비되면 다시 시도하면 됩니다.",
   "auth.socialEmailInUse":
     "이 이메일로 만든 Klorn 계정이 이미 있습니다. 원래 쓰던 방법으로 로그인해 주세요 — 다른 계정 연결은 설정에서 할 수 있어요.",
