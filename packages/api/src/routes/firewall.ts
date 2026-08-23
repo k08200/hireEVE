@@ -122,6 +122,7 @@ function healStaleAttentionItem(userId: string, emailDbId: string): void {
           body: true,
           labels: true,
           receivedAt: true,
+          linkedInboxAccountId: true,
         },
       });
       if (!row) return;
