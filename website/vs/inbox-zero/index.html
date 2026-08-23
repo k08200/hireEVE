@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Klorn vs Inbox Zero — both open source, but not the same licence</title>
+<meta name="description" content="Inbox Zero ships AGPL v3 with additional commercial and five-employee restrictions. Klorn is the unmodified AGPL-3.0. Read both LICENSE files and compare.">
+<link rel="canonical" href="https://klorn.ai/vs/inbox-zero/">
+<link rel="alternate" hreflang="en" href="https://klorn.ai/vs/inbox-zero/">
+<link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/vs/inbox-zero/">
+<link rel="alternate" hreflang="x-default" href="https://klorn.ai/vs/inbox-zero/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/">Klorn</a>
+    <span class="lang">
+      <a href="/vs/inbox-zero/" aria-current="true">EN</a><a href="/ko/vs/inbox-zero/">KO</a>
+    </span>
+  </nav>
+
+  <h1>Both are open source.<br>The <em>licences</em> are not the same.</h1>
+  <p class="thesis">This is the closest comparison on this site — same shape, same stack family, both self-hostable, both with a paid hosted tier. Two things separate them, and one of them is checkable in under a minute.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Axis</th><th>Klorn</th><th>Inbox Zero</th></tr></thead>
+    <tbody>
+      <tr><th>Licence</th><td class="us"><strong>Unmodified AGPL-3.0. No additional terms</strong></td><td>AGPL v3 with appended <code>ADDITIONAL TERMS</code></td></tr>
+      <tr><th>Commercial use</th><td class="us"><strong>Permitted — AGPL terms, nothing added</strong></td><td><code>COMMERCIAL MONETIZATION RESTRICTION</code> in the LICENSE file</td></tr>
+      <tr><th>Organisations of 5+</th><td class="us"><strong>No separate licence required</strong></td><td><code>ENTERPRISE USE LIMITATION</code> — a licence must be obtained</td></tr>
+      <tr><th>How GitHub resolves it</th><td class="us"><strong><code>AGPL-3.0</code></strong></td><td><code>NOASSERTION</code></td></tr>
+      <tr><th>How it decides</th><td class="us">A model scores four features; a deterministic rule you can unit-test picks the lane</td><td>Rules you describe in plain English</td></tr>
+      <tr><th>Why it decided that</th><td class="us"><strong>Shown on every row, and corrections retrain it</strong></td><td>You wrote the rule, so the rule is the reason</td></tr>
+      <tr><th>Published price</th><td class="us"><strong>$8.99/mo</strong> web · $9.99 native</td><td>$20/mo Starter · $35 Plus · $50 Professional</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Check the licence yourself</h2>
+  <p>This is not an argument to take on trust. Open <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">Klorn's LICENSE</a> and <a href="https://github.com/elie222/inbox-zero/blob/main/LICENSE" rel="noreferrer noopener">Inbox Zero's LICENSE</a> in two tabs. One is the GNU AGPL v3 and stops there. The other is the GNU AGPL v3 followed by a section headed <code>ADDITIONAL TERMS FOR INBOX ZERO</code>.</p>
+  <p>That difference has a practical edge. Under Klorn's licence, a five-person company can run it, modify it, and keep running it, with no conversation with us. That is the whole point of choosing AGPL and then not adding anything to it.</p>
+
+  <h2>Rules you write versus judgement you audit</h2>
+  <p>Inbox Zero's model is that you describe what should happen in plain English and it executes that. It is legible and predictable, and for senders whose behaviour you already understand it is hard to beat.</p>
+  <p>Klorn assumes you cannot enumerate the rules in advance for mail you have not seen. So it judges, shows the reason, and turns your corrections into policy: two matching corrections make a sender deterministic and the model stops being consulted for them. Deliberately asymmetric — a learned pattern can promote mail to a louder lane, but nothing learned is allowed to silence a sender on its own, because a stale pattern must never mute someone where you cannot see it to fix it.</p>
+
+  <div class="note">
+    <p><strong>What we are not claiming.</strong> No accuracy comparison between the two has been run. The licence statements above are quotations of section headings in each project's own <code>LICENSE</code> file as of 2026-08-23, and the GitHub resolution is what the repository API reports.</p>
+    <p>Credit where it is due: Inbox Zero is a well-built project with a far larger community than ours. If its rule model fits how you think, it is a good tool and the licence terms may never affect you.</p>
+  </div>
+
+  <a class="cta" href="https://app.klorn.ai/login?mode=register">Try Klorn free</a>
+
+  <footer>
+    <p>Prices and product facts as published by each vendor, checked 2026-08-23. Something here wrong? <a href="mailto:k0820086@gmail.com">Tell us</a> and we will fix it.</p>
+  </footer>
+</div>
+</body>
+</html>

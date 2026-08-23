@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Klorn vs Inbox Zero — 둘 다 오픈소스, 라이선스는 다름</title>
+<meta name="description" content="Inbox Zero는 AGPL v3에 상업적 수익화 제한과 5인 이상 조직 조항이 덧붙어 있습니다. Klorn은 수정 없는 AGPL-3.0입니다. 두 LICENSE 파일을 직접 열어 비교해 보세요.">
+<link rel="canonical" href="https://klorn.ai/ko/vs/inbox-zero/">
+<link rel="alternate" hreflang="en" href="https://klorn.ai/vs/inbox-zero/">
+<link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/vs/inbox-zero/">
+<link rel="alternate" hreflang="x-default" href="https://klorn.ai/vs/inbox-zero/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/ko/">Klorn</a>
+    <span class="lang">
+      <a href="/vs/inbox-zero/">EN</a><a href="/ko/vs/inbox-zero/" aria-current="true">KO</a>
+    </span>
+  </nav>
+
+  <h1>둘 다 오픈소스입니다.<br><em>라이선스</em>는 같지 않습니다.</h1>
+  <p class="thesis">이 사이트에서 가장 가까운 비교입니다. 모양도 스택 계열도 같고, 둘 다 셀프호스트가 되고, 둘 다 유료 호스팅 티어가 있습니다. 갈리는 지점은 두 개인데, 그중 하나는 1분이면 직접 확인됩니다.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>축</th><th>Klorn</th><th>Inbox Zero</th></tr></thead>
+    <tbody>
+      <tr><th>라이선스</th><td class="us"><strong>수정 없는 AGPL-3.0. 추가 조항 없음</strong></td><td>AGPL v3 + 덧붙인 <code>ADDITIONAL TERMS</code></td></tr>
+      <tr><th>상업적 사용</th><td class="us"><strong>허용 — AGPL 조건 그대로, 추가 없음</strong></td><td>LICENSE 파일에 <code>COMMERCIAL MONETIZATION RESTRICTION</code></td></tr>
+      <tr><th>5인 이상 조직</th><td class="us"><strong>별도 라이선스 불필요</strong></td><td><code>ENTERPRISE USE LIMITATION</code> — 라이선스를 취득해야 함</td></tr>
+      <tr><th>GitHub 인식</th><td class="us"><strong><code>AGPL-3.0</code></strong></td><td><code>NOASSERTION</code></td></tr>
+      <tr><th>판단 방식</th><td class="us">모델이 네 피처를 채점하고, 유닛테스트 가능한 결정론적 규칙이 레인을 고릅니다</td><td>평문 영어로 직접 쓴 룰</td></tr>
+      <tr><th>왜 그렇게 판단했나</th><td class="us"><strong>모든 행에 표시되고, 교정이 재학습됩니다</strong></td><td>당신이 룰을 썼으니 룰이 곧 이유입니다</td></tr>
+      <tr><th>공개 가격</th><td class="us"><strong>월 $8.99</strong> 웹 · $9.99 네이티브</td><td>월 $20 Starter · $35 Plus · $50 Professional</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>라이선스는 직접 확인하세요</h2>
+  <p>믿고 받아들이라는 주장이 아닙니다. <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">Klorn의 LICENSE</a>와 <a href="https://github.com/elie222/inbox-zero/blob/main/LICENSE" rel="noreferrer noopener">Inbox Zero의 LICENSE</a>를 두 탭에 나란히 열어보세요. 한쪽은 GNU AGPL v3이고 거기서 끝납니다. 다른 쪽은 GNU AGPL v3 뒤에 <code>ADDITIONAL TERMS FOR INBOX ZERO</code>라는 절이 붙어 있습니다.</p>
+  <p>이 차이에는 실무적인 날이 있습니다. Klorn 라이선스에서는 5인 회사가 이걸 돌리고, 고치고, 계속 돌려도 됩니다. 우리와 대화할 필요가 없습니다. AGPL을 고르고 <strong>거기에 아무것도 덧붙이지 않은</strong> 이유가 그것입니다.</p>
+
+  <h2>직접 쓴 룰 vs 감사할 수 있는 판단</h2>
+  <p>Inbox Zero의 모델은 무슨 일이 일어나야 하는지를 평문으로 쓰면 그대로 실행하는 것입니다. 읽기 쉽고 예측 가능하며, 행동을 이미 파악한 발신자에 대해서는 이기기 어렵습니다.</p>
+  <p>Klorn은 <strong>아직 본 적 없는 메일에 대해서는 룰을 미리 열거할 수 없다</strong>고 가정합니다. 그래서 판단하고, 이유를 보여주고, 당신의 교정을 정책으로 바꿉니다. 같은 교정이 두 번이면 그 발신자는 결정론적으로 고정되고 모델은 더 이상 호출되지 않습니다. 의도적으로 비대칭입니다 — 학습된 패턴은 메일을 더 시끄러운 레인으로 올릴 수 있지만, 학습된 것이 스스로 발신자를 침묵시킬 수는 없습니다. 낡은 패턴이 당신이 볼 수 없는 곳에서 누군가를 음소거해서는 안 되기 때문입니다.</p>
+
+  <div class="note">
+    <p><strong>주장하지 않는 것.</strong> 둘 사이의 정확도 비교는 한 적이 없습니다. 위 라이선스 서술은 2026-08-23 기준 각 프로젝트의 <code>LICENSE</code> 파일에 실제로 있는 절 제목을 인용한 것이고, GitHub 인식 값은 저장소 API가 반환하는 값입니다.</p>
+    <p>인정할 건 인정합니다. Inbox Zero는 잘 만들어진 프로젝트이고 커뮤니티는 우리보다 훨씬 큽니다. 룰 모델이 사고방식에 맞는다면 좋은 도구이고, 라이선스 조항이 당신에게 영향을 주지 않을 수도 있습니다.</p>
+  </div>
+
+  <a class="cta" href="https://app.klorn.ai/login?mode=register">Klorn 무료로 써보기</a>
+
+  <footer>
+    <p>가격·제품 사실은 각 벤더 공개 자료 기준, 2026-08-23 확인. 틀린 내용이 있으면 <a href="mailto:k0820086@gmail.com">알려주세요</a>. 고치겠습니다.</p>
+  </footer>
+</div>
+</body>
+</html>
