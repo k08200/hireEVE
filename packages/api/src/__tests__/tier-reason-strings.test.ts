@@ -54,9 +54,16 @@ describe("static tier reasons", () => {
   });
 
   it("falls back to English for a language it does not ship", () => {
-    expect(resolveTierReason("task.overdueUrgent", "fr")).toBe(
+    // fr shipped in 2026-08-23; pt is the current stand-in for "unshipped".
+    expect(resolveTierReason("task.overdueUrgent", "pt")).toBe(
       resolveTierReason("task.overdueUrgent", "en"),
     );
+  });
+
+  it("renders a shipped non-English language in that language", () => {
+    const fr = resolveTierReason("task.overdueUrgent", "fr");
+    expect(fr).toBeTruthy();
+    expect(fr).not.toBe(resolveTierReason("task.overdueUrgent", "en"));
   });
 
   it("recognises its own keys and nothing else", () => {
