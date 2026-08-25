@@ -81,6 +81,14 @@ jobs:
       - name: Lane identity
         run: node .github/scripts/check-lane-identity.mjs
 
+      # The landing renders the lanes TWICE from independent data — the hero
+      # demo and the interactive replica below it — and neither guard above can
+      # see a mismatch between them. Lockstep compares EN/KO structure; lane
+      # identity covers packages/web, not website/. That gap shipped a frozen
+      # Korean hero demo (#1242, fixed in #1243) with every check green.
+      - name: Website lane consistency
+        run: node .github/scripts/check-website-lanes.mjs
+
   typecheck:
     name: TypeScript
     runs-on: ubuntu-latest
