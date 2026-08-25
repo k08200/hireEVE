@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Security — Klorn</title>
+<meta name="description" content="What Klorn's architecture actually guarantees: AES-256-GCM token encryption, hash-pinned approval receipts, prompt injection treated as in-scope, and the file that implements each claim.">
+<meta property="og:title" content="Security — Klorn">
+<meta property="og:description" content="What Klorn's architecture actually guarantees: AES-256-GCM token encryption, hash-pinned approval receipts, prompt injection treated as in-scope, and the file that implements each claim.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/security/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Security — Klorn">
+<meta name="twitter:description" content="What Klorn's architecture actually guarantees: AES-256-GCM token encryption, hash-pinned approval receipts, prompt injection treated as in-scope, and the file that implements each claim.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<link rel="canonical" href="https://klorn.ai/security/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/">Klorn</a>
+    <span class="lang"><a href="/security/" aria-current="true">Security</a><a href="/pricing/">Pricing</a><a href="/self-host/">Self-host</a><a href="/status/">Status</a><a href="/gdpr/">GDPR</a><a href="/dpa/">DPA</a></span>
+  </nav>
+
+  <h1>&ldquo;Trust us&rdquo; is not<br>an answer.</h1>
+  <p class="thesis">Klorn reads other people's email so you don't have to. That sentence <em>is</em> the threat model: the primary input is text written by strangers, some of whom are adversarial. Here is what the architecture actually guarantees, with the file that implements each one.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Property</th><th>What is actually true</th><th>Where to check</th></tr></thead>
+    <tbody>
+      <tr><th>Email is hostile input</th><td class="us">Every email body, subject and third-party string is wrapped in <code>&lt;untrusted_content&gt;</code> markers before reaching a model, and pre-existing wrapper tags are stripped first so a crafted message cannot close the wrapper. <strong>Prompt injection is in scope, not an accepted limitation</strong></td><td><a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">SECURITY.md</a></td></tr>
+      <tr><th>Token encryption at rest</th><td class="us"><strong>AES-256-GCM</strong> before the token touches the database, with keyring rotation (v1/v2 envelopes) so a suspected leak is rotated without a flag day. A missing key outside dev/test <strong>aborts boot</strong> rather than falling back</td><td><a href="https://github.com/k08200/klorn/blob/main/packages/api/src/crypto-tokens.ts" rel="noreferrer noopener">crypto-tokens.ts</a></td></tr>
+      <tr><th>Outbound actions</th><td class="us">Send, permanent delete and forward-external cannot ride on classifier confidence. Each requires a receipt minted at approval time pinning a <strong>sha256 of the canonical payload</strong>, re-verified at execution. If anything drifted in between, the action is refused</td><td><a href="https://github.com/k08200/klorn/blob/main/packages/api/src/judge/attention-floor.ts" rel="noreferrer noopener">attention-floor.ts</a></td></tr>
+      <tr><th>Dev conveniences</th><td class="us">Dev JWT secret, dev encryption key, localhost CORS and the demo user sit behind a dev/test allowlist that <strong>fails closed</strong> for any other <code>NODE_ENV</code></td><td><a href="https://github.com/k08200/klorn/blob/main/packages/api/src/env.ts" rel="noreferrer noopener">env.ts</a></td></tr>
+      <tr><th>Analytics</th><td class="us"><strong>First-party only.</strong> A short allowlist of coarse event names in Klorn's own Postgres. No external tracker, and never message content</td><td><a href="https://github.com/k08200/klorn/blob/main/packages/api/src/analytics.ts" rel="noreferrer noopener">analytics.ts</a></td></tr>
+      <tr><th>Encryption in transit</th><td class="us">TLS-only on every hosted surface — API, web, Google APIs, model providers</td><td><a href="https://github.com/k08200/klorn/blob/main/docs/self-hosting.md" rel="noreferrer noopener">self-hosting.md</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>What Klorn can read</h2>
+  <p>Exactly the scopes shown on your own Google consent screen, and nothing that is not listed there: <code>gmail.readonly</code>, <code>gmail.modify</code>, <code>gmail.send</code>, <code>calendar.readonly</code>, <code>calendar.events</code>, and your account email and profile. A calendar-only link grants read-only calendar access and no mailbox access at all.</p>
+
+  <h2>How long anything is kept</h2>
+  <p>Log retention is enforced by a scheduled sweep rather than a promise: agent actions, email processing, push delivery and webhook ledgers are deleted after <strong>90 days</strong>, rate-limit rows after <strong>30</strong>, and token accounting after <strong>180</strong> for cost-drift analysis. The windows are a table in the source, not a setting we can quietly widen without it showing in a diff.</p>
+
+  <h2>Reporting a vulnerability</h2>
+  <p>Email <a href="mailto:k0820086@gmail.com">k0820086@gmail.com</a> with a description and reproduction steps. Please do not open a public issue for an exploitable finding. You'll get an acknowledgment within a few days; fixes to the approval floor and the token-encryption paths take priority over everything else. Machine-readable contact details are at <a href="/.well-known/security.txt">/.well-known/security.txt</a>.</p>
+
+  <div class="note">
+    <p><strong>What we are not claiming.</strong> Klorn has not had a third-party penetration test or a SOC 2 audit, and this page does not imply one. It is a solo-maintained product in beta. The compensating control is that the code is AGPL-3.0 and the security-relevant paths are named above by file — you can read them instead of taking our word for it.</p>
+    <p><a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">SECURITY.md</a> carries the longer version, including the known gaps we chose to state rather than omit.</p>
+  </div>
+
+  <a class="cta" href="https://app.klorn.ai/login?mode=register">Try Klorn free</a>
+
+  <footer>
+    <p>Questions about anything on this page? <a href="mailto:k0820086@gmail.com">k0820086@gmail.com</a>.
+      Klorn is <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">AGPL-3.0</a> — every claim here
+      is checkable against the source.</p>
+  </footer>
+</div>
+<script>
+// Same block as every other page: carry the campaign through to the app so a
+// signup can be credited to the page that earned it.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
