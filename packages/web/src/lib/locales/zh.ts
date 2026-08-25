@@ -1071,6 +1071,15 @@ const zh: Record<string, string> = {
   "screener.failed": "未能保存该判断。发件人未发生变化 — 请重试。",
   "screener.noHold":
     "没有任何邮件被扣留。无论你是否在这里做判断，这些发件人的邮件都会照常分类并送达。",
+  "pmf.title": "如果不能再使用 Klorn，你会怎么想？",
+  "pmf.subtitle": "只问一个问题，只问一次。这个回答会直接用于定价决策。",
+  "pmf.very": "非常失望",
+  "pmf.somewhat": "有些失望",
+  "pmf.not": "不失望",
+  "pmf.working": "保存中…",
+  "pmf.thanks": "谢谢 — 已记录。",
+  "pmf.failed": "未能记录。没有保存任何内容 — 请重试。",
+  "pmf.later": "以后再说",
 };
 
 export default zh;

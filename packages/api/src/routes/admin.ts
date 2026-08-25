@@ -32,6 +32,7 @@ import { MODEL } from "../llm/openai.js";
 import { sendBetaInviteEmail } from "../mail/email.js";
 import { collectFeatureFlags } from "../ops/feature-flags.js";
 import { getPerfSnapshot } from "../perf-monitor.js";
+import { cohortReadout, pmfSummary } from "../product/cohort.js";
 import { getProviderChain } from "../providers/index.js";
 import { captureError } from "../sentry.js";
 import { deleteUserAndAllData } from "../user-deletion.js";
@@ -314,6 +315,14 @@ export async function adminRoutes(app: FastifyInstance) {
     await deleteUserAndAllData(id);
 
     return reply.code(204).send();
+  });
+
+  // GET /api/admin/cohort — who actually showed up, and would they miss it.
+  // Reads only what is already stored; asks no user anything. Ranked by mail
+  // volume because that is the ICP hypothesis under test.
+  app.get("/cohort", async () => {
+    const [rows, pmf] = await Promise.all([cohortReadout(), pmfSummary()]);
+    return { pmf, cohort: rows };
   });
 
   // GET /api/admin/stats — Dashboard stats

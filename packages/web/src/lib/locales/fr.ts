@@ -1170,6 +1170,16 @@ const fr: Record<string, string> = {
     "Impossible d'enregistrer cette décision. L'expéditeur est inchangé — réessayez.",
   "screener.noHold":
     "Rien n'est retenu. Le courrier de ces expéditeurs est trié et livré comme d'habitude, que vous décidiez ici ou non.",
+  "pmf.title": "Que ressentiriez-vous si vous ne pouviez plus utiliser Klorn ?",
+  "pmf.subtitle":
+    "Une seule question, posée une seule fois. La réponse alimente directement le prix.",
+  "pmf.very": "Très déçu",
+  "pmf.somewhat": "Plutôt déçu",
+  "pmf.not": "Pas déçu",
+  "pmf.working": "Enregistrement…",
+  "pmf.thanks": "Merci — c'est enregistré.",
+  "pmf.failed": "Impossible d'enregistrer. Rien n'a été sauvegardé — réessayez.",
+  "pmf.later": "Plus tard",
 };
 
 export default fr;

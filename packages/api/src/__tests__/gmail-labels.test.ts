@@ -180,6 +180,43 @@ describe("applyLaneLabel", () => {
     expect(messagesModify).not.toHaveBeenCalled();
   });
 
+  it("survives losing the create race — another message made the label first", async () => {
+    // Cold cache + a burst of mail: every message lists, finds nothing, and
+    // tries to create. One wins; the rest get 409 alreadyExists. Before the
+    // fix, those messages threw and were never labelled again — applyLaneLabel
+    // is fire-and-forget, so there is no retry behind it.
+    labelsList.mockResolvedValueOnce({ data: { labels: [] } }).mockResolvedValue(allLanesExist());
+    labelsCreate.mockRejectedValue({ response: { status: 409 } });
+
+    await expect(applyLaneLabel(USER, MSG, "PUSH")).resolves.toBe("applied");
+    expect(messagesModify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestBody: expect.objectContaining({ addLabelIds: ["id-PUSH"] }),
+      }),
+    );
+  });
+
+  it("re-lists only once when it loses the race, not once per lane", async () => {
+    labelsList.mockResolvedValueOnce({ data: { labels: [] } }).mockResolvedValue(allLanesExist());
+    labelsCreate.mockRejectedValue({ response: { status: 409 } });
+
+    await applyLaneLabel(USER, MSG, "PUSH");
+    expect(labelsList).toHaveBeenCalledTimes(2);
+  });
+
+  it("still fails when the label is genuinely missing after the re-list", async () => {
+    labelsList.mockResolvedValue({ data: { labels: [] } });
+    labelsCreate.mockRejectedValue({ response: { status: 409 } });
+    await expect(applyLaneLabel(USER, MSG, "PUSH")).resolves.toBe("failed");
+  });
+
+  it("does not swallow a create failure that is not a conflict", async () => {
+    labelsList.mockResolvedValue({ data: { labels: [] } });
+    labelsCreate.mockRejectedValue({ response: { status: 500 } });
+    await expect(applyLaneLabel(USER, MSG, "PUSH")).resolves.toBe("failed");
+    expect(labelsList).toHaveBeenCalledTimes(1);
+  });
+
   it("reports applied on the happy path", async () => {
     await expect(applyLaneLabel(USER, MSG, "SILENT")).resolves.toBe("applied");
   });

@@ -1164,6 +1164,16 @@ const es: Record<string, string> = {
     "No se pudo guardar la decisión. El remitente no ha cambiado; inténtalo de nuevo.",
   "screener.noHold":
     "No se retiene nada. El correo de estos remitentes se clasifica y entrega igual, decidas aquí o no.",
+  "pmf.title": "¿Cómo te sentirías si ya no pudieras usar Klorn?",
+  "pmf.subtitle":
+    "Una sola pregunta, una sola vez. La respuesta influye directamente en el precio.",
+  "pmf.very": "Muy decepcionado",
+  "pmf.somewhat": "Algo decepcionado",
+  "pmf.not": "Nada decepcionado",
+  "pmf.working": "Guardando…",
+  "pmf.thanks": "Gracias — queda registrado.",
+  "pmf.failed": "No se pudo registrar. No se guardó nada — inténtalo de nuevo.",
+  "pmf.later": "Ahora no",
 };
 
 export default es;

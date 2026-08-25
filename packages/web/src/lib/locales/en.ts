@@ -1161,6 +1161,15 @@ const en: Record<string, string> = {
   "screener.failed": "Couldn't save that decision. The sender is unchanged — try again.",
   "screener.noHold":
     "Nothing is being held. Mail from these senders is sorted and delivered as usual whether or not you decide here.",
+  "pmf.title": "How would you feel if you could no longer use Klorn?",
+  "pmf.subtitle": "One question, asked once. The answer goes straight into how this gets priced.",
+  "pmf.very": "Very disappointed",
+  "pmf.somewhat": "Somewhat disappointed",
+  "pmf.not": "Not disappointed",
+  "pmf.working": "Saving…",
+  "pmf.thanks": "Thank you — that is recorded.",
+  "pmf.failed": "Couldn't record that. Nothing was saved — try again.",
+  "pmf.later": "Not now",
 };
 
 export default en;

@@ -1149,6 +1149,15 @@ const ko: Record<string, string> = {
   "screener.failed": "판단을 저장하지 못했습니다. 발신자는 그대로입니다 — 다시 시도해 주세요.",
   "screener.noHold":
     "보류되는 메일은 없습니다. 여기서 판단하든 안 하든 이 발신자들의 메일은 평소대로 분류되어 도착합니다.",
+  "pmf.title": "Klorn을 더 이상 쓸 수 없게 된다면 어떨 것 같나요?",
+  "pmf.subtitle": "질문 하나, 한 번만 묻습니다. 이 답이 가격을 정하는 데 그대로 들어갑니다.",
+  "pmf.very": "매우 실망",
+  "pmf.somewhat": "약간 실망",
+  "pmf.not": "실망하지 않음",
+  "pmf.working": "저장 중…",
+  "pmf.thanks": "감사합니다 — 기록됐습니다.",
+  "pmf.failed": "기록하지 못했습니다. 저장된 것은 없습니다 — 다시 시도해 주세요.",
+  "pmf.later": "나중에",
 };
 
 export default ko;
