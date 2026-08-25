@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Status — Klorn</title>
+<meta name="description" content="Where each Klorn surface runs and how to check it. No automated status page yet, and this page says so rather than implying one.">
+<meta property="og:title" content="Status — Klorn">
+<meta property="og:description" content="Where each Klorn surface runs and how to check it. No automated status page yet, and this page says so rather than implying one.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/status/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Status — Klorn">
+<meta name="twitter:description" content="Where each Klorn surface runs and how to check it. No automated status page yet, and this page says so rather than implying one.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<link rel="canonical" href="https://klorn.ai/status/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/">Klorn</a>
+    <span class="lang"><a href="/security/">Security</a><a href="/pricing/">Pricing</a><a href="/self-host/">Self-host</a><a href="/status/" aria-current="true">Status</a><a href="/gdpr/">GDPR</a><a href="/dpa/">DPA</a></span>
+  </nav>
+
+  <h1>Status</h1>
+  <p class="thesis">Klorn does not have an automated status page yet. Rather than point you at a dashboard that does not exist, here is exactly where to look and what to expect.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Surface</th><th>Where it runs</th><th>How to check it</th></tr></thead>
+    <tbody>
+      <tr><th>API</th><td class="us">Render (Singapore)</td><td><a href="https://api.klorn.ai/health" rel="noreferrer noopener">api.klorn.ai/health</a></td></tr>
+      <tr><th>Web app</th><td class="us">Vercel</td><td><a href="https://app.klorn.ai/">app.klorn.ai</a></td></tr>
+      <tr><th>Marketing site</th><td class="us">GitHub Pages</td><td>This page loading is the check</td></tr>
+      <tr><th>Mail sync</th><td class="us">Google Gmail API</td><td><a href="https://www.google.com/appsstatus/dashboard/" rel="noreferrer noopener">Google Workspace Status Dashboard</a></td></tr>
+      <tr><th>Model calls</th><td class="us">OpenRouter, or your own key</td><td><a href="https://status.openrouter.ai/" rel="noreferrer noopener">status.openrouter.ai</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>If something is broken</h2>
+  <p>Open an issue on <a href="https://github.com/k08200/klorn/issues" rel="noreferrer noopener">GitHub</a> or email <a href="mailto:k0820086@gmail.com">k0820086@gmail.com</a>. Incidents that affect mail delivery or the approval floor get written up in the repository rather than disappearing into a support thread.</p>
+
+  <div class="note">
+    <p><strong>Being honest about the tier.</strong> The API runs on Render's free plan today. That means cold starts after idle, and it means Klorn is not making an uptime promise it has not bought the infrastructure to keep. When that changes, this page changes with it.</p>
+  </div>
+
+
+  <footer>
+    <p>Questions about anything on this page? <a href="mailto:k0820086@gmail.com">k0820086@gmail.com</a>.
+      Klorn is <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">AGPL-3.0</a> — every claim here
+      is checkable against the source.</p>
+  </footer>
+</div>
+<script>
+// Same block as every other page: carry the campaign through to the app so a
+// signup can be credited to the page that earned it.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
