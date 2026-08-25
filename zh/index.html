@@ -6,10 +6,10 @@
 
 <!-- English is always the default at klorn.ai. Korean is reached via the language
      toggle in the nav, which also auto-redirects a Korean-locale first visit. -->
-<title>Klorn — 噪音进，信号出。</title>
-<meta name="description" content="一款 Mac 应用，把你的邮件分入五条通道 —— Push、Meeting、Queue、Info、Silent —— 并告诉你原因。开源、可自托管，绝不会在你设定的规则之外发送任何内容。">
-<meta property="og:title" content="Klorn — 噪音进，信号出。">
-<meta property="og:description" content="一款 Mac 应用，把你的邮件分入五条通道并告诉你原因。其他 AI 代理替你行动；Klorn 只判断什么值得你关注，并且只按你设定的规则行动。">
+<title>Klorn — 更少打断，而不是更快处理</title>
+<meta name="description" content="把每封邮件分到五个分类，并注明理由。Superhuman 和 Fyxer 每月 $30，都不告诉你为什么。AGPL-3.0，可自托管，每月 $8.99。">
+<meta property="og:title" content="Klorn — 更少打断，而不是更快处理">
+<meta property="og:description" content="Klorn 把每封邮件分到五个分类 — Push、Meeting、Queue、Info、Silent — 并在每封上注明理由。Superhuman 卖速度，Fyxer 替你写回复。两者都是每月 $30，都不告诉你这封邮件为什么会到你面前。AGPL-3.0，可自托管，不会发送任何你未批准的内容。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://klorn.ai/zh/">
 <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
@@ -544,6 +544,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .vscell.them::before{color:var(--ink-3)}
 }
 
+/* The four products a buyer is actually deciding between, named, each linked to
+   the page that carries the receipt. These pages existed but were reachable only
+   from the footer, which is the same as not existing: a comparison nobody
+   reaches persuades nobody. Kept below the grid, not above it — the argument
+   earns the click, the click does not replace the argument. */
+.vslinks{max-width:1180px;margin:24px auto 0;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:12px}
+.vslink{display:block;padding:16px 18px;border:1px solid var(--line);border-radius:14px;
+  background:#fff;transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.vslink:hover{border-color:rgba(3,105,161,.34);transform:translateY(-2px)}
+.vslink b{display:block;font-size:14px;font-weight:650;color:var(--sky-ink);
+  letter-spacing:-.01em;margin-bottom:5px}
+.vslink b::after{content:' \2192';font-weight:500}
+.vslink span{display:block;font-size:12.5px;line-height:1.5;color:var(--ink-3)}
+.vsnote{max-width:1180px;margin:16px auto 0;padding:0 24px;font-size:12px;line-height:1.6;
+  color:var(--ink-3)}
+.vsnote a{color:var(--sky-ink);font-weight:600}
+@media(max-width:980px){.vslinks{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.vslinks{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.vslink{transition:none}.vslink:hover{transform:none}}
+
 /* Language switch, in the nav where it belongs.
    A menu, not a row of buttons: two languages fit side by side, seven do not,
    and a control that has to be redesigned every time a language ships is the
@@ -620,7 +641,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   74%{opacity:1;transform:translateY(0)}
   100%{opacity:0;transform:translateY(-9px)}
 }
-.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
 .bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
   transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
 .bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
@@ -629,12 +650,21 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
 .bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
-.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
-.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
+.bk[data-t=push]{--c:#fb7185}.bk[data-t=queue]{--c:#fbbf24}
+.bk[data-t=silent]{--c:#a8a29e}.bk[data-t=meeting]{--c:#818cf8}
+.bk[data-t=info]{--c:#22d3ee}
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
-@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
+/* Three checkable facts under the fold-line. Every competitor in this category
+   puts a number on its hero; ours have to be ones a reader can go and verify. */
+.proof{list-style:none;margin:22px auto 0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:9px 26px;max-width:720px}
+.proof li{font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+.proof b{color:var(--ink);font-weight:700}
+.price-anchor{margin:22px auto 0;max-width:760px;text-align:center;font-size:12.5px;line-height:1.65;color:var(--ink-3)}
+.price-anchor b{color:var(--ink-2);font-weight:650}
+@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}
+  .buckets .bk:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
 
 
@@ -737,7 +767,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "applicationCategory": "BusinessApplication",
  "url": "https://klorn.ai/",
  "inLanguage": "zh",
- "description": "一款 Mac 应用，把你的邮件分入五条通道 —— Push、Meeting、Queue、Info、Silent —— 并告诉你原因。开源（AGPLv3）、可自托管，绝不会在你设定的规则之外发送任何东西。",
+ "description": "Klorn 把每封邮件分到五个分类 — Push、Meeting、Queue、Info、Silent — 并在每封上注明理由。Superhuman 卖速度，Fyxer 替你写回复。两者都是每月 $30，都不告诉你这封邮件为什么会到你面前。AGPL-3.0，可自托管，不会发送任何你未批准的内容。",
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
@@ -758,18 +788,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "mainEntity": [
   {
    "@type": "Question",
-   "name": "为什么我登录时 Google 会警告？",
-   "acceptedAnswer": {
-    "@type": "Answer",
-    "text": "读取你的邮件需要 Google 的受限权限范围，而应用被标记为已验证之前必须先通过\n        安全审核。在审核通过前，你会看到一次未验证应用的提示，且\n        beta 仅限前 100 个账号。"
-   }
-  },
-  {
-   "@type": "Question",
    "name": "它会不经过我就发送邮件吗？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "不会。发送、删除和转发始终等待明确批准，并且每一次都会写入一份签名回执，\n        其中包含所发内容的哈希。"
+    "text": "不会。发送、删除和转发始终等待明确批准，并且每一次都会写入一份回执，\n        其中包含所发内容的哈希。"
    }
   },
   {
@@ -802,6 +824,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "acceptedAnswer": {
     "@type": "Answer",
     "text": "不会。Klorn 会给自己设定每日支出上限，宁可停下也不超支 —— 失控的循环\n        不会让你花一分钱。正是这个上限让分类保持免费。"
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "为什么我登录时 Google 会警告？",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "读取你的邮件需要 Google 的受限权限范围，而应用被标记为已验证之前必须先通过\n        安全审核。在审核通过前，你会看到一次未验证应用的提示，且\n        beta 仅限前 100 个账号。"
    }
   }
  ]
@@ -852,10 +882,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
   <div class="wrap">
     <span class="eyebrow rv">在真实邮件上实测 <b>94.3%</b></span>
-    <h1 class="rv">噪音进。<br><span class="ser">信号</span> 出。</h1>
-    <p class="lead rv"><b style="color:var(--ink);font-weight:650">把你的邮件分入五条通道，并
-      告诉你原因 —— 网页端、macOS 和 Windows 均可用。</b> 其他 AI 代理替你行动。Klorn 判断什么值得
-      你关注，并且只按你设定的规则行动。</p>
+    <h1 class="rv">更少打断。<br>不是更<span class="ser">快</span>处理邮件。</h1>
+    <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn 把每封邮件分到五个分类，并在每封上注明理由。</b> 网页版·macOS·Windows。Superhuman 卖的是速度，Fyxer 替你写回复。两者都是每月 $30，而且都不告诉你为什么。Klorn 先回答这个问题，并且不会发送任何你未批准的内容。</p>
     <div class="actions rv">
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">免费开始 <i>↗</i></a>
     </div>
@@ -872,6 +900,11 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <p class="actions-note rv">免费，AGPLv3。应用使用你的 Klorn 账号登录 ——
       注册大约需要一分钟。
       <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">首次启动说明 ↗</a></p>
+    <ul class="proof rv">
+      <li><b>94.3%</b> — 人工标注的 53 封中命中 50 封，数据集就在仓库里</li>
+      <li><b>0 条</b> — AGPL-3.0 之后追加的条款</li>
+      <li><b>读你邮件的是你自己的服务器</b> — 自托管，用你的密钥或本地模型</li>
+    </ul>
   </div>
 
 
@@ -885,14 +918,16 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="buckets" id="dm-buckets">
         <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
           <div class="v" data-v>0</div><p class="d">立刻打断你</p></div>
+        <div class="bk" data-t="meeting"><div class="top"><span class="dot"></span><span class="nm">MEETING</span></div>
+          <div class="v" data-v>0</div><p class="d">日程安排 — 与你的日历核对</p></div>
         <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
           <div class="v" data-v>0</div><p class="d">今天读一下</p></div>
+        <div class="bk" data-t="info"><div class="top"><span class="dot"></span><span class="nm">INFO</span></div>
+          <div class="v" data-v>0</div><p class="d">收据与确认 — 无需回复</p></div>
         <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
           <div class="v" data-v>0</div><p class="d">已归档，未删除</p></div>
-        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
-          <div class="v" data-v>0</div><p class="d">无需你处理</p></div>
       </div>
-      <p class="demo-foot">在人工标注收件箱上的真实分类结果 —— 64 封中有 3 封需要你。</p>
+      <p class="demo-foot">这是五个分类的示意，不是一次基准测试。实测数字，以及它们尚未覆盖的分类，都在下面。</p>
     </div></div>
   </div>
 
@@ -936,7 +971,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
         <b>带理由的 QUEUE</b><span>每一行都说明它为何在此 —— 一键即可纠正。</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
-        <b>四个词的含义</b><span>SILENT 不等于删除。AUTO 不等于已回复。应用会明确告诉你。</span></button>
+        <b>五个分类，逐一说明</b><span>Silent 不是删除，Info 从不等你回复。应用会直说。</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
         <b>由你设定</b><span>它能自行做多少，以及什么可以打断你。</span></button>
     </div>
@@ -977,8 +1012,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         六十四封邮件，其中三封是你的。</p></article>
     <article class="step rv"><span class="sn">工作期间</span>
       <h3>一行界面，没有横幅</h3>
-      <p>Klorn 始终是屏幕顶部的一行原生界面。QUEUE、SILENT 和 AUTO 从不
-        打断你 —— 只有真正的 PUSH 才会，而什么算数由你设定。</p></article>
+      <p>Klorn 只占屏幕顶部原生的一行。Queue、Info、Silent 从不打断你。打断你的只有 Push，以及需要你定时间的 Meeting —— 标准由你来定。</p></article>
     <article class="step rv"><span class="sn">当你回复时</span>
       <h3>三份草稿，由你决定</h3>
       <p>接受、婉拒或追问 —— 各一个按键，用你的语气和发件人的语言。没有任何内容会自动
@@ -990,43 +1024,49 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 <section class="sec" id="compare">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">我们的分歧所在</span>
-      <h2 class="rv">多数邮件 AI 不持有的<br>四个主张。</h2>
+      <span class="tag rv">我们不同意的地方</span>
+      <h2 class="rv">大多数邮件 AI<br>不会持有的四个立场。</h2>
     </div>
-    <p class="rv">这些是选择，不是功能 —— 每一个都让 Klorn 付出代价。对照的是那个
-      已随你邮箱捆绑的助手所做的另一种决定。</p>
+    <p class="rv">这些是选择，不是功能，每一个都让 Klorn 付出代价。我们把它们和你真正在比较的四款产品并排放，指名道姓，每条主张都有自己的证据页。</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
       <div class="vscol ours"><span class="mk">K</span><b>Klorn</b></div>
-      <div class="vscol them"><span class="mk">—</span><b>你收件箱里的那个助手</b></div>
+      <div class="vscol them"><span class="mk">4</span><b>Fyxer &middot; Superhuman &middot; Inbox Zero &middot; SaneBox</b></div>
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">01 · 谁来决定</span>
-        <p>分类并起草，然后 <b>停下</b>。每一次发送、删除和转发都等你确认，并生成一份回执。</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">01 · 谁来决定</span>
-        <p>先替你行动，事后再告诉你。撤销就是安全网。</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 &middot; 谁来决定什么能到你面前</span>
+        <p>Klorn 决定 —— 每封邮件一个判定，落进<b>五个分类</b>之一。发送、删除、转发依然等你点头，每一次都会留下回执。</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; Superhuman"><span class="k">01 &middot; 谁来决定什么能到你面前</span>
+        <p><b>Fyxer</b> 和 <b>Superhuman</b> 让你更快处理已经打开的邮件。哪封值得打开，这个判断整天都还压在你身上，一封一封。</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">02 · 你能看到什么</span>
-        <p>四个固定层级，且 <b>每封邮件都附理由</b>。移动一封，分类器就会学习。</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">02 · 你能看到什么</span>
-        <p>优先级标记和无限标签。不给理由，也无从纠正。</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 &middot; 为什么这样判定</span>
+        <p><b>每一行都写着理由。</b>把行拖走，这个纠正就成了训练信号 —— 两次一致的纠正之后，那个发件人就变成确定性规则。</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; SaneBox"><span class="k">02 &middot; 为什么这样判定</span>
+        <p><b>Fyxer</b> 不给出理由。<b>SaneBox</b> 让你从邮件落进的文件夹去猜。两者的判定事后都无法审计。</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">03 · 它如何宣称</span>
-        <p><b>94.3%</b> 基于仓库中随附的人工标注数据集，冷启动与热启动分别报告。</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">03 · 它如何宣称</span>
-        <p>「AI 驱动」。没有数字，没有评测集，你也无从自行核实。</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; 它声称什么</span>
+        <p>在随仓库发布的人工标注集上<b>94.3%</b> —— 可用 <b>pnpm eval:real</b> 复跑，冷启动与热启动分开报告。</p></div>
+      <div class="vscell them" data-who="四款都是"><span class="k">03 &middot; 它声称什么</span>
+        <p>"AI 驱动"。没有公开的评估集，没有冷热之分，也没有任何你能自己跑一遍去核对的东西。</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">04 · 如果你想离开</span>
-        <p><b>AGPLv3</b>。读它的代码，用你自己的密钥自托管，或者 fork 之后带走。</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">04 · 如果你想离开</span>
-        <p>闭源。你的邮件就是训练面，导出是唯一的出口。</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 &middot; 如果你想离开</span>
+        <p><b>未经修改的 AGPL-3.0。</b>没有附加条款，没有商用限制，没有 5 人条款。用你自己的密钥自托管，或者 fork 走人。</p></div>
+      <div class="vscell them" data-who="Inbox Zero"><span class="k">04 &middot; 如果你想离开</span>
+        <p><b>Inbox Zero</b> 在 AGPL 后面追加了 ADDITIONAL TERMS —— 限制商业变现，5 人以上的组织必须另外取得授权。GitHub 把那份文件判定为 <b>NOASSERTION</b>。另外三家是闭源。</p></div>
     </div>
   </div>
+  <div class="vslinks rv">
+    <a class="vslink" href="/vs/fyxer/"><b>vs Fyxer</b><span>每用户每月 $30，换你文风的草稿。闭源、仅云端、不给理由。</span></a>
+    <a class="vslink" href="/vs/superhuman/"><b>vs Superhuman</b><span>把每封邮件的耗时砍半，是在一个不是你选的数字上做乘法。</span></a>
+    <a class="vslink" href="/vs/inbox-zero/"><b>vs Inbox Zero</b><span>把两份 LICENSE 在两个标签页里打开。其中一份是 AGPL，然后就结束了。</span></a>
+    <a class="vslink" href="/vs/sanebox/"><b>vs SaneBox</b><span>它从不读正文 —— 更强的隐私句子，以及它的代价。</span></a>
+  </div>
+  <p class="vsnote rv">价格与产品事实取自各家公开信息，2026-08-23 核对。我们没有和其中任何一家做过正面精度对比，这一页也不假装做过。发现有错？<a href="mailto:k0820086@gmail.com">告诉我们，我们会改。</a></p>
 </section>
 
 <!-- ══ MEASURED ═════════════════════════════════════ -->
@@ -1052,39 +1092,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT 精确率</div>
       <p>当 Klorn 把邮件归为噪音时，几乎不会埋掉真正的信号。</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">未经批准的操作</div>
-      <p>每一次发送、删除和转发都等你确认，并记录一份签名回执。</p></div>
+      <p>每一次发送、删除和转发都等你确认，并记录一份固定了发送内容哈希的回执。</p></div>
   </div>
-  <p class="foot rv">2026 年 7 月在来自真实收件箱的 53 封人工标注邮件集上测得，为带已学习上下文的
-    热启动（冷启动：81.1%）。
+  <p class="foot rv">2026 年 7 月，在真实收件箱取样的 53 封人工标注邮件上实测。带已学习上下文的热启动（冷启动：81.1%）。该数据集只标注了 Push、Queue、Silent —— Meeting 和 Info 还没有标注样本，所以它们的准确率未经测量，我们也不作声称。
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">方法与评测集 →</a></p>
-</section>
-
-<!-- ══ WORKS WITH ═══════════════════════════════════ -->
-<section class="sec" id="works">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">兼容</span>
-      <h2 class="rv">下载之前<br>先看这里。</h2>
-    </div>
-    <p class="rv">Klorn 会读取你的邮件，所以它连接什么是首先值得了解的 ——
-      包括它还没有连接什么。</p>
-  </div>
-  <div class="works rv">
-    <div class="work"><b>Gmail</b><span>Google 登录。Pro 支持多个收件箱。</span></div>
-    <div class="work"><b>Naver 邮箱</b><span>在设置中通过 IMAP 连接。</span></div>
-    <div class="work"><b>Google Calendar</b><span>读取日程，并在你许可后创建事件。</span></div>
-    <div class="work"><b>macOS 14+</b><span>Universal —— Apple Silicon 与 Intel。</span></div>
-    <div class="work"><b>任何邮件语言</b><span>回复会用邮件到来时的语言写成。</span></div>
-    <div class="work"><b>7 种界面语言</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
-  </div>
-  <p class="works-note rv"><b>不支持：</b> Naver 以外的 IMAP 服务商。登录 Klorn 目前
-    仅支持 Google，也没有原生移动应用 —— 移动端现在在浏览器中运行。
-    Windows 桌面应用是未签名 beta（SmartScreen 会提示一次）；
-    在 Linux 上，Klorn 在浏览器中运行。自托管可使用你自己的数据库和模型密钥。</p>
-  <p class="works-note rv"><b>即将推出：</b> Outlook &amp; Microsoft 365 以及 iCloud Mail —— 已经做好，
-    等安全审核后再上线。使用 Apple 和 Naver 登录计划在网页端、Mac
-    应用和移动端一并提供，这样一个 Klorn 账号覆盖所有设备，原生移动应用也在路上。
-    这些都还没有发布；发布时会出现在这个页面上。</p>
 </section>
 
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
@@ -1117,17 +1128,16 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">定价</span>
-      <h2 class="rv">免费开始。当 Klorn<br>替你行动时再升级。</h2>
+      <h2 class="rv">$8.99。这个品类的<br>其他产品是 $30。</h2>
     </div>
-    <p class="rv">分类永久免费。只有当 Klorn 开始按你的许可起草和发送时才付费 ——
-      那部分运行起来是真的要花钱。</p>
+    <p class="rv">分拣永久免费，而这里的免费是一档套餐，不是试用 —— 分类、每一行上的理由、纠正回路，都不收费。只有当 Klorn 在你同意下起草并发送时才开始收费，那才是每封邮件都有真实账单的部分。</p>
   </div>
   <div class="prices">
     <article class="price rv"><div class="price-in">
       <span class="chip-s">免费</span>
       <h3>邮件防火墙</h3>
       <div class="amt">$0<span>/月</span></div>
-      <p class="note">无需信用卡。每日 AI 预算让它可持续。</p>
+      <p class="note">不需要信用卡，也不会到期。Klorn 给自己每天的支出设了上限，宁可停下也不超支 —— 就算循环失控也不会记在你账上。正因为有这个上限，分拣才能一直免费，而不是变成试用。</p>
       <ul>
         <li>五通道邮件防火墙 —— 只有真正的信号才会打断你</li>
         <li>决策队列，每张卡片都附依据</li>
@@ -1140,7 +1150,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <span class="chip-s dark">创始价</span>
       <h3>Klorn Pro</h3>
       <div class="amt">$8.99<span>/月</span></div>
-      <p class="note">7 天 Pro 试用，之后网页端 $8.99/月。随时可取消。</p>
+      <p class="note">7 天 Pro 试用，之后网页版每月 $8.99 —— iOS 与 Android 应用内因平台抽成为 $9.99。随时可以取消。</p>
       <ul>
         <li>包含免费版全部功能，AI 预算更高</li>
         <li>在 Klorn 中批准并发送的回复草稿</li>
@@ -1150,6 +1160,38 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <a class="btn btn-1 full" href="https://app.klorn.ai/login?mode=register">开始 7 天 Pro 试用 <i>↗</i></a>
     </div></article>
   </div>
+  <p class="price-anchor rv">各家自己公布的月费，2026-08-23 核对：
+    <b>Fyxer $30</b> · <b>Superhuman $30</b> · <b>Inbox Zero $20</b> · <b>SaneBox $3.49–16.99</b>。
+    我们没有和其中任何一家做过正面对比测试，这一页也不假装做过 —
+    <a href="/vs/fyxer/">对比页面</a>里写清楚了哪些是实测、哪些不是。</p>
+</section>
+
+<!-- ══ WORKS WITH ═══════════════════════════════════ -->
+<section class="sec" id="works">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">兼容</span>
+      <h2 class="rv">下载之前<br>先看这里。</h2>
+    </div>
+    <p class="rv">Klorn 会读取你的邮件，所以它连接什么是首先值得了解的 ——
+      包括它还没有连接什么。</p>
+  </div>
+  <div class="works rv">
+    <div class="work"><b>Gmail</b><span>Google 登录。Pro 支持多个收件箱。</span></div>
+    <div class="work"><b>Naver 邮箱</b><span>在设置中通过 IMAP 连接。</span></div>
+    <div class="work"><b>Google Calendar</b><span>读取日程，并在你许可后创建事件。</span></div>
+    <div class="work"><b>macOS 14+</b><span>Universal —— Apple Silicon 与 Intel。</span></div>
+    <div class="work"><b>任何邮件语言</b><span>回复会用邮件到来时的语言写成。</span></div>
+    <div class="work"><b>7 种界面语言</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
+  </div>
+  <p class="works-note rv"><b>不支持：</b> Naver 以外的 IMAP 服务商。登录 Klorn 目前
+    仅支持 Google，也没有原生移动应用 —— 移动端现在在浏览器中运行。
+    Windows 桌面应用是未签名 beta（SmartScreen 会提示一次）；
+    在 Linux 上，Klorn 在浏览器中运行。自托管可使用你自己的数据库和模型密钥。</p>
+  <p class="works-note rv"><b>即将推出：</b> Outlook &amp; Microsoft 365 以及 iCloud Mail —— 已经做好，
+    等安全审核后再上线。使用 Apple 和 Naver 登录计划在网页端、Mac
+    应用和移动端一并提供，这样一个 Klorn 账号覆盖所有设备，原生移动应用也在路上。
+    这些都还没有发布；发布时会出现在这个页面上。</p>
 </section>
 
 <!-- ══ FAQ ══════════════════════════════════════════ -->
@@ -1161,12 +1203,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
   </div>
   <div class="faq">
-    <details class="faq-i rv"><summary>为什么我登录时 Google 会警告？</summary>
-      <p>读取你的邮件需要 Google 的受限权限范围，而应用被标记为已验证之前必须先通过
-        安全审核。在审核通过前，你会看到一次未验证应用的提示，且
-        beta 仅限前 100 个账号。</p></details>
     <details class="faq-i rv"><summary>它会不经过我就发送邮件吗？</summary>
-      <p>不会。发送、删除和转发始终等待明确批准，并且每一次都会写入一份签名回执，
+      <p>不会。发送、删除和转发始终等待明确批准，并且每一次都会写入一份回执，
         其中包含所发内容的哈希。</p></details>
     <details class="faq-i rv"><summary>我的邮件到底去了哪里？</summary>
       <p>送到分类器再回来。你的 OAuth 令牌静态加密，而且因为整个项目是
@@ -1181,6 +1219,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <details class="faq-i rv"><summary>AI 会烧出一大笔账单吗？</summary>
       <p>不会。Klorn 会给自己设定每日支出上限，宁可停下也不超支 —— 失控的循环
         不会让你花一分钱。正是这个上限让分类保持免费。</p></details>
+    <details class="faq-i rv"><summary>为什么我登录时 Google 会警告？</summary>
+      <p>读取你的邮件需要 Google 的受限权限范围，而应用被标记为已验证之前必须先通过
+        安全审核。在审核通过前，你会看到一次未验证应用的提示，且
+        beta 仅限前 100 个账号。</p></details>
   </div>
 </section>
 
@@ -1195,7 +1237,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
   <div class="wrapl rv">
     <h2 class="final-h">下一代收件箱是<br>一个 <span class="ser">决策队列。</span></h2>
-    <p class="final-p">beta 期间免费 —— 前 100 个账号，直到 Google 审核通过。</p>
+    <p class="final-p">分拣免费，而且会一直免费。登录直接走 Google OAuth —— 没有邀请，没有等候名单。唯一的限制是前 100 个账号。</p>
     <div class="actions">
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">免费开始 <i>↗</i></a>
       <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
@@ -1212,7 +1254,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="wrapl foot-grid">
     <div>
       <a class="foot-brand" href="#top" data-top>Klorn</a>
-      <p class="foot-note">一位从不擅自决定的邮件幕僚长。</p>
+      <p class="foot-note">一道你能读、能自己跑、随时能离开的注意力防火墙。AGPL-3.0，没有附加条款。</p>
       <div class="socials">
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
         <a href="https://x.com/klornai" rel="noreferrer noopener" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
@@ -1508,16 +1550,16 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   var mails = [
     ['Sarah Kim', 'Re: Contract review — needs your sign-off today', 'push'],
     ['AWS Billing', 'Your July invoice is ready', 'silent'],
-    ['Alex Carter', 'Standup moved to 10:30', 'push'],
+    ['Alex Carter', 'Standup moved to 10:30 — does that work?', 'meeting'],
     ['Product Hunt', 'Today in tech: 12 new launches', 'silent'],
     ['Jordan Lee', 'Revised dashboard specs', 'queue'],
-    ['Calendar', 'Invitation accepted by 3 people', 'auto'],
+    ['Calendar', 'Invitation accepted by 3 people', 'info'],
     ['billing@vendor.io', 'Invoice #4821 is overdue', 'push'],
     ['Morning Brew', 'The 5 things you need to know', 'silent'],
     ['Casey Park', 'Onboarding flow ideas', 'queue'],
-    ['Stripe', 'Payment receipt', 'auto']
+    ['Stripe', 'Payment receipt', 'info']
   ];
-  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
+  var totals = { push: 3, meeting: 2, queue: 12, info: 8, silent: 39 };
   var cells = {};
   document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
     cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
@@ -1591,10 +1633,11 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: 'Interrupts you now' },
-    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: 'Read it today' },
-    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: 'Filed, not deleted' },
-    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: 'Handled without you' }
+    { id: 'push', name: 'Push', c: '#fb7185', blurb: 'Interrupts you now' },
+    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: 'Scheduling — checked against your calendar' },
+    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: 'Read it today' },
+    { id: 'info', name: 'Info', c: '#22d3ee', blurb: 'Receipts and confirmations — no reply expected' },
+    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: 'Filed, not deleted' }
   ];
   var mail = [
     { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
@@ -1611,7 +1654,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       r: ['Paying this today — apologies for the delay.',
           'This one is disputed; our team will follow up separately this week.',
           'Can you resend the invoice with the PO number on it?'] },
-    { id: 3, t: 'push', from: 'Alex Carter', subj: 'Standup moved to 10:30',
+    { id: 3, t: 'meeting', from: 'Alex Carter', subj: 'Standup moved to 10:30',
       why: 'Calendar conflict',
       sum: 'Tomorrow’s standup moves to 10:30, which overlaps your 10:15 review.',
       body: 'Moved tomorrow\'s standup to 10:30.\n\nDoes that still work for you?',
@@ -1633,14 +1676,21 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       why: 'Newsletter, never replied to',
       sum: 'Daily newsletter.',
       body: 'Today in business...', r: null },
-    { id: 7, t: 'silent', from: 'AWS Billing', subj: 'Your July invoice is ready',
+    { id: 7, t: 'info', from: 'AWS Billing', subj: 'Your July invoice is ready',
       why: 'Automated receipt',
       sum: 'Monthly infrastructure invoice, no action needed.',
       body: 'Your invoice is available in the billing console.', r: null },
-    { id: 8, t: 'auto', from: 'Calendar', subj: 'Invitation accepted by 3 people',
+    { id: 8, t: 'info', from: 'Calendar', subj: 'Invitation accepted by 3 people',
       why: 'Klorn filed this without asking',
       sum: 'Three attendees accepted the Thursday review.',
-      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null }
+      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null },
+    { id: 9, t: 'meeting', from: 'Priya Raman', subj: 'Can we do Thursday 14:00 instead?',
+      why: 'Proposed slot clashes with Design review (14:00\u201315:00)',
+      sum: 'Priya wants to move the roadmap call to Thursday 14:00. That hour is already booked; 15:00 is free on both calendars.',
+      body: 'Hi,\n\nThursday 14:00 works better on our side for the roadmap call \u2014 can you make that?\n\nPriya',
+      r: ['Thursday 14:00 is booked here. 15:00 is free on both of our calendars \u2014 does that work?',
+          "Thursday doesn't work this week. Friday morning is open if that helps.",
+          'Before we move it \u2014 is the pricing section still on the agenda?'] }
   ];
   var TONE = ['Accept', 'Decline', 'Ask'];
 
