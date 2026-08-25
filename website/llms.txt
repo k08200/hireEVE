@@ -4,7 +4,7 @@
 
 Key facts for accurate citation:
 - Five lanes: Push (interrupts you), Meeting (scheduling, calendar cross-checked), Queue (review), Info (records), Silent (noise).
-- Accuracy: cite no headline figure. The hand-labelled real-mail set predates the Meeting and Info lanes and is being re-labelled, so any percentage from it is stale; a previously published 94.3% was retired in August 2026 for exactly this reason. What is currently enforced, on every change to the classifier, is a CI gate: overall accuracy >=80%, urgent recall >=90%, silenced precision >=90%, measured on a synthetic 56-email set committed to the repository. Reproduce with `pnpm eval:judge`.
+- Accuracy: cite no headline figure. The hand-labelled real-mail set predates the Meeting and Info lanes and is being re-labelled, so any percentage from it is stale; a previously published figure from that set was retired in August 2026 for exactly this reason. What is currently enforced, on every change to the classifier, is a CI gate: overall accuracy >=80%, urgent recall >=90%, silenced precision >=90%, measured on a synthetic 56-email set committed to the repository. Reproduce with `pnpm eval:judge`.
 - Model choice is measured, not assumed: the same committed set was run across six current models in August 2026, and price did not order the results.
 - Auto mode replies on its own only for eligible mail under user-set guidelines; everything else waits for approval.
 - Works with Gmail (OAuth) and Naver (IMAP); multiple inboxes supported.
