@@ -1506,15 +1506,15 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!stage) return;
   var mails = [
     ['김서연', 'Re: 계약서 검토 — 오늘 중 승인 필요', 'push'],
-    ['AWS 결제', '7월 인보이스가 준비됐습니다', 'silent'],
-    ['이준호', '스탠드업 10:30으로 변경', 'push'],
+    ['AWS 결제', '7월 인보이스가 준비됐습니다', 'info'],
+    ['이준호', '스탠드업 10:30으로 변경 — 괜찮으세요?', 'meeting'],
     ['Product Hunt', '오늘의 테크: 신규 런칭 12건', 'silent'],
     ['박정우', '대시보드 스펙 수정본', 'queue'],
-    ['캘린더', '3명이 초대를 수락했습니다', 'auto'],
+    ['캘린더', '3명이 초대를 수락했습니다', 'info'],
     ['billing@vendor.io', '인보이스 #4821 연체', 'push'],
     ['모닝브루', '오늘 알아야 할 5가지', 'silent'],
     ['최다은', '온보딩 플로우 아이디어', 'queue'],
-    ['Stripe', '결제 영수증', 'auto']
+    ['Stripe', '결제 영수증', 'info']
   ];
   var totals = { push: 3, meeting: 2, queue: 12, info: 8, silent: 39 };
   var cells = {};
@@ -1548,6 +1548,10 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 
     setTimeout(function () {
       var c = cells[m[2]];
+          // A mail tagged with a lane that has no bucket must not throw: this
+          // runs inside a setTimeout, so the exception would kill the tick
+          // silently and freeze the counter rather than surfacing anywhere.
+          if (!c) return;
       c.box.classList.add('hit');
       setTimeout(function () { c.box.classList.remove('hit'); }, 480);
       // Walk each tier toward its real total rather than counting one at a time,
@@ -1590,10 +1594,11 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: '지금 당신을 끊습니다' },
-    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: '오늘 안에 읽으면 됩니다' },
-    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: '보관됩니다, 삭제가 아닙니다' },
-    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: '당신 없이 처리됐습니다' }
+    { id: 'push', name: 'Push', c: '#fb7185', blurb: '지금 당신을 끊습니다' },
+    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: '일정 — 캘린더와 교차검증' },
+    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: '오늘 안에 읽으면 됩니다' },
+    { id: 'info', name: 'Info', c: '#22d3ee', blurb: '영수증·확인 — 답장이 필요 없습니다' },
+    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: '보관됩니다, 삭제가 아닙니다' }
   ];
   var mail = [
     { id: 1, t: 'push', from: '김서연', subj: 'Re: 계약서 검토 — 오늘 중 승인 필요',
@@ -1610,7 +1615,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       r: ['오늘 중으로 결제하겠습니다 — 늦어서 죄송합니다.',
           '이 건은 이의 제기 중입니다. 이번 주에 담당 팀이 따로 연락드리겠습니다.',
           'PO 번호를 넣어서 인보이스를 다시 보내주실 수 있을까요?'] },
-    { id: 3, t: 'push', from: '이준호', subj: '스탠드업 10:30으로 변경',
+    { id: 3, t: 'meeting', from: '이준호', subj: '스탠드업 10:30으로 변경',
       why: '캘린더 충돌',
       sum: '내일 스탠드업이 10:30으로 옮겨져 10:15 리뷰와 겹칩니다.',
       body: '내일 스탠드업 10시 30분으로 옮겼습니다.\n\n괜찮으실까요?',
@@ -1632,11 +1637,11 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       why: '뉴스레터, 한 번도 답장한 적 없음',
       sum: '일간 뉴스레터입니다.',
       body: '오늘의 비즈니스 소식...', r: null },
-    { id: 7, t: 'silent', from: 'AWS 결제', subj: '7월 인보이스가 준비됐습니다',
+    { id: 7, t: 'info', from: 'AWS 결제', subj: '7월 인보이스가 준비됐습니다',
       why: '자동 발송 영수증',
       sum: '월간 인프라 인보이스이며, 조치할 것이 없습니다.',
       body: '결제 콘솔에서 인보이스를 확인하실 수 있습니다.', r: null },
-    { id: 8, t: 'auto', from: '캘린더', subj: '3명이 초대를 수락했습니다',
+    { id: 8, t: 'info', from: '캘린더', subj: '3명이 초대를 수락했습니다',
       why: 'Klorn이 묻지 않고 처리했습니다',
       sum: '목요일 리뷰에 참석자 3명이 수락했습니다.',
       body: '수락: 박정우, 최다은, 김서연.', r: null }
