@@ -1130,9 +1130,12 @@ model AttentionItem {
   costOfIgnoring  String? // "Misses close window", "Loses Q2 budget"
   evidence        Json? // Supporting links/snippets backing the judgment
 
-  // 5-tier escalation policy. Populated by attention-mirror tier selector.
-  // SILENT = recorded only | QUEUE = inbox only, no push | PUSH = send push
-  // AUTO = auto-handled, no interrupt | null = legacy / not yet classified
+  // Escalation policy. Populated by the attention-mirror tier selector.
+  // SILENT = recorded only | INFO = filed record, no reply expected
+  // QUEUE  = inbox only, no push | MEETING = notifies, calendar cross-checked
+  // PUSH   = send push | null = legacy / not yet classified
+  // AUTO is NOT a lane — automation is a per-account mode. It survives here
+  // only as a retired v1 value on pre-flip rows; normalizeTier folds it on read.
   tier       String? // v2: "SILENT" | "INFO" | "QUEUE" | "MEETING" | "PUSH" (+ legacy "AUTO"/"CALL" via normalizeTier)
   tierReason String? // why this tier was chosen — free text, may be LLM-authored. NOT a trust signal.
 
