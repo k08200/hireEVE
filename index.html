@@ -1560,6 +1560,10 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 
     setTimeout(function () {
       var c = cells[m[2]];
+          // A mail tagged with a lane that has no bucket must not throw: this
+          // runs inside a setTimeout, so the exception would kill the tick
+          // silently and freeze the counter rather than surfacing anywhere.
+          if (!c) return;
       c.box.classList.add('hit');
       setTimeout(function () { c.box.classList.remove('hit'); }, 480);
       // Walk each tier toward its real total rather than counting one at a time,
@@ -1602,10 +1606,11 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: 'Interrupts you now' },
-    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: 'Read it today' },
-    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: 'Filed, not deleted' },
-    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: 'Handled without you' }
+    { id: 'push', name: 'Push', c: '#fb7185', blurb: 'Interrupts you now' },
+    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: 'Scheduling — checked against your calendar' },
+    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: 'Read it today' },
+    { id: 'info', name: 'Info', c: '#22d3ee', blurb: 'Receipts and confirmations — no reply expected' },
+    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: 'Filed, not deleted' }
   ];
   var mail = [
     { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
@@ -1622,7 +1627,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       r: ['Paying this today — apologies for the delay.',
           'This one is disputed; our team will follow up separately this week.',
           'Can you resend the invoice with the PO number on it?'] },
-    { id: 3, t: 'push', from: 'Alex Carter', subj: 'Standup moved to 10:30',
+    { id: 3, t: 'meeting', from: 'Alex Carter', subj: 'Standup moved to 10:30',
       why: 'Calendar conflict',
       sum: 'Tomorrow’s standup moves to 10:30, which overlaps your 10:15 review.',
       body: 'Moved tomorrow\'s standup to 10:30.\n\nDoes that still work for you?',
@@ -1644,11 +1649,11 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       why: 'Newsletter, never replied to',
       sum: 'Daily newsletter.',
       body: 'Today in business...', r: null },
-    { id: 7, t: 'silent', from: 'AWS Billing', subj: 'Your July invoice is ready',
+    { id: 7, t: 'info', from: 'AWS Billing', subj: 'Your July invoice is ready',
       why: 'Automated receipt',
       sum: 'Monthly infrastructure invoice, no action needed.',
       body: 'Your invoice is available in the billing console.', r: null },
-    { id: 8, t: 'auto', from: 'Calendar', subj: 'Invitation accepted by 3 people',
+    { id: 8, t: 'info', from: 'Calendar', subj: 'Invitation accepted by 3 people',
       why: 'Klorn filed this without asking',
       sum: 'Three attendees accepted the Thursday review.',
       body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null }
