@@ -59,6 +59,20 @@
   --state-danger-bg: #fef2f2;
   --state-danger-line: #fecaca;
   --state-danger-ink: #b91c1c; /* 5.9:1 on its own surface, 6.5:1 on white */
+  /* Lane ink. The --color-tier-* hues below are 400-level and were chosen for
+     the dark board; as TEXT on a light panel they are 1.67:1 (queue) to 2.69:1
+     (push) — the entire lane ramp failed the AA text floor in light, on the
+     count chips and column totals that carry the board's whole read. These are
+     the light-side text values, measured on every surface a lane accent
+     actually lands on (panel #ffffff / raised #f8fafc / hover #f1f5f9); the
+     hue tokens stay unchanged so planes, borders and tints keep their design.
+     queue and auto are the same literals the --state-*-ink ramp already uses. */
+  --tier-push-ink: #be123c; /* 5.74:1 worst-surface */
+  --tier-queue-ink: #b45309; /* 4.58:1 worst-surface */
+  --tier-meeting-ink: #4f46e5; /* 5.74:1 worst-surface */
+  --tier-info-ink: #0e7490; /* 4.89:1 worst-surface */
+  --tier-silent-ink: #57534e; /* 6.96:1 worst-surface */
+  --tier-auto-ink: #047857; /* 5.01:1 worst-surface — retired v1 lane */
   /* Filled destructive control. Unlike --accent-solid this does NOT invert in
      the dark: a destructive button has to keep reading as red-with-white, and
      a red fill carries white in both themes anyway. Only the depth changes. */
@@ -126,6 +140,15 @@
   --state-danger-bg: #2b1116;
   --state-danger-line: #6b2430;
   --state-danger-ink: #fca5a5; /* 9.1:1 on panel */
+  /* In the dark the 400-level hues ARE the text values — they clear the floor
+     here (4.9:1 to 8.76:1 worst-surface), which is why the failure above went
+     unnoticed: the board was designed dark-first. */
+  --tier-push-ink: #fb7185; /* 5.44:1 worst-surface */
+  --tier-queue-ink: #fbbf24; /* 8.76:1 worst-surface */
+  --tier-meeting-ink: #818cf8; /* 4.9:1 worst-surface */
+  --tier-info-ink: #22d3ee; /* 8.09:1 worst-surface */
+  --tier-silent-ink: #a8a29e; /* 5.8:1 worst-surface */
+  --tier-auto-ink: #34d399; /* 7.61:1 worst-surface — retired v1 lane */
   --danger-solid: #dc2626; /* white 4.8:1 */
   --danger-solid-hover: #b91c1c; /* hover goes DARKER, 6.5:1 */
   --danger-solid-ink: #ffffff;
@@ -174,6 +197,12 @@
   --color-state-danger-bg: var(--state-danger-bg);
   --color-state-danger-line: var(--state-danger-line);
   --color-state-danger-ink: var(--state-danger-ink);
+  --color-tier-push-ink: var(--tier-push-ink);
+  --color-tier-queue-ink: var(--tier-queue-ink);
+  --color-tier-meeting-ink: var(--tier-meeting-ink);
+  --color-tier-info-ink: var(--tier-info-ink);
+  --color-tier-silent-ink: var(--tier-silent-ink);
+  --color-tier-auto-ink: var(--tier-auto-ink);
   --color-danger-solid: var(--danger-solid);
   --color-danger-solid-hover: var(--danger-solid-hover);
   --color-danger-solid-ink: var(--danger-solid-ink);
@@ -220,15 +249,31 @@
   --color-brand-ink: #11100d;
   --color-brand-ink-soft: #12100d;
 
-  /* 4-tier firewall colors (PUSH/QUEUE/SILENT/AUTO). Single source of truth
-     for the classifier's core mental model — consumed by the firewall board,
-     the relationship-graph legend, and tier badges so the four tiers read as
-     ONE color+label system everywhere instead of drifting per surface
-     (was: graph red #f87171, board rose, retired coral glow — all divergent). */
-  --color-tier-push: #fb7185;
-  --color-tier-queue: #fbbf24;
-  --color-tier-silent: #a8a29e;
-  --color-tier-auto: #34d399;
+  /* Lane hues — one per lane in the v2 ontology (PUSH/MEETING/QUEUE/INFO/
+     SILENT). Single source of truth for the classifier's core mental model —
+     consumed by the firewall board, the relationship-graph legend, and tier
+     badges so the lanes read as ONE color+label system everywhere instead of
+     drifting per surface (was: graph red #f87171, board rose, retired coral
+     glow — all divergent).
+
+     MEETING and INFO had no hue of their own until now: the flip that made
+     TIER_V2_ENABLED default-on (#1138, 2026-08-18) shipped without the lane
+     design it promised, so MEETING borrowed PUSH's rose and INFO borrowed
+     SILENT's grey on every surface. Two of the five lanes were invisible AS
+     lanes on the page whose entire claim is that you can see which lane a
+     message landed in.
+
+     These are TINT/BORDER hues. Text uses --tier-*-ink above, which is
+     theme-aware; these are not. */
+  --color-tier-push: #fb7185; /* rose-400 */
+  --color-tier-meeting: #818cf8; /* indigo-400 */
+  --color-tier-queue: #fbbf24; /* amber-400 */
+  --color-tier-info: #22d3ee; /* cyan-400 */
+  --color-tier-silent: #a8a29e; /* stone-400 */
+  /* Retired v1 lane. normalizeTier folds AUTO away on read, but rows written
+     before the flip still render, so the hue stays until a backfill removes
+     the last one. Never emit AUTO in new code. */
+  --color-tier-auto: #34d399; /* emerald-400 */
 }
 
 body {
@@ -530,6 +575,21 @@ body::before {
   box-shadow:
     0 0 40px -26px rgba(52, 211, 153, 0.35),
     inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+/* MEETING sits just under PUSH on the ladder — a scheduling request is
+   time-bound but it is not an interruption, so the glow is tighter than
+   push's and wider than queue's. indigo #818cf8 == --color-tier-meeting. */
+.tier-plane-meeting {
+  box-shadow:
+    0 0 52px -24px rgba(129, 140, 248, 0.45),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+}
+/* INFO is filed, not surfaced: the faintest lit plane on the board, above
+   silent (unlit) and below queue. cyan #22d3ee == --color-tier-info. */
+.tier-plane-info {
+  box-shadow:
+    0 0 40px -30px rgba(34, 211, 238, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.025);
 }
 
 /* Translucent glass surface used by every panel + card on the board. */
