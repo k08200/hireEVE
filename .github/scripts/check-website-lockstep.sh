@@ -87,5 +87,66 @@ done
 
 [ "$failed" -eq 0 ] || exit 1
 
+# ---------------------------------------------------------------------------
+# Every page, not just the landings.
+#
+# The comparison pages shipped in #1219 for SEO and then sat for weeks with no
+# sitemap entry, no OG card and no attribution — indexable in principle,
+# invisible in practice. The checks below are the ones whose absence produced
+# that: they run over every index.html under website/, so a new page cannot
+# repeat it.
+pages=0
+while IFS= read -r page; do
+  pages=$((pages + 1))
+  # Derive the URL from the file's own location rather than trusting the tag —
+  # that way a canonical pointing at the wrong page is a failure, not the
+  # premise of every check below it.
+  url="https://klorn.ai/${page#website/}"
+  url="${url%index.html}"
+
+  # noindex and a sitemap entry are contradictory instructions. A page is
+  # either something we want indexed (sitemap, no noindex) or it is not.
+  if grep -q 'name="robots" content="[^"]*noindex' "$page"; then
+    if grep -q "<loc>${url}</loc>" website/sitemap.xml; then
+      echo "::error::${page} is noindex but listed in sitemap.xml (${url})"
+      failed=1
+    fi
+    continue
+  fi
+
+  canonical="$(grep -o '<link rel="canonical" href="[^"]*"' "$page" \
+               | sed 's/.*href="//; s/"//' || true)"
+  [ "$canonical" = "$url" ] || {
+    echo "::error::${page} canonical is [${canonical:-none}], expected ${url}"
+    failed=1; }
+
+  grep -q "<loc>${url}</loc>" website/sitemap.xml || {
+    echo "::error::website/sitemap.xml has no entry for ${url} (from ${page})"
+    failed=1; }
+
+  # A page with no OG card is a bare URL everywhere it gets shared.
+  for tag in 'property="og:title"' 'property="og:description"' 'property="og:url"' \
+             'property="og:image"' 'name="twitter:card"'; do
+    grep -q "$tag" "$page" || {
+      echo "::error::${page} is missing <meta ${tag}>"; failed=1; }
+  done
+
+  og_url="$(grep -o '<meta property="og:url" content="[^"]*"' "$page" \
+            | sed 's/.*content="//; s/"//' || true)"
+  [ "$og_url" = "$url" ] || {
+    echo "::error::${page} og:url is [${og_url:-none}], expected ${url}"
+    failed=1; }
+
+  # A signup link that carries no campaign is a conversion we cannot attribute
+  # to the page that earned it.
+  if grep -q 'app\.klorn\.ai' "$page" && ! grep -q 'utm_campaign' "$page"; then
+    echo "::error::${page} links to app.klorn.ai without the attribution block"
+    failed=1
+  fi
+done < <(find website -name index.html | sort)
+
+[ "$failed" -eq 0 ] || exit 1
+
 echo "EN skeleton matches ${#langs[@]} translated landing(s) [${langs[*]}] ($(skeleton "$EN" | wc -l | tr -d ' ') anchors)."
 echo "hreflang + sitemap complete for ${#all[@]} language(s) [${all[*]}]."
+echo "canonical + sitemap + OG card + attribution verified on ${pages} page(s)."

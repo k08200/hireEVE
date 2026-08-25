@@ -12,7 +12,7 @@ Most AI email tools are **compose-first**: they help you write and process more 
 | --- | --- | --- | --- | --- |
 | Core approach | Attention firewall: five lanes (Push / Meeting / Queue / Info / Silent), every row shows why | Speed-focused email client with AI assist | AI-native email client with search/chat | AI executive assistant drafting replies |
 | Decision transparency | Every classification carries its reason; corrections are training signal (measured: 81.1% cold → 94.3% after learning on real labeled mail) | — | — | — |
-| Unattended sending | Only in an explicit AUTO mode, only for eligible mail, under user-written guidelines; every send writes a signed receipt. Default is approval-gated | n/a (client) | n/a (client) | Drafts in your voice for review |
+| Unattended sending | Only in an explicit AUTO mode, only for eligible mail, under user-written guidelines; every send writes a receipt pinning a hash of exactly what went out. Default is approval-gated | n/a (client) | n/a (client) | Drafts in your voice for review |
 | Meetings | Calendar cross-check on scheduling mail: proposed slot, conflicts, sender availability, and slots verified free for both sides | Calendar features in client | Calendar in client | — |
 | Source & hosting | **Open source (AGPLv3), self-hostable end to end** | Closed | Closed | Closed |
 | AI spend control | Hard daily budget cap — the app stops rather than overspends | Subscription | Subscription tiers | Subscription |
@@ -22,7 +22,7 @@ Blank cells mean "not that product's focus," not a deficiency; the rows are the 
 
 ## What Klorn deliberately does not do
 
-- It does not send, delete, or forward anything without explicit approval (or, in AUTO mode, outside your written guidelines) — every outbound action carries a signed receipt with a hash of exactly what left.
+- It does not send, delete, or forward anything without explicit approval (or, in AUTO mode, outside your written guidelines) — every outbound action carries a receipt pinning a hash of exactly what left.
 - It does not read your mail on someone else's server if you don't want it to: the entire stack is AGPLv3 and self-hostable.
 - It does not claim accuracy it hasn't measured: the numbers above come from the committed, PII-scrubbed evaluation sets in [`packages/api/eval/`](../packages/api/eval/), runnable with `pnpm eval:judge`.
 

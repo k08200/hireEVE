@@ -741,12 +741,42 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
- "offers": {
-  "@type": "Offer",
-  "price": "0",
-  "priceCurrency": "USD",
-  "description": "Beta por invitación; clasificar el correo es gratis, con un límite diario de gasto en IA."
- },
+ "offers": [
+   {
+    "@type": "Offer",
+    "name": "Free",
+    "price": "0",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "priceSpecification": {
+     "@type": "UnitPriceSpecification",
+     "price": "0",
+     "priceCurrency": "USD",
+     "referenceQuantity": {
+      "@type": "QuantitativeValue",
+      "value": 1,
+      "unitCode": "MON"
+     }
+    }
+   },
+   {
+    "@type": "Offer",
+    "name": "Klorn Pro",
+    "price": "8.99",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "priceSpecification": {
+     "@type": "UnitPriceSpecification",
+     "price": "8.99",
+     "priceCurrency": "USD",
+     "referenceQuantity": {
+      "@type": "QuantitativeValue",
+      "value": 1,
+      "unitCode": "MON"
+     }
+    }
+   }
+  ],
  "softwareHelp": {
   "@type": "CreativeWork",
   "url": "https://github.com/k08200/klorn#readme"

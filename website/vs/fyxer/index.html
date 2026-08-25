@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Klorn vs Fyxer — an open-source alternative that shows its reasoning</title>
 <meta name="description" content="Fyxer drafts replies for you. Klorn decides what reaches you at all, and shows the reason for every decision. Open source, self-hostable, $8.99/mo.">
+<meta property="og:title" content="Klorn vs Fyxer — an open-source alternative that shows its reasoning">
+<meta property="og:description" content="Fyxer drafts replies for you. Klorn decides what reaches you at all, and shows the reason for every decision. Open source, self-hostable, $8.99/mo.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/vs/fyxer/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Klorn vs Fyxer — an open-source alternative that shows its reasoning">
+<meta name="twitter:description" content="Fyxer drafts replies for you. Klorn decides what reaches you at all, and shows the reason for every decision. Open source, self-hostable, $8.99/mo.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
 <link rel="canonical" href="https://klorn.ai/vs/fyxer/">
 <link rel="alternate" hreflang="en" href="https://klorn.ai/vs/fyxer/">
 <link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/vs/fyxer/">
@@ -30,7 +42,7 @@
     <tbody>
       <tr><th>What it produces</th><td class="us">One classification per email, into five lanes — with the reason attached</td><td>A drafted reply in your writing style, plus inbox categories and meeting notes</td></tr>
       <tr><th>Why it decided that</th><td class="us">Shown on every row. Move the row and the correction becomes training signal</td><td>Not surfaced</td></tr>
-      <tr><th>Acting unattended</th><td class="us">Approval-gated by default. Unattended replies only in AUTO mode, under guidelines you write, and every send writes a signed receipt</td><td>Drafts are prepared for your review</td></tr>
+      <tr><th>Acting unattended</th><td class="us">Approval-gated by default. Unattended replies only in AUTO mode, under guidelines you write, and every send writes a receipt pinning a hash of exactly what went out</td><td>Drafts are prepared for your review</td></tr>
       <tr><th>Source &amp; hosting</th><td class="us"><strong>AGPL-3.0, self-hostable end to end</strong></td><td>Closed, cloud only</td></tr>
       <tr><th>Your own model key</th><td class="us"><strong>Yes — bring your own key, or run a local model</strong></td><td>Not offered</td></tr>
       <tr><th>AI spend</th><td class="us"><strong>Hard daily cap. It stops rather than overspend</strong></td><td>Included in the subscription</td></tr>
@@ -57,5 +69,33 @@
     <p>Prices and product facts as published by each vendor, checked 2026-08-23. Something here wrong? <a href="mailto:k0820086@gmail.com">Tell us</a> and we will fix it.</p>
   </footer>
 </div>
+<script>
+// Carry the campaign that produced the click through to the app, so a signup
+// can be attributed to the page that earned it. `lp` is the landing path —
+// without it every comparison page is indistinguishable from the home page in
+// the signup data. Same block as the landing pages; kept inline because it has
+// to run before anyone clicks.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>
