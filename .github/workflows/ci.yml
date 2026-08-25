@@ -81,6 +81,13 @@ jobs:
       - name: Lane identity
         run: node .github/scripts/check-lane-identity.mjs
 
+      # Lane identity checks each lane owns a distinct hue; it cannot see that a
+      # surface has forgotten a lane exists. The landings were corrected to five
+      # lanes while the app still shipped four: the playground crashed on
+      # MEETING and onboarding silently dropped MEETING and INFO mail.
+      - name: Lane vocabulary
+        run: node .github/scripts/check-lane-vocabulary.mjs
+
       # The landing renders the lanes TWICE from independent data — the hero
       # demo and the interactive replica below it — and neither guard above can
       # see a mismatch between them. Lockstep compares EN/KO structure; lane

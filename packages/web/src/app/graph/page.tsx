@@ -47,9 +47,10 @@ const REL_LEGEND: Array<{ color: string; label: string; shape: SwatchShape }> = 
 const DEC_LEGEND: Array<{ color: string; label: string; shape: SwatchShape }> = [
   { color: "#a78bfa", label: "Feature (scored input)", shape: "square" },
   { color: "#fb7185", label: "PUSH", shape: "diamond" },
+  { color: "#818cf8", label: "MEETING", shape: "circle" },
   { color: "#fbbf24", label: "QUEUE", shape: "square" },
+  { color: "#22d3ee", label: "INFO", shape: "ring" },
   { color: "#a8a29e", label: "SILENT", shape: "ring" },
-  { color: "#34d399", label: "AUTO", shape: "circle" },
 ];
 
 const SWATCH_CLASS: Record<SwatchShape, string> = {

@@ -1,10 +1,10 @@
 "use client";
 
+import type { Tier } from "@klorn/contract";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { API_BASE } from "@/lib/api";
-
-type Tier = "PUSH" | "QUEUE" | "SILENT" | "AUTO";
+import { CORE_TIERS } from "@/lib/tiers";
 
 interface Features {
   confidence: number;
@@ -20,9 +20,9 @@ interface ClassifyResult {
   source: "fast-path" | "sender-prior" | "llm" | "keyword-fallback";
 }
 
-// Mirrors the firewall page's tier color language so the demo reads the same
-// as the real product. PUSH = interrupt (rose), QUEUE = look later (amber),
-// SILENT = recorded only (stone), AUTO = handled (emerald).
+// Every lane the wire can carry, including the retired AUTO: a legacy row must
+// still render rather than crash. What AUTO must never be is an option — see
+// CORE_TIERS below, which is what the correction buttons offer.
 const TIER_VISUAL: Record<Tier, { label: string; blurb: string; ring: string; text: string }> = {
   PUSH: {
     label: "PUSH",
@@ -42,15 +42,37 @@ const TIER_VISUAL: Record<Tier, { label: string; blurb: string; ring: string; te
     ring: "border-stone-700 bg-stone-800/30",
     text: "text-stone-300",
   },
+  MEETING: {
+    label: "MEETING",
+    blurb: "Scheduling. Accept, decline, or propose — calendar checked.",
+    ring: "border-tier-meeting/30 bg-tier-meeting/10",
+    text: "text-tier-meeting-ink",
+  },
+  INFO: {
+    label: "INFO",
+    blurb: "Transactional record. Filed — no reply expected.",
+    ring: "border-tier-info/20 bg-tier-info/10",
+    text: "text-tier-info-ink",
+  },
   AUTO: {
     label: "AUTO",
-    blurb: "Handled without asking. Eligible for auto-execution.",
+    blurb: "A legacy row from the v1 classifier. Today this mail would be QUEUE.",
     ring: "border-emerald-400/40 bg-emerald-500/10",
     text: "text-emerald-300",
   },
 };
 
-const TIERS: Tier[] = ["PUSH", "QUEUE", "SILENT", "AUTO"];
+/**
+ * The response is read with a bare `as ClassifyResult`, so `tier` is whatever
+ * the server sent — TypeScript is asserting, not checking. Indexing the record
+ * directly is what broke this page: the local four-lane vocabulary had no
+ * MEETING key, and a calendar invite classifies as MEETING, so the lookup
+ * returned undefined and `.ring` threw during render. Fall back the way
+ * normalizeTier does on the server: an unrecognised lane reads as QUEUE.
+ */
+function visual(tier: Tier) {
+  return TIER_VISUAL[tier] ?? TIER_VISUAL.QUEUE;
+}
 
 const FREE_OPENROUTER_MODELS = [
   "meta-llama/llama-3.3-70b-instruct:free",
@@ -462,18 +484,18 @@ export default function PlaygroundPage() {
               </div>
             ) : (
               <div>
-                <div className={`rounded-lg border p-5 ${TIER_VISUAL[result.tier].ring}`}>
+                <div className={`rounded-lg border p-5 ${visual(result.tier).ring}`}>
                   <div className="flex items-center justify-between">
                     <span
-                      className={`text-lg font-bold tracking-tight ${TIER_VISUAL[result.tier].text}`}
+                      className={`text-lg font-bold tracking-tight ${visual(result.tier).text}`}
                     >
-                      {TIER_VISUAL[result.tier].label}
+                      {visual(result.tier).label}
                     </span>
                     <span className="text-[11px] uppercase tracking-wide text-ink-dim">
                       via {result.source}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-ink-mid">{TIER_VISUAL[result.tier].blurb}</p>
+                  <p className="mt-1 text-xs text-ink-mid">{visual(result.tier).blurb}</p>
                   <p className="mt-3 text-sm text-ink">“{result.reason}”</p>
                 </div>
 
@@ -510,7 +532,7 @@ export default function PlaygroundPage() {
                         Wrong tier? Tell us the right one:
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {TIERS.filter((t) => t !== result.tier).map((t) => (
+                        {CORE_TIERS.filter((t) => t !== result.tier).map((t) => (
                           <button
                             key={t}
                             type="button"

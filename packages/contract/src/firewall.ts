@@ -9,11 +9,31 @@
  * the server had been sending since PR #468 was invisible to the client.
  */
 
-/** The canonical attention vocabulary, as serialized on the wire. */
-// Ontology v2 (2026-08-15): MEETING (scheduling lane) and INFO (transactional
-// records) join the vocabulary; AUTO remains for legacy rows and the v1
-// classifier until TIER_V2_ENABLED flips. See docs/design/tier-ontology-v2.md.
+/**
+ * The canonical attention vocabulary, as serialized on the wire.
+ *
+ * Ontology v2 (2026-08-15): MEETING (scheduling lane) and INFO (transactional
+ * records) join the vocabulary. AUTO stays in the STORAGE vocabulary for
+ * legacy rows and the v1 classifier; TIER_V2_ENABLED has been default-ON since
+ * 2026-08-18, so v2 never emits it. See docs/design/tier-ontology-v2.md.
+ */
 export type Tier = "SILENT" | "INFO" | "QUEUE" | "MEETING" | "PUSH" | "AUTO";
+
+/**
+ * A lane the current classifier can actually emit — the vocabulary to offer a
+ * user, group by, or draw a legend from. AUTO is excluded by design: a client
+ * must still be able to DISPLAY a legacy AUTO row, but must never present it
+ * as a lane that mail arrives in.
+ *
+ * This package ships no runtime code, so the iterable list lives once per
+ * runtime (`packages/api/src/judge/tiers.ts`, `packages/web/src/lib/tiers.ts`).
+ * Each is pinned to this type by a compile-time completeness assertion, so a
+ * lane added here fails both builds until both lists name it. That matters:
+ * every surface that wrote its own list drifted — the playground offered four
+ * lanes and crashed on MEETING, onboarding grouped by four and silently
+ * dropped MEETING and INFO mail.
+ */
+export type LiveTier = Exclude<Tier, "AUTO">;
 
 export type TrustBadge = "reliable" | "mostly_reliable" | "unreliable" | "unknown";
 

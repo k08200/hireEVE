@@ -30,14 +30,20 @@ and **sensitive** scopes (`gmail.send`, `calendar.events`,
       disclosure verbatim — confirm against `limited-use-disclosure.md`.
 - [ ] Terms of service live at `https://app.klorn.ai/terms`.
 - [ ] The homepage must describe what the app does with Google user data (a
-      short "Klorn reads your Gmail to triage it into PUSH/QUEUE/SILENT/AUTO"
-      line with a link to the privacy policy satisfies this).
+      short "Klorn reads your Gmail to triage it into PUSH/MEETING/QUEUE/
+      INFO/SILENT" line with a link to the privacy policy satisfies this).
 - [ ] App is functional in production — reviewers will create an account and
       click through.
-- [ ] `LOG_RETENTION_ENABLED=true` set on Render. The privacy policy states
-      concrete log-retention windows (90/30/180 days); the sweep that enforces
-      them is OFF by default (`packages/api/src/log-retention.ts`), so the
-      claim is only true with the flag on.
+- [x] `LOG_RETENTION_ENABLED=true` set on Render — confirmed by the founder
+      2026-08-26. The privacy policy states concrete log-retention windows
+      (90/30/180 days); the sweep that enforces them is OFF by default
+      (`packages/api/src/log-retention.ts:17`), so the claim is only true with
+      the flag on. Five of the six tables are deleted by that sweep alone:
+      `pruneOldPushDeliveryLogs` is reachable only from
+      `scripts/prune-push-logs.ts`, and the one flag-free prune
+      (`push-rate-limit.ts:73`) covers PushRingEvent on a 60-minute window for
+      active users. If the flag is ever turned off, the policy sentence stops
+      being true the same day — change the sentence, not just the flag.
 
 ## Step 1 — Complete the OAuth consent screen
 

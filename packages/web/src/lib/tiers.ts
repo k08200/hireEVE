@@ -13,11 +13,32 @@
  * writing the names out again.
  */
 
+import type { LiveTier } from "@klorn/contract";
+
 /** User-visible lanes, in the order they are shown. AUTO is a classification
  *  state rather than a lane and is deliberately not in this list. */
 export const CORE_TIERS = ["PUSH", "MEETING", "QUEUE", "INFO", "SILENT"] as const;
 
 export type CoreTier = (typeof CORE_TIERS)[number];
+
+/**
+ * Compile-time completeness against the wire contract.
+ *
+ * `CoreTier` above is derived from CORE_TIERS itself, so it is self-consistent
+ * by construction and cannot notice a lane added to `@klorn/contract`. This
+ * Record can: `LiveTier` is `Exclude<Tier, "AUTO">` from the contract, so a new
+ * lane there fails this line until CORE_TIERS names it too. That is the check a
+ * hand-maintained list otherwise never gets — every list this file replaced was
+ * internally consistent right up until the vocabulary moved underneath it.
+ */
+const _allLanesListed: Record<LiveTier, true> = {
+  PUSH: true,
+  MEETING: true,
+  QUEUE: true,
+  INFO: true,
+  SILENT: true,
+};
+void _allLanesListed;
 
 /** "PUSH / MEETING / QUEUE / INFO / SILENT" — for prose that names the lanes. */
 export const TIER_NAMES = CORE_TIERS.join(" / ");
