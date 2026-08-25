@@ -5,11 +5,78 @@
     <loc>https://klorn.ai/</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
     <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://klorn.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://klorn.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
   </url>
   <url>
     <loc>https://klorn.ai/ko/</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
     <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://klorn.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://klorn.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
+  </url>
+  <url>
+    <loc>https://klorn.ai/ja/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://klorn.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://klorn.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
+  </url>
+  <url>
+    <loc>https://klorn.ai/zh/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://klorn.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://klorn.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
+  </url>
+  <url>
+    <loc>https://klorn.ai/es/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://klorn.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://klorn.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
+  </url>
+  <url>
+    <loc>https://klorn.ai/fr/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://klorn.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://klorn.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
+  </url>
+  <url>
+    <loc>https://klorn.ai/de/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
+    <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://klorn.ai/es/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://klorn.ai/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
   </url>
   <url><loc>https://klorn.ai/privacy/</loc></url>
   <url><loc>https://klorn.ai/terms/</loc></url>
