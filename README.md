@@ -27,7 +27,7 @@ Klorn does the opposite. Each inbound email gets exactly **one** classification 
 | **`INFO`** | Calm transactional record | Receipts, confirmations, status notices — filed, no reply ever expected. |
 | **`SILENT`** | Recorded, never rendered | The row exists for ground-truth feedback; you never see it. (marketing, noise) |
 
-Automation is deliberately **not** a lane. Each answerable email carries an `autoEligible` flag (reversible, high-confidence, trusted, calm), and the account has a mode: **BASIC** (only important mail and calendar events notify; you choose every reply) or **AUTO** (Klorn replies on its own — but only to eligible mail, under guidelines you set and can edit, and every send writes a signed receipt). Classification and delegation stay separate decisions.
+Automation is deliberately **not** a lane. Each answerable email carries an `autoEligible` flag (reversible, high-confidence, trusted, calm), and the account has a mode: **BASIC** (only important mail and calendar events notify; you choose every reply) or **AUTO** (Klorn replies on its own — but only to eligible mail, under guidelines you set and can edit, and every send writes a receipt pinning a hash of exactly what went out). Classification and delegation stay separate decisions.
 
 ## How Klorn compares
 
@@ -36,7 +36,7 @@ Automation is deliberately **not** a lane. Each answerable email carries an `aut
 | | Klorn | Generic AI email agents | Rule-based filters |
 | --- | --- | --- | --- |
 | Output | One decision per mail, with the reason shown | Chat surface / suggestion cards | Folder moves, no reasons |
-| Acting on your behalf | Approval-gated; unattended replies only in AUTO mode under your written guidelines, each send with a signed receipt | Often acts first, reports later | Never acts |
+| Acting on your behalf | Approval-gated; unattended replies only in AUTO mode under your written guidelines, each send with a receipt pinned to a payload hash | Often acts first, reports later | Never acts |
 | When it's wrong | Move the row — the correction is training signal (81.1% cold → 94.3% on real labeled mail) | Varies | You rewrite the rule |
 | Source & hosting | AGPLv3, self-hostable end to end | Closed SaaS | Built into the client |
 | AI spend | Hard daily budget cap — it stops rather than overspends | Metered | None |
@@ -48,7 +48,7 @@ The LLM does **not** pick the tier. On every email it scores four features betwe
 Two consequences fall out of that split:
 
 - **A cheap model wins.** When the model only has to read four signals consistently, you don't need a frontier model's reasoning depth. On the committed 50-email gate set ([`eval/judge-eval-set.json`](packages/api/eval/judge-eval-set.json)), `gemini-2.5-flash` scores **88%** with 100% recall on urgent mail — beating `gpt-4o` and `gemini-2.5-pro` (both 82%) at a fraction of the cost. Run it yourself: `pnpm eval:judge`.
-- **Measured on real mail, not just synthetic.** A second committed set ([`eval/real-eval-set.json`](packages/api/eval/real-eval-set.json)) holds 53 real, hand-labeled, PII-scrubbed emails with per-sender context snapshots from the production learning loop. Current score: **50/53 (94.3%) overall, 95.5% precision on silenced mail** — when Klorn hides something, it is almost never something you wanted. (Honest caveats: one inbox's ground truth so far, and the urgent tier has only 4 labeled samples, so its floor stays report-only until support grows. Full measurement history: [`eval/README.md`](packages/api/eval/README.md).)
+- **Measured on real mail, not just synthetic.** A second committed set ([`eval/real-eval-set.json`](packages/api/eval/real-eval-set.json)) holds 53 real, hand-labeled, PII-scrubbed emails with per-sender context snapshots from the production learning loop. Current score: **50/53 (94.3%) overall, 95.5% precision on silenced mail** — when Klorn hides something, it is almost never something you wanted. (Honest caveats: one inbox's ground truth so far, and the urgent tier has only 4 labeled samples, so its floor stays report-only until support grows. The set is labelled `PUSH`/`QUEUE`/`SILENT` only: `MEETING` and `INFO` have zero labelled samples, so their accuracy is unmeasured — their eval floors are report-only for exactly that reason (`eval-floors.ts`). Full measurement history: [`eval/README.md`](packages/api/eval/README.md).)
 - **It fails open, safely — and heals.** If the LLM is down or rate-limited, a keyword fallback produces the same four features with zero model calls, so urgent mail still gets through. When the provider recovers, a bounded background sweep re-judges the degraded verdicts through the real pipeline — decisions you already touched are never rewritten.
 
 Every classification is **content-hash-bound**: the exact bytes the scorer read (`from`, `subject`, `snippet`, `labels`) are sha256'd at decision time and stored with the row. The read path re-hashes and throws `AttentionHashMismatchError` on mismatch, so a later enrichment can't silently invalidate a tier ([PR #468](https://github.com/k08200/klorn/pull/468)).

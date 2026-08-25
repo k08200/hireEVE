@@ -652,12 +652,9 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
 .bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
-.bk[data-t=push]{--c:#ff4d57}.bk[data-t=meeting]{--c:#818cf8}.bk[data-t=queue]{--c:#d97706}
-.bk[data-t=info]{--c:#22d3ee}.bk[data-t=silent]{--c:#7c848e}
-/* A lane the labelled set never exercised. Shown, dimmed, not hidden — the
-   point of publishing the set is that its gaps are visible too. */
-.bk.none{opacity:.62}
-.bk.none .v{color:var(--ink-3)}
+.bk[data-t=push]{--c:#fb7185}.bk[data-t=queue]{--c:#fbbf24}
+.bk[data-t=silent]{--c:#a8a29e}.bk[data-t=meeting]{--c:#818cf8}
+.bk[data-t=info]{--c:#22d3ee}
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
@@ -799,7 +796,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "저 없이 뭔가 보낼 수 있나요?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴 서명된 영수증을 남깁니다."
+    "text": "아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 박힌 영수증을 남깁니다."
    }
   },
   {
@@ -915,21 +912,17 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="demo-stage" id="dm-stage" aria-hidden="true"></div>
       <div class="buckets" id="dm-buckets">
         <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
-          <div class="v" data-v>0</div><p class="d">지금 당신을 끊습니다</p></div>
-        <div class="bk none" data-t="meeting"><div class="top"><span class="dot"></span><span class="nm">MEETING</span></div>
-          <div class="v" data-v>0</div><p class="d">일정 — 캘린더와 대조합니다</p></div>
+          <div class="v" data-v>0</div><p class="d">지금 방해합니다</p></div>
+        <div class="bk" data-t="meeting"><div class="top"><span class="dot"></span><span class="nm">MEETING</span></div>
+          <div class="v" data-v>0</div><p class="d">일정 — 캘린더와 교차검증</p></div>
         <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
-          <div class="v" data-v>0</div><p class="d">오늘 안에 읽으면 됩니다</p></div>
-        <div class="bk none" data-t="info"><div class="top"><span class="dot"></span><span class="nm">INFO</span></div>
-          <div class="v" data-v>0</div><p class="d">기록입니다. 답장이 필요 없습니다</p></div>
+          <div class="v" data-v>0</div><p class="d">오늘 안에 읽을 것</p></div>
+        <div class="bk" data-t="info"><div class="top"><span class="dot"></span><span class="nm">INFO</span></div>
+          <div class="v" data-v>0</div><p class="d">영수증·확인 — 답장이 필요 없습니다</p></div>
         <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
-          <div class="v" data-v>0</div><p class="d">보관됩니다, 삭제가 아닙니다</p></div>
+          <div class="v" data-v>0</div><p class="d">지운 게 아니라 정리했습니다</p></div>
       </div>
-      <p class="demo-foot">이 숫자는 리포에 커밋된 라벨링 세트 그대로입니다 &mdash;
-        PII를 지운 실제 메일 53통, 그중 당신을 끊은 것은 4통.
-        <a href="https://github.com/k08200/klorn/blob/main/packages/api/eval/real-eval-set.json" rel="noreferrer noopener">파일을 열어</a>
-        직접 세어 보세요. MEETING과 INFO가 0인 이유는 이 세트를 7월에 라벨링했고 그때는 두 레인이
-        없었기 때문입니다. 조용히 다시 라벨링하느니 이 구멍을 보여주는 쪽을 택했습니다.</p>
+      <p class="demo-foot">다섯 레인이 어떻게 나뉘는지 보여주는 예시이지 벤치마크 실행이 아닙니다. 측정된 수치와 아직 측정되지 않은 레인은 아래에 있습니다.</p>
     </div></div>
   </div>
 
@@ -973,7 +966,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
         <b>이유가 붙은 대기열</b><span>모든 줄이 거기 간 이유를 말합니다 — 클릭 한 번으로 정정.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
-        <b>다섯 레인, 설명까지</b><span>Silent는 삭제가 아니고, Info는 Silent가 아니며, 무엇도 스스로 답장하지 않습니다.</span></button>
+        <b>다섯 레인, 설명까지</b><span>Silent는 삭제가 아니고 Info는 답장을 바라지 않습니다.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
         <b>설정은 당신 몫</b><span>혼자 어디까지 할지, 무엇이 당신을 끊어도 되는지.</span></button>
     </div>
@@ -1014,8 +1007,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         라벨링 세트 기준 53통 중 당신을 끊은 것은 4통이었습니다.</p></article>
     <article class="step rv"><span class="sn">일하는 중</span>
       <h3>한 줄, 배너 없음</h3>
-      <p>Klorn은 화면 맨 위 네이티브 한 줄로 머뭅니다. QUEUE·INFO·SILENT는 절대 끊지 않습니다.
-        끊는 것은 PUSH, 그리고 제안된 시간에 답이 필요한 MEETING뿐입니다 — 기준은 당신이 정합니다.</p></article>
+      <p>Klorn은 화면 맨 위 네이티브 한 줄로 머뭅니다. QUEUE·INFO·SILENT는 절대 끊지 않고,
+        진짜 PUSH와 시간을 정해야 하는 MEETING만 끊습니다 — 무엇이 PUSH인지는 당신이 정합니다.</p></article>
     <article class="step rv"><span class="sn">답장할 때</span>
       <h3>초안 셋, 결정은 당신</h3>
       <p>수락·거절·질문 각각 한 키로. 당신 어투로, 발신자가 쓴 언어로. 저절로 나가는 건 없고,
@@ -1108,13 +1101,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT 정밀도</div>
       <p>Klorn이 소음으로 보관할 때, 진짜 신호를 묻어버리는 일은 거의 없습니다.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">미승인 실행</div>
-      <p>전송·삭제·전달은 전부 당신을 기다리고 서명된 영수증을 남깁니다.</p></div>
+      <p>전송·삭제·전달은 전부 당신을 기다리고 나간 내용의 해시가 박힌 영수증을 남깁니다.</p></div>
   </div>
-  <p class="foot rv">2026년 7월, <b>eval/real-eval-set.json</b>에 커밋된 53통 직접 라벨링
-    데이터셋으로 측정했습니다. 학습된 컨텍스트가 있는 웜 스타트 기준이고 콜드 스타트는 81.1%입니다 —
-    그 차이가 당신의 교정이 만들어내는 값입니다. 범위도 저희가 보는 그대로 읽어주세요: 이 데이터셋은
-    <b>Push · Queue · Silent만</b> 다룹니다. MEETING과 INFO 레인이 생기기 전에 라벨링한 것이라
-    두 레인에는 아직 정확도 수치가 없고, 이 페이지는 없는 수치를 만들어내지 않습니다.
+  <p class="foot rv">2026년 7월, 실사용 받은편지함에서 뽑은 53통 직접 라벨링 데이터셋으로 측정.
+    학습된 컨텍스트가 있는 웜 스타트 기준입니다 (콜드 스타트: 81.1%). 이 데이터셋은 Push·Queue·Silent만 라벨링돼 있습니다 — Meeting과 Info는 아직 라벨 샘플이 없어 정확도가 측정되지 않았고, 주장하지 않습니다.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">측정 방법과 평가셋 →</a></p>
 </section>
 
@@ -1235,7 +1225,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="faq">
     <details class="faq-i rv"><summary>저 없이 뭔가 보낼 수 있나요?</summary>
       <p>아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴
-        서명된 영수증을 남깁니다.</p></details>
+        나간 내용의 해시가 박힌 영수증을 남깁니다.</p></details>
     <details class="faq-i rv"><summary>제 메일은 어디로 가나요?</summary>
       <p>분류기로 갔다가 돌아옵니다. OAuth 토큰은 저장 시 암호화되고, 전체가 AGPLv3이라
         그 토큰을 다루는 코드를 직접 읽을 수 있습니다 —
@@ -1588,9 +1578,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     ['최다은', '온보딩 플로우 아이디어', 'queue'],
     ['LinkedIn', '1촌 신청 3건', 'silent']
   ];
-  // eval/real-eval-set.json, 2026-07-15: PUSH 4 / QUEUE 28 / SILENT 21 = 53.
-  // MEETING and INFO postdate the set, so they are rendered and left at zero.
-  var totals = { push: 4, meeting: 0, queue: 28, info: 0, silent: 21 };
+  var totals = { push: 3, meeting: 2, queue: 12, info: 8, silent: 39 };
   var cells = {};
   document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
     cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
