@@ -115,6 +115,7 @@ model User {
   candidateIntakes          CandidateIntake[]
   emailRules                EmailRule[]
   screenerDecisions         ScreenerDecision[]
+  pmfResponse               PmfResponse?
   attentionItems            AttentionItem[]
   contactDossiers           ContactDossier[]
   threadBriefs              ThreadBrief[]
@@ -1366,6 +1367,30 @@ model ScreenerDecision {
 enum ScreenerVerdict {
   ALLOW
   BLOCK
+}
+
+/// One product/market-fit answer per user (Sean Ellis: "how would you feel if
+/// you could no longer use Klorn?").
+///
+/// Upsert, not append: the measurement is what they think NOW, and a user who
+/// reconsiders should be able to say so. History is deliberately not kept —
+/// nobody would act on it, and keeping it invites reading a trend into three
+/// data points.
+model PmfResponse {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  answer      PmfAnswer
+  respondedAt DateTime  @default(now())
+
+  @@index([answer])
+}
+
+enum PmfAnswer {
+  VERY
+  SOMEWHAT
+  NOT
 }
 
 enum AttentionSource {

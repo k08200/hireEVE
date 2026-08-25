@@ -79,6 +79,24 @@ export function isLabelModeEnabled(): boolean {
   return process.env.GMAIL_LABEL_MODE_ENABLED === "true";
 }
 
+/**
+ * Gmail says the label already exists (409 / `alreadyExists`).
+ *
+ * This is not an error state, it is a lost race: another message hit the same
+ * cold cache, listed the same empty result, and created the label first. Shaped
+ * like `isGoogleNotFoundError` in gmail.ts, which treats its own expected race
+ * the same way.
+ */
+function isAlreadyExistsError(err: unknown): boolean {
+  const e = err as {
+    response?: { status?: number; data?: { error?: { errors?: { reason?: string }[] } } };
+    code?: string | number;
+  };
+  const status = e.response?.status ?? e.code;
+  if (status === 409) return true;
+  return (e.response?.data?.error?.errors ?? []).some((x) => x.reason === "alreadyExists");
+}
+
 function cacheKey(userId: string, linkedInboxAccountId?: string | null): string {
   return `${userId}::${linkedInboxAccountId ?? "primary"}`;
 }
@@ -108,27 +126,117 @@ async function ensureLaneLabelIds(
   }
 
   const ids = {} as Record<LaneLabelTier, string>;
+  // Lanes whose create lost the race. Collected rather than resolved inline so
+  // a burst that conflicts on all five costs ONE extra list, not five.
+  const lostRace: LaneLabelTier[] = [];
+
   for (const [tier, name] of Object.entries(LANE_LABELS) as [LaneLabelTier, string][]) {
     const found = byName.get(name);
     if (found) {
       ids[tier] = found;
       continue;
     }
-    const created = await gmail.users.labels.create({
-      userId: "me",
-      requestBody: {
-        name,
-        labelListVisibility: "labelShow",
-        messageListVisibility: "show",
-      },
-    });
-    const createdId = created.data.id;
-    if (!createdId) throw new Error(`Gmail did not return an id for label "${name}"`);
-    ids[tier] = createdId;
+    try {
+      const created = await gmail.users.labels.create({
+        userId: "me",
+        requestBody: {
+          name,
+          labelListVisibility: "labelShow",
+          messageListVisibility: "show",
+        },
+      });
+      const createdId = created.data.id;
+      if (!createdId) throw new Error(`Gmail did not return an id for label "${name}"`);
+      ids[tier] = createdId;
+    } catch (err) {
+      // A conflict means the label now exists — someone else just made it.
+      // Anything else is a real failure and must not be swallowed.
+      if (!isAlreadyExistsError(err)) throw err;
+      lostRace.push(tier);
+    }
+  }
+
+  if (lostRace.length > 0) {
+    // One re-list resolves every lane we lost. Without this the message is
+    // simply never labelled: applyLaneLabel is fire-and-forget from the
+    // firewall, so nothing retries behind it — and the window this happens in
+    // is exactly the moment the flag is switched on, when the cache is cold and
+    // a sync burst arrives together.
+    const again = await gmail.users.labels.list({ userId: "me" });
+    const byNameAgain = new Map<string, string>();
+    for (const label of again.data.labels ?? []) {
+      if (label.name && label.id) byNameAgain.set(label.name, label.id);
+    }
+    for (const tier of lostRace) {
+      const found = byNameAgain.get(LANE_LABELS[tier]);
+      if (!found) {
+        throw new Error(`Gmail reported "${LANE_LABELS[tier]}" exists but did not return it`);
+      }
+      ids[tier] = found;
+    }
   }
 
   labelCache.set(key, { ids, expiresAt: Date.now() + LABEL_CACHE_TTL_MS });
   return ids;
+}
+
+/**
+ * Which lane, if any, a message's Gmail label ids say it is in.
+ *
+ * Gmail returns label *ids* on a message, not names — system labels happen to
+ * use their name as the id (which is why the promo fast-path can string-match
+ * CATEGORY_PROMOTIONS), but a user label is `Label_123…`. So the ids have to be
+ * resolved back through the same map that wrote them.
+ *
+ * Read-only on purpose: this answers "what does Gmail currently say", and a
+ * question must not create the thing it is asking about. If the labels do not
+ * exist yet there is, by definition, nothing to correct. A partial map is never
+ * written to the cache either — the cache's contract is all five lanes.
+ *
+ * Returns null when zero lanes match, and also when MORE than one does: two
+ * lane labels on one message can only come from a hand edit, and guessing which
+ * one the user meant is worse than leaving their mail alone.
+ */
+export async function laneForLabelIds(
+  userId: string,
+  labelIds: string[],
+  linkedInboxAccountId?: string | null,
+): Promise<LaneLabelTier | null> {
+  if (!isLabelModeEnabled() || labelIds.length === 0) return null;
+  try {
+    const key = cacheKey(userId, linkedInboxAccountId);
+    let ids: Partial<Record<LaneLabelTier, string>> | undefined = labelCache.get(key)?.ids;
+
+    if (!ids) {
+      const auth = await resolveMailClient(userId, linkedInboxAccountId);
+      if (!auth) return null;
+      const gmail = google.gmail({ version: "v1", auth });
+      const existing = await gmail.users.labels.list({ userId: "me" });
+      const byName = new Map<string, string>();
+      for (const label of existing.data.labels ?? []) {
+        if (label.name && label.id) byName.set(label.name, label.id);
+      }
+      const partial: Partial<Record<LaneLabelTier, string>> = {};
+      for (const [tier, name] of Object.entries(LANE_LABELS) as [LaneLabelTier, string][]) {
+        const found = byName.get(name);
+        if (found) partial[tier] = found;
+      }
+      ids = partial;
+    }
+
+    const present = new Set(labelIds);
+    const matched = (Object.keys(LANE_LABELS) as LaneLabelTier[]).filter((tier) => {
+      const id = ids?.[tier];
+      return Boolean(id && present.has(id));
+    });
+    return matched.length === 1 ? matched[0] : null;
+  } catch (err) {
+    console.warn(
+      "[gmail-labels] could not resolve lane from label ids:",
+      err instanceof Error ? err.message : String(err),
+    );
+    return null;
+  }
 }
 
 /**

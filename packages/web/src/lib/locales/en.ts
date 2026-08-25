@@ -1141,6 +1141,35 @@ const en: Record<string, string> = {
     "Klorn found this message, but the attachments have not produced a structured profile. Open the source email, reanalyze attachments, or add notes while the review state is still clear.",
   "candidates.detail.noProfile.openSourceEmail": "Open source email",
   "candidates.detail.noProfile.backToQueue": "Back to queue",
+
+  // Screener — the first-contact gate (packages/api/src/judge/screener.ts).
+  // "noHold" is load-bearing copy, not filler: nothing is quarantined, and the
+  // card must never imply that mail is waiting on a decision.
+  "screener.title": "New senders",
+  "screener.count": "{count} waiting",
+  "screener.subtitle":
+    "These people wrote for the first time. Ruling on them now makes the decision permanent — and skips a model call on every message they send after.",
+  "screener.meta": "{count} messages · last {when}",
+  "screener.metaNoDate": "{count} messages",
+  "screener.justNow": "just now",
+  "screener.allow": "Allow",
+  "screener.block": "Block",
+  "screener.working": "Saving…",
+  "screener.showAll": "Show {count} more",
+  "screener.allowed": "{sender} allowed.",
+  "screener.blocked": "{sender} blocked — their mail goes to Silent from now on.",
+  "screener.failed": "Couldn't save that decision. The sender is unchanged — try again.",
+  "screener.noHold":
+    "Nothing is being held. Mail from these senders is sorted and delivered as usual whether or not you decide here.",
+  "pmf.title": "How would you feel if you could no longer use Klorn?",
+  "pmf.subtitle": "One question, asked once. The answer goes straight into how this gets priced.",
+  "pmf.very": "Very disappointed",
+  "pmf.somewhat": "Somewhat disappointed",
+  "pmf.not": "Not disappointed",
+  "pmf.working": "Saving…",
+  "pmf.thanks": "Thank you — that is recorded.",
+  "pmf.failed": "Couldn't record that. Nothing was saved — try again.",
+  "pmf.later": "Not now",
 };
 
 export default en;

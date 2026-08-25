@@ -1054,6 +1054,32 @@ const zh: Record<string, string> = {
     "Klorn 找到了这封邮件，但附件还没有生成结构化档案。可以打开来源邮件、重新分析附件，或者趁复核状态还清楚时留下备注。",
   "candidates.detail.noProfile.openSourceEmail": "打开来源邮件",
   "candidates.detail.noProfile.backToQueue": "返回队列",
+
+  "screener.title": "首次联系的发件人",
+  "screener.count": "{count} 位待处理",
+  "screener.subtitle":
+    "这些人是第一次给你写信。现在做出判断会永久生效，之后他们的邮件也不再需要模型调用。",
+  "screener.meta": "{count} 封邮件 · 最近 {when}",
+  "screener.metaNoDate": "{count} 封邮件",
+  "screener.justNow": "刚刚",
+  "screener.allow": "允许",
+  "screener.block": "屏蔽",
+  "screener.working": "保存中…",
+  "screener.showAll": "再显示 {count} 位",
+  "screener.allowed": "已允许 {sender}。",
+  "screener.blocked": "已屏蔽 {sender} — 之后他们的邮件会进入 Silent。",
+  "screener.failed": "未能保存该判断。发件人未发生变化 — 请重试。",
+  "screener.noHold":
+    "没有任何邮件被扣留。无论你是否在这里做判断，这些发件人的邮件都会照常分类并送达。",
+  "pmf.title": "如果不能再使用 Klorn，你会怎么想？",
+  "pmf.subtitle": "只问一个问题，只问一次。这个回答会直接用于定价决策。",
+  "pmf.very": "非常失望",
+  "pmf.somewhat": "有些失望",
+  "pmf.not": "不失望",
+  "pmf.working": "保存中…",
+  "pmf.thanks": "谢谢 — 已记录。",
+  "pmf.failed": "未能记录。没有保存任何内容 — 请重试。",
+  "pmf.later": "以后再说",
 };
 
 export default zh;

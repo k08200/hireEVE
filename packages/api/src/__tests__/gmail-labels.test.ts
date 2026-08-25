@@ -39,6 +39,7 @@ import {
   applyLaneLabel,
   isLabelModeEnabled,
   LANE_LABELS,
+  laneForLabelIds,
 } from "../mail/gmail-labels.js";
 
 const USER = "user-1";
@@ -179,7 +180,93 @@ describe("applyLaneLabel", () => {
     expect(messagesModify).not.toHaveBeenCalled();
   });
 
+  it("survives losing the create race — another message made the label first", async () => {
+    // Cold cache + a burst of mail: every message lists, finds nothing, and
+    // tries to create. One wins; the rest get 409 alreadyExists. Before the
+    // fix, those messages threw and were never labelled again — applyLaneLabel
+    // is fire-and-forget, so there is no retry behind it.
+    labelsList.mockResolvedValueOnce({ data: { labels: [] } }).mockResolvedValue(allLanesExist());
+    labelsCreate.mockRejectedValue({ response: { status: 409 } });
+
+    await expect(applyLaneLabel(USER, MSG, "PUSH")).resolves.toBe("applied");
+    expect(messagesModify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestBody: expect.objectContaining({ addLabelIds: ["id-PUSH"] }),
+      }),
+    );
+  });
+
+  it("re-lists only once when it loses the race, not once per lane", async () => {
+    labelsList.mockResolvedValueOnce({ data: { labels: [] } }).mockResolvedValue(allLanesExist());
+    labelsCreate.mockRejectedValue({ response: { status: 409 } });
+
+    await applyLaneLabel(USER, MSG, "PUSH");
+    expect(labelsList).toHaveBeenCalledTimes(2);
+  });
+
+  it("still fails when the label is genuinely missing after the re-list", async () => {
+    labelsList.mockResolvedValue({ data: { labels: [] } });
+    labelsCreate.mockRejectedValue({ response: { status: 409 } });
+    await expect(applyLaneLabel(USER, MSG, "PUSH")).resolves.toBe("failed");
+  });
+
+  it("does not swallow a create failure that is not a conflict", async () => {
+    labelsList.mockResolvedValue({ data: { labels: [] } });
+    labelsCreate.mockRejectedValue({ response: { status: 500 } });
+    await expect(applyLaneLabel(USER, MSG, "PUSH")).resolves.toBe("failed");
+    expect(labelsList).toHaveBeenCalledTimes(1);
+  });
+
   it("reports applied on the happy path", async () => {
     await expect(applyLaneLabel(USER, MSG, "SILENT")).resolves.toBe("applied");
+  });
+});
+
+describe("laneForLabelIds", () => {
+  it("returns null when label mode is off", async () => {
+    delete process.env.GMAIL_LABEL_MODE_ENABLED;
+    await expect(laneForLabelIds(USER, ["id-PUSH"])).resolves.toBeNull();
+    expect(labelsList).not.toHaveBeenCalled();
+  });
+
+  it("returns null for a message with no labels at all", async () => {
+    await expect(laneForLabelIds(USER, [])).resolves.toBeNull();
+  });
+
+  it("resolves the single lane a message carries", async () => {
+    await expect(laneForLabelIds(USER, ["INBOX", "id-QUEUE"])).resolves.toBe("QUEUE");
+  });
+
+  it("returns null when no lane label is present", async () => {
+    await expect(laneForLabelIds(USER, ["INBOX", "UNREAD"])).resolves.toBeNull();
+  });
+
+  it("returns null when two lanes are present — a hand edit we must not guess at", async () => {
+    await expect(laneForLabelIds(USER, ["id-PUSH", "id-SILENT"])).resolves.toBeNull();
+  });
+
+  it("reuses the warm cache instead of listing again", async () => {
+    await applyLaneLabel(USER, MSG, "PUSH");
+    labelsList.mockClear();
+    await expect(laneForLabelIds(USER, ["id-QUEUE"])).resolves.toBe("QUEUE");
+    expect(labelsList).not.toHaveBeenCalled();
+  });
+
+  it("is read-only on a cold cache — it asks Gmail, it never creates a label", async () => {
+    labelsList.mockResolvedValue({
+      data: { labels: [{ id: "id-INFO", name: LANE_LABELS.INFO }] },
+    });
+    await expect(laneForLabelIds(USER, ["id-INFO"])).resolves.toBe("INFO");
+    expect(labelsCreate).not.toHaveBeenCalled();
+  });
+
+  it("returns null when there is no Google client", async () => {
+    resolveMailClient.mockResolvedValue(null);
+    await expect(laneForLabelIds(USER, ["id-PUSH"])).resolves.toBeNull();
+  });
+
+  it("never throws when Gmail fails", async () => {
+    labelsList.mockRejectedValue(new Error("gmail down"));
+    await expect(laneForLabelIds(USER, ["id-PUSH"])).resolves.toBeNull();
   });
 });

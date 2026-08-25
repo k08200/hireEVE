@@ -32,6 +32,7 @@ import { upsertAttentionForEmailJudgement } from "./attention-mirror.js";
 import { buildJudgeContext } from "./judge-context.js";
 import { recordJudgeSource } from "./judge-health.js";
 import { isClearMarketing } from "./keyword-policy.js";
+import { reconcileLabelCorrection } from "./label-correction.js";
 import { judgeEmail, type PocTier } from "./poc-judge.js";
 
 /**
@@ -80,6 +81,23 @@ export async function persistGmailEmail(
         attachments: email.attachments,
       });
     }
+    // Label mode's other half: if the user dragged this message to a different
+    // Klorn/* label in Gmail, that is the same act as moving the row in the
+    // app, and it must reach the same ledger. Fire-and-forget — a sync must
+    // never fail because a correction could not be recorded, and
+    // reconcileLabelCorrection is a no-op when label mode is off.
+    void reconcileLabelCorrection(
+      userId,
+      existing.id,
+      email.labels,
+      options.linkedInboxAccountId ?? null,
+    ).catch((err) =>
+      captureError(err, {
+        tags: { scope: "sync-label-correction" },
+        extra: { userId, emailId: existing.id },
+      }),
+    );
+
     return { emailId: existing.id, isNew: false };
   }
 

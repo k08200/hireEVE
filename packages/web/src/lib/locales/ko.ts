@@ -1132,6 +1132,32 @@ const ko: Record<string, string> = {
     "Klorn이 이 메시지를 찾았지만, 첨부파일에서 구조화된 프로필을 만들지 못했습니다. 원본 메일을 열어 첨부파일을 다시 분석하거나, 검토 상태가 명확한 동안 메모를 남겨 보세요.",
   "candidates.detail.noProfile.openSourceEmail": "원본 메일 열기",
   "candidates.detail.noProfile.backToQueue": "큐로 돌아가기",
+
+  "screener.title": "처음 온 발신자",
+  "screener.count": "{count}명 대기",
+  "screener.subtitle":
+    "이 사람들이 처음 메일을 보냈습니다. 지금 판단하면 그 판단이 영구 적용되고, 이후 이 발신자의 메일에는 모델 호출이 들어가지 않습니다.",
+  "screener.meta": "메일 {count}통 · 마지막 {when}",
+  "screener.metaNoDate": "메일 {count}통",
+  "screener.justNow": "방금",
+  "screener.allow": "수락",
+  "screener.block": "차단",
+  "screener.working": "저장 중…",
+  "screener.showAll": "{count}명 더 보기",
+  "screener.allowed": "{sender} 수락했습니다.",
+  "screener.blocked": "{sender} 차단했습니다 — 앞으로 이 발신자의 메일은 Silent로 갑니다.",
+  "screener.failed": "판단을 저장하지 못했습니다. 발신자는 그대로입니다 — 다시 시도해 주세요.",
+  "screener.noHold":
+    "보류되는 메일은 없습니다. 여기서 판단하든 안 하든 이 발신자들의 메일은 평소대로 분류되어 도착합니다.",
+  "pmf.title": "Klorn을 더 이상 쓸 수 없게 된다면 어떨 것 같나요?",
+  "pmf.subtitle": "질문 하나, 한 번만 묻습니다. 이 답이 가격을 정하는 데 그대로 들어갑니다.",
+  "pmf.very": "매우 실망",
+  "pmf.somewhat": "약간 실망",
+  "pmf.not": "실망하지 않음",
+  "pmf.working": "저장 중…",
+  "pmf.thanks": "감사합니다 — 기록됐습니다.",
+  "pmf.failed": "기록하지 못했습니다. 저장된 것은 없습니다 — 다시 시도해 주세요.",
+  "pmf.later": "나중에",
 };
 
 export default ko;

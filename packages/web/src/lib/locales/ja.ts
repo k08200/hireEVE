@@ -1122,6 +1122,33 @@ const ja: Record<string, string> = {
     "Klornはこのメールを見つけましたが、添付から構造化されたプロフィールは作られていません。元のメールを開くか、添付を再分析するか、確認状況が明確なうちにメモを残してください。",
   "candidates.detail.noProfile.openSourceEmail": "元のメールを開く",
   "candidates.detail.noProfile.backToQueue": "キューに戻る",
+
+  "screener.title": "初めての差出人",
+  "screener.count": "{count}件 保留中",
+  "screener.subtitle":
+    "この人たちは初めてメールを送ってきました。今ここで判断すると、その判断は恒久的に適用され、以降このメールにはモデル呼び出しが不要になります。",
+  "screener.meta": "メール{count}通 · 最終 {when}",
+  "screener.metaNoDate": "メール{count}通",
+  "screener.justNow": "たった今",
+  "screener.allow": "許可",
+  "screener.block": "ブロック",
+  "screener.working": "保存中…",
+  "screener.showAll": "他{count}件を表示",
+  "screener.allowed": "{sender} を許可しました。",
+  "screener.blocked": "{sender} をブロックしました — 今後このメールは Silent に入ります。",
+  "screener.failed":
+    "判断を保存できませんでした。差出人は変更されていません — もう一度お試しください。",
+  "screener.noHold":
+    "保留されているメールはありません。ここで判断してもしなくても、これらの差出人のメールは通常どおり分類され届きます。",
+  "pmf.title": "Klorn をこれ以上使えなくなったら、どう感じますか？",
+  "pmf.subtitle": "質問はひとつ、一度だけ。この回答がそのまま価格の判断材料になります。",
+  "pmf.very": "とても残念",
+  "pmf.somewhat": "やや残念",
+  "pmf.not": "残念ではない",
+  "pmf.working": "保存中…",
+  "pmf.thanks": "ありがとうございます — 記録しました。",
+  "pmf.failed": "記録できませんでした。保存されていません — もう一度お試しください。",
+  "pmf.later": "あとで",
 };
 
 export default ja;

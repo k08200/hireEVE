@@ -1146,6 +1146,34 @@ const es: Record<string, string> = {
     "Klorn encontró este mensaje, pero los adjuntos no han producido un perfil estructurado. Abre el correo de origen, reanaliza los adjuntos o añade notas mientras el estado de revisión siga claro.",
   "candidates.detail.noProfile.openSourceEmail": "Abrir el correo de origen",
   "candidates.detail.noProfile.backToQueue": "Volver a la cola",
+
+  "screener.title": "Remitentes nuevos",
+  "screener.count": "{count} en espera",
+  "screener.subtitle":
+    "Estas personas han escrito por primera vez. Decidir ahora hace la decisión permanente y evita una llamada al modelo en cada mensaje que envíen después.",
+  "screener.meta": "{count} mensajes · último {when}",
+  "screener.metaNoDate": "{count} mensajes",
+  "screener.justNow": "ahora mismo",
+  "screener.allow": "Permitir",
+  "screener.block": "Bloquear",
+  "screener.working": "Guardando…",
+  "screener.showAll": "Ver {count} más",
+  "screener.allowed": "{sender} permitido.",
+  "screener.blocked": "{sender} bloqueado: a partir de ahora su correo va a Silent.",
+  "screener.failed":
+    "No se pudo guardar la decisión. El remitente no ha cambiado; inténtalo de nuevo.",
+  "screener.noHold":
+    "No se retiene nada. El correo de estos remitentes se clasifica y entrega igual, decidas aquí o no.",
+  "pmf.title": "¿Cómo te sentirías si ya no pudieras usar Klorn?",
+  "pmf.subtitle":
+    "Una sola pregunta, una sola vez. La respuesta influye directamente en el precio.",
+  "pmf.very": "Muy decepcionado",
+  "pmf.somewhat": "Algo decepcionado",
+  "pmf.not": "Nada decepcionado",
+  "pmf.working": "Guardando…",
+  "pmf.thanks": "Gracias — queda registrado.",
+  "pmf.failed": "No se pudo registrar. No se guardó nada — inténtalo de nuevo.",
+  "pmf.later": "Ahora no",
 };
 
 export default es;
