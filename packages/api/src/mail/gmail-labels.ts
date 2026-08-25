@@ -79,6 +79,24 @@ export function isLabelModeEnabled(): boolean {
   return process.env.GMAIL_LABEL_MODE_ENABLED === "true";
 }
 
+/**
+ * Gmail says the label already exists (409 / `alreadyExists`).
+ *
+ * This is not an error state, it is a lost race: another message hit the same
+ * cold cache, listed the same empty result, and created the label first. Shaped
+ * like `isGoogleNotFoundError` in gmail.ts, which treats its own expected race
+ * the same way.
+ */
+function isAlreadyExistsError(err: unknown): boolean {
+  const e = err as {
+    response?: { status?: number; data?: { error?: { errors?: { reason?: string }[] } } };
+    code?: string | number;
+  };
+  const status = e.response?.status ?? e.code;
+  if (status === 409) return true;
+  return (e.response?.data?.error?.errors ?? []).some((x) => x.reason === "alreadyExists");
+}
+
 function cacheKey(userId: string, linkedInboxAccountId?: string | null): string {
   return `${userId}::${linkedInboxAccountId ?? "primary"}`;
 }
@@ -108,23 +126,54 @@ async function ensureLaneLabelIds(
   }
 
   const ids = {} as Record<LaneLabelTier, string>;
+  // Lanes whose create lost the race. Collected rather than resolved inline so
+  // a burst that conflicts on all five costs ONE extra list, not five.
+  const lostRace: LaneLabelTier[] = [];
+
   for (const [tier, name] of Object.entries(LANE_LABELS) as [LaneLabelTier, string][]) {
     const found = byName.get(name);
     if (found) {
       ids[tier] = found;
       continue;
     }
-    const created = await gmail.users.labels.create({
-      userId: "me",
-      requestBody: {
-        name,
-        labelListVisibility: "labelShow",
-        messageListVisibility: "show",
-      },
-    });
-    const createdId = created.data.id;
-    if (!createdId) throw new Error(`Gmail did not return an id for label "${name}"`);
-    ids[tier] = createdId;
+    try {
+      const created = await gmail.users.labels.create({
+        userId: "me",
+        requestBody: {
+          name,
+          labelListVisibility: "labelShow",
+          messageListVisibility: "show",
+        },
+      });
+      const createdId = created.data.id;
+      if (!createdId) throw new Error(`Gmail did not return an id for label "${name}"`);
+      ids[tier] = createdId;
+    } catch (err) {
+      // A conflict means the label now exists — someone else just made it.
+      // Anything else is a real failure and must not be swallowed.
+      if (!isAlreadyExistsError(err)) throw err;
+      lostRace.push(tier);
+    }
+  }
+
+  if (lostRace.length > 0) {
+    // One re-list resolves every lane we lost. Without this the message is
+    // simply never labelled: applyLaneLabel is fire-and-forget from the
+    // firewall, so nothing retries behind it — and the window this happens in
+    // is exactly the moment the flag is switched on, when the cache is cold and
+    // a sync burst arrives together.
+    const again = await gmail.users.labels.list({ userId: "me" });
+    const byNameAgain = new Map<string, string>();
+    for (const label of again.data.labels ?? []) {
+      if (label.name && label.id) byNameAgain.set(label.name, label.id);
+    }
+    for (const tier of lostRace) {
+      const found = byNameAgain.get(LANE_LABELS[tier]);
+      if (!found) {
+        throw new Error(`Gmail reported "${LANE_LABELS[tier]}" exists but did not return it`);
+      }
+      ids[tier] = found;
+    }
   }
 
   labelCache.set(key, { ids, expiresAt: Date.now() + LABEL_CACHE_TTL_MS });
