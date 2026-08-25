@@ -186,8 +186,9 @@ export async function sendWaitlistConfirmationEmail(
           </p>
           <p style="color: #374151; font-size: 16px; line-height: 1.6;">
             Got your request — you're on the Klorn early-access list. Klorn is a
-            <strong style="color: #111827;">4-tier attention firewall</strong> for your email:
-            every signal sorts into push / queue / silent / auto, so only the clear signal interrupts you.
+            <strong style="color: #111827;">five-lane attention firewall</strong> for your email:
+            every message sorts into push / meeting / queue / info / silent, so only the clear
+            signal interrupts you.
           </p>
           <p style="color: #374151; font-size: 16px; line-height: 1.6;">
             Invites are approved personally by the founder — a human reads every request, not a queue bot.

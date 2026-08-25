@@ -32,24 +32,25 @@ An attention firewall for mail
 ### Promotional Text (max 170)
 
 ```
-Klorn triages your inbox into four tiers — PUSH, QUEUE, SILENT, AUTO — so only mail worth interrupting you ever does. Wake up to one briefing, not forty unread emails.
+Klorn triages your inbox into five lanes — PUSH, MEETING, QUEUE, INFO, SILENT — so only mail worth interrupting you ever does. One briefing, not forty unread emails.
 ```
 
-(166 chars)
+(165 chars)
 
 ### Description (max 4000)
 
 ```
 Your inbox isn't your to-do list. Klorn is an attention firewall: it reads your mail the moment it arrives and decides — before you ever see it — whether it deserves your attention right now, later, or never.
 
-THE 4-TIER MODEL
+THE FIVE LANES
 
-Every incoming email lands in exactly one tier:
+Every incoming email lands in exactly one lane:
 
-• PUSH — genuinely urgent. You get a native notification immediately.
+• PUSH — genuinely urgent. Someone is waiting on a reply, or it is time-critical. You get a native notification immediately.
+• MEETING — invites and reschedules, checked against your calendar. Accept or decline in one tap.
 • QUEUE — needs a decision from you, but not right now. It waits in a ranked decision queue.
-• SILENT — worth keeping, not worth interrupting you. Filed quietly.
-• AUTO — noise. Classified and kept out of your way.
+• INFO — receipts, confirmations, alerts. Filed and searchable; nothing here needs a reply.
+• SILENT — filed, not deleted. Newsletters and bulk mail, still there when you look.
 
 No folders to maintain, no rules to write. The firewall learns your inbox and does the sorting for you.
 
@@ -130,7 +131,7 @@ Klorn: AI 이메일 방화벽
 ### 프로모션 텍스트 (170자)
 
 ```
-Klorn이 메일을 PUSH·QUEUE·SILENT·AUTO 4단계로 자동 분류합니다. 정말 급한 메일만 알림으로 받고, 아침엔 40통의 안 읽은 메일 대신 브리핑 하나로 하루를 시작하세요.
+Klorn이 메일을 PUSH·MEETING·QUEUE·INFO·SILENT 5개 레인으로 자동 분류합니다. 정말 급한 메일만 알림으로 받고, 아침엔 40통의 안 읽은 메일 대신 브리핑 하나로 하루를 시작하세요.
 ```
 
 ### 설명
@@ -138,14 +139,15 @@ Klorn이 메일을 PUSH·QUEUE·SILENT·AUTO 4단계로 자동 분류합니다. 
 ```
 받은편지함은 할 일 목록이 아닙니다. Klorn은 어텐션 방화벽입니다. 메일이 도착하는 순간 읽고, 당신이 보기도 전에 판단합니다 — 지금 봐야 할 메일인지, 나중에 봐도 되는지, 아예 볼 필요가 없는지.
 
-4단계 분류 모델
+5개 레인 분류 모델
 
-모든 수신 메일은 정확히 하나의 단계로 분류됩니다.
+모든 수신 메일은 정확히 하나의 레인으로 분류됩니다.
 
-• PUSH — 정말 급한 메일. 즉시 네이티브 알림으로 알려드립니다.
+• PUSH — 정말 급한 메일. 누군가 답장을 기다리거나 시간이 걸린 건입니다. 즉시 네이티브 알림으로 알려드립니다.
+• MEETING — 초대와 일정 변경. 캘린더와 대조해 한 번에 수락하거나 거절합니다.
 • QUEUE — 결정이 필요하지만 지금은 아닌 메일. 우선순위가 매겨진 결정 대기열에서 기다립니다.
-• SILENT — 보관할 가치는 있지만 방해할 가치는 없는 메일. 조용히 정리됩니다.
-• AUTO — 소음. 분류만 하고 시야 밖에 둡니다.
+• INFO — 영수증·확인·알림 같은 기록. 정리해 검색할 수 있게 두고, 답장은 필요 없습니다.
+• SILENT — 삭제가 아니라 보관. 뉴스레터와 대량 메일은 찾으면 그대로 있습니다.
 
 폴더 정리도, 규칙 작성도 필요 없습니다. 방화벽이 당신의 받은편지함을 학습해 대신 분류합니다.
 
@@ -197,4 +199,4 @@ Gmail을 연결하면 Klorn이 실제 메일에서 작동합니다. 새 메일�
 
 - The **Keywords** field must not repeat words already in the App Name/Subtitle to maximize coverage — the list above avoids "attention"/"firewall" duplication where possible but keeps `firewall` because it's the core search term; drop it if you prefer strict non-duplication.
 - **Promotional Text** is editable without a new binary — use it for launch announcements later.
-- The description's claims (4 tiers, briefing, push, approval receipts, account deletion, free tier) are all live product behavior per `apps/mobile/STORE_SUBMISSION.md` pre-scan; do not add claims for features that are not reachable in the shell (e.g. on-device Samsung calendar — removed; iOS voice dictation — see `review-notes.md`).
+- The description's claims (5 lanes, briefing, push, approval receipts, account deletion, free tier) are all live product behavior per `apps/mobile/STORE_SUBMISSION.md` pre-scan; do not add claims for features that are not reachable in the shell (e.g. on-device Samsung calendar — removed; iOS voice dictation — see `review-notes.md`).

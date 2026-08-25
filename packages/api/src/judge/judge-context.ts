@@ -1,5 +1,5 @@
 /**
- * Correction-loop context for the 4-tier judge.
+ * Correction-loop context for the judge.
  *
  * Closes the loop that PR-#496-era code left open: manual tier overrides
  * were stamped into AttentionItem.tierReason ("Manual override — …") for

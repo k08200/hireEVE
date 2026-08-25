@@ -1,5 +1,8 @@
 /**
- * POC judge — single-email 4-tier classifier.
+ * POC judge — single-email lane classifier. Four scored features in, one lane
+ * out; which rule maps them depends on TIER_V2_ENABLED (see `Rule dispatch`
+ * below): the v1 4-lane rule while it is off, the v2 5-lane rule + autoEligible
+ * while it is on, which has been the default since 2026-08-18.
  *
  * Design locked 2026-05-26: a 4-feature scorer (confidence + senderTrust +
  * reversibility + urgency) whose output is mapped to a tier by a deterministic
@@ -63,8 +66,9 @@ export { looksUrgent } from "./keyword-policy.js";
 //   - sender-policy.ts: the sender-knowledge schema and prior thresholds
 export { tierFromFeatures } from "./tier-policy.js";
 
-// PocTier is the canonical 4-tier vocabulary — re-exported from tiers.ts so
-// the judge, calibration, mirror, and API can never drift apart again.
+// PocTier is the canonical lane vocabulary — re-exported from tiers.ts so
+// the judge, calibration, mirror, and API can never drift apart again. It is
+// the STORAGE vocabulary, so it includes the retired AUTO; v2 never emits it.
 export type PocTier = Tier;
 
 export const POC_TIERS: ReadonlyArray<PocTier> = TIERS;
@@ -719,7 +723,7 @@ export function applySpamFloor(
 }
 
 /**
- * Judge a single email → 4-tier. Pure: does not persist anything.
+ * Judge a single email → one lane. Pure: does not persist anything.
  *
  * Hot path:
  *  1. Clear marketing/promo (Gmail PROMOTIONS label OR marketing subject) → SILENT.

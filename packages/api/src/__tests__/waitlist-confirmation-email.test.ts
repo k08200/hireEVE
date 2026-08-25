@@ -47,7 +47,12 @@ describe("sendWaitlistConfirmationEmail", () => {
     // Greeting uses the applicant's name.
     expect(payload.html).toContain("Hi Yong,");
     // One-line product intro.
-    expect(payload.html).toContain("4-tier attention firewall");
+    expect(payload.html).toContain("five-lane attention firewall");
+    // The lane names themselves, so the copy cannot drift back to the retired
+    // four-lane set without this failing. Matched as the lane sequence, not as
+    // a bare /auto/ — the wrapper carries `margin: 0 auto`.
+    expect(payload.html).toContain("push / meeting / queue / info / silent");
+    expect(payload.html).not.toMatch(/silent\s*\/\s*auto/i);
     // Expectation-setting: a human approves, usually within hours (KST daytime).
     expect(payload.html).toMatch(/founder/i);
     expect(payload.html).toMatch(/few hours/i);
