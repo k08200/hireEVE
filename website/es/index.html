@@ -1665,66 +1665,69 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push', name: 'Push', c: '#fb7185', blurb: 'Interrupts you now' },
-    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: 'Scheduling — checked against your calendar' },
-    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: 'Read it today' },
-    { id: 'info', name: 'Info', c: '#22d3ee', blurb: 'Receipts and confirmations — no reply expected' },
-    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: 'Filed, not deleted' }
+    { id: 'push', name: 'Push', c: '#fb7185', blurb: 'Te interrumpe ahora' },
+    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: 'Agenda: contrastada con tu calendario' },
+    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: 'Léelo hoy' },
+    { id: 'info', name: 'Info', c: '#22d3ee', blurb: 'Recibos y confirmaciones: sin respuesta' },
+    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: 'Archivado, no borrado' }
   ];
   var mail = [
-    { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
-      why: 'You replied to this sender 6 times',
-      sum: 'Legal returned two changes to clause 4 and needs your sign-off before 17:00 so the counterparty can countersign today.',
-      body: 'Hi,\n\nLegal came back with two changes on clause 4 — the indemnity cap and the notice period. Both are minor but they need your sign-off before 17:00 today.\n\nI have attached the redline.\n\nBest,\nSarah',
-      r: ['Confirming — the redline looks fine on both points. Signing before 17:00.',
-          "I can't get to this before 17:00 today. Can we move the countersign to tomorrow morning?",
-          'Before I sign — is the indemnity cap the number we agreed last week, or has it moved?'] },
-    { id: 2, t: 'push', from: 'billing@vendor.io', subj: 'Invoice #4821 is overdue',
-      why: 'Payment due today',
-      sum: 'Invoice #4821 was due on 26 July and is now three days overdue.',
-      body: 'Your invoice #4821 for $2,400 was due on 26 July.\n\nPlease arrange payment at your earliest convenience.',
-      r: ['Paying this today — apologies for the delay.',
-          'This one is disputed; our team will follow up separately this week.',
-          'Can you resend the invoice with the PO number on it?'] },
-    { id: 3, t: 'meeting', from: 'Alex Carter', subj: 'Standup moved to 10:30',
-      why: 'Calendar conflict',
-      sum: 'Tomorrow’s standup moves to 10:30, which overlaps your 10:15 review.',
-      body: 'Moved tomorrow\'s standup to 10:30.\n\nDoes that still work for you?',
-      r: ['10:30 works for me.', 'I have a review then — could we do 11:00 instead?',
-          'That overlaps my 10:15 review. Any chance we start 15 minutes earlier?'] },
-    { id: 4, t: 'queue', from: 'Jordan Lee', subj: 'Revised dashboard specs',
-      why: 'No deadline mentioned',
-      sum: 'Updated specs for the reporting dashboard, sent for review when you have time.',
-      body: 'Attached the revised specs — mostly layout changes on the reporting view.\n\nNo rush.',
-      r: ['Got it, will read this week.', 'Passing this to the design review instead of reading it myself.',
-          'Which section changed most? I will start there.'] },
-    { id: 5, t: 'queue', from: 'Casey Park', subj: 'Onboarding flow ideas',
-      why: 'Ongoing thread, no ask',
-      sum: 'Three suggestions for the first-run flow, no decision requested yet.',
-      body: 'A few ideas after watching the last two onboarding sessions.\n\nHappy to talk them through.',
-      r: ['These look worth trying — let us talk Thursday.', 'Parking this until after the beta.',
-          'Which of the three would you ship first?'] },
-    { id: 6, t: 'silent', from: 'Morning Brew', subj: 'The 5 things you need to know',
-      why: 'Newsletter, never replied to',
-      sum: 'Daily newsletter.',
-      body: 'Today in business...', r: null },
-    { id: 7, t: 'info', from: 'AWS Billing', subj: 'Your July invoice is ready',
-      why: 'Automated receipt',
-      sum: 'Monthly infrastructure invoice, no action needed.',
-      body: 'Your invoice is available in the billing console.', r: null },
-    { id: 8, t: 'info', from: 'Calendar', subj: 'Invitation accepted by 3 people',
-      why: 'Klorn filed this without asking',
-      sum: 'Three attendees accepted the Thursday review.',
-      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null },
-    { id: 9, t: 'meeting', from: 'Priya Raman', subj: 'Can we do Thursday 14:00 instead?',
-      why: 'Proposed slot clashes with Design review (14:00\u201315:00)',
-      sum: 'Priya wants to move the roadmap call to Thursday 14:00. That hour is already booked; 15:00 is free on both calendars.',
-      body: 'Hi,\n\nThursday 14:00 works better on our side for the roadmap call \u2014 can you make that?\n\nPriya',
-      r: ['Thursday 14:00 is booked here. 15:00 is free on both of our calendars \u2014 does that work?',
-          "Thursday doesn't work this week. Friday morning is open if that helps.",
-          'Before we move it \u2014 is the pricing section still on the agenda?'] }
+    { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Revisión del contrato — necesita tu firma hoy',
+      why: 'Has respondido 6 veces a este remitente',
+      sum: 'Legal devolvió dos cambios en la cláusula 4 y necesita tu firma antes de las 17:00 para que la contraparte pueda contrafirmar hoy.',
+      body: 'Hola:\n\nLegal ha devuelto dos cambios en la cláusula 4 — el tope de indemnización y el plazo de preaviso. Ambos son menores, pero necesitan tu firma antes de las 17:00 de hoy.\n\nAdjunto el documento con los cambios marcados.\n\nUn saludo,\nSarah', 
+      r: ['Confirmado: los dos puntos están bien. Firmo antes de las 17:00.',
+          'Hoy no llego antes de las 17:00. ¿Podemos mover la contrafirma a mañana por la mañana?',
+          'Antes de firmar: ¿el tope de indemnización es la cifra que acordamos la semana pasada o ha cambiado?'] },
+    { id: 2, t: 'push', from: 'billing@vendor.io', subj: 'La factura n.º 4821 está vencida',
+      why: 'Vence hoy',
+      sum: 'La factura n.º 4821 vencía el 26 de julio y lleva tres días de retraso.',
+      body: 'Tu factura n.º 4821 por 2.400 $ vencía el 26 de julio.\n\nTe agradeceríamos que gestiones el pago cuanto antes.', 
+      r: ['La pago hoy: disculpa el retraso.',
+          'Esta está en disputa; nuestro equipo hará seguimiento por separado esta semana.',
+          '¿Puedes reenviar la factura con el número de pedido?'] },
+    { id: 3, t: 'meeting', from: 'Alex Carter', subj: 'La daily se mueve a las 10:30',
+      why: 'Conflicto de calendario',
+      sum: 'La daily de mañana se mueve a las 10:30 y se solapa con tu revisión de las 10:15.',
+      body: 'He movido la daily de mañana a las 10:30.\n\n¿Te sigue viniendo bien?', 
+      r: ['Las 10:30 me van bien.',
+          'A esa hora tengo una revisión. ¿Podríamos hacerla a las 11:00?',
+          'Se solapa con mi revisión de las 10:15. ¿Podríamos empezar quince minutos antes?'] },
+    { id: 4, t: 'queue', from: 'Jordan Lee', subj: 'Especificaciones revisadas del panel',
+      why: 'No menciona fecha límite',
+      sum: 'Especificaciones actualizadas del panel de informes, enviadas para que las revises cuando puedas.',
+      body: 'Adjunto las especificaciones revisadas: sobre todo cambios de maquetación en la vista de informes.\n\nSin prisa.', 
+      r: ['Recibido, lo leo esta semana.',
+          'Se lo paso a la revisión de diseño en vez de leerlo yo.',
+          '¿Qué sección ha cambiado más? Empiezo por ahí.'] },
+    { id: 5, t: 'queue', from: 'Casey Park', subj: 'Ideas para el flujo de bienvenida',
+      why: 'Hilo en curso, sin petición',
+      sum: 'Tres sugerencias para el primer uso; todavía no piden una decisión.',
+      body: 'Algunas ideas después de ver las dos últimas sesiones de bienvenida.\n\nLas comento encantado.', 
+      r: ['Merece la pena probarlas: hablamos el jueves.',
+          'Lo aparco hasta después de la beta.',
+          '¿Cuál de las tres lanzarías primero?'] },
+    { id: 6, t: 'silent', from: 'Morning Brew', subj: 'Las 5 cosas que debes saber',
+      why: 'Boletín, nunca respondido',
+      sum: 'Boletín diario.',
+      body: 'Hoy en los negocios...', r: null },
+    { id: 7, t: 'info', from: 'AWS Billing', subj: 'Tu factura de julio está lista',
+      why: 'Recibo automático',
+      sum: 'Factura mensual de infraestructura, no requiere acción.',
+      body: 'Tu factura está disponible en la consola de facturación.', r: null },
+    { id: 8, t: 'info', from: 'Calendar', subj: '3 personas han aceptado la invitación',
+      why: 'Un registro: aquí no hay nada esperando respuesta',
+      sum: 'Tres asistentes han aceptado la revisión del jueves.',
+      body: 'Aceptado: Jordan Lee, Casey Park, Sarah Kim.', r: null },
+    { id: 9, t: 'meeting', from: 'Priya Raman', subj: '¿Podemos pasarlo al jueves a las 14:00?',
+      why: 'La hora propuesta choca con la revisión de diseño (14:00–15:00)',
+      sum: 'Priya quiere mover la llamada de hoja de ruta al jueves a las 14:00. Esa hora ya está ocupada; las 15:00 están libres en ambos calendarios.',
+      body: 'Hola:\n\nEl jueves a las 14:00 nos vendría mejor para la llamada de hoja de ruta. ¿Te encaja?\n\nPriya', 
+      r: ['El jueves a las 14:00 lo tengo ocupado. Las 15:00 están libres en los dos calendarios, ¿te sirve?',
+          'Este jueves no me va bien. El viernes por la mañana está libre, por si ayuda.',
+          'Antes de moverlo: ¿la parte de precios sigue en el orden del día?'] }
   ];
-  var TONE = ['Accept', 'Decline', 'Ask'];
+  var TONE = ['Aceptar', 'Rechazar', 'Preguntar'];
 
   var cur = 'push', open = null, replying = false, draft = null, sent = false;
   var elT = document.getElementById('pl-tiers');
@@ -1758,7 +1761,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   function renderRead() {
     var m = mail.filter(function (x) { return x.id === open; })[0];
     if (!m) {
-      elRead.innerHTML = '<p class="pl-empty">Pick a message on the left.<br>Everything here responds.</p>';
+      elRead.innerHTML = '<p class="pl-empty">Elige un mensaje a la izquierda.<br>Todo lo de aquí responde.</p>';
       return;
     }
     var opts = m.r && replying && draft === null
@@ -1766,29 +1769,29 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
           return '<button class="pl-opt" data-draft="' + i + '"><kbd>' + (i + 1) + '</kbd>' +
             '<span><b>' + TONE[i] + '</b>' + esc(txt) + '</span></button>'; }).join('') + '</div>'
       : (m.r && draft === null
-          ? '<p class="pl-hint">Hit <b>Reply with AI</b> — or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> — ' +
-            'for three drafts in your tone.</p>'
+          ? '<p class="pl-hint">Pulsa <b>Responder con IA</b> — o las teclas <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> — ' +
+            'para tres borradores en tu tono.</p>'
           : '');
     var comp = draft !== null
-      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="Reply draft">' + esc(m.r[draft]) + '</textarea>' +
-        '<div class="row">' + (sent ? '<span class="pl-sent">Sent · receipt logged</span>' : '') +
-        '<button class="pl-b" data-cancel>Cancel</button>' +
-        '<button class="pl-b on" data-send>' + (sent ? 'Sent' : 'Send') + '</button></div></div>'
+      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="Borrador de respuesta">' + esc(m.r[draft]) + '</textarea>' +
+        '<div class="row">' + (sent ? '<span class="pl-sent">Enviado · recibo registrado</span>' : '') +
+        '<button class="pl-b" data-cancel>Cancelar</button>' +
+        '<button class="pl-b on" data-send>' + (sent ? 'Enviado' : 'Enviar') + '</button></div></div>'
       : '';
     var others = TIERS.filter(function (t) { return t.id !== m.t; });
     elRead.innerHTML =
       '<div class="pl-top"><div class="pl-sub">' + esc(m.subj) + '</div>' +
       '<div class="pl-from">' + esc(m.from) + '</div>' +
       '<div class="pl-acts">' +
-        (m.r ? '<button class="pl-b on" data-reply>Reply with AI</button>' : '') +
+        (m.r ? '<button class="pl-b on" data-reply>Responder con IA</button>' : '') +
         others.map(function (t) {
-          return '<button class="pl-b" data-move="' + t.id + '">Move to ' + t.name + '</button>'; }).join('') +
+          return '<button class="pl-b" data-move="' + t.id + '">Mover a ' + t.name + '</button>'; }).join('') +
       '</div></div>' +
       // Drafts sit directly under the action row, not after the body — at the
       // bottom they fall below the panel's fold and "Reply with AI" reads as a
       // dead button on a short screen.
       opts + comp +
-      '<div class="pl-why"><span class="w">Why ' + tier(m.t).name + ' · ' + esc(m.why) + '</span>' +
+      '<div class="pl-why"><span class="w">Por qué ' + tier(m.t).name + ' · ' + esc(m.why) + '</span>' +
       '<div class="sm">' + esc(m.sum) + '</div></div>' +
       '<div class="pl-body">' + esc(m.body) + '</div>';
   }
@@ -1808,7 +1811,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     if (b.hasAttribute('data-send')) { sent = true; return renderRead(); }
     if (b.dataset.move) {
       var m = mail.filter(function (x) { return x.id === open; })[0];
-      if (m) { m.t = b.dataset.move; m.why = 'Moved by you — Klorn learns from this'; }
+      if (m) { m.t = b.dataset.move; m.why = 'Lo has movido tú: Klorn aprende de esto'; }
       open = null; reset(); return draw();
     }
   });
