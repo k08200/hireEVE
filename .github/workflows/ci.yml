@@ -89,6 +89,12 @@ jobs:
       - name: Website lane consistency
         run: node .github/scripts/check-website-lanes.mjs
 
+      # sitemap.xml is hand-maintained and had drifted both ways at once: it
+      # submitted three noindex redirect stubs while omitting all ten /vs/*
+      # and /open-source/ pages (#1219), whose only purpose is being found.
+      - name: Sitemap coverage
+        run: node .github/scripts/check-sitemap.mjs
+
   typecheck:
     name: TypeScript
     runs-on: ubuntu-latest
