@@ -92,3 +92,63 @@ price, and `TRIAL_DAYS` (7).
 - Model fallback chain: cheap **paid** SKUs, no `:free` entries.
 - Attention aging (`ATTENTION_AGING_ENABLED`) is built and OFF — flipping it
   is a product decision about what leaves the board.
+
+## E. Numbers the site could publish but has not measured
+
+### E1. Throughput — one command, read-only, safe against prod
+
+The competitive teardown's one usable observation about social proof: at eight
+users, user counts are the wrong number and throughput is the right one. Clean
+Email publishes "5 billion emails", SaneBox "10.5 billion", Mailstrom "400
+million" — none of them publishes a customer count. Throughput is honest at any
+scale and only goes up.
+
+Nothing produced that number, so nothing could be published. `throughput` does:
+
+```bash
+DATABASE_URL=<prod> pnpm --filter @klorn/api throughput -- --out=./throughput.json
+```
+
+One `groupBy` over `AttentionItem.tier` plus two counts. No writes, no LLM, no
+running server. Legacy rows go through `normalizeTier`, so the lane breakdown
+matches what the product shows rather than what the column stores. Exit 2 means
+no classified rows in the window — "nothing judged yet", not "judged nothing".
+
+It reports `classified`, `interrupted` (PUSH + MEETING), `keptQuiet`
+(QUEUE + INFO + SILENT), `keptQuietRate` and the per-lane breakdown.
+
+**What it is not:** an accuracy number. It says how many decisions were made and
+how many stayed quiet, never whether they were right. Accuracy is `eval:real`
+(the 53-email labelled set, Push/Queue/Silent only) and `decision-metrics`
+(bounded, confirmed overrides only). Publish them side by side; do not blend
+them into one figure.
+
+**Then:** the landing has no throughput line yet. Once the number exists, it
+goes next to the 94.3% in the "Measured, not promised" section, dated, with the
+window it covers stated — same rule as every other number on that page.
+
+### E2. Demo and promo videos — re-render needed
+
+`website/media/klorn-demo.mp4` and `klorn-promo.mp4` were recorded 2026-08-10,
+before the five-lane flip, so their burnt-in captions still read
+`PUSH / QUEUE / SILENT / AUTO`. Both generators are corrected and CI now fails
+on a retired lane in either of them, but the rendered assets can only be
+regenerated from a live recording:
+
+```bash
+DEMO_EMAIL=<demo account> DEMO_PW=<password> bash scripts/demo-video/run.sh
+```
+
+Needs the password-login demo account with its seeded persona mail
+(`scripts/demo-video/README.md`), plus ffmpeg and python3 + Pillow locally.
+The motion-graphics promo is separate and needs no recording:
+
+```bash
+cd scripts/demo-video/promo-remotion && npm install
+npx remotion render src/index.ts PromoEN out/promo-en.mp4
+npx remotion render src/index.ts PromoKO out/promo-ko.mp4
+```
+
+Until then README says plainly that the videos predate the flip. The landing
+embeds no video, so klorn.ai is unaffected.
+

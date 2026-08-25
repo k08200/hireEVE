@@ -10,7 +10,7 @@ import {
 import { apiFetch } from "../../lib/api";
 import { useT } from "../../lib/i18n";
 import { captureClientError } from "../../lib/sentry";
-import { LIVE_TIERS } from "../../lib/tiers";
+import { CORE_TIERS } from "../../lib/tiers";
 
 // Both lists are the five live lanes, loudest first: the user reviews
 // interrupts before the pile Klorn silenced, and can reassign to any lane the
@@ -18,8 +18,8 @@ import { LIVE_TIERS } from "../../lib/tiers";
 // omitted MEETING and INFO, so mail in those two lanes was filtered out of the
 // review below and never shown — which also meant onboarding never collected a
 // single DecisionLabel for them, the ground truth the accuracy figure rests on.
-const MOVE_TARGETS = LIVE_TIERS;
-const GROUP_ORDER = LIVE_TIERS;
+const MOVE_TARGETS = CORE_TIERS;
+const GROUP_ORDER = CORE_TIERS;
 
 // Classification is fire-and-forget, so the freshly-synced emails trickle in as
 // each judge call returns. Poll a bounded number of times until the count holds.

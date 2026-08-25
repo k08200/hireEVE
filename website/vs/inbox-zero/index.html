@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Klorn vs Inbox Zero — both open source, but not the same licence</title>
 <meta name="description" content="Inbox Zero ships AGPL v3 with additional commercial and five-employee restrictions. Klorn is the unmodified AGPL-3.0. Read both LICENSE files and compare.">
+<meta property="og:title" content="Klorn vs Inbox Zero — both open source, but not the same licence">
+<meta property="og:description" content="Inbox Zero ships AGPL v3 with additional commercial and five-employee restrictions. Klorn is the unmodified AGPL-3.0. Read both LICENSE files and compare.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/vs/inbox-zero/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Klorn vs Inbox Zero — both open source, but not the same licence">
+<meta name="twitter:description" content="Inbox Zero ships AGPL v3 with additional commercial and five-employee restrictions. Klorn is the unmodified AGPL-3.0. Read both LICENSE files and compare.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
 <link rel="canonical" href="https://klorn.ai/vs/inbox-zero/">
 <link rel="alternate" hreflang="en" href="https://klorn.ai/vs/inbox-zero/">
 <link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/vs/inbox-zero/">
@@ -34,7 +46,7 @@
       <tr><th>How GitHub resolves it</th><td class="us"><strong><code>AGPL-3.0</code></strong></td><td><code>NOASSERTION</code></td></tr>
       <tr><th>How it decides</th><td class="us">A model scores four features; a deterministic rule you can unit-test picks the lane</td><td>Rules you describe in plain English</td></tr>
       <tr><th>Why it decided that</th><td class="us"><strong>Shown on every row, and corrections retrain it</strong></td><td>You wrote the rule, so the rule is the reason</td></tr>
-      <tr><th>Published price</th><td class="us"><strong>$8.99/mo</strong> web · $9.99 iOS/Android</td><td>$20/mo Starter · $35 Plus · $50 Professional</td></tr>
+      <tr><th>Published price</th><td class="us"><strong><a href="/pricing/">$8.99/mo</a></strong> web · $9.99 iOS/Android</td><td>$20/mo Starter · $35 Plus · $50 Professional</td></tr>
     </tbody>
   </table>
   </div>
@@ -58,5 +70,33 @@
     <p>Prices and product facts as published by each vendor, checked 2026-08-23. Something here wrong? <a href="mailto:k0820086@gmail.com">Tell us</a> and we will fix it.</p>
   </footer>
 </div>
+<script>
+// Carry the campaign that produced the click through to the app, so a signup
+// can be attributed to the page that earned it. `lp` is the landing path —
+// without it every comparison page is indistinguishable from the home page in
+// the signup data. Same block as the landing pages; inline because it has to
+// run before anyone clicks.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>

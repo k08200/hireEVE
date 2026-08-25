@@ -1,37 +1,35 @@
 /**
- * The lane vocabulary for the web app, in one place.
+ * The lane names, in one place.
  *
- * `@klorn/contract` owns the TYPE but ships no runtime code (its `exports`
- * declares only a `types` condition), so the iterable list has to live in the
- * consuming runtime. Before this file every surface wrote its own, and they
- * all drifted apart while CI stayed green:
+ * There was no canonical list in the web package, so each surface carried its
+ * own and they had drifted apart: the playground offered the pre-MEETING set
+ * `["PUSH","QUEUE","SILENT","AUTO"]`, the firewall board three lanes, and the
+ * privacy policy told users their mail was sorted into "PUSH / QUEUE / SILENT /
+ * AUTO" — a sentence that stopped being true when MEETING and INFO shipped.
  *
- *   - playground/page.tsx declared its own four-value `Tier` and indexed
- *     TIER_VISUAL[result.tier] unguarded. api.klorn.ai answers a calendar
- *     invite with MEETING, so pasting one threw during render.
- *   - onboarding/review-step.tsx grouped by ["PUSH","QUEUE","AUTO","SILENT"]
- *     then dropped empty groups, so MEETING and INFO mail disappeared from the
- *     first-run review without a trace — and with it the chance to collect any
- *     DecisionLabel ground truth for those two lanes.
- *   - the firewall summary counted a lane that no longer occurs (AUTO) and
- *     omitted two that do.
- *
- * `check-lane-vocabulary.mjs` fails the build on a restated list.
+ * The API's `TIERS` (packages/api/src/judge/tiers.ts) is the real source of
+ * truth. This mirrors its core order for display; anything that renders a lane
+ * list or states how many lanes there are should read it from here rather than
+ * writing the names out again.
  */
 
 import type { LiveTier } from "@klorn/contract";
 
-/**
- * The five lanes the classifier can emit, loudest first. This is the display
- * order the product and the copy both use: PUSH / MEETING / QUEUE / INFO /
- * SILENT.
- */
-export const LIVE_TIERS = ["PUSH", "MEETING", "QUEUE", "INFO", "SILENT"] as const;
+/** User-visible lanes, in the order they are shown. AUTO is a classification
+ *  state rather than a lane and is deliberately not in this list. */
+export const CORE_TIERS = ["PUSH", "MEETING", "QUEUE", "INFO", "SILENT"] as const;
+
+export type CoreTier = (typeof CORE_TIERS)[number];
 
 /**
- * Compile-time completeness. `LiveTier` is derived from the contract's `Tier`,
- * so adding a lane there breaks this line until LIVE_TIERS names it too — the
- * check a hand-maintained list otherwise never gets.
+ * Compile-time completeness against the wire contract.
+ *
+ * `CoreTier` above is derived from CORE_TIERS itself, so it is self-consistent
+ * by construction and cannot notice a lane added to `@klorn/contract`. This
+ * Record can: `LiveTier` is `Exclude<Tier, "AUTO">` from the contract, so a new
+ * lane there fails this line until CORE_TIERS names it too. That is the check a
+ * hand-maintained list otherwise never gets — every list this file replaced was
+ * internally consistent right up until the vocabulary moved underneath it.
  */
 const _allLanesListed: Record<LiveTier, true> = {
   PUSH: true,
@@ -42,7 +40,9 @@ const _allLanesListed: Record<LiveTier, true> = {
 };
 void _allLanesListed;
 
-/** True when the value is a lane mail can currently arrive in. */
-export function isLiveTier(value: unknown): value is LiveTier {
-  return typeof value === "string" && (LIVE_TIERS as readonly string[]).includes(value);
-}
+/** "PUSH / MEETING / QUEUE / INFO / SILENT" — for prose that names the lanes. */
+export const TIER_NAMES = CORE_TIERS.join(" / ");
+
+/** How many lanes there are, for prose that states a count. Never hard-code
+ *  the number: it said "four" above a list of five for weeks. */
+export const TIER_COUNT = CORE_TIERS.length;

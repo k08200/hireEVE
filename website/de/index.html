@@ -771,12 +771,42 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
- "offers": {
-  "@type": "Offer",
-  "price": "0",
-  "priceCurrency": "USD",
-  "description": "Beta nur auf Einladung; das Sortieren der Mails ist kostenlos, mit einem täglichen KI-Budgetlimit."
- },
+ "offers": [
+   {
+    "@type": "Offer",
+    "name": "Free",
+    "price": "0",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "priceSpecification": {
+     "@type": "UnitPriceSpecification",
+     "price": "0",
+     "priceCurrency": "USD",
+     "referenceQuantity": {
+      "@type": "QuantitativeValue",
+      "value": 1,
+      "unitCode": "MON"
+     }
+    }
+   },
+   {
+    "@type": "Offer",
+    "name": "Klorn Pro",
+    "price": "8.99",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "priceSpecification": {
+     "@type": "UnitPriceSpecification",
+     "price": "8.99",
+     "priceCurrency": "USD",
+     "referenceQuantity": {
+      "@type": "QuantitativeValue",
+      "value": 1,
+      "unitCode": "MON"
+     }
+    }
+   }
+  ],
  "softwareHelp": {
   "@type": "CreativeWork",
   "url": "https://github.com/k08200/klorn#readme"
@@ -867,7 +897,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </span>
   </span>
   <a class="nav-login" href="https://app.klorn.ai/login">Anmelden</a>
-  <a class="nav-cta" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
+  <a class="nav-cta" href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
      data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download">Download <i>↓</i></a>
 </div></nav>
 
@@ -888,7 +918,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">Kostenlos starten <i>↗</i></a>
     </div>
     <div class="dl-row rv" id="dl-row">
-      <a class="dl" data-os="mac" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener">
+      <a class="dl" data-os="mac" href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c.02-2.3 1.87-3.4 1.95-3.45-1.06-1.56-2.71-1.77-3.3-1.8-1.4-.11-2.58.78-3.25.78-.68 0-1.72-.76-2.83-.74-1.46.02-2.8.85-3.55 2.15-1.51 2.63-.39 6.52 1.09 8.66.72 1.04 1.58 2.21 2.71 2.17 1.09-.04 1.5-.7 2.82-.7 1.31 0 1.68.7 2.83.681.17-.02 1.92-1.06 2.64-2.11.83-1.2 1.17-2.37 1.19-2.43-.03-.01-2.28-.88-2.3-3.48zM14.9 5.6c.6-.72 1-1.72.89-2.72-.86.04-1.9.57-2.52 1.29-.55.63-1.02 1.65-.89 2.63.96.07 1.92-.49 2.52-1.2z"/></svg>
         <span class="t"><b>Download für Mac</b><span>Universal · macOS 14+ · notarisiert</span></span></a>
       <a class="dl" data-os="win" href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" rel="noreferrer noopener">
@@ -899,7 +929,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
          app expects next to the button rather than after the click. -->
     <p class="actions-note rv">Kostenlos, AGPLv3. Die App meldet sich an deinem Klorn-Konto an —
       in etwa einer Minute erstellt.
-      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">Hinweis zum ersten Start ↗</a></p>
+      <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">Hinweis zum ersten Start ↗</a></p>
     <ul class="hero-proof rv">
       <li><b>94,3 %</b> — 50 von 53 handmarkierten E-Mails, und der Satz liegt im Repository</li>
       <li><b>Null</b> Klauseln an die AGPL-3.0 angehängt</li>
@@ -1239,7 +1269,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <p class="final-p">Sortieren ist kostenlos und bleibt es. Die Anmeldung läuft direkt über Google OAuth — keine Einladung, keine Warteliste. Die einzige Grenze sind die ersten 100 Konten.</p>
     <div class="actions">
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">Kostenlos starten <i>↗</i></a>
-      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
+      <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
          data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download for Windows">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
         Download für Mac</a>
@@ -1261,23 +1291,25 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       </div>
     </div>
     <nav aria-label="Produkt"><h4>Produkt</h4>
-      <a href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
+      <a href="https://github.com/k08200/klorn/releases/latest/download/Klorn.dmg" rel="noreferrer noopener"
          data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download for Windows">Download für Mac</a>
       <a href="#compare">Warum Klorn</a><a href="#works">Funktioniert mit</a><a href="#measured">Genauigkeit</a><a href="#pricing">Preise</a>
-      <a href="https://app.klorn.ai/login">Anmelden</a></nav>
+      <a href="https://app.klorn.ai/login">Anmelden</a>
+      <a href="/status/">Status</a></nav>
     <nav aria-label="Open Source"><h4>Open Source</h4>
       <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub-Repository</a>
       <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Eval-Set</a>
-      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">Releases</a>
+      <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">Releases</a>
       <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">AGPLv3-Lizenz</a>
-      <a href="/open-source/">Warum AGPL, ohne Zusätze</a></nav>
+      <a href="/open-source/">Warum AGPL, ohne Zusätze</a>
+      <a href="/self-host/">Selbst hosten</a></nav>
     <nav aria-label="Vergleich"><h4>Vergleich</h4>
       <a href="/vs/fyxer/">vs Fyxer</a><a href="/vs/superhuman/">vs Superhuman</a>
       <a href="/vs/sanebox/">vs SaneBox</a><a href="/vs/inbox-zero/">vs Inbox Zero</a></nav>
     <nav aria-label="Rechtliches"><h4>Rechtliches</h4>
       <a href="https://app.klorn.ai/privacy">Datenschutz</a><a href="https://app.klorn.ai/terms">AGB</a>
       <a href="https://app.klorn.ai/refund">Erstattungen</a>
-      <a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">Sicherheit</a>
+      <a href="/security/">Sicherheit</a><a href="/gdpr/">DSGVO</a><a href="/dpa/">DPA</a>
       <a href="mailto:k0820086@gmail.com">Kontakt</a></nav>
   </div>
   <div class="wrapl foot-base">
@@ -1632,66 +1664,69 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push', name: 'Push', c: '#fb7185', blurb: 'Interrupts you now' },
-    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: 'Scheduling — checked against your calendar' },
-    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: 'Read it today' },
-    { id: 'info', name: 'Info', c: '#22d3ee', blurb: 'Receipts and confirmations — no reply expected' },
-    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: 'Filed, not deleted' }
+    { id: 'push', name: 'Push', c: '#fb7185', blurb: 'Unterbricht dich sofort' },
+    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: 'Terminplanung — gegen deinen Kalender geprüft' },
+    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: 'Heute lesen' },
+    { id: 'info', name: 'Info', c: '#22d3ee', blurb: 'Quittungen und Bestätigungen — keine Antwort nötig' },
+    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: 'Abgelegt, nicht gelöscht' }
   ];
   var mail = [
-    { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
-      why: 'You replied to this sender 6 times',
-      sum: 'Legal returned two changes to clause 4 and needs your sign-off before 17:00 so the counterparty can countersign today.',
-      body: 'Hi,\n\nLegal came back with two changes on clause 4 — the indemnity cap and the notice period. Both are minor but they need your sign-off before 17:00 today.\n\nI have attached the redline.\n\nBest,\nSarah',
-      r: ['Confirming — the redline looks fine on both points. Signing before 17:00.',
-          "I can't get to this before 17:00 today. Can we move the countersign to tomorrow morning?",
-          'Before I sign — is the indemnity cap the number we agreed last week, or has it moved?'] },
-    { id: 2, t: 'push', from: 'billing@vendor.io', subj: 'Invoice #4821 is overdue',
-      why: 'Payment due today',
-      sum: 'Invoice #4821 was due on 26 July and is now three days overdue.',
-      body: 'Your invoice #4821 for $2,400 was due on 26 July.\n\nPlease arrange payment at your earliest convenience.',
-      r: ['Paying this today — apologies for the delay.',
-          'This one is disputed; our team will follow up separately this week.',
-          'Can you resend the invoice with the PO number on it?'] },
-    { id: 3, t: 'meeting', from: 'Alex Carter', subj: 'Standup moved to 10:30',
-      why: 'Calendar conflict',
-      sum: 'Tomorrow’s standup moves to 10:30, which overlaps your 10:15 review.',
-      body: 'Moved tomorrow\'s standup to 10:30.\n\nDoes that still work for you?',
-      r: ['10:30 works for me.', 'I have a review then — could we do 11:00 instead?',
-          'That overlaps my 10:15 review. Any chance we start 15 minutes earlier?'] },
-    { id: 4, t: 'queue', from: 'Jordan Lee', subj: 'Revised dashboard specs',
-      why: 'No deadline mentioned',
-      sum: 'Updated specs for the reporting dashboard, sent for review when you have time.',
-      body: 'Attached the revised specs — mostly layout changes on the reporting view.\n\nNo rush.',
-      r: ['Got it, will read this week.', 'Passing this to the design review instead of reading it myself.',
-          'Which section changed most? I will start there.'] },
-    { id: 5, t: 'queue', from: 'Casey Park', subj: 'Onboarding flow ideas',
-      why: 'Ongoing thread, no ask',
-      sum: 'Three suggestions for the first-run flow, no decision requested yet.',
-      body: 'A few ideas after watching the last two onboarding sessions.\n\nHappy to talk them through.',
-      r: ['These look worth trying — let us talk Thursday.', 'Parking this until after the beta.',
-          'Which of the three would you ship first?'] },
-    { id: 6, t: 'silent', from: 'Morning Brew', subj: 'The 5 things you need to know',
-      why: 'Newsletter, never replied to',
-      sum: 'Daily newsletter.',
-      body: 'Today in business...', r: null },
-    { id: 7, t: 'info', from: 'AWS Billing', subj: 'Your July invoice is ready',
-      why: 'Automated receipt',
-      sum: 'Monthly infrastructure invoice, no action needed.',
-      body: 'Your invoice is available in the billing console.', r: null },
-    { id: 8, t: 'info', from: 'Calendar', subj: 'Invitation accepted by 3 people',
-      why: 'Klorn filed this without asking',
-      sum: 'Three attendees accepted the Thursday review.',
-      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null },
-    { id: 9, t: 'meeting', from: 'Priya Raman', subj: 'Can we do Thursday 14:00 instead?',
-      why: 'Proposed slot clashes with Design review (14:00\u201315:00)',
-      sum: 'Priya wants to move the roadmap call to Thursday 14:00. That hour is already booked; 15:00 is free on both calendars.',
-      body: 'Hi,\n\nThursday 14:00 works better on our side for the roadmap call \u2014 can you make that?\n\nPriya',
-      r: ['Thursday 14:00 is booked here. 15:00 is free on both of our calendars \u2014 does that work?',
-          "Thursday doesn't work this week. Friday morning is open if that helps.",
-          'Before we move it \u2014 is the pricing section still on the agenda?'] }
+    { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Vertragsprüfung — braucht heute deine Freigabe',
+      why: 'Du hast diesem Absender 6-mal geantwortet',
+      sum: 'Die Rechtsabteilung hat zwei Änderungen an Klausel 4 zurückgeschickt und braucht deine Freigabe vor 17:00, damit die Gegenseite heute gegenzeichnen kann.',
+      body: 'Hallo,\n\ndie Rechtsabteilung kam mit zwei Änderungen an Klausel 4 zurück — der Haftungsobergrenze und der Kündigungsfrist. Beide sind klein, brauchen aber heute vor 17:00 deine Freigabe.\n\nDie markierte Fassung hängt an.\n\nViele Grüße\nSarah', 
+      r: ['Bestätigt — beide Punkte passen. Ich zeichne vor 17:00.',
+          'Heute schaffe ich das nicht vor 17:00. Können wir die Gegenzeichnung auf morgen früh legen?',
+          'Bevor ich zeichne — ist die Haftungsobergrenze noch der Betrag von letzter Woche, oder hat er sich geändert?'] },
+    { id: 2, t: 'push', from: 'billing@vendor.io', subj: 'Rechnung Nr. 4821 ist überfällig',
+      why: 'Heute fällig',
+      sum: 'Rechnung Nr. 4821 war am 26. Juli fällig und ist jetzt drei Tage überfällig.',
+      body: 'Deine Rechnung Nr. 4821 über 2.400 $ war am 26. Juli fällig.\n\nBitte veranlasse die Zahlung baldmöglichst.', 
+      r: ['Ich zahle heute — Entschuldigung für die Verzögerung.',
+          'Diese ist strittig; unser Team meldet sich diese Woche separat.',
+          'Kannst du die Rechnung mit der Bestellnummer erneut schicken?'] },
+    { id: 3, t: 'meeting', from: 'Alex Carter', subj: 'Stand-up auf 10:30 verschoben',
+      why: 'Terminkonflikt',
+      sum: 'Das Stand-up morgen rutscht auf 10:30 und überschneidet sich mit deinem Review um 10:15.',
+      body: 'Ich habe das Stand-up morgen auf 10:30 verschoben.\n\nPasst das bei dir noch?', 
+      r: ['10:30 passt.',
+          'Da habe ich ein Review — ginge auch 11:00?',
+          'Das überschneidet sich mit meinem Review um 10:15. Können wir eine Viertelstunde früher anfangen?'] },
+    { id: 4, t: 'queue', from: 'Jordan Lee', subj: 'Überarbeitete Dashboard-Spezifikation',
+      why: 'Keine Frist genannt',
+      sum: 'Aktualisierte Spezifikation für das Reporting-Dashboard, zur Durchsicht wenn du Zeit hast.',
+      body: 'Im Anhang die überarbeitete Spezifikation — überwiegend Layout-Änderungen in der Reporting-Ansicht.\n\nEilt nicht.', 
+      r: ['Angekommen, ich lese es diese Woche.',
+          'Ich gebe es ins Design-Review, statt es selbst zu lesen.',
+          'Welcher Abschnitt hat sich am meisten geändert? Da fange ich an.'] },
+    { id: 5, t: 'queue', from: 'Casey Park', subj: 'Ideen für den Onboarding-Flow',
+      why: 'Laufender Thread, keine Bitte',
+      sum: 'Drei Vorschläge für den ersten Start, noch ohne Entscheidungsbedarf.',
+      body: 'Ein paar Ideen, nachdem ich die letzten zwei Onboarding-Sitzungen gesehen habe.\n\nIch gehe sie gern mit dir durch.', 
+      r: ['Klingt nach einem Versuch wert — reden wir Donnerstag.',
+          'Ich parke das bis nach der Beta.',
+          'Welche der drei würdest du zuerst ausliefern?'] },
+    { id: 6, t: 'silent', from: 'Morning Brew', subj: 'Die 5 Dinge, die du wissen musst',
+      why: 'Newsletter, nie beantwortet',
+      sum: 'Täglicher Newsletter.',
+      body: 'Heute in der Wirtschaft ...', r: null },
+    { id: 7, t: 'info', from: 'AWS Billing', subj: 'Deine Juli-Rechnung ist fertig',
+      why: 'Automatische Quittung',
+      sum: 'Monatliche Infrastrukturrechnung, nichts zu tun.',
+      body: 'Deine Rechnung liegt in der Abrechnungskonsole bereit.', r: null },
+    { id: 8, t: 'info', from: 'Calendar', subj: '3 Personen haben die Einladung angenommen',
+      why: 'Ein Beleg — hier wartet nichts auf eine Antwort',
+      sum: 'Drei Teilnehmende haben das Review am Donnerstag angenommen.',
+      body: 'Zugesagt: Jordan Lee, Casey Park, Sarah Kim.', r: null },
+    { id: 9, t: 'meeting', from: 'Priya Raman', subj: 'Geht auch Donnerstag 14:00?',
+      why: 'Der vorgeschlagene Termin überschneidet sich mit dem Design-Review (14:00–15:00)',
+      sum: 'Priya möchte den Roadmap-Call auf Donnerstag 14:00 legen. Die Stunde ist schon belegt; 15:00 ist in beiden Kalendern frei.',
+      body: 'Hallo,\n\nDonnerstag 14:00 würde uns für den Roadmap-Call besser passen — geht das bei dir?\n\nPriya', 
+      r: ['Donnerstag 14:00 ist bei mir belegt. 15:00 ist in beiden Kalendern frei — passt das?',
+          'Diese Woche geht Donnerstag nicht. Freitagvormittag wäre frei, falls das hilft.',
+          'Bevor wir verschieben — steht der Preis-Punkt noch auf der Agenda?'] }
   ];
-  var TONE = ['Accept', 'Decline', 'Ask'];
+  var TONE = ['Zusagen', 'Absagen', 'Nachfragen'];
 
   var cur = 'push', open = null, replying = false, draft = null, sent = false;
   var elT = document.getElementById('pl-tiers');
@@ -1725,7 +1760,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   function renderRead() {
     var m = mail.filter(function (x) { return x.id === open; })[0];
     if (!m) {
-      elRead.innerHTML = '<p class="pl-empty">Pick a message on the left.<br>Everything here responds.</p>';
+      elRead.innerHTML = '<p class="pl-empty">Wähle links eine Nachricht.<br>Hier reagiert alles.</p>';
       return;
     }
     var opts = m.r && replying && draft === null
@@ -1733,29 +1768,29 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
           return '<button class="pl-opt" data-draft="' + i + '"><kbd>' + (i + 1) + '</kbd>' +
             '<span><b>' + TONE[i] + '</b>' + esc(txt) + '</span></button>'; }).join('') + '</div>'
       : (m.r && draft === null
-          ? '<p class="pl-hint">Hit <b>Reply with AI</b> — or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> — ' +
-            'for three drafts in your tone.</p>'
+          ? '<p class="pl-hint">Klick <b>Mit KI antworten</b> — oder drück <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> — ' +
+            'für drei Entwürfe in deinem Ton.</p>'
           : '');
     var comp = draft !== null
-      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="Reply draft">' + esc(m.r[draft]) + '</textarea>' +
-        '<div class="row">' + (sent ? '<span class="pl-sent">Sent · receipt logged</span>' : '') +
-        '<button class="pl-b" data-cancel>Cancel</button>' +
-        '<button class="pl-b on" data-send>' + (sent ? 'Sent' : 'Send') + '</button></div></div>'
+      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="Antwortentwurf">' + esc(m.r[draft]) + '</textarea>' +
+        '<div class="row">' + (sent ? '<span class="pl-sent">Gesendet · Beleg protokolliert</span>' : '') +
+        '<button class="pl-b" data-cancel>Abbrechen</button>' +
+        '<button class="pl-b on" data-send>' + (sent ? 'Gesendet' : 'Senden') + '</button></div></div>'
       : '';
     var others = TIERS.filter(function (t) { return t.id !== m.t; });
     elRead.innerHTML =
       '<div class="pl-top"><div class="pl-sub">' + esc(m.subj) + '</div>' +
       '<div class="pl-from">' + esc(m.from) + '</div>' +
       '<div class="pl-acts">' +
-        (m.r ? '<button class="pl-b on" data-reply>Reply with AI</button>' : '') +
+        (m.r ? '<button class="pl-b on" data-reply>Mit KI antworten</button>' : '') +
         others.map(function (t) {
-          return '<button class="pl-b" data-move="' + t.id + '">Move to ' + t.name + '</button>'; }).join('') +
+          return '<button class="pl-b" data-move="' + t.id + '">Verschieben nach ' + t.name + '</button>'; }).join('') +
       '</div></div>' +
       // Drafts sit directly under the action row, not after the body — at the
       // bottom they fall below the panel's fold and "Reply with AI" reads as a
       // dead button on a short screen.
       opts + comp +
-      '<div class="pl-why"><span class="w">Why ' + tier(m.t).name + ' · ' + esc(m.why) + '</span>' +
+      '<div class="pl-why"><span class="w">Warum ' + tier(m.t).name + ' · ' + esc(m.why) + '</span>' +
       '<div class="sm">' + esc(m.sum) + '</div></div>' +
       '<div class="pl-body">' + esc(m.body) + '</div>';
   }
@@ -1775,7 +1810,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     if (b.hasAttribute('data-send')) { sent = true; return renderRead(); }
     if (b.dataset.move) {
       var m = mail.filter(function (x) { return x.id === open; })[0];
-      if (m) { m.t = b.dataset.move; m.why = 'Moved by you — Klorn learns from this'; }
+      if (m) { m.t = b.dataset.move; m.why = 'Von dir verschoben — Klorn lernt daraus'; }
       open = null; reset(); return draw();
     }
   });

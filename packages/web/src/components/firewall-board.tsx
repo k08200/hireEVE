@@ -14,7 +14,7 @@ import { TrustDot, type TrustScoreData } from "./trust-badge";
 export type { FirewallItem, FirewallResponse, Tier } from "@klorn/contract";
 
 import type { DailyReceipt, FirewallItem, FirewallResponse, Tier } from "@klorn/contract";
-import { LIVE_TIERS } from "@/lib/tiers";
+import { CORE_TIERS } from "@/lib/tiers";
 
 // lane-subset: INFO is a records lane and renders as a strip below the board
 // (InfoStrip), not as a fourth column, so it is deliberately not a ColumnTier.
@@ -403,7 +403,7 @@ function DailyReceiptStrip({
   data: FirewallResponse;
   receipt: DailyReceipt | null;
 }) {
-  const counts = LIVE_TIERS;
+  const counts = CORE_TIERS;
   return (
     <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
       {/* Five columns, not four: the strip used to count PUSH/QUEUE/SILENT/AUTO

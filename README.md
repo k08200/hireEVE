@@ -17,6 +17,13 @@ Klorn does the opposite. Each inbound email gets exactly **one** classification 
 
 ▶️ **[31-second demo](website/media/klorn-demo.mp4)** · 🎬 **[14-second promo](website/media/klorn-promo.mp4)** · 🌐 **[Live demo on klorn.ai](https://klorn.ai)** · 📖 **[Editions](docs/EDITIONS.md)** · 📋 **[CHANGELOG](CHANGELOG.md)**
 
+> Both videos were recorded on 2026-08-10, before the five-lane flip, so their
+> captions still show the retired four-tier vocabulary. The generators are
+> corrected and guarded; re-rendering needs a live recording against the demo
+> account (`scripts/demo-video/README.md`). **[klorn.ai](https://klorn.ai) shows
+> the current five lanes**, and its app screenshots are drawn straight from the
+> shipping SwiftUI views by `KlornMac --render-previews`.
+
 ## The five lanes
 
 | Lane | What it means | What happens |
@@ -37,19 +44,32 @@ Automation is deliberately **not** a lane. Each answerable email carries an `aut
 | --- | --- | --- | --- |
 | Output | One decision per mail, with the reason shown | Chat surface / suggestion cards | Folder moves, no reasons |
 | Acting on your behalf | Approval-gated; unattended replies only in AUTO mode under your written guidelines, each send with a receipt pinned to a payload hash | Often acts first, reports later | Never acts |
-| When it's wrong | Move the row — the correction is training signal (81.1% cold → 94.3% on real labeled mail) | Varies | You rewrite the rule |
+| When it's wrong | Move the row — the correction is training signal (77.4% cold → 86.8% warm on real labelled mail) | Varies | You rewrite the rule |
 | Source & hosting | AGPLv3, self-hostable end to end | Closed SaaS | Built into the client |
 | AI spend | Hard daily budget cap — it stops rather than overspends | Metered | None |
 
-## How it decides — and why a cheap model runs it
+## How it decides — and why the model choice is a measurement, not a bet
 
 The LLM does **not** pick the tier. On every email it scores four features between 0 and 1 — `confidence`, `senderTrust`, `reversibility`, `urgency` — and a deterministic rule in [`tier-policy.ts`](packages/api/src/judge/tier-policy.ts) maps those four numbers to a tier. The model perceives; a rule you can read and unit-test decides. The policy is auditable without the model in the loop.
 
-Two consequences fall out of that split:
+What falls out of that split:
 
-- **A cheap model wins.** When the model only has to read four signals consistently, you don't need a frontier model's reasoning depth. On the committed 50-email gate set ([`eval/judge-eval-set.json`](packages/api/eval/judge-eval-set.json)), `gemini-2.5-flash` scores **88%** with 100% recall on urgent mail — beating `gpt-4o` and `gemini-2.5-pro` (both 82%) at a fraction of the cost. Run it yourself: `pnpm eval:judge`.
-- **Measured on real mail, not just synthetic.** A second committed set ([`eval/real-eval-set.json`](packages/api/eval/real-eval-set.json)) holds 53 real, hand-labeled, PII-scrubbed emails with per-sender context snapshots from the production learning loop. Current score: **50/53 (94.3%) overall, 95.5% precision on silenced mail** — when Klorn hides something, it is almost never something you wanted. (Honest caveats: one inbox's ground truth so far, and the urgent tier has only 4 labeled samples, so its floor stays report-only until support grows. The set is labelled `PUSH`/`QUEUE`/`SILENT` only: `MEETING` and `INFO` have zero labelled samples, so their accuracy is unmeasured — their eval floors are report-only for exactly that reason (`eval-floors.ts`). Full measurement history: [`eval/README.md`](packages/api/eval/README.md).)
-- **It fails open, safely — and heals.** If the LLM is down or rate-limited, a keyword fallback produces the same four features with zero model calls, so urgent mail still gets through. When the provider recovers, a bounded background sweep re-judges the degraded verdicts through the real pipeline — decisions you already touched are never rewritten.
+- **Price stops predicting accuracy.** When the model only has to read four signals consistently, frontier reasoning depth buys much less than you would expect. Re-measured 2026-08-26 on the committed 56-email gate set ([`eval/judge-eval-set.json`](packages/api/eval/judge-eval-set.json)) — same prompt, same rule, one run per model:
+
+  | model | overall | urgent recall | silenced precision | $/M input | gate |
+  |---|---|---|---|---|---|
+  | `openai/gpt-5.4` | 100.0% (56/56) | 13/13 | 100% | $2.50 | pass |
+  | `google/gemini-3.5-flash` | 98.2% (55/56) | 13/13 | 100% | $1.50 | pass |
+  | `google/gemini-2.5-flash` — *default pin* | 96.4% (54/56) | 13/13 | 92.3% | $0.30 | pass |
+  | `x-ai/grok-4.3` | 94.6% (53/56) | 12/13 | 100% | $1.25 | pass |
+  | `anthropic/claude-opus-4.8` | 91.1% (51/56) | 10/13 | 100% | $5.00 | **fail** |
+  | `anthropic/claude-sonnet-5` | 80.4% (45/56) | 5/13 | 100% | $2.00 | **fail** |
+
+  The most expensive model in the table places fifth, and the spread *among* frontier models (19.6 points) is more than five times the gap between the best of them and the 8×-cheaper default pin (3.6 points). Gate floors are overall ≥80%, urgent recall ≥90%, silenced precision ≥90% ([`eval-floors.ts`](packages/api/src/eval-floors.ts)). Run it yourself: `JUDGE_MODEL=<id> pnpm eval:judge`.
+- **A failing model tells you *why* it failed.** Of the eight urgent emails `claude-sonnet-5` missed, seven failed the `confidence` threshold rather than the `urgency` one — it scored urgency 0.80–1.00 (correct) against confidence 0.55–0.60, under the 0.70 bar both must clear in [`tier-policy.ts`](packages/api/src/judge/tier-policy.ts). It read the mail correctly and then declined to say it was sure. That diagnosis is only available because the threshold is a number in a file you can open; where the model picks the tier directly, the same result reads as "this one is worse at email" and there is nothing to do about it.
+- **Measured on real mail, not just synthetic — and that set's labels have gone stale.** A second committed set ([`eval/real-eval-set.json`](packages/api/eval/real-eval-set.json)) holds 53 real, hand-labeled, PII-scrubbed emails with per-sender context snapshots from the production learning loop. Re-measured 2026-08-26 on the default pin: **46/53 (86.8%) overall, 95.5% precision on silenced mail** (3 runs, identical every time). This README previously claimed 94.3% here, and the arithmetic of the gap is worth being precise about: **4 of the 7 misses are `QUEUE` → `INFO`**, and `INFO` did not exist as a lane when the set was labelled — the label vocabulary cannot express it, so those items are scored wrong by construction. 46 + 4 = 50 = exactly the old 94.3%. So the drop is an ontology change, not a quality regression; but the honest number today is the one that reproduces, and 94.3% no longer does. Two of those four (a Google application confirmation, a Reddit digest) look like textbook `INFO`; the two GitHub address-verification items are genuinely arguable, since a verification link is an action. The other three misses are real: one `QUEUE` → `SILENT`, one `QUEUE` → `PUSH`, one `PUSH` → `QUEUE`. **The set needs re-labelling against the five-lane ontology before any headline number from it is quotable.** (Standing caveats: one inbox's ground truth so far, and the urgent lane has only 4 labelled samples, so its floor stays report-only until support grows. Full measurement history: [`eval/README.md`](packages/api/eval/README.md).)
+- **The floor held through every one of them.** Across all six models above — a 19.6-point accuracy spread including two outright gate failures — **zero** urgent emails were classified `SILENT`. Every miss degraded to `QUEUE`, where you still see it. That is what the split buys: not a better classifier, a bounded worst case.
+- **It fails open, safely — and heals.** If the LLM is down or rate-limited, a keyword fallback produces the same four features with zero model calls: **82.1% overall (46/56)** on the same set, with urgent recall down to 46.2% (6/13). Degraded mode costs you the *interrupt*, never the message — all seven missed urgent items landed in `QUEUE` and none in `SILENT`. When the provider recovers, a bounded background sweep re-judges the degraded verdicts through the real pipeline — decisions you already touched are never rewritten.
 
 Every classification is **content-hash-bound**: the exact bytes the scorer read (`from`, `subject`, `snippet`, `labels`) are sha256'd at decision time and stored with the row. The read path re-hashes and throws `AttentionHashMismatchError` on mismatch, so a later enrichment can't silently invalidate a tier ([PR #468](https://github.com/k08200/klorn/pull/468)).
 
@@ -69,7 +89,7 @@ It's enforced, not aspirational: a central guard in `executeToolCall` fails clos
 
 Three writeups walk through the architecture, with the tradeoffs and the honest edges:
 
-1. [I let GPT-4o and a cheaper model fight over my inbox. GPT-4o lost.](https://dev.to/k08200/i-let-gpt-4o-and-a-cheaper-model-fight-over-my-inbox-gpt-4o-lost-fkj) — the model bake-off
+1. [I let GPT-4o and a cheaper model fight over my inbox. GPT-4o lost.](https://dev.to/k08200/i-let-gpt-4o-and-a-cheaper-model-fight-over-my-inbox-gpt-4o-lost-fkj) — the model bake-off. **Superseded:** its headline result does not hold against the current model generation. The 2026-08-26 re-run is in the table above and in [`eval/README.md`](packages/api/eval/README.md).
 2. [I don't trust the LLM to classify my email. So I don't let it.](https://dev.to/k08200/i-dont-trust-the-llm-to-classify-my-email-so-i-dont-let-it-55d9) — feature-scorer vs. decider
 3. [Confidence is enough to decide. It's not enough to do.](https://dev.to/k08200/confidence-is-enough-to-decide-its-not-enough-to-do-8ck) — the deterministic floor
 
@@ -336,7 +356,7 @@ pnpm --filter @klorn/web build
 pnpm --filter @klorn/api build
 pnpm --filter @klorn/api test
 pnpm eval:judge   # classifier vs the synthetic gate set (judge-eval-set.json)
-pnpm eval:real    # classifier vs the 53 hand-labelled real emails (the 94.3% figure)
+pnpm eval:real    # classifier vs the 53 hand-labelled real emails (86.8%; labels predate INFO/MEETING)
 packages/api/node_modules/.bin/biome check packages/
 ```
 

@@ -4,7 +4,7 @@ import type { Tier } from "@klorn/contract";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { API_BASE } from "@/lib/api";
-import { LIVE_TIERS } from "@/lib/tiers";
+import { CORE_TIERS } from "@/lib/tiers";
 
 interface Features {
   confidence: number;
@@ -22,7 +22,7 @@ interface ClassifyResult {
 
 // Every lane the wire can carry, including the retired AUTO: a legacy row must
 // still render rather than crash. What AUTO must never be is an option — see
-// LIVE_TIERS below, which is what the correction buttons offer.
+// CORE_TIERS below, which is what the correction buttons offer.
 const TIER_VISUAL: Record<Tier, { label: string; blurb: string; ring: string; text: string }> = {
   PUSH: {
     label: "PUSH",
@@ -532,7 +532,7 @@ export default function PlaygroundPage() {
                         Wrong tier? Tell us the right one:
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {LIVE_TIERS.filter((t) => t !== result.tier).map((t) => (
+                        {CORE_TIERS.filter((t) => t !== result.tier).map((t) => (
                           <button
                             key={t}
                             type="button"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TIER_NAMES } from "@/lib/tiers";
 
 export const metadata: Metadata = {
   title: "Privacy Policy - Klorn",
@@ -98,9 +99,9 @@ export default function PrivacyPage() {
           <Section title="What Klorn Does">
             <p>
               Klorn is an AI attention firewall for your email. It reviews Gmail and Calendar
-              context, classifies incoming messages into attention lanes (PUSH / MEETING / QUEUE /
-              INFO / SILENT), summarizes what matters into daily briefings, and prepares actions —
-              replies, labels, archiving — that touch your mailbox only with your approval.
+              context, classifies incoming messages into attention tiers ({TIER_NAMES}), summarizes
+              what matters into daily briefings, and prepares actions — replies, labels, archiving —
+              that touch your mailbox only with your approval.
             </p>
           </Section>
 
@@ -311,7 +312,9 @@ export default function PrivacyPage() {
               advertising services. Klorn&apos;s infrastructure sub-processors are Render (API
               hosting), Vercel (web application hosting), and Supabase (managed Postgres database,
               hosted in Seoul, ap-northeast-2); they store and transmit data solely to operate
-              Klorn.
+              Klorn. Paddle acts as merchant of record for paid subscriptions and receives only
+              billing details — never mail content. Apple (APNs) delivers push notifications to
+              devices you register.
             </p>
             <p>
               Because Klorn is a beta product, avoid connecting accounts that contain information

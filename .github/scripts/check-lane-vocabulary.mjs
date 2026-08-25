@@ -24,7 +24,7 @@
  *
  *   1. No file re-declares the lane vocabulary. A local `type Tier = "PUSH" |
  *      ...` is how the playground ended up with a four-value Record that had
- *      no MEETING key to look up. Import Tier/LIVE_TIERS from @klorn/contract.
+ *      no MEETING key to look up. Import Tier from @klorn/contract, CORE_TIERS from @/lib/tiers.
  *   2. No array literal offers a retired lane (AUTO, CALL) as a choice.
  *      TIER_V2_ENABLED has been default-ON since 2026-08-18, so v2 never
  *      emits AUTO and no UI should present it.
@@ -139,7 +139,7 @@ if (problems.length) {
   for (const p of problems.sort()) console.error(`✗ ${p}`);
   console.error("");
   console.error("The five live lanes are SILENT, INFO, QUEUE, MEETING, PUSH.");
-  console.error("Import LIVE_TIERS from @klorn/contract instead of restating them.");
+  console.error("Import CORE_TIERS from @/lib/tiers instead of restating them.");
   process.exit(1);
 }
 
