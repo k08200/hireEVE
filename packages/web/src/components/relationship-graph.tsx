@@ -36,7 +36,10 @@ const W = 1000;
 const H = 680;
 const ITERATIONS = 300;
 
-// The 4 tiers, coloured from the single --color-tier-* token source of truth
+// The lanes, coloured from the single --color-tier-* token source of truth
+// (globals.css). MEETING and INFO were missing here, so both fell through to
+// FEATURE_COLOR below — in the decision-brain view two of the five lanes
+// rendered as the same violet used for a scored input feature.
 // (globals.css @theme) so the graph reads as ONE system with the firewall
 // board + tier badges. Kept as literals mirroring the tokens because SVG/
 // WebGL fills can't consume Tailwind utility classes.
@@ -44,12 +47,19 @@ export const TIER_COLORS: Record<string, string> = {
   PUSH: "#fb7185", // --color-tier-push
   QUEUE: "#fbbf24", // --color-tier-queue
   SILENT: "#a8a29e", // --color-tier-silent
+  MEETING: "#818cf8", // --color-tier-meeting
+  INFO: "#22d3ee", // --color-tier-info
+  // Retired v1 lane, kept only so pre-flip rows still render as themselves.
   AUTO: "#34d399", // --color-tier-auto
 };
 
 // Relationship-signal colours (not part of the 4-tier system).
 const SELF_COLOR = "#0ea5e9"; // you (== --color-accent)
 const FEATURE_COLOR = "#a78bfa"; // a scored input feature (violet)
+// A tier node whose tag is not in TIER_COLORS. Deliberately neutral: falling
+// back to a colour that means something else is worse than admitting we do
+// not know which lane this is.
+const UNKNOWN_TIER_COLOR = "#94a3b8"; // slate-400
 const OVERDUE_COLOR = "#fb7185"; // waiting on a reply (reuses PUSH rose)
 const MEETING_COLOR = "#f59e0b"; // meeting coming up
 const FREQUENT_COLOR = "#34d399"; // high-frequency contact
@@ -61,7 +71,7 @@ const ORG_ENGAGED_COLOR = "#c084fc"; // inferred via an org you engage with (sof
 function colorFor(n: GraphNode): string {
   if (n.kind === "self") return SELF_COLOR;
   if (n.kind === "feature") return FEATURE_COLOR;
-  if (n.kind === "tier") return TIER_COLORS[n.tags[0] ?? ""] ?? FEATURE_COLOR;
+  if (n.kind === "tier") return TIER_COLORS[n.tags[0] ?? ""] ?? UNKNOWN_TIER_COLOR;
   if (n.tags.includes("overdue_reply")) return OVERDUE_COLOR;
   if (n.tags.includes("meeting_soon")) return MEETING_COLOR;
   // Learned engagement outranks raw frequency — it's derived from the user's

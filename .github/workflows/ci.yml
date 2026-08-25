@@ -75,6 +75,12 @@ jobs:
       - name: Web i18n locale parity
         run: node .github/scripts/check-i18n-parity.mjs
 
+      # The product's claim is that you can see WHICH lane a message landed in.
+      # A lane wearing another lane's colour is therefore a correctness bug, and
+      # it shipped silently once already at the ontology v2 flip.
+      - name: Lane identity
+        run: node .github/scripts/check-lane-identity.mjs
+
   typecheck:
     name: TypeScript
     runs-on: ubuntu-latest
