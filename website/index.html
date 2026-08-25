@@ -622,7 +622,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   74%{opacity:1;transform:translateY(0)}
   100%{opacity:0;transform:translateY(-9px)}
 }
-.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
 .bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
   transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
 .bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
@@ -631,8 +631,9 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
 .bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
-.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
-.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
+.bk[data-t=push]{--c:#fb7185}.bk[data-t=queue]{--c:#fbbf24}
+.bk[data-t=silent]{--c:#a8a29e}.bk[data-t=meeting]{--c:#818cf8}
+.bk[data-t=info]{--c:#22d3ee}
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
@@ -774,7 +775,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "Can it send something without me?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "No. Send, delete and forward always wait for an explicit approval and each one writes a signed receipt with a hash of exactly what went out."
+    "text": "No. Send, delete and forward always wait for an explicit approval and each one writes a receipt pinning a hash of exactly what went out."
    }
   },
   {
@@ -877,14 +878,16 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="buckets" id="dm-buckets">
         <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
           <div class="v" data-v>0</div><p class="d">Interrupts you now</p></div>
+        <div class="bk" data-t="meeting"><div class="top"><span class="dot"></span><span class="nm">MEETING</span></div>
+          <div class="v" data-v>0</div><p class="d">Scheduling — checked against your calendar</p></div>
         <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
           <div class="v" data-v>0</div><p class="d">Read it today</p></div>
+        <div class="bk" data-t="info"><div class="top"><span class="dot"></span><span class="nm">INFO</span></div>
+          <div class="v" data-v>0</div><p class="d">Receipts and confirmations — no reply expected</p></div>
         <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
           <div class="v" data-v>0</div><p class="d">Filed, not deleted</p></div>
-        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
-          <div class="v" data-v>0</div><p class="d">Handled without you</p></div>
       </div>
-      <p class="demo-foot">Real classifier output on a hand-labeled inbox — 3 of 64 needed you.</p>
+      <p class="demo-foot">An illustration of the five lanes, not a benchmark run. The measured numbers, and the lanes they do not yet cover, are below.</p>
     </div></div>
   </div>
 
@@ -928,7 +931,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
         <b>The queue, with reasons</b><span>Every row says what put it there — correct it in one click.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
-        <b>Four words, explained</b><span>Silent isn't deleted. Auto isn't replied. The app says so.</span></button>
+        <b>Five lanes, explained</b><span>Silent isn't deleted. Info never wants a reply. The app says so.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
         <b>Yours to set</b><span>How much it does alone, and what may interrupt you.</span></button>
     </div>
@@ -969,8 +972,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         Sixty-four messages, three that were yours.</p></article>
     <article class="step rv"><span class="sn">While you work</span>
       <h3>One line, no banners</h3>
-      <p>Klorn stays a single native line at the top of the screen. Queue, Silent and Auto never
-        interrupt — only a real Push does, and you set what counts.</p></article>
+      <p>Klorn stays a single native line at the top of the screen. Queue, Info and Silent never
+        interrupt — only a real Push, or a Meeting that still needs a time, and you set what counts.</p></article>
     <article class="step rv"><span class="sn">When you reply</span>
       <h3>Three drafts, your call</h3>
       <p>Accept, decline or ask — one key each, in your tone and the sender's language. Nothing sends
@@ -1044,10 +1047,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">Silent precision</div>
       <p>When Klorn files mail as noise, it almost never buries a real signal.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">Unapproved actions</div>
-      <p>Every send, delete and forward waits for you and logs a signed receipt.</p></div>
+      <p>Every send, delete and forward waits for you and logs a receipt pinned to a hash of what went out.</p></div>
   </div>
   <p class="foot rv">Measured July 2026 on a 53-email hand-labeled set from a live inbox, warm-start with
-    learned context (cold-start: 81.1%).
+    learned context (cold-start: 81.1%). That set is labelled Push, Queue and Silent only — Meeting and Info have no labelled samples yet, so their accuracy is unmeasured and we do not claim it.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Methodology and eval set →</a></p>
 </section>
 
@@ -1505,16 +1508,16 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   var mails = [
     ['Sarah Kim', 'Re: Contract review — needs your sign-off today', 'push'],
     ['AWS Billing', 'Your July invoice is ready', 'silent'],
-    ['Alex Carter', 'Standup moved to 10:30', 'push'],
+    ['Alex Carter', 'Standup moved to 10:30 — does that work?', 'meeting'],
     ['Product Hunt', 'Today in tech: 12 new launches', 'silent'],
     ['Jordan Lee', 'Revised dashboard specs', 'queue'],
-    ['Calendar', 'Invitation accepted by 3 people', 'auto'],
+    ['Calendar', 'Invitation accepted by 3 people', 'info'],
     ['billing@vendor.io', 'Invoice #4821 is overdue', 'push'],
     ['Morning Brew', 'The 5 things you need to know', 'silent'],
     ['Casey Park', 'Onboarding flow ideas', 'queue'],
-    ['Stripe', 'Payment receipt', 'auto']
+    ['Stripe', 'Payment receipt', 'info']
   ];
-  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
+  var totals = { push: 3, meeting: 2, queue: 12, info: 8, silent: 39 };
   var cells = {};
   document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
     cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
