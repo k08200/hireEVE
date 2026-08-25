@@ -1,14 +1,19 @@
 # Judge eval set
 
-`judge-eval-set.json` is a **synthetic, PII-free** 50-email set used to
-regression-test the 4-tier judge (`src/poc-judge.ts`). It is NOT the
-founder's private 50-email ground truth (that file is gitignored and never
-leaves the machine) — it encodes the same locked mental model:
+`judge-eval-set.json` is a **synthetic, PII-free** 56-email set used to
+regression-test the judge. It is NOT the founder's private ground truth (that
+file is gitignored and never leaves the machine) — it encodes the same locked
+mental model. It was a 50-item, 4-tier set at introduction; #1134 dual-labelled
+it for v2 and grew it to 56, and #1138 made v2 the default, so the live label
+distribution is **17 QUEUE / 13 PUSH / 12 SILENT / 10 INFO / 4 MEETING**:
 
 - **QUEUE** is the default ("I'll look at this on my own schedule")
 - **SILENT** is narrow: clear marketing/promo only
 - **PUSH** is urgent + confident
-- **AUTO** is reversible + confident + not urgent (classify-only during POC)
+- **MEETING** is scheduling; **INFO** is an automated record worth keeping
+- **AUTO** is not a lane — it is a per-email eligibility flag plus an
+  account-level mode. The set carries **zero** truth-AUTO items, so every
+  AUTO readout below is vacuous by construction, not a passing score.
 
 ## The two gates
 
@@ -22,14 +27,117 @@ Safety invariants (enforced on every run, even on misses):
 1. A missed PUSH must degrade to **QUEUE** (visible), never SILENT (hidden).
 2. A SILENT-labelled marketing item must never be predicted PUSH.
 
-## Numbers at introduction (2026-06-12)
+## Numbers at introduction (2026-06-12 — historical, 50-item 4-tier set)
 
 - No-LLM pipeline: 39/50 = **78%**. The 11 misses are urgent-human-non-investor
   PUSH items and all AUTO items — both need LLM feature extraction, which is
   exactly why the fallback floor sits at 70%, not 80%.
 
+## No-LLM pipeline re-measured (2026-08-26 — current 56-item v2 set)
+
+- **46/56 = 82.1%** overall, with per-lane recall SILENT 12/12, MEETING 4/4,
+  INFO 9/10, QUEUE 15/17, **PUSH 6/13 (46.2%)**.
+- The fallback's weak axis is unchanged and worth stating plainly: **it does
+  not reliably interrupt.** Seven of thirteen urgent items miss, because
+  urgency on human mail needs LLM feature extraction. What it does hold is the
+  invariant that matters — all seven misses landed in `QUEUE` and **none in
+  `SILENT`** (silenced precision 12/12). Degraded mode costs the interrupt,
+  never the message.
+- Reproduce with no provider key configured:
+  `pnpm eval:judge` (every item drops to the keyword path; the run exits 3
+  INSTRUMENT DEGRADED, which is the intended signal when you are measuring the
+  LLM and the correct one to ignore when you are deliberately measuring the
+  fallback).
+
 The deterministic floor is a **ratchet**: raise it when the fallback improves;
 never lower it to make a PR pass.
+
+## Model bake-off re-run (2026-08-26 — current model generation)
+
+The bake-off the README quotes had gone stale on three axes at once: the set
+had grown 50 → 56 and gained two lanes, and the comparison models (`gpt-4o`,
+`gemini-2.5-pro`) were a generation behind the ones the product now offers.
+Re-measured against the shipped catalog ([`model-catalog.ts`](../src/llm/model-catalog.ts)),
+one run per model, identical prompt and rule, `--context=fixture`,
+`JUDGE_INCLUDE_BODY=true` — i.e. the `eval.yml` environment:
+
+| model | overall | urgent recall | silenced precision | $/M in | gate |
+|---|---|---|---|---|---|
+| `openai/gpt-5.4` | 56/56 = 100.0% | 13/13 | 100% | $2.50 | pass |
+| `google/gemini-3.5-flash` | 55/56 = 98.2% | 13/13 | 100% | $1.50 | pass |
+| `google/gemini-2.5-flash` *(default pin)* | 54/56 = 96.4% | 13/13 | 92.3% | $0.30 | pass |
+| `x-ai/grok-4.3` | 53/56 = 94.6% | 12/13 | 100% | $1.25 | pass |
+| `anthropic/claude-opus-4.8` | 51/56 = 91.1% | 10/13 | 100% | $5.00 | **fail** |
+| `anthropic/claude-sonnet-5` | 45/56 = 80.4% | 5/13 | 100% | $2.00 | **fail** |
+
+Three findings worth keeping:
+
+1. **"A cheap model beats the frontier" no longer holds and has been retired
+   from the README.** `gpt-5.4` scores perfectly. What replaced it is a
+   stronger claim anyway: price does not order the table (the $5.00 model
+   places fifth), and the spread *among* frontier models (19.6pt) is over five
+   times the best-frontier-to-default-pin gap (3.6pt).
+2. **`claude-sonnet-5` fails on calibration, not comprehension.** Seven of its
+   eight urgent misses cleared `urgency` (0.80–1.00) and failed `confidence`
+   (0.55–0.60) against the 0.70 bar in `tier-policy.ts`. It reads the mail and
+   then declines to say it is sure. This is exactly the diagnosis a
+   model-picks-the-tier design cannot produce.
+3. **Safety invariant 1 held for every model.** Across a 19.6-point spread
+   including two gate failures, truth-`PUSH` → predicted-`SILENT` was **0** in
+   all six runs. Every miss degraded to `QUEUE`.
+
+Instrument integrity for the run: zero items dropped to the keyword fallback,
+and every disagreement carried an `[llm]` source tag — so the two failures are
+model behaviour, not provider flakiness.
+
+## Real-mail set: the 94.3% expired when INFO shipped (2026-08-26)
+
+`real-eval-set.json` was last touched at #867 and its labels are drawn from the
+**three-lane** vocabulary (`PUSH`/`QUEUE`/`SILENT`). The judge has since moved
+to five lanes (#1125 foundation, #1138 default-ON). Re-measured on the default
+pin, `--context=fixture`, three consecutive runs, byte-identical results each
+time:
+
+| run | overall | urgent recall | silenced precision |
+|---|---|---|---|
+| ×3 | **46/53 = 86.8%** | 3/4 | 95.5% (21/22) |
+
+The README quoted **50/53 = 94.3%** for this set. The gap is fully accounted
+for and is *not* a quality regression — **4 of the 7 misses are `QUEUE` →
+`INFO`**, a prediction the label vocabulary cannot score as correct because
+`INFO` did not exist when the labels were written. 46 + 4 = 50.
+
+The four, judged on their merits rather than on the stale label:
+
+| item | predicted | verdict |
+|---|---|---|
+| "Thanks for applying to Google" | `INFO` | judge looks right — automated record |
+| Reddit digest recommendation | `INFO` | judge looks right — automated record |
+| "[GitHub] Please verify your email address." ×2 | `INFO` | **arguable** — a verification link is an action, which argues `QUEUE` |
+
+The remaining three are genuine misses and should stay on the books: one
+`QUEUE` → `SILENT` (a product-update mail was hidden), one `QUEUE` → `PUSH` (a
+confirmation code interrupted), one `PUSH` → `QUEUE`.
+
+Model and context axes, measured separately so neither is confounded:
+
+| configuration | overall | urgent recall |
+|---|---|---|
+| `gemini-2.5-flash`, warm (fixture context) | **86.8%** | 3/4 |
+| `gpt-5.4`, warm | 84.9% | 3/4 |
+| `gemini-3.5-flash`, warm | 77.4% | 3/4 |
+| `gemini-2.5-flash`, **cold** (empty context) | 77.4% | 0/4 |
+
+Two things worth noting. First, **synthetic-set performance does not transfer**:
+`gpt-5.4` scores 56/56 on the gate set and lands *below* the 8×-cheaper default
+pin on real mail. Second, the cold-start PUSH recall of 0/4 reproduces the
+behaviour already documented in the 2026-07-16 section above — three of the four
+urgent items are `OVERRIDE:PUSH` senders whose prior only exists warm.
+
+**Action required before this set's number is quotable again:** re-label it
+against the five-lane ontology. Until that lands, cite 86.8% with the caveat,
+or cite the synthetic gate set instead. Do not restore 94.3% — it measures a
+judge that no longer exists.
 
 ## JUDGE_INCLUDE_BODY measurement (2026-07-20)
 
