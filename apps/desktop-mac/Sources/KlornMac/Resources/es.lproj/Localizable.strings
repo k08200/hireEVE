@@ -326,8 +326,8 @@
 
 /* First-run guide */
 "guide.title" = "Cómo clasifica Klorn tu correo";
-"guide.pipeline" = "Klorn lee cada buzón conectado y coloca cada mensaje en uno de los cuatro carriles de abajo. Esta columna BANDEJA es ese resultado clasificado, no tu bandeja de Gmail en bruto.";
-"guide.intro" = "Cada mensaje cae en uno de los cuatro carriles. Nada se borra y nada se responde sin ti: el carril solo decide con cuánta fuerza te llega.";
+"guide.pipeline" = "Klorn lee cada buzón conectado y coloca cada mensaje en uno de los %d carriles de abajo. Esta columna BANDEJA es ese resultado clasificado, no tu bandeja de Gmail en bruto.";
+"guide.intro" = "Cada mensaje cae en uno de los %d carriles. Nada se borra y nada se responde sin ti: el carril solo decide con cuánta fuerza te llega.";
 "guide.correcting" = "¿Alguno mal clasificado? Muévelo a otro carril y Klorn aprende de la corrección. Cada mensaje muestra además por qué acabó donde acabó.";
 "guide.done" = "Entendido";
 "guide.reopen" = "Cómo funciona la clasificación";

@@ -326,8 +326,8 @@
 
 /* First-run guide */
 "guide.title" = "Comment Klorn trie votre courrier";
-"guide.pipeline" = "Klorn lit chaque boîte connectée et range chaque message dans l'une des quatre files ci-dessous. Cette colonne BOÎTE est ce résultat trié — pas votre boîte Gmail brute.";
-"guide.intro" = "Chaque message tombe dans l'une des quatre files. Rien n'est supprimé et rien n'est répondu sans vous — la file décide seulement de la force avec laquelle il vous atteint.";
+"guide.pipeline" = "Klorn lit chaque boîte connectée et range chaque message dans l'une des %d files ci-dessous. Cette colonne BOÎTE est ce résultat trié — pas votre boîte Gmail brute.";
+"guide.intro" = "Chaque message tombe dans l'une des %d files. Rien n'est supprimé et rien n'est répondu sans vous — la file décide seulement de la force avec laquelle il vous atteint.";
 "guide.correcting" = "Une erreur de tri ? Déplacez le message vers une autre file et Klorn apprend de la correction. Chaque message indique aussi pourquoi il a atterri là.";
 "guide.done" = "Compris";
 "guide.reopen" = "Comment fonctionne le tri";

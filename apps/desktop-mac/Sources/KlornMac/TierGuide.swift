@@ -70,11 +70,14 @@ struct TierGuide: View {
             // What the "inbox" column even IS — the founder-reported confusion
             // (2026-08-15) was the name collision: our 수신함/INBOX is the
             // triage RESULT, not the raw Gmail inbox. Say that first.
-            Text(L("guide.pipeline"))
+            // The count comes from coreOrder, not the sentence: the copy said
+            // "four tiers" above a list of five from the day MEETING and INFO
+            // were added, in all seven languages at once.
+            Text(L("guide.pipeline", Tier.coreOrder.count))
                 .font(.callout).foregroundStyle(Theme.text)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, Theme.s2)
-            Text(L("guide.intro"))
+            Text(L("guide.intro", Tier.coreOrder.count))
                 .font(.callout).foregroundStyle(Theme.textDim)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, Theme.s4)
