@@ -10,14 +10,16 @@ import {
 import { apiFetch } from "../../lib/api";
 import { useT } from "../../lib/i18n";
 import { captureClientError } from "../../lib/sentry";
+import { LIVE_TIERS } from "../../lib/tiers";
 
-// Tiers the user can reassign to during onboarding. AUTO is an execution tier,
-// not a manual triage target — mirrors the firewall board's override targets so
-// onboarding and the everyday board teach the same vocabulary.
-const MOVE_TARGETS: Tier[] = ["PUSH", "QUEUE", "SILENT"];
-// Loudest tier first, quieted mail last, so the user reviews interrupts before
-// the pile Klorn silenced.
-const GROUP_ORDER: Tier[] = ["PUSH", "QUEUE", "AUTO", "SILENT"];
+// Both lists are the five live lanes, loudest first: the user reviews
+// interrupts before the pile Klorn silenced, and can reassign to any lane the
+// classifier itself can emit. They used to be hand-written subsets that
+// omitted MEETING and INFO, so mail in those two lanes was filtered out of the
+// review below and never shown — which also meant onboarding never collected a
+// single DecisionLabel for them, the ground truth the accuracy figure rests on.
+const MOVE_TARGETS = LIVE_TIERS;
+const GROUP_ORDER = LIVE_TIERS;
 
 // Classification is fire-and-forget, so the freshly-synced emails trickle in as
 // each judge call returns. Poll a bounded number of times until the count holds.

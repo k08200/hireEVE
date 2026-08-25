@@ -12,7 +12,8 @@
 >
 > 1. **Use is limited to user-facing features.** Google user data is used
 >    only to provide and improve Klorn's visible features: classifying
->    messages into attention tiers (PUSH / QUEUE / SILENT / AUTO),
+>    messages into attention lanes (PUSH / MEETING / QUEUE / INFO /
+>    SILENT),
 >    summarizing messages and generating daily briefings, reflecting the
 >    user's triage decisions back into Gmail (labels, read state, archive,
 >    reversible trash), sending user-approved replies, and providing
@@ -82,9 +83,11 @@ Reviewed against `packages/web/src/app/privacy/page.tsx` (live at
 > transaction); affirmative self-service deletion/export/reset wording matching
 > the real Settings controls; sub-processors named (Render, Vercel, Supabase
 > ap-northeast-2; AI: Google Gemini API + OpenRouter, BYOK/self-host caveat).
-> ⚠️ **Prerequisite for the retention claim**: `LOG_RETENTION_ENABLED=true`
-> must be set in the production environment (the sweep is OFF by default,
-> `log-retention.ts:114-116`) — verify on Render before submitting.
+> ✅ **Prerequisite for the retention claim**: `LOG_RETENTION_ENABLED=true`
+> is set in the production environment (founder-confirmed 2026-08-26). The
+> sweep is OFF by default (`log-retention.ts:114-116`), so this flag is load
+> bearing for a statement the policy makes as fact — re-check it after any
+> environment change.
 > Gap 8 (contact address): resolved by decision — the support address is pinned
 > to `k0820086@gmail.com` everywhere (policy already uses it consistently in 3
 > places; the consent screen must use the same literal). Switching to a domain

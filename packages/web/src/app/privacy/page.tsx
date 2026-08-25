@@ -98,9 +98,9 @@ export default function PrivacyPage() {
           <Section title="What Klorn Does">
             <p>
               Klorn is an AI attention firewall for your email. It reviews Gmail and Calendar
-              context, classifies incoming messages into attention tiers (PUSH / QUEUE / SILENT /
-              AUTO), summarizes what matters into daily briefings, and prepares actions — replies,
-              labels, archiving — that touch your mailbox only with your approval.
+              context, classifies incoming messages into attention lanes (PUSH / MEETING / QUEUE /
+              INFO / SILENT), summarizes what matters into daily briefings, and prepares actions —
+              replies, labels, archiving — that touch your mailbox only with your approval.
             </p>
           </Section>
 

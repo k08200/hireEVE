@@ -146,7 +146,7 @@ async function attachFirewallJudgment(
       where: { userId, gmailId: { in: gmailIds } },
       select: { id: true, gmailId: true, priority: true, needsReply: true },
     });
-    // Second hop: the 4-tier verdict (PUSH/QUEUE/SILENT/AUTO) lives on the
+    // Second hop: the lane verdict (PUSH/MEETING/QUEUE/INFO/SILENT) lives on the
     // AttentionItem the firewall wrote for each email (sourceId = EmailMessage.id).
     const tierBySourceId = new Map<string, string | null>();
     if (rows.length > 0) {

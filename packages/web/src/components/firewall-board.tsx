@@ -14,13 +14,14 @@ import { TrustDot, type TrustScoreData } from "./trust-badge";
 export type { FirewallItem, FirewallResponse, Tier } from "@klorn/contract";
 
 import type { DailyReceipt, FirewallItem, FirewallResponse, Tier } from "@klorn/contract";
+import { LIVE_TIERS } from "@/lib/tiers";
 
+// lane-subset: INFO is a records lane and renders as a strip below the board
+// (InfoStrip), not as a fourth column, so it is deliberately not a ColumnTier.
 type ColumnTier = "PUSH" | "MEETING" | "QUEUE" | "SILENT";
 
 // How often the firewall view re-pulls while the tab is focused.
 export const FIREWALL_REFRESH_MS = 45_000;
-
-const TIER_ORDER: Tier[] = ["PUSH", "QUEUE", "SILENT"];
 
 // Spatial-triage visual language. Depth is meant to be felt before it is
 // read: PUSH sits on a glowing, elevated plane; QUEUE is mid; SILENT
@@ -108,6 +109,8 @@ const TARGET_BUTTON: Record<Tier, string> = {
   INFO: "hover:border-tier-info/50 hover:text-tier-info-ink",
 };
 
+// lane-subset: v1 board targets. MEETING/INFO are absent on purpose — see
+// OVERRIDE_TARGETS_V2 directly below.
 const OVERRIDE_TARGETS: Tier[] = ["SILENT", "QUEUE", "PUSH"];
 /// v2-mode targets: MEETING/INFO become movable once the server actually
 /// emits those lanes; showing them to a v1 board would offer moves the
@@ -246,6 +249,8 @@ export function FirewallBoard() {
             (data.summary.MEETING ?? 0) > 0 ? "md:grid-cols-4" : "md:grid-cols-3"
           }`}
         >
+          {/* lane-subset: columns only. INFO renders as a strip below, and the
+              MEETING column appears only once the server has emitted one. */}
           {((data.summary.MEETING ?? 0) > 0
             ? (["PUSH", "MEETING", "QUEUE", "SILENT"] as const)
             : (["PUSH", "QUEUE", "SILENT"] as const)
@@ -398,10 +403,12 @@ function DailyReceiptStrip({
   data: FirewallResponse;
   receipt: DailyReceipt | null;
 }) {
-  const counts: Tier[] = ["PUSH", "QUEUE", "SILENT", "AUTO"];
+  const counts = LIVE_TIERS;
   return (
     <section className="panel-elevated rounded-2xl border border-line/70 bg-surface-panel p-5">
-      <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4">
+      {/* Five columns, not four: the strip used to count PUSH/QUEUE/SILENT/AUTO
+          — a lane that no longer occurs — while omitting MEETING and INFO. */}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
         {counts.map((tier) => {
           const v = TIER_VISUAL[tier];
           return (

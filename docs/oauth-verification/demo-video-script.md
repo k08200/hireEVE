@@ -53,7 +53,7 @@ sees exactly what is requested and consents before any data is accessed."
 ## Scene 3 — `gmail.readonly`: sync, classification, summaries (1:00–1:50)
 
 **Screen:** Post-login dashboard. Show the inbox syncing, then the triage
-view: messages sorted into PUSH / QUEUE / SILENT / AUTO tiers. Open one
+view: messages sorted into PUSH / MEETING / QUEUE / INFO / SILENT lanes. Open one
 message to show its AI summary and the daily briefing view.
 
 **Narration:** "Immediately after connecting, Klorn uses the Gmail read-only
