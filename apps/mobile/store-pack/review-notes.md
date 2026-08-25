@@ -37,7 +37,9 @@ where naive setups die.
 
 Prep checklist for the demo account (founder, ~1h):
 1. Create a fresh Google account (not your real inbox — reviewers can read everything in it).
-2. Seed it: 15–20 realistic emails spread across the four tiers (an urgent one for PUSH, a couple needing decisions for QUEUE, newsletters for SILENT/AUTO).
+2. Seed it: 15–20 realistic emails spread across the five lanes (an urgent one
+   for PUSH, a calendar invite for MEETING, a couple needing decisions for
+   QUEUE, receipts and confirmations for INFO, newsletters for SILENT).
 3. Register the demo Klorn account via email/password; link the demo Gmail via OAuth yourself, on your device.
 4. Verify on a clean device: login → populated command center, Mail tiers, briefing renders.
 5. On submission day, re-open once to confirm the Gmail link/token is healthy.
@@ -54,14 +56,16 @@ After login you land on the command center with live triaged mail.
 
 WHAT THE APP IS
 Klorn is an "attention firewall" for email. It connects to the user's Gmail
-and classifies every incoming message into one of four tiers:
-PUSH (urgent — native push notification), QUEUE (needs a decision — appears
-as a decision card), SILENT (kept, no interruption), AUTO (noise). It also
-generates a morning briefing summarizing the inbox.
+and classifies every incoming message into one of five lanes:
+PUSH (urgent — native push notification), MEETING (invites and reschedules,
+checked against the calendar), QUEUE (needs a decision — appears as a decision
+card), INFO (receipts and confirmations, filed, no reply expected), SILENT
+(kept, no interruption). It also generates a morning briefing summarizing the
+inbox.
 
 SUGGESTED REVIEW PATH (5 minutes)
 1. Log in with the demo account → Home command center shows the triaged inbox.
-2. Open Mail → see the four tiers on real messages.
+2. Open Mail → see the five lanes on real messages.
 3. Open a QUEUE decision card → approve/hold flow (nothing is emailed to real
    third parties from the demo inbox without explicit approval).
 4. Open Briefing → the generated morning briefing.

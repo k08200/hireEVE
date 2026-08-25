@@ -1,5 +1,7 @@
 /**
- * Public, login-free playground for the 4-tier firewall.
+ * Public, login-free playground for the firewall. It returns whatever lane
+ * `judgeEmail` assigns, so with TIER_V2_ENABLED on (default since 2026-08-18)
+ * that includes MEETING and INFO — the web client must handle all five.
  *
  * Why this exists: every real onboarding path (OAuth, Workspace admin policy)
  * gates a visitor out before they ever see the classifier. The playground

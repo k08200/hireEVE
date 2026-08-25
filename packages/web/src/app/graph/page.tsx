@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
+import { TIER_COUNT } from "@/lib/tiers";
 import AuthGuard from "../../components/auth-guard";
 import type { GraphEdge, GraphNode } from "../../components/relationship-graph";
 import { useToast } from "../../components/toast";
@@ -70,7 +71,7 @@ const COPY: Record<Mode, { eyebrow: string; title: string; body: string }> = {
   decisions: {
     eyebrow: "Decision brain",
     title: "How the firewall decides",
-    body: "The classifier's deterministic core: the 4 scored features gating the 4 tiers (the tierFromFeatures rule), with your override signal overlaid on each tier. This is the policy structure itself, so it renders even before you've corrected anything.",
+    body: `The classifier's deterministic core: the 4 scored features gating the ${TIER_COUNT} lanes (the tierFromFeatures rule), with your override signal overlaid on each lane. This is the policy structure itself, so it renders even before you've corrected anything.`,
   },
 };
 
