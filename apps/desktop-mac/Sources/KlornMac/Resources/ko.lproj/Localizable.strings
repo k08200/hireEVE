@@ -1,6 +1,7 @@
 /* Klorn macOS — 한국어.
    en.lproj/Localizable.strings와 키가 1:1로 같아야 한다 (--self-check가 검사).
-   PUSH / QUEUE / SILENT / AUTO 4-tier 이름은 제품 용어라 번역하지 않는다. */
+   PUSH / MEETING / QUEUE / INFO / SILENT 레인 이름은 제품 용어라 번역하지 않는다.
+   폐기된 AUTO도 레거시 행 표시용으로 남아 있으므로 마찬가지로 번역하지 않는다. */
 
 /* Bar */
 "bar.expand" = "펼치기";

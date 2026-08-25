@@ -1,6 +1,7 @@
 import SwiftUI
 
-// What the four tiers mean, in the places someone would ask.
+// What the lanes mean, in the places someone would ask. The count comes from
+// `Tier.coreOrder`, never a literal — see the note by `guide.pipeline` below.
 //
 // The tier names are the product's core idea and they were never explained
 // anywhere in the app: the sidebar showed "Push 3 / Queue 12 / Silent 40 /

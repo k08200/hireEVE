@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { TIER_COUNT } from "@/lib/tiers";
 import { apiFetch, startLinkOutlookInbox } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { queryKeys } from "../lib/query-keys";
@@ -114,8 +115,9 @@ export function OutlookInboxesSection() {
     <section className="panel-elevated mb-8 rounded-2xl border border-line/70 bg-surface-panel p-5">
       <h2 className="text-base font-semibold text-ink">Outlook inboxes</h2>
       <p className="mt-1 text-xs text-ink-mid">
-        Connect an Outlook or Microsoft account so Klorn runs the same 4-tier firewall across its
-        mail too. You approve access on Microsoft's sign-in page — Klorn never sees your password.
+        Connect an Outlook or Microsoft account so Klorn runs the same {TIER_COUNT}-lane firewall
+        across its mail too. You approve access on Microsoft's sign-in page — Klorn never sees your
+        password.
       </p>
 
       {accounts.length > 0 && (

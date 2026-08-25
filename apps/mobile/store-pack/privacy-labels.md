@@ -40,7 +40,7 @@ count as collected. On-device-only or pass-through data does not.
 ### 3. User Content → Emails or Text Messages
 
 - **Collected: YES · Linked to identity: YES · Used for tracking: NO**
-- **Purpose:** App Functionality (the product — triage of the user's Gmail into PUSH/QUEUE/SILENT/AUTO, briefings, decision cards)
+- **Purpose:** App Functionality (the product — triage of the user's Gmail into PUSH/MEETING/QUEUE/INFO/SILENT, briefings, decision cards)
 - Evidence: Gmail message ingestion & classification pipeline in `packages/api/src/routes/gmail-push.ts`, `email.ts`, `email-candidates.ts`, `firewall.ts`; data persisted in the app's own Postgres (Prisma). Gmail data use is bound by Google's Limited Use policy (CASA verification track, `apps/mobile/STORE_SUBMISSION.md` §D).
 
 ### 4. User Content → Other User Content (assistant chat)
