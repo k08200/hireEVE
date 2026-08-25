@@ -14,10 +14,10 @@
 <link rel="canonical" href="https://klorn.ai/ko/">
 <!-- The KO page never auto-redirects: the language script only runs on the site
      root, so a visitor who lands here stays here. -->
-<title>Klorn — 소음은 들어오고, 신호만 남는다</title>
-<meta name="description" content="메일을 Push / Meeting / Queue / Info / Silent 다섯 단계로 분류하고, 그 이유까지 알려주는 맥 앱. 오픈소스, 셀프호스팅 가능, 당신이 정한 규칙 밖에서는 아무것도 보내지 않습니다.">
-<meta property="og:title" content="Klorn — 소음은 들어오고, 신호만 남는다">
-<meta property="og:description" content="메일을 다섯 단계로 분류하고 그 이유를 알려주는 맥 앱. 다른 AI 에이전트는 당신을 대신해 행동합니다. Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.">
+<title>Klorn — 덜 방해받는 것, 빨리 처리하는 게 아니라</title>
+<meta name="description" content="모든 메일을 다섯 레인으로 분류하고 한 통마다 이유를 붙입니다. Superhuman·Fyxer는 월 $30인데 이유는 안 알려줍니다. AGPL-3.0, 셀프호스팅, 월 $8.99.">
+<meta property="og:title" content="Klorn — 덜 방해받는 것, 빨리 처리하는 게 아니라">
+<meta property="og:description" content="Klorn은 모든 메일을 다섯 레인 — Push, Meeting, Queue, Info, Silent — 으로 분류하고 한 통마다 그 이유를 붙입니다. Superhuman은 속도를, Fyxer는 답장을 팝니다. 둘 다 월 $30이고 어느 쪽도 이 메일이 왜 도달했는지는 말하지 않습니다. AGPL-3.0, 셀프호스팅 가능, 승인하지 않은 것은 보내지 않습니다.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://klorn.ai/ko/">
 <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
@@ -552,6 +552,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .vscell.them::before{color:var(--ink-3)}
 }
 
+/* The four products a buyer is actually deciding between, named, each linked to
+   the page that carries the receipt. These pages existed but were reachable only
+   from the footer, which is the same as not existing: a comparison nobody
+   reaches persuades nobody. Kept below the grid, not above it — the argument
+   earns the click, the click does not replace the argument. */
+.vslinks{max-width:1180px;margin:24px auto 0;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:12px}
+.vslink{display:block;padding:16px 18px;border:1px solid var(--line);border-radius:14px;
+  background:#fff;transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.vslink:hover{border-color:rgba(3,105,161,.34);transform:translateY(-2px)}
+.vslink b{display:block;font-size:14px;font-weight:650;color:var(--sky-ink);
+  letter-spacing:-.01em;margin-bottom:5px}
+.vslink b::after{content:' \2192';font-weight:500}
+.vslink span{display:block;font-size:12.5px;line-height:1.5;color:var(--ink-3)}
+.vsnote{max-width:1180px;margin:16px auto 0;padding:0 24px;font-size:12px;line-height:1.6;
+  color:var(--ink-3)}
+.vsnote a{color:var(--sky-ink);font-weight:600}
+@media(max-width:980px){.vslinks{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.vslinks{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.vslink{transition:none}.vslink:hover{transform:none}}
+
 /* Language switch, in the nav where it belongs.
    A menu, not a row of buttons: two languages fit side by side, seven do not,
    and a control that has to be redesigned every time a language ships is the
@@ -643,7 +664,15 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
-@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
+/* Three checkable facts under the fold-line. Every competitor in this category
+   puts a number on its hero; ours have to be ones a reader can go and verify. */
+.proof{list-style:none;margin:22px auto 0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:9px 26px;max-width:720px}
+.proof li{font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+.proof b{color:var(--ink);font-weight:700}
+.price-anchor{margin:22px auto 0;max-width:760px;text-align:center;font-size:12.5px;line-height:1.65;color:var(--ink-3)}
+.price-anchor b{color:var(--ink-2);font-weight:650}
+@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}
+  .buckets .bk:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
 
 
@@ -747,7 +776,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "applicationCategory": "BusinessApplication",
  "url": "https://klorn.ai/ko/",
  "inLanguage": "ko",
- "description": "메일을 다섯 단계 — Push, Meeting, Queue, Info, Silent — 로 분류하고 이유를 보여주는 Mac 앱. 오픈소스(AGPLv3), 셀프호스팅 가능, 정한 규칙 밖으로는 아무것도 보내지 않습니다.",
+ "description": "모든 메일을 다섯 레인 — Push, Meeting, Queue, Info, Silent — 으로 분류하고 한 통마다 이유를 붙입니다. 오픈소스(AGPL-3.0, 덧붙인 조항 없음), 셀프호스팅 가능, 승인하지 않은 것은 보내지 않습니다.",
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
@@ -755,7 +784,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   "@type": "Offer",
   "price": "0",
   "priceCurrency": "USD",
-  "description": "Invite-only beta; mail sorting is free with a daily AI budget cap."
+  "description": "Free to start, no invite needed; mail sorting is free with a daily AI budget cap."
  },
  "softwareHelp": {
   "@type": "CreativeWork",
@@ -768,14 +797,6 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "@context": "https://schema.org",
  "@type": "FAQPage",
  "mainEntity": [
-  {
-   "@type": "Question",
-   "name": "로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?",
-   "acceptedAnswer": {
-    "@type": "Answer",
-    "text": "메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를 받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로 제한됩니다."
-   }
-  },
   {
    "@type": "Question",
    "name": "저 없이 뭔가 보낼 수 있나요?",
@@ -805,7 +826,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "윈도우 앱은 언제인가요?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 단계로 계속 쓸 수 있습니다."
+    "text": "나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 레인으로 계속 쓸 수 있습니다."
    }
   },
   {
@@ -814,6 +835,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "acceptedAnswer": {
     "@type": "Answer",
     "text": "아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가 당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를 받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로 제한됩니다."
    }
   }
  ]
@@ -856,10 +885,11 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
   <div class="wrap">
     <span class="eyebrow rv">실제 메일로 측정 <b>94.3%</b></span>
-    <h1 class="rv">소음은 들어오고,<br><span class="ser">신호</span>만 남는다.</h1>
-    <p class="lead rv"><b style="color:var(--ink);font-weight:650">메일을 다섯 단계로 분류하고,
-      그 이유까지 알려줍니다. 웹·macOS·Windows.</b> 다른 AI 에이전트는 당신을 대신해 행동합니다.
-      Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.</p>
+    <h1 class="rv">덜 방해받는 것.<br><span class="ser">빨리</span> 처리하는 게 아니라.</h1>
+    <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn은 모든 메일을 다섯 레인으로
+      분류하고, 한 통마다 그 이유를 붙입니다.</b> 웹·macOS·Windows. Superhuman은 속도를 팝니다.
+      Fyxer는 답장을 대신 씁니다. 둘 다 월 $30이고, 어느 쪽도 그 이유는 보여주지 않습니다.
+      Klorn은 그 질문에 먼저 답하고, 당신이 승인하지 않은 것은 보내지 않습니다.</p>
     <div class="actions rv">
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">무료로 시작 <i>↗</i></a>
     </div>
@@ -876,6 +906,11 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <p class="actions-note rv">무료, AGPLv3. 앱은 Klorn 계정으로 로그인하며,
       계정 만드는 데 1분이면 됩니다.
       <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
+    <ul class="proof rv">
+      <li><b>94.3%</b> — 직접 라벨링한 메일 53통 중 50통. 그 세트가 리포에 있습니다</li>
+      <li><b>0개</b> — AGPL-3.0 뒤에 덧붙인 조항</li>
+      <li><b>당신의 서버</b>가 당신 메일을 읽습니다 — 셀프호스트, 내 키 또는 로컬 모델</li>
+    </ul>
   </div>
 
 
@@ -883,7 +918,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="demo-in"><div class="demo-core">
       <div class="demo-top">
         <span class="lab">오늘 아침 받은편지함 분류 중</span>
-        <span class="cnt">64통 중 <b id="dm-done">0</b> · <span id="dm-state">분류 중</span></span>
+        <span class="cnt">53통 중 <b id="dm-done">0</b> · <span id="dm-state">분류 중</span></span>
       </div>
       <div class="demo-stage" id="dm-stage" aria-hidden="true"></div>
       <div class="buckets" id="dm-buckets">
@@ -903,7 +938,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </div>
 
   <div class="stage rv">
-    <p class="stage-cap"><b>LIVE</b> 실제로 동작하는 복제본 — 단계, 메일, 답장, 재분류 모두 눌러보세요.
+    <p class="stage-cap"><b>LIVE</b> 실제로 동작하는 복제본 — 레인, 메일, 답장, 재분류 모두 눌러보세요.
       아래에 있는 스크린샷은 출시 중인 앱 그 자체입니다.</p>
     <div class="shell" data-tilt>
       <div class="core">
@@ -950,9 +985,9 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="tour-panel" role="tabpanel" id="tp-1" aria-labelledby="tt-1">
         <img src="/media/app/ko/reading.jpg" alt="근거가 붙은 PUSH 메일: 왜 그렇게 매겨졌는지, 기한, 그리고 한 키 답장 버튼" width="1040" height="660" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-2" aria-labelledby="tt-2" hidden>
-        <img src="/media/app/ko/rows.jpg" alt="발신자, 제목, 그리고 각 메일이 그 단계로 간 이유를 보여주는 메일 행" width="1040" height="660" loading="lazy" decoding="async"></div>
+        <img src="/media/app/ko/rows.jpg" alt="발신자, 제목, 그리고 각 메일이 그 레인으로 간 이유를 보여주는 메일 행" width="1040" height="660" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-3" aria-labelledby="tt-3" hidden>
-        <img src="/media/app/ko/tier-guide.jpg" alt="다섯 단계 분류를 설명하는 첫 실행 안내" width="1040" height="1040" loading="lazy" decoding="async"></div>
+        <img src="/media/app/ko/tier-guide.jpg" alt="다섯 레인 분류를 설명하는 첫 실행 안내" width="1040" height="1040" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-4" aria-labelledby="tt-4" hidden>
         <img src="/media/app/ko/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" width="1040" height="1800" loading="lazy" decoding="async"></div>
     </div>
@@ -979,8 +1014,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="steps">
     <article class="step rv"><span class="sn">아침</span>
       <h3>이미 분류돼 있음</h3>
-      <p>밤새 온 메일은 당신이 앉기 전에 각자의 단계에 들어가 있고, 거기 간 이유를 달고 있습니다.
-        64통 중 당신 몫은 3통이었습니다.</p></article>
+      <p>밤새 온 메일은 당신이 앉기 전에 각자의 레인에 들어가 있고, 거기 간 이유를 달고 있습니다.
+        라벨링 세트 기준 53통 중 당신을 끊은 것은 4통이었습니다.</p></article>
     <article class="step rv"><span class="sn">일하는 중</span>
       <h3>한 줄, 배너 없음</h3>
       <p>Klorn은 화면 맨 위 네이티브 한 줄로 머뭅니다. QUEUE·INFO·SILENT는 절대 끊지 않고,
@@ -999,40 +1034,58 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <span class="tag rv">우리가 동의하지 않는 지점</span>
       <h2 class="rv">대부분의 이메일 AI가<br>갖지 않는 네 가지 입장.</h2>
     </div>
-    <p class="rv">기능이 아니라 선택입니다 — 각각은 Klorn에게 대가를 치르게 합니다. 이미 메일에 딸려 온
-      어시스턴트가 대신 무엇을 결정하는지와 나란히 놓았습니다.</p>
+    <p class="rv">기능이 아니라 선택입니다 — 각각은 Klorn에게 대가를 치르게 합니다. 당신이 실제로 저울질하고 있는
+      네 제품과, 실명으로 나란히 놓았습니다. 모든 주장의 근거는 각 비교 페이지에 있습니다.</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
       <div class="vscol ours"><span class="mk">K</span><b>Klorn</b></div>
-      <div class="vscol them"><span class="mk">—</span><b>당신 받은편지함의 어시스턴트</b></div>
+      <div class="vscol them"><span class="mk">4</span><b>Fyxer &middot; Superhuman &middot; Inbox Zero &middot; SaneBox</b></div>
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">01 · 누가 결정하나</span>
-        <p>분류하고 초안까지 쓴 뒤 <b>멈춥니다</b>. 전송·삭제·전달은 전부 당신을 기다리고 영수증을 남깁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">01 · 누가 결정하나</span>
-        <p>당신을 대신해 실행하고 나중에 알려줍니다. 안전장치는 실행 취소뿐입니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 &middot; 무엇이 당신에게 닿을지 누가 정하나</span>
+        <p>Klorn이 정합니다 — 메일 하나당 <b>다섯 레인</b> 중 하나로. 전송·삭제·전달은 여전히 당신을
+          기다리고, 각각 영수증을 남깁니다.</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; Superhuman"><span class="k">01 &middot; 무엇이 당신에게 닿을지 누가 정하나</span>
+        <p><b>Fyxer</b>와 <b>Superhuman</b>은 이미 연 메일을 더 빨리 처리하게 해줍니다. 무엇을 열 만했는지
+          판단하는 일은 여전히 당신 몫입니다. 하루 종일, 메일마다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">02 · 무엇이 보이나</span>
-        <p>고정된 다섯 단계, 그리고 <b>메일마다 붙는 이유</b>. 하나 옮기면 분류기가 배웁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">02 · 무엇이 보이나</span>
-        <p>중요 표시와 무제한 라벨. 이유는 없고, 고칠 것도 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 &middot; 왜 그렇게 판단했나</span>
+        <p><b>이유가 메일마다 붙습니다.</b> 옮기면 그 교정이 학습 신호가 되고, 같은 교정 두 번이면 그 발신자는
+          결정론적으로 고정됩니다.</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; SaneBox"><span class="k">02 &middot; 왜 그렇게 판단했나</span>
+        <p><b>Fyxer</b>는 이유를 보여주지 않습니다. <b>SaneBox</b>는 메일이 떨어진 폴더를 보고 당신이 추측해야
+          합니다. 둘 다 나중에 검증할 방법이 없습니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">03 · 무엇을 주장하나</span>
-        <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b>, 콜드/웜 별도 보고.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">03 · 무엇을 주장하나</span>
-        <p>월 $30에 "AI 기반." 숫자도, 평가셋도, 직접 돌려볼 것도 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; 무엇을 주장하나</span>
+        <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b> — <b>pnpm eval:real</b>로 직접
+          다시 돌릴 수 있고, 콜드/웜을 따로 보고합니다.</p></div>
+      <div class="vscell them" data-who="네 곳 전부"><span class="k">03 &middot; 무엇을 주장하나</span>
+        <p>&ldquo;AI 기반.&rdquo; 공개된 평가셋도, 콜드/웜 구분도, 그 숫자를 직접 대조해볼 방법도
+          없습니다.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">04 · 나가고 싶다면</span>
-        <p><b>AGPLv3</b>. 읽고, 당신 키로 셀프호스팅하고, 포크해서 떠나면 됩니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">04 · 나가고 싶다면</span>
-        <p>닫혀 있거나, 열려 있어도 뒤에 조항이 덧붙어 있습니다. 어느 쪽이든 무엇이 판단했는지는 읽을 수 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 &middot; 나가고 싶다면</span>
+        <p><b>수정 없는 AGPL-3.0.</b> 추가 조항 없음, 상업적 이용 제한 없음, 5인 조항 없음. 당신 키로
+          셀프호스팅하거나, 포크해서 떠나면 됩니다.</p></div>
+      <div class="vscell them" data-who="Inbox Zero"><span class="k">04 &middot; 나가고 싶다면</span>
+        <p><b>Inbox Zero</b>는 AGPL 뒤에 ADDITIONAL TERMS를 붙입니다 — 상업적 수익화 제한, 5인 이상 조직은
+          별도 라이선스 취득 의무. GitHub은 그 파일을 <b>NOASSERTION</b>으로 판정합니다. 나머지 셋은
+          닫혀 있습니다.</p></div>
     </div>
   </div>
+  <div class="vslinks rv">
+    <a class="vslink" href="/ko/vs/fyxer/"><b>vs Fyxer</b><span>당신 문체로 초안을 써주는 대가가 사용자당 월 $30. 닫혀 있고, 클라우드 전용이고, 이유는 없습니다.</span></a>
+    <a class="vslink" href="/ko/vs/superhuman/"><b>vs Superhuman</b><span>메일 한 통에 드는 시간을 절반으로 줄이는 것은, 당신이 고르지 않은 숫자에 곱하는 일입니다.</span></a>
+    <a class="vslink" href="/ko/vs/inbox-zero/"><b>vs Inbox Zero</b><span>두 LICENSE 파일을 탭 두 개로 열어보세요. 하나는 AGPL에서 끝납니다.</span></a>
+    <a class="vslink" href="/ko/vs/sanebox/"><b>vs SaneBox</b><span>본문을 읽지 않습니다 — 더 강한 프라이버시 문장, 그리고 그 대가.</span></a>
+  </div>
+  <p class="vsnote rv">가격과 제품 사실은 각 벤더가 공개한 내용이며 2026-08-23에 확인했습니다. 어느 쪽과도
+    정확도 직접 비교 테스트는 하지 않았고, 이 페이지는 그런 척하지 않습니다.
+    틀린 내용이 있나요? <a href="mailto:k0820086@gmail.com">알려주시면 고치겠습니다.</a></p>
 </section>
 
 <!-- ══ MEASURED ═════════════════════════════════════ -->
@@ -1050,11 +1103,12 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <h2 class="rv">실제 받은편지함에서 나온 숫자.</h2>
     </div>
     <p class="rv">모든 릴리스는 출시 전에 직접 라벨링한 실제 메일 데이터셋으로 채점합니다.
-      아래는 최신 수치이고, 평가셋은 공개 저장소에 있습니다.</p>
+      데이터셋은 커밋돼 있고, 실행기는 <b>pnpm eval:real</b>이며, 데이터셋이 바뀌지 않는 한
+      수치도 바뀌지 않습니다 — 이 페이지에 나오는 네 제품 중 어느 쪽도 공개하지 않는 것입니다.</p>
   </div>
   <div class="stats">
     <div class="stat rv"><div class="sv">94.3%</div><div class="sl">실제 메일 정확도</div>
-      <p>직접 라벨링한 실제 메일 53통 중 50통이 올바른 단계로 분류.</p></div>
+      <p>직접 라벨링한 실제 메일 53통 중 50통이 올바른 레인으로 분류.</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT 정밀도</div>
       <p>Klorn이 소음으로 보관할 때, 진짜 신호를 묻어버리는 일은 거의 없습니다.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">미승인 실행</div>
@@ -1063,34 +1117,6 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <p class="foot rv">2026년 7월, 실사용 받은편지함에서 뽑은 53통 직접 라벨링 데이터셋으로 측정.
     학습된 컨텍스트가 있는 웜 스타트 기준입니다 (콜드 스타트: 81.1%). 이 데이터셋은 Push·Queue·Silent만 라벨링돼 있습니다 — Meeting과 Info는 아직 라벨 샘플이 없어 정확도가 측정되지 않았고, 주장하지 않습니다.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">측정 방법과 평가셋 →</a></p>
-</section>
-
-<!-- ══ WORKS WITH ═══════════════════════════════════ -->
-<section class="sec" id="works">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">연동 범위</span>
-      <h2 class="rv">받기 전에<br>이것부터 확인하세요.</h2>
-    </div>
-    <p class="rv">Klorn은 당신의 메일을 읽습니다. 그래서 무엇에 연결되는지가 가장 먼저 알아야 할 것입니다 —
-      아직 연결되지 않는 것까지 포함해서.</p>
-  </div>
-  <div class="works rv">
-    <div class="work"><b>Gmail</b><span>구글 로그인. Pro에서는 여러 개.</span></div>
-    <div class="work"><b>네이버 메일</b><span>설정에서 IMAP으로 연결.</span></div>
-    <div class="work"><b>Google 캘린더</b><span>읽고, 당신 승인으로 일정 생성.</span></div>
-    <div class="work"><b>macOS 14+</b><span>유니버설 — 애플 실리콘과 인텔.</span></div>
-    <div class="work"><b>메일 언어 그대로</b><span>온 메일의 언어로 답장이 나갑니다.</span></div>
-    <div class="work"><b>인터페이스 7개 언어</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
-  </div>
-  <p class="works-note rv"><b>미지원:</b> 네이버 외의 IMAP 호스트. Klorn 로그인은 아직 구글만 되고,
-    네이티브 모바일 앱은 없습니다 — 지금 모바일은 브라우저로 실행됩니다.
-    윈도우 데스크탑 앱은 서명 전 베타입니다(SmartScreen 경고 1회) — 리눅스는 브라우저로 실행됩니다.
-    셀프호스팅은 당신의 DB와 모델 키로 동작합니다.</p>
-  <p class="works-note rv"><b>곧 지원:</b> Outlook·Microsoft 365, iCloud 메일 — 구현은 끝났고,
-    보안 심사 후 순차 공개됩니다. Apple·네이버 로그인은 웹과 맥 앱, 모바일 모두에 예정되어 있어
-    Klorn 계정 하나로 모든 기기를 씁니다. 네이티브 모바일 앱도 준비 중입니다.
-    나온 것은 아직 없고, 나오면 이 페이지에 올라옵니다.</p>
 </section>
 
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
@@ -1128,19 +1154,22 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">가격</span>
-      <h2 class="rv">무료로 시작하고, Klorn이<br>대신 실행할 때 업그레이드.</h2>
+      <h2 class="rv">$8.99. 이 카테고리의<br>나머지는 $30입니다.</h2>
     </div>
-    <p class="rv">분류는 영원히 무료입니다. Klorn이 당신 승인으로 초안을 쓰고 보내기 시작할 때만
-      결제합니다 — 실제로 돈이 드는 부분입니다.</p>
+    <p class="rv">분류는 영원히 무료입니다. 여기서 무료는 체험판이 아니라 요금제입니다 — 레인,
+      한 통마다 붙는 이유, 교정 루프까지 전부 값이 0입니다. 결제는 Klorn이 당신 승인으로 초안을 쓰고
+      보내기 시작할 때부터, 즉 메일당 실제 청구가 발생하는 부분부터입니다.</p>
   </div>
   <div class="prices">
     <article class="price rv"><div class="price-in">
       <span class="chip-s">무료</span>
       <h3>방화벽</h3>
       <div class="amt">$0<span>/월</span></div>
-      <p class="note">카드 등록 없음. 하루 AI 예산으로 지속 가능하게 유지합니다.</p>
+      <p class="note">카드 등록 없음, 만료 없음. Klorn은 하루 지출에 상한을 두고 초과하는 대신
+        멈춥니다 — 폭주 루프가 돌아도 당신에게 청구되는 돈은 없습니다. 그 상한이 있어서 분류가 체험판이
+        아니라 무료로 남을 수 있습니다.</p>
       <ul>
-        <li>다섯 단계 메일 방화벽 — 진짜 신호만 당신을 끊습니다</li>
+        <li>다섯 레인 메일 방화벽 — 진짜 신호만 당신을 끊습니다</li>
         <li>카드마다 근거가 붙는 결정 대기열</li>
         <li>모닝 브리핑과 캘린더 뷰</li>
         <li>당신의 메일을 근거로 답하는 어시스턴트</li>
@@ -1151,7 +1180,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <span class="chip-s dark">얼리 가격</span>
       <h3>Klorn Pro</h3>
       <div class="amt">$8.99<span>/월</span></div>
-      <p class="note">7일 Pro 체험 후 웹에서 월 $8.99. 언제든 해지할 수 있습니다.</p>
+      <p class="note">7일 Pro 체험 후 웹에서 월 $8.99 — iOS·Android 앱은 스토어 수수료가 붙어 $9.99입니다.
+        언제든 해지할 수 있습니다.</p>
       <ul>
         <li>무료의 모든 것 + 더 큰 AI 예산</li>
         <li>Klorn에서 승인하고 바로 보내는 답장 초안</li>
@@ -1161,6 +1191,38 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <a class="btn btn-1 full" href="https://app.klorn.ai/login?mode=register">7일 Pro 체험 시작 <i>↗</i></a>
     </div></article>
   </div>
+  <p class="price-anchor rv">각 회사가 스스로 공시한 월 가격, 2026-08-23 확인:
+    <b>Fyxer $30</b> · <b>Superhuman $30</b> · <b>Inbox Zero $20</b> · <b>SaneBox $3.49–16.99</b>.
+    어느 쪽과도 맞대결 테스트를 돌린 적 없고, 이 페이지는 돌린 척하지 않습니다 —
+    <a href="/ko/vs/fyxer/">비교 페이지</a>에 무엇이 측정된 것이고 무엇이 아닌지 그대로 적어뒀습니다.</p>
+</section>
+
+<!-- ══ WORKS WITH ═══════════════════════════════════ -->
+<section class="sec" id="works">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">연동 범위</span>
+      <h2 class="rv">받기 전에<br>이것부터 확인하세요.</h2>
+    </div>
+    <p class="rv">Klorn은 당신의 메일을 읽습니다. 그래서 무엇에 연결되는지가 가장 먼저 알아야 할 것입니다 —
+      아직 연결되지 않는 것까지 포함해서.</p>
+  </div>
+  <div class="works rv">
+    <div class="work"><b>Gmail</b><span>구글 로그인. Pro에서는 여러 개.</span></div>
+    <div class="work"><b>네이버 메일</b><span>설정에서 IMAP으로 연결.</span></div>
+    <div class="work"><b>Google 캘린더</b><span>읽고, 당신 승인으로 일정 생성.</span></div>
+    <div class="work"><b>macOS 14+</b><span>유니버설 — 애플 실리콘과 인텔.</span></div>
+    <div class="work"><b>메일 언어 그대로</b><span>온 메일의 언어로 답장이 나갑니다.</span></div>
+    <div class="work"><b>인터페이스 7개 언어</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
+  </div>
+  <p class="works-note rv"><b>미지원:</b> 네이버 외의 IMAP 호스트. Klorn 로그인은 아직 구글만 되고,
+    네이티브 모바일 앱은 없습니다 — 지금 모바일은 브라우저로 실행됩니다.
+    윈도우 데스크탑 앱은 서명 전 베타입니다(SmartScreen 경고 1회) — 리눅스는 브라우저로 실행됩니다.
+    셀프호스팅은 당신의 DB와 모델 키로 동작합니다.</p>
+  <p class="works-note rv"><b>곧 지원:</b> Outlook·Microsoft 365, iCloud 메일 — 구현은 끝났고,
+    보안 심사 후 순차 공개됩니다. Apple·네이버 로그인은 웹과 맥 앱, 모바일 모두에 예정되어 있어
+    Klorn 계정 하나로 모든 기기를 씁니다. 네이티브 모바일 앱도 준비 중입니다.
+    나온 것은 아직 없고, 나오면 이 페이지에 올라옵니다.</p>
 </section>
 
 <!-- ══ FAQ ══════════════════════════════════════════ -->
@@ -1172,10 +1234,6 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
   </div>
   <div class="faq">
-    <details class="faq-i rv"><summary>로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?</summary>
-      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를
-        받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로
-        제한됩니다.</p></details>
     <details class="faq-i rv"><summary>저 없이 뭔가 보낼 수 있나요?</summary>
       <p>아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴
         나간 내용의 해시가 박힌 영수증을 남깁니다.</p></details>
@@ -1187,10 +1245,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <p>옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 —
         콜드 81.1%와 웜 94.3%의 차이가 그겁니다.</p></details>
     <details class="faq-i rv"><summary>윈도우 앱은 언제인가요?</summary>
-      <p>나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 단계로 계속 쓸 수 있습니다.</p></details>
+      <p>나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 레인으로 계속 쓸 수 있습니다.</p></details>
     <details class="faq-i rv"><summary>AI가 요금을 폭주시킬 수 있나요?</summary>
       <p>아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가
         당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다.</p></details>
+    <details class="faq-i rv"><summary>로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?</summary>
+      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를
+        받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로
+        제한됩니다.</p></details>
   </div>
 </section>
 
@@ -1205,7 +1267,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
   <div class="wrapl rv">
     <h2 class="final-h">다음 세대의 받은편지함은<br><span class="ser">결정 대기열</span>입니다.</h2>
-    <p class="final-p">베타 기간 무료 — 구글 검수가 끝날 때까지 선착순 100명.</p>
+    <p class="final-p">분류는 무료이고 계속 무료입니다. 로그인은 구글 OAuth로 바로 — 초대장도, 대기자 명단도 없습니다. 제한은 선착순 100계정뿐입니다.</p>
     <div class="actions">
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">무료로 시작 <i>↗</i></a>
       <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
@@ -1222,7 +1284,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="wrapl foot-grid">
     <div>
       <a class="foot-brand" href="#top" data-top>Klorn</a>
-      <p class="foot-note">혼자서는 아무것도 결정하지 않는 이메일 비서실장.</p>
+      <p class="foot-note">읽고, 직접 돌리고, 언제든 떠날 수 있는 주의 방화벽. AGPL-3.0, 덧붙인 조항 없음.</p>
       <div class="socials">
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
         <a href="https://x.com/klornai" rel="noreferrer noopener" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
@@ -1511,7 +1573,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 })();
 
 // The hero demonstration. A visitor who reads only the headline still sees the
-// product do its one job: sixty-four messages arrive, four of them are yours.
+// product do its one job, on the numbers the committed eval set actually produced.
 (function () {
   var stage = document.getElementById('dm-stage');
   if (!stage) return;
@@ -1539,7 +1601,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   // Reduced motion gets the answer, not the animation.
   if (reduce) {
     Object.keys(totals).forEach(function (k) { cells[k].num.textContent = totals[k]; });
-    doneEl.textContent = '64';
+    doneEl.textContent = '53';
     stateEl.textContent = '분류 완료';
     return;
   }
@@ -1573,7 +1635,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       c.num.textContent = c.n;
       shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
       doneEl.textContent = shown;
-      if (shown >= 64) {
+      if (shown >= 53) {
         stateEl.textContent = '분류 완료';
         // Hold the finished board, then run the morning again. A demo that
         // stops dead reads as broken to anyone who scrolls back to it.
@@ -1587,7 +1649,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     }, 560);
 
     i++;
-    if (shown < 64) setTimeout(step, 1120);
+    if (shown < 53) setTimeout(step, 1120);
   }
   // Only run once the strip is actually on screen.
   new IntersectionObserver(function (es, ob) {
@@ -1655,7 +1717,14 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     { id: 8, t: 'info', from: '캘린더', subj: '3명이 초대를 수락했습니다',
       why: 'Klorn이 묻지 않고 처리했습니다',
       sum: '목요일 리뷰에 참석자 3명이 수락했습니다.',
-      body: '수락: 박정우, 최다은, 김서연.', r: null }
+      body: '수락: 박정우, 최다은, 김서연.', r: null },
+    { id: 9, t: 'meeting', from: '한지우', subj: '목요일 14시로 옮길 수 있을까요?',
+      why: '제안된 시간이 디자인 리뷰(14:00\u201315:00)와 겹칩니다',
+      sum: '로드맵 미팅을 목요일 14시로 옮기자는 제안입니다. 그 시간은 이미 차 있고, 15시는 양쪽 캘린더 모두 비어 있습니다.',
+      body: '안녕하세요,\n\n로드맵 미팅을 목요일 14시로 옮기면 저희 쪽은 더 좋습니다 \u2014 가능하실까요?\n\n한지우 드림',
+      r: ['목요일 14시는 이미 차 있습니다. 15시는 양쪽 다 비어 있는데 그때 괜찮으실까요?',
+          '이번 주 목요일은 어렵습니다. 금요일 오전이라면 가능합니다.',
+          '옮기기 전에 \u2014 가격 안건은 그대로 유지되는 건가요?'] }
   ];
   var TONE = ['수락', '거절', '질문'];
 

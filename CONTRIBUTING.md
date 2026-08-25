@@ -13,11 +13,13 @@ first.** It is the actual product; the code is downstream of it.
 - **Non-trivial change? Open an issue first.** Describe the problem before the
   patch. A 20-line fix to a real bug merges fast; a 200-line feature nobody
   agreed to does not.
-- **Check it fits the doctrine.** Klorn emits exactly one of four tiers
-  (`SILENT` / `QUEUE` / `PUSH` / `AUTO`) and surfaces nothing else — no
-  suggestion cards, no autonomous send, no agentic tool sprawl. A PR that adds
-  a new surface, a fifth tier, or an "AI thinks you should…" prompt is a
-  non-starter regardless of code quality. When in doubt, ask in an issue.
+- **Check it fits the doctrine.** Klorn emits exactly one of five lanes
+  (`PUSH` / `MEETING` / `QUEUE` / `INFO` / `SILENT`) and surfaces nothing else — no
+  suggestion cards, no autonomous send, no agentic tool sprawl. Automation is
+  deliberately *not* a lane: `AUTO` and `CALL` are retired v1 values that
+  `normalizeTier` folds away on read. A PR that adds a new surface, a sixth lane,
+  or an "AI thinks you should…" prompt is a non-starter regardless of code
+  quality. When in doubt, ask in an issue.
 - **Irreversible actions need a receipt.** Anything that sends, permanently
   deletes, or forwards externally must carry an `ActionReceipt` + `payloadHash`.
   Classification/labeling alone is content-hash-bound (see

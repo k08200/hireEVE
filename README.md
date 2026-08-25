@@ -27,7 +27,7 @@ Klorn does the opposite. Each inbound email gets exactly **one** classification 
 | **`INFO`** | Calm transactional record | Receipts, confirmations, status notices — filed, no reply ever expected. |
 | **`SILENT`** | Recorded, never rendered | The row exists for ground-truth feedback; you never see it. (marketing, noise) |
 
-Automation is deliberately **not** a lane. Each answerable email carries an `autoEligible` flag (reversible, high-confidence, trusted, calm), and the account has a mode: **BASIC** (only important mail and calendar events notify; you choose every reply) or **AUTO** (Klorn replies on its own — but only to eligible mail, under guidelines you set and can edit, and every send writes a signed receipt). Classification and delegation stay separate decisions.
+Automation is deliberately **not** a lane. Each answerable email carries an `autoEligible` flag (reversible, high-confidence, trusted, calm), and the account has a mode: **BASIC** (only important mail and calendar events notify; you choose every reply) or **AUTO** (Klorn replies on its own — but only to eligible mail, under guidelines you set and can edit, and every send writes a receipt pinning a hash of exactly what went out). Classification and delegation stay separate decisions.
 
 ## How Klorn compares
 
@@ -36,7 +36,7 @@ Automation is deliberately **not** a lane. Each answerable email carries an `aut
 | | Klorn | Generic AI email agents | Rule-based filters |
 | --- | --- | --- | --- |
 | Output | One decision per mail, with the reason shown | Chat surface / suggestion cards | Folder moves, no reasons |
-| Acting on your behalf | Approval-gated; unattended replies only in AUTO mode under your written guidelines, each send with a signed receipt | Often acts first, reports later | Never acts |
+| Acting on your behalf | Approval-gated; unattended replies only in AUTO mode under your written guidelines, each send with a receipt pinned to a payload hash | Often acts first, reports later | Never acts |
 | When it's wrong | Move the row — the correction is training signal (81.1% cold → 94.3% on real labeled mail) | Varies | You rewrite the rule |
 | Source & hosting | AGPLv3, self-hostable end to end | Closed SaaS | Built into the client |
 | AI spend | Hard daily budget cap — it stops rather than overspends | Metered | None |
@@ -335,7 +335,8 @@ Docker Compose ports: Web `3000`, API `3001`, PostgreSQL `5432`.
 pnpm --filter @klorn/web build
 pnpm --filter @klorn/api build
 pnpm --filter @klorn/api test
-pnpm eval:judge   # run the five-lane classifier against the committed gate set
+pnpm eval:judge   # classifier vs the synthetic gate set (judge-eval-set.json)
+pnpm eval:real    # classifier vs the 53 hand-labelled real emails (the 94.3% figure)
 packages/api/node_modules/.bin/biome check packages/
 ```
 

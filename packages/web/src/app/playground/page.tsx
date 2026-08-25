@@ -297,7 +297,7 @@ export default function PlaygroundPage() {
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-mid">
             No login. Paste an email, bring your own LLM key, and watch the same classifier the
-            firewall uses sort it into one of four tiers. Your key stays in this browser and is used
+            firewall uses sort it into one of five lanes. Your key stays in this browser and is used
             only for this one call — it is never stored on our servers.
           </p>
         </header>

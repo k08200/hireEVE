@@ -6,10 +6,10 @@
 
 <!-- English is always the default at klorn.ai. Korean is reached via the language
      toggle in the nav, which also auto-redirects a Korean-locale first visit. -->
-<title>Klorn — Du bruit en entrée. Du signal en sortie.</title>
-<meta name="description" content="Une app Mac qui trie votre courrier en cinq voies — Push, Meeting, Queue, Info, Silent — et vous dit pourquoi. Open source, auto-hébergeable, et elle n'envoie jamais rien en dehors des règles que vous définissez.">
-<meta property="og:title" content="Klorn — Du bruit en entrée. Du signal en sortie.">
-<meta property="og:description" content="Une app Mac qui trie votre courrier en cinq voies et vous dit pourquoi. Les autres agents IA agissent à votre place ; Klorn décide de ce qui mérite votre attention et n'agit que selon les règles que vous définissez.">
+<title>Klorn — Moins d'interruptions, pas un courrier plus rapide</title>
+<meta name="description" content="Range chaque message dans cinq files et y attache le motif. Superhuman et Fyxer coûtent 30 $ par mois et aucun ne dit pourquoi. AGPL-3.0, auto-hébergeable, 8,99 $.">
+<meta property="og:title" content="Klorn — Moins d'interruptions, pas un courrier plus rapide">
+<meta property="og:description" content="Klorn range chaque message dans l'une des cinq files — Push, Meeting, Queue, Info, Silent — et y attache le motif. Superhuman vend de la vitesse, Fyxer rédige la réponse ; les deux coûtent 30 $ par mois et aucun ne vous dit pourquoi un message est arrivé jusqu'à vous. AGPL-3.0, auto-hébergeable, et rien n'est envoyé sans votre accord.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://klorn.ai/fr/">
 <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
@@ -544,6 +544,27 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .vscell.them::before{color:var(--ink-3)}
 }
 
+/* The four products a buyer is actually deciding between, named, each linked to
+   the page that carries the receipt. These pages existed but were reachable only
+   from the footer, which is the same as not existing: a comparison nobody
+   reaches persuades nobody. Kept below the grid, not above it — the argument
+   earns the click, the click does not replace the argument. */
+.vslinks{max-width:1180px;margin:24px auto 0;padding:0 24px;display:grid;
+  grid-template-columns:repeat(4,1fr);gap:12px}
+.vslink{display:block;padding:16px 18px;border:1px solid var(--line);border-radius:14px;
+  background:#fff;transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.vslink:hover{border-color:rgba(3,105,161,.34);transform:translateY(-2px)}
+.vslink b{display:block;font-size:14px;font-weight:650;color:var(--sky-ink);
+  letter-spacing:-.01em;margin-bottom:5px}
+.vslink b::after{content:' \2192';font-weight:500}
+.vslink span{display:block;font-size:12.5px;line-height:1.5;color:var(--ink-3)}
+.vsnote{max-width:1180px;margin:16px auto 0;padding:0 24px;font-size:12px;line-height:1.6;
+  color:var(--ink-3)}
+.vsnote a{color:var(--sky-ink);font-weight:600}
+@media(max-width:980px){.vslinks{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.vslinks{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.vslink{transition:none}.vslink:hover{transform:none}}
+
 /* Language switch, in the nav where it belongs.
    A menu, not a row of buttons: two languages fit side by side, seven do not,
    and a control that has to be redesigned every time a language ships is the
@@ -620,7 +641,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   74%{opacity:1;transform:translateY(0)}
   100%{opacity:0;transform:translateY(-9px)}
 }
-.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
 .bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
   transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
 .bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
@@ -629,12 +650,21 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
 .bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
-.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
-.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
+.bk[data-t=push]{--c:#fb7185}.bk[data-t=queue]{--c:#fbbf24}
+.bk[data-t=silent]{--c:#a8a29e}.bk[data-t=meeting]{--c:#818cf8}
+.bk[data-t=info]{--c:#22d3ee}
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
-@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}}
+/* Three checkable facts under the fold-line. Every competitor in this category
+   puts a number on its hero; ours have to be ones a reader can go and verify. */
+.proof{list-style:none;margin:22px auto 0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:9px 26px;max-width:720px}
+.proof li{font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+.proof b{color:var(--ink);font-weight:700}
+.price-anchor{margin:22px auto 0;max-width:760px;text-align:center;font-size:12.5px;line-height:1.65;color:var(--ink-3)}
+.price-anchor b{color:var(--ink-2);font-weight:650}
+@media(max-width:760px){.buckets{grid-template-columns:repeat(2,1fr)}
+  .buckets .bk:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.mail.run{animation:none;opacity:1}}
 
 
@@ -737,7 +767,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "applicationCategory": "BusinessApplication",
  "url": "https://klorn.ai/",
  "inLanguage": "fr",
- "description": "Une app Mac qui trie votre courrier en cinq voies — Push, Meeting, Queue, Info, Silent — et vous dit pourquoi. Open source (AGPLv3), auto-hébergeable, et n'envoie jamais rien en dehors des règles que vous définissez.",
+ "description": "Klorn range chaque message dans l'une des cinq files — Push, Meeting, Queue, Info, Silent — et y attache le motif. Superhuman vend de la vitesse, Fyxer rédige la réponse ; les deux coûtent 30 $ par mois et aucun ne vous dit pourquoi un message est arrivé jusqu'à vous. AGPL-3.0, auto-hébergeable, et rien n'est envoyé sans votre accord.",
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
@@ -758,18 +788,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "mainEntity": [
   {
    "@type": "Question",
-   "name": "Pourquoi Google m'avertit-il à la connexion ?",
-   "acceptedAnswer": {
-    "@type": "Answer",
-    "text": "Lire votre courrier exige les scopes restreints de Google, et ceux-ci imposent une revue de sécurité avant\n        qu'une app soit marquée comme vérifiée. Tant que ce n'est pas réglé, vous voyez une fois un écran d'app non vérifiée, et la\n        bêta est limitée aux 100 premiers comptes."
-   }
-  },
-  {
-   "@type": "Question",
    "name": "Peut-il envoyer quelque chose sans moi ?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "Non. L'envoi, la suppression et le transfert attendent toujours une approbation explicite, et chacun écrit un reçu\n        signé contenant une empreinte de ce qui est parti, exactement."
+    "text": "Non. L'envoi, la suppression et le transfert attendent toujours une approbation explicite, et chacun écrit un reçu\n        qui épingle une empreinte de ce qui est parti, exactement."
    }
   },
   {
@@ -802,6 +824,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "acceptedAnswer": {
     "@type": "Answer",
     "text": "Non. Klorn plafonne sa propre dépense quotidienne et s'arrête plutôt que de dépasser — une boucle\n        emballée ne vous coûte rien. C'est ce plafond qui permet au tri de rester gratuit."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Pourquoi Google m'avertit-il à la connexion ?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Lire votre courrier exige les scopes restreints de Google, et ceux-ci imposent une revue de sécurité avant\n        qu'une app soit marquée comme vérifiée. Tant que ce n'est pas réglé, vous voyez une fois un écran d'app non vérifiée, et la\n        bêta est limitée aux 100 premiers comptes."
    }
   }
  ]
@@ -852,10 +882,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
   <div class="wrap">
     <span class="eyebrow rv">Mesuré sur du courrier réel <b>94.3%</b></span>
-    <h1 class="rv">Du bruit en entrée.<br><span class="ser">Du signal</span> en sortie.</h1>
-    <p class="lead rv"><b style="color:var(--ink);font-weight:650">Trie votre courrier en cinq voies et
-      vous dit pourquoi — sur le web, macOS et Windows.</b> Les autres agents IA agissent à votre place. Klorn décide de ce qui mérite
-      votre attention et n'agit que selon les règles que vous définissez.</p>
+    <h1 class="rv">Moins d'interruptions.<br>Pas un courrier plus <span class="ser">rapide</span>.</h1>
+    <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn range chaque message dans l'une des cinq files et y attache le motif.</b> Web, macOS et Windows. Superhuman vend de la vitesse. Fyxer rédige la réponse. Les deux coûtent 30 $ par mois et aucun ne vous dit pourquoi. Klorn répond d'abord à cette question, et n'envoie rien que vous n'ayez approuvé.</p>
     <div class="actions rv">
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">Commencer gratuitement <i>↗</i></a>
     </div>
@@ -872,6 +900,11 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <p class="actions-note rv">Gratuit, AGPLv3. L'app se connecte à votre compte Klorn —
       créez-en un en une minute environ.
       <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">Note de premier lancement ↗</a></p>
+    <ul class="proof rv">
+      <li><b>94,3 %</b> — 50 courriels sur 53 étiquetés à la main, et le jeu est dans le dépôt</li>
+      <li><b>Zéro</b> clause ajoutée à la licence AGPL-3.0</li>
+      <li><b>Votre serveur</b> lit votre courrier — auto-hébergé, votre clé ou un modèle local</li>
+    </ul>
   </div>
 
 
@@ -885,14 +918,16 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <div class="buckets" id="dm-buckets">
         <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
           <div class="v" data-v>0</div><p class="d">Vous interrompt maintenant</p></div>
+        <div class="bk" data-t="meeting"><div class="top"><span class="dot"></span><span class="nm">MEETING</span></div>
+          <div class="v" data-v>0</div><p class="d">Planification — vérifiée avec votre agenda</p></div>
         <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
           <div class="v" data-v>0</div><p class="d">À lire aujourd'hui</p></div>
+        <div class="bk" data-t="info"><div class="top"><span class="dot"></span><span class="nm">INFO</span></div>
+          <div class="v" data-v>0</div><p class="d">Reçus et confirmations — sans réponse</p></div>
         <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
           <div class="v" data-v>0</div><p class="d">Classé, pas supprimé</p></div>
-        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
-          <div class="v" data-v>0</div><p class="d">Traité sans vous</p></div>
       </div>
-      <p class="demo-foot">Sortie réelle du classifieur sur une boîte annotée à la main — 3 messages sur 64 avaient besoin de vous.</p>
+      <p class="demo-foot">Une illustration des cinq files, pas un banc d'essai. Les chiffres mesurés, et les files qu'ils ne couvrent pas encore, sont plus bas.</p>
     </div></div>
   </div>
 
@@ -936,7 +971,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
         <b>La queue, avec les raisons</b><span>Chaque ligne indique ce qui l'y a mise — corrigez-la en un clic.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
-        <b>Quatre mots, expliqués</b><span>Silent ne veut pas dire supprimé. Auto ne veut pas dire répondu. L'app le précise.</span></button>
+        <b>Cinq files, expliquées</b><span>Silent n'est pas supprimer. Info n'attend jamais de réponse. L'app le dit.</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
         <b>À vous de régler</b><span>Ce qu'il fait seul, et ce qui peut vous interrompre.</span></button>
     </div>
@@ -977,8 +1012,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         Soixante-quatre messages, trois qui vous revenaient.</p></article>
     <article class="step rv"><span class="sn">Pendant que vous travaillez</span>
       <h3>Une ligne, aucune bannière</h3>
-      <p>Klorn reste une seule ligne native en haut de l'écran. Queue, Silent et Auto n'interrompent
-        jamais — seul un vrai Push le fait, et c'est vous qui décidez de ce qui compte.</p></article>
+      <p>Klorn reste une seule ligne native en haut de l'écran. Queue, Info et Silent n'interrompent jamais. Seul Push le fait, et Meeting quand un horaire proposé attend une réponse — c'est vous qui fixez le seuil.</p></article>
     <article class="step rv"><span class="sn">Quand vous répondez</span>
       <h3>Trois brouillons, à vous de trancher</h3>
       <p>Accepter, refuser ou demander — une touche chacun, dans votre ton et la langue de l'expéditeur. Rien ne
@@ -990,43 +1024,49 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 <section class="sec" id="compare">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">Là où nous divergeons</span>
-      <h2 class="rv">Quatre partis pris que la plupart<br>des IA d'e-mail n'ont pas.</h2>
+      <span class="tag rv">Là où nous ne sommes pas d'accord</span>
+      <h2 class="rv">Quatre opinions que la plupart<br>des IA de courrier ne tiennent pas.</h2>
     </div>
-    <p class="rv">Ce sont des choix, pas des fonctionnalités — chacun coûte quelque chose à Klorn. Mis en regard de ce que
-      l'assistant déjà intégré à votre messagerie décide de faire à la place.</p>
+    <p class="rv">Ce sont des choix, pas des fonctionnalités, et chacun coûte quelque chose à Klorn. Nous les plaçons face aux quatre produits entre lesquels vous hésitez vraiment, nommément, avec la preuve de chaque affirmation sur sa propre page.</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
       <div class="vscol ours"><span class="mk">K</span><b>Klorn</b></div>
-      <div class="vscol them"><span class="mk">—</span><b>L'assistant intégré à votre boîte</b></div>
+      <div class="vscol them"><span class="mk">4</span><b>Fyxer &middot; Superhuman &middot; Inbox Zero &middot; SaneBox</b></div>
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">01 · Qui décide</span>
-        <p>Trie et rédige, puis <b>s'arrête</b>. Chaque envoi, suppression et transfert vous attend et génère un reçu.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">01 · Qui décide</span>
-        <p>Agit à votre place et vous prévient après coup. L'annulation sert de filet.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 &middot; Qui décide de ce qui vous parvient</span>
+        <p>Klorn — une classification par message, dans <b>cinq files</b>. Envoyer, supprimer et transférer vous attendent toujours, et chaque action émet un reçu.</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; Superhuman"><span class="k">01 &middot; Qui décide de ce qui vous parvient</span>
+        <p><b>Fyxer</b> et <b>Superhuman</b> accélèrent le traitement du courrier que vous avez déjà ouvert. La décision de savoir ce qui méritait d'être ouvert reste la vôtre, message après message, toute la journée.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">02 · Ce que vous voyez</span>
-        <p>Quatre niveaux fixes, et <b>la raison sur chaque message</b>. Déplacez-en un et le classifieur apprend.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">02 · Ce que vous voyez</span>
-        <p>Marqueurs de priorité et libellés illimités. Aucune raison donnée, et rien à corriger.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 &middot; Pourquoi cette décision</span>
+        <p><b>Le motif figure sur chaque ligne.</b> Déplacez la ligne et la correction devient un signal d'apprentissage : deux corrections concordantes rendent cet expéditeur déterministe.</p></div>
+      <div class="vscell them" data-who="Fyxer &middot; SaneBox"><span class="k">02 &middot; Pourquoi cette décision</span>
+        <p><b>Fyxer</b> ne l'expose pas. <b>SaneBox</b> vous laisse le déduire du dossier où le courrier a atterri. Aucune des deux décisions n'est auditable après coup.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">03 · Ce qu'il affirme</span>
-        <p><b>94.3%</b> sur un jeu annoté à la main livré dans le dépôt, résultats à froid et à chaud rapportés séparément.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">03 · Ce qu'il affirme</span>
-        <p>« Propulsé par l'IA. » Aucun chiffre, aucun jeu d'évaluation, aucun moyen de vérifier par vous-même.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; Ce qu'il affirme</span>
+        <p><b>94,3 %</b> sur un jeu étiqueté à la main livré dans le dépôt — rejouable avec <b>pnpm eval:real</b>, démarrage à froid et à chaud rapportés séparément.</p></div>
+      <div class="vscell them" data-who="Les quatre"><span class="k">03 &middot; Ce qu'il affirme</span>
+        <p>« Propulsé par l'IA ». Aucun jeu d'évaluation publié, aucune distinction froid/chaud, et rien que vous puissiez exécuter vous-même pour vérifier le chiffre.</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">04 · Si vous voulez partir</span>
-        <p><b>AGPLv3</b>. Lisez-le, auto-hébergez-le avec vos propres clés, ou forkez-le et partez.</p></div>
-      <div class="vscell them" data-who="Everyone else"><span class="k">04 · Si vous voulez partir</span>
-        <p>Fermé. Votre courrier sert de matière d'entraînement, et l'export est la seule sortie.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 &middot; Si vous voulez partir</span>
+        <p><b>AGPL-3.0 non modifiée.</b> Aucune clause ajoutée, aucune restriction d'usage commercial, aucune clause des 5 salariés. Auto-hébergez avec votre propre clé, ou forkez et partez.</p></div>
+      <div class="vscell them" data-who="Inbox Zero"><span class="k">04 &middot; Si vous voulez partir</span>
+        <p><b>Inbox Zero</b> ajoute des ADDITIONAL TERMS à la suite de son AGPL : monétisation commerciale restreinte, licence obligatoire pour les organisations de 5 personnes ou plus. GitHub résout ce fichier en <b>NOASSERTION</b>. Les trois autres sont fermés.</p></div>
     </div>
   </div>
+  <div class="vslinks rv">
+    <a class="vslink" href="/vs/fyxer/"><b>vs Fyxer</b><span>30 $ par utilisateur et par mois pour des brouillons dans votre style. Fermé, cloud uniquement, sans motif.</span></a>
+    <a class="vslink" href="/vs/superhuman/"><b>vs Superhuman</b><span>Diviser par deux le temps de chaque courriel, c'est multiplier un nombre que vous n'avez pas choisi.</span></a>
+    <a class="vslink" href="/vs/inbox-zero/"><b>vs Inbox Zero</b><span>Ouvrez les deux fichiers LICENSE dans deux onglets. L'un est l'AGPL, et il s'arrête là.</span></a>
+    <a class="vslink" href="/vs/sanebox/"><b>vs SaneBox</b><span>Il ne lit jamais le corps — la phrase de confidentialité la plus forte, et ce qu'elle coûte.</span></a>
+  </div>
+  <p class="vsnote rv">Prix et faits produits tels que publiés par chaque éditeur, vérifiés le 2026-08-23. Aucun test de précision en face-à-face n'a été mené contre l'un d'eux, et cette page ne prétend pas le contraire. Une erreur ici ? <a href="mailto:k0820086@gmail.com">Dites-le-nous, nous corrigerons.</a></p>
 </section>
 
 <!-- ══ MEASURED ═════════════════════════════════════ -->
@@ -1052,39 +1092,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">Précision de SILENT</div>
       <p>Quand Klorn classe un courrier comme du bruit, il n'enterre presque jamais un vrai signal.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">Actions non approuvées</div>
-      <p>Chaque envoi, suppression et transfert vous attend et enregistre un reçu signé.</p></div>
+      <p>Chaque envoi, suppression et transfert vous attend et enregistre un reçu qui épingle une empreinte de ce qui est parti.</p></div>
   </div>
-  <p class="foot rv">Mesuré en juillet 2026 sur un jeu de 53 e-mails annotés à la main issus d'une boîte active, démarrage à chaud avec
-    contexte appris (démarrage à froid : 81.1%).
+  <p class="foot rv">Mesuré en juillet 2026 sur un jeu de 53 courriels étiquetés à la main issus d'une boîte réelle, démarrage à chaud avec contexte appris (démarrage à froid : 81,1 %). Ce jeu n'est étiqueté que Push, Queue et Silent — Meeting et Info n'ont pas encore d'échantillons étiquetés, leur précision n'est donc pas mesurée et nous ne la revendiquons pas.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Méthodologie et jeu d'évaluation →</a></p>
-</section>
-
-<!-- ══ WORKS WITH ═══════════════════════════════════ -->
-<section class="sec" id="works">
-  <div class="sec-head">
-    <div style="flex:1 1 420px">
-      <span class="tag rv">Compatible avec</span>
-      <h2 class="rv">À vérifier avant<br>de télécharger.</h2>
-    </div>
-    <p class="rv">Klorn lit votre courrier : ce à quoi il se connecte est donc la première chose à savoir —
-      y compris ce à quoi il ne se connecte pas encore.</p>
-  </div>
-  <div class="works rv">
-    <div class="work"><b>Gmail</b><span>Connexion Google. Plusieurs boîtes avec Pro.</span></div>
-    <div class="work"><b>Naver Mail</b><span>Connecté en IMAP depuis les Réglages.</span></div>
-    <div class="work"><b>Google Calendar</b><span>Lecture, et création d'événements sur votre accord.</span></div>
-    <div class="work"><b>macOS 14+</b><span>Universal — Apple Silicon et Intel.</span></div>
-    <div class="work"><b>Toutes les langues de courrier</b><span>Les réponses reviennent dans la langue du message reçu.</span></div>
-    <div class="work"><b>7 langues d'interface</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
-  </div>
-  <p class="works-note rv"><b>Non pris en charge :</b> les hébergeurs IMAP autres que Naver. La connexion à Klorn passe
-    uniquement par Google, et il n'existe pas d'app mobile native — le mobile passe aujourd'hui par le navigateur.
-    Sous Windows, l'app de bureau est une bêta non signée (SmartScreen avertit une fois) ;
-    sous Linux, Klorn fonctionne dans le navigateur. L'auto-hébergement fonctionne avec votre propre base de données et vos propres clés de modèle.</p>
-  <p class="works-note rv"><b>Bientôt :</b> Outlook &amp; Microsoft 365 et iCloud Mail — déjà développés,
-    prêts pour un déploiement après la revue de sécurité. La connexion avec Apple et Naver est prévue sur le web, sur l'app Mac
-    comme sur mobile, pour qu'un seul compte Klorn couvre tous les appareils, et des apps mobiles natives sont en route.
-    Rien de tout cela n'est livré ; c'est sur cette page que ça arrivera le moment venu.</p>
 </section>
 
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
@@ -1117,17 +1128,16 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="sec-head">
     <div style="flex:1 1 420px">
       <span class="tag rv">Tarifs</span>
-      <h2 class="rv">Commencez gratuitement. Passez à Pro quand<br>Klorn agit pour vous.</h2>
+      <h2 class="rv">8,99 $. Le reste de<br>cette catégorie est à 30 $.</h2>
     </div>
-    <p class="rv">Le tri est gratuit pour toujours. Vous ne payez qu'à partir du moment où Klorn rédige et envoie sur
-      votre accord — la partie qui coûte vraiment à faire tourner.</p>
+    <p class="rv">Le tri est gratuit pour toujours, et ici gratuit veut dire une formule, pas un essai : les files, le motif sur chaque ligne et la boucle de correction ne coûtent rien. Vous ne payez qu'à partir du moment où Klorn rédige et envoie avec votre accord — la partie qui a une facture par message derrière elle.</p>
   </div>
   <div class="prices">
     <article class="price rv"><div class="price-in">
       <span class="chip-s">Gratuit</span>
       <h3>Le pare-feu</h3>
       <div class="amt">$0<span>/mois</span></div>
-      <p class="note">Sans carte. Un budget IA quotidien garde le service soutenable.</p>
+      <p class="note">Sans carte, sans expiration. Klorn plafonne lui-même sa dépense quotidienne et s'arrête plutôt que de dépasser : une boucle emballée ne vous coûte rien. C'est ce plafond qui permet au tri de rester gratuit au lieu de devenir un essai.</p>
       <ul>
         <li>Pare-feu de courrier à cinq voies — seuls les vrais signaux vous interrompent</li>
         <li>File de décisions avec les preuves sur chaque carte</li>
@@ -1140,7 +1150,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <span class="chip-s dark">Prix fondateur</span>
       <h3>Klorn Pro</h3>
       <div class="amt">$8.99<span>/mois</span></div>
-      <p class="note">Essai Pro de 7 jours, puis $8.99/mois sur le web. Annulable à tout moment.</p>
+      <p class="note">Essai Pro de 7 jours, puis 8,99 $ par mois sur le web — 9,99 $ dans les applications iOS et Android, où la boutique prend sa commission. Résiliable à tout moment.</p>
       <ul>
         <li>Tout le plan Gratuit, avec un budget IA plus large</li>
         <li>Brouillons de réponse que vous approuvez et envoyez depuis Klorn</li>
@@ -1150,6 +1160,38 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       <a class="btn btn-1 full" href="https://app.klorn.ai/login?mode=register">Démarrer l'essai Pro de 7 jours <i>↗</i></a>
     </div></article>
   </div>
+  <p class="price-anchor rv">Le prix mensuel publié par chaque éditeur, vérifié le 2026-08-23 :
+    <b>Fyxer 30 $</b> · <b>Superhuman 30 $</b> · <b>Inbox Zero 20 $</b> · <b>SaneBox 3,49–16,99 $</b>.
+    Nous n'avons mené aucun test comparatif direct contre l'un d'eux et cette page ne prétend pas le contraire —
+    <a href="/vs/fyxer/">les comparaisons</a> précisent exactement ce qui est mesuré et ce qui ne l'est pas.</p>
+</section>
+
+<!-- ══ WORKS WITH ═══════════════════════════════════ -->
+<section class="sec" id="works">
+  <div class="sec-head">
+    <div style="flex:1 1 420px">
+      <span class="tag rv">Compatible avec</span>
+      <h2 class="rv">À vérifier avant<br>de télécharger.</h2>
+    </div>
+    <p class="rv">Klorn lit votre courrier : ce à quoi il se connecte est donc la première chose à savoir —
+      y compris ce à quoi il ne se connecte pas encore.</p>
+  </div>
+  <div class="works rv">
+    <div class="work"><b>Gmail</b><span>Connexion Google. Plusieurs boîtes avec Pro.</span></div>
+    <div class="work"><b>Naver Mail</b><span>Connecté en IMAP depuis les Réglages.</span></div>
+    <div class="work"><b>Google Calendar</b><span>Lecture, et création d'événements sur votre accord.</span></div>
+    <div class="work"><b>macOS 14+</b><span>Universal — Apple Silicon et Intel.</span></div>
+    <div class="work"><b>Toutes les langues de courrier</b><span>Les réponses reviennent dans la langue du message reçu.</span></div>
+    <div class="work"><b>7 langues d'interface</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
+  </div>
+  <p class="works-note rv"><b>Non pris en charge :</b> les hébergeurs IMAP autres que Naver. La connexion à Klorn passe
+    uniquement par Google, et il n'existe pas d'app mobile native — le mobile passe aujourd'hui par le navigateur.
+    Sous Windows, l'app de bureau est une bêta non signée (SmartScreen avertit une fois) ;
+    sous Linux, Klorn fonctionne dans le navigateur. L'auto-hébergement fonctionne avec votre propre base de données et vos propres clés de modèle.</p>
+  <p class="works-note rv"><b>Bientôt :</b> Outlook &amp; Microsoft 365 et iCloud Mail — déjà développés,
+    prêts pour un déploiement après la revue de sécurité. La connexion avec Apple et Naver est prévue sur le web, sur l'app Mac
+    comme sur mobile, pour qu'un seul compte Klorn couvre tous les appareils, et des apps mobiles natives sont en route.
+    Rien de tout cela n'est livré ; c'est sur cette page que ça arrivera le moment venu.</p>
 </section>
 
 <!-- ══ FAQ ══════════════════════════════════════════ -->
@@ -1161,13 +1203,9 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
   </div>
   <div class="faq">
-    <details class="faq-i rv"><summary>Pourquoi Google m'avertit-il à la connexion ?</summary>
-      <p>Lire votre courrier exige les scopes restreints de Google, et ceux-ci imposent une revue de sécurité avant
-        qu'une app soit marquée comme vérifiée. Tant que ce n'est pas réglé, vous voyez une fois un écran d'app non vérifiée, et la
-        bêta est limitée aux 100 premiers comptes.</p></details>
     <details class="faq-i rv"><summary>Peut-il envoyer quelque chose sans moi ?</summary>
       <p>Non. L'envoi, la suppression et le transfert attendent toujours une approbation explicite, et chacun écrit un reçu
-        signé contenant une empreinte de ce qui est parti, exactement.</p></details>
+        qui épingle une empreinte de ce qui est parti, exactement.</p></details>
     <details class="faq-i rv"><summary>Où va réellement mon courrier ?</summary>
       <p>Au classifieur, puis retour. Vos jetons OAuth sont chiffrés au repos, et comme l'ensemble
         est sous AGPLv3 vous pouvez lire le code qui les manipule —
@@ -1181,6 +1219,10 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <details class="faq-i rv"><summary>L'IA peut-elle faire grimper la facture ?</summary>
       <p>Non. Klorn plafonne sa propre dépense quotidienne et s'arrête plutôt que de dépasser — une boucle
         emballée ne vous coûte rien. C'est ce plafond qui permet au tri de rester gratuit.</p></details>
+    <details class="faq-i rv"><summary>Pourquoi Google m'avertit-il à la connexion ?</summary>
+      <p>Lire votre courrier exige les scopes restreints de Google, et ceux-ci imposent une revue de sécurité avant
+        qu'une app soit marquée comme vérifiée. Tant que ce n'est pas réglé, vous voyez une fois un écran d'app non vérifiée, et la
+        bêta est limitée aux 100 premiers comptes.</p></details>
   </div>
 </section>
 
@@ -1195,7 +1237,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
   <div class="wrapl rv">
     <h2 class="final-h">La prochaine boîte de réception est<br>une <span class="ser">file de décisions.</span></h2>
-    <p class="final-p">Gratuit pendant la bêta — les 100 premiers comptes, jusqu'à la validation de la revue Google.</p>
+    <p class="final-p">Le tri est gratuit et le restera. La connexion se fait par Google OAuth, directement — sans invitation ni liste d'attente. La seule limite : les 100 premiers comptes.</p>
     <div class="actions">
       <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">Commencer gratuitement <i>↗</i></a>
       <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
@@ -1212,7 +1254,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="wrapl foot-grid">
     <div>
       <a class="foot-brand" href="#top" data-top>Klorn</a>
-      <p class="foot-note">Un chef de cabinet e-mail qui ne décide rien tout seul.</p>
+      <p class="foot-note">Un pare-feu d'attention que vous pouvez lire, exécuter et quitter. AGPL-3.0, sans rien d'ajouté.</p>
       <div class="socials">
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
         <a href="https://x.com/klornai" rel="noreferrer noopener" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
@@ -1508,16 +1550,16 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   var mails = [
     ['Sarah Kim', 'Re: Contract review — needs your sign-off today', 'push'],
     ['AWS Billing', 'Your July invoice is ready', 'silent'],
-    ['Alex Carter', 'Standup moved to 10:30', 'push'],
+    ['Alex Carter', 'Standup moved to 10:30 — does that work?', 'meeting'],
     ['Product Hunt', 'Today in tech: 12 new launches', 'silent'],
     ['Jordan Lee', 'Revised dashboard specs', 'queue'],
-    ['Calendar', 'Invitation accepted by 3 people', 'auto'],
+    ['Calendar', 'Invitation accepted by 3 people', 'info'],
     ['billing@vendor.io', 'Invoice #4821 is overdue', 'push'],
     ['Morning Brew', 'The 5 things you need to know', 'silent'],
     ['Casey Park', 'Onboarding flow ideas', 'queue'],
-    ['Stripe', 'Payment receipt', 'auto']
+    ['Stripe', 'Payment receipt', 'info']
   ];
-  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
+  var totals = { push: 3, meeting: 2, queue: 12, info: 8, silent: 39 };
   var cells = {};
   document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
     cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
@@ -1591,10 +1633,11 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: 'Interrupts you now' },
-    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: 'Read it today' },
-    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: 'Filed, not deleted' },
-    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: 'Handled without you' }
+    { id: 'push', name: 'Push', c: '#fb7185', blurb: 'Interrupts you now' },
+    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: 'Scheduling — checked against your calendar' },
+    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: 'Read it today' },
+    { id: 'info', name: 'Info', c: '#22d3ee', blurb: 'Receipts and confirmations — no reply expected' },
+    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: 'Filed, not deleted' }
   ];
   var mail = [
     { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
@@ -1611,7 +1654,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       r: ['Paying this today — apologies for the delay.',
           'This one is disputed; our team will follow up separately this week.',
           'Can you resend the invoice with the PO number on it?'] },
-    { id: 3, t: 'push', from: 'Alex Carter', subj: 'Standup moved to 10:30',
+    { id: 3, t: 'meeting', from: 'Alex Carter', subj: 'Standup moved to 10:30',
       why: 'Calendar conflict',
       sum: 'Tomorrow’s standup moves to 10:30, which overlaps your 10:15 review.',
       body: 'Moved tomorrow\'s standup to 10:30.\n\nDoes that still work for you?',
@@ -1633,14 +1676,21 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       why: 'Newsletter, never replied to',
       sum: 'Daily newsletter.',
       body: 'Today in business...', r: null },
-    { id: 7, t: 'silent', from: 'AWS Billing', subj: 'Your July invoice is ready',
+    { id: 7, t: 'info', from: 'AWS Billing', subj: 'Your July invoice is ready',
       why: 'Automated receipt',
       sum: 'Monthly infrastructure invoice, no action needed.',
       body: 'Your invoice is available in the billing console.', r: null },
-    { id: 8, t: 'auto', from: 'Calendar', subj: 'Invitation accepted by 3 people',
+    { id: 8, t: 'info', from: 'Calendar', subj: 'Invitation accepted by 3 people',
       why: 'Klorn filed this without asking',
       sum: 'Three attendees accepted the Thursday review.',
-      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null }
+      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null },
+    { id: 9, t: 'meeting', from: 'Priya Raman', subj: 'Can we do Thursday 14:00 instead?',
+      why: 'Proposed slot clashes with Design review (14:00\u201315:00)',
+      sum: 'Priya wants to move the roadmap call to Thursday 14:00. That hour is already booked; 15:00 is free on both calendars.',
+      body: 'Hi,\n\nThursday 14:00 works better on our side for the roadmap call \u2014 can you make that?\n\nPriya',
+      r: ['Thursday 14:00 is booked here. 15:00 is free on both of our calendars \u2014 does that work?',
+          "Thursday doesn't work this week. Friday morning is open if that helps.",
+          'Before we move it \u2014 is the pricing section still on the agenda?'] }
   ];
   var TONE = ['Accept', 'Decline', 'Ask'];
 
