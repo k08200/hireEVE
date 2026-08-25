@@ -17,6 +17,13 @@ Klorn does the opposite. Each inbound email gets exactly **one** classification 
 
 ▶️ **[31-second demo](website/media/klorn-demo.mp4)** · 🎬 **[14-second promo](website/media/klorn-promo.mp4)** · 🌐 **[Live demo on klorn.ai](https://klorn.ai)** · 📖 **[Editions](docs/EDITIONS.md)** · 📋 **[CHANGELOG](CHANGELOG.md)**
 
+> Both videos were recorded on 2026-08-10, before the five-lane flip, so their
+> captions still show the retired four-tier vocabulary. The generators are
+> corrected and guarded; re-rendering needs a live recording against the demo
+> account (`scripts/demo-video/README.md`). **[klorn.ai](https://klorn.ai) shows
+> the current five lanes**, and its app screenshots are drawn straight from the
+> shipping SwiftUI views by `KlornMac --render-previews`.
+
 ## The five lanes
 
 | Lane | What it means | What happens |
