@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Klorn vs SaneBox — triage that tells you why</title>
 <meta name="description" content="SaneBox moves mail into folders using header signals. Klorn reads the message, sorts it into five lanes, and shows the reason. Open source and self-hostable.">
+<meta property="og:title" content="Klorn vs SaneBox — triage that tells you why">
+<meta property="og:description" content="SaneBox moves mail into folders using header signals. Klorn reads the message, sorts it into five lanes, and shows the reason. Open source and self-hostable.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/vs/sanebox/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Klorn vs SaneBox — triage that tells you why">
+<meta name="twitter:description" content="SaneBox moves mail into folders using header signals. Klorn reads the message, sorts it into five lanes, and shows the reason. Open source and self-hostable.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
 <link rel="canonical" href="https://klorn.ai/vs/sanebox/">
 <link rel="alternate" hreflang="en" href="https://klorn.ai/vs/sanebox/">
 <link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/vs/sanebox/">
@@ -34,7 +46,7 @@
       <tr><th>Correcting it</th><td class="us">Move the row; two matching corrections make that sender deterministic</td><td>Drag between folders; it learns from the move</td></tr>
       <tr><th>Needs its own app</th><td class="us">No, if you use the label mode; there are also web, macOS and Windows clients</td><td><strong>No — it works inside whatever client you already use</strong></td></tr>
       <tr><th>Source &amp; hosting</th><td class="us"><strong>AGPL-3.0, self-hostable end to end</strong></td><td>Closed, cloud only</td></tr>
-      <tr><th>Published price</th><td class="us"><strong>$8.99/mo</strong> web · $9.99 iOS/Android</td><td>$3.49 Snack · $5.99 Lunch · $16.99 Dinner</td></tr>
+      <tr><th>Published price</th><td class="us"><strong><a href="/pricing/">$8.99/mo</a></strong> web · $9.99 iOS/Android</td><td>$3.49 Snack · $5.99 Lunch · $16.99 Dinner</td></tr>
     </tbody>
   </table>
   </div>
@@ -57,5 +69,33 @@
     <p>Prices and product facts as published by each vendor, checked 2026-08-23. Something here wrong? <a href="mailto:k0820086@gmail.com">Tell us</a> and we will fix it.</p>
   </footer>
 </div>
+<script>
+// Carry the campaign that produced the click through to the app, so a signup
+// can be attributed to the page that earned it. `lp` is the landing path —
+// without it every comparison page is indistinguishable from the home page in
+// the signup data. Same block as the landing pages; inline because it has to
+// run before anyone clicks.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>
