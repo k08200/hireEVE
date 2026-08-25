@@ -848,7 +848,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "잘못 분류하면요?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 — 콜드 81.1%와 웜 94.3%의 차이가 그겁니다."
+    "text": "옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 — 콜드 스타트와, 당신의 발신자를 이미 아는 분류기의 차이가 그겁니다."
    }
   },
   {
@@ -914,7 +914,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
 
   <div class="wrap">
-    <span class="eyebrow rv">실제 메일로 측정 <b>94.3%</b></span>
+    <span class="eyebrow rv">급한 메일은 숨기지 않습니다 &mdash; <b>CI가 강제</b></span>
     <h1 class="rv">덜 방해받는 것.<br><span class="ser">빨리</span> 처리하는 게 아니라.</h1>
     <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn은 모든 메일을 다섯 레인으로
       분류하고, 한 통마다 그 이유를 붙입니다.</b> 웹·macOS·Windows. Superhuman은 속도를 팝니다.
@@ -937,7 +937,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       계정 만드는 데 1분이면 됩니다.
       <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
     <ul class="hero-proof rv">
-      <li><b>94.3%</b> — 직접 라벨링한 메일 53통 중 50통. 그 세트가 리포에 있습니다</li>
+      <li><b>여기 있는 숫자는 전부 재현됩니다</b> &mdash; 평가셋이 리포에 있고, 재현되지 않게 된 수치는 2026년 8월에 내렸습니다</li>
       <li><b>0개</b> — AGPL-3.0 뒤에 덧붙인 조항</li>
       <li><b>당신의 서버</b>가 당신 메일을 읽습니다 — 셀프호스트, 내 키 또는 로컬 모델</li>
     </ul>
@@ -1091,8 +1091,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; 무엇을 주장하나</span>
-        <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b> — <b>pnpm eval:real</b>로 직접
-          다시 돌릴 수 있고, 콜드/웜을 따로 보고합니다.</p></div>
+        <p><b>다시 돌려볼 수 있는 숫자</b> &mdash; 평가셋이 전부 리포에 있습니다(<b>pnpm eval:judge</b>, <b>pnpm eval:real</b>). 재현되지 않게 된 수치는 이 페이지에서 내렸습니다.</p></div>
       <div class="vscell them" data-who="네 곳 전부"><span class="k">03 &middot; 무엇을 주장하나</span>
         <p>&ldquo;AI 기반.&rdquo; 공개된 평가셋도, 콜드/웜 구분도, 그 숫자를 직접 대조해볼 방법도
           없습니다.</p></div>
@@ -1137,15 +1136,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       수치도 바뀌지 않습니다 — 이 페이지에 나오는 네 제품 중 어느 쪽도 공개하지 않는 것입니다.</p>
   </div>
   <div class="stats">
-    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">실제 메일 정확도</div>
-      <p>직접 라벨링한 실제 메일 53통 중 50통이 올바른 레인으로 분류.</p></div>
+    <div class="stat rv"><div class="sv">&ge;90%</div><div class="sl">긴급 메일 재현율 (CI 하한)</div>
+      <p>긴급 메일 재현율이 하한 아래로 떨어지는 변경은 빌드가 실패합니다.</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT 정밀도</div>
       <p>Klorn이 소음으로 보관할 때, 진짜 신호를 묻어버리는 일은 거의 없습니다.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">미승인 실행</div>
       <p>전송·삭제·전달은 전부 당신을 기다리고 나간 내용의 해시가 박힌 영수증을 남깁니다.</p></div>
   </div>
-  <p class="foot rv">2026년 7월, 실사용 받은편지함에서 뽑은 53통 직접 라벨링 데이터셋으로 측정.
-    학습된 컨텍스트가 있는 웜 스타트 기준입니다 (콜드 스타트: 81.1%). 이 데이터셋은 Push·Queue·Silent만 라벨링돼 있습니다 — Meeting과 Info는 아직 라벨 샘플이 없어 정확도가 측정되지 않았고, 주장하지 않습니다.
+  <p class="foot rv">직접 라벨링한 실제 메일 세트는 재라벨링 중입니다. 이 세트는 Meeting·Info 레인이 생기기 전에 만들어져 두 레인을 채점할 수 없고, 그래서 이 세트에서 나온 대표 정확도 수치는 더 이상 싣지 않습니다. 위의 Silent 정밀도는 같은 세트에서 측정되지만 이 문제의 영향을 받지 않습니다. 리포에 커밋된 합성 게이트셋은 판정기가 바뀔 때마다 하한과 함께 CI에서 실행됩니다.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">측정 방법과 평가셋 →</a></p>
 </section>
 
@@ -1273,7 +1271,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">직접 돌려도 됩니다</a>.</p></details>
     <details class="faq-i rv"><summary>잘못 분류하면요?</summary>
       <p>옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 —
-        콜드 81.1%와 웜 94.3%의 차이가 그겁니다.</p></details>
+        콜드 스타트와, 당신의 발신자를 이미 아는 분류기의 차이가 그겁니다.</p></details>
     <details class="faq-i rv"><summary>윈도우 앱은 언제인가요?</summary>
       <p>나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 레인으로 계속 쓸 수 있습니다.</p></details>
     <details class="faq-i rv"><summary>AI가 요금을 폭주시킬 수 있나요?</summary>

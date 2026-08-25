@@ -837,7 +837,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "Et s'il classe quelque chose au mauvais endroit ?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "Déplacez-le. Chaque message indique pourquoi il a atterri là, et c'est de la correction que le\n        classifieur apprend — c'est la différence entre 81.1% à froid et 94.3% à chaud."
+    "text": "Déplacez-le. Chaque message indique pourquoi il a atterri là, et c'est de la correction que le\n        classifieur apprend — c'est la différence entre un démarrage à froid et un classifieur qui connaît déjà vos expéditeurs."
    }
   },
   {
@@ -911,7 +911,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
 
   <div class="wrap">
-    <span class="eyebrow rv">Mesuré sur du courrier réel <b>94.3%</b></span>
+    <span class="eyebrow rv">Ne masque jamais un message urgent &mdash; <b>imposé en CI</b></span>
     <h1 class="rv">Moins d'interruptions.<br>Pas un courrier plus <span class="ser">rapide</span>.</h1>
     <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn range chaque message dans l'une des cinq files et y attache le motif.</b> Web, macOS et Windows. Superhuman vend de la vitesse. Fyxer rédige la réponse. Les deux coûtent 30 $ par mois et aucun ne vous dit pourquoi. Klorn répond d'abord à cette question, et n'envoie rien que vous n'ayez approuvé.</p>
     <div class="actions rv">
@@ -931,7 +931,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       créez-en un en une minute environ.
       <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">Note de premier lancement ↗</a></p>
     <ul class="hero-proof rv">
-      <li><b>94,3 %</b> — 50 courriels sur 53 étiquetés à la main, et le jeu est dans le dépôt</li>
+      <li><b>Chaque chiffre ici se rejoue</b> &mdash; les jeux d'évaluation sont dans le dépôt, et l'un d'eux, qui ne se reproduisait plus, a été retiré en août 2026</li>
       <li><b>Zéro</b> clause ajoutée à la licence AGPL-3.0</li>
       <li><b>Votre serveur</b> lit votre courrier — auto-hébergé, votre clé ou un modèle local</li>
     </ul>
@@ -1079,7 +1079,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; Ce qu'il affirme</span>
-        <p><b>94,3 %</b> sur un jeu étiqueté à la main livré dans le dépôt — rejouable avec <b>pnpm eval:real</b>, démarrage à froid et à chaud rapportés séparément.</p></div>
+        <p><b>Des chiffres qui se rejouent</b> &mdash; tous les jeux d'évaluation sont dans le dépôt (<b>pnpm eval:judge</b>, <b>pnpm eval:real</b>). Quand l'un a cessé de se reproduire, nous l'avons retiré de cette page.</p></div>
       <div class="vscell them" data-who="Les quatre"><span class="k">03 &middot; Ce qu'il affirme</span>
         <p>« Propulsé par l'IA ». Aucun jeu d'évaluation publié, aucune distinction froid/chaud, et rien que vous puissiez exécuter vous-même pour vérifier le chiffre.</p></div>
     </div>
@@ -1117,14 +1117,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       Voici les derniers chiffres, et le jeu d'évaluation est dans le dépôt ouvert.</p>
   </div>
   <div class="stats">
-    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">Précision sur courrier réel</div>
-      <p>50 e-mails réels sur 53, annotés à la main, classés dans le bon niveau.</p></div>
+    <div class="stat rv"><div class="sv">&ge;90%</div><div class="sl">Rappel des urgents, plancher CI</div>
+      <p>Un changement qui fait passer le rappel des urgents sous le plancher casse la build.</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">Précision de SILENT</div>
       <p>Quand Klorn classe un courrier comme du bruit, il n'enterre presque jamais un vrai signal.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">Actions non approuvées</div>
       <p>Chaque envoi, suppression et transfert vous attend et enregistre un reçu qui épingle une empreinte de ce qui est parti.</p></div>
   </div>
-  <p class="foot rv">Mesuré en juillet 2026 sur un jeu de 53 courriels étiquetés à la main issus d'une boîte réelle, démarrage à chaud avec contexte appris (démarrage à froid : 81,1 %). Ce jeu n'est étiqueté que Push, Queue et Silent — Meeting et Info n'ont pas encore d'échantillons étiquetés, leur précision n'est donc pas mesurée et nous ne la revendiquons pas.
+  <p class="foot rv">Le jeu de courrier réel étiqueté à la main est en cours de réétiquetage : il est antérieur aux voies Meeting et Info, il ne peut donc pas les noter, et nous n'en citons plus de chiffre de précision en vitrine. La précision Silent ci-dessus est mesurée sur ce jeu et n'est pas affectée. Le jeu synthétique versionné dans le dépôt tourne à chaque changement du classifieur, avec ses planchers imposés en CI.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Méthodologie et jeu d'évaluation →</a></p>
 </section>
 
@@ -1242,7 +1242,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">ou l'héberger vous-même</a>.</p></details>
     <details class="faq-i rv"><summary>Et s'il classe quelque chose au mauvais endroit ?</summary>
       <p>Déplacez-le. Chaque message indique pourquoi il a atterri là, et c'est de la correction que le
-        classifieur apprend — c'est la différence entre 81.1% à froid et 94.3% à chaud.</p></details>
+        classifieur apprend — c'est la différence entre un démarrage à froid et un classifieur qui connaît déjà vos expéditeurs.</p></details>
     <details class="faq-i rv"><summary>Quand arrive l'app Windows ?</summary>
       <p>Déjà livrée, en bêta non signée — SmartScreen avertit une fois tant que l'app n'est pas signée. L'app web
         reste accessible dans n'importe quel navigateur, avec le même compte et les mêmes niveaux.</p></details>

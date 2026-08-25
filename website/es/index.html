@@ -837,7 +837,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "¿Y si clasifica algo mal?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "Muévelo. Cada mensaje muestra por qué cayó donde cayó, y la corrección es de lo que aprende el\n        clasificador — esa es la diferencia entre 81.1% en frío y 94.3% en caliente."
+    "text": "Muévelo. Cada mensaje muestra por qué cayó donde cayó, y la corrección es de lo que aprende el\n        clasificador — esa es la diferencia entre un arranque en frío y un clasificador que ya conoce a tus remitentes."
    }
   },
   {
@@ -911,7 +911,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
 
   <div class="wrap">
-    <span class="eyebrow rv">Medido con correo real <b>94.3%</b></span>
+    <span class="eyebrow rv">Nunca oculta correo urgente &mdash; <b>impuesto en CI</b></span>
     <h1 class="rv">Menos interrupciones.<br>No correo más <span class="ser">rápido</span>.</h1>
     <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn clasifica cada mensaje en cinco carriles y le añade el motivo.</b> Web, macOS y Windows. Superhuman vende velocidad. Fyxer escribe la respuesta. Ambos cuestan $30 al mes y ninguno te dice por qué. Klorn responde primero a esa pregunta y no envía nada que no hayas aprobado.</p>
     <div class="actions rv">
@@ -931,7 +931,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       crear una lleva alrededor de un minuto.
       <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">Nota del primer inicio ↗</a></p>
     <ul class="hero-proof rv">
-      <li><b>94.3%</b> — 50 de 53 correos etiquetados a mano, y el conjunto está en el repositorio</li>
+      <li><b>Cada cifra aquí se vuelve a ejecutar</b> &mdash; los conjuntos de evaluación están en el repositorio, y una que dejó de reproducirse se retiró en agosto de 2026</li>
       <li><b>Cero</b> cláusulas añadidas a la licencia AGPL-3.0</li>
       <li><b>Tu servidor</b> lee tu correo: autoalojado, con tu clave o un modelo local</li>
     </ul>
@@ -1079,7 +1079,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; Qué afirma</span>
-        <p><b>94.3%</b> sobre un conjunto etiquetado a mano que viaja en el repositorio, repetible con <b>pnpm eval:real</b>, con arranque en frío y en caliente informados por separado.</p></div>
+        <p><b>Cifras que se vuelven a ejecutar</b> &mdash; todos los conjuntos de evaluación viajan en el repositorio (<b>pnpm eval:judge</b>, <b>pnpm eval:real</b>). Cuando una dejó de reproducirse, la quitamos de esta página.</p></div>
       <div class="vscell them" data-who="Los cuatro"><span class="k">03 &middot; Qué afirma</span>
         <p>«Con IA». Sin conjunto de evaluación publicado, sin distinción entre frío y caliente, y sin nada que puedas ejecutar tú para contrastar la cifra.</p></div>
     </div>
@@ -1117,14 +1117,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       Estas son las últimas cifras, y el conjunto de evaluación está en el repo abierto.</p>
   </div>
   <div class="stats">
-    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">Precisión con correo real</div>
-      <p>50 de 53 correos reales etiquetados a mano cayeron en el nivel correcto.</p></div>
+    <div class="stat rv"><div class="sv">&ge;90%</div><div class="sl">Cobertura de urgentes, mínimo en CI</div>
+      <p>Un cambio que baje la cobertura de urgentes por debajo del mínimo rompe la compilación.</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">Precisión de SILENT</div>
       <p>Cuando Klorn archiva un correo como ruido, casi nunca entierra una señal real.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">Acciones sin aprobar</div>
       <p>Cada envío, borrado y reenvío te espera y registra un recibo que fija un hash de lo que salió.</p></div>
   </div>
-  <p class="foot rv">Medido en julio de 2026 sobre un conjunto de 53 correos etiquetados a mano de una bandeja real, en arranque en caliente con contexto aprendido (arranque en frío: 81,1%). Ese conjunto solo está etiquetado como Push, Queue y Silent: Meeting e Info aún no tienen muestras etiquetadas, así que su precisión no está medida y no la afirmamos.
+  <p class="foot rv">El conjunto de correo real etiquetado a mano se está volviendo a etiquetar: es anterior a los carriles Meeting e Info, así que no puede puntuarlos, y ya no citamos de él una cifra de precisión destacada. La precisión de Silent de arriba se mide sobre ese conjunto y no se ve afectada. El conjunto sintético versionado en el repositorio se ejecuta en cada cambio del clasificador, con sus mínimos impuestos en CI.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Metodología y conjunto de evaluación →</a></p>
 </section>
 
@@ -1242,7 +1242,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">o ejecutarlo tú mismo</a>.</p></details>
     <details class="faq-i rv"><summary>¿Y si clasifica algo mal?</summary>
       <p>Muévelo. Cada mensaje muestra por qué cayó donde cayó, y la corrección es de lo que aprende el
-        clasificador — esa es la diferencia entre 81.1% en frío y 94.3% en caliente.</p></details>
+        clasificador — esa es la diferencia entre un arranque en frío y un clasificador que ya conoce a tus remitentes.</p></details>
     <details class="faq-i rv"><summary>¿Cuándo llega la app de Windows?</summary>
       <p>Ya está publicada, como beta sin firmar — SmartScreen avisa una vez hasta que la app esté firmada. La app web
         sigue disponible en cualquier navegador con la misma cuenta y los mismos niveles.</p></details>

@@ -848,7 +848,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "What if it files something wrong?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "Move it. Every message shows why it landed where it did, and the correction is what the classifier learns from — that is the difference between 81.1% cold and 94.3% warm."
+    "text": "Move it. Every message shows why it landed where it did, and the correction is what the classifier learns from — that is the difference between a cold start and a classifier that already knows your senders."
    }
   },
   {
@@ -914,7 +914,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
 
   <div class="wrap">
-    <span class="eyebrow rv">Measured on real mail <b>94.3%</b></span>
+    <span class="eyebrow rv">Never hides urgent mail &mdash; <b>enforced in CI</b></span>
     <h1 class="rv">Fewer interruptions.<br>Not <span class="ser">faster</span> email.</h1>
     <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn sorts every message into five
       lanes and puts the reason on each one</b> — web, macOS and Windows. Superhuman sells speed.
@@ -937,7 +937,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       create one in about a minute.
       <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">First-launch note ↗</a></p>
     <ul class="hero-proof rv">
-      <li><b>94.3%</b> — 50 of 53 hand-labelled emails, and the set is in the repo</li>
+      <li><b>Every number here re-runs</b> &mdash; the eval sets ship in the repo, and one that stopped reproducing was retired in August 2026</li>
       <li><b>Zero</b> terms appended to the AGPL-3.0 licence</li>
       <li><b>Your server</b> reads your mail — self-host it, your key or a local model</li>
     </ul>
@@ -1091,8 +1091,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; What it claims</span>
-        <p><b>94.3%</b> on a hand-labeled set that ships in the repo — re-runnable with
-          <b>pnpm eval:real</b>, cold and warm reported separately.</p></div>
+        <p>Numbers that <b>re-run</b> &mdash; every eval set ships in the repo (<b>pnpm eval:judge</b>, <b>pnpm eval:real</b>). When one stopped reproducing, we took it off this page.</p></div>
       <div class="vscell them" data-who="All four"><span class="k">03 &middot; What it claims</span>
         <p>&ldquo;AI-powered.&rdquo; No published evaluation set, no cold-versus-warm split, and nothing you
           can run yourself to check the number against.</p></div>
@@ -1137,15 +1136,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       set does — which is more than any of the four products on this page publishes.</p>
   </div>
   <div class="stats">
-    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">Real-mail accuracy</div>
-      <p>50 of 53 hand-labelled real emails sorted into the right lane.</p></div>
+    <div class="stat rv"><div class="sv">&ge;90%</div><div class="sl">Urgent recall, CI floor</div>
+      <p>A change that drops urgent recall below the floor fails the build.</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">Silent precision</div>
       <p>When Klorn files mail as noise, it almost never buries a real signal.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">Unapproved actions</div>
       <p>Every send, delete and forward waits for you and logs a receipt pinned to a hash of what went out.</p></div>
   </div>
-  <p class="foot rv">Measured July 2026 on a 53-email hand-labeled set from a live inbox, warm-start with
-    learned context (cold-start: 81.1%). That set is labelled Push, Queue and Silent only — Meeting and Info have no labelled samples yet, so their accuracy is unmeasured and we do not claim it.
+  <p class="foot rv">The hand-labelled real-mail set is being re-labelled: it predates the Meeting and Info lanes, so it cannot score them, and we no longer quote a headline accuracy from it. Silent precision above is measured on that set and is unaffected. The committed synthetic gate set runs on every judge change, with its floors enforced in CI.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Methodology and eval set →</a></p>
 </section>
 
@@ -1273,7 +1271,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">or run it yourself</a>.</p></details>
     <details class="faq-i rv"><summary>What if it files something wrong?</summary>
       <p>Move it. Every message shows why it landed where it did, and the correction is what the
-        classifier learns from — that is the difference between 81.1% cold and 94.3% warm.</p></details>
+        classifier learns from — that is the difference between a cold start and a classifier that already knows your senders.</p></details>
     <details class="faq-i rv"><summary>When is the Windows app?</summary>
       <p>Shipped, as an unsigned beta — SmartScreen warns once until the app is code-signed. The web app
         remains available in any browser with the same account and tiers.</p></details>
