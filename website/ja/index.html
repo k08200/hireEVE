@@ -1,25 +1,17 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="alternate" hreflang="en" href="https://klorn.ai/">
-<link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/">
-<link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/">
-<link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/">
-<link rel="alternate" hreflang="es" href="https://klorn.ai/es/">
-<link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/">
-<link rel="alternate" hreflang="de" href="https://klorn.ai/de/">
-<link rel="alternate" hreflang="x-default" href="https://klorn.ai/">
-<link rel="canonical" href="https://klorn.ai/ko/">
-<!-- The KO page never auto-redirects: the language script only runs on the site
-     root, so a visitor who lands here stays here. -->
-<title>Klorn — 소음은 들어오고, 신호만 남는다</title>
-<meta name="description" content="메일을 Push / Meeting / Queue / Info / Silent 다섯 단계로 분류하고, 그 이유까지 알려주는 맥 앱. 오픈소스, 셀프호스팅 가능, 당신이 정한 규칙 밖에서는 아무것도 보내지 않습니다.">
-<meta property="og:title" content="Klorn — 소음은 들어오고, 신호만 남는다">
-<meta property="og:description" content="메일을 다섯 단계로 분류하고 그 이유를 알려주는 맥 앱. 다른 AI 에이전트는 당신을 대신해 행동합니다. Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.">
+
+<!-- English is always the default at klorn.ai. Korean is reached via the language
+     toggle in the nav, which also auto-redirects a Korean-locale first visit. -->
+<title>Klorn — ノイズを入れ、シグナルを返す。</title>
+<meta name="description" content="メールを5つのレーン — Push、Meeting、Queue、Info、Silent — に仕分けし、その理由まで示すMacアプリ。オープンソースでセルフホスト可能。あなたが決めたルールの外では、何も送信しません。">
+<meta property="og:title" content="Klorn — ノイズを入れ、シグナルを返す。">
+<meta property="og:description" content="メールを5つのレーンに仕分けし、その理由まで示すMacアプリ。他のAIエージェントがあなたの代わりに動くのに対し、Klornは何があなたの注意に値するかを判断し、あなたが決めたルールでのみ動きます。">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://klorn.ai/ko/">
+<meta property="og:url" content="https://klorn.ai/ja/">
 <meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -628,7 +620,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   74%{opacity:1;transform:translateY(0)}
   100%{opacity:0;transform:translateY(-9px)}
 }
-.buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.buckets{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .bk{border-radius:13px;padding:12px 13px;background:#fff;border:1px solid var(--line);
   transition:border-color .5s var(--ease),transform .5s var(--ease),box-shadow .5s var(--ease)}
 .bk.hit{transform:translateY(-3px);box-shadow:0 16px 30px -20px rgba(8,42,80,.5)}
@@ -637,9 +629,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 .bk .nm{font-size:11.5px;font-weight:700;letter-spacing:.04em}
 .bk .v{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .bk .d{margin:4px 0 0;font-size:11px;color:var(--ink-3);line-height:1.4}
-.bk[data-t=push]{--c:#fb7185}.bk[data-t=queue]{--c:#fbbf24}
-.bk[data-t=silent]{--c:#a8a29e}.bk[data-t=meeting]{--c:#818cf8}
-.bk[data-t=info]{--c:#22d3ee}
+.bk[data-t=push]{--c:#ff4d57}.bk[data-t=queue]{--c:#d97706}
+.bk[data-t=silent]{--c:#7c848e}.bk[data-t=auto]{--c:#3b82f6}
 .bk .dot{background:var(--c)}
 .bk.hit{border-color:var(--c)}
 .demo-foot{margin:13px 0 0;font-size:12px;color:var(--ink-3)}
@@ -738,16 +729,15 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .chip{animation:none}
 }
 </style>
-<script type="application/ld+json">
-{
+<script type="application/ld+json">{
  "@context": "https://schema.org",
  "@type": "SoftwareApplication",
  "name": "Klorn",
  "operatingSystem": "macOS, Windows, Web",
  "applicationCategory": "BusinessApplication",
- "url": "https://klorn.ai/ko/",
- "inLanguage": "ko",
- "description": "메일을 다섯 단계 — Push, Meeting, Queue, Info, Silent — 로 분류하고 이유를 보여주는 Mac 앱. 오픈소스(AGPLv3), 셀프호스팅 가능, 정한 규칙 밖으로는 아무것도 보내지 않습니다.",
+ "url": "https://klorn.ai/",
+ "inLanguage": "ja",
+ "description": "メールを5つのレーン — Push、Meeting、Queue、Info、Silent — に仕分けし、その理由まで示すMacアプリ。オープンソース（AGPLv3）、セルフホスト可能で、あなたが決めたルールの外では何も送信しません。",
  "sameAs": [
   "https://github.com/k08200/klorn"
  ],
@@ -755,70 +745,76 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   "@type": "Offer",
   "price": "0",
   "priceCurrency": "USD",
-  "description": "Invite-only beta; mail sorting is free with a daily AI budget cap."
+  "description": "招待制ベータ。メールの仕分けは無料で、AI利用には1日あたりの上限があります。"
  },
  "softwareHelp": {
   "@type": "CreativeWork",
   "url": "https://github.com/k08200/klorn#readme"
  }
-}
-</script>
-<script type="application/ld+json">
-{
+}</script>
+<script type="application/ld+json">{
  "@context": "https://schema.org",
  "@type": "FAQPage",
  "mainEntity": [
   {
    "@type": "Question",
-   "name": "로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?",
+   "name": "サインインするとGoogleが警告を出すのはなぜですか？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를 받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로 제한됩니다."
+    "text": "メールを読むにはGoogleの制限付きスコープが必要で、アプリが確認済みになるにはセキュリティレビューを\n        通す必要があります。それが通るまでは未確認アプリの画面が一度表示され、ベータは先着100アカウントに\n        限定されます。"
    }
   },
   {
    "@type": "Question",
-   "name": "저 없이 뭔가 보낼 수 있나요?",
+   "name": "私の承認なしに何かを送信することはありますか？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 박힌 영수증을 남깁니다."
+    "text": "ありません。送信、削除、転送は必ず明示的な承認を待ち、実際に出た内容のハッシュを含む署名付きレシートを\n        それぞれ記録します。"
    }
   },
   {
    "@type": "Question",
-   "name": "제 메일은 어디로 가나요?",
+   "name": "私のメールは実際どこへ行くのですか？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "분류기로 갔다가 돌아옵니다. OAuth 토큰은 저장 시 암호화되고, 전체가 AGPLv3이라 그 토큰을 다루는 코드를 직접 읽을 수 있습니다 — 직접 돌려도 됩니다."
+    "text": "分類器に渡り、戻ってくるだけです。OAuthトークンは保存時に暗号化されます。全体がAGPLv3なので、トークンに触れるコードを自分で読むことも、自分で動かすこともできます。"
    }
   },
   {
    "@type": "Question",
-   "name": "잘못 분류하면요?",
+   "name": "誤った場所に仕分けされたらどうなりますか？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 — 콜드 81.1%와 웜 94.3%의 차이가 그겁니다."
+    "text": "動かしてください。すべてのメールにはそこへ入った理由が表示され、その修正から分類器が学習します —\n        コールド81.1%とウォーム94.3%の差は、そこから生まれます。"
    }
   },
   {
    "@type": "Question",
-   "name": "윈도우 앱은 언제인가요?",
+   "name": "Windows版はいつですか？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 단계로 계속 쓸 수 있습니다."
+    "text": "未署名ベータとして出荷済みです — コード署名が済むまではSmartScreenが一度警告します。ウェブアプリは\n        同じアカウントとティアで、どのブラウザからでも引き続き利用できます。"
    }
   },
   {
    "@type": "Question",
-   "name": "AI가 요금을 폭주시킬 수 있나요?",
+   "name": "AIが請求を膨らませることはありますか？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가 당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다."
+    "text": "ありません。Klornは1日あたりの支出に自分で上限を設け、使いすぎるくらいなら停止します — 暴走した\n        ループにコストはかかりません。この上限があるから、仕分けは無料のままです。"
    }
   }
  ]
-}
-</script>
+}</script>
+<link rel="alternate" hreflang="en" href="https://klorn.ai/">
+<link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/">
+<link rel="alternate" hreflang="ja" href="https://klorn.ai/ja/">
+<link rel="alternate" hreflang="zh" href="https://klorn.ai/zh/">
+<link rel="alternate" hreflang="es" href="https://klorn.ai/es/">
+<link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/">
+<link rel="alternate" hreflang="de" href="https://klorn.ai/de/">
+<link rel="alternate" hreflang="x-default" href="https://klorn.ai/">
+<link rel="canonical" href="https://klorn.ai/ja/">
 </head>
 <body>
 <div class="grain"></div>
@@ -826,23 +822,23 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 
 <nav class="nav"><div class="nav-pill">
   <a class="nav-brand" href="#top" data-top>Klorn</a>
-  <span class="nav-links"><a href="#cards">제품</a><a href="#day">동작 방식</a><a href="#compare">왜 Klorn인가</a><a href="#pricing">가격</a><a href="#open">오픈소스</a></span>
+  <span class="nav-links"><a href="#cards">製品</a><a href="#day">仕組み</a><a href="#compare">なぜKlorn</a><a href="#pricing">料金</a><a href="#open">オープンソース</a></span>
   <span class="nav-lang">
     <button type="button" class="nav-lang-btn" data-lang-toggle
-            aria-haspopup="true" aria-expanded="false" aria-controls="lang-menu">한국어 <i aria-hidden="true">▾</i></button>
+            aria-haspopup="true" aria-expanded="false" aria-controls="lang-menu">日本語 <i aria-hidden="true">▾</i></button>
     <span class="nav-lang-menu" id="lang-menu" role="menu">
       <a href="/" data-lang-pick="en" role="menuitem">English</a>
-      <a href="/ko/" data-lang-pick="ko" role="menuitem" aria-current="true">한국어</a>
-      <a href="/ja/" data-lang-pick="ja" role="menuitem">日本語</a>
+      <a href="/ko/" data-lang-pick="ko" role="menuitem">한국어</a>
+      <a href="/ja/" data-lang-pick="ja" role="menuitem" aria-current="true">日本語</a>
       <a href="/zh/" data-lang-pick="zh" role="menuitem">中文（简体）</a>
       <a href="/es/" data-lang-pick="es" role="menuitem">Español</a>
       <a href="/fr/" data-lang-pick="fr" role="menuitem">Français</a>
       <a href="/de/" data-lang-pick="de" role="menuitem">Deutsch</a>
     </span>
   </span>
-  <a class="nav-login" href="https://app.klorn.ai/login">로그인</a>
+  <a class="nav-login" href="https://app.klorn.ai/login">ログイン</a>
   <a class="nav-cta" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
-     data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="다운로드">다운로드 <i>↓</i></a>
+     data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download">ダウンロード <i>↓</i></a>
 </div></nav>
 
 <header class="hero" id="top">
@@ -855,61 +851,59 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
 
   <div class="wrap">
-    <span class="eyebrow rv">실제 메일로 측정 <b>94.3%</b></span>
-    <h1 class="rv">소음은 들어오고,<br><span class="ser">신호</span>만 남는다.</h1>
-    <p class="lead rv"><b style="color:var(--ink);font-weight:650">메일을 다섯 단계로 분류하고,
-      그 이유까지 알려줍니다. 웹·macOS·Windows.</b> 다른 AI 에이전트는 당신을 대신해 행동합니다.
-      Klorn은 무엇이 당신의 주의를 받을 자격이 있는지 판단하고, 행동은 당신이 정한 규칙대로만 합니다.</p>
+    <span class="eyebrow rv">実際のメールで計測 <b>94.3%</b></span>
+    <h1 class="rv">ノイズを入れ、<br><span class="ser">シグナル</span> を返す。</h1>
+    <p class="lead rv"><b style="color:var(--ink);font-weight:650">メールを5つのレーンに仕分けし、
+      その理由まで示します — ウェブ、macOS、Windowsで。</b> 他のAIエージェントはあなたの代わりに動きます。Klornは何があなたの注意に値するかを判断し、
+      あなたが決めたルールでのみ動きます。</p>
     <div class="actions rv">
-      <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">무료로 시작 <i>↗</i></a>
+      <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">無料で始める <i>↗</i></a>
     </div>
     <div class="dl-row rv" id="dl-row">
       <a class="dl" data-os="mac" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c.02-2.3 1.87-3.4 1.95-3.45-1.06-1.56-2.71-1.77-3.3-1.8-1.4-.11-2.58.78-3.25.78-.68 0-1.72-.76-2.83-.74-1.46.02-2.8.85-3.55 2.15-1.51 2.63-.39 6.52 1.09 8.66.72 1.04 1.58 2.21 2.71 2.17 1.09-.04 1.5-.7 2.82-.7 1.31 0 1.68.7 2.83.681.17-.02 1.92-1.06 2.64-2.11.83-1.2 1.17-2.37 1.19-2.43-.03-.01-2.28-.88-2.3-3.48zM14.9 5.6c.6-.72 1-1.72.89-2.72-.86.04-1.9.57-2.52 1.29-.55.63-1.02 1.65-.89 2.63.96.07 1.92-.49 2.52-1.2z"/></svg>
-        <span class="t"><b>맥용 다운로드</b><span>유니버설 · macOS 14+ · 공증 완료</span></span></a>
+        <span class="t"><b>Mac版をダウンロード</b><span>Universal · macOS 14+ · 公証済み</span></span></a>
       <a class="dl" data-os="win" href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" rel="noreferrer noopener">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.2-1v7.1H3V5.6zm0 12.8l7.2 1v-7H3v6zM11.2 4.4L21 3v8.7h-9.8V4.4zm0 15.2L21 21v-8.6h-9.8v7.2z"/></svg>
-        <span class="t"><b>윈도우용 다운로드</b><span>Windows 10+ · 서명 전 베타, SmartScreen 경고 1회</span></span></a>
+        <span class="t"><b>Windows版をダウンロード</b><span>Windows 10+ · 未署名ベータ、SmartScreenが一度警告します</span></span></a>
     </div>
-    <!-- The app needs an approved account, so the download alone is a dead end.
-         Say so next to the button rather than after the click. -->
-    <p class="actions-note rv">무료, AGPLv3. 앱은 Klorn 계정으로 로그인하며,
-      계정 만드는 데 1분이면 됩니다.
-      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">첫 실행 안내 ↗</a></p>
+    <!-- The download alone is a dead end without an account, so say what the
+         app expects next to the button rather than after the click. -->
+    <p class="actions-note rv">無料、AGPLv3。アプリはKlornアカウントでサインインします —
+      作成は1分ほどです。
+      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">初回起動時の注意 ↗</a></p>
   </div>
 
 
   <div class="demo rv">
     <div class="demo-in"><div class="demo-core">
       <div class="demo-top">
-        <span class="lab">오늘 아침 받은편지함 분류 중</span>
-        <span class="cnt">64통 중 <b id="dm-done">0</b> · <span id="dm-state">분류 중</span></span>
+        <span class="lab">今朝の受信トレイを仕分け中</span>
+        <span class="cnt"><b id="dm-done">0</b> / 64 · <span id="dm-state">実行中</span></span>
       </div>
       <div class="demo-stage" id="dm-stage" aria-hidden="true"></div>
       <div class="buckets" id="dm-buckets">
         <div class="bk" data-t="push"><div class="top"><span class="dot"></span><span class="nm">PUSH</span></div>
-          <div class="v" data-v>0</div><p class="d">지금 방해합니다</p></div>
-        <div class="bk" data-t="meeting"><div class="top"><span class="dot"></span><span class="nm">MEETING</span></div>
-          <div class="v" data-v>0</div><p class="d">일정 — 캘린더와 교차검증</p></div>
+          <div class="v" data-v>0</div><p class="d">今すぐ割り込む</p></div>
         <div class="bk" data-t="queue"><div class="top"><span class="dot"></span><span class="nm">QUEUE</span></div>
-          <div class="v" data-v>0</div><p class="d">오늘 안에 읽을 것</p></div>
-        <div class="bk" data-t="info"><div class="top"><span class="dot"></span><span class="nm">INFO</span></div>
-          <div class="v" data-v>0</div><p class="d">영수증·확인 — 답장이 필요 없습니다</p></div>
+          <div class="v" data-v>0</div><p class="d">今日中に読む</p></div>
         <div class="bk" data-t="silent"><div class="top"><span class="dot"></span><span class="nm">SILENT</span></div>
-          <div class="v" data-v>0</div><p class="d">지운 게 아니라 정리했습니다</p></div>
+          <div class="v" data-v>0</div><p class="d">削除ではなく保管</p></div>
+        <div class="bk" data-t="auto"><div class="top"><span class="dot"></span><span class="nm">AUTO</span></div>
+          <div class="v" data-v>0</div><p class="d">あなたなしで処理済み</p></div>
       </div>
-      <p class="demo-foot">다섯 레인이 어떻게 나뉘는지 보여주는 예시이지 벤치마크 실행이 아닙니다. 측정된 수치와 아직 측정되지 않은 레인은 아래에 있습니다.</p>
+      <p class="demo-foot">手作業でラベル付けした受信トレイでの実際の分類結果 — 64件中3件があなたを必要としました。</p>
     </div></div>
   </div>
 
   <div class="stage rv">
-    <p class="stage-cap"><b>LIVE</b> 실제로 동작하는 복제본 — 단계, 메일, 답장, 재분류 모두 눌러보세요.
-      아래에 있는 스크린샷은 출시 중인 앱 그 자체입니다.</p>
+    <p class="stage-cap"><b>ライブ</b> 実際に動くレプリカです — ティアや行をクリックし、返信や再分類を試せます。
+      この下のスクリーンショットは、出荷中のアプリそのものです。</p>
     <div class="shell" data-tilt>
       <div class="core">
-        <div class="play" id="play" role="application" aria-label="Klorn 인터랙티브 데모">
+        <div class="play" id="play" role="application" aria-label="Klornのインタラクティブデモ">
           <div class="pl-side">
-            <div class="pl-lab">받은편지함</div>
+            <div class="pl-lab">受信トレイ</div>
             <div class="pl-tiers" id="pl-tiers"></div>
           </div>
           <div class="pl-list">
@@ -928,39 +922,39 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 <section class="sec" id="cards">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">실제 앱</span>
-      <h2 class="rv">읽힐 만큼<br>가까이.</h2>
+      <span class="tag rv">実際のアプリ</span>
+      <h2 class="rv">文字まで<br>読める距離で。</h2>
     </div>
-    <p class="rv">Klorn은 화면 맨 위 네이티브 한 줄에 있습니다. 펼치면 이런 것들을 보여주고 —
-      그중 당신이 바꿀 수 있는 것도 전부 여기 있습니다.</p>
+    <p class="rv">Klornは画面上部のネイティブな一行に収まります。展開したときに表示されるのがこれで —
+      これが、あなたに変更を許されているすべてです。</p>
   </div>
 
   <div class="tour rv">
-    <div class="tour-nav" role="tablist" aria-label="제품 투어">
+    <div class="tour-nav" role="tablist" aria-label="製品ツアー">
       <button class="tour-t" role="tab" aria-selected="true" aria-controls="tp-1" id="tt-1">
-        <b>왜 이 메일이 당신을 끊었나</b><span>PUSH 판정의 근거, 그리고 한 키 답장 세 개.</span></button>
+        <b>なぜこれが割り込んだのか</b><span>PUSHの根拠と、ワンキーで送れる3つの返信。</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-2" id="tt-2">
-        <b>이유가 붙은 대기열</b><span>모든 줄이 거기 간 이유를 말합니다 — 클릭 한 번으로 정정.</span></button>
+        <b>理由つきのキュー</b><span>各行がそこに入った理由を示します — 修正はワンクリックです。</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-3" id="tt-3">
-        <b>다섯 레인, 설명까지</b><span>Silent는 삭제가 아니고 Info는 답장을 바라지 않습니다.</span></button>
+        <b>4つの言葉の意味</b><span>SILENTは削除ではありません。AUTOは返信ではありません。アプリがそう説明します。</span></button>
       <button class="tour-t" role="tab" aria-selected="false" aria-controls="tp-4" id="tt-4">
-        <b>설정은 당신 몫</b><span>혼자 어디까지 할지, 무엇이 당신을 끊어도 되는지.</span></button>
+        <b>設定はあなたの手に</b><span>どこまで自動で行うか、そして何が割り込んでよいか。</span></button>
     </div>
     <div class="tour-stage">
       <div class="tour-panel" role="tabpanel" id="tp-1" aria-labelledby="tt-1">
-        <img src="/media/app/ko/reading.jpg" alt="근거가 붙은 PUSH 메일: 왜 그렇게 매겨졌는지, 기한, 그리고 한 키 답장 버튼" width="1040" height="660" loading="lazy" decoding="async"></div>
+        <img src="/media/app/ja/reading.jpg" alt="PUSHメッセージとその根拠：判定の理由、期限、そしてワンキー返信のアクション" width="1040" height="660" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-2" aria-labelledby="tt-2" hidden>
-        <img src="/media/app/ko/rows.jpg" alt="발신자, 제목, 그리고 각 메일이 그 단계로 간 이유를 보여주는 메일 행" width="1040" height="660" loading="lazy" decoding="async"></div>
+        <img src="/media/app/ja/rows.jpg" alt="送信者、件名、そして各メールがそのティアに入った理由を示す一覧" width="1040" height="660" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-3" aria-labelledby="tt-3" hidden>
-        <img src="/media/app/ko/tier-guide.jpg" alt="다섯 단계 분류를 설명하는 첫 실행 안내" width="1040" height="1040" loading="lazy" decoding="async"></div>
+        <img src="/media/app/ja/tier-guide.jpg" alt="5つのレーン — Push、Meeting、Queue、Info、Silent — を説明する初回起動ガイド" width="1040" height="1040" loading="lazy" decoding="async"></div>
       <div class="tour-panel" role="tabpanel" id="tp-4" aria-labelledby="tt-4" hidden>
-        <img src="/media/app/ko/preferences.jpg" alt="환경설정: 에이전트 모드, 답장 어투, 알림 분류, 방해 금지 시간" width="1040" height="1800" loading="lazy" decoding="async"></div>
+        <img src="/media/app/ja/preferences.jpg" alt="設定：エージェントモード、返信トーン、通知カテゴリ、通知オフ時間" width="1040" height="1800" loading="lazy" decoding="async"></div>
     </div>
   </div>
-  <p class="proof rv">모든 스크린샷은 <code>KlornMac --render-previews</code>가 출시 중인 SwiftUI 뷰를
-    그대로 디스크에 그려서 만듭니다. 화면이 바뀌면 사진도 같이 바뀝니다 —
-    따로 관리하다 낡아버릴 마케팅 에셋이 없습니다.
-    <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">앱 소스 보기 →</a></p>
+  <p class="proof rv">各スクリーンショットは <code>KlornMac --render-previews</code>が出荷中のSwiftUIビューを
+    そのままディスクへ書き出したものです。画面が変われば、画像も一緒に変わります —
+    古くなるマーケティング用の別素材は存在しません。
+    <a href="https://github.com/k08200/klorn/tree/main/apps/desktop-mac" rel="noreferrer noopener">アプリのソースを読む →</a></p>
 </section>
 
 
@@ -970,25 +964,25 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 <section class="sec band" id="day">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">Klorn과 함께하는 하루</span>
-      <h2 class="rv">세 순간, 그중<br>당신이 필요한 건 하나.</h2>
+      <span class="tag rv">Klornのある一日</span>
+      <h2 class="rv">3つの場面、<br>あなたが要るのは1つだけ。</h2>
     </div>
-    <p class="rv">Klorn은 열어보는 앱이 아닙니다. 하루 종일 받은편지함을 지키다가 딱 한 번 당신을 찾습니다 —
-      당신 없이는 정말로 답할 수 없는 메일이 왔을 때.</p>
+    <p class="rv">Klornは開いて使うものではありません。一日中あなたの受信トレイに対して動き続け、あなたを呼ぶのは
+      ちょうど一度だけ — あなたなしでは本当に答えられないメールが届いたときです。</p>
   </div>
   <div class="steps">
-    <article class="step rv"><span class="sn">아침</span>
-      <h3>이미 분류돼 있음</h3>
-      <p>밤새 온 메일은 당신이 앉기 전에 각자의 단계에 들어가 있고, 거기 간 이유를 달고 있습니다.
-        64통 중 당신 몫은 3통이었습니다.</p></article>
-    <article class="step rv"><span class="sn">일하는 중</span>
-      <h3>한 줄, 배너 없음</h3>
-      <p>Klorn은 화면 맨 위 네이티브 한 줄로 머뭅니다. QUEUE·INFO·SILENT는 절대 끊지 않고,
-        진짜 PUSH와 시간을 정해야 하는 MEETING만 끊습니다 — 무엇이 PUSH인지는 당신이 정합니다.</p></article>
-    <article class="step rv"><span class="sn">답장할 때</span>
-      <h3>초안 셋, 결정은 당신</h3>
-      <p>수락·거절·질문 각각 한 키로. 당신 어투로, 발신자가 쓴 언어로. 저절로 나가는 건 없고,
-        전송할 때마다 영수증이 남습니다.</p></article>
+    <article class="step rv"><span class="sn">朝</span>
+      <h3>すでに仕分け済み</h3>
+      <p>夜のあいだに届いたメールは、席に着く前にそれぞれのティアへ。どれにもそこへ入った理由が添えられています。
+        64件のうち、あなたのものは3件でした。</p></article>
+    <article class="step rv"><span class="sn">作業中</span>
+      <h3>一行だけ、バナーなし</h3>
+      <p>Klornは画面上部のネイティブな一行のままです。QUEUE、SILENT、AUTOが割り込むことはありません —
+        割り込むのは本物のPUSHだけで、その基準はあなたが決めます。</p></article>
+    <article class="step rv"><span class="sn">返信するとき</span>
+      <h3>3つの下書き、決めるのはあなた</h3>
+      <p>承諾、辞退、質問 — それぞれワンキーで、あなたの語調と差出人の言語で。勝手に送信されることはなく、
+        送信のたびにレシートが発行されます。</p></article>
   </div>
 </section>
 
@@ -996,41 +990,41 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 <section class="sec" id="compare">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">우리가 동의하지 않는 지점</span>
-      <h2 class="rv">대부분의 이메일 AI가<br>갖지 않는 네 가지 입장.</h2>
+      <span class="tag rv">私たちが異を唱えるところ</span>
+      <h2 class="rv">ほとんどのメールAIが<br>持たない4つの考え。</h2>
     </div>
-    <p class="rv">기능이 아니라 선택입니다 — 각각은 Klorn에게 대가를 치르게 합니다. 이미 메일에 딸려 온
-      어시스턴트가 대신 무엇을 결정하는지와 나란히 놓았습니다.</p>
+    <p class="rv">これらは機能ではなく選択であり、それぞれKlornに代償があります。すでにメールに同梱されている
+      アシスタントが代わりに何をするのかと、並べて比べてください。</p>
   </div>
   <div class="vsgrid rv">
     <div class="vshead">
       <div class="vscol ours"><span class="mk">K</span><b>Klorn</b></div>
-      <div class="vscol them"><span class="mk">—</span><b>당신 받은편지함의 어시스턴트</b></div>
+      <div class="vscol them"><span class="mk">—</span><b>受信トレイのアシスタント</b></div>
     </div>
 
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">01 · 누가 결정하나</span>
-        <p>분류하고 초안까지 쓴 뒤 <b>멈춥니다</b>. 전송·삭제·전달은 전부 당신을 기다리고 영수증을 남깁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">01 · 누가 결정하나</span>
-        <p>당신을 대신해 실행하고 나중에 알려줍니다. 안전장치는 실행 취소뿐입니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">01 · 誰が決めるか</span>
+        <p>仕分けと下書きをして、そこで <b>止まります</b>。送信、削除、転送はすべてあなたを待ち、レシートを発行します。</p></div>
+      <div class="vscell them" data-who="Everyone else"><span class="k">01 · 誰が決めるか</span>
+        <p>あなたの代わりに実行し、あとから報告します。安全網は取り消し機能です。</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">02 · 무엇이 보이나</span>
-        <p>고정된 다섯 단계, 그리고 <b>메일마다 붙는 이유</b>. 하나 옮기면 분류기가 배웁니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">02 · 무엇이 보이나</span>
-        <p>중요 표시와 무제한 라벨. 이유는 없고, 고칠 것도 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">02 · 何が見えるか</span>
+        <p>固定された4つのティアと、 <b>すべてのメールに添えられた理由</b>。動かせば、分類器が学習します。</p></div>
+      <div class="vscell them" data-who="Everyone else"><span class="k">02 · 何が見えるか</span>
+        <p>優先フラグと無制限のラベル。理由は示されず、修正する対象もありません。</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">03 · 무엇을 주장하나</span>
-        <p>저장소에 함께 들어 있는 직접 라벨링 데이터셋 기준 <b>94.3%</b>, 콜드/웜 별도 보고.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">03 · 무엇을 주장하나</span>
-        <p>월 $30에 "AI 기반." 숫자도, 평가셋도, 직접 돌려볼 것도 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">03 · 何を主張するか</span>
+        <p><b>94.3%</b> リポジトリに同梱された手作業ラベル付きのセットで計測。コールドとウォームは別々に報告しています。</p></div>
+      <div class="vscell them" data-who="Everyone else"><span class="k">03 · 何を主張するか</span>
+        <p>「AI搭載」。数値も評価セットもなく、自分で確かめる手段もありません。</p></div>
     </div>
     <div class="vsrow">
-      <div class="vscell ours" data-who="Klorn"><span class="k">04 · 나가고 싶다면</span>
-        <p><b>AGPLv3</b>. 읽고, 당신 키로 셀프호스팅하고, 포크해서 떠나면 됩니다.</p></div>
-      <div class="vscell them" data-who="나머지 전부"><span class="k">04 · 나가고 싶다면</span>
-        <p>닫혀 있거나, 열려 있어도 뒤에 조항이 덧붙어 있습니다. 어느 쪽이든 무엇이 판단했는지는 읽을 수 없습니다.</p></div>
+      <div class="vscell ours" data-who="Klorn"><span class="k">04 · 抜けたくなったら</span>
+        <p><b>AGPLv3</b>。コードを読み、自分の鍵でセルフホストし、フォークして去ることもできます。</p></div>
+      <div class="vscell them" data-who="Everyone else"><span class="k">04 · 抜けたくなったら</span>
+        <p>クローズド。あなたのメールが学習の対象であり、出口はエクスポートだけです。</p></div>
     </div>
   </div>
 </section>
@@ -1046,51 +1040,51 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">약속이 아니라 측정</span>
-      <h2 class="rv">실제 받은편지함에서 나온 숫자.</h2>
+      <span class="tag rv">約束ではなく計測</span>
+      <h2 class="rv">実際の受信トレイから出た数値。</h2>
     </div>
-    <p class="rv">모든 릴리스는 출시 전에 직접 라벨링한 실제 메일 데이터셋으로 채점합니다.
-      아래는 최신 수치이고, 평가셋은 공개 저장소에 있습니다.</p>
+    <p class="rv">すべてのリリースは、出荷前に実メールの手作業ラベル付きセットで採点されます。
+      これが最新の数値で、評価セットは公開リポジトリにあります。</p>
   </div>
   <div class="stats">
-    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">실제 메일 정확도</div>
-      <p>직접 라벨링한 실제 메일 53통 중 50통이 올바른 단계로 분류.</p></div>
-    <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT 정밀도</div>
-      <p>Klorn이 소음으로 보관할 때, 진짜 신호를 묻어버리는 일은 거의 없습니다.</p></div>
-    <div class="stat rv"><div class="sv">0</div><div class="sl">미승인 실행</div>
-      <p>전송·삭제·전달은 전부 당신을 기다리고 나간 내용의 해시가 박힌 영수증을 남깁니다.</p></div>
+    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">実メールでの精度</div>
+      <p>手作業でラベル付けした実メール53件のうち、50件を正しいティアに仕分け。</p></div>
+    <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENTの適合率</div>
+      <p>Klornがノイズとして保管するとき、本物のシグナルを埋もれさせることはほとんどありません。</p></div>
+    <div class="stat rv"><div class="sv">0</div><div class="sl">未承認の操作</div>
+      <p>送信、削除、転送はすべてあなたを待ち、署名付きのレシートを記録します。</p></div>
   </div>
-  <p class="foot rv">2026년 7월, 실사용 받은편지함에서 뽑은 53통 직접 라벨링 데이터셋으로 측정.
-    학습된 컨텍스트가 있는 웜 스타트 기준입니다 (콜드 스타트: 81.1%). 이 데이터셋은 Push·Queue·Silent만 라벨링돼 있습니다 — Meeting과 Info는 아직 라벨 샘플이 없어 정확도가 측정되지 않았고, 주장하지 않습니다.
-    <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">측정 방법과 평가셋 →</a></p>
+  <p class="foot rv">2026年7月、稼働中の受信トレイから取った53件の手作業ラベル付きセットで計測。学習済みコンテキストありの
+    ウォームスタート（コールドスタート：81.1%）。
+    <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">計測方法と評価セット →</a></p>
 </section>
 
 <!-- ══ WORKS WITH ═══════════════════════════════════ -->
 <section class="sec" id="works">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">연동 범위</span>
-      <h2 class="rv">받기 전에<br>이것부터 확인하세요.</h2>
+      <span class="tag rv">対応環境</span>
+      <h2 class="rv">ダウンロードの前に<br>確認してください。</h2>
     </div>
-    <p class="rv">Klorn은 당신의 메일을 읽습니다. 그래서 무엇에 연결되는지가 가장 먼저 알아야 할 것입니다 —
-      아직 연결되지 않는 것까지 포함해서.</p>
+    <p class="rv">Klornはあなたのメールを読みます。だから何に接続するのかが、最初に知る価値のあることです —
+      まだ接続しないものも含めて。</p>
   </div>
   <div class="works rv">
-    <div class="work"><b>Gmail</b><span>구글 로그인. Pro에서는 여러 개.</span></div>
-    <div class="work"><b>네이버 메일</b><span>설정에서 IMAP으로 연결.</span></div>
-    <div class="work"><b>Google 캘린더</b><span>읽고, 당신 승인으로 일정 생성.</span></div>
-    <div class="work"><b>macOS 14+</b><span>유니버설 — 애플 실리콘과 인텔.</span></div>
-    <div class="work"><b>메일 언어 그대로</b><span>온 메일의 언어로 답장이 나갑니다.</span></div>
-    <div class="work"><b>인터페이스 7개 언어</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
+    <div class="work"><b>Gmail</b><span>Googleでサインイン。Proでは複数の受信トレイに対応。</span></div>
+    <div class="work"><b>Naverメール</b><span>設定からIMAPで接続します。</span></div>
+    <div class="work"><b>Google Calendar</b><span>読み取りと、あなたの承認による予定の作成。</span></div>
+    <div class="work"><b>macOS 14+</b><span>Universal — Apple SiliconとIntel。</span></div>
+    <div class="work"><b>メールの言語を問わない</b><span>返信は、届いたメールと同じ言語で返ります。</span></div>
+    <div class="work"><b>7つのUI言語</b><span>English, 한국어, 日本語, 中文, Español, Français, Deutsch.</span></div>
   </div>
-  <p class="works-note rv"><b>미지원:</b> 네이버 외의 IMAP 호스트. Klorn 로그인은 아직 구글만 되고,
-    네이티브 모바일 앱은 없습니다 — 지금 모바일은 브라우저로 실행됩니다.
-    윈도우 데스크탑 앱은 서명 전 베타입니다(SmartScreen 경고 1회) — 리눅스는 브라우저로 실행됩니다.
-    셀프호스팅은 당신의 DB와 모델 키로 동작합니다.</p>
-  <p class="works-note rv"><b>곧 지원:</b> Outlook·Microsoft 365, iCloud 메일 — 구현은 끝났고,
-    보안 심사 후 순차 공개됩니다. Apple·네이버 로그인은 웹과 맥 앱, 모바일 모두에 예정되어 있어
-    Klorn 계정 하나로 모든 기기를 씁니다. 네이티브 모바일 앱도 준비 중입니다.
-    나온 것은 아직 없고, 나오면 이 페이지에 올라옵니다.</p>
+  <p class="works-note rv"><b>非対応：</b> Naver以外のIMAPホスト。Klornへのサインインは
+    Googleのみで、ネイティブのモバイルアプリはありません — モバイルは現在ブラウザで動作します。
+    Windowsではデスクトップアプリは未署名ベータです（SmartScreenが一度警告します）。
+    Linuxではブラウザで動作します。セルフホストは、自分のデータベースとモデルキーで利用できます。</p>
+  <p class="works-note rv"><b>近日対応：</b> Outlook &amp; Microsoft 365、そしてiCloudメール — すでに実装済みで、
+    セキュリティレビュー後の展開待ちです。AppleとNaverでのサインインは、ウェブ、Macアプリ、モバイルの
+    いずれにも予定しており、1つのKlornアカウントで全デバイスをカバーします。ネイティブのモバイルアプリも準備中です。
+    いずれもまだ出荷していません。出荷したときに載る場所が、このページです。</p>
 </section>
 
 <!-- ══ OPEN SOURCE ══════════════════════════════════ -->
@@ -1099,23 +1093,18 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     <div class="os rv">
       <div class="os-in">
         <div>
-          <span class="tag">오픈소스</span>
-          <h2 class="os-h">읽어보고, 직접 돌리고,<br>언제든 떠나세요.</h2>
-          <p class="os-p">이메일 에이전트는 당신이 받는 모든 것을 봅니다. "믿어달라"는 답이 될 수 없습니다.
-            <b>당신 메일을 읽는 서버를 당신이 소유할 수 있습니다</b> — 스택 전체를 자기 모델 키나
-            로컬 모델로 셀프호스팅하면 메일 본문이 기기 밖으로 나가지 않습니다. 분류기, 프롬프트,
-            평가셋이 전부 저장소에 있습니다.</p>
-          <p class="os-p">그리고 단어가 아니라 라이선스를 확인하세요. Klorn은 수정 없는 GNU AGPL v3입니다.
-            상업적 사용 제한 없음, 직원 수 조항 없음, 덧붙인 것 없음.
-            <a href="/ko/vs/inbox-zero/">가장 가까운 오픈소스 대안에는 둘 다 있습니다</a>.</p>
+          <span class="tag">オープンソース</span>
+          <h2 class="os-h">読める。自分で動かせる。<br>いつでも去れる。</h2>
+          <p class="os-p">メールエージェントはあなたが受け取るすべてを見ます。だから「信じてください」は答えになりません。
+            分類器もプロンプトも評価セットも、すべてリポジトリにあります。</p>
           <div class="os-cta">
-            <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">저장소 보기 <i>↗</i></a>
-            <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">평가셋 보기</a>
+            <a class="btn btn-1" href="https://github.com/k08200/klorn" rel="noreferrer noopener">リポジトリを見る <i>↗</i></a>
+            <a class="btn btn-2" href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">評価セットを見る</a>
           </div>
           <div class="ship" id="ship" hidden>
-            <h3>최근 배포</h3>
+            <h3>最近の出荷</h3>
             <ol></ol>
-            <a href="https://github.com/k08200/klorn/releases" rel="noreferrer noopener">모든 릴리스 →</a>
+            <a href="https://github.com/k08200/klorn/releases" rel="noreferrer noopener">すべてのリリース →</a>
           </div>
         </div>
       </div>
@@ -1127,38 +1116,38 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 <section class="sec band" id="pricing">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">가격</span>
-      <h2 class="rv">무료로 시작하고, Klorn이<br>대신 실행할 때 업그레이드.</h2>
+      <span class="tag rv">料金</span>
+      <h2 class="rv">まずは無料で。Klornが<br>動き出したらアップグレード。</h2>
     </div>
-    <p class="rv">분류는 영원히 무료입니다. Klorn이 당신 승인으로 초안을 쓰고 보내기 시작할 때만
-      결제합니다 — 실제로 돈이 드는 부분입니다.</p>
+    <p class="rv">仕分けはずっと無料です。料金が発生するのは、あなたの承認でKlornが下書きと送信を始めてから —
+      実際に運用コストがかかる部分だけです。</p>
   </div>
   <div class="prices">
     <article class="price rv"><div class="price-in">
-      <span class="chip-s">무료</span>
-      <h3>방화벽</h3>
-      <div class="amt">$0<span>/월</span></div>
-      <p class="note">카드 등록 없음. 하루 AI 예산으로 지속 가능하게 유지합니다.</p>
+      <span class="chip-s">無料</span>
+      <h3>ファイアウォール</h3>
+      <div class="amt">$0<span>/月</span></div>
+      <p class="note">カード不要。1日あたりのAI予算で、持続可能に保ちます。</p>
       <ul>
-        <li>다섯 단계 메일 방화벽 — 진짜 신호만 당신을 끊습니다</li>
-        <li>카드마다 근거가 붙는 결정 대기열</li>
-        <li>모닝 브리핑과 캘린더 뷰</li>
-        <li>당신의 메일을 근거로 답하는 어시스턴트</li>
+        <li>5レーンのメールファイアウォール — 割り込むのは本物のシグナルだけ</li>
+        <li>すべてのカードに根拠がつく判断キュー</li>
+        <li>朝のブリーフィングとカレンダービュー</li>
+        <li>自分のメールから答えるアシスタント</li>
       </ul>
-      <a class="btn btn-2 full" href="https://app.klorn.ai/login?mode=register">무료로 시작</a>
+      <a class="btn btn-2 full" href="https://app.klorn.ai/login?mode=register">無料で始める</a>
     </div></article>
     <article class="price feat rv"><div class="price-in">
-      <span class="chip-s dark">얼리 가격</span>
+      <span class="chip-s dark">初期価格</span>
       <h3>Klorn Pro</h3>
-      <div class="amt">$8.99<span>/월</span></div>
-      <p class="note">7일 Pro 체험 후 웹에서 월 $8.99. 언제든 해지할 수 있습니다.</p>
+      <div class="amt">$8.99<span>/月</span></div>
+      <p class="note">7日間のProトライアル後、ウェブでは月額$8.99。いつでも解約できます。</p>
       <ul>
-        <li>무료의 모든 것 + 더 큰 AI 예산</li>
-        <li>Klorn에서 승인하고 바로 보내는 답장 초안</li>
-        <li>음성이나 채팅으로 캘린더 일정 생성</li>
-        <li>여러 개의 Gmail 받은편지함, 자동 처리되는 소음</li>
+        <li>無料プランのすべてと、より大きなAI予算</li>
+        <li>Klornから承認して送る返信の下書き</li>
+        <li>音声やチャットでカレンダーの予定を作成</li>
+        <li>複数のGmail受信トレイと、自動処理されるノイズ</li>
       </ul>
-      <a class="btn btn-1 full" href="https://app.klorn.ai/login?mode=register">7일 Pro 체험 시작 <i>↗</i></a>
+      <a class="btn btn-1 full" href="https://app.klorn.ai/login?mode=register">7日間のProトライアルを開始 <i>↗</i></a>
     </div></article>
   </div>
 </section>
@@ -1167,30 +1156,31 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
 <section class="sec band" id="faq">
   <div class="sec-head">
     <div style="flex:1 1 420px">
-      <span class="tag rv">묻기 전에</span>
-      <h2 class="rv">실제로 가장<br>많이 받는 질문들.</h2>
+      <span class="tag rv">よくある質問</span>
+      <h2 class="rv">実際に<br>届く質問。</h2>
     </div>
   </div>
   <div class="faq">
-    <details class="faq-i rv"><summary>로그인할 때 구글이 경고를 띄우는 이유가 뭔가요?</summary>
-      <p>메일을 읽으려면 구글의 제한 스코프가 필요하고, 그건 앱이 확인됨으로 표시되기 전에 보안 검수를
-        받아야 합니다. 검수가 끝날 때까지 미확인 앱 화면이 한 번 보이고, 베타는 선착순 100명으로
-        제한됩니다.</p></details>
-    <details class="faq-i rv"><summary>저 없이 뭔가 보낼 수 있나요?</summary>
-      <p>아니요. 전송·삭제·전달은 항상 명시적 승인을 기다리고, 각각 실제로 나간 내용의 해시가 담긴
-        나간 내용의 해시가 박힌 영수증을 남깁니다.</p></details>
-    <details class="faq-i rv"><summary>제 메일은 어디로 가나요?</summary>
-      <p>분류기로 갔다가 돌아옵니다. OAuth 토큰은 저장 시 암호화되고, 전체가 AGPLv3이라
-        그 토큰을 다루는 코드를 직접 읽을 수 있습니다 —
-        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">직접 돌려도 됩니다</a>.</p></details>
-    <details class="faq-i rv"><summary>잘못 분류하면요?</summary>
-      <p>옮기세요. 모든 메일이 거기 간 이유를 보여주고, 그 정정이 분류기가 배우는 재료입니다 —
-        콜드 81.1%와 웜 94.3%의 차이가 그겁니다.</p></details>
-    <details class="faq-i rv"><summary>윈도우 앱은 언제인가요?</summary>
-      <p>나왔습니다 — 서명 전 베타라 코드서명 전까지 SmartScreen 경고가 1회 뜹니다. 웹앱도 같은 계정·같은 다섯 단계로 계속 쓸 수 있습니다.</p></details>
-    <details class="faq-i rv"><summary>AI가 요금을 폭주시킬 수 있나요?</summary>
-      <p>아니요. Klorn은 하루 지출에 스스로 상한을 걸고, 초과하느니 멈춥니다 — 폭주한 루프가
-        당신에게 청구되는 일은 없습니다. 분류가 무료인 이유도 그 상한 덕분입니다.</p></details>
+    <details class="faq-i rv"><summary>サインインするとGoogleが警告を出すのはなぜですか？</summary>
+      <p>メールを読むにはGoogleの制限付きスコープが必要で、アプリが確認済みになるにはセキュリティレビューを
+        通す必要があります。それが通るまでは未確認アプリの画面が一度表示され、ベータは先着100アカウントに
+        限定されます。</p></details>
+    <details class="faq-i rv"><summary>私の承認なしに何かを送信することはありますか？</summary>
+      <p>ありません。送信、削除、転送は必ず明示的な承認を待ち、実際に出た内容のハッシュを含む署名付きレシートを
+        それぞれ記録します。</p></details>
+    <details class="faq-i rv"><summary>私のメールは実際どこへ行くのですか？</summary>
+      <p>分類器へ渡り、戻ってくるだけです。OAuthトークンは保存時に暗号化されており、全体がAGPLv3なので
+        それに触れるコードを自分で読めます —
+        <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">自分で動かすこともできます</a>.</p></details>
+    <details class="faq-i rv"><summary>誤った場所に仕分けされたらどうなりますか？</summary>
+      <p>動かしてください。すべてのメールにはそこへ入った理由が表示され、その修正から分類器が学習します —
+        コールド81.1%とウォーム94.3%の差は、そこから生まれます。</p></details>
+    <details class="faq-i rv"><summary>Windows版はいつですか？</summary>
+      <p>未署名ベータとして出荷済みです — コード署名が済むまではSmartScreenが一度警告します。ウェブアプリは
+        同じアカウントとティアで、どのブラウザからでも引き続き利用できます。</p></details>
+    <details class="faq-i rv"><summary>AIが請求を膨らませることはありますか？</summary>
+      <p>ありません。Klornは1日あたりの支出に自分で上限を設け、使いすぎるくらいなら停止します — 暴走した
+        ループにコストはかかりません。この上限があるから、仕分けは無料のままです。</p></details>
   </div>
 </section>
 
@@ -1204,17 +1194,17 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
          alt="" loading="lazy" decoding="async" width="2560" height="1709">
   </picture>
   <div class="wrapl rv">
-    <h2 class="final-h">다음 세대의 받은편지함은<br><span class="ser">결정 대기열</span>입니다.</h2>
-    <p class="final-p">베타 기간 무료 — 구글 검수가 끝날 때까지 선착순 100명.</p>
+    <h2 class="final-h">次に来る受信トレイ、<br>それは <span class="ser">判断キュー。</span></h2>
+    <p class="final-p">ベータ期間中は無料 — 先着100アカウント、Googleのレビューが通るまで。</p>
     <div class="actions">
-      <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">무료로 시작 <i>↗</i></a>
+      <a class="btn btn-1" href="https://app.klorn.ai/login?mode=register">無料で始める <i>↗</i></a>
       <a class="btn btn-2 btn-dl" href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
-         data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="윈도우용 다운로드">
+         data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download for Windows">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
-        맥용 다운로드</a>
+        Mac版をダウンロード</a>
     </div>
-    <p class="actions-note">이미 승인받으셨나요? <a href="https://app.klorn.ai/login">로그인</a> ·
-      macOS 14+ 유니버설 · 윈도우는 브라우저 · AGPLv3</p>
+    <p class="actions-note">すでに承認済みですか？ <a href="https://app.klorn.ai/login">ログイン</a> ·
+      macOS 14+ universal · Windowsはブラウザで · AGPLv3</p>
   </div>
 </section>
 
@@ -1222,37 +1212,37 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   <div class="wrapl foot-grid">
     <div>
       <a class="foot-brand" href="#top" data-top>Klorn</a>
-      <p class="foot-note">혼자서는 아무것도 결정하지 않는 이메일 비서실장.</p>
+      <p class="foot-note">自分では何も決めないメールの参謀。</p>
       <div class="socials">
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
         <a href="https://x.com/klornai" rel="noreferrer noopener" aria-label="X"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a href="https://join.slack.com/t/klorn/shared_invite/zt-3zkj8lqxg-L4LK8dNPkzgupHEdmXgbIg" rel="noreferrer noopener" aria-label="Slack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523z"/></svg></a>
       </div>
     </div>
-    <nav aria-label="제품"><h4>제품</h4>
+    <nav aria-label="製品"><h4>製品</h4>
       <a href="https://github.com/k08200/klorn/releases/download/desktop-v0.4.80029/Klorn.dmg" rel="noreferrer noopener"
-         data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="윈도우용 다운로드">맥용 다운로드</a>
-      <a href="#compare">왜 Klorn인가</a><a href="#works">연동 범위</a><a href="#measured">정확도</a><a href="#pricing">가격</a>
-      <a href="https://app.klorn.ai/login">로그인</a></nav>
-    <nav aria-label="오픈소스"><h4>오픈소스</h4>
-      <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHub 저장소</a>
-      <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">평가셋</a>
-      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">릴리스</a>
-      <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">AGPLv3 라이선스</a>
-      <a href="/ko/open-source/">덧붙인 조항 없는 AGPL</a></nav>
-    <nav aria-label="비교"><h4>비교</h4>
-      <a href="/ko/vs/fyxer/">vs Fyxer</a><a href="/ko/vs/superhuman/">vs Superhuman</a>
-      <a href="/ko/vs/sanebox/">vs SaneBox</a><a href="/ko/vs/inbox-zero/">vs Inbox Zero</a></nav>
-    <nav aria-label="법적 고지"><h4>법적 고지</h4>
-      <a href="https://app.klorn.ai/privacy">개인정보처리방침</a><a href="https://app.klorn.ai/terms">이용약관</a>
-      <a href="https://app.klorn.ai/refund">환불 정책</a>
-      <a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">보안</a>
-      <a href="mailto:k0820086@gmail.com">문의</a></nav>
+         data-mac-dl data-win-href="https://github.com/k08200/klorn/releases/download/desktop-win-v0.1.0/Klorn-windows-setup.exe" data-win-label="Download for Windows">Mac版をダウンロード</a>
+      <a href="#compare">なぜKlorn</a><a href="#works">対応環境</a><a href="#measured">精度</a><a href="#pricing">料金</a>
+      <a href="https://app.klorn.ai/login">ログイン</a></nav>
+    <nav aria-label="オープンソース"><h4>オープンソース</h4>
+      <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">GitHubリポジトリ</a>
+      <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">評価セット</a>
+      <a href="https://github.com/k08200/klorn/releases/tag/desktop-v0.4.80029" rel="noreferrer noopener">リリース</a>
+      <a href="https://github.com/k08200/klorn/blob/main/LICENSE" rel="noreferrer noopener">AGPLv3ライセンス</a>
+      <a href="/open-source/">なぜAGPLなのか、付け足しなしで</a></nav>
+    <nav aria-label="比較"><h4>比較</h4>
+      <a href="/vs/fyxer/">Fyxerと比較</a><a href="/vs/superhuman/">Superhumanと比較</a>
+      <a href="/vs/sanebox/">SaneBoxと比較</a><a href="/vs/inbox-zero/">Inbox Zeroと比較</a></nav>
+    <nav aria-label="法的事項"><h4>法的事項</h4>
+      <a href="https://app.klorn.ai/privacy">プライバシー</a><a href="https://app.klorn.ai/terms">利用規約</a>
+      <a href="https://app.klorn.ai/refund">返金</a>
+      <a href="https://github.com/k08200/klorn/blob/main/SECURITY.md" rel="noreferrer noopener">セキュリティ</a>
+      <a href="mailto:k0820086@gmail.com">お問い合わせ</a></nav>
   </div>
   <div class="wrapl foot-base">
     <span>© 2026 Klorn · AGPLv3</span>
     <span class="langsw">
-      <a href="/" data-lang-pick="en">EN</a><i>·</i><a href="/ko/" data-lang-pick="ko" aria-current="true">KO</a><i>·</i><a href="/ja/" data-lang-pick="ja">JA</a><i>·</i><a href="/zh/" data-lang-pick="zh">ZH</a><i>·</i><a href="/es/" data-lang-pick="es">ES</a><i>·</i><a href="/fr/" data-lang-pick="fr">FR</a><i>·</i><a href="/de/" data-lang-pick="de">DE</a>
+      <a href="/" data-lang-pick="en">EN</a><i>·</i><a href="/ko/" data-lang-pick="ko">KO</a><i>·</i><a href="/ja/" data-lang-pick="ja" aria-current="true">JA</a><i>·</i><a href="/zh/" data-lang-pick="zh">ZH</a><i>·</i><a href="/es/" data-lang-pick="es">ES</a><i>·</i><a href="/fr/" data-lang-pick="fr">FR</a><i>·</i><a href="/de/" data-lang-pick="de">DE</a>
     </span>
   </div>
 </footer>
@@ -1516,18 +1506,18 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   var stage = document.getElementById('dm-stage');
   if (!stage) return;
   var mails = [
-    ['김서연', 'Re: 계약서 검토 — 오늘 중 승인 필요', 'push'],
-    ['AWS 결제', '7월 인보이스가 준비됐습니다', 'info'],
-    ['이준호', '스탠드업 10:30으로 변경 — 괜찮으세요?', 'meeting'],
-    ['Product Hunt', '오늘의 테크: 신규 런칭 12건', 'silent'],
-    ['박정우', '대시보드 스펙 수정본', 'queue'],
-    ['캘린더', '3명이 초대를 수락했습니다', 'info'],
-    ['billing@vendor.io', '인보이스 #4821 연체', 'push'],
-    ['모닝브루', '오늘 알아야 할 5가지', 'silent'],
-    ['최다은', '온보딩 플로우 아이디어', 'queue'],
-    ['Stripe', '결제 영수증', 'info']
+    ['Sarah Kim', 'Re: Contract review — needs your sign-off today', 'push'],
+    ['AWS Billing', 'Your July invoice is ready', 'silent'],
+    ['Alex Carter', 'Standup moved to 10:30', 'push'],
+    ['Product Hunt', 'Today in tech: 12 new launches', 'silent'],
+    ['Jordan Lee', 'Revised dashboard specs', 'queue'],
+    ['Calendar', 'Invitation accepted by 3 people', 'auto'],
+    ['billing@vendor.io', 'Invoice #4821 is overdue', 'push'],
+    ['Morning Brew', 'The 5 things you need to know', 'silent'],
+    ['Casey Park', 'Onboarding flow ideas', 'queue'],
+    ['Stripe', 'Payment receipt', 'auto']
   ];
-  var totals = { push: 3, meeting: 2, queue: 12, info: 8, silent: 39 };
+  var totals = { push: 3, queue: 12, silent: 41, auto: 8 };
   var cells = {};
   document.querySelectorAll('#dm-buckets .bk').forEach(function (b) {
     cells[b.dataset.t] = { box: b, num: b.querySelector('[data-v]'), n: 0 };
@@ -1540,7 +1530,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (reduce) {
     Object.keys(totals).forEach(function (k) { cells[k].num.textContent = totals[k]; });
     doneEl.textContent = '64';
-    stateEl.textContent = '분류 완료';
+    stateEl.textContent = 'sorted';
     return;
   }
 
@@ -1559,10 +1549,6 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
 
     setTimeout(function () {
       var c = cells[m[2]];
-          // A mail tagged with a lane that has no bucket must not throw: this
-          // runs inside a setTimeout, so the exception would kill the tick
-          // silently and freeze the counter rather than surfacing anywhere.
-          if (!c) return;
       c.box.classList.add('hit');
       setTimeout(function () { c.box.classList.remove('hit'); }, 480);
       // Walk each tier toward its real total rather than counting one at a time,
@@ -1574,13 +1560,13 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
       shown = Object.keys(cells).reduce(function (a, k) { return a + cells[k].n; }, 0);
       doneEl.textContent = shown;
       if (shown >= 64) {
-        stateEl.textContent = '분류 완료';
+        stateEl.textContent = 'sorted';
         // Hold the finished board, then run the morning again. A demo that
         // stops dead reads as broken to anyone who scrolls back to it.
         setTimeout(function () {
           Object.keys(cells).forEach(function (k) { cells[k].n = 0; cells[k].num.textContent = 0; });
           shown = 0; doneEl.textContent = 0;
-          stateEl.textContent = '분류 중';
+          stateEl.textContent = 'running';
           setTimeout(step, 700);
         }, 2600);
       }
@@ -1605,59 +1591,58 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
   if (!root) return;
 
   var TIERS = [
-    { id: 'push', name: 'Push', c: '#fb7185', blurb: '지금 당신을 끊습니다' },
-    { id: 'meeting', name: 'Meeting', c: '#818cf8', blurb: '일정 — 캘린더와 교차검증' },
-    { id: 'queue', name: 'Queue', c: '#fbbf24', blurb: '오늘 안에 읽으면 됩니다' },
-    { id: 'info', name: 'Info', c: '#22d3ee', blurb: '영수증·확인 — 답장이 필요 없습니다' },
-    { id: 'silent', name: 'Silent', c: '#a8a29e', blurb: '보관됩니다, 삭제가 아닙니다' }
+    { id: 'push',   name: 'Push',   c: '#ff4d57', blurb: 'Interrupts you now' },
+    { id: 'queue',  name: 'Queue',  c: '#d97706', blurb: 'Read it today' },
+    { id: 'silent', name: 'Silent', c: '#7c848e', blurb: 'Filed, not deleted' },
+    { id: 'auto',   name: 'Auto',   c: '#3b82f6', blurb: 'Handled without you' }
   ];
   var mail = [
-    { id: 1, t: 'push', from: '김서연', subj: 'Re: 계약서 검토 — 오늘 중 승인 필요',
-      why: '이 발신자에게 6번 답장했습니다',
-      sum: '법무팀이 4조에 두 군데 수정을 넣었고, 상대방이 오늘 안에 맞서명하려면 17시 전에 승인이 필요합니다.',
-      body: '안녕하세요,\n\n법무팀에서 4조에 두 가지 수정 의견을 줬습니다 — 배상 한도와 통지 기간입니다. 둘 다 경미하지만 오늘 17시 전에 승인이 필요합니다.\n\n레드라인 첨부드립니다.\n\n감사합니다,\n서연 드림',
-      r: ['확인했습니다 — 두 항목 모두 레드라인대로 괜찮습니다. 17시 전에 서명하겠습니다.',
-          '오늘 17시 전에는 어려울 것 같습니다. 맞서명을 내일 오전으로 미룰 수 있을까요?',
-          '서명 전에 확인 부탁드립니다 — 배상 한도는 지난주에 합의한 숫자 그대로인가요?'] },
-    { id: 2, t: 'push', from: 'billing@vendor.io', subj: '인보이스 #4821 연체',
-      why: '오늘이 결제 기한입니다',
-      sum: '인보이스 #4821의 기한은 7월 26일이었고 현재 3일 연체 상태입니다.',
-      body: '$2,400 상당의 인보이스 #4821 결제 기한은 7월 26일이었습니다.\n\n가능한 빨리 결제 부탁드립니다.',
-      r: ['오늘 중으로 결제하겠습니다 — 늦어서 죄송합니다.',
-          '이 건은 이의 제기 중입니다. 이번 주에 담당 팀이 따로 연락드리겠습니다.',
-          'PO 번호를 넣어서 인보이스를 다시 보내주실 수 있을까요?'] },
-    { id: 3, t: 'meeting', from: '이준호', subj: '스탠드업 10:30으로 변경',
-      why: '캘린더 충돌',
-      sum: '내일 스탠드업이 10:30으로 옮겨져 10:15 리뷰와 겹칩니다.',
-      body: '내일 스탠드업 10시 30분으로 옮겼습니다.\n\n괜찮으실까요?',
-      r: ['10시 30분 괜찮습니다.', '그 시간에 리뷰가 있어서 어렵습니다. 11시는 어떠신가요?',
-          '리뷰가 겹치는데, 혹시 15분만 당길 수 있을까요?'] },
-    { id: 4, t: 'queue', from: '박정우', subj: '대시보드 스펙 수정본',
-      why: '기한 언급 없음',
-      sum: '리포팅 대시보드 스펙 업데이트본이며, 시간 날 때 검토해달라는 요청입니다.',
-      body: '수정된 스펙 첨부합니다 — 대부분 리포팅 화면의 레이아웃 변경입니다.\n\n급하지 않습니다.',
-      r: ['확인했습니다. 이번 주 안에 보겠습니다.', '제가 직접 보는 대신 디자인 리뷰로 넘기겠습니다.',
-          '어느 섹션이 가장 많이 바뀌었나요? 거기부터 보겠습니다.'] },
-    { id: 5, t: 'queue', from: '최다은', subj: '온보딩 플로우 아이디어',
-      why: '진행 중인 스레드, 요청 없음',
-      sum: '첫 실행 플로우에 대한 제안 세 가지이며, 아직 결정을 요구하지는 않습니다.',
-      body: '지난 온보딩 세션 두 번을 지켜보고 떠오른 아이디어 몇 가지입니다.\n\n편하실 때 이야기 나눠요.',
-      r: ['해볼 만해 보입니다 — 목요일에 이야기하시죠.', '베타 끝날 때까지 보류하겠습니다.',
-          '세 가지 중 어떤 걸 먼저 넣고 싶으세요?'] },
-    { id: 6, t: 'silent', from: '모닝브루', subj: '오늘 알아야 할 5가지',
-      why: '뉴스레터, 한 번도 답장한 적 없음',
-      sum: '일간 뉴스레터입니다.',
-      body: '오늘의 비즈니스 소식...', r: null },
-    { id: 7, t: 'info', from: 'AWS 결제', subj: '7월 인보이스가 준비됐습니다',
-      why: '자동 발송 영수증',
-      sum: '월간 인프라 인보이스이며, 조치할 것이 없습니다.',
-      body: '결제 콘솔에서 인보이스를 확인하실 수 있습니다.', r: null },
-    { id: 8, t: 'info', from: '캘린더', subj: '3명이 초대를 수락했습니다',
-      why: 'Klorn이 묻지 않고 처리했습니다',
-      sum: '목요일 리뷰에 참석자 3명이 수락했습니다.',
-      body: '수락: 박정우, 최다은, 김서연.', r: null }
+    { id: 1, t: 'push', from: 'Sarah Kim', subj: 'Re: Contract review — needs your sign-off today',
+      why: 'You replied to this sender 6 times',
+      sum: 'Legal returned two changes to clause 4 and needs your sign-off before 17:00 so the counterparty can countersign today.',
+      body: 'Hi,\n\nLegal came back with two changes on clause 4 — the indemnity cap and the notice period. Both are minor but they need your sign-off before 17:00 today.\n\nI have attached the redline.\n\nBest,\nSarah',
+      r: ['Confirming — the redline looks fine on both points. Signing before 17:00.',
+          "I can't get to this before 17:00 today. Can we move the countersign to tomorrow morning?",
+          'Before I sign — is the indemnity cap the number we agreed last week, or has it moved?'] },
+    { id: 2, t: 'push', from: 'billing@vendor.io', subj: 'Invoice #4821 is overdue',
+      why: 'Payment due today',
+      sum: 'Invoice #4821 was due on 26 July and is now three days overdue.',
+      body: 'Your invoice #4821 for $2,400 was due on 26 July.\n\nPlease arrange payment at your earliest convenience.',
+      r: ['Paying this today — apologies for the delay.',
+          'This one is disputed; our team will follow up separately this week.',
+          'Can you resend the invoice with the PO number on it?'] },
+    { id: 3, t: 'push', from: 'Alex Carter', subj: 'Standup moved to 10:30',
+      why: 'Calendar conflict',
+      sum: 'Tomorrow’s standup moves to 10:30, which overlaps your 10:15 review.',
+      body: 'Moved tomorrow\'s standup to 10:30.\n\nDoes that still work for you?',
+      r: ['10:30 works for me.', 'I have a review then — could we do 11:00 instead?',
+          'That overlaps my 10:15 review. Any chance we start 15 minutes earlier?'] },
+    { id: 4, t: 'queue', from: 'Jordan Lee', subj: 'Revised dashboard specs',
+      why: 'No deadline mentioned',
+      sum: 'Updated specs for the reporting dashboard, sent for review when you have time.',
+      body: 'Attached the revised specs — mostly layout changes on the reporting view.\n\nNo rush.',
+      r: ['Got it, will read this week.', 'Passing this to the design review instead of reading it myself.',
+          'Which section changed most? I will start there.'] },
+    { id: 5, t: 'queue', from: 'Casey Park', subj: 'Onboarding flow ideas',
+      why: 'Ongoing thread, no ask',
+      sum: 'Three suggestions for the first-run flow, no decision requested yet.',
+      body: 'A few ideas after watching the last two onboarding sessions.\n\nHappy to talk them through.',
+      r: ['These look worth trying — let us talk Thursday.', 'Parking this until after the beta.',
+          'Which of the three would you ship first?'] },
+    { id: 6, t: 'silent', from: 'Morning Brew', subj: 'The 5 things you need to know',
+      why: 'Newsletter, never replied to',
+      sum: 'Daily newsletter.',
+      body: 'Today in business...', r: null },
+    { id: 7, t: 'silent', from: 'AWS Billing', subj: 'Your July invoice is ready',
+      why: 'Automated receipt',
+      sum: 'Monthly infrastructure invoice, no action needed.',
+      body: 'Your invoice is available in the billing console.', r: null },
+    { id: 8, t: 'auto', from: 'Calendar', subj: 'Invitation accepted by 3 people',
+      why: 'Klorn filed this without asking',
+      sum: 'Three attendees accepted the Thursday review.',
+      body: 'Accepted: Jordan Lee, Casey Park, Sarah Kim.', r: null }
   ];
-  var TONE = ['수락', '거절', '질문'];
+  var TONE = ['Accept', 'Decline', 'Ask'];
 
   var cur = 'push', open = null, replying = false, draft = null, sent = false;
   var elT = document.getElementById('pl-tiers');
@@ -1686,12 +1671,12 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
         '<span class="fr">' + esc(m.from) + '</span>' +
         '<span class="sj">' + esc(m.subj) + '</span>' +
         '<span class="rs">' + esc(m.why) + '</span></button>';
-    }).join('') : '<p class="pl-empty">' + t.name + '에 남은 메일이 없습니다. ' + t.blurb + '.</p>';
+    }).join('') : '<p class="pl-empty">Nothing in ' + t.name + '. ' + t.blurb + '.</p>';
   }
   function renderRead() {
     var m = mail.filter(function (x) { return x.id === open; })[0];
     if (!m) {
-      elRead.innerHTML = '<p class="pl-empty">왼쪽에서 메일을 골라보세요.<br>여기 있는 건 전부 반응합니다.</p>';
+      elRead.innerHTML = '<p class="pl-empty">Pick a message on the left.<br>Everything here responds.</p>';
       return;
     }
     var opts = m.r && replying && draft === null
@@ -1699,29 +1684,29 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
           return '<button class="pl-opt" data-draft="' + i + '"><kbd>' + (i + 1) + '</kbd>' +
             '<span><b>' + TONE[i] + '</b>' + esc(txt) + '</span></button>'; }).join('') + '</div>'
       : (m.r && draft === null
-          ? '<p class="pl-hint"><b>AI로 답장</b>을 누르거나 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 키를 누르면 ' +
-            '당신 어투로 된 초안 세 개가 나옵니다.</p>'
+          ? '<p class="pl-hint">Hit <b>Reply with AI</b> — or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> — ' +
+            'for three drafts in your tone.</p>'
           : '');
     var comp = draft !== null
-      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="답장 초안">' + esc(m.r[draft]) + '</textarea>' +
-        '<div class="row">' + (sent ? '<span class="pl-sent">전송됨 · 영수증 기록</span>' : '') +
-        '<button class="pl-b" data-cancel>취소</button>' +
-        '<button class="pl-b on" data-send>' + (sent ? '전송됨' : '전송') + '</button></div></div>'
+      ? '<div class="pl-comp"><textarea id="pl-ta" aria-label="Reply draft">' + esc(m.r[draft]) + '</textarea>' +
+        '<div class="row">' + (sent ? '<span class="pl-sent">Sent · receipt logged</span>' : '') +
+        '<button class="pl-b" data-cancel>Cancel</button>' +
+        '<button class="pl-b on" data-send>' + (sent ? 'Sent' : 'Send') + '</button></div></div>'
       : '';
     var others = TIERS.filter(function (t) { return t.id !== m.t; });
     elRead.innerHTML =
       '<div class="pl-top"><div class="pl-sub">' + esc(m.subj) + '</div>' +
       '<div class="pl-from">' + esc(m.from) + '</div>' +
       '<div class="pl-acts">' +
-        (m.r ? '<button class="pl-b on" data-reply>AI로 답장</button>' : '') +
+        (m.r ? '<button class="pl-b on" data-reply>Reply with AI</button>' : '') +
         others.map(function (t) {
-          return '<button class="pl-b" data-move="' + t.id + '">' + t.name + '로 이동</button>'; }).join('') +
+          return '<button class="pl-b" data-move="' + t.id + '">Move to ' + t.name + '</button>'; }).join('') +
       '</div></div>' +
       // Drafts sit directly under the action row, not after the body — at the
       // bottom they fall below the panel's fold and "Reply with AI" reads as a
       // dead button on a short screen.
       opts + comp +
-      '<div class="pl-why"><span class="w">' + tier(m.t).name + ' 판정 이유 · ' + esc(m.why) + '</span>' +
+      '<div class="pl-why"><span class="w">Why ' + tier(m.t).name + ' · ' + esc(m.why) + '</span>' +
       '<div class="sm">' + esc(m.sum) + '</div></div>' +
       '<div class="pl-body">' + esc(m.body) + '</div>';
   }
@@ -1741,7 +1726,7 @@ document.querySelectorAll('[data-top]').forEach(function (a) {
     if (b.hasAttribute('data-send')) { sent = true; return renderRead(); }
     if (b.dataset.move) {
       var m = mail.filter(function (x) { return x.id === open; })[0];
-      if (m) { m.t = b.dataset.move; m.why = '당신이 옮겼습니다 — Klorn이 여기서 배웁니다'; }
+      if (m) { m.t = b.dataset.move; m.why = 'Moved by you — Klorn learns from this'; }
       open = null; reset(); return draw();
     }
   });

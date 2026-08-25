@@ -326,8 +326,8 @@
 
 /* First-run guide */
 "guide.title" = "Wie Klorn deine Mail sortiert";
-"guide.pipeline" = "Klorn liest jedes verbundene Postfach und sortiert jede Nachricht in eine der vier Spuren unten. Diese POSTEINGANG-Spalte ist das sortierte Ergebnis — nicht dein roher Gmail-Posteingang.";
-"guide.intro" = "Jede Nachricht landet in einer von vier Spuren. Nichts wird gelöscht und nichts ohne dich beantwortet — die Spur entscheidet nur, wie laut sie dich erreicht.";
+"guide.pipeline" = "Klorn liest jedes verbundene Postfach und sortiert jede Nachricht in eine der %d Spuren unten. Diese POSTEINGANG-Spalte ist das sortierte Ergebnis — nicht dein roher Gmail-Posteingang.";
+"guide.intro" = "Jede Nachricht landet in einer von %d Spuren. Nichts wird gelöscht und nichts ohne dich beantwortet — die Spur entscheidet nur, wie laut sie dich erreicht.";
 "guide.correcting" = "Etwas falsch einsortiert? Verschiebe es in eine andere Spur, und Klorn lernt aus der Korrektur. Jede Nachricht zeigt außerdem, warum sie dort gelandet ist.";
 "guide.done" = "Verstanden";
 "guide.reopen" = "Wie das Sortieren funktioniert";
