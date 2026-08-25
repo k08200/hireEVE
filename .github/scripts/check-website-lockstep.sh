@@ -143,6 +143,13 @@ while IFS= read -r page; do
     echo "::error::${page} links to app.klorn.ai without the attribution block"
     failed=1
   fi
+
+  # A pinned tag in a download link goes stale silently — the site handed out a
+  # build 51 releases old for three weeks. /releases/latest/ never does.
+  if grep -q 'releases/\(download\|tag\)/desktop-v' "$page"; then
+    echo "::error::${page} pins a release tag in a download link; use /releases/latest/"
+    failed=1
+  fi
 done < <(find website -name index.html | sort)
 
 [ "$failed" -eq 0 ] || exit 1

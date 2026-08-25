@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data processing and subprocessors — Klorn</title>
+<meta name="description" content="How to get a DPA, and the full list of subprocessors that can touch data in the hosted service — Google, Render, Vercel, OpenRouter, Paddle and Apple.">
+<meta property="og:title" content="Data processing and subprocessors — Klorn">
+<meta property="og:description" content="How to get a DPA, and the full list of subprocessors that can touch data in the hosted service — Google, Render, Vercel, OpenRouter, Paddle and Apple.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/dpa/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Data processing and subprocessors — Klorn">
+<meta name="twitter:description" content="How to get a DPA, and the full list of subprocessors that can touch data in the hosted service — Google, Render, Vercel, OpenRouter, Paddle and Apple.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<link rel="canonical" href="https://klorn.ai/dpa/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/">Klorn</a>
+    <span class="lang"><a href="/security/">Security</a><a href="/pricing/">Pricing</a><a href="/self-host/">Self-host</a><a href="/status/">Status</a><a href="/gdpr/">GDPR</a><a href="/dpa/" aria-current="true">DPA</a></span>
+  </nav>
+
+  <h1>Data processing</h1>
+  <p class="thesis">If you are deploying Klorn for other people, you are the controller and Klorn is your processor. A data processing agreement is available — and so is the list of everyone the data actually touches, which is the part most subprocessor pages bury.</p>
+
+  <h2>Getting a DPA</h2>
+  <p>Email <a href="mailto:k0820086@gmail.com">k0820086@gmail.com</a> with your organisation name and the entity that will sign. Klorn is a solo-maintained product, so this is a real exchange with a person rather than a click-through — which also means we can work from your paper if you have a standard form.</p>
+
+  <h2>Subprocessors</h2>
+  <p>Everyone below can, in the course of running the hosted service, process data you put into Klorn. Self-hosting removes every row except the model provider you choose and Google.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Subprocessor</th><th>What it does</th><th>What it sees</th></tr></thead>
+    <tbody>
+      <tr><th>Google</th><td class="us">Gmail and Calendar APIs, and sign-in</td><td>The source of the data — your mailbox and calendar, under the scopes you granted</td></tr>
+      <tr><th>Render</th><td class="us">API hosting and Postgres, Singapore region</td><td>All stored account, mail and classification data</td></tr>
+      <tr><th>Vercel</th><td class="us">Web app hosting</td><td>Requests and responses in transit</td></tr>
+      <tr><th>OpenRouter</th><td class="us">Default model routing</td><td>The message text sent for classification or drafting. Bring your own key and this row becomes your chosen provider instead</td></tr>
+      <tr><th>Paddle</th><td class="us">Payments and merchant of record</td><td>Billing details. <strong>No mail content</strong></td></tr>
+      <tr><th>Apple</th><td class="us">Push notification delivery (APNs)</td><td>Notification payloads on the devices you registered</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>What never leaves</h2>
+  <p>Klorn does not sell data, does not use your mail to train models, and does not run third-party analytics or trackers — retention instrumentation is a short allowlist of coarse event names in Klorn's own database, never message content. That is enforced in <a href="https://github.com/k08200/klorn/blob/main/packages/api/src/analytics.ts" rel="noreferrer noopener">analytics.ts</a>, not just asserted here.</p>
+
+  <div class="note">
+    <p><strong>Stated plainly.</strong> Klorn has no SOC 2 report and no third-party audit. If your procurement process requires one, Klorn does not currently clear it, and we would rather you learn that on this page than three calls in. What is available instead is the whole source under AGPL-3.0 and the <a href="/security/">security page</a> naming the files that enforce each claim.</p>
+  </div>
+
+
+  <footer>
+    <p>Questions about anything on this page? <a href="mailto:k0820086@gmail.com">k0820086@gmail.com</a>.
+      Klorn is <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">AGPL-3.0</a> — every claim here
+      is checkable against the source.</p>
+  </footer>
+</div>
+<script>
+// Same block as every other page: carry the campaign through to the app so a
+// signup can be credited to the page that earned it.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

@@ -24,6 +24,9 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
   </url>
   <url>
+    <loc>https://klorn.ai/dpa/</loc>
+  </url>
+  <url>
     <loc>https://klorn.ai/es/</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/"/>
     <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/"/>
@@ -44,6 +47,9 @@
     <xhtml:link rel="alternate" hreflang="fr" href="https://klorn.ai/fr/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://klorn.ai/de/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/"/>
+  </url>
+  <url>
+    <loc>https://klorn.ai/gdpr/</loc>
   </url>
   <url>
     <loc>https://klorn.ai/ja/</loc>
@@ -72,6 +78,18 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://klorn.ai/open-source/"/>
     <xhtml:link rel="alternate" hreflang="ko" href="https://klorn.ai/ko/open-source/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://klorn.ai/open-source/"/>
+  </url>
+  <url>
+    <loc>https://klorn.ai/pricing/</loc>
+  </url>
+  <url>
+    <loc>https://klorn.ai/security/</loc>
+  </url>
+  <url>
+    <loc>https://klorn.ai/self-host/</loc>
+  </url>
+  <url>
+    <loc>https://klorn.ai/status/</loc>
   </url>
   <url>
     <loc>https://klorn.ai/zh/</loc>
