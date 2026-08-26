@@ -359,19 +359,9 @@ const de: Record<string, string> = {
   "settings.section.connections": "Verbindungen",
   "settings.integration.google.desc":
     "Liest Gmail- und Kalender-Signale und verbindet sie mit der Meeting-Vorbereitung.",
-  "settings.integration.slack.connectedVia": "Verbunden über {method}",
-  "settings.integration.slack.viaBotToken": "Bot-Token",
-  "settings.integration.slack.viaWebhook": "Webhook",
-  "settings.integration.slack.adminOnly":
-    "Ein Administrator muss SLACK_BOT_TOKEN oder SLACK_WEBHOOK_URL setzen.",
   "settings.integration.notion.desc":
     "Bereitet Seitensuche, Dokumententwürfe und Datenbankzugriff vor.",
-  "settings.sendTest": "Test senden",
-  "settings.state.sending": "Wird gesendet...",
-  "settings.chip.adminSetup": "Admin-Einrichtung",
   "settings.chip.comingSoon": "Demnächst",
-  "settings.toast.slackTestSent": "Slack-Testnachricht gesendet.",
-  "settings.toast.slackTestFailed": "Die Testnachricht konnte nicht gesendet werden.",
   "settings.toast.googleDisconnectFailed": "Google konnte nicht getrennt werden.",
   "settings.toast.googleDisconnected": "Google getrennt.",
   "settings.toast.requestFailed": "Die Anfrage ist fehlgeschlagen.",

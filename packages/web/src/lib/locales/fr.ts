@@ -352,19 +352,9 @@ const fr: Record<string, string> = {
   "settings.section.connections": "Connexions",
   "settings.integration.google.desc":
     "Lit les signaux Gmail et Agenda et les relie à la préparation des réunions.",
-  "settings.integration.slack.connectedVia": "Connecté via {method}",
-  "settings.integration.slack.viaBotToken": "jeton de bot",
-  "settings.integration.slack.viaWebhook": "webhook",
-  "settings.integration.slack.adminOnly":
-    "Un administrateur doit définir SLACK_BOT_TOKEN ou SLACK_WEBHOOK_URL.",
   "settings.integration.notion.desc":
     "Prépare la recherche de pages, les brouillons de documents et l'accès aux bases.",
-  "settings.sendTest": "Envoyer un test",
-  "settings.state.sending": "Envoi...",
-  "settings.chip.adminSetup": "Configuration admin",
   "settings.chip.comingSoon": "Bientôt",
-  "settings.toast.slackTestSent": "Message de test envoyé sur Slack.",
-  "settings.toast.slackTestFailed": "Impossible d'envoyer le message de test.",
   "settings.toast.googleDisconnectFailed": "Impossible de déconnecter Google.",
   "settings.toast.googleDisconnected": "Google déconnecté.",
   "settings.toast.requestFailed": "La requête a échoué.",
