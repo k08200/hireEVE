@@ -512,3 +512,8 @@
 "cal.more" = "+%d more";
 "cal.cell.a11y" = "%@, %d events";
 "cal.scope.a11y" = "Calendar view";
+
+// Label categories — 카테고리 follows the labeling (2026-08-27).
+"label.personal" = "Personal";
+"section.lanes" = "LANES";
+"label.empty" = "No %@ mail right now";

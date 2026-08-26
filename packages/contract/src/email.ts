@@ -11,7 +11,7 @@
  * declaring and rendering a field only demo mode sent.
  */
 
-import type { TrustWire } from "./firewall.js";
+import type { LiveTier, TrustWire } from "./firewall.js";
 
 export type EmailPriority = "URGENT" | "NORMAL" | "LOW";
 
@@ -84,6 +84,12 @@ export interface EmailListItem {
   from: string;
   senderEmail: string | null;
   trust: TrustWire | null;
+  /**
+   * Firewall lane for this message, normalized server-side — retired v1
+   * values never reach the wire (AUTO folds to QUEUE, CALL to PUSH). null =
+   * not judged yet; clients render no chip, never a guessed lane.
+   */
+  tier: LiveTier | null;
   to: string;
   subject: string;
   snippet: string | null;

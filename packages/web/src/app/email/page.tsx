@@ -29,6 +29,7 @@ import {
 } from "react";
 import AuthGuard from "../../components/auth-guard";
 import { ComposeModal } from "../../components/compose-modal";
+import { LaneChip } from "../../components/lane-chip";
 import { ListSkeleton } from "../../components/skeleton";
 import { useToast } from "../../components/toast";
 import { TrustDot, type TrustScoreData } from "../../components/trust-badge";
@@ -1757,6 +1758,7 @@ function EmailRowItem({
               >
                 {name}
               </span>
+              {email.tier && <LaneChip tier={email.tier} />}
               {inboxLabel && (
                 <span className="inline-flex max-w-[30%] shrink-0 items-center gap-1 truncate rounded-full bg-surface-hover px-2 py-0.5 text-[10px] font-medium text-ink-mid">
                   <span
@@ -2218,10 +2220,13 @@ function MobileEmailRow({
         />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
-            <span
-              className={`truncate text-[15px] ${unread ? "font-semibold text-ink" : "font-medium text-ink-mid"}`}
-            >
-              {senderName(email.from)}
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span
+                className={`truncate text-[15px] ${unread ? "font-semibold text-ink" : "font-medium text-ink-mid"}`}
+              >
+                {senderName(email.from)}
+              </span>
+              {email.tier && <LaneChip tier={email.tier} />}
             </span>
             <time className="shrink-0 text-[11px] tabular-nums text-ink-dim">
               {formatRelative(email.date)}

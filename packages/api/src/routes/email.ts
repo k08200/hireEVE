@@ -22,6 +22,7 @@ import { requireAppAccess, requireEntitled } from "../billing/entitlement-guard.
 import { planHasFeature } from "../billing/stripe.js";
 import { MULTI_INBOX_SYNC_ENABLED, providerInboxSelectorEnabled } from "../config.js";
 import { prisma } from "../db.js";
+import { listLaneTiersByEmail } from "../judge/email-lanes.js";
 import { isTier } from "../judge/tiers.js";
 import { getCachedInteractionNode } from "../learning/interaction-graph.js";
 import {
@@ -152,6 +153,9 @@ const DEMO_EMAILS = [
     isRead: false,
     isStarred: false,
     priority: "URGENT" as const,
+    // Demo lanes are hand-assigned to what the judge would say — the
+    // logged-out list must show chips without overstating the lanes.
+    tier: "PUSH" as const,
     category: "business",
     summary: "Series A investor follow-up meeting request",
     keyPoints: ["Interested in leading the Series A", "Requested a call this week"],
@@ -174,6 +178,7 @@ const DEMO_EMAILS = [
     isRead: true,
     isStarred: false,
     priority: "LOW" as const,
+    tier: "INFO" as const,
     category: "automated",
     summary: "Weekly Notion activity summary",
     keyPoints: ["12 pages updated", "3 databases created"],
@@ -196,6 +201,7 @@ const DEMO_EMAILS = [
     isRead: false,
     isStarred: false,
     priority: "NORMAL" as const,
+    tier: "QUEUE" as const,
     category: "business",
     summary: "Q2 partnership proposal with co-marketing and API integration",
     keyPoints: ["Co-marketing proposal", "API integration", "Revenue sharing"],
@@ -217,6 +223,7 @@ const DEMO_EMAILS = [
     isRead: true,
     isStarred: false,
     priority: "NORMAL" as const,
+    tier: "INFO" as const,
     category: "engineering",
     summary: "Calendar integration PR #42 opened",
     keyPoints: ["Adds Google Calendar sync", "Adds event management"],
@@ -238,6 +245,10 @@ const DEMO_EMAILS = [
     isRead: false,
     isStarred: false,
     priority: "NORMAL" as const,
+    // QUEUE, not INFO: this row carries an action item and a due date, and
+    // accounting@ matches no automated-sender pattern — the real judge's
+    // transactional signal would not fire here.
+    tier: "QUEUE" as const,
     category: "billing",
     summary: "March services invoice for $2,450 due April 15",
     keyPoints: ["$2,450 invoice", "Payment due April 15"],
@@ -814,6 +825,9 @@ export async function emailRoutes(app: FastifyInstance) {
 
       // Map to API format
       const emailIds = emails.map((email) => email.id);
+      // Lane chips ride each row (next to the sender); batched like the other
+      // enrichments below so a 50-row page costs one AttentionItem query.
+      const laneTiers = await listLaneTiersByEmail(uid, emailIds);
       const attachmentSummaries = await summarizeEmailAttachmentsByEmail(emailIds, uid);
       const candidateProfiles = await listCandidateProfilesByEmail(emailIds, uid);
       const candidateIntakes = await listCandidateIntakesByEmail(emailIds, uid);
@@ -852,6 +866,7 @@ export async function emailRoutes(app: FastifyInstance) {
           from: e.from,
           senderEmail: addr || null,
           trust: trustToWire(addr ? trustMap.get(addr) : null),
+          tier: laneTiers.get(e.id) ?? null,
           to: e.to,
           subject: e.subject,
           snippet: e.snippet,
