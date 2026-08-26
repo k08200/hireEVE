@@ -127,6 +127,25 @@ function WaitlistPageInner() {
     }
   };
 
+  // Deleting is the only irreversible action on this page, so it asks first and
+  // names the address — the rows are visually near-identical and a misfire here
+  // cannot be undone.
+  const removeEntry = async (entry: WaitlistEntry) => {
+    if (!window.confirm(`Delete ${entry.email} from the waitlist? This cannot be undone.`)) {
+      return;
+    }
+    setUpdating(entry.id);
+    try {
+      await apiFetch(`/api/admin/waitlist/${entry.id}`, { method: "DELETE" });
+      toast(`Deleted ${entry.email}.`, "success");
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not delete the entry.", "error");
+    } finally {
+      setUpdating(null);
+    }
+  };
+
   const copyEmail = async (entry: WaitlistEntry) => {
     try {
       await navigator.clipboard.writeText(entry.email);
@@ -305,6 +324,20 @@ function WaitlistPageInner() {
                           className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-sm text-ink-mid transition duration-150 hover:bg-surface-panel hover:text-ink active:scale-[0.97] disabled:opacity-60"
                         >
                           Move to pending
+                        </button>
+                      )}
+                      {/* Only where it is safe: an APPROVED row is a live
+                          user's access while the beta gate is on, and the API
+                          refuses to delete one. Hiding the button here puts the
+                          rule in front of the click rather than after it. */}
+                      {entry.status !== "APPROVED" && (
+                        <button
+                          type="button"
+                          onClick={() => removeEntry(entry)}
+                          disabled={updating === entry.id}
+                          className="ease-strong inline-flex h-9 items-center rounded-lg border border-line bg-transparent px-3 text-sm text-ink-dim transition duration-150 hover:border-state-danger-line hover:text-state-danger-ink active:scale-[0.97] disabled:opacity-60"
+                        >
+                          Delete
                         </button>
                       )}
                     </div>
