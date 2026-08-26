@@ -273,7 +273,9 @@ export interface DecisionMetricsReport {
   /** How many days back the ledger was read (the recall/over-suppression window). */
   windowDays: number;
   overall: DecisionMetrics;
-  /** Full per-tier confusion from confirmed overrides (all 4 tiers). */
+  /** Full per-lane confusion from confirmed overrides. `matrix` is keyed by
+   *  Tier on both axes, so it covers every lane the ledger has seen —
+   *  including a legacy AUTO row a user corrected. */
   confusion: ConfusionReport;
   /** CONTACT_ENGAGEMENT_IN_JUDGE rollout footprint (0 until the flag fires). */
   engagementGrounding: EngagementGroundingMetric;

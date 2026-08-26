@@ -30,7 +30,7 @@ interface GraphData {
 }
 
 // Legend swatch shapes double as a non-colour differentiator (WCAG 1.4.1) so
-// the 4 tiers are still distinguishable without relying on hue alone.
+// the lanes are still distinguishable without relying on hue alone.
 type SwatchShape = "circle" | "diamond" | "square" | "ring" | "triangle";
 
 const REL_LEGEND: Array<{ color: string; label: string; shape: SwatchShape }> = [
