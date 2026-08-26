@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gmail filters vs AI triage: when rules win, and when they can't — Klorn</title>
+<meta name="description" content="Filters are deterministic, auditable and stale; AI models generalize and can't explain themselves. An honest comparison, and the architecture that takes both halves.">
+<meta property="og:title" content="Gmail filters vs AI triage: when rules win, and when they can't">
+<meta property="og:description" content="Filters are deterministic, auditable and stale; AI models generalize and can't explain themselves. An honest comparison, and the architecture that takes both halves.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/blog/gmail-filters-vs-ai-triage/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Gmail filters vs AI triage: when rules win, and when they can't">
+<meta name="twitter:description" content="Filters are deterministic, auditable and stale; AI models generalize and can't explain themselves. An honest comparison, and the architecture that takes both halves.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<link rel="canonical" href="https://klorn.ai/blog/gmail-filters-vs-ai-triage/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+<style>
+.meta { margin: 14px 0 0; font-size: 13.5px; color: var(--ink-3); }
+article h2 { margin-top: 40px; }
+ol, ul { margin: 12px 0 0; padding-left: 22px; }
+li { margin-top: 6px; }
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Gmail filters vs AI triage: when rules win, and when they can't",
+  "datePublished": "2026-08-26",
+  "dateModified": "2026-08-26",
+  "author": {"@type": "Person", "name": "Yongrean Kim", "url": "https://github.com/k08200"},
+  "publisher": {"@type": "Organization", "name": "Klorn", "url": "https://klorn.ai"},
+  "mainEntityOfPage": "https://klorn.ai/blog/gmail-filters-vs-ai-triage/"
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/">Klorn</a>
+    <span class="lang"><a href="/blog/" aria-current="true">Notes</a><a href="/security/">Security</a><a href="/pricing/">Pricing</a><a href="/self-host/">Self-host</a></span>
+  </nav>
+
+  <article>
+  <h1>Rules or a model? The honest answer is a <em>split</em>.</h1>
+  <p class="meta">2026-08-26 · essay · rules, models, and the split</p>
+
+  <p class="thesis">Gmail filters and AI triage are usually framed as old-versus-new. They're actually two failure modes in tension: rules fail by going stale, models fail by being unaccountable. Anyone telling you one side wins outright is selling the side they have.</p>
+
+  <h2>Where filters genuinely win</h2>
+  <ul>
+    <li><strong>Determinism.</strong> A filter does exactly what it says, every time. No drift, no model update changing behaviour under you.</li>
+    <li><strong>Auditability.</strong> The rule list <em>is</em> the explanation. When mail is misrouted you can find the guilty rule.</li>
+    <li><strong>Known senders.</strong> For a fixed set of senders that matter — your team's domain, an alerts address — a filter is unbeatable and finished.</li>
+  </ul>
+
+  <h2>Where they structurally can't</h2>
+  <ul>
+    <li><strong>Novelty.</strong> A rule can't match a sender you haven't met. The first email from a new customer matches nothing and gets default treatment — which is precisely the mail you most needed routed well.</li>
+    <li><strong>Staleness.</strong> Rules encode last year's life. Nobody audits filter lists; they accrete until behaviour surprises you.</li>
+    <li><strong>Silent failure.</strong> When a filter mis-archives something, nothing alerts you. The failure mode of rules is absence.</li>
+  </ul>
+
+  <h2>What a model adds, and what it costs</h2>
+  <p>A language model reads the message and generalizes — new sender, no rule, still a sensible judgment. That solves novelty and staleness in one move. The cost is accountability: ask why a message was buried and you get either nothing or a post-hoc paragraph the model composed <em>after</em> deciding. And the failure is still silent, now with less recourse — there's no rule list to audit.</p>
+
+  <h2>The split that keeps both halves</h2>
+  <p>The framing error is making one mechanism do both jobs — perceiving the message <em>and</em> deciding what happens. Split them and each side does what it's good at:</p>
+  <ul>
+    <li>The <strong>model perceives</strong>: it reads the mail and scores a few features — confidence, sender trust, reversibility, urgency. Generalizes to novel senders, never decides anything.</li>
+    <li>A <strong>rule decides</strong>: a small deterministic policy maps those scores to exactly one outcome. Auditable, unit-tested, and it fails in a declared direction — in <a href="/">Klorn</a>'s case, uncertainty degrades to a visible queue, never to the hidden lane, and that's a CI-enforced test rather than an intention.</li>
+    <li><strong>Your corrections</strong> close the loop the way filters never did: moving a row is the training signal, two identical corrections make that sender deterministic (the model is skipped), and learned behaviour can promote senders to visible lanes but can never bury one.</li>
+  </ul>
+  <p>How the perception half is chosen isn't a vibe either — we benchmark it across models with a committed eval set anyone can re-run: <a href="/blog/which-llm-is-best-for-email-classification/">the six-model bake-off</a>. Rules where rules win, a model where a model wins, and a visible seam between them.</p>
+  <a class="cta" href="https://app.klorn.ai/login?mode=register">Try Klorn free</a>
+  </article>
+
+  <footer>
+    <p>Klorn is <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">AGPL-3.0</a> — every claim in
+      this post is checkable against the source. More notes at <a href="/blog/">/blog</a>.</p>
+  </footer>
+</div>
+<script>
+// Same block as every other page: carry the campaign through to the app so a
+// signup can be credited to the page that earned it.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
