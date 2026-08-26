@@ -550,9 +550,9 @@ body::before {
 }
 
 /* ── Spatial triage (firewall view) ─────────────────
-   Depth + glow language for the 4-tier board. The hierarchy is meant to
+   Depth + glow language for the lane board. The hierarchy is meant to
    be felt before it is read: PUSH sits on an elevated, glowing plane;
-   QUEUE is mid; SILENT recedes and desaturates. */
+   MEETING and QUEUE are mid; INFO and SILENT recede and desaturate. */
 
 /* Per-tier ambient glow on the column panel. The negative spread keeps the
    glow tight to the panel instead of bleeding across the whole board. */

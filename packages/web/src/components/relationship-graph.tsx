@@ -53,7 +53,7 @@ export const TIER_COLORS: Record<string, string> = {
   AUTO: "#34d399", // --color-tier-auto
 };
 
-// Relationship-signal colours (not part of the 4-tier system).
+// Relationship-signal colours (not part of the lane system).
 const SELF_COLOR = "#0ea5e9"; // you (== --color-accent)
 const FEATURE_COLOR = "#a78bfa"; // a scored input feature (violet)
 // A tier node whose tag is not in TIER_COLORS. Deliberately neutral: falling
