@@ -97,6 +97,47 @@ enum Theme {
         }
     }
 
+    // MARK: Label palette (2026-08-27)
+    // The category labels were monochrome chips and the founder couldn't see
+    // them ("라벨도 색깔도 없고… 눈에 안뜨임"). Labels are data — they get
+    // hues, one per meaning, distinct from every lane hue so the two chip
+    // families never read as one system. Light/dark pairs are tuned so the
+    // chip TEXT (tint on a 13% tint wash over the panel) clears the 4.5:1
+    // small-text floor in both modes — engage stays banned for text
+    // (Theme.engage doc), which is why replied gets its own pink ramp.
+    static func labelTint(_ filter: LabelFilter) -> Color {
+        switch filter {
+        // "No category label" is the honest meaning — it stays neutral.
+        case .personal: textDim
+        case .promotions: dyn(light: (0.03, 0.42, 0.20, 1), dark: (0.38, 0.80, 0.50, 1))
+        case .social: dyn(light: (0.12, 0.34, 0.78, 1), dark: (0.52, 0.70, 1.0, 1))
+        case .updates: dyn(light: (0.55, 0.38, 0.0, 1), dark: (0.95, 0.76, 0.28, 1))
+        case .forums: dyn(light: (0.42, 0.26, 0.74, 1), dark: (0.74, 0.64, 1.0, 1))
+        case .firstContact: dyn(light: (0.0, 0.40, 0.54, 1), dark: (0.32, 0.76, 0.90, 1))
+        }
+    }
+
+    /// The chip color for a row's signal — same ramps as the sidebar rows via
+    /// labelTint, so a chip and its category row always match. Replied is the
+    /// relationship signal: a pink RAMP of its own (engage itself measures
+    /// ~4.3:1 and is documented never-for-text).
+    static func signalTint(_ signal: RowSignal) -> Color {
+        switch signal {
+        case .category(let name):
+            switch name {
+            case "promotions": labelTint(.promotions)
+            case "social": labelTint(.social)
+            case "updates": labelTint(.updates)
+            case "forums": labelTint(.forums)
+            default: textDim
+            }
+        case .replied:
+            dyn(light: (0.60, 0.14, 0.40, 1), dark: (0.96, 0.56, 0.76, 1))
+        case .first:
+            labelTint(.firstContact)
+        }
+    }
+
     /// Neutral panel shadow — one shadow color for every floating surface.
     /// (Was the web's navy-tinted shadow; a colored shadow is a hue cast.)
     static let panelShadow = dyn(light: (0, 0, 0, 0.18), dark: (0, 0, 0, 0.55))

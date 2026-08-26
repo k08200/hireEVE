@@ -44,7 +44,15 @@ enum PreviewRender {
        "email":{"emailDbId":"d4","subject":"Standup moved to 10:30",
                 "from":"Alex Carter <alex@team.co>","snippet":"Moved tomorrow's standup to 10:30 — still work for you?",
                 "signal":{"kind":"replied","count":12}},"hashStale":false}],
-      "QUEUE":[],"INFO":[],"SILENT":[],"AUTO":[]},
+      "QUEUE":[
+      {"id":"q1","source":"email","sourceId":"e4","type":"email","title":"Weekly digest",
+       "tier":"QUEUE","tierReason":"Promotional / marketing sender","priority":3,
+       "surfacedAt":"2026-07-29T06:20:00Z",
+       "email":{"emailDbId":"d4","subject":"This week in AI tooling — 12 launches",
+                "from":"BetaList <hello@betalist.example>","snippet":"Twelve launches worth a look this week.",
+                "receivedAt":"2026-07-29T06:18:00Z",
+                "signal":{"kind":"category","category":"promotions"}},"hashStale":false}],
+      "INFO":[],"SILENT":[],"AUTO":[]},
      "summary":{"PUSH":3,"MEETING":1,"QUEUE":12,"INFO":6,"SILENT":41,"AUTO":0,"total":63}}
     """
 
