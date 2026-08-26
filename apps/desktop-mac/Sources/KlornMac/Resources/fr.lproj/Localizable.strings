@@ -473,3 +473,16 @@
 /* Thread brief (why they wrote now) */
 "thread.weOwe" = "Vous devez encore : %@";
 "thread.brief.a11y" = "Pourquoi ce message est arrivé : %@";
+
+// Mail folders — Sent / Drafts / Archived (shell restructure 2026-08-26).
+"section.mailboxes" = "COURRIER";
+"mailbox.drafts" = "Brouillons";
+"mailbox.sent" = "Envoyés";
+"mailbox.archived" = "Archivés";
+"mailbox.refresh" = "Actualiser le dossier";
+"mailbox.loadFailed" = "Impossible de charger ce dossier. Vérifiez la connexion et actualisez.";
+"mailbox.empty.drafts" = "Aucun brouillon";
+"mailbox.empty.sent" = "Rien d'envoyé pour l'instant";
+"mailbox.empty.archived" = "Rien d'archivé";
+"mailbox.noSubject" = "(sans objet)";
+"mailbox.fromTo" = "%@ → %@";

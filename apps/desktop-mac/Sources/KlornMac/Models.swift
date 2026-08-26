@@ -86,6 +86,10 @@ struct EmailContext: Codable, Sendable, Hashable {
     let subject: String?
     let from: String?
     let snippet: String?
+    /// ISO arrival time (the row's right-aligned timestamp). Optional: rows
+    /// synced before the column, and older servers, simply omit it — the row
+    /// falls back to surfacedAt.
+    let receivedAt: String?
 }
 
 /// One classified item in the decision queue. Mirrors the API's FirewallItem
@@ -960,6 +964,107 @@ func eventTimeLabel(
         return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
     }
     return "\(hhmm(start))–\(hhmm(end))"
+}
+
+/// Right-aligned time for a mail row — the reference triage clients put a
+/// received time on every row and its absence here was an information gap,
+/// not a style choice (design pass 2026-08-25). Three grains, like theirs:
+/// today → clock time, this year → month + day, older → adds the year.
+/// Malformed ISO degrades to an empty string (row shows no time), never a
+/// crash. Calendar + locale injectable so the harness pins the math in UTC.
+func mailTimeLabel(
+    iso: String?,
+    now: Date,
+    calendar: Calendar = .current,
+    locale: Locale = L10n.activeLocale
+) -> String {
+    guard let iso else { return "" }
+    let withMillis = ISO8601DateFormatter()
+    withMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    let plain = ISO8601DateFormatter()  // tolerate writers that omit millis
+    guard let date = withMillis.date(from: iso) ?? plain.date(from: iso) else { return "" }
+
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.timeZone = calendar.timeZone
+    formatter.locale = locale
+    if calendar.isDate(date, inSameDayAs: now) {
+        formatter.setLocalizedDateFormatFromTemplate("HHmm")
+    } else if calendar.component(.year, from: date) == calendar.component(.year, from: now) {
+        formatter.setLocalizedDateFormatFromTemplate("MMMd")
+    } else {
+        formatter.setLocalizedDateFormatFromTemplate("yMMMd")
+    }
+    return formatter.string(from: date)
+}
+
+// MARK: - Mailbox folders (Sent / Drafts / Archived)
+
+/// The standard mail-client folders (desktop shell restructure, 2026-08-26).
+/// Raw values are the API's box names — GET /api/email/mailbox/:box.
+enum MailboxKind: String, CaseIterable, Sendable, Identifiable {
+    case drafts
+    case sent
+    case archived
+
+    var id: String { rawValue }
+
+    var label: String { L("mailbox.\(rawValue)") }
+
+    var icon: String {
+        switch self {
+        case .drafts: "doc.badge.ellipsis"
+        case .sent: "paperplane"
+        case .archived: "archivebox"
+        }
+    }
+}
+
+/// One row of a live folder listing. Mirrors MailboxItemWire (gmail-mailbox.ts).
+struct MailboxItem: Codable, Sendable, Identifiable, Hashable {
+    let gmailId: String
+    let threadId: String?
+    let subject: String
+    let from: String
+    let to: String
+    let snippet: String
+    let receivedAt: String
+    let isRead: Bool
+
+    var id: String { gmailId }
+}
+
+struct MailboxListResponse: Codable, Sendable {
+    struct Payload: Codable, Sendable {
+        let items: [MailboxItem]
+        let demo: Bool
+    }
+
+    let success: Bool
+    let data: Payload
+}
+
+/// GET /api/email/live/:gmailId — full detail for a folder row (these
+/// messages are not in the local mirror, so GET /:id can never serve them).
+struct LiveEmailDetail: Codable, Sendable {
+    struct Payload: Codable, Sendable {
+        let gmailId: String
+        let threadId: String?
+        let subject: String
+        let from: String
+        let to: String
+        let cc: String
+        let snippet: String
+        let body: String
+        /// Server-sanitized HTML (same sanitizer as the mirror detail route);
+        /// nil for plain mail — `body` stays authoritative there.
+        let renderHtml: String?
+        let receivedAt: String
+        let isRead: Bool
+    }
+
+    let success: Bool
+    let data: Payload
 }
 
 // MARK: - Billing usage (ACCOUNT gauge)

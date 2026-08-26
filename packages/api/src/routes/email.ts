@@ -66,6 +66,7 @@ import { registerEmailBulkRoutes } from "./email-bulk.js";
 import { registerEmailCandidatesRoutes } from "./email-candidates.js";
 import { registerEmailFeedbackRoutes } from "./email-feedback.js";
 import { registerEmailMutationsRoutes } from "./email-mutations.js";
+import { registerEmailMailboxRoutes } from "./email-mailbox.js";
 import { registerEmailRepliesRoutes } from "./email-replies.js";
 import { registerEmailRulesRoutes } from "./email-rules.js";
 
@@ -655,6 +656,7 @@ export async function emailRoutes(app: FastifyInstance) {
   await registerEmailAttachmentsRoutes(app);
   await registerEmailRepliesRoutes(app);
   await registerEmailMutationsRoutes(app);
+  registerEmailMailboxRoutes(app);
   await registerEmailBulkRoutes(app);
 
   // ─── Sync & List Emails ───────────────────────────────────────────────

@@ -76,6 +76,14 @@ enum L10n {
         }
     }
 
+    /// A Locale for the language the UI is actually showing. Date/number
+    /// formatting must follow the APP language, not the system locale — the
+    /// English UI was stamping Korean month names on every mail row because
+    /// mailTimeLabel defaulted to `.current` (render audit 2026-08-26).
+    static var activeLocale: Locale {
+        Locale(identifier: resolvedCode(override: override))
+    }
+
     private static func bundle() -> Bundle {
         let code = resolvedCode(override: override)
         if let cached = cachedBundle, cachedCode == code { return cached }

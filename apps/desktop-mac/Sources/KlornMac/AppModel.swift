@@ -882,6 +882,73 @@ final class AppModel {
     /// shows an honest error instead of an infinite spinner.
     private(set) var commitmentsFailed = false
 
+    // MARK: Mailbox folders (Sent / Drafts / Archived)
+
+    /// Live folder listings, keyed by box. Fetched on first visit and on
+    /// re-visit (a folder is a live Gmail view, not part of the queue poll —
+    /// polling three folders every 60s would triple the Gmail read load for
+    /// surfaces that are usually closed).
+    private(set) var mailboxItems: [MailboxKind: [MailboxItem]] = [:]
+    private(set) var mailboxLoading: MailboxKind?
+    private(set) var mailboxError: String?
+    /// The folder row open in the reading pane, with its live detail.
+    private(set) var selectedMailboxItem: MailboxItem?
+    private(set) var mailboxDetail: LiveEmailDetail.Payload?
+    private(set) var mailboxDetailLoading = false
+
+    func openMailbox(_ box: MailboxKind) {
+        Task { await loadMailbox(box) }
+    }
+
+    func loadMailbox(_ box: MailboxKind) async {
+        mailboxLoading = box
+        mailboxError = nil
+        defer { mailboxLoading = nil }
+        do {
+            let resp: MailboxListResponse = try await api.get(
+                "/api/email/mailbox/\(box.rawValue)", as: MailboxListResponse.self)
+            mailboxItems[box] = resp.data.items
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            // Keep the stale listing if we had one; only surface the error
+            // when the folder would otherwise be blank.
+            if mailboxItems[box] == nil { mailboxError = L("mailbox.loadFailed") }
+            Log.app.warning("mailbox \(box.rawValue) fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    func selectMailboxItem(_ item: MailboxItem) {
+        selectedMailboxItem = item
+        mailboxDetail = nil
+        mailboxDetailLoading = true
+        Task {
+            defer { mailboxDetailLoading = false }
+            do {
+                let resp: LiveEmailDetail = try await api.get(
+                    "/api/email/live/\(item.gmailId)", as: LiveEmailDetail.self)
+                // Stale-response guard: the user may have clicked another row
+                // while this one was in flight.
+                if selectedMailboxItem?.gmailId == item.gmailId {
+                    mailboxDetail = resp.data
+                }
+            } catch {
+                Log.app.warning("live email fetch failed: \(String(describing: error), privacy: .private)")
+            }
+        }
+    }
+
+    func clearMailboxSelection() {
+        selectedMailboxItem = nil
+        mailboxDetail = nil
+    }
+
+    /// Render-probe seam: the offscreen shots need a populated folder without
+    /// a network. Internal, used only by PreviewRender.
+    func seedMailboxForRender(_ box: MailboxKind, items: [MailboxItem]) {
+        mailboxItems[box] = items
+    }
+
     private func refreshCommitments() async {
         do {
             let resp: CommitmentsResponse = try await api.get(

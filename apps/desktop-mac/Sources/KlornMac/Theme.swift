@@ -16,8 +16,12 @@ enum Theme {
         })
     }
 
-    /// Canvas — web v2 `#f4f8fc`; dark mirrors the web's `#0b1120`.
-    static let bg = dyn(light: (0.957, 0.973, 0.988, 1), dark: (0.043, 0.067, 0.125, 1))
+    /// Canvas. NEUTRAL, deliberately unhooked from the web's navy (#0b1120):
+    /// the founder-picked reference (Inbox Zero, 2026-08-25) keeps every
+    /// surface hue-free so the only color on screen is color that MEANS
+    /// something — lane tints, the accent, unread. A navy canvas put a blue
+    /// cast under all of it and made the lane hues compete with the ground.
+    static let bg = dyn(light: (0.980, 0.980, 0.980, 1), dark: (0.039, 0.039, 0.045, 1))
     /// The one interaction accent — CTAs, focus, selection, gauge. Everything
     /// "choose me / chosen" speaks in this; the brand marks themselves are B&W.
     /// Web v2 sky-500 `#0ea5e9`.
@@ -40,10 +44,10 @@ enum Theme {
     /// Interior top-edge light. Was a hardcoded white 0.9 — glaring in dark.
     static let edgeLight = dyn(light: (1, 1, 1, 0.90), dark: (1, 1, 1, 0.14))
 
-    /// The top bar is always a LIGHT floating surface regardless of system
-    /// appearance, so its text uses explicit slate tones (not semantic colors).
+    /// The floating surface. Dark is a neutral raised gray one step above the
+    /// canvas — not navy (see `bg`).
     static let panel = dyn(
-        light: (1, 1, 1, panelDefaultOpacity), dark: (0.086, 0.129, 0.227, panelDefaultOpacity))
+        light: (1, 1, 1, panelDefaultOpacity), dark: (0.078, 0.078, 0.086, panelDefaultOpacity))
     static let panelDefaultOpacity = 0.92
 
     /// Panel fill opacity: fully opaque when the user asked to reduce transparency
@@ -52,14 +56,16 @@ enum Theme {
     static func panelOpacity(reduceTransparency: Bool) -> Double {
         reduceTransparency ? 1.0 : panelDefaultOpacity
     }
-    /// slate-900 `#0f172a` on light; slate-100 in the dark.
-    static let text = dyn(light: (0.059, 0.090, 0.165, 1), dark: (0.945, 0.961, 0.976, 1))
-    /// Secondary text — slate-600 `#475569`. Was slate-500, which measured
-    /// 4.09:1 on a raised card over the canvas (below the WCAG AA 4.5:1 text
-    /// floor; caption sizes never qualify as "large text"). slate-600 clears
-    /// every panel/raised stack with margin (~6.5:1 worst case). Never thin
-    /// this with `.opacity()` on the color — the self-check bans the pattern.
-    static let textDim = dyn(light: (0.278, 0.333, 0.412, 1), dark: (0.561, 0.627, 0.722, 1))
+    /// Near-black / near-white, hue-free (the slate ramp carried the navy cast
+    /// into every glyph).
+    static let text = dyn(light: (0.060, 0.060, 0.070, 1), dark: (0.957, 0.957, 0.965, 1))
+    /// Secondary text, neutral gray. Contrast re-measured after the
+    /// neutralization: light #52525C on the raised-over-white stack ≈ 6.9:1,
+    /// dark #A2A2AD on the raised-over-panel stack ≈ 6.8:1 — both clear the
+    /// WCAG AA 4.5:1 text floor with margin (caption sizes never qualify as
+    /// "large text"). Never thin this with `.opacity()` on the color — the
+    /// self-check bans the pattern.
+    static let textDim = dyn(light: (0.320, 0.320, 0.360, 1), dark: (0.635, 0.635, 0.680, 1))
 
     /// Input-field boundary. `line` (black@0.08 ≈ 1.2:1) is fine for decorative
     /// dividers but fails WCAG 1.4.11 (≥3:1) for a control boundary; 0.35 ≈ 3:1
@@ -91,19 +97,20 @@ enum Theme {
         }
     }
 
-    /// Navy-tinted panel shadow — web v2 `rgba(2,60,110,0.22)`. One shadow
-    /// color for every floating light surface.
-    static let panelShadow = dyn(light: (0.008, 0.235, 0.431, 0.22), dark: (0, 0, 0, 0.55))
+    /// Neutral panel shadow — one shadow color for every floating surface.
+    /// (Was the web's navy-tinted shadow; a colored shadow is a hue cast.)
+    static let panelShadow = dyn(light: (0, 0, 0, 0.18), dark: (0, 0, 0, 0.55))
 
-    /// White glass tint, layered OVER the real blur material — a faint cool
-    /// sky cast at the bottom keeps the surface from reading as flat paper.
-    /// Opacity applied by the caller (reduce-transparency mode raises it to
-    /// near-solid, where the blur behind barely shows).
+    /// Glass tint, layered OVER the real blur material. Neutral top→bottom —
+    /// barely darker at the foot so the surface still reads as lit material,
+    /// with no color cast in either mode. Opacity applied by the caller
+    /// (reduce-transparency mode raises it to near-solid, where the blur
+    /// behind barely shows).
     static func panelGradient(opacity: Double) -> LinearGradient {
         LinearGradient(
             colors: [
-                dyn(light: (1, 1, 1, opacity * 0.99), dark: (0.086, 0.129, 0.227, opacity * 0.99)),
-                dyn(light: (0.97, 0.98, 0.995, opacity), dark: (0.059, 0.098, 0.184, opacity)),
+                dyn(light: (1, 1, 1, opacity * 0.99), dark: (0.078, 0.078, 0.086, opacity * 0.99)),
+                dyn(light: (0.975, 0.975, 0.978, opacity), dark: (0.055, 0.055, 0.063, opacity)),
             ],
             startPoint: .top, endPoint: .bottom)
     }

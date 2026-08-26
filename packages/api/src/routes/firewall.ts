@@ -452,6 +452,7 @@ export async function firewallRoutes(app: FastifyInstance) {
                 subject: true,
                 from: true,
                 snippet: true,
+                receivedAt: true,
                 linkedInboxAccountId: true,
               },
             })
@@ -468,6 +469,7 @@ export async function firewallRoutes(app: FastifyInstance) {
                 from: true,
                 snippet: true,
                 labels: true,
+                receivedAt: true,
                 // Gmail thread id — used to collapse a multi-message conversation
                 // (N EmailMessage rows) to a single firewall card. See below.
                 threadId: true,
@@ -573,6 +575,7 @@ export async function firewallRoutes(app: FastifyInstance) {
                   subject: email.subject ?? null,
                   from: email.from ?? null,
                   snippet: email.snippet ?? null,
+                  receivedAt: email.receivedAt?.toISOString() ?? null,
                   trust: trust
                     ? {
                         badge: trust.badge,
@@ -638,6 +641,7 @@ export async function firewallRoutes(app: FastifyInstance) {
               subject: email.subject ?? null,
               from: email.from ?? null,
               snippet: email.snippet ?? null,
+              receivedAt: email.receivedAt?.toISOString() ?? null,
               trust: trust
                 ? {
                     badge: trust.badge,

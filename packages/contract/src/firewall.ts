@@ -52,6 +52,9 @@ export interface FirewallEmailContext {
   subject: string | null;
   from: string | null;
   snippet: string | null;
+  /** ISO arrival time — the row's right-aligned timestamp. Null for rows
+   *  synced before the column existed; clients fall back to surfacedAt. */
+  receivedAt: string | null;
   trust: TrustWire | null;
 }
 

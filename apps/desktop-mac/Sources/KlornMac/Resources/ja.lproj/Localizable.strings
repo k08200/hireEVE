@@ -473,3 +473,16 @@
 /* Thread brief (why they wrote now) */
 "thread.weOwe" = "まだ渡していないもの: %@";
 "thread.brief.a11y" = "このメールが届いた理由: %@";
+
+// Mail folders — Sent / Drafts / Archived (shell restructure 2026-08-26).
+"section.mailboxes" = "メール";
+"mailbox.drafts" = "下書き";
+"mailbox.sent" = "送信済み";
+"mailbox.archived" = "アーカイブ";
+"mailbox.refresh" = "フォルダを更新";
+"mailbox.loadFailed" = "フォルダを読み込めませんでした。接続を確認して更新してください。";
+"mailbox.empty.drafts" = "下書きはありません";
+"mailbox.empty.sent" = "送信済みメールはありません";
+"mailbox.empty.archived" = "アーカイブ済みメールはありません";
+"mailbox.noSubject" = "（件名なし）";
+"mailbox.fromTo" = "%@ → %@";
