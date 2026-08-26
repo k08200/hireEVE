@@ -760,75 +760,317 @@ private struct UpcomingSection: View {
 /// lightweight detail popover (title / time / location, Join when there's a
 /// meeting link) with "Open in Klorn" → the full view, which carries today and
 /// the week ahead.
-/// The list-column calendar screen (ListMode.calendar): today first — the
-/// running event marked NOW — then the coming week grouped by day. Reuses the
-/// sidebar's rows and the harness-pinned grouping helpers so the two calendar
-/// surfaces can never drift apart.
-private struct CalendarAgendaColumn: View {
+/// The real calendar (founder 2026-08-26: an empty week must show the
+/// CALENDAR, not a "no events" line — the grid itself is the information).
+/// Three scopes like the system Calendar app: 일 (one day's events), 월 (the
+/// month grid), 년 (twelve mini-months). Month is the default; a day cell
+/// drills into 일, a mini-month into 월. Events come from the existing
+/// GET /api/calendar?start&end — fetched per visible range, keyed so stale
+/// responses for a range the user already left are dropped.
+struct CalendarScreen: View {
     @Environment(AppModel.self) private var model
     let actions: TopBarActions
 
-    private var agenda: [AgendaDay] {
-        upcomingAgenda(now: Date(), events: model.weekAhead ?? [])
+    enum Scope: String, CaseIterable, Identifiable {
+        case day, month, year
+        var id: String { rawValue }
+        var label: String { L("cal.scope.\(rawValue)") }
+    }
+
+    /// Injectable so the offscreen renderer can pin the visible month to the
+    /// fixture's dates (Date() would drift the shot every month). Explicit
+    /// init because private @State demotes the memberwise one.
+    let initialScope: Scope
+    let initialAnchor: Date
+    @State private var scope: Scope = .month
+    /// The anchor date the visible range derives from (today at first).
+    @State private var anchor = Date()
+
+    init(actions: TopBarActions, initialScope: Scope = .month, initialAnchor: Date = Date()) {
+        self.actions = actions
+        self.initialScope = initialScope
+        self.initialAnchor = initialAnchor
+    }
+
+    private var calendar: Calendar { Calendar.current }
+    private var buckets: [String: [CalendarEventWire]] {
+        eventsByDay(model.calendarRangeEvents, calendar: calendar)
+    }
+
+    /// The fetch range for the current scope — month pads to the drawn grid,
+    /// year covers the year, day fetches its month (so ‹› stays warm).
+    private var range: (start: Date, end: Date) {
+        let c = calendar
+        switch scope {
+        case .year:
+            var comps = c.dateComponents([.year], from: anchor)
+            comps.month = 1
+            comps.day = 1
+            let start = c.date(from: comps) ?? anchor
+            let end = c.date(byAdding: DateComponents(year: 1, day: -1), to: start) ?? anchor
+            return (start, c.date(byAdding: .day, value: 1, to: end) ?? end)
+        case .month, .day:
+            let comps = c.dateComponents([.year, .month], from: anchor)
+            let days = monthGridDays(year: comps.year ?? 2026, month: comps.month ?? 1, calendar: c)
+            guard let first = days.first, let last = days.last else { return (anchor, anchor) }
+            return (first, c.date(byAdding: .day, value: 1, to: last) ?? last)
+        }
+    }
+
+    private var rangeTitle: String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = L10n.activeLocale
+        switch scope {
+        case .day: formatter.setLocalizedDateFormatFromTemplate("yMMMMdEEE")
+        case .month: formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        case .year: formatter.setLocalizedDateFormatFromTemplate("y")
+        }
+        return formatter.string(from: anchor)
+    }
+
+    private func step(_ direction: Int) {
+        let component: Calendar.Component =
+            switch scope {
+            case .day: .day
+            case .month: .month
+            case .year: .year
+            }
+        anchor = calendar.date(byAdding: component, value: direction, to: anchor) ?? anchor
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "calendar").font(.body).foregroundStyle(Theme.accent)
-                    .accessibilityHidden(true)
-                Text(L("section.calendar")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
-                if let events = model.weekAhead {
-                    Text("\(events.count)")
-                        .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+            header
+            Divider().overlay(Theme.line)
+            Group {
+                switch scope {
+                case .day: dayView
+                case .month: monthView
+                case .year: yearView
                 }
-                Spacer()
             }
-            .padding(.horizontal, 24).padding(.vertical, 18)
+            .id("\(scope.rawValue)|\(localDayKey(anchor, calendar: calendar))")
+        }
+        .onAppear {
+            scope = initialScope
+            anchor = initialAnchor
+        }
+        .task(id: "\(scope.rawValue)|\(localDayKey(anchor, calendar: calendar))") {
+            let r = range
+            await model.loadCalendarRange(start: r.start, end: r.end)
+        }
+    }
 
-            if model.weekAhead == nil && model.today == nil {
-                Text(L("bar.loading")).font(.caption).foregroundStyle(Theme.textDim)
-                    .padding(.horizontal, 24)
-            } else if (model.today?.total ?? 0) == 0 && agenda.isEmpty {
-                EmptyState(icon: "calendar", title: L("calendar.noEventsWeek"))
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 40)
-            } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let today = model.today, today.total > 0 {
-                            ColumnHeader(title: L("section.todayShort"))
-                                .padding(.horizontal, 20).padding(.bottom, 4)
-                            if let current = today.current {
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text(L("section.now"))
-                                        .font(.caption2.weight(.bold))
-                                        .foregroundStyle(Theme.accent)
-                                        .padding(.horizontal, 6).padding(.vertical, 2)
-                                        .background(Theme.accent.opacity(0.12), in: Capsule())
-                                    UpcomingEventRow(event: current, actions: actions)
-                                }
-                                .padding(.leading, 12)
-                            }
-                            ForEach(today.upcoming) { event in
-                                UpcomingEventRow(event: event, actions: actions)
-                                    .padding(.horizontal, 12)
-                            }
-                        }
-                        ForEach(agenda) { day in
-                            ColumnHeader(title: day.label)
-                                .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 4)
-                            ForEach(day.events) { event in
-                                UpcomingEventRow(event: event, actions: actions)
-                                    .padding(.horizontal, 12)
-                            }
-                        }
+    private var header: some View {
+        HStack(spacing: 10) {
+            Text(rangeTitle).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                .contentTransition(.numericText())
+            if model.calendarRangeLoading && !Theme.isRenderingOffscreen {
+                ProgressView().controlSize(.mini)
+            }
+            Spacer()
+            Button { step(-1) } label: {
+                Image(systemName: "chevron.left").iconTarget(26)
+            }
+            .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+            .accessibilityLabel(L("cal.prev"))
+            Button(L("cal.today")) { anchor = Date() }
+                .buttonStyle(.plain).font(Theme.Typo.label)
+                .foregroundStyle(Theme.textDim)
+            Button { step(1) } label: {
+                Image(systemName: "chevron.right").iconTarget(26)
+            }
+            .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+            .accessibilityLabel(L("cal.next"))
+            if Theme.isRenderingOffscreen {
+                // ImageRenderer draws NSSegmentedControl as a placeholder —
+                // same stand-in pattern as menus and text fields.
+                HStack(spacing: 2) {
+                    ForEach(Scope.allCases) { item in
+                        Text(item.label).font(Theme.Typo.label)
+                            .foregroundStyle(item == scope ? Theme.text : Theme.textDim)
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(item == scope ? Theme.surfaceHover : .clear,
+                                        in: RoundedRectangle(cornerRadius: 6))
                     }
-                    .padding(.bottom, 20)
+                }
+                .padding(2)
+                .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 8))
+            } else {
+                Picker("", selection: $scope) {
+                    ForEach(Scope.allCases) { s in
+                        Text(s.label).tag(s)
+                    }
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+                .accessibilityLabel(L("cal.scope.a11y"))
+            }
+        }
+        .padding(.horizontal, 24).padding(.vertical, 14)
+    }
+
+    // MARK: 일 — one day, its events in order (all-day first).
+
+    private var dayView: some View {
+        let key = localDayKey(anchor, calendar: calendar)
+        let events = (buckets[key] ?? []).sorted { $0.startTime < $1.startTime }
+        return OffscreenFriendlyScroll {
+            VStack(alignment: .leading, spacing: 0) {
+                if events.isEmpty {
+                    // The founder's rule, kept at day grain too: show the day
+                    // frame, say it is open — never a bare "nothing".
+                    VStack(alignment: .leading, spacing: Theme.s2) {
+                        Text(L("cal.dayFree")).font(.callout).foregroundStyle(Theme.textDim)
+                    }
+                    .padding(24)
+                } else {
+                    ForEach(events) { event in
+                        UpcomingEventRow(event: event, actions: actions)
+                        Divider().overlay(Theme.line).padding(.leading, 24)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    // MARK: 월 — the grid. Whole weeks, out-of-month days dim, today ringed.
+
+    private var monthView: some View {
+        let comps = calendar.dateComponents([.year, .month], from: anchor)
+        let days = monthGridDays(year: comps.year ?? 2026, month: comps.month ?? 1,
+                                 calendar: calendar)
+        let todayKey = localDayKey(Date(), calendar: calendar)
+        let symbols = orderedWeekdaySymbols
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 1), count: 7)
+        return VStack(spacing: 0) {
+            HStack(spacing: 1) {
+                ForEach(symbols, id: \.self) { day in
+                    Text(day).font(Theme.Typo.micro).foregroundStyle(Theme.textDim)
+                        .frame(maxWidth: .infinity)
                 }
             }
+            .padding(.vertical, 6)
+            Divider().overlay(Theme.line)
+            LazyVGrid(columns: columns, spacing: 1) {
+                ForEach(days, id: \.self) { day in
+                    monthCell(day, inMonth: calendar.component(.month, from: day) == comps.month,
+                              todayKey: todayKey)
+                }
+            }
+            .background(Theme.line)
             Spacer(minLength: 0)
         }
+    }
+
+    private func monthCell(_ day: Date, inMonth: Bool, todayKey: String) -> some View {
+        let key = localDayKey(day, calendar: calendar)
+        let events = buckets[key] ?? []
+        let isToday = key == todayKey
+        return Button {
+            anchor = day
+            scope = .day
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(calendar.component(.day, from: day))")
+                    .font(Theme.Typo.caption.monospacedDigit()
+                        .weight(isToday ? .bold : .regular))
+                    .foregroundStyle(isToday ? Color.white : inMonth ? Theme.text : Theme.textDim)
+                    .frame(width: 22, height: 22)
+                    .background(isToday ? Theme.accent : .clear, in: Circle())
+                ForEach(events.prefix(2)) { event in
+                    Text(event.title)
+                        .font(Theme.Typo.micro)
+                        .foregroundStyle(inMonth ? Theme.text : Theme.textDim)
+                        .lineLimit(1)
+                        .padding(.horizontal, 4).padding(.vertical, 1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.accent.opacity(inMonth ? 0.16 : 0.08),
+                                    in: RoundedRectangle(cornerRadius: 3))
+                }
+                if events.count > 2 {
+                    Text(L("cal.more", events.count - 2))
+                        .font(Theme.Typo.micro).foregroundStyle(Theme.textDim)
+                        .padding(.horizontal, 4)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(5)
+            .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)
+            .background(Theme.panel.opacity(inMonth ? 1 : 0.6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L("cal.cell.a11y", key, events.count))
+    }
+
+    // MARK: 년 — twelve mini-months; a dot marks days with events.
+
+    private var yearView: some View {
+        let year = calendar.component(.year, from: anchor)
+        let columns = Array(repeating: GridItem(.flexible(), spacing: 18), count: 3)
+        return OffscreenFriendlyScroll {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 18) {
+                ForEach(1...12, id: \.self) { month in
+                    miniMonth(year: year, month: month)
+                }
+            }
+            .padding(20)
+        }
+    }
+
+    private func miniMonth(year: Int, month: Int) -> some View {
+        let days = monthGridDays(year: year, month: month, calendar: calendar)
+        let columns = Array(repeating: GridItem(.flexible(minimum: 10), spacing: 2), count: 7)
+        var comps = DateComponents()
+        comps.year = year
+        comps.month = month
+        comps.day = 1
+        let first = calendar.date(from: comps) ?? Date()
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = L10n.activeLocale
+        formatter.setLocalizedDateFormatFromTemplate("MMMM")
+        return Button {
+            anchor = first
+            scope = .month
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(formatter.string(from: first))
+                    .font(Theme.Typo.label).foregroundStyle(Theme.accentDeep)
+                LazyVGrid(columns: columns, spacing: 2) {
+                    ForEach(days, id: \.self) { day in
+                        let inMonth = calendar.component(.month, from: day) == month
+                        let hasEvents = !(buckets[localDayKey(day, calendar: calendar)] ?? [])
+                            .isEmpty
+                        Text("\(calendar.component(.day, from: day))")
+                            .font(.system(size: 9).monospacedDigit())
+                            .foregroundStyle(
+                                inMonth
+                                    ? (hasEvents ? Theme.accentDeep : Theme.text)
+                                    : .clear)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .padding(10)
+            .background(Theme.surfaceRaised, in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(formatter.string(from: first))
+    }
+
+    /// Weekday symbols rotated to the calendar's firstWeekday.
+    private var orderedWeekdaySymbols: [String] {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = L10n.activeLocale
+        let base = formatter.shortWeekdaySymbols ?? []
+        guard base.count == 7 else { return base }
+        let shift = calendar.firstWeekday - 1
+        return Array(base[shift...] + base[..<shift])
     }
 }
 
@@ -1850,24 +2092,6 @@ private struct FullSidebar: View {
                 .padding(.horizontal, 20).padding(.top, 2).padding(.bottom, 10)
                 .accessibilityLabel(L("compose.new"))
 
-                HStack {
-                    ColumnHeader(title: L("section.inbox"))
-                    // "What is this?" — reopens the tier guide right where the
-                    // "inbox가 뭔지 모르겠다" question arises.
-                    Button {
-                        model.showTierGuide = true
-                    } label: {
-                        Image(systemName: "questionmark.circle")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textDim)
-                    }
-                    .buttonStyle(.plain)
-                    .help(L("guide.reopen"))
-                    .accessibilityLabel(L("guide.reopen"))
-                    Spacer()
-                    InboxSelectorMenu()
-                }
-                .padding(.horizontal, 20).padding(.bottom, 6)
             } else {
                 ColumnHeader(title: L("nav.workspace"))
                     .padding(.horizontal, 20).padding(.top, 6).padding(.bottom, 6)
@@ -1923,8 +2147,22 @@ private struct FullSidebar: View {
                 // clients' Categories group. The classification is the
                 // product; here it FILTERS the mailbox instead of being the
                 // only way in. Legacy AUTO shows only while old rows remain.
-                ColumnHeader(title: L("section.categories"))
-                    .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 2)
+                HStack(spacing: 6) {
+                    ColumnHeader(title: L("section.categories"))
+                    // "What is this?" — reopens the tier guide right where
+                    // the lanes it explains actually live.
+                    Button {
+                        model.showTierGuide = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L("guide.reopen"))
+                    .accessibilityLabel(L("guide.reopen"))
+                }
+                .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 2)
                 ForEach(Tier.visibleOrder(counts: tierCount)) { tier in
                     tierRow(tier)
                 }
@@ -2045,15 +2283,18 @@ private struct FullSidebar: View {
                 }
                 }
             }
-            .frame(maxHeight: model.settings.inboxSectionHeight)
+            .frame(maxHeight: model.sidebarLevel == .mail
+                ? .infinity : model.settings.inboxSectionHeight)
             .fixedSize(horizontal: false, vertical: true)
             .measureSectionHeight { navContentHeight = $0 }
-            SectionResizeHandle(
-                height: Binding(
-                    get: { min(model.settings.inboxSectionHeight, max(Double(navContentHeight), 180)) },
-                    set: { model.settings.inboxSectionHeight = AppSettings.resolveInboxSectionHeight($0) }
-                ),
-                growsDown: true)
+            if model.sidebarLevel == .root {
+                SectionResizeHandle(
+                    height: Binding(
+                        get: { min(model.settings.inboxSectionHeight, max(Double(navContentHeight), 180)) },
+                        set: { model.settings.inboxSectionHeight = AppSettings.resolveInboxSectionHeight($0) }
+                    ),
+                    growsDown: true)
+            }
 
             // TODAY lives in the full view too — the biggest surface must not
             // know less about the day than the compact panel (dogfood 2026-07-16).
@@ -2307,7 +2548,7 @@ private struct FullList: View {
             case .commitments: CommitmentsList()
             case .assistant: AssistantColumn()
             case .proposals: ProposalsList()
-            case .calendar: CalendarAgendaColumn(actions: actions)
+            case .calendar: CalendarScreen(actions: actions)
             case .teams: TeamsColumn()
             case .inbox, .tier: tierList
             case .mailbox(let box): MailboxList(box: box)
@@ -2343,6 +2584,7 @@ private struct FullList: View {
                         .animation(.default, value: items.count)
                 }
                 Spacer()
+                InboxSelectorMenu()
                 Button {
                     model.showCompose = true
                 } label: {
