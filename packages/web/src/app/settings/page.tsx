@@ -88,9 +88,6 @@ const PANEL = "panel-elevated rounded-2xl border border-line/70 bg-surface-panel
 
 export default function SettingsPage() {
   const [googleConnected, setGoogleConnected] = useState(false);
-  const [slackConnected, setSlackConnected] = useState(false);
-  const [slackMode, setSlackMode] = useState<"none" | "bot_token" | "webhook">("none");
-  const [slackTesting, setSlackTesting] = useState(false);
   const [notionConnected, setNotionConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile>({
@@ -859,12 +856,6 @@ export default function SettingsPage() {
           setGmailPushExpiresAt(d.gmailPushExpiresAt ?? null);
         })
         .catch((err) => captureClientError(err, { scope: "settings.google-status" })),
-      apiFetch<{ configured: boolean; mode: "none" | "bot_token" | "webhook" }>("/api/slack/status")
-        .then((d) => {
-          setSlackConnected(d.configured);
-          setSlackMode(d.mode);
-        })
-        .catch((err) => captureClientError(err, { scope: "settings.slack-status" })),
       apiFetch<{ configured: boolean }>("/api/notion/status")
         .then((d) => setNotionConnected(d.configured))
         .catch((err) => captureClientError(err, { scope: "settings.notion-status" })),
@@ -880,20 +871,6 @@ export default function SettingsPage() {
       statusUrl: `${API_BASE}/api/auth/google/status`,
     },
     {
-      name: "Slack",
-      description: slackConnected
-        ? t("settings.integration.slack.connectedVia", {
-            method:
-              slackMode === "bot_token"
-                ? t("settings.integration.slack.viaBotToken")
-                : t("settings.integration.slack.viaWebhook"),
-          })
-        : t("settings.integration.slack.adminOnly"),
-      connected: slackConnected,
-      connectUrl: slackConnected ? undefined : "slack-admin-only",
-      statusUrl: `${API_BASE}/api/slack/status`,
-    },
-    {
       name: "Notion",
       description: t("settings.integration.notion.desc"),
       connected: notionConnected,
@@ -901,26 +878,6 @@ export default function SettingsPage() {
       statusUrl: `${API_BASE}/api/notion/status`,
     },
   ];
-
-  const testSlack = async () => {
-    setSlackTesting(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/slack/test`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        toast(t("settings.toast.slackTestSent"), "success");
-      } else {
-        const body = await res.json().catch(() => ({}));
-        toast(body.error || t("settings.toast.slackTestFailed"), "error");
-      }
-    } catch {
-      toast(t("settings.toast.slackTestFailed"), "error");
-    } finally {
-      setSlackTesting(false);
-    }
-  };
 
   const generateBriefing = async () => {
     try {
@@ -1857,7 +1814,7 @@ export default function SettingsPage() {
           <div className={`${PANEL} divide-y divide-line-soft`}>
             {loading ? (
               <div className="p-4">
-                <ListSkeleton count={3} />
+                <ListSkeleton count={2} />
               </div>
             ) : (
               integrations.map((int) => (
@@ -1881,24 +1838,7 @@ export default function SettingsPage() {
                           {t("settings.disconnect")}
                         </button>
                       )}
-                      {int.name === "Slack" && (
-                        // Compact inline chip: accent-outline styling Button has no
-                        // variant for (secondary is neutral, not accent-tinted) —
-                        // kept local rather than forcing a visual change onto this row.
-                        <button
-                          type="button"
-                          onClick={testSlack}
-                          disabled={slackTesting}
-                          className="ease-strong inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-panel/70 px-3 text-xs font-medium text-accent-deep transition duration-150 hover:bg-surface-panel hover:border-accent/50 active:scale-[0.97] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
-                        >
-                          {slackTesting ? t("settings.state.sending") : t("settings.sendTest")}
-                        </button>
-                      )}
                     </div>
-                  ) : int.connectUrl?.endsWith("-admin-only") ? (
-                    <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
-                      {t("settings.chip.adminSetup")}
-                    </span>
                   ) : int.connectUrl?.endsWith("-coming-soon") ? (
                     <span className="text-sm text-ink-dim bg-surface-raised px-3 py-1.5 rounded-lg border border-line">
                       {t("settings.chip.comingSoon")}
