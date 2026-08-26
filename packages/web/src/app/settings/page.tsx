@@ -14,6 +14,7 @@ import { LinkedInboxesSection } from "../../components/linked-inboxes-section";
 import { NaverImapSection } from "../../components/naver-imap-section";
 import { OAuthErrorBanner } from "../../components/oauth-error-banner";
 import { OutlookInboxesSection } from "../../components/outlook-inboxes-section";
+import { RulesSection } from "../../components/rules-section";
 import { ListSkeleton } from "../../components/skeleton";
 import { SubscriptionSection } from "../../components/subscription-section";
 import { TeamsSection } from "../../components/teams-section";
@@ -1002,6 +1003,14 @@ export default function SettingsPage() {
             </section>
           )}
         />
+
+        {/* Rules — tier pins in the user's own words */}
+        <section className="mb-8">
+          <h2 className={SECTION_TITLE}>{t("settings.section.rules")}</h2>
+          <div className={`${PANEL} p-5`}>
+            <RulesSection />
+          </div>
+        </section>
 
         {/* Profile */}
         <section className="mb-8">

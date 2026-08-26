@@ -349,6 +349,26 @@ const es: Record<string, string> = {
     "Esto elimina de forma permanente tu cuenta de Klorn y TODOS tus datos: correos, clasificaciones, tareas, memorias, eventos de calendario, el acceso conectado de Google y los ajustes. No se puede deshacer.",
   "settings.confirm.deleteAccount.confirmLabel": "Eliminar mi cuenta",
   "settings.section.connections": "Conexiones",
+  "settings.section.rules": "Reglas",
+  "settings.rules.intro":
+    "Escribe una regla con tus palabras — Klorn la compila en pines de remitente o dominio que revisas antes de guardar.",
+  "settings.rules.placeholder":
+    "p. ej., todo lo de acme.com va a Silent; boss@acme.com siempre es Push",
+  "settings.rules.compile": "Crear reglas",
+  "settings.rules.compiling": "Compilando...",
+  "settings.rules.review": "Revisar antes de guardar",
+  "settings.rules.unsupported": "No se pudo expresar como pines:",
+  "settings.rules.apply": "Guardar reglas",
+  "settings.rules.applying": "Guardando...",
+  "settings.rules.cancel": "Descartar",
+  "settings.rules.empty": "Aún no hay reglas.",
+  "settings.rules.applied": "{n} regla(s) guardada(s).",
+  "settings.rules.compileFailed": "No se pudo compilar la regla.",
+  "settings.rules.applyFailed": "No se pudieron guardar las reglas.",
+  "settings.rules.deleteConfirm.title": "Eliminar regla",
+  "settings.rules.deleteConfirm.message": "¿Eliminar el pin de {pin}?",
+  "settings.rules.deleted": "Regla eliminada.",
+  "settings.rules.deleteFailed": "No se pudo eliminar la regla.",
   "settings.integration.google.desc":
     "Lee las señales de Gmail y Calendar y las conecta con la preparación de reuniones.",
   "settings.integration.notion.desc":

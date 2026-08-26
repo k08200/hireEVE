@@ -357,6 +357,26 @@ const de: Record<string, string> = {
     "Das löscht dein Klorn-Konto und ALLE deine Daten endgültig — Mails, Einstufungen, Aufgaben, Gedächtnis, Kalendertermine, den verbundenen Google-Zugriff und die Einstellungen. Nicht rückgängig zu machen.",
   "settings.confirm.deleteAccount.confirmLabel": "Mein Konto löschen",
   "settings.section.connections": "Verbindungen",
+  "settings.section.rules": "Regeln",
+  "settings.rules.intro":
+    "Beschreibe eine Regel in eigenen Worten — Klorn übersetzt sie in Absender- oder Domain-Pins, die du vor dem Speichern prüfst.",
+  "settings.rules.placeholder":
+    "z. B. alles von acme.com kommt in Silent; boss@acme.com ist immer Push",
+  "settings.rules.compile": "Regeln erstellen",
+  "settings.rules.compiling": "Wird übersetzt...",
+  "settings.rules.review": "Vor dem Speichern prüfen",
+  "settings.rules.unsupported": "Nicht als Pins ausdrückbar:",
+  "settings.rules.apply": "Regeln speichern",
+  "settings.rules.applying": "Wird gespeichert...",
+  "settings.rules.cancel": "Verwerfen",
+  "settings.rules.empty": "Noch keine Regeln.",
+  "settings.rules.applied": "{n} Regel(n) gespeichert.",
+  "settings.rules.compileFailed": "Regel konnte nicht übersetzt werden.",
+  "settings.rules.applyFailed": "Regeln konnten nicht gespeichert werden.",
+  "settings.rules.deleteConfirm.title": "Regel entfernen",
+  "settings.rules.deleteConfirm.message": "Pin für {pin} entfernen?",
+  "settings.rules.deleted": "Regel entfernt.",
+  "settings.rules.deleteFailed": "Regel konnte nicht entfernt werden.",
   "settings.integration.google.desc":
     "Liest Gmail- und Kalender-Signale und verbindet sie mit der Meeting-Vorbereitung.",
   "settings.integration.notion.desc":
