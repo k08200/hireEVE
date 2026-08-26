@@ -282,6 +282,7 @@
 "menu.quit" = "Klorn beenden";
 "menu.restart" = "Klorn neu starten";
 "menu.diagnostics" = "Verbindungsstatus…";
+"menu.contactSupport" = "Support anschreiben…";
 "diagnostics.checking" = "Wird geprüft…";
 "menu.checkUpdates" = "Nach Updates suchen…";
 "update.upToDate" = "Klorn ist aktuell.";

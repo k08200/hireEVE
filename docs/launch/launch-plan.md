@@ -105,11 +105,17 @@ margin improves as the fallback chain (cheap paid SKUs) absorbs spillover.
 
 - [ ] Demo video: script around the five-lane firewall + Decision queue +
       multi-inbox; record on web (desktop app b-roll optional).
-- [ ] Landing (EN/KO lockstep + parity CI): providers row (Gmail live,
-      Naver live, iCloud/Outlook "coming soon"), mobile "coming soon",
-      pricing section once P2 lands. Measured claims only.
-- [ ] Legal before paywall: privacy policy + terms + refund policy pages
-      current; support contact (k0820086@gmail.com) surfaced in-app.
+- [x] Landing providers row — live and verified 2026-08-26 on klorn.ai:
+      "Naver Mail — Connected over IMAP from Settings", "Outlook & Microsoft
+      365 and iCloud Mail — already built…". Pricing section still waits on P2.
+- [x] Support contact surfaced in-app (2026-08-26). It had lived only inside
+      the privacy/terms/refund pages — all three on a noindex subdomain a
+      signed-in user has no reason to open. Web: Settings → About. Desktop:
+      the App & diagnostics disclosure in BOTH panels, next to the diagnostics
+      button, opening a prefilled mail with the app version.
+- [ ] Legal before paywall: privacy/terms/refund all return 200; re-read them
+      for currency before the paywall flip (the lane sentence was stale until
+      #1252 — assume the rest may be too).
 
 ## P4 — Flag flips (each a separate deliberate decision, post-LoA)
 
