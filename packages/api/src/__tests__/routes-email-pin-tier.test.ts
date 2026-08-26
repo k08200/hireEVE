@@ -201,3 +201,93 @@ describe("DELETE /api/email/:id/pin-tier", () => {
     await app.close();
   });
 });
+
+describe("pin-tier scope=domain", () => {
+  it("creates a fromDomain rule keyed by the sender's exact lowercased domain", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/email/e1/pin-tier",
+      headers: auth(),
+      payload: { tier: "SILENT", scope: "domain" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ pinned: true, domain: "acme.com", tier: "SILENT" });
+    expect(ruleCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: "Pin: @acme.com",
+          conditions: { fromDomain: ["acme.com"] },
+          actionType: "PIN_TIER",
+          actionValue: "SILENT",
+        }),
+      }),
+    );
+    await app.close();
+  });
+
+  it("replaces the domain's existing pin atomically, leaving sender pins alone", async () => {
+    ruleFindMany.mockResolvedValue([
+      { id: "old-domain", conditions: { fromDomain: ["acme.com"] } },
+      { id: "sender-pin", conditions: { from: ["boss@acme.com"] } },
+    ]);
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/email/e1/pin-tier",
+      headers: auth(),
+      payload: { tier: "INFO", scope: "domain" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(ruleDeleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ["old-domain"] }, userId: "user-1" },
+    });
+    expect(dbTransaction).toHaveBeenCalledTimes(1);
+    await app.close();
+  });
+
+  it("refuses to pin a public mailbox domain — that would pin strangers", async () => {
+    emailFindFirst.mockResolvedValue({ from: "Someone <someone@gmail.com>" });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/email/e1/pin-tier",
+      headers: auth(),
+      payload: { tier: "SILENT", scope: "domain" },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(ruleCreate).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it("rejects an unknown scope", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/email/e1/pin-tier",
+      headers: auth(),
+      payload: { tier: "SILENT", scope: "galaxy" },
+    });
+    expect(res.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("DELETE ?scope=domain removes only the domain pin", async () => {
+    ruleFindMany.mockResolvedValue([
+      { id: "old-domain", conditions: { fromDomain: ["acme.com"] } },
+      { id: "sender-pin", conditions: { from: ["boss@acme.com"] } },
+    ]);
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/email/e1/pin-tier?scope=domain",
+      headers: auth(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ pinned: false, domain: "acme.com" });
+    expect(ruleDeleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ["old-domain"] }, userId: "user-1" },
+    });
+    await app.close();
+  });
+});

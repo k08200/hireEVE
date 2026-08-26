@@ -18,14 +18,18 @@ interface MatchedRule {
 }
 
 /**
- * Check if an email matches any active auto-reply rules.
+ * Check if an email matches any active auto-reply rules. Reply-capable rules
+ * ONLY: the matcher treats an absent condition key as "unrestricted", so a
+ * rule shape it doesn't recognize (e.g. a PIN_TIER domain pin, whose only
+ * key is `fromDomain`) would vacuously match every email, shadow real reply
+ * rules via the first-match return, and corrupt its own triggerCount.
  */
 export async function checkAutoReplyRules(
   userId: string,
   email: { from: string; subject: string; category?: string | null },
 ): Promise<MatchedRule | null> {
   const rules = await prisma.emailRule.findMany({
-    where: { userId, isActive: true },
+    where: { userId, isActive: true, actionType: { in: ["AUTO_REPLY", "DRAFT_REPLY"] } },
   });
 
   for (const rule of rules) {

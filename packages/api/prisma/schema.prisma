@@ -1065,7 +1065,9 @@ model EmailRule {
   name            String // Rule display name
   description     String?
   isActive        Boolean         @default(true)
-  // Conditions: { from?: string[], subjectContains?: string[], category?: string[] }
+  // Conditions: { from?: string[], subjectContains?: string[], category?: string[],
+  //               fromDomain?: string[] } — fromDomain is PIN_TIER-only (exact domain,
+  // judge-context fetchPinnedTier); the reply matcher never sees PIN_TIER rows.
   // Stored as native JSONB so the matching engine can rely on the
   // shape (no per-row JSON.parse) and so a future PR can index/query
   // individual keys without rewriting every row.
