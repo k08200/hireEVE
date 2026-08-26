@@ -54,6 +54,23 @@ const INBOX_PARAM_CAP = 10000;
 // never starve inbox intake.
 const SPAM_FETCH_CAP = 10;
 
+// How deep to snapshot when the stored watermark has aged out of Gmail's ~7-day
+// history retention.
+//
+// The expired branch below already fell back to a snapshot, but it did so with
+// the CALLER's maxResults — 30 from the scheduler tick. That is the right depth
+// for "what arrived in the last few minutes" and the wrong one for the only
+// case that reaches this branch: sync has not succeeded in over a week. The
+// founder's own primary Gmail stopped ingesting 2026-07-21 on a dead refresh
+// token; reconnecting would have recovered ~30 emails out of a month.
+//
+// Depth, not a new code path. The messages still flow through persistGmailEmail
+// (idempotent) and their judge calls are background-priority, so they queue
+// behind backgroundLlmPacer's concurrency and spacing brakes rather than
+// bursting the provider's per-minute quota. One tick pays this; the watermark
+// re-baselines immediately after, so the next tick is incremental again.
+const EXPIRED_WATERMARK_CATCHUP_MAX = 250;
+
 // Persist + firewall (judge/push/backfill) moved to ./email-firewall.js (M3 step 6).
 export { backfillEmailAttentionItems, judgeAndMirrorEmail } from "../judge/email-firewall.js";
 // extractEmailAddress lives in ./email-address.js; re-export preserved here for
@@ -274,8 +291,17 @@ export async function syncEmails(
   }
 
   // Watermark aged out of Gmail's ~7-day retention → snapshot + re-baseline.
+  // Reaching here means more than a week of mail is missing, so go deeper than
+  // the caller's per-tick depth. Math.max, never a replacement: a caller that
+  // explicitly asked for more must not be narrowed to the catch-up cap.
   if (history.expired) {
-    return syncSnapshot(userId, maxResults, query, userEmail, linkedInbox);
+    return syncSnapshot(
+      userId,
+      Math.max(maxResults, EXPIRED_WATERMARK_CATCHUP_MAX),
+      query,
+      userEmail,
+      linkedInbox,
+    );
   }
 
   const newCount = await persistEmailBatch(
