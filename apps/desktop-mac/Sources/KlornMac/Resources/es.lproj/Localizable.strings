@@ -487,3 +487,16 @@
 "mailbox.empty.archived" = "Nada archivado";
 "mailbox.noSubject" = "(sin asunto)";
 "mailbox.fromTo" = "%@ → %@";
+
+// Mail-first shell — two-level sidebar + row chips (2026-08-26).
+"nav.back" = "Atrás";
+"nav.mail" = "Correo";
+"nav.workspace" = "ESPACIO";
+"section.categories" = "CATEGORÍAS";
+"inbox.empty" = "Bandeja vacía — nada en espera";
+"chip.first" = "Primer contacto";
+"chip.replied" = "Respondido ×%d";
+"chip.promotions" = "Promo";
+"chip.social" = "Social";
+"chip.updates" = "Avisos";
+"chip.forums" = "Foro";

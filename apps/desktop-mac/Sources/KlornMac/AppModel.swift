@@ -52,12 +52,21 @@ final class AppModel {
     /// What the full view's list column shows. Model state rather than view
     /// state so any surface can open the full view already pointed at the right
     /// thing — a tier count in the compact panel, or an urgent-mail card.
-    var listMode: ListMode = .tier(.push)
+    /// The mail-first default (shell 2026-08-26): people read a mailbox top
+    /// to bottom — the lanes ride on the rows as chips and remain one click
+    /// away as categories, but navigation no longer starts lane-first.
+    var listMode: ListMode = .inbox
+    /// Which sidebar the full view shows: the root feature nav, or the mail
+    /// client's own sidebar (folders + categories, with a Back row). The
+    /// reference clients swap ONE sidebar between levels — two stacked nav
+    /// groups was the founder's first complaint about the previous shell.
+    var sidebarLevel: SidebarLevel = .root
 
     /// Open the full view on `tier`, and clear any reading-pane selection so the
     /// pane doesn't keep showing a message from the tier the user just left.
     func showTier(_ tier: Tier) {
         listMode = .tier(tier)
+        sidebarLevel = .mail  // a lane IS the mail level — Back must be there
         clearSelection()
     }
 

@@ -85,6 +85,34 @@ enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     }
 }
 
+/// The row's one non-lane chip (mail-first shell 2026-08-26): a Gmail
+/// category, the user's reply history with this sender, or first contact.
+/// Decodes the wire's discriminated union; an unknown kind decodes as nil so
+/// a newer server can add signals without blanking older clients.
+enum RowSignal: Sendable, Hashable {
+    case category(String)
+    case replied(Int)
+    case first
+
+    init?(from container: KeyedDecodingContainer<CodingKeysImpl>) {
+        guard let kind = try? container.decode(String.self, forKey: .kind) else { return nil }
+        switch kind {
+        case "category":
+            guard let c = try? container.decode(String.self, forKey: .category) else { return nil }
+            self = .category(c)
+        case "replied":
+            guard let n = try? container.decode(Int.self, forKey: .count) else { return nil }
+            self = .replied(n)
+        case "first":
+            self = .first
+        default:
+            return nil
+        }
+    }
+
+    enum CodingKeysImpl: String, CodingKey { case kind, category, count }
+}
+
 /// Email enrichment for a firewall row (best-effort; fields may be nil).
 struct EmailContext: Codable, Sendable, Hashable {
     let emailDbId: String
@@ -95,6 +123,52 @@ struct EmailContext: Codable, Sendable, Hashable {
     /// synced before the column, and older servers, simply omit it — the row
     /// falls back to surfacedAt.
     let receivedAt: String?
+    /// See RowSignal. Optional + failable: absent on older servers, and an
+    /// unknown shape must never fail the whole queue decode.
+    let signal: RowSignal?
+
+    enum CodingKeys: String, CodingKey {
+        case emailDbId, subject, from, snippet, receivedAt, signal
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        emailDbId = try c.decode(String.self, forKey: .emailDbId)
+        subject = try c.decodeIfPresent(String.self, forKey: .subject)
+        from = try c.decodeIfPresent(String.self, forKey: .from)
+        snippet = try c.decodeIfPresent(String.self, forKey: .snippet)
+        receivedAt = try c.decodeIfPresent(String.self, forKey: .receivedAt)
+        if let nested = try? c.nestedContainer(
+            keyedBy: RowSignal.CodingKeysImpl.self, forKey: .signal)
+        {
+            signal = RowSignal(from: nested)
+        } else {
+            signal = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(emailDbId, forKey: .emailDbId)
+        try c.encodeIfPresent(subject, forKey: .subject)
+        try c.encodeIfPresent(from, forKey: .from)
+        try c.encodeIfPresent(snippet, forKey: .snippet)
+        try c.encodeIfPresent(receivedAt, forKey: .receivedAt)
+        // signal is read-only client-side; encoding drops it (only tests
+        // round-trip EmailContext, and they construct via decode).
+    }
+
+    init(
+        emailDbId: String, subject: String?, from: String?, snippet: String?,
+        receivedAt: String?, signal: RowSignal? = nil
+    ) {
+        self.emailDbId = emailDbId
+        self.subject = subject
+        self.from = from
+        self.snippet = snippet
+        self.receivedAt = receivedAt
+        self.signal = signal
+    }
 }
 
 /// One classified item in the decision queue. Mirrors the API's FirewallItem
@@ -159,6 +233,22 @@ struct FirewallResponse: Codable, Sendable {
 
     var allItemIDs: Set<String> {
         Set(tiers.values.flatMap { $0 }.map(\.id))
+    }
+
+    /// The inbox as one chronological list (mail-first shell 2026-08-26):
+    /// every lane merged, newest first — how every mail client orders a
+    /// mailbox. The lane still rides on each row as a chip; only the
+    /// NAVIGATION stopped being lane-first. Arrival time falls back to
+    /// surfacedAt (pre-receivedAt rows), and ISO-8601 with a fixed-width date
+    /// prefix sorts correctly as a STRING for both Z-suffixed variants — no
+    /// parse needed on a hot path re-run each poll. Pure for the harness.
+    var itemsByTime: [FirewallItem] {
+        tiers.values.flatMap { $0 }.sorted { a, b in
+            let ta = a.email?.receivedAt ?? a.surfacedAt
+            let tb = b.email?.receivedAt ?? b.surfacedAt
+            if ta != tb { return ta > tb }
+            return a.id < b.id  // stable tie-break so polls don't reorder
+        }
     }
 
     /// Find an item by its AttentionItem id across all tiers (reading-pane lookup).

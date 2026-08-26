@@ -487,3 +487,16 @@
 "mailbox.empty.archived" = "보관된 메일이 없습니다";
 "mailbox.noSubject" = "(제목 없음)";
 "mailbox.fromTo" = "%@ → %@";
+
+// Mail-first shell — two-level sidebar + row chips (2026-08-26).
+"nav.back" = "뒤로";
+"nav.mail" = "메일";
+"nav.workspace" = "워크스페이스";
+"section.categories" = "카테고리";
+"inbox.empty" = "수신함이 비어 있습니다 — 기다리는 메일 없음";
+"chip.first" = "첫 연락";
+"chip.replied" = "답장 %d회";
+"chip.promotions" = "광고";
+"chip.social" = "소셜";
+"chip.updates" = "알림";
+"chip.forums" = "포럼";

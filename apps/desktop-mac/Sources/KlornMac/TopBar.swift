@@ -1429,7 +1429,14 @@ private struct TeamsColumn: View {
 /// tier — a real desktop-app view of the whole firewall.
 /// What the full view's list column shows: a firewall tier, commitments, or
 /// the assistant chat.
+/// The full view's sidebar is one of two levels (mail-first shell
+/// 2026-08-26): the root feature nav, or the mail client's own sidebar.
+enum SidebarLevel: Equatable { case root, mail }
+
 enum ListMode: Equatable, Hashable {
+    /// The whole inbox as one chronological list — the default view. Lanes
+    /// ride on the rows as chips and remain reachable as categories.
+    case inbox
     case tier(Tier)
     /// A standard mail folder — Sent / Drafts / Archived (shell restructure
     /// 2026-08-26: every client in the reference set has these; a triage app
@@ -1806,42 +1813,65 @@ private struct FullSidebar: View {
 
     private var sidebarColumn: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Compose leads the sidebar (shell restructure 2026-08-26): every
-            // client in the reference set puts a full-width compose control
-            // above the folder list. ⌘N already existed; now it has a face.
-            Button {
-                model.showCompose = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "square.and.pencil")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(L("compose.new")).font(.system(size: 12, weight: .semibold))
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .padding(.horizontal, 20).padding(.top, 2).padding(.bottom, 10)
-            .accessibilityLabel(L("compose.new"))
-
-            HStack {
-                ColumnHeader(title: L("section.inbox"))
-                // "What is this?" — reopens the tier guide right where the
-                // "inbox가 뭔지 모르겠다" question arises (both surfaces that
-                // render this header: expanded panel and full-view sidebar).
+            // ONE sidebar, two levels (mail-first shell 2026-08-26). The root
+            // level is the feature nav; entering 메일 swaps the whole column
+            // for the mail client's own sidebar with a Back row — the
+            // reference clients' pattern, and the fix for the founder's
+            // complaint that two stacked nav groups read as two sidebars.
+            if model.sidebarLevel == .mail {
                 Button {
-                    model.showTierGuide = true
+                    withAnimation(.easeOut(duration: 0.15)) { model.sidebarLevel = .root }
                 } label: {
-                    Image(systemName: "questionmark.circle")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textDim)
+                    HStack(spacing: 8) {
+                        Image(systemName: "chevron.left").font(.caption.weight(.semibold))
+                        Text(L("nav.back")).font(.body)
+                        Spacer()
+                    }
+                    .modifier(SidebarRowChrome(selected: false))
                 }
                 .buttonStyle(.plain)
-                .help(L("guide.reopen"))
-                .accessibilityLabel(L("guide.reopen"))
-                Spacer()
-                InboxSelectorMenu()
+                .padding(.horizontal, 8)
+                .accessibilityLabel(L("nav.back"))
+
+                // Compose leads the mail sidebar — every client in the
+                // reference set puts a full-width compose control above the
+                // folder list. ⌘N already existed; now it has a face.
+                Button {
+                    model.showCompose = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(L("compose.new")).font(.system(size: 12, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .padding(.horizontal, 20).padding(.top, 2).padding(.bottom, 10)
+                .accessibilityLabel(L("compose.new"))
+
+                HStack {
+                    ColumnHeader(title: L("section.inbox"))
+                    // "What is this?" — reopens the tier guide right where the
+                    // "inbox가 뭔지 모르겠다" question arises.
+                    Button {
+                        model.showTierGuide = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textDim)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L("guide.reopen"))
+                    .accessibilityLabel(L("guide.reopen"))
+                    Spacer()
+                    InboxSelectorMenu()
+                }
+                .padding(.horizontal, 20).padding(.bottom, 6)
+            } else {
+                ColumnHeader(title: L("nav.workspace"))
+                    .padding(.horizontal, 20).padding(.top, 6).padding(.bottom, 6)
             }
-            .padding(.horizontal, 20).padding(.bottom, 6)
             // 수신함 nav block: capped + scrollable so its boundary is
             // draggable like every other section (founder 2026-08-19). The
             // cap is a MAX — short content keeps its natural height.
@@ -1849,54 +1879,27 @@ private struct FullSidebar: View {
             // renderer gets the plain stack, same rows.)
             OffscreenFriendlyScroll {
                 VStack(alignment: .leading, spacing: 4) {
-                // Two-level lanes (founder 2026-08-20: nine always-on rows was
-                // too many): action lanes primary, filed lanes behind one
-                // disclosure. The classification itself is untouched.
-                let lanes = Tier.sidebarLanes(counts: tierCount)
-                let filedHoldsSelection = lanes.filed.contains { selected == .tier($0) }
-                ForEach(lanes.primary) { tier in
-                    tierRow(tier)
-                }
+                if model.sidebarLevel == .mail {
+                // The inbox itself — one chronological list; the default.
                 Button {
-                    withAnimation(.easeOut(duration: 0.15)) { filedExpanded.toggle() }
+                    selected = .inbox
                 } label: {
                     HStack(spacing: 10) {
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .fill(Theme.surfaceRaised)
-                            .frame(width: 20, height: 20)
-                            .overlay(
-                                Image(systemName: "tray.full")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(Theme.textDim))
-                            .accessibilityHidden(true)
-                        Text(L("section.filed")).font(.body).foregroundStyle(Theme.textDim)
-                        Image(systemName: "chevron.right").font(.caption2)
-                            .foregroundStyle(Theme.textDim)
-                            .rotationEffect((filedExpanded || filedHoldsSelection) ? .degrees(90) : .zero)
-                            .accessibilityHidden(true)
+                        FeatureIcon(systemName: "tray")
+                        Text(L("section.inbox"))
+                            .font(.body.weight(selected == .inbox ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
                         Spacer()
-                        Text("\(lanes.filedTotal)")
+                        Text("\(model.queue?.summary.total ?? 0)")
                             .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
                     }
-                    .modifier(SidebarRowChrome(selected: false))
+                    .modifier(SidebarRowChrome(selected: selected == .inbox))
                 }
                 .buttonStyle(.plain)
-                .help(L("section.filed.help"))
-                .accessibilityLabel(L("filed.a11y", lanes.filedTotal))
-                .accessibilityValue((filedExpanded || filedHoldsSelection) ? L("a11y.expanded") : L("a11y.collapsed"))
-                // Viewing a filed lane keeps its row visible even collapsed —
-                // a selection must never hide its own location.
-                if filedExpanded || filedHoldsSelection {
-                    ForEach(lanes.filed) { tier in
-                        tierRow(tier, indented: true)
-                    }
-                }
+                .accessibilityLabel(L("section.inbox"))
 
-                // The standard folders every mail client has. Klorn's lanes
-                // sort the INBOX; these are the other places mail lives. Live
-                // Gmail views — not part of the queue poll.
-                ColumnHeader(title: L("section.mailboxes"))
-                    .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 2)
+                // The standard folders every mail client has. Live Gmail
+                // views — not part of the queue poll.
                 ForEach(MailboxKind.allCases) { box in
                     Button { selected = .mailbox(box) } label: {
                         HStack(spacing: 10) {
@@ -1915,6 +1918,45 @@ private struct FullSidebar: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(box.label)
                 }
+
+                // The lanes, as categories — flat, like the reference
+                // clients' Categories group. The classification is the
+                // product; here it FILTERS the mailbox instead of being the
+                // only way in. Legacy AUTO shows only while old rows remain.
+                ColumnHeader(title: L("section.categories"))
+                    .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 2)
+                ForEach(Tier.visibleOrder(counts: tierCount)) { tier in
+                    tierRow(tier)
+                }
+                } else {
+                // Root feature nav. 메일 enters the mail level; a mail-family
+                // selection keeps this row lit so location stays visible.
+                let inMail: Bool = {
+                    switch selected {
+                    case .inbox, .tier, .mailbox: true
+                    default: false
+                    }
+                }()
+                Button {
+                    if !inMail { selected = .inbox }
+                    withAnimation(.easeOut(duration: 0.15)) { model.sidebarLevel = .mail }
+                } label: {
+                    HStack(spacing: 10) {
+                        FeatureIcon(systemName: "envelope")
+                        Text(L("nav.mail"))
+                            .font(.body.weight(inMail ? .semibold : .regular))
+                            .foregroundStyle(Theme.text)
+                        Spacer()
+                        Text("\(model.queue?.summary.total ?? 0)")
+                            .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
+                        Image(systemName: "chevron.right").font(.caption2)
+                            .foregroundStyle(Theme.textDim)
+                            .accessibilityHidden(true)
+                    }
+                    .modifier(SidebarRowChrome(selected: inMail))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("nav.mail"))
 
                 // Commitments: promises made / replies awaited — the follow-through
                 // half of the firewall (what mail asked of you, and of them).
@@ -2000,6 +2042,7 @@ private struct FullSidebar: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(L("section.calendar"))
+                }
                 }
             }
             .frame(maxHeight: model.settings.inboxSectionHeight)
@@ -2248,7 +2291,10 @@ private struct FullList: View {
         if case .tier(let t) = mode { return t }
         return .push
     }
-    private var items: [FirewallItem] { model.queue?.items(for: tier) ?? [] }
+    private var inboxMode: Bool { mode == .inbox }
+    private var items: [FirewallItem] {
+        inboxMode ? (model.queue?.itemsByTime ?? []) : (model.queue?.items(for: tier) ?? [])
+    }
     private var searching: Bool { isSearchActive(query) }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotionSwitch
@@ -2263,7 +2309,7 @@ private struct FullList: View {
             case .proposals: ProposalsList()
             case .calendar: CalendarAgendaColumn(actions: actions)
             case .teams: TeamsColumn()
-            case .tier: tierList
+            case .inbox, .tier: tierList
             case .mailbox(let box): MailboxList(box: box)
             }
         }
@@ -2282,6 +2328,13 @@ private struct FullList: View {
                     Text(L("section.search")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
                     Text("\(model.searchTotal)")
                         .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                } else if inboxMode {
+                    Image(systemName: "tray").font(.body).foregroundStyle(Theme.textDim)
+                        .accessibilityHidden(true)
+                    Text(L("section.inbox")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                    Text("\(items.count)").font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                        .contentTransition(.numericText())
+                        .animation(.default, value: items.count)
                 } else {
                     Circle().fill(Theme.tint(tier)).frame(width: 9, height: 9)
                     Text(tier.label).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
@@ -2351,7 +2404,11 @@ private struct FullList: View {
                 Spacer()
             } else if items.isEmpty {
                 Spacer()
-                EmptyState(icon: tier.emptyIcon, title: tier.emptyTitle, hint: tier.blurb)
+                if inboxMode {
+                    EmptyState(icon: "tray", title: L("inbox.empty"))
+                } else {
+                    EmptyState(icon: tier.emptyIcon, title: tier.emptyTitle, hint: tier.blurb)
+                }
                 Spacer()
             } else if Theme.isRenderingOffscreen {
                 // ImageRenderer draws nothing inside a ScrollView, so the full
@@ -2361,7 +2418,7 @@ private struct FullList: View {
                 // shots: lay the rows out directly when rendering offscreen.
                 VStack(spacing: 0) {
                     ForEach(items) { item in
-                        FullRow(item: item, actions: actions)
+                        FullRow(item: item, actions: actions, showLaneChip: inboxMode)
                         Divider().overlay(Theme.line).padding(.leading, 24)
                     }
                     Spacer(minLength: 0)
@@ -2370,7 +2427,7 @@ private struct FullList: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(items) { item in
-                            FullRow(item: item, actions: actions)
+                            FullRow(item: item, actions: actions, showLaneChip: inboxMode)
                                 .transition(rowTransition)
                             Divider().overlay(Theme.line).padding(.leading, 24)
                         }
@@ -2900,10 +2957,55 @@ private struct OffscreenMenuLabel: View {
     }
 }
 
+/// The lane as a label (mail-first shell): tinted micro-pill. This is where
+/// the classification now lives on the default view — on the row, not in the
+/// navigation.
+struct LaneChip: View {
+    let tier: Tier
+    var body: some View {
+        Text(tier.label)
+            .font(Theme.Typo.micro)
+            .foregroundStyle(Theme.tint(tier))
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(Theme.tint(tier).opacity(0.13), in: Capsule())
+            .accessibilityLabel(tier.label)
+    }
+}
+
+/// The row's one relationship/category chip. Renders nothing for nil —
+/// a missing fact must never become a label.
+struct SignalChip: View {
+    let signal: RowSignal?
+
+    private var text: String? {
+        switch signal {
+        case .category(let c): L("chip.\(c)")
+        case .replied(let n): L("chip.replied", n)
+        case .first: L("chip.first")
+        case nil: nil
+        }
+    }
+
+    var body: some View {
+        if let text {
+            Text(text)
+                .font(Theme.Typo.micro)
+                .foregroundStyle(Theme.textDim)
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(Theme.surfaceRaised, in: Capsule())
+                .accessibilityLabel(text)
+        }
+    }
+}
+
 struct FullRow: View {
     @Environment(AppModel.self) private var model
     let item: FirewallItem
     let actions: TopBarActions
+    /// True on mixed-lane surfaces (the chronological inbox, search) where
+    /// the row must carry its own lane; lane views leave it off — the lane
+    /// is the screen title there.
+    var showLaneChip = false
     @FocusState private var focused: Bool
 
     private var selected: Bool { model.selectedItemId == item.id }
@@ -2936,9 +3038,15 @@ struct FullRow: View {
                         Text(decodeHTMLEntities(item.email?.subject ?? item.title))
                             .font(Theme.Typo.head)
                             .foregroundStyle(Theme.text).lineLimit(1)
-                        if let reason = rowTierReason(item.tierReason) {
-                            Text(reason).font(Theme.Typo.caption)
-                                .foregroundStyle(Theme.textDim).lineLimit(1)
+                        HStack(spacing: 6) {
+                            if showLaneChip {
+                                LaneChip(tier: item.tier)
+                            }
+                            SignalChip(signal: item.email?.signal)
+                            if let reason = rowTierReason(item.tierReason) {
+                                Text(reason).font(Theme.Typo.caption)
+                                    .foregroundStyle(Theme.textDim).lineLimit(1)
+                            }
                         }
                     }
                     Spacer(minLength: 8)
