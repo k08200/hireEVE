@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "How Klorn handles Gmail, Calendar, and account data during beta.",
 };
 
-const updatedAt = "August 5, 2026";
+const updatedAt = "August 26, 2026";
 
 /** Stable, URL-safe anchor id so the TOC links line up with each section. */
 function slug(title: string): string {
@@ -129,6 +129,12 @@ export default function PrivacyPage() {
               <li>
                 Product data you create in Klorn, including tasks, reminders, notes, commitments,
                 approved actions, feedback, notifications, and chat messages.
+              </li>
+              <li>
+                If you connect a Naver mailbox over IMAP: the mailbox address and the Naver
+                &ldquo;외부 메일 가져오기&rdquo; app password, plus the same categories of mail data
+                as above for that mailbox. That app password is not your Naver account password, and
+                it is encrypted at rest (AES-256-GCM) — never stored in plaintext.
               </li>
               <li>
                 Usage, token, error, and delivery logs needed to operate and improve the beta.
@@ -313,8 +319,10 @@ export default function PrivacyPage() {
               hosting), Vercel (web application hosting), and Supabase (managed Postgres database,
               hosted in Seoul, ap-northeast-2); they store and transmit data solely to operate
               Klorn. Paddle acts as merchant of record for paid subscriptions and receives only
-              billing details — never mail content. Apple (APNs) delivers push notifications to
-              devices you register.
+              billing details — never mail content. Resend delivers Klorn&apos;s own transactional
+              email (address verification, password reset, invitations) and therefore receives your
+              address and the contents of those messages — never your mailbox. Apple (APNs) delivers
+              push notifications to devices you register.
             </p>
             <p>
               Because Klorn is a beta product, avoid connecting accounts that contain information
