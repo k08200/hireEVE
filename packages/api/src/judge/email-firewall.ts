@@ -200,6 +200,7 @@ export async function persistGmailEmail(
     body: email.body,
     labels: email.labels,
     receivedAt: email.receivedAt,
+    hasListUnsubscribe: email.hasListUnsubscribe,
     linkedInboxAccountId: options.linkedInboxAccountId ?? null,
   })
     .then((tier) => {
