@@ -7,29 +7,40 @@ soon"; then promotion. This file sequences that against the actual state of
 the repo and adds the missing pieces. Decisions marked LOCKED are the
 founder's; PENDING ones block only their own step, nothing upstream.
 
-## P0 — Sync integrity (this week; blocks everything user-facing)
+## P0 — Sync integrity (blocks everything user-facing)
+
+> Status 2026-08-26: the four engineering items are done and verified against
+> current code (file:line on each). What remains is the founder re-consent —
+> nothing recovers the 07-21→now gap until the primary token is alive again.
 
 The founder's own primary Gmail stopped ingesting ~2026-07-21 (Testing-mode
-refresh token death). Diagnosis (2026-08-07, file:line evidence in session):
-ingestion retries and fails every tick with only a console.warn; the desktop
-app surfaces nothing (no /google/status call, no notification rendering, and
-`routes/email.ts` hardcodes `needsReconnect: false` for the primary entry so
-the desktop's reconnect UI can never fire for it); desktop re-login is pure
-JWT and does not touch the Google token.
+refresh token death). Diagnosis as it stood on 2026-08-07 — all four faults
+below have since been fixed, and are kept here because the failure mode is
+what the fixes are shaped around: ingestion retried and failed every tick with
+only a console.warn; the desktop app surfaced nothing (no /google/status call,
+no notification rendering, and `routes/email.ts` hardcoded
+`needsReconnect: false` for the primary entry, so the desktop's reconnect UI
+could never fire for it); desktop re-login was pure JWT and did not touch the
+Google token.
 
 - [ ] Founder: web Settings → Connections → Google → Connect (full re-consent;
       Production audience since 2026-08-04, so the new token is long-lived).
-- [ ] fix(api): primary inbox entry in `/api/email/inboxes` reports real
+- [x] fix(api): primary inbox entry in `/api/email/inboxes` reports real
       `needsReconnect` (UserToken.refreshToken null) instead of `false`.
-- [ ] fix(desktop): primary reconnect action must open the primary connect
-      flow (today the TopBar button calls link-inbox and would create a
-      duplicate Pro-gated secondary).
-- [ ] Backfill: after reconnect, history is expired (>7d) and snapshot sync
-      only pulls the most-recent ~20–30 — run a manual deep sync (larger
-      maxResults) so 07-21→now mail actually lands; consider a one-shot
-      "catch-up" path for any user returning from a dead token.
-- [ ] Alerting: "Email sync skipped … Gmail not connected" repeated per tick
-      should reach Sentry/ops, not only stdout.
+      Verified 2026-08-26: `routes/email.ts:1402` computes
+      `Boolean(googleToken) && !googleToken?.refreshToken`.
+- [x] fix(desktop): primary reconnect action opens the primary connect flow.
+      Verified 2026-08-26: `TopBar.swift:931-934` routes PRIMARY through
+      `/google/start` consent and says why link-inbox is wrong for it.
+- [x] Backfill: the "catch-up" path is no longer manual. `email-sync.ts`
+      snapshots at `EXPIRED_WATERMARK_CATCHUP_MAX` (250) whenever the stored
+      watermark has aged out of Gmail's ~7-day retention, instead of the
+      scheduler's per-tick 30. Judge calls are background-priority, so they
+      queue behind `backgroundLlmPacer` rather than bursting the quota.
+      Still needs the founder reconnect above before it can run for 07-21→now.
+- [x] Alerting: reaches Sentry. Verified 2026-08-26:
+      `automation-scheduler.ts:1595` captures "Email sync skipped every tick",
+      throttled once per user per UTC day (`automation-scheduler.ts:156`).
 
 ## P1 — Login-for-everyone gate (deadline-driven)
 
