@@ -487,3 +487,16 @@
 "mailbox.empty.archived" = "アーカイブ済みメールはありません";
 "mailbox.noSubject" = "（件名なし）";
 "mailbox.fromTo" = "%@ → %@";
+
+// Mail-first shell — two-level sidebar + row chips (2026-08-26).
+"nav.back" = "戻る";
+"nav.mail" = "メール";
+"nav.workspace" = "ワークスペース";
+"section.categories" = "カテゴリ";
+"inbox.empty" = "受信トレイは空です — 待ちのメールはありません";
+"chip.first" = "初めての相手";
+"chip.replied" = "返信 %d回";
+"chip.promotions" = "プロモ";
+"chip.social" = "ソーシャル";
+"chip.updates" = "新着情報";
+"chip.forums" = "フォーラム";

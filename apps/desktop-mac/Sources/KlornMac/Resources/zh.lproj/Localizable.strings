@@ -487,3 +487,16 @@
 "mailbox.empty.archived" = "没有已归档邮件";
 "mailbox.noSubject" = "（无主题）";
 "mailbox.fromTo" = "%@ → %@";
+
+// Mail-first shell — two-level sidebar + row chips (2026-08-26).
+"nav.back" = "返回";
+"nav.mail" = "邮件";
+"nav.workspace" = "工作台";
+"section.categories" = "分类";
+"inbox.empty" = "收件箱已清空 — 没有等待的邮件";
+"chip.first" = "首次来信";
+"chip.replied" = "已回复 %d 次";
+"chip.promotions" = "推广";
+"chip.social" = "社交";
+"chip.updates" = "通知";
+"chip.forums" = "论坛";

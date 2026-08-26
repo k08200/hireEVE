@@ -55,8 +55,18 @@ export interface FirewallEmailContext {
   /** ISO arrival time — the row's right-aligned timestamp. Null for rows
    *  synced before the column existed; clients fall back to surfacedAt. */
   receivedAt: string | null;
+  /** The row's one non-lane chip (mail-first shell): a Gmail category, the
+   *  user's reply history with this sender, or first contact. Null when no
+   *  recorded fact supports a claim — clients render no chip, never a guess. */
+  signal: RowSignalWire;
   trust: TrustWire | null;
 }
+
+export type RowSignalWire =
+  | { kind: "category"; category: "promotions" | "social" | "updates" | "forums" }
+  | { kind: "replied"; count: number }
+  | { kind: "first" }
+  | null;
 
 export interface FirewallItem {
   id: string;

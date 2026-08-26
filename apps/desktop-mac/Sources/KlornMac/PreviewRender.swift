@@ -24,12 +24,14 @@ enum PreviewRender {
        "surfacedAt":"2026-07-29T08:12:00Z",
        "email":{"emailDbId":"d1","subject":"Re: Contract review — needs your sign-off today",
                 "from":"Sarah Kim <sarah.kim@northwind-partners.com>",
-                "snippet":"Legal came back with two changes on clause 4…"},"hashStale":false},
+                "snippet":"Legal came back with two changes on clause 4…",
+                "signal":{"kind":"replied","count":6}},"hashStale":false},
       {"id":"p2","source":"email","sourceId":"e2","type":"email","title":"Invoice overdue",
        "tier":"PUSH","tierReason":"Payment due today","priority":8,
        "surfacedAt":"2026-07-29T07:40:00Z",
        "email":{"emailDbId":"d2","subject":"Invoice #4821 is overdue",
-                "from":"billing@vendor.io","snippet":"Your invoice was due on 26 July."},"hashStale":false},
+                "from":"billing@vendor.io","snippet":"Your invoice was due on 26 July.",
+                "signal":{"kind":"first"}},"hashStale":false},
       {"id":"p3","source":"email","sourceId":"e3","type":"email","title":"Sign-off needed",
        "tier":"PUSH","tierReason":"Blocking two people since yesterday","priority":7,
        "surfacedAt":"2026-07-29T07:05:00Z",
@@ -40,7 +42,8 @@ enum PreviewRender {
        "tier":"MEETING","tierReason":"Reschedule — no conflict on your calendar","priority":5,
        "surfacedAt":"2026-07-29T07:05:00Z",
        "email":{"emailDbId":"d4","subject":"Standup moved to 10:30",
-                "from":"Alex Carter <alex@team.co>","snippet":"Moved tomorrow's standup to 10:30 — still work for you?"},"hashStale":false}],
+                "from":"Alex Carter <alex@team.co>","snippet":"Moved tomorrow's standup to 10:30 — still work for you?",
+                "signal":{"kind":"replied","count":12}},"hashStale":false}],
       "QUEUE":[],"INFO":[],"SILENT":[],"AUTO":[]},
      "summary":{"PUSH":3,"MEETING":1,"QUEUE":12,"INFO":6,"SILENT":41,"AUTO":0,"total":63}}
     """
@@ -211,6 +214,14 @@ enum PreviewRender {
         shot("mailbox-sent", size: CGSize(width: tourW, height: 430), align: .top) {
             MailboxList(box: .sent)
         }
+        // The mail level of the two-level sidebar — Back / Compose / folders /
+        // categories. Shot with the level flipped, then restored so the full
+        // shot above stays the ROOT (first-open) state.
+        model.sidebarLevel = .mail
+        shot("full-mail", size: TopBarMetrics.size(for: .full)) {
+            FullView(actions: actions)
+        }
+        model.sidebarLevel = .root
         // The reading pane on its own. Shrinking the whole 1400pt window into a
         // landing-page card renders the app's body text at under 7px; this fits
         // the same card at over 100%, so it can actually be read.
