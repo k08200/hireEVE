@@ -17,6 +17,17 @@ type StoredWaitlist = {
   approvedAt: Date | null;
 };
 const waitlistById = new Map<string, StoredWaitlist>();
+
+// Shared by the PATCH and DELETE suites — hoisted out of the PATCH describe so
+// both can seed rows without a second copy of the defaults.
+function seedWaitlistEntry(entry: Partial<StoredWaitlist> & { id: string; email: string }) {
+  waitlistById.set(entry.id, {
+    name: null,
+    status: "PENDING",
+    approvedAt: null,
+    ...entry,
+  });
+}
 vi.mock("../mail/gmail.js", () => ({
   getAuthUrl: vi.fn(),
   getLoginAuthUrl: vi.fn(),
@@ -175,6 +186,12 @@ vi.mock("../db.js", () => {
           }
         }
         return null;
+      }),
+      delete: vi.fn(async ({ where }: { where: { id: string } }) => {
+        const entry = waitlistById.get(where.id);
+        if (!entry) throw new Error("Waitlist entry not found");
+        waitlistById.delete(where.id);
+        return entry;
       }),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const entry = {
@@ -676,6 +693,76 @@ describe("admin routes", () => {
   });
 });
 
+describe("DELETE /api/admin/waitlist/:id", () => {
+  beforeEach(() => {
+    waitlistById.clear();
+  });
+
+  it("rejects an unauthenticated caller", async () => {
+    seedWaitlistEntry({ id: "w-d0", email: "junk@example.com" });
+    const app = await buildApp();
+    const res = await app.inject({ method: "DELETE", url: "/api/admin/waitlist/w-d0" });
+    expect(res.statusCode).toBe(401);
+    expect(waitlistById.size).toBe(1);
+  });
+
+  it("deletes a PENDING entry", async () => {
+    seedWaitlistEntry({ id: "w-d1", email: "probe@example.com" });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/admin/waitlist/w-d1",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ ok: true, deleted: "probe@example.com" });
+    expect(waitlistById.size).toBe(0);
+  });
+
+  it("deletes a REJECTED entry", async () => {
+    seedWaitlistEntry({ id: "w-d2", email: "spam@example.com", status: "REJECTED" });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/admin/waitlist/w-d2",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(waitlistById.size).toBe(0);
+  });
+
+  it("refuses to delete an APPROVED entry — that row is a live user's access", async () => {
+    // With BETA_GATE_ENABLED on, auth.ts:411 / auth.ts:1295 /
+    // social-login.ts:142 all gate signup on status === "APPROVED". Deleting
+    // the row locks that person out of their own account with no trace.
+    seedWaitlistEntry({
+      id: "w-d3",
+      email: "realuser@example.com",
+      status: "APPROVED",
+      approvedAt: new Date(),
+    });
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/admin/waitlist/w-d3",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toMatch(/Reject this entry before deleting/i);
+    expect(waitlistById.size).toBe(1);
+  });
+
+  it("returns 404 for an id that does not exist", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "DELETE",
+      url: "/api/admin/waitlist/missing",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+});
+
 describe("POST /api/admin/waitlist", () => {
   // Creation moved here when the public POST /api/waitlist was deleted
   // (2026-08-26). It is the only way a row is created now, and
@@ -755,15 +842,6 @@ describe("PATCH /api/admin/waitlist/:id", () => {
     waitlistById.clear();
     sendBetaInviteEmailSpy.mockClear();
   });
-
-  function seedWaitlistEntry(entry: Partial<StoredWaitlist> & { id: string; email: string }) {
-    waitlistById.set(entry.id, {
-      name: null,
-      status: "PENDING",
-      approvedAt: null,
-      ...entry,
-    });
-  }
 
   it("sends an invite email when transitioning PENDING → APPROVED", async () => {
     seedWaitlistEntry({ id: "w-1", email: "applicant@example.com", name: "Applicant" });
