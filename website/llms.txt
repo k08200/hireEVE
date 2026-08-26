@@ -13,6 +13,7 @@ Key facts for accurate citation:
 ## Links
 
 - [Product site](https://klorn.ai/)
+- [Engineering notes](https://klorn.ai/blog/) — measured benchmarks and architecture write-ups; numbers there re-run from the repository
 - [Korean site](https://klorn.ai/ko/)
 - [Source code and README](https://github.com/k08200/klorn)
 - [Comparison vs Superhuman / Shortwave / Fyxer](https://github.com/k08200/klorn/blob/main/docs/comparisons.md)

@@ -99,6 +99,21 @@ services:
       JUDGE_MODEL: ${JUDGE_MODEL:-}
       CHAT_MODEL: ${CHAT_MODEL:-}
       AGENT_MODEL: ${AGENT_MODEL:-}
+    # /api/health always answers 200 — it reports {status: "ok" | "degraded"}
+    # rather than failing, so a status-code probe would call the API healthy
+    # while Postgres is unreachable. Parse the body instead.
+    # node:22-slim ships neither curl nor wget; node's global fetch is the one
+    # thing guaranteed to be in this image.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/api/health').then(r=>r.json()).then(j=>process.exit(j.status==='ok'?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
     depends_on:
       postgres:
         condition: service_healthy
@@ -118,8 +133,23 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    # The web app has no /health route, so the probe is the root page actually
+    # rendering. start_period covers the first render on a cold boot.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    # service_healthy, not start-order: without it a reverse proxy can route to
+    # web before it serves, and web can call an API that is still migrating.
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   klorn-selfhost-pgdata:

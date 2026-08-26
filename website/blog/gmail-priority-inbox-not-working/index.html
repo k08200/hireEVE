@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gmail Priority Inbox not working? Here's what actually trains it — Klorn</title>
+<meta name="description" content="Priority Inbox runs on Gmail's importance model. What the markers mean, the filter setting that silently overrides them, how to retrain it — and the ceiling you'll hit.">
+<meta property="og:title" content="Gmail Priority Inbox not working? Here's what actually trains it">
+<meta property="og:description" content="Priority Inbox runs on Gmail's importance model. What the markers mean, the filter setting that silently overrides them, how to retrain it — and the ceiling you'll hit.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/blog/gmail-priority-inbox-not-working/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Gmail Priority Inbox not working? Here's what actually trains it">
+<meta name="twitter:description" content="Priority Inbox runs on Gmail's importance model. What the markers mean, the filter setting that silently overrides them, how to retrain it — and the ceiling you'll hit.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<link rel="canonical" href="https://klorn.ai/blog/gmail-priority-inbox-not-working/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+<style>
+.meta { margin: 14px 0 0; font-size: 13.5px; color: var(--ink-3); }
+article h2 { margin-top: 40px; }
+ol, ul { margin: 12px 0 0; padding-left: 22px; }
+li { margin-top: 6px; }
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Gmail Priority Inbox not working? Here's what actually trains it",
+  "datePublished": "2026-08-26",
+  "dateModified": "2026-08-26",
+  "author": {"@type": "Person", "name": "Yongrean Kim", "url": "https://github.com/k08200"},
+  "publisher": {"@type": "Organization", "name": "Klorn", "url": "https://klorn.ai"},
+  "mainEntityOfPage": "https://klorn.ai/blog/gmail-priority-inbox-not-working/"
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/">Klorn</a>
+    <span class="lang"><a href="/blog/" aria-current="true">Notes</a><a href="/security/">Security</a><a href="/pricing/">Pricing</a><a href="/self-host/">Self-host</a></span>
+  </nav>
+
+  <article>
+  <h1>Priority Inbox isn't broken. It's <em>untrained</em>.</h1>
+  <p class="meta">2026-08-26 · guide · Priority Inbox and importance</p>
+
+  <p class="thesis">Priority Inbox sections your mail by Gmail's importance model — the same model behind the yellow markers and high-priority notifications. When it "stops working", one of three specific things is usually wrong, and two of them are fixable in a minute.</p>
+
+  <h2>1. Check what's overriding the model</h2>
+  <p>A filter with <strong>"Never mark it as important"</strong> (or "Always mark as important") silently outranks everything the model learns. <strong>Settings → Filters and Blocked Addresses</strong> — audit for importance actions you set years ago and forgot. This is the most common single cause of "important mail stopped appearing".</p>
+
+  <h2>2. Make the markers visible, then correct them</h2>
+  <p>Turn on importance markers (<strong>Settings → Inbox → Importance markers → Show markers</strong>) so you can see the model's guesses. Then correct them: select a message and mark it important / not important (the <code>+</code> / <code>-</code> importance actions). Corrections are the only training input you control — most people never issue any, then conclude the model doesn't learn.</p>
+
+  <h2>3. Configure the sections</h2>
+  <p><strong>Settings → Inbox → Inbox type: Priority Inbox</strong> lets you choose the sections. The default "Important and unread / Starred / Everything else" hides read-but-important mail from the top section — if that's your complaint, add an "Important" section rather than blaming the model.</p>
+
+  <h2>The ceiling</h2>
+  <p>Do all three and Priority Inbox becomes decent. What it never becomes is <em>accountable</em>. The model won't tell you why a message was judged unimportant; "important" is a single bit with no notion of urgent-versus-relevant; and your corrections vanish into a model you can't inspect, so you can't tell whether a fix took hold until the next miss.</p>
+  <p><a href="/">Klorn</a> is what the accountable version looks like: five lanes instead of one bit (urgent, scheduling, queue, records, noise), a stated reason on every decision, and corrections that work by moving the row — with a hard rule that learned behaviour can promote mail into visible lanes but can never hide a sender. If you've been fighting the importance model, the difference isn't a smarter model; it's that you can finally see what it decided and why.</p>
+  <a class="cta" href="https://app.klorn.ai/login?mode=register">Try Klorn free</a>
+  </article>
+
+  <footer>
+    <p>Klorn is <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">AGPL-3.0</a> — every claim in
+      this post is checkable against the source. More notes at <a href="/blog/">/blog</a>.</p>
+  </footer>
+</div>
+<script>
+// Same block as every other page: carry the campaign through to the app so a
+// signup can be credited to the page that earned it.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
