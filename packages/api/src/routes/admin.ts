@@ -72,6 +72,17 @@ function summarizeTrustFeedback(rows: FeedbackGroup[]) {
   };
 }
 
+const waitlistCreateSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["email"],
+  properties: {
+    email: { type: "string", minLength: 3, maxLength: 320 },
+    name: { type: "string", minLength: 1, maxLength: 120 },
+    note: { type: "string", minLength: 1, maxLength: 500 },
+  },
+} as const;
+
 const waitlistQuerySchema = {
   type: "object",
   additionalProperties: false,
@@ -526,6 +537,45 @@ export async function adminRoutes(app: FastifyInstance) {
       counts[row.status] = row._count.status;
     }
     return { entries, counts };
+  });
+
+  // POST /api/admin/waitlist — put an address on the list by hand.
+  //
+  // The public intake (POST /api/waitlist) was deleted 2026-08-26: it had no
+  // caller and the landing says "no invite, no waitlist". But it was also the
+  // only way a row could be created, and `docs/oauth-verification/README.md`
+  // §3.5 depends on creating one — with BETA_GATE_ENABLED on, a Google
+  // reviewer and the CASA DAST scanner cannot sign themselves up, so their
+  // addresses have to be pre-provisioned. Deleting a public endpoint should
+  // not cost us that, so creation moved behind `requireAdmin` rather than
+  // disappearing.
+  //
+  // Unlike the public route this does not pretend an existing address is new:
+  // there is no enumeration concern behind an admin token, and the caller
+  // needs to know whether they just created a row or found one.
+  app.post("/waitlist", { schema: { body: waitlistCreateSchema } }, async (request, reply) => {
+    const body = request.body as { email: string; name?: string; note?: string };
+    const email = body.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return reply.code(400).send({ error: "Invalid email" });
+    }
+    const existing = await db.waitlist.findUnique({
+      where: { email },
+      select: { id: true, email: true, status: true },
+    });
+    if (existing) {
+      return reply.code(200).send({ entry: existing, created: false });
+    }
+    const entry = await db.waitlist.create({
+      data: {
+        email,
+        name: body.name?.trim() || null,
+        useCase: body.note?.trim() || null,
+        source: "admin",
+      },
+      select: { id: true, email: true, status: true },
+    });
+    return reply.code(201).send({ entry, created: true });
   });
 
   // PATCH /api/admin/waitlist/:id — mark approved or rejected. On the

@@ -55,7 +55,6 @@ import { appleAuthProvider, naverAuthProvider, socialAuthRoutes } from "./routes
 import { teamRoutes } from "./routes/teams.js";
 import { telegramRoutes } from "./routes/telegram.js";
 import { tokenUsageRoutes } from "./routes/token-usage.js";
-import { waitlistRoutes } from "./routes/waitlist.js";
 import { webhookRoutes } from "./routes/webhook.js";
 import { buildSchedulerHealthReport, isBackgroundAgentsDisabled } from "./scheduler-heartbeat.js";
 import { isRateLimitAllowedIp, parseAllowedCidrs } from "./security/scanner-allowlist.js";
@@ -266,7 +265,6 @@ await app.register(gmailPushRoutes, { prefix: "/api/gmail" });
 await app.register(automationRoutes, { prefix: "/api/automations" });
 await app.register(pmfRoutes, { prefix: "/api/pmf" });
 await app.register(screenerRoutes, { prefix: "/api/screener" });
-await app.register(waitlistRoutes, { prefix: "/api/waitlist" });
 await app.register(playgroundRoutes, { prefix: "/api/playground" });
 await app.register(adminRoutes, { prefix: "/api/admin" });
 await app.register(analyticsRoutes, { prefix: "/api/analytics" });
