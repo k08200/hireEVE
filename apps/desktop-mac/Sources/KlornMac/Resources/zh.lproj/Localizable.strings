@@ -512,3 +512,8 @@
 "cal.more" = "还有 %d 项";
 "cal.cell.a11y" = "%@，%d 个日程";
 "cal.scope.a11y" = "日历视图";
+
+// Label categories — 카테고리 follows the labeling (2026-08-27).
+"label.personal" = "个人";
+"section.lanes" = "通道";
+"label.empty" = "目前没有%@邮件";

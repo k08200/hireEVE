@@ -652,6 +652,29 @@ func runSelfChecks() async -> Bool {
     check("events bucket on the local day, malformed dropped",
           buckets["2026-08-26"]?.map(\.id) == ["e1"] && buckets.count == 1)
 
+
+    // Label categories (2026-08-27): the filter reads the SAME signal the
+    // chip renders, so sidebar counts can never disagree with row labels.
+    print("Label categories:")
+    check("label — promotions matches only its category",
+          LabelFilter.promotions.matches(.category("promotions"))
+          && !LabelFilter.promotions.matches(.category("social"))
+          && !LabelFilter.promotions.matches(.replied(3))
+          && !LabelFilter.promotions.matches(nil))
+    check("label — personal is Gmail's own definition (no category label)",
+          LabelFilter.personal.matches(nil)
+          && LabelFilter.personal.matches(.replied(6))
+          && LabelFilter.personal.matches(.first)
+          && !LabelFilter.personal.matches(.category("updates")))
+    check("label — first contact is exact",
+          LabelFilter.firstContact.matches(.first)
+          && !LabelFilter.firstContact.matches(.replied(1))
+          && !LabelFilter.firstContact.matches(nil))
+    check("label — every category chip has a filter (promotions/social/updates/forums)",
+          ["promotions", "social", "updates", "forums"].allSatisfy { name in
+              LabelFilter.allCases.contains { $0.matches(.category(name)) }
+          })
+
     print("Row signals + chronological inbox:")
     func ctx(_ json: String) -> EmailContext? {
         try? JSONDecoder().decode(EmailContext.self, from: Data(json.utf8))

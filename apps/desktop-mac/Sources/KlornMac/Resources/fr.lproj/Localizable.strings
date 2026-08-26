@@ -512,3 +512,8 @@
 "cal.more" = "+%d autres";
 "cal.cell.a11y" = "%@, %d événements";
 "cal.scope.a11y" = "Vue calendrier";
+
+// Label categories — 카테고리 follows the labeling (2026-08-27).
+"label.personal" = "Personnel";
+"section.lanes" = "FILES";
+"label.empty" = "Aucun courrier %@ pour le moment";

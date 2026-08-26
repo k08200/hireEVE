@@ -1159,6 +1159,75 @@ func mailTimeLabel(
     return formatter.string(from: date)
 }
 
+// MARK: - Label categories (mail-first shell, 2026-08-27)
+
+/// The sidebar's 카테고리, by what a mail IS rather than how loudly it
+/// reaches you (founder 2026-08-27: categories should follow the labeling).
+/// Same vocabulary as the row chips and as Gmail's own tabs, so the words
+/// cost nothing to learn. The lanes — the attention axis — stay one click
+/// away behind the 레인 disclosure and on every row as a chip.
+enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
+    /// No Gmail category label — Gmail's own definition of Primary.
+    case personal
+    case promotions
+    case social
+    case updates
+    case forums
+    /// A sender the user has never replied to (and no category label).
+    case firstContact
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .personal: L("label.personal")
+        case .promotions: L("chip.promotions")
+        case .social: L("chip.social")
+        case .updates: L("chip.updates")
+        case .forums: L("chip.forums")
+        case .firstContact: L("chip.first")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .personal: "person"
+        case .promotions: "tag"
+        case .social: "person.2"
+        case .updates: "bell"
+        case .forums: "bubble.left.and.bubble.right"
+        case .firstContact: "hand.wave"
+        }
+    }
+
+    /// Whether an item belongs to this category — driven entirely by the
+    /// row's recorded signal, the same fact the chip renders, so the filter
+    /// can never disagree with what the row says about itself. Pure for the
+    /// harness.
+    func matches(_ signal: RowSignal?) -> Bool {
+        switch self {
+        case .personal:
+            // Anything Gmail did not stamp with a category label.
+            if case .category = signal { return false }
+            return true
+        case .promotions: return signal == .category("promotions")
+        case .social: return signal == .category("social")
+        case .updates: return signal == .category("updates")
+        case .forums: return signal == .category("forums")
+        case .firstContact: return signal == .first
+        }
+    }
+}
+
+extension FirewallResponse {
+    /// The chronological inbox, narrowed to one label category. Counting and
+    /// filtering share this so the sidebar number always equals what a click
+    /// shows (both run over the fetched window, never a separate DB count).
+    func items(matching filter: LabelFilter) -> [FirewallItem] {
+        itemsByTime.filter { filter.matches($0.email?.signal) }
+    }
+}
+
 // MARK: - Mailbox folders (Sent / Drafts / Archived)
 
 /// The standard mail-client folders (desktop shell restructure, 2026-08-26).

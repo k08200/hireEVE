@@ -1677,8 +1677,11 @@ enum SidebarLevel: Equatable { case root, mail }
 
 enum ListMode: Equatable, Hashable {
     /// The whole inbox as one chronological list — the default view. Lanes
-    /// ride on the rows as chips and remain reachable as categories.
+    /// ride on the rows as chips and remain reachable behind the 레인 group.
     case inbox
+    /// The inbox narrowed to one label category (what the mail IS — the
+    /// sidebar's 카테고리 since 2026-08-27).
+    case label(LabelFilter)
     case tier(Tier)
     /// A standard mail folder — Sent / Drafts / Archived (shell restructure
     /// 2026-08-26: every client in the reference set has these; a triage app
@@ -1974,6 +1977,9 @@ private struct FullSidebar: View {
     /// Filed-lanes disclosure (INFO/SILENT/legacy AUTO). Session-scoped; a
     /// selection inside the group keeps it open regardless.
     @State private var filedExpanded = false
+    /// 레인 disclosure (mail level). Session-scoped; a lane selection keeps
+    /// the group open regardless.
+    @State private var lanesExpanded = false
     /// Real laid-out content heights — caps clamp to these so a drag never
     /// wanders into a dead zone past the content (dogfood 2026-08-19).
     @State private var navContentHeight: CGFloat = 0
@@ -2143,28 +2149,73 @@ private struct FullSidebar: View {
                     .accessibilityLabel(box.label)
                 }
 
-                // The lanes, as categories — flat, like the reference
-                // clients' Categories group. The classification is the
-                // product; here it FILTERS the mailbox instead of being the
-                // only way in. Legacy AUTO shows only while old rows remain.
-                HStack(spacing: 6) {
-                    ColumnHeader(title: L("section.categories"))
-                    // "What is this?" — reopens the tier guide right where
-                    // the lanes it explains actually live.
-                    Button {
-                        model.showTierGuide = true
-                    } label: {
-                        Image(systemName: "questionmark.circle")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textDim)
+                // 카테고리, by what a mail IS (founder 2026-08-27: follow
+                // the labeling) — the same vocabulary as the row chips and
+                // Gmail's own tabs. Counts run over the fetched window, the
+                // same set a click shows, so the number and the list can
+                // never disagree.
+                ColumnHeader(title: L("section.categories"))
+                    .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 2)
+                ForEach(LabelFilter.allCases) { filter in
+                    let count = model.queue?.items(matching: filter).count ?? 0
+                    Button { selected = .label(filter) } label: {
+                        HStack(spacing: 10) {
+                            FeatureIcon(systemName: filter.icon)
+                            Text(filter.label)
+                                .font(.body.weight(selected == .label(filter) ? .semibold : .regular))
+                                .foregroundStyle(Theme.text)
+                            Spacer()
+                            Text("\(count)")
+                                .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
+                                .contentTransition(.numericText())
+                                .animation(.default, value: count)
+                        }
+                        .modifier(SidebarRowChrome(selected: selected == .label(filter)))
                     }
                     .buttonStyle(.plain)
-                    .help(L("guide.reopen"))
-                    .accessibilityLabel(L("guide.reopen"))
+                    .accessibilityLabel("\(filter.label). \(count)")
                 }
+
+                // The attention axis — the lanes — one click behind a
+                // disclosure. Not gone: every row still wears its lane chip,
+                // and a lane deep-link (a push card, a tier count) lands here
+                // with the group held open. The guide ⓘ rides this header —
+                // it explains exactly these rows.
+                let laneHoldsSelection: Bool = {
+                    if case .tier = selected { return true }
+                    return false
+                }()
+                Button {
+                    withAnimation(.easeOut(duration: 0.15)) { lanesExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 6) {
+                        ColumnHeader(title: L("section.lanes"))
+                        Image(systemName: "chevron.right").font(.caption2)
+                            .foregroundStyle(Theme.textDim)
+                            .rotationEffect((lanesExpanded || laneHoldsSelection) ? .degrees(90) : .zero)
+                            .accessibilityHidden(true)
+                        Button {
+                            model.showTierGuide = true
+                        } label: {
+                            Image(systemName: "questionmark.circle")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textDim)
+                        }
+                        .buttonStyle(.plain)
+                        .help(L("guide.reopen"))
+                        .accessibilityLabel(L("guide.reopen"))
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
                 .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 2)
-                ForEach(Tier.visibleOrder(counts: tierCount)) { tier in
-                    tierRow(tier)
+                .accessibilityLabel(L("section.lanes"))
+                .accessibilityValue((lanesExpanded || laneHoldsSelection) ? L("a11y.expanded") : L("a11y.collapsed"))
+                if lanesExpanded || laneHoldsSelection {
+                    ForEach(Tier.visibleOrder(counts: tierCount)) { tier in
+                        tierRow(tier)
+                    }
                 }
                 } else {
                 // Root feature nav. 메일 enters the mail level; a mail-family
@@ -2533,8 +2584,16 @@ private struct FullList: View {
         return .push
     }
     private var inboxMode: Bool { mode == .inbox }
+    private var labelFilter: LabelFilter? {
+        if case .label(let f) = mode { return f }
+        return nil
+    }
+    /// Mixed-lane surfaces (the chronological inbox and every label filter)
+    /// carry the lane on each row.
+    private var mixedLanes: Bool { inboxMode || labelFilter != nil }
     private var items: [FirewallItem] {
-        inboxMode ? (model.queue?.itemsByTime ?? []) : (model.queue?.items(for: tier) ?? [])
+        if let filter = labelFilter { return model.queue?.items(matching: filter) ?? [] }
+        return inboxMode ? (model.queue?.itemsByTime ?? []) : (model.queue?.items(for: tier) ?? [])
     }
     private var searching: Bool { isSearchActive(query) }
 
@@ -2550,7 +2609,7 @@ private struct FullList: View {
             case .proposals: ProposalsList()
             case .calendar: CalendarScreen(actions: actions)
             case .teams: TeamsColumn()
-            case .inbox, .tier: tierList
+            case .inbox, .tier, .label: tierList
             case .mailbox(let box): MailboxList(box: box)
             }
         }
@@ -2569,6 +2628,13 @@ private struct FullList: View {
                     Text(L("section.search")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
                     Text("\(model.searchTotal)")
                         .font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                } else if let filter = labelFilter {
+                    Image(systemName: filter.icon).font(.body).foregroundStyle(Theme.textDim)
+                        .accessibilityHidden(true)
+                    Text(filter.label).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                    Text("\(items.count)").font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                        .contentTransition(.numericText())
+                        .animation(.default, value: items.count)
                 } else if inboxMode {
                     Image(systemName: "tray").font(.body).foregroundStyle(Theme.textDim)
                         .accessibilityHidden(true)
@@ -2646,7 +2712,9 @@ private struct FullList: View {
                 Spacer()
             } else if items.isEmpty {
                 Spacer()
-                if inboxMode {
+                if let filter = labelFilter {
+                    EmptyState(icon: filter.icon, title: L("label.empty", filter.label))
+                } else if inboxMode {
                     EmptyState(icon: "tray", title: L("inbox.empty"))
                 } else {
                     EmptyState(icon: tier.emptyIcon, title: tier.emptyTitle, hint: tier.blurb)
@@ -2660,7 +2728,7 @@ private struct FullList: View {
                 // shots: lay the rows out directly when rendering offscreen.
                 VStack(spacing: 0) {
                     ForEach(items) { item in
-                        FullRow(item: item, actions: actions, showLaneChip: inboxMode)
+                        FullRow(item: item, actions: actions, showLaneChip: mixedLanes)
                         Divider().overlay(Theme.line).padding(.leading, 24)
                     }
                     Spacer(minLength: 0)
@@ -2669,7 +2737,7 @@ private struct FullList: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(items) { item in
-                            FullRow(item: item, actions: actions, showLaneChip: inboxMode)
+                            FullRow(item: item, actions: actions, showLaneChip: mixedLanes)
                                 .transition(rowTransition)
                             Divider().overlay(Theme.line).padding(.leading, 24)
                         }
