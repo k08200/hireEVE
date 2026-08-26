@@ -57,6 +57,7 @@ import { coercePlainBody, htmlToPlainText, renderableEmailHtmlFor } from "../mai
 import { getLinkedInboxClients, resolveMailClient } from "../mail/gmail.js";
 import { getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
+import { isPublicMailboxDomain } from "../mail/public-mailbox-domains.js";
 import { getSenderDossier } from "../mail/sender-dossier.js";
 import { getThreadBrief } from "../mail/thread-brief.js";
 import { senderEmail } from "../notify/notification-format.js";
@@ -1488,6 +1489,26 @@ export async function emailRoutes(app: FastifyInstance) {
       .map((rule) => rule.id);
   }
 
+  // Ids of this user's single-domain PIN_TIER rules for `domain` — EXACT
+  // shape [domain] only, mirroring pinnedRuleIds for the same reason.
+  async function domainPinnedRuleIds(uid: string, domain: string): Promise<string[]> {
+    const rules = await prisma.emailRule.findMany({
+      where: { userId: uid, actionType: "PIN_TIER" },
+      select: { id: true, conditions: true },
+    });
+    return rules
+      .filter((rule) => {
+        const fromDomain = (rule.conditions as { fromDomain?: unknown })?.fromDomain;
+        return (
+          Array.isArray(fromDomain) &&
+          fromDomain.length === 1 &&
+          typeof fromDomain[0] === "string" &&
+          fromDomain[0].toLowerCase() === domain
+        );
+      })
+      .map((rule) => rule.id);
+  }
+
   // Resolve :id (db id or gmailId) to the mail's exact parsed sender address.
   async function senderOfOwnedEmail(uid: string, id: string): Promise<string | null> {
     const dbEmail = await prisma.emailMessage.findFirst({
@@ -1506,12 +1527,43 @@ export async function emailRoutes(app: FastifyInstance) {
   app.post("/:id/pin-tier", async (request, reply) => {
     const { id } = request.params as { id: string };
     const uid = getUserId(request);
-    const { tier } = (request.body as { tier?: string }) || {};
+    const { tier, scope } = (request.body as { tier?: string; scope?: string }) || {};
     if (!tier || !isTier(tier)) {
       return reply.code(400).send({ error: "tier must be one of the known lanes." });
     }
+    if (scope !== undefined && scope !== "sender" && scope !== "domain") {
+      return reply.code(400).send({ error: 'scope must be "sender" or "domain".' });
+    }
     const sender = await senderOfOwnedEmail(uid, id);
     if (!sender) return reply.code(404).send({ error: "Email not found" });
+
+    if (scope === "domain") {
+      const domain = sender.slice(sender.lastIndexOf("@") + 1);
+      if (!domain || sender.lastIndexOf("@") <= 0) {
+        return reply.code(400).send({ error: "Sender has no domain to pin." });
+      }
+      if (isPublicMailboxDomain(domain)) {
+        return reply.code(400).send({
+          error: "This is a public mailbox domain — pin the sender instead.",
+        });
+      }
+      const stale = await domainPinnedRuleIds(uid, domain);
+      await prisma.$transaction([
+        ...(stale.length
+          ? [prisma.emailRule.deleteMany({ where: { id: { in: stale }, userId: uid } })]
+          : []),
+        prisma.emailRule.create({
+          data: {
+            userId: uid,
+            name: `Pin: @${domain}`,
+            conditions: { fromDomain: [domain] },
+            actionType: "PIN_TIER",
+            actionValue: tier,
+          },
+        }),
+      ]);
+      return { pinned: true, domain, tier };
+    }
 
     const stale = await pinnedRuleIds(uid, sender);
     await prisma.$transaction([
@@ -1536,8 +1588,22 @@ export async function emailRoutes(app: FastifyInstance) {
   app.delete("/:id/pin-tier", async (request, reply) => {
     const { id } = request.params as { id: string };
     const uid = getUserId(request);
+    const { scope } = (request.query as { scope?: string }) || {};
+    if (scope !== undefined && scope !== "sender" && scope !== "domain") {
+      return reply.code(400).send({ error: 'scope must be "sender" or "domain".' });
+    }
     const sender = await senderOfOwnedEmail(uid, id);
     if (!sender) return reply.code(404).send({ error: "Email not found" });
+
+    if (scope === "domain") {
+      const domain = sender.slice(sender.lastIndexOf("@") + 1);
+      const stale = domain ? await domainPinnedRuleIds(uid, domain) : [];
+      if (stale.length) {
+        await prisma.emailRule.deleteMany({ where: { id: { in: stale }, userId: uid } });
+      }
+      return { pinned: false, domain };
+    }
+
     const stale = await pinnedRuleIds(uid, sender);
     if (stale.length) {
       await prisma.emailRule.deleteMany({ where: { id: { in: stale }, userId: uid } });
