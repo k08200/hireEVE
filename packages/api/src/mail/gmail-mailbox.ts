@@ -76,9 +76,7 @@ export async function listGmailMailbox(
     maxResults: PAGE_SIZE,
     q: buildMailboxQuery(box),
   });
-  const ids = (res.data.messages ?? [])
-    .map((m) => m.id)
-    .filter((id): id is string => Boolean(id));
+  const ids = (res.data.messages ?? []).map((m) => m.id).filter((id): id is string => Boolean(id));
 
   const sem = new Semaphore(METADATA_CONCURRENCY);
   const rows = await sem.all<MailboxItemWire | null>(
