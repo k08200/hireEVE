@@ -6,7 +6,7 @@ ontology extraction (Phase 2) runs on. Stars from a Show HN do **not** produce i
 this does. Everything here is grounded in the live app, not generic.
 
 The data path (already wired, verified): connect Gmail → mail is classified into
-PUSH/QUEUE/SILENT → user hits **"Move → X"** on the firewall view → that stamps the
+one of the five lanes → user hits **"Move → X"** on the firewall view → that stamps the
 correction (`DecisionLabel.outcome`) → `decision-metrics` counts it.
 
 ---

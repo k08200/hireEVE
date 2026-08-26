@@ -807,8 +807,8 @@ export async function deleteAttentionForCommitments(
 //
 // Every email the poc-judge classifies gets mirrored to an AttentionItem
 // keyed on (source=EMAIL, sourceId=EmailMessage.id). The existing firewall
-// route already groups items by tier, so emails appear in the same SILENT/
-// QUEUE/PUSH/AUTO buckets as PendingActions, with the email's own subject
+// route already groups items by lane, so emails appear in the same lane
+// buckets as PendingActions, with the email's own subject
 // and sender shown via the EMAIL source-specific join below.
 //
 // Idempotent — re-running for the same email simply overwrites the tier

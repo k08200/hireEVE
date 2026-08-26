@@ -1,8 +1,10 @@
 /**
  * Email persist + firewall (M3 decomposition, extracted from email-sync.ts).
  *
- * Persists a fetched Gmail message, classifies it into a SILENT/QUEUE/PUSH/AUTO
- * tier, mirrors it to an AttentionItem, and fires a PUSH-tier interrupt. Also
+ * Persists a fetched Gmail message, classifies it into one lane, mirrors it to
+ * an AttentionItem, and fires a PUSH-lane interrupt. Which lanes are reachable
+ * depends on TIER_V2_ENABLED (default-ON since 2026-08-18): the five live v2
+ * lanes with it on, the v1 four with it off — see judge/tiers.ts. Also
  * the backfill sweep that re-judges any email left without an AttentionItem.
  * push/websocket/attention-override are lazy-imported to avoid a top-level
  * cycle. Must NOT import email-sync.ts (the sync orchestrator imports THIS).
@@ -183,8 +185,8 @@ export async function persistGmailEmail(
     });
   }
 
-  // POC firewall: classify the email into SILENT/QUEUE/PUSH/AUTO and mirror
-  // it to an AttentionItem so the firewall route surfaces it. Fire-and-forget
+  // POC firewall: classify the email into one lane and mirror it to an
+  // AttentionItem so the firewall route surfaces it. Fire-and-forget
   // so sync never blocks on the LLM. If this rejects (or the process dies
   // mid-flight) the email is persisted but has no AttentionItem — the
   // backfill sweep (backfillEmailAttentionItems, run by the scheduler) is the
