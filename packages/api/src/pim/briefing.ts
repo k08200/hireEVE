@@ -121,7 +121,7 @@ async function listLocalBriefingEvents(userId: string, now: Date): Promise<{ eve
 /**
  * Bridge: listEmails pulls email metadata live from Gmail, so it carries no
  * firewall verdict. Join those emails back to the firewall's stored judgment
- * (EmailMessage.priority / needsReply, written by the 4-tier judge) by gmailId
+ * (EmailMessage.priority / needsReply, written by the judge) by gmailId
  * so "what matters today" reflects what Klorn already decided about each email
  * rather than a re-derived keyword guess. Best-effort: any DB error degrades to
  * the unenriched emails so the briefing never blocks on the join.

@@ -366,6 +366,7 @@ const zh: Record<string, string> = {
   "settings.about.tagline": "Decision OS",
   "settings.about.desc": "为减少散乱的标签页、让下一个决定更清晰而生。",
   "settings.about.version": "v0.2.0 — MVP",
+  "settings.about.support": "有疑问或遇到问题？",
   "onboarding.welcome.titleLine1": "Klorn 只呈现",
   "onboarding.welcome.titleLine2": "值得你行动的决定。",
   "onboarding.welcome.desc":

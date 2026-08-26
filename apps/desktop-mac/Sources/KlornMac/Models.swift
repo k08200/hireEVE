@@ -1,10 +1,15 @@
 import Foundation
 
-/// The firewall tier model — PUSH / QUEUE / SILENT / AUTO, with ontology v2
-/// (MEETING/INFO, docs/design/tier-ontology-v2.md) arriving behind the
-/// server-side TIER_V2_ENABLED flag. Until the desktop grows dedicated lanes,
-/// any tier string this build doesn't know decodes as .queue — a v2 server
-/// must never crash or blank an older client (never a decode throw).
+/// The firewall lane model — PUSH / MEETING / QUEUE / INFO / SILENT
+/// (ontology v2, docs/design/tier-ontology-v2.md), plus retired AUTO for rows
+/// written before the flip. TIER_V2_ENABLED has been default-ON server-side
+/// since 2026-08-18, so the classifier emits the five live lanes and never
+/// AUTO; the case stays so old rows still decode and render.
+///
+/// Any lane string this build doesn't know decodes as .queue — a server ahead
+/// of the client must never crash or blank it (never a decode throw). See
+/// `coreOrder` (what the guide teaches), `visibleOrder(counts:)` (what the
+/// sidebar draws) and `sidebarLanes(counts:)` (the two-level presentation).
 enum Tier: String, Codable, CaseIterable, Sendable, Identifiable {
     case push = "PUSH"
     case meeting = "MEETING"

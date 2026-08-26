@@ -414,6 +414,7 @@ const de: Record<string, string> = {
   "settings.about.desc":
     "Gebaut, um verstreute Tabs zu reduzieren und die nächste Entscheidung klarer zu machen.",
   "settings.about.version": "v0.2.0 — MVP",
+  "settings.about.support": "Fragen oder funktioniert etwas nicht?",
   "onboarding.welcome.titleLine1": "Klorn zeigt nur die",
   "onboarding.welcome.titleLine2": "Entscheidungen, die es wert sind.",
   "onboarding.welcome.desc":

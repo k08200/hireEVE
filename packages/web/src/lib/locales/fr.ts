@@ -405,6 +405,7 @@ const fr: Record<string, string> = {
   "settings.about.desc":
     "Conçu pour réduire les onglets éparpillés et rendre la prochaine décision plus claire.",
   "settings.about.version": "v0.2.0 — MVP",
+  "settings.about.support": "Une question ou un problème ?",
   "onboarding.welcome.titleLine1": "Klorn ne fait remonter que",
   "onboarding.welcome.titleLine2": "les décisions qui méritent d'agir.",
   "onboarding.welcome.desc":

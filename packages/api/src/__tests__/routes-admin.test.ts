@@ -166,8 +166,25 @@ vi.mock("../db.js", () => {
     waitlist: {
       findMany: vi.fn(async () => Array.from(waitlistById.values())),
       groupBy: vi.fn(async () => []),
-      findUnique: vi.fn(async ({ where }: { where: { id: string } }) => {
-        return waitlistById.get(where.id) ?? null;
+      // POST /waitlist looks up by email, PATCH /waitlist/:id by id.
+      findUnique: vi.fn(async ({ where }: { where: { id?: string; email?: string } }) => {
+        if (where.id) return waitlistById.get(where.id) ?? null;
+        if (where.email) {
+          for (const entry of waitlistById.values()) {
+            if (entry.email === where.email) return entry;
+          }
+        }
+        return null;
+      }),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        const entry = {
+          id: `w-created-${waitlistById.size + 1}`,
+          status: "PENDING",
+          approvedAt: null,
+          ...data,
+        } as StoredWaitlist;
+        waitlistById.set(entry.id, entry);
+        return entry;
       }),
       update: vi.fn(
         async ({
@@ -656,6 +673,79 @@ describe("admin routes", () => {
     expect(isKeyLimited("openrouter:test-all")).toBe(false);
     expect(isKeyLimited("gemini:test-all")).toBe(false);
     await app.close();
+  });
+});
+
+describe("POST /api/admin/waitlist", () => {
+  // Creation moved here when the public POST /api/waitlist was deleted
+  // (2026-08-26). It is the only way a row is created now, and
+  // docs/oauth-verification/README.md §3.5 depends on it to pre-provision the
+  // Google reviewer and the CASA DAST scanner past BETA_GATE_ENABLED.
+  beforeEach(() => {
+    waitlistById.clear();
+  });
+
+  it("rejects an unauthenticated caller", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/admin/waitlist",
+      payload: { email: "reviewer@example.com" },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(waitlistById.size).toBe(0);
+  });
+
+  it("creates a PENDING entry for a new address", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/admin/waitlist",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      payload: { email: "Reviewer@Example.com ", name: "Google Reviewer" },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+    expect(body.created).toBe(true);
+    expect(body.entry.status).toBe("PENDING");
+    // Normalised, so a later lookup by the address they actually type matches.
+    expect(body.entry.email).toBe("reviewer@example.com");
+  });
+
+  it("is idempotent — a second call finds the row instead of duplicating it", async () => {
+    const app = await buildApp();
+    const payload = { email: "dast@example.com" };
+    const first = await app.inject({
+      method: "POST",
+      url: "/api/admin/waitlist",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      payload,
+    });
+    const second = await app.inject({
+      method: "POST",
+      url: "/api/admin/waitlist",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      payload,
+    });
+    expect(first.statusCode).toBe(201);
+    expect(first.json().created).toBe(true);
+    // 200 not 201, and created:false — behind an admin token there is no
+    // enumeration concern, so the caller is told which of the two happened.
+    expect(second.statusCode).toBe(200);
+    expect(second.json().created).toBe(false);
+    expect(waitlistById.size).toBe(1);
+  });
+
+  it("rejects a malformed address before touching the database", async () => {
+    const app = await buildApp();
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/admin/waitlist",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      payload: { email: "not-an-email" },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(waitlistById.size).toBe(0);
   });
 });
 

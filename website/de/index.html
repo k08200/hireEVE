@@ -837,7 +837,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "Was, wenn es etwas falsch ablegt?",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "Verschieb sie. Jede Nachricht zeigt, warum sie dort gelandet ist, und aus der Korrektur lernt der\n        Klassifikator — das ist der Unterschied zwischen 81.1% kalt und 94.3% warm."
+    "text": "Verschieb sie. Jede Nachricht zeigt, warum sie dort gelandet ist, und aus der Korrektur lernt der\n        Klassifikator — das ist der Unterschied zwischen einem Kaltstart und einem Klassifikator, der deine Absender bereits kennt."
    }
   },
   {
@@ -911,7 +911,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
 
   <div class="wrap">
-    <span class="eyebrow rv">An echter Mail gemessen <b>94.3%</b></span>
+    <span class="eyebrow rv">Verbirgt nie dringende Mail &mdash; <b>in CI erzwungen</b></span>
     <h1 class="rv">Weniger Unterbrechungen.<br>Nicht <span class="ser">schnellere</span> Mail.</h1>
     <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn sortiert jede Nachricht in eine von fünf Spuren und schreibt den Grund dazu.</b> Web, macOS und Windows. Superhuman verkauft Tempo. Fyxer schreibt die Antwort. Beide kosten 30 $ im Monat, und keiner sagt dir, warum. Klorn beantwortet diese Frage zuerst und sendet nichts, was du nicht freigegeben hast.</p>
     <div class="actions rv">
@@ -931,7 +931,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       in etwa einer Minute erstellt.
       <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">Hinweis zum ersten Start ↗</a></p>
     <ul class="hero-proof rv">
-      <li><b>94,3 %</b> — 50 von 53 handmarkierten E-Mails, und der Satz liegt im Repository</li>
+      <li><b>Jede Zahl hier</b> lässt sich neu messen &mdash; die Eval-Sets liegen im Repository</li>
       <li><b>Null</b> Klauseln an die AGPL-3.0 angehängt</li>
       <li><b>Dein Server</b> liest deine Mail — selbst gehostet, dein Schlüssel oder ein lokales Modell</li>
     </ul>
@@ -1079,7 +1079,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; Was es behauptet</span>
-        <p><b>94,3 %</b> auf einem handmarkierten Satz, der im Repository mitgeliefert wird — mit <b>pnpm eval:real</b> nachvollziehbar, Kalt- und Warmstart getrennt ausgewiesen.</p></div>
+        <p><b>Zahlen, die sich neu messen lassen</b> &mdash; alle Eval-Sets liegen im Repository (<b>pnpm eval:judge</b>, <b>pnpm eval:real</b>). Als eine sich nicht mehr reproduzieren ließ, haben wir sie von dieser Seite genommen.</p></div>
       <div class="vscell them" data-who="Alle vier"><span class="k">03 &middot; Was es behauptet</span>
         <p>„KI-gestützt." Kein veröffentlichter Evaluationssatz, keine Trennung von Kalt und Warm, und nichts, was du selbst laufen lassen könntest, um die Zahl zu prüfen.</p></div>
     </div>
@@ -1117,14 +1117,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       Das sind die aktuellen Zahlen, und das Eval-Set liegt im offenen Repo.</p>
   </div>
   <div class="stats">
-    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">Genauigkeit auf echter Mail</div>
-      <p>50 von 53 handgelabelten echten E-Mails ins richtige Tier sortiert.</p></div>
+    <div class="stat rv"><div class="sv">&ge;90%</div><div class="sl">Dringend-Trefferquote, CI-Untergrenze</div>
+      <p>Eine Änderung, die die Dringend-Trefferquote unter die Untergrenze drückt, lässt den Build scheitern.</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT-Präzision</div>
       <p>Wenn Klorn Mail als Rauschen ablegt, begräbt es fast nie ein echtes Signal.</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">Nicht freigegebene Aktionen</div>
       <p>Jedes Senden, Löschen und Weiterleiten wartet auf dich und protokolliert eine Quittung mit einem Hash des Gesendeten.</p></div>
   </div>
-  <p class="foot rv">Gemessen im Juli 2026 an einem handmarkierten Satz von 53 E-Mails aus einem echten Postfach, Warmstart mit gelerntem Kontext (Kaltstart: 81,1 %). Dieser Satz ist nur mit Push, Queue und Silent markiert — für Meeting und Info gibt es noch keine markierten Beispiele, ihre Genauigkeit ist also ungemessen und wir behaupten sie nicht.
+  <p class="foot rv">Das handmarkierte Echt-Mail-Set wird neu markiert: Es stammt aus der Zeit vor den Spuren Meeting und Info, kann diese also nicht bewerten, und wir nennen daraus keine Kennzahl mehr. Die Silent-Präzision oben wird auf diesem Set gemessen und ist davon nicht betroffen. Das im Repository versionierte synthetische Gate-Set läuft bei jeder Änderung am Klassifikator, mit in CI erzwungenen Untergrenzen.
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">Methodik und Eval-Set →</a></p>
 </section>
 
@@ -1241,7 +1241,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">oder betreib es selbst</a>.</p></details>
     <details class="faq-i rv"><summary>Was, wenn es etwas falsch ablegt?</summary>
       <p>Verschieb sie. Jede Nachricht zeigt, warum sie dort gelandet ist, und aus der Korrektur lernt der
-        Klassifikator — das ist der Unterschied zwischen 81.1% kalt und 94.3% warm.</p></details>
+        Klassifikator — das ist der Unterschied zwischen einem Kaltstart und einem Klassifikator, der deine Absender bereits kennt.</p></details>
     <details class="faq-i rv"><summary>Wann kommt die Windows-App?</summary>
       <p>Ist ausgeliefert, als unsignierte Beta — SmartScreen warnt einmal, bis die App code-signiert ist. Die Web-App
         bleibt in jedem Browser verfügbar, mit demselben Konto und denselben Tiers.</p></details>

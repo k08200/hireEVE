@@ -837,7 +837,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "如果它归错了类怎么办？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "把它移走。每封邮件都会显示它为何落在那里，而你的纠正正是分类器学习的来源 ——\n        这就是冷启动 81.1% 与热启动 94.3% 之间的差别。"
+    "text": "把它移走。每封邮件都会显示它为何落在那里，而你的纠正正是分类器学习的来源 ——\n        这就是冷启动与一个已经认识你发件人的分类器之间的差别。"
    }
   },
   {
@@ -911,7 +911,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
 
   <div class="wrap">
-    <span class="eyebrow rv">在真实邮件上实测 <b>94.3%</b></span>
+    <span class="eyebrow rv">绝不隐藏紧急邮件 &mdash; <b>由 CI 强制</b></span>
     <h1 class="rv">更少打断。<br>不是更<span class="ser">快</span>处理邮件。</h1>
     <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klorn 把每封邮件分到五个分类，并在每封上注明理由。</b> 网页版·macOS·Windows。Superhuman 卖的是速度，Fyxer 替你写回复。两者都是每月 $30，而且都不告诉你为什么。Klorn 先回答这个问题，并且不会发送任何你未批准的内容。</p>
     <div class="actions rv">
@@ -931,7 +931,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       注册大约需要一分钟。
       <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">首次启动说明 ↗</a></p>
     <ul class="hero-proof rv">
-      <li><b>94.3%</b> — 人工标注的 53 封中命中 50 封，数据集就在仓库里</li>
+      <li><b>这里的每个数字</b>都可复现 &mdash; 评测集就在仓库里</li>
       <li><b>0 条</b> — AGPL-3.0 之后追加的条款</li>
       <li><b>读你邮件的是你自己的服务器</b> — 自托管，用你的密钥或本地模型</li>
     </ul>
@@ -1079,7 +1079,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; 它声称什么</span>
-        <p>在随仓库发布的人工标注集上<b>94.3%</b> —— 可用 <b>pnpm eval:real</b> 复跑，冷启动与热启动分开报告。</p></div>
+        <p><b>可以复跑的数字</b> &mdash; 所有评测集都在仓库里（<b>pnpm eval:judge</b>、<b>pnpm eval:real</b>）。有一个不再复现，我们就把它从本页撤下了。</p></div>
       <div class="vscell them" data-who="四款都是"><span class="k">03 &middot; 它声称什么</span>
         <p>"AI 驱动"。没有公开的评估集，没有冷热之分，也没有任何你能自己跑一遍去核对的东西。</p></div>
     </div>
@@ -1117,14 +1117,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       这些是最新的数字，评测集就在开放仓库里。</p>
   </div>
   <div class="stats">
-    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">真实邮件准确率</div>
-      <p>53 封人工标注的真实邮件中，有 50 封被分入正确层级。</p></div>
+    <div class="stat rv"><div class="sv">&ge;90%</div><div class="sl">紧急邮件召回率（CI 下限）</div>
+      <p>让紧急邮件召回率跌破下限的改动会导致构建失败。</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENT 精确率</div>
       <p>当 Klorn 把邮件归为噪音时，几乎不会埋掉真正的信号。</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">未经批准的操作</div>
       <p>每一次发送、删除和转发都等你确认，并记录一份固定了发送内容哈希的回执。</p></div>
   </div>
-  <p class="foot rv">2026 年 7 月，在真实收件箱取样的 53 封人工标注邮件上实测。带已学习上下文的热启动（冷启动：81.1%）。该数据集只标注了 Push、Queue、Silent —— Meeting 和 Info 还没有标注样本，所以它们的准确率未经测量，我们也不作声称。
+  <p class="foot rv">人工标注的真实邮件数据集正在重新标注。该数据集早于 Meeting 与 Info 两个分道，无法为它们打分，因此我们不再从中引用代表性准确率。上面的 Silent 精确率在同一数据集上测得，但不受此问题影响。仓库中的合成门禁数据集会在判定器每次变更时于 CI 中连同下限一起运行。
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">方法与评测集 →</a></p>
 </section>
 
@@ -1242,7 +1242,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">或者自己运行它</a>.</p></details>
     <details class="faq-i rv"><summary>如果它归错了类怎么办？</summary>
       <p>把它移走。每封邮件都会显示它为何落在那里，而你的纠正正是分类器学习的来源 ——
-        这就是冷启动 81.1% 与热启动 94.3% 之间的差别。</p></details>
+        这就是冷启动与一个已经认识你发件人的分类器之间的差别。</p></details>
     <details class="faq-i rv"><summary>Windows 版什么时候有？</summary>
       <p>已发布，是未签名 beta —— 在完成代码签名之前，SmartScreen 会提示一次。网页版
         仍可在任何浏览器中使用，账号和层级相同。</p></details>

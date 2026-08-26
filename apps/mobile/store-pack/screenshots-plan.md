@@ -32,7 +32,7 @@ Order matters — the first 2–3 are what shows in search results.
 | # | Screen (route on app.klorn.ai) | What must be visible | Caption EN | Caption KO |
 |---|---|---|---|---|
 | 1 | Home command center (`/`) | Triaged inbox summary, tier counts, today's state | **Your inbox, already triaged.** | **이미 분류된 받은편지함.** |
-| 2 | Mail firewall (`/inbox`) | Real-looking emails labeled PUSH / QUEUE / SILENT / AUTO | **Four tiers. Only PUSH interrupts you.** | **4단계 분류. PUSH만 당신을 방해합니다.** |
+| 2 | Mail firewall (`/inbox`) | Real-looking emails labeled PUSH / MEETING / QUEUE / INFO / SILENT | **Five lanes. Only PUSH interrupts you.** | **5개 레인. PUSH만 당신을 방해합니다.** |
 | 3 | Decision card (a QUEUE item open, `/inbox` card view) | One card with approve / edit / hold actions + evidence | **One card, one decision, done.** | **카드 하나, 결정 하나면 끝.** |
 | 4 | Morning briefing (`/briefing`) | Generated briefing text with overnight summary | **Wake up to one briefing, not 40 emails.** | **메일 40통 대신 브리핑 하나로 아침을.** |
 | 5 | Push notification (lock screen / notification banner) | A Klorn PUSH-tier alert visible on the lock screen | **Urgent mail finds you. The rest waits.** | **급한 메일은 당신을 찾아옵니다. 나머지는 기다립니다.** |
@@ -100,7 +100,9 @@ ASC rejects off-size images with an unhelpful error.
 ## Pre-capture data checklist
 
 - [ ] Demo account logged in; demo Gmail linked and synced (same account as review notes)
-- [ ] Seeded inbox shows all four tiers with realistic but fictional senders
+- [ ] Seeded inbox shows all five lanes with realistic but fictional senders —
+      MEETING needs a real calendar invite and INFO a receipt/confirmation, or
+      those two lanes come up empty and the caption overstates the shot
 - [ ] A briefing has been generated today (open `/briefing` once beforehand)
 - [ ] No debug UI / flags visible; `KLORN_PROBE` NOT set (store shell only — `capacitor.config.ts`)
 - [ ] Status bar override applied (step 4) on every capture

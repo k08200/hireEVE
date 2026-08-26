@@ -118,9 +118,11 @@ email/password and Google paths. Google reviewers click through the production
 app, and the CASA lab's DAST scanner needs working login credentials — neither
 can pass the gate on their own. Pre-provision access like this:
 
-1. Add the reviewer/assessor email to the waitlist:
-   `POST /api/waitlist` with `{ "email": "<their-address>" }` (public
-   endpoint, rate-limited), or ask them for the address they will use.
+1. Add the reviewer/assessor email to the waitlist (admin token required):
+   `POST /api/admin/waitlist` with `{ "email": "<their-address>" }`. The
+   public `POST /api/waitlist` was deleted 2026-08-26 — it had no caller and
+   the landing says "no invite, no waitlist" — so this is now the only way a
+   row is created. Ask them for the address they will actually use.
 2. Approve it (admin token required):
    `GET /api/admin/waitlist?status=PENDING` → find the entry id →
    `PATCH /api/admin/waitlist/:id` with `{ "status": "APPROVED" }`.

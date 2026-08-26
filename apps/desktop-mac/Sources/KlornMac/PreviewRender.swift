@@ -30,13 +30,19 @@ enum PreviewRender {
        "surfacedAt":"2026-07-29T07:40:00Z",
        "email":{"emailDbId":"d2","subject":"Invoice #4821 is overdue",
                 "from":"billing@vendor.io","snippet":"Your invoice was due on 26 July."},"hashStale":false},
-      {"id":"p3","source":"email","sourceId":"e3","type":"email","title":"Standup moved",
-       "tier":"PUSH","tierReason":"Calendar conflict","priority":7,
+      {"id":"p3","source":"email","sourceId":"e3","type":"email","title":"Sign-off needed",
+       "tier":"PUSH","tierReason":"Blocking two people since yesterday","priority":7,
        "surfacedAt":"2026-07-29T07:05:00Z",
-       "email":{"emailDbId":"d3","subject":"Standup moved to 10:30",
+       "email":{"emailDbId":"d3","subject":"Waiting on your sign-off to ship",
+                "from":"Alex Carter <alex@team.co>","snippet":"We are holding the release until you approve the copy change."},"hashStale":false}],
+      "MEETING":[
+      {"id":"m1","source":"email","sourceId":"e4","type":"email","title":"Standup moved",
+       "tier":"MEETING","tierReason":"Reschedule — no conflict on your calendar","priority":5,
+       "surfacedAt":"2026-07-29T07:05:00Z",
+       "email":{"emailDbId":"d4","subject":"Standup moved to 10:30",
                 "from":"Alex Carter <alex@team.co>","snippet":"Moved tomorrow's standup to 10:30 — still work for you?"},"hashStale":false}],
-      "QUEUE":[],"SILENT":[],"AUTO":[]},
-     "summary":{"PUSH":3,"QUEUE":12,"SILENT":41,"AUTO":8,"total":64}}
+      "QUEUE":[],"INFO":[],"SILENT":[],"AUTO":[]},
+     "summary":{"PUSH":3,"MEETING":1,"QUEUE":12,"INFO":6,"SILENT":41,"AUTO":0,"total":63}}
     """
 
     private static let briefingJSON = """

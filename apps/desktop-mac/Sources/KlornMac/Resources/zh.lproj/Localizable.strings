@@ -282,6 +282,7 @@
 "menu.quit" = "退出 Klorn";
 "menu.restart" = "重启 Klorn";
 "menu.diagnostics" = "连接状态…";
+"menu.contactSupport" = "发邮件联系支持…";
 "diagnostics.checking" = "检查中…";
 "menu.checkUpdates" = "检查更新…";
 "update.upToDate" = "Klorn 已是最新。";

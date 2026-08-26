@@ -1,6 +1,6 @@
 /**
  * POST /api/playground/classify — login-free, bring-your-own-key demo of the
- * 4-tier firewall. Security-critical invariants this suite locks down:
+ * firewall. Security-critical invariants this suite locks down:
  *   1. The visitor's API key is threaded to the classifier as credentials and
  *      NEVER written to any log line (public endpoint on a public repo).
  *   2. Strict schema: unknown body fields are rejected, no auth is required.
