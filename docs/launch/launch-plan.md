@@ -9,9 +9,20 @@ founder's; PENDING ones block only their own step, nothing upstream.
 
 ## P0 — Sync integrity (blocks everything user-facing)
 
-> Status 2026-08-26: the four engineering items are done and verified against
-> current code (file:line on each). What remains is the founder re-consent —
-> nothing recovers the 07-21→now gap until the primary token is alive again.
+> **P0 is closed (2026-08-26).** The four engineering items are done and
+> verified against current code (file:line on each); the founder re-consent is
+> done and verified in the signed-in app; and the mail gap it was supposed to
+> have left does not exist.
+>
+> Checked rather than assumed: filtered the mail list to the PRIMARY inbox and
+> paged back to 16 July — every day from 16 to 31 July is present, straight
+> through the window the 07-21 token death was supposed to have emptied, and on
+> into August unbroken. Whatever was lost has already been recovered.
+>
+> A caution for whoever measures this next: the default mail view is filtered
+> to **Needs reply**, and reading dates off it shows gaps that are only the
+> filter. Switch to "All signals" and pick a single inbox before concluding
+> anything about ingestion.
 
 The founder's own primary Gmail stopped ingesting ~2026-07-21 (Testing-mode
 refresh token death). Diagnosis as it stood on 2026-08-07 — all four faults
@@ -23,8 +34,9 @@ no notification rendering, and `routes/email.ts` hardcoded
 could never fire for it); desktop re-login was pure JWT and did not touch the
 Google token.
 
-- [ ] Founder: web Settings → Connections → Google → Connect (full re-consent;
-      Production audience since 2026-08-04, so the new token is long-lived).
+- [x] Founder: Google re-consent — done. Verified 2026-08-26 in the signed-in
+      app: Settings → Connections lists both `k0820086@gmail.com` and
+      `d14947652@gmail.com` as "Synced 1m ago", with no reconnect prompt.
 - [x] fix(api): primary inbox entry in `/api/email/inboxes` reports real
       `needsReconnect` (UserToken.refreshToken null) instead of `false`.
       Verified 2026-08-26: `routes/email.ts:1402` computes
