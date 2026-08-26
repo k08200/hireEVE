@@ -500,3 +500,15 @@
 "chip.social" = "Social";
 "chip.updates" = "Notifications";
 "chip.forums" = "Forum";
+
+// Real calendar views — 일/월/년 (2026-08-26).
+"cal.scope.day" = "Jour";
+"cal.scope.month" = "Mois";
+"cal.scope.year" = "Année";
+"cal.today" = "Aujourd'hui";
+"cal.prev" = "Précédent";
+"cal.next" = "Suivant";
+"cal.dayFree" = "Rien de prévu — la journée est libre.";
+"cal.more" = "+%d autres";
+"cal.cell.a11y" = "%@, %d événements";
+"cal.scope.a11y" = "Vue calendrier";

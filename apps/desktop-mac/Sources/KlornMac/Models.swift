@@ -1031,6 +1031,72 @@ func agendaDayLabel(day: Date, tomorrow: Date, calendar: Calendar) -> String {
     return symbols[index]
 }
 
+// MARK: - Calendar grid math (real calendar views, 2026-08-26)
+
+/// Local-day bucket key ("2026-08-26"). LOCAL calendar deliberately: an event
+/// at 26일 01:00 KST is a 26일 event to the user even though its UTC instant
+/// is the 25th — bucketing by ISO prefix put events on the wrong day once
+/// already (weekly-report dayKey trap, 2026-08-22).
+func localDayKey(_ date: Date, calendar: Calendar = .current) -> String {
+    let c = calendar.dateComponents([.year, .month, .day], from: date)
+    return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+}
+
+/// The dates a month grid draws: complete weeks from the week containing the
+/// 1st through the week containing the last day, honoring the calendar's own
+/// firstWeekday (Sunday-first in ko/en_US, Monday-first in de/fr). Count is
+/// always a multiple of 7; dates outside the month are included (drawn dim).
+/// Pure for the harness.
+func monthGridDays(year: Int, month: Int, calendar: Calendar = .current) -> [Date] {
+    var comps = DateComponents()
+    comps.year = year
+    comps.month = month
+    comps.day = 1
+    guard let first = calendar.date(from: comps),
+          let range = calendar.range(of: .day, in: .month, for: first),
+          let last = calendar.date(byAdding: .day, value: range.count - 1, to: first)
+    else { return [] }
+
+    func startOfWeek(_ date: Date) -> Date {
+        let weekday = calendar.component(.weekday, from: date)
+        let offset = (weekday - calendar.firstWeekday + 7) % 7
+        return calendar.date(byAdding: .day, value: -offset, to: calendar.startOfDay(for: date))
+            ?? date
+    }
+    let gridStart = startOfWeek(first)
+    guard let lastWeekStart = calendar.date(
+        byAdding: .day, value: 0, to: startOfWeek(last)),
+        let gridEnd = calendar.date(byAdding: .day, value: 6, to: lastWeekStart)
+    else { return [] }
+
+    var days: [Date] = []
+    var cursor = gridStart
+    while cursor <= gridEnd {
+        days.append(cursor)
+        guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+        cursor = next
+    }
+    return days
+}
+
+/// Events bucketed by local day. A malformed startTime drops that event —
+/// never a crash; a multi-day event buckets on its start day (v1 scope:
+/// spanning bars are a later refinement, stated not hidden).
+func eventsByDay(
+    _ events: [CalendarEventWire], calendar: Calendar = .current
+) -> [String: [CalendarEventWire]] {
+    let withMillis = ISO8601DateFormatter()
+    withMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    let plain = ISO8601DateFormatter()
+    var out: [String: [CalendarEventWire]] = [:]
+    for event in events {
+        guard let start = withMillis.date(from: event.startTime)
+            ?? plain.date(from: event.startTime) else { continue }
+        out[localDayKey(start, calendar: calendar), default: []].append(event)
+    }
+    return out
+}
+
 /// GET /api/calendar/today/summary.
 struct TodaySummary: Codable, Sendable {
     let total: Int
