@@ -837,7 +837,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
    "name": "誤った場所に仕分けされたらどうなりますか？",
    "acceptedAnswer": {
     "@type": "Answer",
-    "text": "動かしてください。すべてのメールにはそこへ入った理由が表示され、その修正から分類器が学習します —\n        コールド81.1%とウォーム94.3%の差は、そこから生まれます。"
+    "text": "動かしてください。すべてのメールにはそこへ入った理由が表示され、その修正から分類器が学習します —\n        コールドスタートと、あなたの送信者をすでに知っている分類器の差です。"
    }
   },
   {
@@ -911,7 +911,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   </picture>
 
   <div class="wrap">
-    <span class="eyebrow rv">実際のメールで計測 <b>94.3%</b></span>
+    <span class="eyebrow rv">緊急メールを隠しません &mdash; <b>CIで強制</b></span>
     <h1 class="rv">割り込みが減る。<br>速く<span class="ser">なる</span>のではなく。</h1>
     <p class="lead rv"><b style="color:var(--ink);font-weight:650">Klornはすべてのメールを5つのレーンに振り分け、1通ごとにその理由を添えます。</b> ウェブ・macOS・Windows。Superhumanは速さを売り、Fyxerは返信を代筆します。どちらも月$30で、どちらも理由は見せません。Klornはその問いに先に答え、あなたが承認していないものは送りません。</p>
     <div class="actions rv">
@@ -931,7 +931,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       作成は1分ほどです。
       <a href="https://github.com/k08200/klorn/releases/latest" rel="noreferrer noopener">初回起動時の注意 ↗</a></p>
     <ul class="hero-proof rv">
-      <li><b>94.3%</b> — 手作業でラベル付けした53通のうち50通。そのセットはリポジトリにあります</li>
+      <li><b>ここの数値は</b>すべて再実行できます &mdash; 評価セットはリポジトリにあります</li>
       <li><b>0件</b> — AGPL-3.0に追加された条項</li>
       <li><b>あなたのサーバー</b>があなたのメールを読みます — セルフホスト、自分の鍵かローカルモデル</li>
     </ul>
@@ -1079,7 +1079,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
     </div>
     <div class="vsrow">
       <div class="vscell ours" data-who="Klorn"><span class="k">03 &middot; 何を主張するか</span>
-        <p>リポジトリに同梱された手作業ラベル付きセットで<b>94.3%</b> — <b>pnpm eval:real</b>で再実行でき、コールドとウォームは別々に報告しています。</p></div>
+        <p><b>再実行できる数値</b> &mdash; 評価セットはすべてリポジトリにあります（<b>pnpm eval:judge</b>、<b>pnpm eval:real</b>）。再現しなくなった数値は、このページから取り下げました。</p></div>
       <div class="vscell them" data-who="4製品すべて"><span class="k">03 &middot; 何を主張するか</span>
         <p>「AI搭載」。公開された評価セットも、コールド／ウォームの区別も、自分で数値を確かめる手段もありません。</p></div>
     </div>
@@ -1117,14 +1117,14 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
       これが最新の数値で、評価セットは公開リポジトリにあります。</p>
   </div>
   <div class="stats">
-    <div class="stat rv"><div class="sv">94.3%</div><div class="sl">実メールでの精度</div>
-      <p>手作業でラベル付けした実メール53件のうち、50件を正しいティアに仕分け。</p></div>
+    <div class="stat rv"><div class="sv">&ge;90%</div><div class="sl">緊急メールの再現率（CI下限）</div>
+      <p>緊急メールの再現率が下限を割る変更はビルドが失敗します。</p></div>
     <div class="stat rv"><div class="sv">95.5%</div><div class="sl">SILENTの適合率</div>
       <p>Klornがノイズとして保管するとき、本物のシグナルを埋もれさせることはほとんどありません。</p></div>
     <div class="stat rv"><div class="sv">0</div><div class="sl">未承認の操作</div>
       <p>送信、削除、転送はすべてあなたを待ち、送った内容のハッシュを固定したレシートを記録します。</p></div>
   </div>
-  <p class="foot rv">2026年7月、実運用の受信トレイから取った53通の手作業ラベル付きセットで計測。学習済みコンテキストありのウォームスタート（コールドスタート: 81.1%）。このセットはPush・Queue・Silentのみラベル付けされており、MeetingとInfoにはまだラベル済みサンプルがないため、その精度は未計測であり主張しません。
+  <p class="foot rv">手作業でラベル付けした実メールのセットは、現在ラベルを付け直しています。このセットはMeetingとInfoのレーンが生まれる前のもので両レーンを採点できないため、このセットから代表的な精度の数値を出すのはやめました。上のSilent精度は同じセットで計測していますが、この問題の影響を受けません。リポジトリに含まれる合成ゲートセットは、判定器が変わるたびに下限とともにCIで実行されます。
     <a href="https://github.com/k08200/klorn/tree/main/packages/api/eval" rel="noreferrer noopener">計測方法と評価セット →</a></p>
 </section>
 
@@ -1242,7 +1242,7 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
         <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">自分で動かすこともできます</a>.</p></details>
     <details class="faq-i rv"><summary>誤った場所に仕分けされたらどうなりますか？</summary>
       <p>動かしてください。すべてのメールにはそこへ入った理由が表示され、その修正から分類器が学習します —
-        コールド81.1%とウォーム94.3%の差は、そこから生まれます。</p></details>
+        コールドスタートと、あなたの送信者をすでに知っている分類器の差です。</p></details>
     <details class="faq-i rv"><summary>Windows版はいつですか？</summary>
       <p>未署名ベータとして出荷済みです — コード署名が済むまではSmartScreenが一度警告します。ウェブアプリは
         同じアカウントとティアで、どのブラウザからでも引き続き利用できます。</p></details>
