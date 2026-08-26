@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notes — Klorn</title>
+<meta name="description" content="Engineering notes from building Klorn: measured model comparisons, the deterministic decision floor, and what broke along the way. Every number re-runs from the repo.">
+<meta property="og:title" content="Notes — Klorn">
+<meta property="og:description" content="Engineering notes from building Klorn: measured model comparisons, the deterministic decision floor, and what broke along the way. Every number re-runs from the repo.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://klorn.ai/blog/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Notes — Klorn">
+<meta name="twitter:description" content="Engineering notes from building Klorn: measured model comparisons, the deterministic decision floor, and what broke along the way. Every number re-runs from the repo.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<link rel="canonical" href="https://klorn.ai/blog/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+<style>
+.postlist { list-style: none; margin: 34px 0 0; padding: 0; }
+.postlist li { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.postlist a.pt { color: var(--ink); font-weight: 650; font-size: 19px; text-decoration: none; }
+.postlist a.pt:hover { color: var(--sky-ink); }
+.postlist .meta { display: block; margin-top: 4px; font-size: 13.5px; color: var(--ink-3); }
+.postlist p { margin: 8px 0 0; font-size: 15.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/">Klorn</a>
+    <span class="lang"><a href="/blog/" aria-current="true">Notes</a><a href="/security/">Security</a><a href="/pricing/">Pricing</a><a href="/self-host/">Self-host</a></span>
+  </nav>
+
+  <h1>Notes from the <em>workshop</em>.</h1>
+  <p class="thesis">Engineering notes from building an email firewall in the open. House rule: a number only appears here if you can re-run it from the repo — and when one stops reproducing, it comes down and we say so.</p>
+
+  <ul class="postlist">
+    <li>
+      <a class="pt" href="/blog/which-llm-is-best-for-email-classification/">Which LLM should classify your email? I ran six.</a>
+      <span class="meta">2026-08-26 · benchmark</span>
+      <p>Six current models, one narrow job, one run each. Price does not order the table, the interesting failure has a mechanism, and the safety floor held for every model — including the two that failed the gate.</p>
+    </li>
+  </ul>
+
+  <h2>Earlier writing (on dev.to)</h2>
+  <p>Longer essays from before this page existed:</p>
+  <ul>
+    <li><a href="https://dev.to/k08200/every-ai-email-tool-has-the-same-bug-it-is-not-a-bug-in-the-model-5f14" rel="noreferrer noopener">Every AI email tool has the same bug. It is not a bug in the model.</a></li>
+    <li><a href="https://dev.to/k08200/i-dont-trust-the-llm-to-classify-my-email-so-i-dont-let-it-55d9" rel="noreferrer noopener">I don't trust the LLM to classify my email. So I don't let it.</a></li>
+    <li><a href="https://dev.to/k08200/confidence-is-enough-to-decide-its-not-enough-to-do-8ck" rel="noreferrer noopener">Confidence is enough to decide. It's not enough to do.</a></li>
+  </ul>
+
+  <a class="cta" href="https://app.klorn.ai/login?mode=register">Try Klorn free</a>
+
+  <footer>
+    <p>Klorn is <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">AGPL-3.0</a> — every claim on
+      this page is checkable against the source.</p>
+  </footer>
+</div>
+<script>
+// Same block as every other page: carry the campaign through to the app so a
+// signup can be credited to the page that earned it.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
