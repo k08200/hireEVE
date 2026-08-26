@@ -500,3 +500,15 @@
 "chip.social" = "ソーシャル";
 "chip.updates" = "新着情報";
 "chip.forums" = "フォーラム";
+
+// Real calendar views — 일/월/년 (2026-08-26).
+"cal.scope.day" = "日";
+"cal.scope.month" = "月";
+"cal.scope.year" = "年";
+"cal.today" = "今日";
+"cal.prev" = "前へ";
+"cal.next" = "次へ";
+"cal.dayFree" = "予定はありません — 一日空いています。";
+"cal.more" = "他%d件";
+"cal.cell.a11y" = "%@、予定%d件";
+"cal.scope.a11y" = "カレンダー表示";

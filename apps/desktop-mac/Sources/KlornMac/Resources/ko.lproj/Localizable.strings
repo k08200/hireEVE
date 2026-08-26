@@ -500,3 +500,15 @@
 "chip.social" = "소셜";
 "chip.updates" = "알림";
 "chip.forums" = "포럼";
+
+// Real calendar views — 일/월/년 (2026-08-26).
+"cal.scope.day" = "일";
+"cal.scope.month" = "월";
+"cal.scope.year" = "년";
+"cal.today" = "오늘";
+"cal.prev" = "이전";
+"cal.next" = "다음";
+"cal.dayFree" = "일정이 없습니다 — 하루가 비어 있습니다.";
+"cal.more" = "+%d개";
+"cal.cell.a11y" = "%@, 일정 %d건";
+"cal.scope.a11y" = "캘린더 보기";

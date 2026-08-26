@@ -891,6 +891,43 @@ final class AppModel {
     /// shows an honest error instead of an infinite spinner.
     private(set) var commitmentsFailed = false
 
+    // MARK: Calendar range (real calendar views, 2026-08-26)
+
+    /// Events for the calendar screen's visible range, keyed by the ISO range
+    /// key so a stale response for a range the user already left is dropped.
+    private(set) var calendarRangeEvents: [CalendarEventWire] = []
+    private(set) var calendarRangeKey: String?
+    private(set) var calendarRangeLoading = false
+
+    /// Fetch events for [start, end]. The month view asks for its visible
+    /// grid (±1 week around the month); the year view asks for the year.
+    /// Existing GET /api/calendar?start&end — no server change.
+    func loadCalendarRange(start: Date, end: Date) async {
+        let iso = ISO8601DateFormatter()
+        let key = iso.string(from: start) + "|" + iso.string(from: end)
+        if calendarRangeKey == key, !calendarRangeEvents.isEmpty { return }
+        calendarRangeLoading = true
+        defer { calendarRangeLoading = false }
+        do {
+            let resp: CalendarListResponse = try await api.get(
+                "/api/calendar?start=\(iso.string(from: start))&end=\(iso.string(from: end))",
+                as: CalendarListResponse.self)
+            calendarRangeKey = key
+            calendarRangeEvents = resp.events
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            Log.app.warning("calendar range fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Render-probe seam: the offscreen calendar shots need events without a
+    /// network. Internal, used only by PreviewRender.
+    func seedCalendarForRender(_ events: [CalendarEventWire]) {
+        calendarRangeEvents = events
+        calendarRangeKey = "render"
+    }
+
     // MARK: Mailbox folders (Sent / Drafts / Archived)
 
     /// Live folder listings, keyed by box. Fetched on first visit and on
