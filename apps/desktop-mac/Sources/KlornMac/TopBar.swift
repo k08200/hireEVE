@@ -154,21 +154,22 @@ private extension View {
 /// and the TINT comes from the palette's existing SEMANTIC tokens (engage =
 /// relationships, accent = Klorn asking to act, meeting green = schedule),
 /// so variety reads as meaning, not as a template rainbow.
-/// Sidebar glyph container. MONOCHROME by design (pass 2026-08-25): the nav
-/// icons used to each carry their own saturated tint, which competed with the
-/// lane dots — and the lane hues are the one place color is data here. The
-/// reference triage clients keep every nav glyph neutral; ours now match the
-/// filed-lanes disclosure, which already wore this treatment.
+/// Sidebar glyph container. Monochrome by default (pass 2026-08-25): nav
+/// icons don't decorate. The exception is a glyph whose color IS data — the
+/// 카테고리 rows pass their label tint (2026-08-27), matching the chip the
+/// same label wears on every row. Decorative tints stay banned.
 struct FeatureIcon: View {
     let systemName: String
+    var tint: Color? = nil
     var body: some View {
         RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(Theme.surfaceRaised)
+            .fill(tint.map { AnyShapeStyle($0.opacity(0.13)) }
+                ?? AnyShapeStyle(Theme.surfaceRaised))
             .frame(width: 20, height: 20)
             .overlay(
                 Image(systemName: systemName)
                     .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(Theme.textDim))
+                    .foregroundStyle(tint ?? Theme.textDim))
             .accessibilityHidden(true)
     }
 }
@@ -1688,7 +1689,6 @@ enum ListMode: Equatable, Hashable {
     /// without them doesn't read as "my mail, organized").
     case mailbox(MailboxKind)
     case commitments
-    case assistant
     /// Actions Klorn wants approved. Approving these used to require the web
     /// app, which is what kept the agent receipt linking out of Klorn.
     case proposals
@@ -2160,7 +2160,7 @@ private struct FullSidebar: View {
                     let count = model.queue?.items(matching: filter).count ?? 0
                     Button { selected = .label(filter) } label: {
                         HStack(spacing: 10) {
-                            FeatureIcon(systemName: filter.icon)
+                            FeatureIcon(systemName: filter.icon, tint: Theme.labelTint(filter))
                             Text(filter.label)
                                 .font(.body.weight(selected == .label(filter) ? .semibold : .regular))
                                 .foregroundStyle(Theme.text)
@@ -2302,20 +2302,6 @@ private struct FullSidebar: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(L("teams.title"))
                 }
-
-                // Assistant: ask/act across mail, calendar, and the briefing.
-                Button { selected = .assistant } label: {
-                    HStack(spacing: 10) {
-                        FeatureIcon(systemName: "quote.bubble")
-                        Text(L("section.assistant"))
-                            .font(.body.weight(selected == .assistant ? .semibold : .regular))
-                            .foregroundStyle(Theme.text)
-                        Spacer()
-                    }
-                    .modifier(SidebarRowChrome(selected: selected == .assistant))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(L("section.assistant"))
 
                 // Calendar: the week as a full list-column screen, not just the
                 // TODAY/UPCOMING crumbs below.
@@ -2605,7 +2591,6 @@ private struct FullList: View {
         Group {
             switch mode {
             case .commitments: CommitmentsList()
-            case .assistant: AssistantColumn()
             case .proposals: ProposalsList()
             case .calendar: CalendarScreen(actions: actions)
             case .teams: TeamsColumn()
@@ -2796,21 +2781,6 @@ private struct FullList: View {
 /// while a turn is in flight. Never steals focus — lives in the key-able full
 /// view like the reply composer.
 /// The assistant column (sidebar tab): section header + the shared thread.
-private struct AssistantColumn: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles").font(.body).foregroundStyle(Theme.accent)
-                    .accessibilityHidden(true)
-                Text(L("section.assistant")).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
-            }
-            .padding(.horizontal, 24).padding(.vertical, 18)
-            Divider().overlay(Theme.line)
-            AssistantThread(showsStarters: true)
-        }
-    }
-}
-
 /// Thread + composer — the assistant itself, with no chrome of its own. Shared
 /// by the sidebar tab and the floating dock so both stay one conversation
 /// (the model owns the messages), and a fix lands in both at once.
@@ -3297,12 +3267,13 @@ struct SignalChip: View {
     }
 
     var body: some View {
-        if let text {
+        if let text, let signal {
+            let tint = Theme.signalTint(signal)
             Text(text)
                 .font(Theme.Typo.micro)
-                .foregroundStyle(Theme.textDim)
+                .foregroundStyle(tint)
                 .padding(.horizontal, 6).padding(.vertical, 2)
-                .background(Theme.surfaceRaised, in: Capsule())
+                .background(tint.opacity(0.13), in: Capsule())
                 .accessibilityLabel(text)
         }
     }
