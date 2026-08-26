@@ -474,3 +474,16 @@
 /* Thread brief (why they wrote now) */
 "thread.weOwe" = "아직 안 준 것: %@";
 "thread.brief.a11y" = "이 메일이 온 이유: %@";
+
+// Mail folders — Sent / Drafts / Archived (shell restructure 2026-08-26).
+"section.mailboxes" = "메일함";
+"mailbox.drafts" = "임시보관함";
+"mailbox.sent" = "보낸함";
+"mailbox.archived" = "보관됨";
+"mailbox.refresh" = "폴더 새로고침";
+"mailbox.loadFailed" = "폴더를 불러오지 못했습니다. 연결을 확인하고 새로고침하세요.";
+"mailbox.empty.drafts" = "임시보관함이 비어 있습니다";
+"mailbox.empty.sent" = "보낸 메일이 없습니다";
+"mailbox.empty.archived" = "보관된 메일이 없습니다";
+"mailbox.noSubject" = "(제목 없음)";
+"mailbox.fromTo" = "%@ → %@";

@@ -592,6 +592,28 @@ func runSelfChecks() async -> Bool {
     check("event time label — malformed ISO degrades",
           eventTimeLabel(startISO: "not-a-date", endISO: "also-no", allDay: false, calendar: utc) == "")
 
+    // Mail-row time (design pass 2026-08-25): three grains pinned in UTC/en_US
+    // so the boundaries are the contract — same day flips to a date at
+    // midnight, same year drops the year, and the grain decision comes from
+    // the CALENDAR's day/year, never from a raw 24h subtraction.
+    let mailNow = ISO8601DateFormatter().date(from: "2026-07-16T12:00:00Z")!
+    let en = Locale(identifier: "en_US")
+    check("mail time — today shows clock",
+          mailTimeLabel(iso: "2026-07-16T05:04:00.000Z", now: mailNow, calendar: utc, locale: en)
+          == "05:04")
+    check("mail time — yesterday is a date even within 24h",
+          mailTimeLabel(iso: "2026-07-15T23:30:00.000Z", now: mailNow, calendar: utc, locale: en)
+          == "Jul 15")
+    check("mail time — same year omits the year",
+          mailTimeLabel(iso: "2026-01-02T08:00:00Z", now: mailNow, calendar: utc, locale: en)
+          == "Jan 2")
+    check("mail time — older year carries the year",
+          mailTimeLabel(iso: "2025-12-31T08:00:00.000Z", now: mailNow, calendar: utc, locale: en)
+          == "Dec 31, 2025")
+    check("mail time — malformed/absent ISO degrades",
+          mailTimeLabel(iso: "nope", now: mailNow, calendar: utc, locale: en) == ""
+          && mailTimeLabel(iso: nil, now: mailNow, calendar: utc, locale: en) == "")
+
     print("Upcoming agenda:")
     // 7-day grouping for the UPCOMING section: today excluded (the TODAY rows
     // own it), window ends 7 days after tomorrow's start, malformed ISO drops

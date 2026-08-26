@@ -474,3 +474,16 @@
 /* Thread brief (why they wrote now) */
 "thread.weOwe" = "Todavía debes: %@";
 "thread.brief.a11y" = "Por qué ha llegado esto: %@";
+
+// Mail folders — Sent / Drafts / Archived (shell restructure 2026-08-26).
+"section.mailboxes" = "CORREO";
+"mailbox.drafts" = "Borradores";
+"mailbox.sent" = "Enviados";
+"mailbox.archived" = "Archivados";
+"mailbox.refresh" = "Actualizar carpeta";
+"mailbox.loadFailed" = "No se pudo cargar la carpeta. Comprueba la conexión y actualiza.";
+"mailbox.empty.drafts" = "Sin borradores";
+"mailbox.empty.sent" = "Aún no hay enviados";
+"mailbox.empty.archived" = "Nada archivado";
+"mailbox.noSubject" = "(sin asunto)";
+"mailbox.fromTo" = "%@ → %@";

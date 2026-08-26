@@ -474,3 +474,16 @@
 /* Thread brief (why they wrote now) */
 "thread.weOwe" = "你还欠对方：%@";
 "thread.brief.a11y" = "这封邮件为什么来：%@";
+
+// Mail folders — Sent / Drafts / Archived (shell restructure 2026-08-26).
+"section.mailboxes" = "邮件";
+"mailbox.drafts" = "草稿箱";
+"mailbox.sent" = "已发送";
+"mailbox.archived" = "已归档";
+"mailbox.refresh" = "刷新文件夹";
+"mailbox.loadFailed" = "无法加载此文件夹。请检查连接后刷新。";
+"mailbox.empty.drafts" = "没有草稿";
+"mailbox.empty.sent" = "还没有已发送邮件";
+"mailbox.empty.archived" = "没有已归档邮件";
+"mailbox.noSubject" = "（无主题）";
+"mailbox.fromTo" = "%@ → %@";

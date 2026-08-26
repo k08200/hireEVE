@@ -154,17 +154,21 @@ private extension View {
 /// and the TINT comes from the palette's existing SEMANTIC tokens (engage =
 /// relationships, accent = Klorn asking to act, meeting green = schedule),
 /// so variety reads as meaning, not as a template rainbow.
+/// Sidebar glyph container. MONOCHROME by design (pass 2026-08-25): the nav
+/// icons used to each carry their own saturated tint, which competed with the
+/// lane dots — and the lane hues are the one place color is data here. The
+/// reference triage clients keep every nav glyph neutral; ours now match the
+/// filed-lanes disclosure, which already wore this treatment.
 struct FeatureIcon: View {
     let systemName: String
-    var tint: Color = Theme.accent
     var body: some View {
         RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(tint.opacity(0.16))
+            .fill(Theme.surfaceRaised)
             .frame(width: 20, height: 20)
             .overlay(
                 Image(systemName: systemName)
                     .font(.system(size: 10.5, weight: .semibold))
-                    .foregroundStyle(tint))
+                    .foregroundStyle(Theme.textDim))
             .accessibilityHidden(true)
     }
 }
@@ -1427,6 +1431,10 @@ private struct TeamsColumn: View {
 /// the assistant chat.
 enum ListMode: Equatable, Hashable {
     case tier(Tier)
+    /// A standard mail folder — Sent / Drafts / Archived (shell restructure
+    /// 2026-08-26: every client in the reference set has these; a triage app
+    /// without them doesn't read as "my mail, organized").
+    case mailbox(MailboxKind)
     case commitments
     case assistant
     /// Actions Klorn wants approved. Approving these used to require the web
@@ -1798,6 +1806,23 @@ private struct FullSidebar: View {
 
     private var sidebarColumn: some View {
         VStack(alignment: .leading, spacing: 4) {
+            // Compose leads the sidebar (shell restructure 2026-08-26): every
+            // client in the reference set puts a full-width compose control
+            // above the folder list. ⌘N already existed; now it has a face.
+            Button {
+                model.showCompose = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(L("compose.new")).font(.system(size: 12, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .padding(.horizontal, 20).padding(.top, 2).padding(.bottom, 10)
+            .accessibilityLabel(L("compose.new"))
+
             HStack {
                 ColumnHeader(title: L("section.inbox"))
                 // "What is this?" — reopens the tier guide right where the
@@ -1867,11 +1892,35 @@ private struct FullSidebar: View {
                     }
                 }
 
+                // The standard folders every mail client has. Klorn's lanes
+                // sort the INBOX; these are the other places mail lives. Live
+                // Gmail views — not part of the queue poll.
+                ColumnHeader(title: L("section.mailboxes"))
+                    .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 2)
+                ForEach(MailboxKind.allCases) { box in
+                    Button { selected = .mailbox(box) } label: {
+                        HStack(spacing: 10) {
+                            FeatureIcon(systemName: box.icon)
+                            Text(box.label)
+                                .font(.body.weight(selected == .mailbox(box) ? .semibold : .regular))
+                                .foregroundStyle(Theme.text)
+                            Spacer()
+                            if let count = model.mailboxItems[box]?.count {
+                                Text("\(count)")
+                                    .font(Theme.Typo.numeric).foregroundStyle(Theme.textDim)
+                            }
+                        }
+                        .modifier(SidebarRowChrome(selected: selected == .mailbox(box)))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(box.label)
+                }
+
                 // Commitments: promises made / replies awaited — the follow-through
                 // half of the firewall (what mail asked of you, and of them).
                 Button { selected = .commitments } label: {
                     HStack(spacing: 10) {
-                        FeatureIcon(systemName: "checkmark.seal", tint: Theme.engage)
+                        FeatureIcon(systemName: "checkmark.seal")
                         Text(L("section.commitments"))
                             .font(.body.weight(selected == .commitments ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1890,7 +1939,7 @@ private struct FullSidebar: View {
                 if model.pendingActions.count > 0 || selected == .proposals {
                 Button { selected = .proposals } label: {
                     HStack(spacing: 10) {
-                        FeatureIcon(systemName: "signature", tint: Theme.accentDeep)
+                        FeatureIcon(systemName: "signature")
                         Text(L("proposals.title"))
                             .font(.body.weight(selected == .proposals ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1909,7 +1958,7 @@ private struct FullSidebar: View {
                 if model.teamModeAvailable {
                     Button { selected = .teams } label: {
                         HStack(spacing: 10) {
-                            FeatureIcon(systemName: "person.2", tint: Theme.accentDeep)
+                            FeatureIcon(systemName: "person.2")
                             Text(L("teams.title"))
                                 .font(.body.weight(selected == .teams ? .semibold : .regular))
                                 .foregroundStyle(Theme.text)
@@ -1926,7 +1975,7 @@ private struct FullSidebar: View {
                 // Assistant: ask/act across mail, calendar, and the briefing.
                 Button { selected = .assistant } label: {
                     HStack(spacing: 10) {
-                        FeatureIcon(systemName: "quote.bubble", tint: Theme.accent)
+                        FeatureIcon(systemName: "quote.bubble")
                         Text(L("section.assistant"))
                             .font(.body.weight(selected == .assistant ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -1941,7 +1990,7 @@ private struct FullSidebar: View {
                 // TODAY/UPCOMING crumbs below.
                 Button { selected = .calendar } label: {
                     HStack(spacing: 10) {
-                        FeatureIcon(systemName: "calendar", tint: Theme.tint(.meeting))
+                        FeatureIcon(systemName: "calendar")
                         Text(L("section.calendar"))
                             .font(.body.weight(selected == .calendar ? .semibold : .regular))
                             .foregroundStyle(Theme.text)
@@ -2215,6 +2264,7 @@ private struct FullList: View {
             case .calendar: CalendarAgendaColumn(actions: actions)
             case .teams: TeamsColumn()
             case .tier: tierList
+            case .mailbox(let box): MailboxList(box: box)
             }
         }
         .id(mode)
@@ -2556,6 +2606,135 @@ private struct ChatBubble: View {
 
 /// The commitments column: WAITING ON (their promises to you) above I OWE
 /// (your promises to them). ✓ marks done, ✕ dismisses — both optimistic.
+/// One standard folder — Sent / Drafts / Archived. Live Gmail listing,
+/// fetched on entry; rows share the mail list's grammar (sender label /
+/// subject statement / snippet, time on the right) so the folders read as
+/// the same product, not a bolted-on debug view.
+struct MailboxList: View {
+    @Environment(AppModel.self) private var model
+    let box: MailboxKind
+
+    private var items: [MailboxItem] { model.mailboxItems[box] ?? [] }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: box.icon).font(.body).foregroundStyle(Theme.textDim)
+                    .accessibilityHidden(true)
+                Text(box.label).font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+                Text("\(items.count)").font(.title3.monospacedDigit()).foregroundStyle(Theme.textDim)
+                Spacer()
+                Button {
+                    model.openMailbox(box)
+                } label: {
+                    Image(systemName: "arrow.clockwise").font(.callout.weight(.medium))
+                        .iconTarget(30)
+                }
+                .buttonStyle(.plain).foregroundStyle(Theme.textDim)
+                .help(L("mailbox.refresh"))
+                .accessibilityLabel(L("mailbox.refresh"))
+            }
+            .padding(.horizontal, 24).padding(.vertical, 18)
+
+            Divider().overlay(Theme.line)
+
+            if model.mailboxLoading == box && items.isEmpty {
+                FirstSyncState()
+                Spacer()
+            } else if let error = model.mailboxError, items.isEmpty {
+                Spacer()
+                EmptyState(icon: "wifi.exclamationmark", title: error)
+                Spacer()
+            } else if items.isEmpty {
+                Spacer()
+                EmptyState(icon: box.icon, title: L("mailbox.empty.\(box.rawValue)"))
+                Spacer()
+            } else if Theme.isRenderingOffscreen {
+                VStack(spacing: 0) {
+                    ForEach(items.prefix(8)) { item in
+                        MailboxRow(box: box, item: item)
+                        Divider().overlay(Theme.line).padding(.leading, 20)
+                    }
+                }
+                Spacer(minLength: 0)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(items) { item in
+                            MailboxRow(box: box, item: item)
+                            Divider().overlay(Theme.line).padding(.leading, 20)
+                        }
+                    }
+                }
+            }
+        }
+        .task(id: box) {
+            // Fetch on entry, and refresh a stale listing on re-entry. The
+            // cached rows stay on screen while the refresh runs.
+            await model.loadMailbox(box)
+        }
+    }
+}
+
+struct MailboxRow: View {
+    @Environment(AppModel.self) private var model
+    let box: MailboxKind
+    let item: MailboxItem
+    @State private var hovering = false
+    @FocusState private var focused: Bool
+
+    private var selected: Bool { model.selectedMailboxItem?.gmailId == item.gmailId }
+    /// Sent/Drafts rows identify by who they're TO — "me, me, me" in the
+    /// sender column is what every client avoids for these two folders.
+    private var counterparty: String {
+        let raw = box == .archived ? item.from : item.to
+        let name = senderDisplayName(decodeHTMLEntities(raw))
+        return name.isEmpty ? raw : name
+    }
+
+    var body: some View {
+        Button { model.selectMailboxItem(item) } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(counterparty).font(Theme.Typo.label)
+                        .foregroundStyle(Theme.textDim).lineLimit(1)
+                    Text(decodeHTMLEntities(item.subject.isEmpty
+                        ? L("mailbox.noSubject") : item.subject))
+                        .font(Theme.Typo.head)
+                        .foregroundStyle(Theme.text).lineLimit(1)
+                    if !item.snippet.isEmpty {
+                        Text(decodeHTMLEntities(item.snippet)).font(Theme.Typo.caption)
+                            .foregroundStyle(Theme.textDim).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 8)
+                let time = mailTimeLabel(iso: item.receivedAt, now: Date())
+                if !time.isEmpty {
+                    Text(time)
+                        .font(Theme.Typo.caption.monospacedDigit())
+                        .foregroundStyle(Theme.textDim)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focused($focused)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityLabel("\(counterparty). \(item.subject)")
+        .padding(.horizontal, 20).padding(.vertical, 11)
+        .background(alignment: .leading) {
+            if selected { Rectangle().fill(Theme.accent).frame(width: 3) }
+        }
+        .background(selected ? Theme.surfaceSelected : hovering ? Theme.surfaceHover : .clear)
+        .onHover { hovering = $0 }
+        .overlay {
+            if focused {
+                RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.accent, lineWidth: 2)
+            }
+        }
+    }
+}
+
 private struct CommitmentsList: View {
     @Environment(AppModel.self) private var model
 
@@ -2774,6 +2953,17 @@ struct FullRow: View {
             // stays quiet (the tier dot alone carries state). Opacity keeps
             // them clickable-by-position and fully present to VoiceOver.
             HStack(spacing: 12) {
+                // Received time, always visible (design pass 2026-08-25): the
+                // reference triage clients right-align a time on every row,
+                // and a mail list with no time was an information gap. Falls
+                // back to when Klorn surfaced the item for non-mail rows.
+                let time = mailTimeLabel(
+                    iso: item.email?.receivedAt ?? item.surfacedAt, now: Date())
+                if !time.isEmpty {
+                    Text(time)
+                        .font(Theme.Typo.caption.monospacedDigit())
+                        .foregroundStyle(Theme.textDim)
+                }
                 // The tier dot lives OUTSIDE the menu label: the AppKit
                 // borderless menu renders SF Symbols as colorless templates
                 // (white dot, v0.4.4) and drops SwiftUI Shapes entirely (no
@@ -2861,7 +3051,19 @@ struct ReadingPane: View {
 
     var body: some View {
         Group {
-            if model.isLoadingEmail {
+            // Folder rows (Sent/Drafts/Archived) read through the live path —
+            // they are not in the local mirror, so the firewall branches below
+            // can never serve them. Checked first: selecting a folder row is
+            // the more recent intent when both selections exist.
+            if case .mailbox = model.listMode, let picked = model.selectedMailboxItem {
+                if model.mailboxDetailLoading {
+                    centered { ProgressView().controlSize(.small) }
+                } else if let detail = model.mailboxDetail {
+                    mailboxContent(picked, detail)
+                } else {
+                    centered { EmptyState(icon: "doc.text", title: L("reading.noPreview")) }
+                }
+            } else if model.isLoadingEmail {
                 centered { ProgressView().controlSize(.small) }
             } else if let err = model.emailError {
                 centered { Text(err).font(.callout).foregroundStyle(Theme.textDim) }
@@ -2892,6 +3094,55 @@ struct ReadingPane: View {
             replyText = ""
             quickReplies = nil
             loadingQuickReplies = false
+        }
+    }
+
+    /// A folder message: subject / counterparty / time, then the body as the
+    /// sender designed it. No firewall band — these rows were never
+    /// classified, and painting tier chrome on them would claim they were.
+    private func mailboxContent(_ item: MailboxItem, _ detail: LiveEmailDetail.Payload)
+        -> some View
+    {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: Theme.s2) {
+                Text(decodeHTMLEntities(detail.subject.isEmpty
+                    ? L("mailbox.noSubject") : detail.subject))
+                    .font(Theme.Typo.display)
+                    .foregroundStyle(Theme.text).lineLimit(2)
+                HStack {
+                    let from = senderDisplayName(decodeHTMLEntities(detail.from))
+                    let to = senderDisplayName(decodeHTMLEntities(detail.to))
+                    Text(L("mailbox.fromTo", from.isEmpty ? detail.from : from,
+                           to.isEmpty ? detail.to : to))
+                        .font(.callout).foregroundStyle(Theme.textDim).lineLimit(1)
+                    Spacer()
+                    Text(Self.formatDate(detail.receivedAt))
+                        .font(.caption).foregroundStyle(Theme.textDim)
+                }
+            }
+            .padding(24)
+            Divider().overlay(Theme.line)
+            if let renderHtml = detail.renderHtml, !renderHtml.isEmpty {
+                EmailHtmlView(
+                    html: renderHtml,
+                    // Live folder messages have no inline-image fetch path yet;
+                    // cid images degrade to their alt text.
+                    inlineImage: { _ in nil },
+                    blockRemote: !model.settings.loadRemoteImages)
+                    .id(detail.gmailId)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    Text(detail.body.isEmpty ? L("reading.noContent") : detail.body)
+                        .font(.callout)
+                        .foregroundStyle(Theme.text)
+                        .lineSpacing(4)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: 640, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(24)
+                }
+            }
         }
     }
 
