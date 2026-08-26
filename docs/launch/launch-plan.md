@@ -125,9 +125,18 @@ margin improves as the fallback chain (cheap paid SKUs) absorbs spillover.
       signed-in user has no reason to open. Web: Settings → About. Desktop:
       the App & diagnostics disclosure in BOTH panels, next to the diagnostics
       button, opening a prefilled mail with the app version.
-- [ ] Legal before paywall: privacy/terms/refund all return 200; re-read them
-      for currency before the paywall flip (the lane sentence was stale until
-      #1252 — assume the rest may be too).
+- [x] Legal before paywall — all three read in full 2026-08-26, not scanned.
+      Privacy had two undisclosed processors and a date older than its own
+      file; fixed in #1263 (Resend sends every transactional mail; Naver IMAP
+      stores a second mailbox credential and was absent entirely).
+      Terms and the refund policy hold up: the refund text derives the price
+      from `PRO_PRICE_WEB` rather than restating it, covers Paddle as merchant
+      of record, the 7-day trial, self-cancel, the 14-day first-month refund
+      and Korean withdrawal rights. Its "Cancel subscription in Settings"
+      claim is conditional on `canCancel`, which is true for exactly the
+      web/Paddle subscribers the policy addresses — the founder's own account
+      shows "not billed on the web" because it is not one of them.
+      Not legal review; this only makes the documents match the code.
 
 ## P4 — Flag flips (each a separate deliberate decision, post-LoA)
 
