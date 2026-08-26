@@ -350,6 +350,26 @@ const fr: Record<string, string> = {
     "Cela supprime définitivement votre compte Klorn et TOUTES vos données — courriers, classements, tâches, mémoires, événements d'agenda, accès Google lié et réglages. Irréversible.",
   "settings.confirm.deleteAccount.confirmLabel": "Supprimer mon compte",
   "settings.section.connections": "Connexions",
+  "settings.section.rules": "Règles",
+  "settings.rules.intro":
+    "Écrivez une règle avec vos mots — Klorn la compile en épingles d'expéditeur ou de domaine que vous validez avant l'enregistrement.",
+  "settings.rules.placeholder":
+    "ex. tout ce qui vient de acme.com va en Silent ; boss@acme.com est toujours Push",
+  "settings.rules.compile": "Créer les règles",
+  "settings.rules.compiling": "Compilation...",
+  "settings.rules.review": "Vérifier avant d'enregistrer",
+  "settings.rules.unsupported": "Impossible à exprimer en épingles :",
+  "settings.rules.apply": "Enregistrer les règles",
+  "settings.rules.applying": "Enregistrement...",
+  "settings.rules.cancel": "Abandonner",
+  "settings.rules.empty": "Aucune règle pour l'instant.",
+  "settings.rules.applied": "{n} règle(s) enregistrée(s).",
+  "settings.rules.compileFailed": "Impossible de compiler cette règle.",
+  "settings.rules.applyFailed": "Impossible d'enregistrer les règles.",
+  "settings.rules.deleteConfirm.title": "Supprimer la règle",
+  "settings.rules.deleteConfirm.message": "Supprimer l'épingle de {pin} ?",
+  "settings.rules.deleted": "Règle supprimée.",
+  "settings.rules.deleteFailed": "Impossible de supprimer la règle.",
   "settings.integration.google.desc":
     "Lit les signaux Gmail et Agenda et les relie à la préparation des réunions.",
   "settings.integration.notion.desc":
