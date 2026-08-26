@@ -60,6 +60,20 @@ enum PreviewRender {
      "attention":[{"rank":1,"action":"회고 생각 두세 가지 준비","reason":"오후 2시 디자인 회고"}]}
     """
 
+    private static let calendarSeedJSON = """
+    [{"id":"c1","title":"디자인 회고","startTime":"2026-07-29T05:00:00Z",
+      "endTime":"2026-07-29T06:00:00Z","location":null,"meetingLink":null,"allDay":false},
+     {"id":"c2","title":"벤더 체크인","startTime":"2026-07-29T07:30:00Z",
+      "endTime":"2026-07-29T08:00:00Z","location":null,
+      "meetingLink":"https://meet.example/x","allDay":false},
+     {"id":"c3","title":"주간 계획","startTime":"2026-07-27T00:30:00Z",
+      "endTime":"2026-07-27T01:00:00Z","location":null,"meetingLink":null,"allDay":false},
+     {"id":"c4","title":"파트너 콜","startTime":"2026-07-31T08:00:00Z",
+      "endTime":"2026-07-31T09:00:00Z","location":null,"meetingLink":null,"allDay":false},
+     {"id":"c5","title":"오프사이트","startTime":"2026-07-24T00:00:00Z",
+      "endTime":"2026-07-25T00:00:00Z","location":null,"meetingLink":null,"allDay":true}]
+    """
+
     private static let emailJSON = """
     {"id":"d1","from":"Sarah Kim <sarah.kim@northwind-partners.com>",
      "subject":"Re: Contract review — needs your sign-off today",
@@ -89,6 +103,13 @@ enum PreviewRender {
             briefingJSON: briefingJSON)
         GuideSeen.value = true
         model.showAssistantDock = true
+        // JSON like every other fixture — the L10n guard treats Swift string
+        // literals as UI copy, and these are demo DATA, not copy.
+        if let seed = try? JSONDecoder().decode(
+            [CalendarEventWire].self, from: Data(calendarSeedJSON.utf8))
+        {
+            model.seedCalendarForRender(seed)
+        }
         // Folder counts in the sidebar + a populated Sent list for its shot.
         model.seedMailboxForRender(.sent, items: [
             MailboxItem(
@@ -213,6 +234,12 @@ enum PreviewRender {
         // same row grammar as the firewall list.
         shot("mailbox-sent", size: CGSize(width: tourW, height: 430), align: .top) {
             MailboxList(box: .sent)
+        }
+        // The real calendar — month grid, fixture month pinned.
+        shot("calendar", size: CGSize(width: 760, height: 560), align: .top) {
+            CalendarScreen(
+                actions: actions, initialScope: .month,
+                initialAnchor: ISO8601DateFormatter().date(from: "2026-07-29T03:00:00Z") ?? Date())
         }
         // The mail level of the two-level sidebar — Back / Compose / folders /
         // categories. Shot with the level flipped, then restored so the full

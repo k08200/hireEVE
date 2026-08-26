@@ -618,6 +618,40 @@ func runSelfChecks() async -> Bool {
     // chips, unknown kinds decode to nil (a newer server must never blank an
     // older client), and the chronological inbox sorts newest-first with
     // receivedAt beating surfacedAt.
+
+    // Calendar grid math (real calendar views 2026-08-26): whole weeks,
+    // firstWeekday honored, local-day bucketing (the dayKey trap: a 01:00 KST
+    // event belongs to its LOCAL day, not its UTC day).
+    print("Calendar grid:")
+    var sunFirst = Calendar(identifier: .gregorian)
+    sunFirst.timeZone = TimeZone(identifier: "Asia/Seoul")!
+    sunFirst.firstWeekday = 1  // Sunday
+    let aug = monthGridDays(year: 2026, month: 8, calendar: sunFirst)
+    // August 2026: the 1st is a Saturday, the 31st a Monday → Sun-first grid
+    // runs Jul 26 … Sep 5, exactly 6 weeks.
+    check("month grid — whole weeks, multiple of 7", aug.count == 42)
+    check("month grid — starts on the week containing the 1st",
+          localDayKey(aug.first ?? Date(), calendar: sunFirst) == "2026-07-26")
+    check("month grid — ends on the week containing the 31st",
+          localDayKey(aug.last ?? Date(), calendar: sunFirst) == "2026-09-05")
+    var monFirst = sunFirst
+    monFirst.firstWeekday = 2  // Monday (de/fr locales)
+    let augMon = monthGridDays(year: 2026, month: 8, calendar: monFirst)
+    check("month grid — honors firstWeekday",
+          localDayKey(augMon.first ?? Date(), calendar: monFirst) == "2026-07-27"
+          && augMon.count == 42)
+
+    let kstEvent = CalendarEventWire(
+        id: "e1", title: "Late sync", startTime: "2026-08-25T16:30:00.000Z",
+        endTime: "2026-08-25T17:00:00.000Z", location: nil, meetingLink: nil, allDay: false)
+    let buckets = eventsByDay([kstEvent,
+        CalendarEventWire(id: "bad", title: "x", startTime: "not-a-date",
+                          endTime: "also-no", location: nil, meetingLink: nil, allDay: false)],
+        calendar: sunFirst)
+    // 16:30Z on the 25th is 01:30 KST on the 26th — LOCAL day wins.
+    check("events bucket on the local day, malformed dropped",
+          buckets["2026-08-26"]?.map(\.id) == ["e1"] && buckets.count == 1)
+
     print("Row signals + chronological inbox:")
     func ctx(_ json: String) -> EmailContext? {
         try? JSONDecoder().decode(EmailContext.self, from: Data(json.utf8))
