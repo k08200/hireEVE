@@ -23,7 +23,6 @@
 import type { FirewallItem, FirewallResponse } from "@klorn/contract";
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
-import { gmailCategoryOf, rowSignalFor } from "../judge/row-signals.js";
 import { requireAppAccess } from "../billing/entitlement-guard.js";
 import { prisma } from "../db.js";
 import { dismissAttentionItem } from "../judge/attention-dismiss.js";
@@ -32,6 +31,7 @@ import { confirmAttentionTier, overrideAttentionTier } from "../judge/attention-
 import { snoozeAttentionItem } from "../judge/attention-snooze.js";
 import { getDecisionMetrics } from "../judge/decision-metrics.js";
 import { collapseEmailThreads } from "../judge/firewall-thread-collapse.js";
+import { gmailCategoryOf, rowSignalFor } from "../judge/row-signals.js";
 import { resolveTierReason } from "../judge/tier-reason-strings.js";
 import { manualOverrideReason, normalizeTier, type Tier } from "../judge/tiers.js";
 import { getInteractionGraph } from "../learning/interaction-graph.js";
