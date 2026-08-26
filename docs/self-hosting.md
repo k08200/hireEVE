@@ -136,17 +136,232 @@ Notes:
 - **Schema is automatic.** The API entrypoint runs `prisma migrate deploy`
   (with retry) before serving; `prisma generate` happens at image build.
 - **Serving beyond localhost?** This is the one case that still needs a
-  source build: `NEXT_PUBLIC_API_URL` is baked into the web bundle at build
-  time, so the prebuilt web image only works when browsers reach the API at
-  `http://localhost:3001`. Change `WEB_URL`, `CORS_ORIGINS`,
-  `NEXT_PUBLIC_API_URL`, and `GOOGLE_REDIRECT_URI` together, put a TLS
-  reverse proxy (Caddy/nginx) in front, swap the web service's `image:` line
-  for the commented `build:` block in the compose file, and re-run with
-  `--build`. The api image needs no rebuild — it is configured entirely at
-  runtime.
-- **Local LLM from inside Docker:** use
-  `OPENAI_COMPAT_BASE_URL=http://host.docker.internal:11434/v1`, not
-  `localhost`.
+  source build, because `NEXT_PUBLIC_API_URL` is baked into the web bundle.
+  See [Reverse proxy](#reverse-proxy) for the four values that change together
+  and a working config for Caddy, nginx and Traefik.
+- **Local LLM from inside Docker:** `host.docker.internal`, not `localhost` —
+  see [Fully local LLM (Ollama)](#fully-local-llm-ollama) for the whole path,
+  including the Linux `extra_hosts` line.
+- **Healthchecks.** `api` and `web` both have one, and `depends_on` uses
+  `condition: service_healthy`, so `up -d` returns once the stack actually
+  serves rather than once the containers exist. Check with:
+  ```bash
+  docker inspect --format='{{.Name}} {{.State.Health.Status}}' \
+    $(docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml ps -q)
+  ```
+  An api stuck at `unhealthy` with the container running is almost always
+  Postgres: `/api/health` reports `status: "degraded"` rather than failing, and
+  the probe reads that field.
+
+## Fully local LLM (Ollama)
+
+No email content leaves the box. This is the reason most people self-host, so
+here is the whole path rather than the two env vars.
+
+```bash
+# 1. Pull the model the API defaults to when OPENAI_COMPAT_MODEL is unset
+#    (packages/api/src/providers/index.ts:161).
+ollama pull qwen3:8b
+
+# 2. Ollama has to listen on more than loopback, or the container cannot reach
+#    it — `host.docker.internal` arrives from outside the host's 127.0.0.1.
+#    Set OLLAMA_HOST=0.0.0.0 (Linux: systemctl edit ollama.service; macOS and
+#    Windows: the app's environment) and restart it.
+curl -s http://localhost:11434/v1/models | head -c 200
+```
+
+Then in `.env.selfhost`:
+
+```dotenv
+# host.docker.internal, NOT localhost — inside the container localhost is the
+# container. On Linux this hostname needs the extra_hosts line below; on
+# Docker Desktop it resolves already.
+OPENAI_COMPAT_BASE_URL=http://host.docker.internal:11434/v1
+OPENAI_COMPAT_MODEL=qwen3:8b
+# Optional. Local servers usually ignore auth and the API already substitutes
+# "local" when this is unset (providers/index.ts:160) — set it only if your
+# endpoint checks it.
+OPENAI_COMPAT_API_KEY=
+
+# This is the line that makes it local-ONLY. A configured local endpoint runs
+# FIRST, but hosted providers stay as failover, so leaving a key here means
+# mail can still leave the box when the local model errors or times out.
+OPENROUTER_API_KEY=
+GEMINI_API_KEY=
+```
+
+On **Linux**, `host.docker.internal` is not automatic. Add it to the api
+service with a compose override (`docker-compose.override.yml`, picked up
+automatically):
+
+```yaml
+services:
+  api:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+```
+
+Verify the API is actually using it, not silently failing over:
+
+```bash
+docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml \
+  logs api | grep -i "openai-compat\|provider"
+```
+
+A model this size is slower than the hosted default and the classifier is
+tuned against larger models — expect lower accuracy, not a different product.
+Bigger local models work the same way: pull it, change `OPENAI_COMPAT_MODEL`.
+
+## Reverse proxy
+
+Serving beyond `localhost` means one extra thing beyond TLS: **rebuilding
+web.** `NEXT_PUBLIC_API_URL` is inlined into the client bundle at build time,
+so the published image only works when browsers reach the API at
+`http://localhost:3001`. Four values change together:
+
+```dotenv
+WEB_URL=https://klorn.example.com
+CORS_ORIGINS=https://klorn.example.com
+NEXT_PUBLIC_API_URL=https://klorn.example.com
+GOOGLE_REDIRECT_URI=https://klorn.example.com/api/auth/google/callback
+```
+
+Then swap the web service's `image:` line for the commented `build:` block and
+re-run with `--build`. The api image needs no rebuild — it is configured
+entirely at runtime. The Google redirect URI must also be added to your OAuth
+client's authorised list, or sign-in fails after consent.
+
+**What to route.** Every HTTP route the API serves is under `/api`, plus a
+WebSocket at `/ws`. Everything else is web. So one hostname is enough, and
+same-origin means no CORS preflight at all.
+
+### Caddy
+
+```caddyfile
+klorn.example.com {
+	@api path /api/* /ws
+	reverse_proxy @api api:3001
+	reverse_proxy web:3000
+}
+```
+
+Automatic HTTPS, and Caddy forwards WebSocket upgrades without extra config.
+Run Caddy on the same compose network as the stack, or replace `api:3001` /
+`web:3000` with host ports.
+
+### nginx
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name klorn.example.com;
+    # certbot --nginx writes ssl_certificate / ssl_certificate_key here.
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # The WebSocket. Without Upgrade/Connection here the app still loads and
+    # then silently stops updating in real time — the failure looks like
+    # "nothing arrives", not like an error.
+    location /ws {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host       $host;
+        proxy_read_timeout 3600s;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+TLS: `certbot --nginx -d klorn.example.com` — see
+[certbot.eff.org](https://certbot.eff.org/) for the rest.
+
+### Traefik
+
+Assumes a Traefik instance already running with a `websecure` entrypoint and a
+Let's Encrypt resolver — this adds labels to the existing services rather than
+a Traefik service to our compose. Put it in `docker-compose.override.yml`:
+
+```yaml
+services:
+  api:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.klorn-api.rule=Host(`klorn.example.com`) && (PathPrefix(`/api`) || Path(`/ws`))"
+      - "traefik.http.routers.klorn-api.entrypoints=websecure"
+      - "traefik.http.routers.klorn-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.klorn-api.loadbalancer.server.port=3001"
+  web:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.klorn-web.rule=Host(`klorn.example.com`)"
+      - "traefik.http.routers.klorn-web.entrypoints=websecure"
+      - "traefik.http.routers.klorn-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.klorn-web.loadbalancer.server.port=3000"
+```
+
+Traefik passes WebSocket upgrades through by default, so `/ws` needs nothing
+beyond being matched by the api router above. The api router's rule is more
+specific than web's, so Traefik prefers it — no priority needed.
+
+Traefik must share a network with the stack; add its network to both services
+in the same override.
+
+## Backup & restore
+
+Two things, and the second is the one people lose.
+
+1. **The Postgres volume** — `klorn-selfhost-pgdata`. All mail metadata,
+   classifications and learned rules.
+2. **`.env.selfhost`** — it holds `TOKEN_ENCRYPTION_KEY`. Stored OAuth tokens
+   are AES-256-GCM encrypted with it, so a database restored without the
+   original key is a database whose Google connections cannot be decrypted.
+   Not recoverable by design. Back it up separately from the dump, and not in
+   the same place.
+
+### Dump
+
+```bash
+docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml \
+  exec -T postgres pg_dump -U klorn -Fc klorn > klorn-$(date +%F).dump
+```
+
+`-Fc` is the custom format — compressed, and `pg_restore` can use it. `-T`
+matters in cron: without it Docker allocates a TTY and corrupts the stream.
+
+### Restore into a fresh stack
+
+```bash
+# 1. Put the ORIGINAL .env.selfhost back first, TOKEN_ENCRYPTION_KEY included.
+docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml up -d postgres
+
+# 2. Restore. The api entrypoint runs `prisma migrate deploy` on boot, so let
+#    the dump define the schema and start the api afterwards.
+docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml \
+  exec -T postgres pg_restore -U klorn -d klorn --clean --if-exists < klorn-2026-08-26.dump
+
+# 3. Bring the rest up.
+docker compose --env-file .env.selfhost -f docker-compose.selfhost.yml up -d
+```
+
+Restoring into a stack whose `TOKEN_ENCRYPTION_KEY` differs from the one the
+dump was taken under leaves every Google connection unusable; each account has
+to be reconnected. Nothing warns you at restore time — it surfaces later as
+sync failures.
+
+Test the restore path once before you need it.
 
 ## Real-time Gmail push (optional)
 
@@ -184,8 +399,9 @@ instead of `pull`.)
 Database migrations apply automatically on the next API boot (additive,
 checked into `packages/api/prisma/migrations/`). For the Render path, pushes
 to your fork's `main` (or a manual deploy) rebuild the service the same way.
-Back up the `klorn-selfhost-pgdata` volume before major version jumps —
-[`CHANGELOG.md`](../CHANGELOG.md) flags anything that needs attention.
+Take a dump before major version jumps — see
+[Backup & restore](#backup--restore); [`CHANGELOG.md`](../CHANGELOG.md) flags
+anything that needs attention.
 
 ## Security model
 
