@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Which LLM should classify your email? I ran six. — Klorn</title>
+<meta name="description" content="Six current models, one email-classification job, identical prompt and rule: gpt-5.4 scores 100%, the $5.00/M model places fifth, and two frontier models fail the gate. Re-runnable from the repo.">
+<meta property="og:title" content="Which LLM should classify your email? I ran six.">
+<meta property="og:description" content="Six current models, one email-classification job, identical prompt and rule: gpt-5.4 scores 100%, the $5.00/M model places fifth, and two frontier models fail the gate. Re-runnable from the repo.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://klorn.ai/blog/which-llm-is-best-for-email-classification/">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Which LLM should classify your email? I ran six.">
+<meta name="twitter:description" content="Six current models, one email-classification job, identical prompt and rule: gpt-5.4 scores 100%, the $5.00/M model places fifth, and two frontier models fail the gate. Re-runnable from the repo.">
+<meta name="twitter:image" content="https://klorn.ai/brand/og-image.png?v=k2">
+<link rel="canonical" href="https://klorn.ai/blog/which-llm-is-best-for-email-classification/">
+<link rel="preload" as="font" type="font/woff2" href="/fonts/geist-var.woff2" crossorigin>
+<link rel="stylesheet" href="/compare.css">
+<style>
+.meta { margin: 14px 0 0; font-size: 13.5px; color: var(--ink-3); }
+pre { margin: 20px 0 0; padding: 14px 16px; overflow-x: auto; background: rgba(10,14,20,.045); border-radius: 8px; font-size: 14px; line-height: 1.5; }
+pre code { background: none; padding: 0; }
+article h2 { margin-top: 40px; }
+</style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Which LLM should classify your email? I ran six.",
+  "datePublished": "2026-08-26",
+  "dateModified": "2026-08-26",
+  "author": {"@type": "Person", "name": "Yongrean Kim", "url": "https://github.com/k08200"},
+  "publisher": {"@type": "Organization", "name": "Klorn", "url": "https://klorn.ai"},
+  "mainEntityOfPage": "https://klorn.ai/blog/which-llm-is-best-for-email-classification/"
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="home" href="/">Klorn</a>
+    <span class="lang"><a href="/blog/" aria-current="true">Notes</a><a href="/security/">Security</a><a href="/pricing/">Pricing</a><a href="/self-host/">Self-host</a></span>
+  </nav>
+
+  <article>
+  <h1>Which LLM should classify your email? I ran <em>six</em>.</h1>
+  <p class="meta">2026-08-26 · one run per model · every number re-runs with <code>pnpm eval:judge</code></p>
+
+  <p class="thesis">Every AI email tool picks a model for you and never shows its work. Klorn's eval set is committed to the repo and gated in CI, so instead of an opinion, here is a measurement: six current models, one classification job, identical prompt, identical decision rule.</p>
+
+  <p>The job is narrow on purpose. The model does <strong>not</strong> pick the folder or the priority. It scores four features per email — confidence, sender trust, reversibility, urgency — and a deterministic ~200-line rule maps those numbers to exactly one of five lanes. That split is what makes this benchmark possible at all: the model's task is small enough to measure.</p>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Model</th><th>Overall</th><th>Urgent recall</th><th>Silenced precision</th><th>$/M input</th><th>Gate</th></tr></thead>
+    <tbody>
+      <tr><th>gpt-5.4</th><td class="us"><strong>100.0%</strong> (56/56)</td><td>13/13</td><td>100%</td><td>$2.50</td><td>pass</td></tr>
+      <tr><th>gemini-3.5-flash</th><td>98.2%</td><td>13/13</td><td>100%</td><td>$1.50</td><td>pass</td></tr>
+      <tr><th>gemini-2.5-flash <em>(default pin)</em></th><td>96.4%</td><td>13/13</td><td>92.3%</td><td><strong>$0.30</strong></td><td>pass</td></tr>
+      <tr><th>grok-4.3</th><td>94.6%</td><td>12/13</td><td>100%</td><td>$1.25</td><td>pass</td></tr>
+      <tr><th>claude-opus-4.8</th><td>91.1%</td><td>10/13</td><td>100%</td><td>$5.00</td><td><strong>fail</strong></td></tr>
+      <tr><th>claude-sonnet-5</th><td>80.4%</td><td><strong>5/13</strong></td><td>100%</td><td>$2.00</td><td><strong>fail</strong></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="meta">Committed 56-email gate set, 2026-08-26, temperature-0, <code>--context=fixture</code>, <code>JUDGE_INCLUDE_BODY=true</code> — the same environment CI runs. Gate floors: overall ≥80%, urgent recall ≥90%, silenced precision ≥90%.</p>
+
+  <p>Three things in this table matter more than the ranking.</p>
+
+  <h2>1. Price does not order the table</h2>
+  <p>The $5.00/M model places fifth. The spread <em>among</em> frontier models — 19.6 points — is more than five times the gap between the best of them and a pin that costs eight times less. If you chose your model because it tops a general benchmark, you chose on a number that has nothing to do with this job.</p>
+
+  <h2>2. The interesting failure has a mechanism</h2>
+  <p>claude-sonnet-5 missed eight urgent emails. Seven of the eight failed on <em>confidence</em>, not urgency: it scored urgency 0.80–1.00 — correct — and then reported confidence 0.55–0.60, under the 0.70 bar the rule requires before interrupting you. It read the mail right and declined to say it was sure.</p>
+  <p>I can tell you that because the threshold is a number in a file. In a &ldquo;model picks the label&rdquo; design, the same result reads as &ldquo;this model is worse at email,&rdquo; which is both wrong and unfixable.</p>
+
+  <h2>3. The floor held for every model</h2>
+  <p>Across a 20-point accuracy spread, including two models that failed the gate outright, the number of urgent emails classified as hide-forever was <strong>zero</strong> — every miss degraded to the visible queue. That invariant is a unit test, not a hope. It is also the only line in this post that will still be true when the next model generation ships.</p>
+
+  <div class="note">
+    <p><strong>Which is the point.</strong> Two months ago this same set said a cheap model beat the frontier, and I repeated that claim in public. This run falsified it, so the claim is retired. The benchmark's job is not to crown a model — it is to make the choice re-runnable in one command when the ground shifts again:</p>
+  </div>
+
+  <pre><code>JUDGE_MODEL=&lt;any-openrouter-id&gt; pnpm eval:judge</code></pre>
+
+  <p>The eval set, the rule, the floors and the receipts pipeline are AGPL-3.0: <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">github.com/k08200/klorn</a>. Or skip the setup and point Klorn at your own inbox:</p>
+
+  <a class="cta" href="https://app.klorn.ai/login?mode=register">Try Klorn free</a>
+  </article>
+
+  <footer>
+    <p>Klorn is <a href="https://github.com/k08200/klorn" rel="noreferrer noopener">AGPL-3.0</a> — every claim in
+      this post is checkable against the source. More notes at <a href="/blog/">/blog</a>.</p>
+  </footer>
+</div>
+<script>
+// Same block as every other page: carry the campaign through to the app so a
+// signup can be credited to the page that earned it.
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    var q = [];
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content"].forEach(function (k) {
+      var v = p.get(k);
+      if (v) q.push(k + "=" + encodeURIComponent(v.slice(0, 60)));
+    });
+    if (document.referrer) {
+      try {
+        var h = new URL(document.referrer).hostname;
+        if (h && h !== location.hostname) q.push("ref=" + encodeURIComponent(h));
+      } catch (e) {}
+    }
+    q.push("lp=" + encodeURIComponent(location.pathname.slice(0, 60)));
+    var qs = q.join("&");
+    document.querySelectorAll('a[href^="https://app.klorn.ai/"]').forEach(function (a) {
+      a.href += (a.href.indexOf("?") === -1 ? "?" : "&") + qs;
+    });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
