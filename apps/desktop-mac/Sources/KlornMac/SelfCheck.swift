@@ -614,6 +614,52 @@ func runSelfChecks() async -> Bool {
           mailTimeLabel(iso: "nope", now: mailNow, calendar: utc, locale: en) == ""
           && mailTimeLabel(iso: nil, now: mailNow, calendar: utc, locale: en) == "")
 
+    // Row signals (mail-first shell 2026-08-26): the wire union decodes into
+    // chips, unknown kinds decode to nil (a newer server must never blank an
+    // older client), and the chronological inbox sorts newest-first with
+    // receivedAt beating surfacedAt.
+    print("Row signals + chronological inbox:")
+    func ctx(_ json: String) -> EmailContext? {
+        try? JSONDecoder().decode(EmailContext.self, from: Data(json.utf8))
+    }
+    check("signal — replied decodes",
+          ctx(#"{"emailDbId":"x","signal":{"kind":"replied","count":6}}"#)?.signal
+          == .replied(6))
+    check("signal — category decodes",
+          ctx(#"{"emailDbId":"x","signal":{"kind":"category","category":"promotions"}}"#)?
+              .signal == .category("promotions"))
+    check("signal — first decodes",
+          ctx(#"{"emailDbId":"x","signal":{"kind":"first"}}"#)?.signal == .first)
+    check("signal — unknown kind degrades to nil, row still decodes",
+          {
+              let c = ctx(#"{"emailDbId":"x","signal":{"kind":"astral"}}"#)
+              return c != nil && c?.signal == nil
+          }())
+    check("signal — absent stays nil",
+          ctx(#"{"emailDbId":"x"}"#)?.signal == nil)
+
+    let chronoJSON = #"""
+    {"tiers":{"PUSH":[
+       {"id":"old","source":"email","sourceId":"e1","type":"email","title":"old",
+        "tier":"PUSH","tierReason":null,"priority":5,"surfacedAt":"2026-08-20T00:00:00Z",
+        "email":{"emailDbId":"d1","subject":null,"from":null,"snippet":null,
+                 "receivedAt":"2026-08-20T09:00:00Z"}}],
+      "SILENT":[
+       {"id":"new","source":"email","sourceId":"e2","type":"email","title":"new",
+        "tier":"SILENT","tierReason":null,"priority":1,
+        "surfacedAt":"2026-08-26T00:00:00Z"}]},
+     "summary":{"PUSH":1,"QUEUE":0,"SILENT":1,"AUTO":0,"total":2}}
+    """#
+    if let chrono = try? JSONDecoder().decode(FirewallResponse.self, from: Data(chronoJSON.utf8)) {
+        // The SILENT row is NEWER (surfacedAt fallback) than the PUSH row's
+        // receivedAt — chronology must beat lane loudness in the inbox.
+        check("inbox — newest first across lanes, receivedAt/surfacedAt mixed",
+              chrono.itemsByTime.map(\.id) == ["new", "old"])
+    } else {
+        check("inbox — chrono fixture decodes", false)
+    }
+
+
     print("Upcoming agenda:")
     // 7-day grouping for the UPCOMING section: today excluded (the TODAY rows
     // own it), window ends 7 days after tomorrow's start, malformed ISO drops

@@ -23,6 +23,7 @@
 import type { FirewallItem, FirewallResponse } from "@klorn/contract";
 import type { FastifyInstance } from "fastify";
 import { getUserId, requireAuth } from "../auth.js";
+import { gmailCategoryOf, rowSignalFor } from "../judge/row-signals.js";
 import { requireAppAccess } from "../billing/entitlement-guard.js";
 import { prisma } from "../db.js";
 import { dismissAttentionItem } from "../judge/attention-dismiss.js";
@@ -498,6 +499,25 @@ export async function firewallRoutes(app: FastifyInstance) {
       const trustMap = senderAddrs.size
         ? await getTrustScoresBulk(userId, [...senderAddrs])
         : new Map();
+      // Reply-history counts for the same sender set (row chips: "replied N
+      // times" / "first contact"). One round-trip; contactEmail is stored
+      // lowercased by recordContactEngagement. FAIL-OPEN like the engagement
+      // writes themselves: chips are observability, not control flow — a
+      // lookup failure must render as "no chip", never 500 the inbox. A null
+      // map also nulls repliedCount below, and rowSignalFor treats a missing
+      // fact as no claim.
+      let repliedMap: Map<string, number> | null = null;
+      if (senderAddrs.size) {
+        try {
+          const engagementRows = await prisma.contactEngagementScore.findMany({
+            where: { userId, contactEmail: { in: [...senderAddrs] } },
+            select: { contactEmail: true, outboundCount: true },
+          });
+          repliedMap = new Map(engagementRows.map((r) => [r.contactEmail, r.outboundCount]));
+        } catch (err) {
+          captureError(err, { tags: { scope: "firewall.rowSignals" } });
+        }
+      }
 
       const tiers: Record<Tier, FirewallItem[]> = {
         SILENT: [],
@@ -577,6 +597,10 @@ export async function firewallRoutes(app: FastifyInstance) {
                   from: email.from ?? null,
                   snippet: email.snippet ?? null,
                   receivedAt: email.receivedAt?.toISOString() ?? null,
+                  signal: rowSignalFor({
+                    category: null,
+                    repliedCount: addr && repliedMap ? (repliedMap.get(addr) ?? 0) : null,
+                  }),
                   trust: trust
                     ? {
                         badge: trust.badge,
@@ -643,6 +667,10 @@ export async function firewallRoutes(app: FastifyInstance) {
               from: email.from ?? null,
               snippet: email.snippet ?? null,
               receivedAt: email.receivedAt?.toISOString() ?? null,
+              signal: rowSignalFor({
+                category: gmailCategoryOf(email.labels),
+                repliedCount: addr && repliedMap ? (repliedMap.get(addr) ?? 0) : null,
+              }),
               trust: trust
                 ? {
                     badge: trust.badge,

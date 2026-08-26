@@ -74,6 +74,8 @@ vi.mock("../db.js", () => ({
       // The heal re-fetches the FULL row (body included) before re-judging.
       findFirst: vi.fn(async () => ({ ...emailRow, body: null, receivedAt: new Date() })),
     },
+    // Row-signal chips batch reply history per page; empty = no chips.
+    contactEngagementScore: { findMany: vi.fn(async () => []) },
   },
 }));
 
