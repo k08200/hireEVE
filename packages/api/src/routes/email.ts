@@ -65,8 +65,8 @@ import { registerEmailAttachmentsRoutes } from "./email-attachments.js";
 import { registerEmailBulkRoutes } from "./email-bulk.js";
 import { registerEmailCandidatesRoutes } from "./email-candidates.js";
 import { registerEmailFeedbackRoutes } from "./email-feedback.js";
-import { registerEmailMutationsRoutes } from "./email-mutations.js";
 import { registerEmailMailboxRoutes } from "./email-mailbox.js";
+import { registerEmailMutationsRoutes } from "./email-mutations.js";
 import { registerEmailRepliesRoutes } from "./email-replies.js";
 import { registerEmailRulesRoutes } from "./email-rules.js";
 
