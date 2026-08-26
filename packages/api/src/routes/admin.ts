@@ -578,6 +578,36 @@ export async function adminRoutes(app: FastifyInstance) {
     return reply.code(201).send({ entry, created: true });
   });
 
+  // DELETE /api/admin/waitlist/:id — remove a row for good.
+  //
+  // The list accumulates junk: smoke tests, mistyped addresses, and probes from
+  // back when POST /api/waitlist was public and unauthenticated. Until now the
+  // only cleanup was Reject, which leaves the row in the list forever, so the
+  // PENDING count stopped meaning "people waiting".
+  //
+  // An APPROVED row is refused. While BETA_GATE_ENABLED is on, that row IS the
+  // user's access (auth.ts:411, auth.ts:1295, social-login.ts:142 all look up
+  // status === "APPROVED"), so deleting one silently locks a real person out of
+  // their own account. Reject it first if that is genuinely what you mean —
+  // then the refusal no longer applies and the intent is on the record.
+  app.delete("/waitlist/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const entry = await db.waitlist.findUnique({
+      where: { id },
+      select: { id: true, email: true, status: true },
+    });
+    if (!entry) {
+      return reply.code(404).send({ error: "Waitlist entry not found" });
+    }
+    if (entry.status === "APPROVED") {
+      return reply.code(409).send({
+        error: "Reject this entry before deleting it — an APPROVED row is a live user's access.",
+      });
+    }
+    await db.waitlist.delete({ where: { id } });
+    return { ok: true, deleted: entry.email };
+  });
+
   // PATCH /api/admin/waitlist/:id — mark approved or rejected. On the
   // PENDING/REJECTED → APPROVED transition, fire-and-forget an invite email so
   // the applicant knows they can sign up. Idempotent: re-PATCHing an already-
