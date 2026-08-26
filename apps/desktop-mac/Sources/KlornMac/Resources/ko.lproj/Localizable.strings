@@ -512,3 +512,8 @@
 "cal.more" = "+%d개";
 "cal.cell.a11y" = "%@, 일정 %d건";
 "cal.scope.a11y" = "캘린더 보기";
+
+// Label categories — 카테고리 follows the labeling (2026-08-27).
+"label.personal" = "개인";
+"section.lanes" = "레인";
+"label.empty" = "%@ 메일이 지금은 없습니다";
