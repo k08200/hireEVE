@@ -107,8 +107,9 @@ function pendingActionCost(pa: PendingActionLike): string {
   return "If the decision stays pending, the related workstream may stall.";
 }
 
-// ─── 4-Tier Escalation ─────────────────────────────────────────────────────
-// Maps item characteristics to the canonical SILENT | QUEUE | PUSH | AUTO.
+// ─── Lane Escalation ───────────────────────────────────────────────────────
+// Maps item characteristics to a canonical lane. Which lanes are reachable
+// depends on TIER_V2_ENABLED (default-ON since 2026-08-18) — see judge/tiers.ts.
 // SILENT: not worth surfacing (noise reduction)
 // QUEUE:  added to inbox for async review
 // PUSH:   warrants an active push notification — this is the top of the

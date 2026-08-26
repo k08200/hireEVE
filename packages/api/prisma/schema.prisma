@@ -472,7 +472,7 @@ model AutomationConfig {
   briefingTime           String   @default("06:00")
   timezone               String   @default("Asia/Seoul")
   downloadAutoOrganize   Boolean  @default(false)
-  // OFF by default: a new install is a pure 4-tier firewall (classify-only),
+  // OFF by default: a new install is a pure classifying firewall (lanes only),
   // matching the README doctrine ("not a suggestion engine"). The proactive
   // agent loop is opt-in. Existing rows keep their value — this only changes
   // the default for newly-created configs.

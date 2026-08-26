@@ -1,6 +1,6 @@
 name: Judge Eval
 
-# LLM accuracy gate for the 4-tier judge. Runs the committed synthetic
+# LLM accuracy gate for the judge. Runs the committed synthetic
 # 50-email set (packages/api/eval/judge-eval-set.json) through the
 # LLM pipeline and fails when any gate is below its floor (poc-accuracy
 # exits 2): overall ≥80%, PUSH recall ≥90%, SILENT precision ≥90%
