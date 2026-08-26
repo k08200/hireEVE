@@ -2069,6 +2069,21 @@ export default function SettingsPage() {
             </p>
             <p className="text-sm text-ink-dim mt-1">{t("settings.about.desc")}</p>
             <p className="text-xs text-ink-mid mt-3">{t("settings.about.version")}</p>
+            {/* The support address lived only inside the privacy, terms and
+                refund pages — all three on a noindex subdomain a signed-in user
+                has no reason to open. A paying account needs a way to reach a
+                human from the app itself. k0820086@gmail.com is the pinned
+                contact: klorn.ai has no MX record, so a @klorn.ai address would
+                bounce. */}
+            <p className="text-xs text-ink-mid mt-2">
+              {t("settings.about.support")}{" "}
+              <a
+                href="mailto:k0820086@gmail.com"
+                className="text-accent-deep underline underline-offset-2 hover:text-accent"
+              >
+                k0820086@gmail.com
+              </a>
+            </p>
           </div>
         </section>
       </div>

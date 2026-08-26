@@ -282,6 +282,7 @@
 "menu.quit" = "Salir de Klorn";
 "menu.restart" = "Reiniciar Klorn";
 "menu.diagnostics" = "Estado de la conexión…";
+"menu.contactSupport" = "Escribir a soporte…";
 "diagnostics.checking" = "Comprobando…";
 "menu.checkUpdates" = "Buscar actualizaciones…";
 "update.upToDate" = "Klorn está al día.";

@@ -392,6 +392,7 @@ const ko: Record<string, string> = {
   "settings.about.tagline": "Decision OS",
   "settings.about.desc": "흩어진 탭을 줄이고 다음 결정을 더 명확하게 만들기 위해 만들었습니다.",
   "settings.about.version": "v0.2.0 — MVP",
+  "settings.about.support": "문의하거나 문제가 있나요?",
   // Onboarding
   "onboarding.welcome.titleLine1": "Klorn은 행동이 필요한",
   "onboarding.welcome.titleLine2": "결정만 보여줍니다.",

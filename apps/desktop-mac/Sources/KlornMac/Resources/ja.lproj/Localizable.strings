@@ -282,6 +282,7 @@
 "menu.quit" = "Klornを終了";
 "menu.restart" = "Klornを再起動";
 "menu.diagnostics" = "接続状態…";
+"menu.contactSupport" = "サポートにメールする…";
 "diagnostics.checking" = "確認中…";
 "menu.checkUpdates" = "アップデートを確認…";
 "update.upToDate" = "Klornは最新です。";
