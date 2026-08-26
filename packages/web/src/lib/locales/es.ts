@@ -404,6 +404,7 @@ const es: Record<string, string> = {
   "settings.about.desc":
     "Hecho para reducir pestañas dispersas y dejar más clara la siguiente decisión.",
   "settings.about.version": "v0.2.0 — MVP",
+  "settings.about.support": "¿Alguna pregunta o algo no funciona?",
   "onboarding.welcome.titleLine1": "Klorn saca a la superficie solo",
   "onboarding.welcome.titleLine2": "las decisiones que merecen acción.",
   "onboarding.welcome.desc":

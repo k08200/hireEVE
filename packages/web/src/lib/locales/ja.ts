@@ -395,6 +395,7 @@ const ja: Record<string, string> = {
   "settings.about.tagline": "Decision OS",
   "settings.about.desc": "散らばったタブを減らし、次の判断を明確にするために作られました。",
   "settings.about.version": "v0.2.0 — MVP",
+  "settings.about.support": "ご質問や不具合のご報告はこちらへ",
   "onboarding.welcome.titleLine1": "Klornが差し出すのは",
   "onboarding.welcome.titleLine2": "動く価値のある判断だけ。",
   "onboarding.welcome.desc":

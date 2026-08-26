@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
+import { TIER_COUNT } from "@/lib/tiers";
 import { apiFetch, startLinkInbox } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { queryKeys } from "../lib/query-keys";
@@ -114,7 +115,8 @@ export function LinkedInboxesSection() {
       <h2 className="text-base font-semibold text-ink">Connected inboxes</h2>
       <p className="mt-1 text-xs text-ink-mid">
         An inbox is one connected mail account. Add a second Google account (e.g. work) so Klorn
-        runs the same 4-tier firewall across all your mail, not just your primary account.
+        runs the same {TIER_COUNT}-lane firewall across all your mail, not just your primary
+        account.
       </p>
 
       {accounts.length > 0 && (

@@ -163,9 +163,10 @@ export async function firewallRoutes(app: FastifyInstance) {
   // engine. Two modes:
   //   - relationships (default): you + your ranked contacts (interaction-graph),
   //     clustered by company domain.
-  //   - decisions: the classifier "brain" — the 4 features gating the 4 tiers
-  //     (the tierFromFeatures rule), with your override signal (decision-metrics)
-  //     overlaid on each tier. Always populated (it's the policy structure), so
+  //   - decisions: the classifier "brain" — the 4 scored features gating the
+  //     lanes (the tierFromFeatures rule), with your override signal
+  //     (decision-metrics) overlaid on each lane. Always populated (it's the
+  //     policy structure), so
   //     it renders even on a thin account.
   app.get("/graph", { schema: { querystring: firewallGraphQuerySchema } }, async (request) => {
     const userId = getUserId(request);

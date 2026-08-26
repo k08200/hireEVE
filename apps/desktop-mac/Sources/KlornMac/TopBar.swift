@@ -1222,6 +1222,10 @@ private struct AccountColumn: View {
                     SubtleTextButton(title: L("menu.diagnostics")) {
                         Task { await model.runDiagnostics() }
                     }
+                    // Sits with diagnostics on purpose: someone who just ran a
+                    // diagnostic and is still stuck needs the next step in the
+                    // same place, not on a legal page they have no reason to open.
+                    SubtleTextButton(title: L("menu.contactSupport")) { openSupportMail() }
                     DiagnosticsBlock()
                 }
                 if let error = model.linkAccountError {
@@ -2155,6 +2159,7 @@ private struct FullSidebar: View {
                     sidebarAction(L("menu.diagnostics"), dim: true) {
                         Task { await model.runDiagnostics() }
                     }
+                    sidebarAction(L("menu.contactSupport"), dim: true) { openSupportMail() }
                     DiagnosticsBlock().padding(.horizontal, 20)
                 }
                 if let error = model.linkAccountError {
@@ -2214,6 +2219,22 @@ private struct FullSidebar: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }.buttonStyle(.plain)
     }
+}
+
+/// Open the user's mail client on the pinned support address.
+///
+/// k0820086@gmail.com, not anything @klorn.ai: the domain has no MX record, so
+/// a klorn.ai address would bounce silently. The subject carries the app
+/// version so a report arrives with the one fact every triage starts from.
+@MainActor
+func openSupportMail() {
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+    var components = URLComponents()
+    components.scheme = "mailto"
+    components.path = "k0820086@gmail.com"
+    components.queryItems = [URLQueryItem(name: "subject", value: "Klorn for Mac \(version)")]
+    guard let url = components.url else { return }
+    NSWorkspace.shared.open(url)
 }
 
 private struct FullList: View {

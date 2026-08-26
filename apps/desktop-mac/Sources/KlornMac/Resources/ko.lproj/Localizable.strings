@@ -1,6 +1,7 @@
 /* Klorn macOS — 한국어.
    en.lproj/Localizable.strings와 키가 1:1로 같아야 한다 (--self-check가 검사).
-   PUSH / QUEUE / SILENT / AUTO 4-tier 이름은 제품 용어라 번역하지 않는다. */
+   PUSH / MEETING / QUEUE / INFO / SILENT 레인 이름은 제품 용어라 번역하지 않는다.
+   폐기된 AUTO도 레거시 행 표시용으로 남아 있으므로 마찬가지로 번역하지 않는다. */
 
 /* Bar */
 "bar.expand" = "펼치기";
@@ -281,6 +282,7 @@
 "menu.quit" = "Klorn 종료";
 "menu.restart" = "Klorn 재시작";
 "menu.diagnostics" = "연결 상태 확인…";
+"menu.contactSupport" = "지원팀에 메일 보내기…";
 "diagnostics.checking" = "확인 중…";
 "menu.checkUpdates" = "업데이트 확인…";
 "update.upToDate" = "최신 버전입니다.";

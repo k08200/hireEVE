@@ -18,7 +18,11 @@ app (the classification engine in `@klorn/api` stays the moat, served to every s
   glanceable. No Dock icon, no system-menu-bar item (it's an `.accessory` app).
 - **Expanded** — click `☰` (or press `⌥⌘K`) and the pill morphs down into a
   3-column panel:
-  - **INBOX** — the four tier counts (PUSH / QUEUE / SILENT / AUTO), click to open the web inbox.
+  - **INBOX** — the lane counts, click to open the web inbox. The five live
+    lanes (PUSH / MEETING / QUEUE / INFO / SILENT) always draw, zero-count
+    included — the sidebar *is* the classification scheme, so an empty MEETING
+    row is information. Retired `AUTO` joins them only while old rows remain
+    (`Tier.visibleOrder(counts:)` in `Models.swift`).
   - **RECENT PUSH** — the items that need you, each with **Open · Snooze · Dismiss**.
   - **ACCOUNT** — open web inbox, sign out, quit.
 - Click `— Close` (or `⌥⌘K` again) to collapse back to the pill.

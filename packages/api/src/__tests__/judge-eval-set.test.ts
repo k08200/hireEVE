@@ -1,5 +1,7 @@
 /**
- * Eval-set regression gate for the 4-tier judge.
+ * Eval-set regression gate for the judge. The SET is v1-labelled (labelV2 was
+ * added alongside in #1134 and is only consulted when TIER_V2_ENABLED is set);
+ * the judge itself is not four-lane.
  *
  * Runs the committed synthetic 50-email set (eval/judge-eval-set.json)
  * through the NO-LLM pipeline (fast-path + keyword fallback) and enforces:

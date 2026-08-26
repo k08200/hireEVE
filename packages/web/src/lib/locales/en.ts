@@ -397,6 +397,7 @@ const en: Record<string, string> = {
   "settings.about.tagline": "Decision OS",
   "settings.about.desc": "Built to reduce scattered tabs and make the next decision clearer.",
   "settings.about.version": "v0.2.0 — MVP",
+  "settings.about.support": "Questions, or something broken?",
   // Onboarding
   "onboarding.welcome.titleLine1": "Klorn surfaces only the",
   "onboarding.welcome.titleLine2": "decisions worth acting on.",

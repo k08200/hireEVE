@@ -107,8 +107,9 @@ function pendingActionCost(pa: PendingActionLike): string {
   return "If the decision stays pending, the related workstream may stall.";
 }
 
-// ─── 4-Tier Escalation ─────────────────────────────────────────────────────
-// Maps item characteristics to the canonical SILENT | QUEUE | PUSH | AUTO.
+// ─── Lane Escalation ───────────────────────────────────────────────────────
+// Maps item characteristics to a canonical lane. Which lanes are reachable
+// depends on TIER_V2_ENABLED (default-ON since 2026-08-18) — see judge/tiers.ts.
 // SILENT: not worth surfacing (noise reduction)
 // QUEUE:  added to inbox for async review
 // PUSH:   warrants an active push notification — this is the top of the
@@ -807,8 +808,8 @@ export async function deleteAttentionForCommitments(
 //
 // Every email the poc-judge classifies gets mirrored to an AttentionItem
 // keyed on (source=EMAIL, sourceId=EmailMessage.id). The existing firewall
-// route already groups items by tier, so emails appear in the same SILENT/
-// QUEUE/PUSH/AUTO buckets as PendingActions, with the email's own subject
+// route already groups items by lane, so emails appear in the same lane
+// buckets as PendingActions, with the email's own subject
 // and sender shown via the EMAIL source-specific join below.
 //
 // Idempotent — re-running for the same email simply overwrites the tier

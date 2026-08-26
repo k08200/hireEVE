@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { TIER_COUNT } from "@/lib/tiers";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { captureClientError } from "../lib/sentry";
@@ -133,7 +134,7 @@ export function ICloudImapSection() {
           <h2 className="text-base font-semibold text-ink">iCloud Mail</h2>
           <p className="mt-1 text-xs text-ink-mid">
             Connect an iCloud mailbox via IMAP. Klorn classifies every incoming message into the
-            same 4-tier firewall as Gmail.
+            same {TIER_COUNT}-lane firewall as Gmail.
           </p>
         </div>
         {status?.connected && <StatusChip status="connected" />}
