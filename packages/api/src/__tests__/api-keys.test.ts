@@ -72,3 +72,34 @@ describe("authenticateApiKey", () => {
     expect(await authenticateApiKey(`Bearer ${mintApiKey().token}`)).toBeNull();
   });
 });
+
+describe("lastUsedAt throttle", () => {
+  it("skips the bump when lastUsedAt is fresh (per-request write amplification)", async () => {
+    const minted = mintApiKey();
+    keyFindUnique.mockResolvedValue({
+      id: "k1",
+      userId: "u1",
+      revokedAt: null,
+      lastUsedAt: new Date(),
+    });
+    expect(await authenticateApiKey(`Bearer ${minted.token}`)).toEqual({
+      userId: "u1",
+      keyId: "k1",
+    });
+    expect(keyUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("lastUsedAt throttle — stale branch", () => {
+  it("bumps when lastUsedAt is older than the throttle window", async () => {
+    const minted = mintApiKey();
+    keyFindUnique.mockResolvedValue({
+      id: "k1",
+      userId: "u1",
+      revokedAt: null,
+      lastUsedAt: new Date(Date.now() - 6 * 60_000),
+    });
+    await authenticateApiKey(`Bearer ${minted.token}`);
+    await vi.waitFor(() => expect(keyUpdate).toHaveBeenCalledTimes(1));
+  });
+});

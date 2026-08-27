@@ -15,6 +15,8 @@ const KEY_PREFIX = "klorn_sk_";
 const DISPLAY_PREFIX_CHARS = 15;
 /** Active (unrevoked) keys per user — a bound, not a product tier. */
 export const MAX_ACTIVE_KEYS = 5;
+/** lastUsedAt bump throttle — see authenticateApiKey. */
+const LAST_USED_BUMP_MS = 5 * 60_000;
 
 export function hashApiKey(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -39,13 +41,23 @@ export async function authenticateApiKey(
   if (!token.startsWith(KEY_PREFIX)) return null;
   const key = (await prisma.apiKey.findUnique({
     where: { keyHash: hashApiKey(token) },
-    select: { id: true, userId: true, revokedAt: true },
-  })) as { id: string; userId: string; revokedAt: Date | null } | null;
+    select: { id: true, userId: true, revokedAt: true, lastUsedAt: true },
+  })) as {
+    id: string;
+    userId: string;
+    revokedAt: Date | null;
+    lastUsedAt: Date | null;
+  } | null;
   if (!key || key.revokedAt) return null;
-  void prisma.apiKey
-    .update({ where: { id: key.id }, data: { lastUsedAt: new Date() } })
-    .catch((err: unknown) =>
-      captureError(err, { tags: { scope: "api-key.last-used" }, extra: { keyId: key.id } }),
-    );
+  // lastUsedAt is display metadata at minute granularity — throttled so an
+  // MCP client polling every few seconds doesn't turn auth into one DB
+  // write per request.
+  if (!key.lastUsedAt || Date.now() - key.lastUsedAt.getTime() > LAST_USED_BUMP_MS) {
+    void prisma.apiKey
+      .update({ where: { id: key.id }, data: { lastUsedAt: new Date() } })
+      .catch((err: unknown) =>
+        captureError(err, { tags: { scope: "api-key.last-used" }, extra: { keyId: key.id } }),
+      );
+  }
   return { userId: key.userId, keyId: key.id };
 }
