@@ -1167,13 +1167,20 @@ func mailTimeLabel(
 /// cost nothing to learn. The lanes — the attention axis — stay one click
 /// away behind the 레인 disclosure and on every row as a chip.
 enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
-    /// No Gmail category label — Gmail's own definition of Primary.
+    /// No category claim at all — mail from people, unclassified.
     case personal
+    // The judge's verdicts (2026-08-27, founder: "더 디테일하고 정확하게") —
+    // who the sender IS, read from the mail itself by the classifier.
+    case company = "internal"
+    case customer
+    case investor
+    case system
+    // Gmail's tabs.
     case promotions
     case social
     case updates
     case forums
-    /// A sender the user has never replied to (and no category label).
+    /// A sender the user has never replied to (and no category claim).
     case firstContact
 
     var id: String { rawValue }
@@ -1181,6 +1188,10 @@ enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
     var label: String {
         switch self {
         case .personal: L("label.personal")
+        case .company: L("chip.internal")
+        case .customer: L("chip.customer")
+        case .investor: L("chip.investor")
+        case .system: L("chip.system")
         case .promotions: L("chip.promotions")
         case .social: L("chip.social")
         case .updates: L("chip.updates")
@@ -1192,6 +1203,10 @@ enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
     var icon: String {
         switch self {
         case .personal: "person"
+        case .company: "building.2"
+        case .customer: "person.crop.circle.badge.checkmark"
+        case .investor: "chart.line.uptrend.xyaxis"
+        case .system: "gearshape"
         case .promotions: "tag"
         case .social: "person.2"
         case .updates: "bell"
@@ -1207,13 +1222,12 @@ enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
     func matches(_ signal: RowSignal?) -> Bool {
         switch self {
         case .personal:
-            // Anything Gmail did not stamp with a category label.
+            // Anything without a category claim (judge or Gmail).
             if case .category = signal { return false }
             return true
-        case .promotions: return signal == .category("promotions")
-        case .social: return signal == .category("social")
-        case .updates: return signal == .category("updates")
-        case .forums: return signal == .category("forums")
+        case .company, .customer, .investor, .system,
+             .promotions, .social, .updates, .forums:
+            return signal == .category(rawValue)
         case .firstContact: return signal == .first
         }
     }

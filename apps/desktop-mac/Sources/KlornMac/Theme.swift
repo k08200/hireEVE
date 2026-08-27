@@ -109,6 +109,12 @@ enum Theme {
         switch filter {
         // "No category label" is the honest meaning — it stays neutral.
         case .personal: textDim
+        // The judge's verdicts. Indigo/rose/gold/slate — each far enough
+        // from the Gmail-tab hues below that the two families stay distinct.
+        case .company: dyn(light: (0.28, 0.32, 0.80, 1), dark: (0.64, 0.68, 1.0, 1))
+        case .customer: dyn(light: (0.68, 0.14, 0.34, 1), dark: (1.0, 0.58, 0.68, 1))
+        case .investor: dyn(light: (0.56, 0.42, 0.0, 1), dark: (0.90, 0.74, 0.30, 1))
+        case .system: dyn(light: (0.32, 0.38, 0.52, 1), dark: (0.66, 0.72, 0.84, 1))
         case .promotions: dyn(light: (0.03, 0.42, 0.20, 1), dark: (0.38, 0.80, 0.50, 1))
         case .social: dyn(light: (0.12, 0.34, 0.78, 1), dark: (0.52, 0.70, 1.0, 1))
         case .updates: dyn(light: (0.55, 0.38, 0.0, 1), dark: (0.95, 0.76, 0.28, 1))
@@ -124,13 +130,10 @@ enum Theme {
     static func signalTint(_ signal: RowSignal) -> Color {
         switch signal {
         case .category(let name):
-            switch name {
-            case "promotions": labelTint(.promotions)
-            case "social": labelTint(.social)
-            case "updates": labelTint(.updates)
-            case "forums": labelTint(.forums)
-            default: textDim
-            }
+            // One lookup for both families — LabelFilter's raw values ARE the
+            // wire's category strings, so a new category needs one enum case
+            // and its tint, nowhere else.
+            LabelFilter(rawValue: name).map { labelTint($0) } ?? textDim
         case .replied:
             dyn(light: (0.60, 0.14, 0.40, 1), dark: (0.96, 0.56, 0.76, 1))
         case .first:

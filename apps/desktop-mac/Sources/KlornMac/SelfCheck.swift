@@ -670,10 +670,17 @@ func runSelfChecks() async -> Bool {
           LabelFilter.firstContact.matches(.first)
           && !LabelFilter.firstContact.matches(.replied(1))
           && !LabelFilter.firstContact.matches(nil))
-    check("label — every category chip has a filter (promotions/social/updates/forums)",
-          ["promotions", "social", "updates", "forums"].allSatisfy { name in
+    check("label — every category chip has a filter (gmail + judge families)",
+          ["promotions", "social", "updates", "forums",
+           "internal", "customer", "investor", "system"].allSatisfy { name in
               LabelFilter.allCases.contains { $0.matches(.category(name)) }
           })
+    check("label — 회사 is the judge's internal verdict, and only that",
+          LabelFilter.company.matches(.category("internal"))
+          && !LabelFilter.company.matches(.category("social"))
+          && !LabelFilter.company.matches(.replied(9)))
+    check("label — a judge category is NOT 개인 (the claim excludes it)",
+          !LabelFilter.personal.matches(.category("system")))
 
     print("Row signals + chronological inbox:")
     func ctx(_ json: String) -> EmailContext? {

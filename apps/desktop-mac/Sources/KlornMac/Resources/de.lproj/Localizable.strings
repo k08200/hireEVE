@@ -517,3 +517,11 @@
 "label.personal" = "Persönlich";
 "section.lanes" = "SPUREN";
 "label.empty" = "Gerade keine %@-Mails";
+
+// Judge categories on rows + appearance toggle (2026-08-27).
+"chip.internal" = "Team";
+"chip.customer" = "Kunde";
+"chip.investor" = "Investor";
+"chip.system" = "System";
+"appearance.toLight" = "Zum hellen Modus wechseln";
+"appearance.toDark" = "Zum dunklen Modus wechseln";

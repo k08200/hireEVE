@@ -517,3 +517,11 @@
 "label.personal" = "개인";
 "section.lanes" = "레인";
 "label.empty" = "%@ 메일이 지금은 없습니다";
+
+// Judge categories on rows + appearance toggle (2026-08-27).
+"chip.internal" = "회사";
+"chip.customer" = "고객";
+"chip.investor" = "투자자";
+"chip.system" = "시스템";
+"appearance.toLight" = "라이트 모드로 전환";
+"appearance.toDark" = "다크 모드로 전환";

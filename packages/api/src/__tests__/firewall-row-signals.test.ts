@@ -9,7 +9,28 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { gmailCategoryOf, rowSignalFor } from "../judge/row-signals.js";
+import { gmailCategoryOf, judgeSignalOf, rowSignalFor } from "../judge/row-signals.js";
+
+describe("judgeSignalOf", () => {
+  it("surfaces the classifier's relationship/function categories", () => {
+    expect(judgeSignalOf("internal")).toBe("internal");
+    expect(judgeSignalOf("customer")).toBe("customer");
+    expect(judgeSignalOf("investor")).toBe("investor");
+    expect(judgeSignalOf("system")).toBe("system");
+  });
+
+  it("folds automated into promotions — one bulk-mail category, not two", () => {
+    expect(judgeSignalOf("automated")).toBe("promotions");
+  });
+
+  it("meeting/conversation/other claim nothing (the lane already says meeting)", () => {
+    expect(judgeSignalOf("meeting")).toBeNull();
+    expect(judgeSignalOf("conversation")).toBeNull();
+    expect(judgeSignalOf("other")).toBeNull();
+    expect(judgeSignalOf(null)).toBeNull();
+    expect(judgeSignalOf("garbage-from-old-rows")).toBeNull();
+  });
+});
 
 describe("gmailCategoryOf", () => {
   it("maps Gmail category labels, first match in fixed precedence", () => {
@@ -25,6 +46,20 @@ describe("gmailCategoryOf", () => {
 });
 
 describe("rowSignalFor", () => {
+  it("the judge's verdict outranks Gmail's tab — 회사 beats a stray label", () => {
+    expect(
+      rowSignalFor({ judgeCategory: "internal", category: "updates", repliedCount: 6 }),
+    ).toEqual({ kind: "category", category: "internal" });
+  });
+
+  it("a security notice is 시스템 even from a first-time sender", () => {
+    // The founder's screenshot: an OpenAI sign-in alert labelled 첫 연락.
+    expect(rowSignalFor({ judgeCategory: "system", category: null, repliedCount: 0 })).toEqual({
+      kind: "category",
+      category: "system",
+    });
+  });
+
   it("category outranks relationship — a newsletter is never 'first contact'", () => {
     expect(rowSignalFor({ category: "promotions", repliedCount: 0 })).toEqual({
       kind: "category",

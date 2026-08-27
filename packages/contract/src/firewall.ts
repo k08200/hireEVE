@@ -63,7 +63,19 @@ export interface FirewallEmailContext {
 }
 
 export type RowSignalWire =
-  | { kind: "category"; category: "promotions" | "social" | "updates" | "forums" }
+  | {
+      kind: "category";
+      category:
+        | "promotions"
+        | "social"
+        | "updates"
+        | "forums"
+        // The judge's verdicts — who the sender IS (email-classifier.ts).
+        | "internal"
+        | "customer"
+        | "investor"
+        | "system";
+    }
   | { kind: "replied"; count: number }
   | { kind: "first" }
   | null;
