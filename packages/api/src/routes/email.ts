@@ -55,6 +55,7 @@ import {
 } from "../mail/email-sync.js";
 import { coercePlainBody, htmlToPlainText, renderableEmailHtmlFor } from "../mail/email-text.js";
 import { getLinkedInboxClients, resolveMailClient } from "../mail/gmail.js";
+import { executeOneClickUnsubscribe, parseMailtoTarget } from "../mail/list-unsubscribe.js";
 import { getMeetingContext } from "../mail/meeting-context.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { isPublicMailboxDomain } from "../mail/public-mailbox-domains.js";
@@ -1246,6 +1247,16 @@ export async function emailRoutes(app: FastifyInstance) {
         labels: dbEmail.labels,
         isRead: dbEmail.isRead,
         isStarred: dbEmail.isStarred,
+        // Most-automatic method available; null = no List-Unsubscribe header
+        // (or the row predates the columns and hasn't re-synced) — the
+        // client renders no unsubscribe affordance.
+        unsubscribe: dbEmail.listUnsubscribeOneClick
+          ? ("one-click" as const)
+          : dbEmail.listUnsubscribeMailto
+            ? ("mailto" as const)
+            : dbEmail.listUnsubscribeUrl
+              ? ("link" as const)
+              : null,
         priority: dbEmail.priority,
         category: dbEmail.category,
         summary: dbEmail.summary,
@@ -1524,6 +1535,60 @@ export async function emailRoutes(app: FastifyInstance) {
   // transaction); the judge honors it at cascade rank 0 ("enforced, not
   // predicted"). Delete-then-create also self-heals any duplicate rows a
   // concurrent double-submit may have left behind. DELETE unpins.
+  // POST /api/email/:id/unsubscribe — act on the mail's List-Unsubscribe
+  // targets, most automatic first: RFC 8058 one-click POST (server-side,
+  // SSRF-guarded in mail/list-unsubscribe), else a mailto send from the
+  // user's own account, else the browser link handed back to the client.
+  // User-initiated only — the flag-gated automatic path rides the promo
+  // auto-read hook in judge/email-firewall.
+  app.post(
+    "/:id/unsubscribe",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const uid = getUserId(request);
+      const dbEmail = await prisma.emailMessage.findFirst({
+        where: { userId: uid, OR: [{ id }, { gmailId: id }] },
+        select: {
+          id: true,
+          linkedInboxAccountId: true,
+          listUnsubscribeMailto: true,
+          listUnsubscribeUrl: true,
+          listUnsubscribeOneClick: true,
+        },
+      });
+      if (!dbEmail) return reply.code(404).send({ error: "Email not found" });
+      const url = dbEmail.listUnsubscribeUrl;
+      const mailto = dbEmail.listUnsubscribeMailto;
+      if (!url && !mailto) {
+        return reply.code(400).send({ error: "This email has no unsubscribe information." });
+      }
+
+      if (dbEmail.listUnsubscribeOneClick && url) {
+        const result = await executeOneClickUnsubscribe(url);
+        if (result.ok) return { method: "one-click", done: true };
+        // Fall through: the list's POST endpoint being down must not strand
+        // the user when a mailto or link target also exists.
+      }
+
+      if (mailto) {
+        const target = parseMailtoTarget(mailto);
+        if (target) {
+          const actions = await mailActionsFor(uid, dbEmail.linkedInboxAccountId);
+          const result = await actions.sendEmail(uid, target.to, target.subject, target.body, [], {
+            linkedInboxAccountId: dbEmail.linkedInboxAccountId,
+          });
+          if (!("unsupported" in result) && !("error" in result)) {
+            return { method: "mailto", done: true };
+          }
+        }
+      }
+
+      if (url) return { method: "link", done: false, url };
+      return reply.code(502).send({ error: "Could not unsubscribe automatically." });
+    },
+  );
+
   app.post("/:id/pin-tier", async (request, reply) => {
     const { id } = request.params as { id: string };
     const uid = getUserId(request);

@@ -17,6 +17,7 @@ import {
   isGoogleNotFoundError,
   markGoogleTokenForReconnect,
 } from "./gmail.js";
+import { parseListUnsubscribe } from "./list-unsubscribe.js";
 
 // Gmail has no batch endpoint for messages.get, so each message is a separate
 // round-trip. Fetching them serially makes a 30-message sync take 30× the
@@ -45,6 +46,12 @@ export interface GmailRawEmail {
   // and appointment systems. Read by the commitment-mining gate. Optional so
   // non-Gmail producers and older fixtures don't have to set it.
   hasListUnsubscribe?: boolean;
+  // Parsed List-Unsubscribe targets (RFC 2369 / RFC 8058), persisted so the
+  // unsubscribe endpoint and the re-judge paths can act without re-fetching.
+  // Optional for the same non-Gmail-producer reason as hasListUnsubscribe.
+  listUnsubscribeMailto?: string | null;
+  listUnsubscribeUrl?: string | null;
+  listUnsubscribeOneClick?: boolean;
 }
 
 function decodeBase64Url(data: string): Buffer {
@@ -212,6 +219,11 @@ async function parseGmailMessageDetail(
   const labelIds = detail.labelIds || [];
   const dateStr = getHeader("Date");
 
+  const listUnsubscribe = parseListUnsubscribe(
+    getHeader("List-Unsubscribe"),
+    getHeader("List-Unsubscribe-Post"),
+  );
+
   return {
     gmailId: messageId,
     threadId: detail.threadId || messageId,
@@ -228,6 +240,9 @@ async function parseGmailMessageDetail(
     receivedAt: parseReceivedAt(dateStr),
     attachments,
     hasListUnsubscribe: getHeader("List-Unsubscribe") !== "",
+    listUnsubscribeMailto: listUnsubscribe.mailto,
+    listUnsubscribeUrl: listUnsubscribe.url,
+    listUnsubscribeOneClick: listUnsubscribe.oneClick,
   };
 }
 

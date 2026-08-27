@@ -328,9 +328,9 @@ model LinkedInboxAccount {
   // UI can prompt a re-link instead of the inbox silently rotting; cleared on a
   // successful token refresh or re-link. Durable so a revoked inbox stays flagged
   // across restarts (at scale, revoked linked tokens are the norm, not the edge).
-  needsReconnect      Boolean   @default(false)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  needsReconnect      Boolean       @default(false)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   // provider participates so the same address can exist on two services (a
   // user forwarding their iCloud into Gmail links both) without colliding.
@@ -537,7 +537,6 @@ model AgentLog {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
-
   @@index([userId, action, createdAt(sort: Desc)])
   // Userless range for the retention sweep (WHERE createdAt < cutoff).
   @@index([createdAt])
@@ -897,51 +896,59 @@ enum OutboxStatus {
 // Persisted copy of Gmail messages for local search, AI summarization, and threading
 
 model EmailMessage {
-  id                   String            @id @default(uuid())
-  userId               String
-  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  gmailId              String // Gmail message ID
+  id                      String            @id @default(uuid())
+  userId                  String
+  user                    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gmailId                 String // Gmail message ID
   // Which linked secondary inbox this mail came from. NULL = the primary Google
   // account (the vast majority). Plain tag (no FK) so unlinking an inbox keeps
   // its already-classified mail; a stale tag just means getAuthedInboxClient
   // returns null and actions fall back. Dedup stays @@unique([userId, gmailId])
   // — Gmail message IDs don't collide across accounts.
-  linkedInboxAccountId String?
-  threadId             String? // Gmail thread ID for conversation grouping
-  from                 String
+  linkedInboxAccountId    String?
+  threadId                String? // Gmail thread ID for conversation grouping
+  from                    String
   // Normalized sender address (extractEmailAddress(from): lowercased, display
   // name stripped) for an indexed equality lookup in the judge sender-history
   // query. NULL until backfilled — the query only reads it under the
   // SENDER_ADDRESS_INDEX_ENABLED flag (default off), so existing null rows are
   // never consulted until `pnpm backfill:from-address` has populated them.
-  fromAddress          String?
-  to                   String
-  cc                   String?
-  subject              String
-  snippet              String? // Gmail snippet (preview text)
-  body                 String? // Full plain-text body
-  htmlBody             String? // Full HTML body (for rich rendering)
-  labels               String[] // Gmail labels: ["INBOX", "UNREAD", "IMPORTANT"]
-  isRead               Boolean           @default(false)
-  isStarred            Boolean           @default(false)
-  priority             EmailPriority     @default(NORMAL)
-  category             String? // AI classification: billing, meeting, engineering, conversation, automated, other
-  summary              String? // AI-generated one-line summary
+  fromAddress             String?
+  to                      String
+  cc                      String?
+  subject                 String
+  snippet                 String? // Gmail snippet (preview text)
+  body                    String? // Full plain-text body
+  htmlBody                String? // Full HTML body (for rich rendering)
+  labels                  String[] // Gmail labels: ["INBOX", "UNREAD", "IMPORTANT"]
+  // List-Unsubscribe (RFC 2369) parsed at Gmail sync; IMAP/Outlook don't
+  // fetch the header yet, so their rows stay NULL — same "NULL until synced
+  // under the new code" contract as fromAddress above. The judge derives its
+  // bulk-mail signal from these on the backfill/heal paths, and the
+  // unsubscribe endpoint reads them. oneClick = RFC 8058 https POST target.
+  listUnsubscribeMailto   String?
+  listUnsubscribeUrl      String?
+  listUnsubscribeOneClick Boolean           @default(false)
+  isRead                  Boolean           @default(false)
+  isStarred               Boolean           @default(false)
+  priority                EmailPriority     @default(NORMAL)
+  category                String? // AI classification: billing, meeting, engineering, conversation, automated, other
+  summary                 String? // AI-generated one-line summary
   // JSONB after migration 20260519040000. Always a `string[]` payload
   // when present (AI-extracted bullet points / TODOs); `null` when EVE
   // has not summarized the email yet.
-  keyPoints            Json?
-  actionItems          Json?
-  needsReply           Boolean           @default(false)
-  needsReplyReason     String?
-  needsReplyConfidence Float             @default(0.0)
-  sentiment            String? // positive | negative | neutral
-  receivedAt           DateTime // Original email date
-  syncedAt             DateTime          @default(now()) // When we synced from Gmail
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  attachments          EmailAttachment[]
-  candidateIntakes     CandidateIntake[]
+  keyPoints               Json?
+  actionItems             Json?
+  needsReply              Boolean           @default(false)
+  needsReplyReason        String?
+  needsReplyConfidence    Float             @default(0.0)
+  sentiment               String? // positive | negative | neutral
+  receivedAt              DateTime // Original email date
+  syncedAt                DateTime          @default(now()) // When we synced from Gmail
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  attachments             EmailAttachment[]
+  candidateIntakes        CandidateIntake[]
 
   @@unique([userId, gmailId])
   @@index([userId, receivedAt])
@@ -1207,16 +1214,16 @@ model DecisionLabel {
 
   // The tier the firewall showed at judgement time. Immutable — never
   // overwritten, unlike AttentionItem.tier.
-  shownTier String // "SILENT" | "QUEUE" | "PUSH" | "AUTO"
+  shownTier      String // "SILENT" | "QUEUE" | "PUSH" | "AUTO"
   // The 4 poc-judge features at decision time (confidence/senderTrust/
   // reversibility/urgency) so per-feature analysis can run later.
-  features  Json
+  features       Json
   // Sender identity, for per-sender recall grouping.
-  sender    String?
+  sender         String?
   // Which path decided this: "fast-path" | "sender-prior" | "llm" |
   // "keyword-fallback" — so prior-bypass decisions stay separable (the
   // SILENT-prior over-suppression class is exactly the prior-bypass rows).
-  decidedBy String?
+  decidedBy      String?
   // Which learned-engagement grounding fed the judge, if any: "DIRECT" (measured
   // replies to this sender) | "PROPAGATED" (inferred from an engaged org peer) |
   // null. Rollout instrumentation for CONTACT_ENGAGEMENT_IN_JUDGE — lets us see,
@@ -1708,19 +1715,19 @@ model Team {
 /// was last promised). Regenerated lazily when new mail from the sender
 /// arrives; consumed by the reading pane and injected into reply drafts.
 model ContactDossier {
-  id                 String   @id @default(uuid())
+  id                 String    @id @default(uuid())
   userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  senderEmail        String   @db.VarChar(320)
-  summary            String   @db.VarChar(600)
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderEmail        String    @db.VarChar(320)
+  summary            String    @db.VarChar(600)
   openThreads        Json?
-  lastPromise        String?  @db.VarChar(300)
+  lastPromise        String?   @db.VarChar(300)
   /// How many stored messages involving this sender the summary covered —
   /// staleness check: regenerate when the live count differs.
   analyzedEmailCount Int
   lastEmailAt        DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@unique([userId, senderEmail])
 }
@@ -1737,15 +1744,15 @@ model ThreadBrief {
   threadId String @db.VarChar(120)
 
   /// Why this message arrived NOW — the trigger, not a summary.
-  whyNow String @db.VarChar(400)
+  whyNow  String  @db.VarChar(400)
   /// Concrete things the sender is asking for. String[] as Json.
-  asks   Json?
+  asks    Json?
   /// Outstanding commitment the USER owes them, if any.
-  weOwe  String? @db.VarChar(300)
+  weOwe   String? @db.VarChar(300)
   /// Outstanding commitment THEY owe the user, if any.
   theyOwe String? @db.VarChar(300)
   /// One-line recommended stance for a reply.
-  stance String? @db.VarChar(300)
+  stance  String? @db.VarChar(300)
 
   /// How many thread messages the brief covered — staleness check, mirroring
   /// ContactDossier.analyzedEmailCount: regenerate when the count differs.
@@ -1761,22 +1768,22 @@ model ThreadBrief {
 // adds the email to the Google Cloud Console Test users list and approves
 // access. No FK to User — these are people without accounts yet.
 model Waitlist {
-  id      String  @id @default(uuid())
-  email   String  @unique
-  name    String?
-  useCase String? @db.VarChar(500)
+  id          String         @id @default(uuid())
+  email       String         @unique
+  name        String?
+  useCase     String?        @db.VarChar(500)
   /// Self-reported "how did you hear about us", free text. This is the only
   /// channel attribution we get: GitHub restricted the stargazers API on
   /// 2026-06-30, so referral reconstruction from outside is no longer
   /// possible, and self-hosted installs are invisible by design. Never
   /// overwritten once set — the first touch is the one worth attributing.
-  source     String?        @db.VarChar(80)
+  source      String?        @db.VarChar(80)
   /// Automatic inflow attribution (utm_* + referrer host + landing path),
   /// captured by the funnel itself. First-touch; never overwritten once set.
-  attribution String?       @db.VarChar(300)
-  status     WaitlistStatus @default(PENDING)
-  approvedAt DateTime?
-  createdAt  DateTime       @default(now())
+  attribution String?        @db.VarChar(300)
+  status      WaitlistStatus @default(PENDING)
+  approvedAt  DateTime?
+  createdAt   DateTime       @default(now())
 
   @@index([status, createdAt])
 }
@@ -1826,8 +1833,8 @@ model GlobalCostLedger {
   dayKey     String   @id // "YYYY-MM-DD" in UTC
   microCents Int      @default(0)
   callCount  Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 // Persistent Stripe webhook idempotency. The handler records an event id here
