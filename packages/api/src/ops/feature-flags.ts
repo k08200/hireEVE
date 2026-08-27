@@ -67,6 +67,9 @@ export function collectFeatureFlags(env: NodeJS.ProcessEnv = process.env): Flags
       TIER_V2_ENABLED: defaultOnFlag(env, "TIER_V2_ENABLED"),
       AUTO_MODE_SEND_ENABLED: defaultOnFlag(env, "AUTO_MODE_SEND_ENABLED"),
       SPAM_INTAKE_ENABLED: defaultOnFlag(env, "SPAM_INTAKE_ENABLED"),
+      // Read at classification time by mail/list-unsubscribe.ts
+      // autoUnsubscribeEnabled(); one-click auto-unsubscribe of SILENT promo.
+      AUTO_UNSUBSCRIBE_ENABLED: dynamicFlag(env, "AUTO_UNSUBSCRIBE_ENABLED"),
     },
     configured: {
       GMAIL_PUBSUB_TOPIC: Boolean(env.GMAIL_PUBSUB_TOPIC),

@@ -23,6 +23,7 @@ import { classifyNeedsReplyFromSignals, classifyPriority } from "../mail/email-p
 import { coercePlainBody } from "../mail/email-text.js";
 import type { GmailRawEmail } from "../mail/gmail-fetch.js";
 import { applyLaneLabel } from "../mail/gmail-labels.js";
+import { autoUnsubscribeEnabled, executeOneClickUnsubscribe } from "../mail/list-unsubscribe.js";
 import { mailActionsFor } from "../mail/providers/dispatch.js";
 import { notifyConversationsUpdated } from "../notify/conversations-updated.js";
 import { getUserNotificationLanguage } from "../notify/notification-strings.js";
@@ -65,6 +66,17 @@ export async function persistGmailEmail(
         // Backfill the normalized address on re-sync so already-persisted mail
         // gets an indexed fromAddress without a separate backfill pass.
         fromAddress: normalizedFromAddress(email.from),
+        // Same backfill contract for the List-Unsubscribe targets: rows that
+        // predate the columns pick them up on the next re-sync. Guarded on
+        // "the producer parsed the header at all" so a non-Gmail path that
+        // never sets these can't null out stored values.
+        ...(email.listUnsubscribeMailto !== undefined || email.listUnsubscribeUrl !== undefined
+          ? {
+              listUnsubscribeMailto: email.listUnsubscribeMailto ?? null,
+              listUnsubscribeUrl: email.listUnsubscribeUrl ?? null,
+              listUnsubscribeOneClick: email.listUnsubscribeOneClick ?? false,
+            }
+          : {}),
         // (Re)stamp provenance only when the caller holds a REAL account id:
         // the Naver poll re-touches its recent window every cycle, so pre-0b
         // rows adopt their account id without a data migration. Truthy-only on
@@ -138,6 +150,9 @@ export async function persistGmailEmail(
       needsReplyReason: replyNeeded.reason,
       needsReplyConfidence: replyNeeded.confidence,
       receivedAt: email.receivedAt,
+      listUnsubscribeMailto: email.listUnsubscribeMailto ?? null,
+      listUnsubscribeUrl: email.listUnsubscribeUrl ?? null,
+      listUnsubscribeOneClick: email.listUnsubscribeOneClick ?? false,
     },
   });
   if (email.attachments.length > 0) {
@@ -223,6 +238,13 @@ export async function persistGmailEmail(
           gmailId: email.gmailId,
           linkedInboxAccountId: options.linkedInboxAccountId ?? null,
         });
+        // Flag-gated automation (AUTO_UNSUBSCRIBE_ENABLED, default OFF):
+        // one-click ONLY — a mailto sends as the user and a link needs a
+        // browser, so neither may run unattended. Same double gate as the
+        // read-marking above; fire-and-forget for the same reason.
+        if (autoUnsubscribeEnabled() && email.listUnsubscribeOneClick && email.listUnsubscribeUrl) {
+          void autoUnsubscribePromotional(email.listUnsubscribeUrl);
+        }
       }
     })
     .catch((err) => {
@@ -274,6 +296,41 @@ async function markPromotionalEmailRead(
       extra: { userId, emailId: email.id, gmailId: email.gmailId },
     });
   }
+}
+
+/**
+ * The flag-gated automatic half of unsubscribe. executeOneClickUnsubscribe
+ * never throws; failures are a warn only — list servers fail routinely, and
+ * Sentry noise here would bury real signal (same rationale as the benign
+ * branch of promo auto-read above).
+ */
+async function autoUnsubscribePromotional(url: string): Promise<void> {
+  const result = await executeOneClickUnsubscribe(url);
+  if (!result.ok) {
+    console.warn(`[FIREWALL] auto-unsubscribe failed: ${result.reason}`);
+  }
+}
+
+/** A judgeable row as SELECTed from the DB (re-judge paths): the stored
+ * List-Unsubscribe targets instead of the sync-time boolean. */
+export interface StoredJudgeableEmailRow extends Omit<JudgeableEmailRow, "hasListUnsubscribe"> {
+  listUnsubscribeMailto: string | null;
+  listUnsubscribeUrl: string | null;
+}
+
+/**
+ * The ONE derivation of the judge's bulk-mail boolean from the stored
+ * columns — shared by the backfill sweep and the read-path heal
+ * (routes/firewall.ts) so the two re-judge paths can't drift.
+ */
+export function toJudgeableEmailRow(row: StoredJudgeableEmailRow): JudgeableEmailRow {
+  const { listUnsubscribeMailto, listUnsubscribeUrl, ...rest } = row;
+  return {
+    ...rest,
+    // Loose != so an undefined field (a row shape that never selected the
+    // columns) reads as "no header", never as a bulk-mail signal.
+    hasListUnsubscribe: listUnsubscribeMailto != null || listUnsubscribeUrl != null,
+  };
 }
 
 interface JudgeableEmailRow {
@@ -527,22 +584,26 @@ const BACKFILL_BATCH = 10;
  */
 export async function backfillEmailAttentionItems(userId: string): Promise<number> {
   const cutoff = new Date(Date.now() - BACKFILL_LOOKBACK_MS);
-  const recent = (await prisma.emailMessage.findMany({
-    where: { userId, receivedAt: { gte: cutoff } },
-    select: {
-      id: true,
-      gmailId: true,
-      from: true,
-      subject: true,
-      snippet: true,
-      body: true,
-      labels: true,
-      receivedAt: true,
-      linkedInboxAccountId: true,
-    },
-    orderBy: { receivedAt: "desc" },
-    take: BACKFILL_SCAN_LIMIT,
-  })) as JudgeableEmailRow[];
+  const recent = (
+    (await prisma.emailMessage.findMany({
+      where: { userId, receivedAt: { gte: cutoff } },
+      select: {
+        id: true,
+        gmailId: true,
+        from: true,
+        subject: true,
+        snippet: true,
+        body: true,
+        labels: true,
+        receivedAt: true,
+        linkedInboxAccountId: true,
+        listUnsubscribeMailto: true,
+        listUnsubscribeUrl: true,
+      },
+      orderBy: { receivedAt: "desc" },
+      take: BACKFILL_SCAN_LIMIT,
+    })) as StoredJudgeableEmailRow[]
+  ).map(toJudgeableEmailRow);
   if (recent.length === 0) return 0;
 
   const judged = (await prisma.attentionItem.findMany({

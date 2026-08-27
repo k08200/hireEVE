@@ -61,7 +61,14 @@ vi.mock("../sentry.js", () => ({ captureError: captureErrorMock }));
 
 // The self-heal path re-judges the stale row (lazy-imported by the route).
 const judgeAndMirrorMock = vi.fn(async () => "QUEUE");
-vi.mock("../judge/email-firewall.js", () => ({ judgeAndMirrorEmail: judgeAndMirrorMock }));
+vi.mock("../judge/email-firewall.js", () => ({
+  judgeAndMirrorEmail: judgeAndMirrorMock,
+  // Identity stub: the heal path maps the DB row through this before
+  // judging; a missing export would throw inside the heal's catch and mask
+  // the behavior this file asserts. Kept a stub (not importOriginal) so the
+  // hot-read-path tests still never load the judge's heavy module graph.
+  toJudgeableEmailRow: (row: Record<string, unknown>) => row,
+}));
 
 vi.mock("../db.js", () => ({
   prisma: {
