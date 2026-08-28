@@ -15,6 +15,11 @@ const state = vi.hoisted(() => ({
   metaCalls: [] as Record<string, unknown>[],
   listIds: ["m1", "m2"],
   hasToken: true,
+  draftRows: [
+    { id: "draft-1", message: { id: "m-draft-1" } },
+    { id: "draft-2", message: { id: "m-draft-2" } },
+  ],
+  draftDeletes: [] as string[],
 }));
 
 vi.mock("../mail/gmail.js", () => ({
@@ -49,6 +54,13 @@ vi.mock("googleapis", () => ({
                 },
               },
             };
+          }),
+        },
+        drafts: {
+          list: vi.fn(async () => ({ data: { drafts: state.draftRows } })),
+          delete: vi.fn(async (params: { id: string }) => {
+            state.draftDeletes.push(params.id);
+            return {};
           }),
         },
       },
@@ -111,5 +123,32 @@ describe("listGmailMailbox", () => {
     state.hasToken = false;
     const { listGmailMailbox } = await import("../mail/gmail-mailbox.js");
     expect(await listGmailMailbox("user-1", "sent")).toBeNull();
+  });
+});
+
+describe("deleteGmailDraftByMessageId", () => {
+  beforeEach(() => {
+    state.hasToken = true;
+    state.draftDeletes.length = 0;
+  });
+
+  it("resolves the DRAFT id from the message id and deletes exactly that draft", async () => {
+    const { deleteGmailDraftByMessageId } = await import("../mail/gmail-mailbox.js");
+    // The folder listing hands out MESSAGE ids; drafts.delete wants the DRAFT
+    // id — deleting with the message id silently 404s and the draft lingers.
+    expect(await deleteGmailDraftByMessageId("user-1", "m-draft-2")).toBe(true);
+    expect(state.draftDeletes).toEqual(["draft-2"]);
+  });
+
+  it("returns false and deletes nothing for an unknown message id", async () => {
+    const { deleteGmailDraftByMessageId } = await import("../mail/gmail-mailbox.js");
+    expect(await deleteGmailDraftByMessageId("user-1", "not-a-draft")).toBe(false);
+    expect(state.draftDeletes).toEqual([]);
+  });
+
+  it("returns false when Gmail is not connected", async () => {
+    state.hasToken = false;
+    const { deleteGmailDraftByMessageId } = await import("../mail/gmail-mailbox.js");
+    expect(await deleteGmailDraftByMessageId("user-1", "m-draft-1")).toBe(false);
   });
 });

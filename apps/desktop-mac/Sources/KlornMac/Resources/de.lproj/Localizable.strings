@@ -525,3 +525,4 @@
 "chip.system" = "System";
 "appearance.toLight" = "Zum hellen Modus wechseln";
 "appearance.toDark" = "Zum dunklen Modus wechseln";
+"compose.editDraft" = "Entwurf bearbeiten";
