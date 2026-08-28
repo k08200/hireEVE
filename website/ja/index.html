@@ -759,7 +759,8 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
   .chip{animation:none}
 }
 </style>
-<script type="application/ld+json">{
+<script type="application/ld+json">
+{
  "@context": "https://schema.org",
  "@type": "SoftwareApplication",
  "name": "Klorn",
@@ -769,49 +770,65 @@ html[lang=ko] .final-h .ser{font-family:'Apple SD Gothic Neo','Nanum Myeongjo','
  "inLanguage": "ja",
  "description": "Klornはすべてのメールを5つのレーン — Push, Meeting, Queue, Info, Silent — に振り分け、1通ごとにその理由を添えます。Superhumanは速さを、Fyxerは代筆を売ります。どちらも月$30で、どちらも「なぜ届いたか」は見せません。AGPL-3.0、セルフホスト可、承認していないものは送りません。",
  "sameAs": [
-  "https://github.com/k08200/klorn"
+  "https://github.com/k08200/klorn",
+  "https://dev.to/k08200",
+  "https://x.com/klornai",
+  "https://openalternative.co/klorn"
  ],
  "offers": [
-   {
-    "@type": "Offer",
-    "name": "Free",
+  {
+   "@type": "Offer",
+   "name": "Free",
+   "price": "0",
+   "priceCurrency": "USD",
+   "availability": "https://schema.org/InStock",
+   "priceSpecification": {
+    "@type": "UnitPriceSpecification",
     "price": "0",
     "priceCurrency": "USD",
-    "availability": "https://schema.org/InStock",
-    "priceSpecification": {
-     "@type": "UnitPriceSpecification",
-     "price": "0",
-     "priceCurrency": "USD",
-     "referenceQuantity": {
-      "@type": "QuantitativeValue",
-      "value": 1,
-      "unitCode": "MON"
-     }
-    }
-   },
-   {
-    "@type": "Offer",
-    "name": "Klorn Pro",
-    "price": "8.99",
-    "priceCurrency": "USD",
-    "availability": "https://schema.org/InStock",
-    "priceSpecification": {
-     "@type": "UnitPriceSpecification",
-     "price": "8.99",
-     "priceCurrency": "USD",
-     "referenceQuantity": {
-      "@type": "QuantitativeValue",
-      "value": 1,
-      "unitCode": "MON"
-     }
+    "referenceQuantity": {
+     "@type": "QuantitativeValue",
+     "value": 1,
+     "unitCode": "MON"
     }
    }
-  ],
+  },
+  {
+   "@type": "Offer",
+   "name": "Klorn Pro",
+   "price": "8.99",
+   "priceCurrency": "USD",
+   "availability": "https://schema.org/InStock",
+   "priceSpecification": {
+    "@type": "UnitPriceSpecification",
+    "price": "8.99",
+    "priceCurrency": "USD",
+    "referenceQuantity": {
+     "@type": "QuantitativeValue",
+     "value": 1,
+     "unitCode": "MON"
+    }
+   }
+  }
+ ],
  "softwareHelp": {
   "@type": "CreativeWork",
   "url": "https://github.com/k08200/klorn#readme"
- }
-}</script>
+ },
+ "publisher": {
+  "@type": "Organization",
+  "name": "Klorn",
+  "url": "https://klorn.ai/",
+  "sameAs": [
+   "https://github.com/k08200/klorn",
+   "https://dev.to/k08200",
+   "https://x.com/klornai",
+   "https://openalternative.co/klorn"
+  ]
+ },
+ "license": "https://github.com/k08200/klorn/blob/main/LICENSE"
+}
+</script>
 <script type="application/ld+json">{
  "@context": "https://schema.org",
  "@type": "FAQPage",
