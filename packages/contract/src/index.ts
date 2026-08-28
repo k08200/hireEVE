@@ -11,6 +11,7 @@
  * drift in the same commit that introduces it.
  */
 
+export type * from "./api-keys.js";
 export type * from "./auth-providers.js";
 export type * from "./briefing.js";
 export type * from "./email.js";

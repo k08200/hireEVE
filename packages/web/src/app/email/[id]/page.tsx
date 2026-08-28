@@ -605,6 +605,31 @@ function EmailDetailView() {
     }
   };
 
+  const unsubscribeNow = async () => {
+    if (!id || actionBusy) return;
+    setActionBusy("unsubscribe");
+    setError(null);
+    try {
+      const res = await apiFetch<{ method: string; done: boolean; url?: string }>(
+        `/api/email/${id}/unsubscribe`,
+        { method: "POST" },
+      );
+      if (res.done) {
+        toast(t("emailDetail.toast.unsubscribed"), "success");
+      } else if (res.url) {
+        // Nothing automatic was possible — hand the list's own page to the
+        // user in a fresh tab. noopener: the target is sender-controlled.
+        window.open(res.url, "_blank", "noopener,noreferrer");
+        toast(t("emailDetail.toast.unsubscribeLink"), "success");
+      }
+    } catch (err) {
+      captureClientError(err, { scope: "email.detail.unsubscribe", id });
+      setError(serverErrorMessage(err, t("emailDetail.error.unsubscribe")));
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
   const deleteEmailNow = async () => {
     if (!id || actionBusy) return;
     const confirmed = await confirm({
@@ -736,6 +761,7 @@ function EmailDetailView() {
                 onOpenNext={() => goToNextOrList(t("emailDetail.toast.movingToNext"))}
                 onToggleRead={toggleRead}
                 onToggleStar={toggleStar}
+                onUnsubscribe={unsubscribeNow}
               />
               <EmailReminderQuickActions
                 busyKey={reminderBusy}

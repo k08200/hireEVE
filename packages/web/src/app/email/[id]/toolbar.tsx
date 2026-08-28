@@ -75,6 +75,7 @@ export function EmailActionToolbar({
   onOpenNext,
   onToggleRead,
   onToggleStar,
+  onUnsubscribe,
 }: {
   busyAction: string | null;
   email: EmailDetail;
@@ -83,6 +84,7 @@ export function EmailActionToolbar({
   onDelete: () => void;
   onOpenNext: () => void;
   onToggleRead: () => void;
+  onUnsubscribe: () => void;
   onToggleStar: () => void;
 }) {
   const { t } = useT();
@@ -135,6 +137,15 @@ export function EmailActionToolbar({
         >
           {t("emailDetail.toolbar.action.archive")}
         </EmailActionButton>
+        {email.unsubscribe && (
+          <EmailActionButton
+            busy={busyAction === "unsubscribe"}
+            disabled={actionDisabled}
+            onClick={onUnsubscribe}
+          >
+            {t("emailDetail.toolbar.action.unsubscribe")}
+          </EmailActionButton>
+        )}
         <EmailActionButton
           busy={busyAction === "delete"}
           danger

@@ -102,6 +102,9 @@ export interface EmailDetail {
   sentiment: string | null;
   isRead?: boolean;
   isStarred?: boolean;
+  /** Most-automatic List-Unsubscribe method for this mail; null/absent = no
+   * unsubscribe affordance rendered. */
+  unsubscribe?: "one-click" | "mailto" | "link" | null;
   needsReply?: boolean;
   attachmentCount?: number;
   attachments?: EmailAttachment[];

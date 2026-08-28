@@ -124,13 +124,19 @@ function healStaleAttentionItem(userId: string, emailDbId: string): void {
           labels: true,
           receivedAt: true,
           linkedInboxAccountId: true,
+          listUnsubscribeMailto: true,
+          listUnsubscribeUrl: true,
         },
       });
       if (!row) return;
       // Lazy import: the judge pulls a heavy transitive graph (providers,
       // gmail) that the hot read path — and its tests — must not load.
-      const { judgeAndMirrorEmail } = await import("../judge/email-firewall.js");
-      await judgeAndMirrorEmail(userId, row);
+      // toJudgeableEmailRow derives the bulk-mail signal from the stored
+      // columns — the same derivation the backfill sweep uses.
+      const { judgeAndMirrorEmail, toJudgeableEmailRow } = await import(
+        "../judge/email-firewall.js"
+      );
+      await judgeAndMirrorEmail(userId, toJudgeableEmailRow(row));
     } catch (err) {
       captureError(err, { tags: { scope: "firewall.hashRejudge" }, extra: { emailDbId } });
     }
