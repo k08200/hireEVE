@@ -688,6 +688,45 @@ final class AppModel {
     var composeBody = ""
     var composeError: String?
     private(set) var composeSending = false
+    /// Set while the composer is editing an existing Gmail draft (opened from
+    /// the 임시보관함 folder). A successful send deletes that draft — without
+    /// this the sent mail and its stale draft coexist and the folder looks
+    /// broken. Cleared on discard: cancelling an edit leaves the draft alone.
+    private(set) var editingDraftGmailId: String?
+
+    /// Open a Drafts-folder row for EDITING: fetch the live body and prefill
+    /// the composer. Every mail client opens a draft into its editor — the
+    /// read-only view was the surprise. This deliberately replaces whatever
+    /// un-sent ⌘N text was sitting in the composer: opening a document is an
+    /// explicit act, like File→Open over an unsaved scratch buffer.
+    func openDraftForEditing(_ item: MailboxItem) {
+        Task {
+            do {
+                let resp: LiveEmailDetail = try await api.get(
+                    "/api/email/live/\(item.gmailId)", as: LiveEmailDetail.self)
+                composeTo = extractRecipient(resp.data.to)
+                composeSubject = resp.data.subject
+                composeBody = resp.data.body
+                composeError = nil
+                editingDraftGmailId = item.gmailId
+                showCompose = true
+            } catch {
+                mailboxError = L("mailbox.loadFailed")
+                Log.app.warning("draft open failed: \(String(describing: error), privacy: .private)")
+            }
+        }
+    }
+
+    /// "Name <addr>" → addr for the To field (the composer sends bare
+    /// addresses). A bare address passes through unchanged.
+    private func extractRecipient(_ raw: String) -> String {
+        if let open = raw.lastIndex(of: "<"), let close = raw.lastIndex(of: ">"),
+           open < close
+        {
+            return String(raw[raw.index(after: open)..<close])
+        }
+        return raw.trimmingCharacters(in: .whitespaces)
+    }
 
     /// Send the current draft. Success clears the draft and closes the panel;
     /// failure surfaces composeError and keeps everything for retry.
@@ -700,6 +739,14 @@ final class AppModel {
         if let error {
             composeError = error
         } else {
+            // Draft-based send: remove the original Gmail draft, best-effort
+            // (404 = already gone from another client — a legitimate outcome).
+            // The mail was SENT either way; cleanup failure must never read
+            // as a send failure.
+            if let draftId = editingDraftGmailId {
+                try? await api.delete("/api/email/draft/by-message/\(draftId)")
+                await loadMailbox(.drafts)
+            }
             discardComposeDraft()
             showCompose = false
         }
@@ -712,6 +759,7 @@ final class AppModel {
         composeSubject = ""
         composeBody = ""
         composeError = nil
+        editingDraftGmailId = nil
     }
 
     /// Send a BRAND-NEW email (POST /api/email/send — Pro-gated server-side).

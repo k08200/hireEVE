@@ -110,3 +110,27 @@ export async function listGmailMailbox(
   );
   return rows.filter((r): r is MailboxItemWire => r !== null);
 }
+
+/**
+ * Delete the Gmail draft whose MESSAGE id is `gmailId`. The folder listing
+ * hands out message ids (messages.list), but drafts.delete wants the DRAFT
+ * id — deleting with the message id silently 404s and the draft lingers, so
+ * this resolves through users.drafts.list first. Called after a draft-based
+ * send so the original doesn't survive as a duplicate; best-effort by
+ * contract (false = not found / not connected, never a throw for a missing
+ * row).
+ */
+export async function deleteGmailDraftByMessageId(
+  userId: string,
+  gmailId: string,
+): Promise<boolean> {
+  const auth = await getAuthedClient(userId);
+  if (!auth) return false;
+
+  const gmail = google.gmail({ version: "v1", auth });
+  const res = await gmail.users.drafts.list({ userId: "me", maxResults: 100 });
+  const draft = (res.data.drafts ?? []).find((d) => d.message?.id === gmailId);
+  if (!draft?.id) return false;
+  await gmail.users.drafts.delete({ userId: "me", id: draft.id });
+  return true;
+}

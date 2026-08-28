@@ -525,3 +525,4 @@
 "chip.system" = "システム";
 "appearance.toLight" = "ライトモードに切り替え";
 "appearance.toDark" = "ダークモードに切り替え";
+"compose.editDraft" = "下書きを編集";

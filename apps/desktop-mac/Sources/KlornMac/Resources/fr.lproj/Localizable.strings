@@ -525,3 +525,4 @@
 "chip.system" = "Système";
 "appearance.toLight" = "Passer en mode clair";
 "appearance.toDark" = "Passer en mode sombre";
+"compose.editDraft" = "Modifier le brouillon";

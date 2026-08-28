@@ -14,6 +14,7 @@ import { getUserId } from "../auth.js";
 import { renderableEmailHtmlFor } from "../mail/email-text.js";
 import { fetchGmailEmailById } from "../mail/gmail-fetch.js";
 import {
+  deleteGmailDraftByMessageId,
   listGmailMailbox,
   MAILBOXES,
   type Mailbox,
@@ -112,5 +113,19 @@ export function registerEmailMailboxRoutes(app: FastifyInstance) {
         isRead: raw.isRead,
       },
     };
+  });
+
+  // Remove the ORIGINAL Gmail draft after a draft-based send — without this
+  // the sent mail and its stale draft coexist and the folder looks broken.
+  // 404 (not found) is a legitimate outcome, not an error: the draft may
+  // have been sent or deleted from another client already.
+  app.delete("/draft/by-message/:gmailId", async (request, reply) => {
+    const { gmailId } = request.params as { gmailId: string };
+    const uid = getUserId(request);
+    const deleted = await deleteGmailDraftByMessageId(uid, gmailId);
+    if (!deleted) {
+      return reply.code(404).send({ success: false, error: "Draft not found" });
+    }
+    return { success: true };
   });
 }

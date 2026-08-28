@@ -3035,7 +3035,15 @@ struct MailboxRow: View {
     }
 
     var body: some View {
-        Button { model.selectMailboxItem(item) } label: {
+        Button {
+            // A draft opens into the EDITOR, like every mail client; the
+            // other folders open into the reading pane.
+            if box == .drafts {
+                model.openDraftForEditing(item)
+            } else {
+                model.selectMailboxItem(item)
+            }
+        } label: {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(counterparty).font(Theme.Typo.label)
@@ -4189,7 +4197,8 @@ private struct ComposePanel: View {
         @Bindable var model = model
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(L("compose.title")).font(Theme.Typo.head).foregroundStyle(Theme.text)
+                Text(L(model.editingDraftGmailId == nil ? "compose.title" : "compose.editDraft"))
+                    .font(Theme.Typo.head).foregroundStyle(Theme.text)
                 Spacer()
                 Button {
                     if !model.composeSending { model.showCompose = false }
