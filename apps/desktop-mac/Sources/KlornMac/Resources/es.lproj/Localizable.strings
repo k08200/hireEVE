@@ -517,3 +517,11 @@
 "label.personal" = "Personal";
 "section.lanes" = "CARRILES";
 "label.empty" = "No hay correo de %@ ahora";
+
+// Judge categories on rows + appearance toggle (2026-08-27).
+"chip.internal" = "Equipo";
+"chip.customer" = "Cliente";
+"chip.investor" = "Inversor";
+"chip.system" = "Sistema";
+"appearance.toLight" = "Cambiar a modo claro";
+"appearance.toDark" = "Cambiar a modo oscuro";

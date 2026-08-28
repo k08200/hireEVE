@@ -517,3 +517,11 @@
 "label.personal" = "Personal";
 "section.lanes" = "LANES";
 "label.empty" = "No %@ mail right now";
+
+// Judge categories on rows + appearance toggle (2026-08-27).
+"chip.internal" = "Team";
+"chip.customer" = "Customer";
+"chip.investor" = "Investor";
+"chip.system" = "System";
+"appearance.toLight" = "Switch to light mode";
+"appearance.toDark" = "Switch to dark mode";
