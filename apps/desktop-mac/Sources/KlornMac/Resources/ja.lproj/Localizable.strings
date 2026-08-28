@@ -517,3 +517,11 @@
 "label.personal" = "個人";
 "section.lanes" = "レーン";
 "label.empty" = "%@のメールは今ありません";
+
+// Judge categories on rows + appearance toggle (2026-08-27).
+"chip.internal" = "社内";
+"chip.customer" = "顧客";
+"chip.investor" = "投資家";
+"chip.system" = "システム";
+"appearance.toLight" = "ライトモードに切り替え";
+"appearance.toDark" = "ダークモードに切り替え";

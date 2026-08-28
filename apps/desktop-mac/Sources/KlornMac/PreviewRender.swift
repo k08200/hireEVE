@@ -52,7 +52,15 @@ enum PreviewRender {
                 "from":"BetaList <hello@betalist.example>","snippet":"Twelve launches worth a look this week.",
                 "receivedAt":"2026-07-29T06:18:00Z",
                 "signal":{"kind":"category","category":"promotions"}},"hashStale":false}],
-      "INFO":[],"SILENT":[],"AUTO":[]},
+      "INFO":[
+      {"id":"i1","source":"email","sourceId":"e5","type":"email","title":"Sign-in alert",
+       "tier":"INFO","tierReason":"Automated security notice","priority":2,
+       "surfacedAt":"2026-07-29T04:05:00Z",
+       "email":{"emailDbId":"d5","subject":"New sign-in to your account",
+                "from":"OpenAI <noreply@openai.example>","snippet":"A new sign-in was detected on your account.",
+                "receivedAt":"2026-07-29T04:04:00Z",
+                "signal":{"kind":"category","category":"system"}},"hashStale":false}],
+      "SILENT":[],"AUTO":[]},
      "summary":{"PUSH":3,"MEETING":1,"QUEUE":12,"INFO":6,"SILENT":41,"AUTO":0,"total":63}}
     """
 

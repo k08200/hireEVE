@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
+import { ApiKeysSection } from "../../components/api-keys-section";
 import AppearanceSection from "../../components/appearance-section";
 import AuthGuard from "../../components/auth-guard";
 import { ByokKeysSection } from "../../components/byok-keys-section";
@@ -1945,6 +1946,14 @@ export default function SettingsPage() {
         {/* Bring your own LLM key */}
         <section className="mb-8">
           <ByokKeysSection />
+        </section>
+
+        {/* MCP API keys — machine credentials for the MCP endpoint */}
+        <section className="mb-8">
+          <h2 className={SECTION_TITLE}>{t("settings.section.apiKeys")}</h2>
+          <div className={`${PANEL} p-5`}>
+            <ApiKeysSection />
+          </div>
         </section>
 
         {/* Manual Runs */}

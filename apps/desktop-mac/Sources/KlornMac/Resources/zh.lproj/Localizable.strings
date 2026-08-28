@@ -517,3 +517,11 @@
 "label.personal" = "个人";
 "section.lanes" = "通道";
 "label.empty" = "目前没有%@邮件";
+
+// Judge categories on rows + appearance toggle (2026-08-27).
+"chip.internal" = "公司";
+"chip.customer" = "客户";
+"chip.investor" = "投资人";
+"chip.system" = "系统";
+"appearance.toLight" = "切换到浅色模式";
+"appearance.toDark" = "切换到深色模式";

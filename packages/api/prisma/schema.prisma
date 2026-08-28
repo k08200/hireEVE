@@ -140,11 +140,30 @@ model User {
   analyticsEvents           AnalyticsEvent[]
   senderTraits              SenderTrait[]
   learnedRules              LearnedRule[]
+  apiKeys                   ApiKey[]
 }
 
 enum UserRole {
   USER
   ADMIN
+}
+
+// Machine credentials for the MCP endpoint (routes/mcp.ts) — and ONLY it:
+// requireAuth never accepts one, so a leaked key exposes the MCP toolset,
+// not the account. keyHash is the Device.tokenHash standard (SHA-256 of the
+// raw key; the raw key is shown once at creation and never stored).
+model ApiKey {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  keyHash    String    @unique
+  prefix     String // display stub: "klorn_sk_ab12cd"
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([userId])
 }
 
 model Device {
