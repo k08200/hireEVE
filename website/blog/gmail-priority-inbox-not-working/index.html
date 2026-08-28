@@ -38,6 +38,30 @@ li { margin-top: 6px; }
   "mainEntityOfPage": "https://klorn.ai/blog/gmail-priority-inbox-not-working/"
 }
 </script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "Why did Gmail Priority Inbox stop working?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "The most common cause is a filter with Never mark it as important, which silently outranks everything the importance model learns. Check Settings > Filters and Blocked Addresses for importance actions."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "How do I train Gmail's importance model?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Turn on importance markers under Settings > Inbox so you can see the model's guesses, then correct them with the mark important / not important actions. Corrections are the only training input you control."
+   }
+  }
+ ]
+}
+</script>
 </head>
 <body>
 <div class="wrap">
