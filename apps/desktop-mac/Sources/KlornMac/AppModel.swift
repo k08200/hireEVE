@@ -983,6 +983,8 @@ final class AppModel {
     /// polling three folders every 60s would triple the Gmail read load for
     /// surfaces that are usually closed).
     private(set) var mailboxItems: [MailboxKind: [MailboxItem]] = [:]
+    /// Cursor to the folder's next page; nil = no more (or older server).
+    private(set) var mailboxNextToken: [MailboxKind: String] = [:]
     private(set) var mailboxLoading: MailboxKind?
     private(set) var mailboxError: String?
     /// The folder row open in the reading pane, with its live detail.
@@ -1002,6 +1004,7 @@ final class AppModel {
             let resp: MailboxListResponse = try await api.get(
                 "/api/email/mailbox/\(box.rawValue)", as: MailboxListResponse.self)
             mailboxItems[box] = resp.data.items
+            mailboxNextToken[box] = resp.data.nextPageToken
         } catch APIError.unauthorized {
             signOut()
         } catch {
@@ -1009,6 +1012,34 @@ final class AppModel {
             // when the folder would otherwise be blank.
             if mailboxItems[box] == nil { mailboxError = L("mailbox.loadFailed") }
             Log.app.warning("mailbox \(box.rawValue) fetch failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
+    /// Append the folder's next page (the "load more" row). The token is
+    /// consumed up front so a double-tap can't fetch the same page twice;
+    /// failure restores it for retry. De-dup by id: Gmail pages CAN overlap
+    /// when mail arrives between requests, and an Identifiable ForEach
+    /// crashes on duplicate ids.
+    func loadMoreMailbox(_ box: MailboxKind) async {
+        guard let token = mailboxNextToken[box], mailboxLoading != box else { return }
+        mailboxNextToken[box] = nil
+        mailboxLoading = box
+        defer { mailboxLoading = nil }
+        do {
+            var query = URLComponents()
+            query.queryItems = [URLQueryItem(name: "pageToken", value: token)]
+            let resp: MailboxListResponse = try await api.get(
+                "/api/email/mailbox/\(box.rawValue)?\(query.percentEncodedQuery ?? "")",
+                as: MailboxListResponse.self)
+            let seen = Set((mailboxItems[box] ?? []).map(\.gmailId))
+            mailboxItems[box, default: []]
+                .append(contentsOf: resp.data.items.filter { !seen.contains($0.gmailId) })
+            mailboxNextToken[box] = resp.data.nextPageToken
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            mailboxNextToken[box] = token
+            Log.app.warning("mailbox page fetch failed: \(String(describing: error), privacy: .private)")
         }
     }
 

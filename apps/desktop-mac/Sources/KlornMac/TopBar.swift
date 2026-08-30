@@ -3006,6 +3006,26 @@ struct MailboxList: View {
                             MailboxRow(box: box, item: item)
                             Divider().overlay(Theme.line).padding(.leading, 20)
                         }
+                        if model.mailboxNextToken[box] != nil {
+                            Button {
+                                Task { await model.loadMoreMailbox(box) }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    if model.mailboxLoading == box {
+                                        ProgressView().controlSize(.small)
+                                    }
+                                    Text(L("mailbox.loadMore"))
+                                        .font(Theme.Typo.label)
+                                        .foregroundStyle(Theme.textDim)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(model.mailboxLoading == box)
+                            .accessibilityLabel(L("mailbox.loadMore"))
+                        }
                     }
                 }
             }

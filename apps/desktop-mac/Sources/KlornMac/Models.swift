@@ -1281,6 +1281,9 @@ struct MailboxItem: Codable, Sendable, Identifiable, Hashable {
 struct MailboxListResponse: Codable, Sendable {
     struct Payload: Codable, Sendable {
         let items: [MailboxItem]
+        /// Opaque Gmail cursor for the next page; nil on the final page (and
+        /// on older servers, which simply omit it — no "load more" then).
+        let nextPageToken: String?
         let demo: Bool
     }
 

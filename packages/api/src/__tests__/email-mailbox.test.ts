@@ -20,6 +20,7 @@ const state = vi.hoisted(() => ({
     { id: "draft-2", message: { id: "m-draft-2" } },
   ],
   draftDeletes: [] as string[],
+  nextPageToken: null as string | null,
 }));
 
 vi.mock("../mail/gmail.js", () => ({
@@ -33,7 +34,12 @@ vi.mock("googleapis", () => ({
         messages: {
           list: vi.fn(async (params: Record<string, unknown>) => {
             state.listCalls.push(params);
-            return { data: { messages: state.listIds.map((id) => ({ id })) } };
+            return {
+              data: {
+                messages: state.listIds.map((id) => ({ id })),
+                nextPageToken: state.nextPageToken,
+              },
+            };
           }),
           get: vi.fn(async (params: Record<string, unknown>) => {
             state.metaCalls.push(params);
@@ -95,7 +101,8 @@ describe("listGmailMailbox", () => {
 
   it("lists metadata-only — never bodies, never attachment bytes", async () => {
     const { listGmailMailbox } = await import("../mail/gmail-mailbox.js");
-    const items = await listGmailMailbox("user-1", "sent");
+    const page = await listGmailMailbox("user-1", "sent");
+    const items = page?.items ?? [];
 
     expect(state.listCalls).toHaveLength(1);
     expect(state.listCalls[0]).toMatchObject({ userId: "me", q: "in:sent" });
@@ -123,6 +130,25 @@ describe("listGmailMailbox", () => {
     state.hasToken = false;
     const { listGmailMailbox } = await import("../mail/gmail-mailbox.js");
     expect(await listGmailMailbox("user-1", "sent")).toBeNull();
+  });
+
+  it("forwards the page token and hands the next one back", async () => {
+    // 50 rows was a hard cut — a Sent folder past one page just ended. The
+    // token round-trips VERBATIM: Gmail's tokens are opaque.
+    state.nextPageToken = "tok-2";
+    const { listGmailMailbox } = await import("../mail/gmail-mailbox.js");
+    const page = await listGmailMailbox("user-1", "sent", "tok-1");
+    expect(state.listCalls[0]).toMatchObject({ pageToken: "tok-1" });
+    expect(page?.nextPageToken).toBe("tok-2");
+    expect(page?.items).toHaveLength(2);
+  });
+
+  it("a final page carries no next token", async () => {
+    state.nextPageToken = null;
+    const { listGmailMailbox } = await import("../mail/gmail-mailbox.js");
+    const page = await listGmailMailbox("user-1", "sent");
+    expect(state.listCalls[0]).not.toHaveProperty("pageToken");
+    expect(page?.nextPageToken).toBeNull();
   });
 });
 

@@ -72,9 +72,17 @@ export function registerEmailMailboxRoutes(app: FastifyInstance) {
       return reply.code(404).send({ success: false, error: "Unknown mailbox" });
     }
     const uid = getUserId(request);
-    const items = await listGmailMailbox(uid, box);
+    const { pageToken } = request.query as { pageToken?: string };
+    const page = await listGmailMailbox(uid, box, pageToken);
     // null = Gmail not connected — same demo fallback contract as GET /.
-    return { success: true, data: { items: items ?? DEMO_ROWS[box], demo: items === null } };
+    return {
+      success: true,
+      data: {
+        items: page?.items ?? DEMO_ROWS[box],
+        nextPageToken: page?.nextPageToken ?? null,
+        demo: page === null,
+      },
+    };
   });
 
   // Live single-message read for folder rows: these messages are not in the
