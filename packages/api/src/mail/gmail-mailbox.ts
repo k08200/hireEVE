@@ -57,16 +57,26 @@ function header(headers: { name?: string | null; value?: string | null }[], name
   return headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
 }
 
+/** One page of a folder listing plus the cursor to the next. */
+export interface MailboxPage {
+  items: MailboxItemWire[];
+  /** Opaque Gmail cursor; null on the final page. Round-trips verbatim. */
+  nextPageToken: string | null;
+}
+
 /**
- * List one folder, newest first, PAGE_SIZE rows. Returns null when Gmail is
- * not connected so the route can fall back to demo data the same way the
- * inbox list does. Metadata fetches run under a small semaphore — 50 parallel
- * requests is how a folder click turns into a Gmail 429.
+ * List one folder page, newest first, PAGE_SIZE rows. 50 rows used to be a
+ * hard cut — a Sent folder past one page just ended; the page token turns
+ * that into "load more". Returns null when Gmail is not connected so the
+ * route can fall back to demo data the same way the inbox list does.
+ * Metadata fetches run under a small semaphore — 50 parallel requests is how
+ * a folder click turns into a Gmail 429.
  */
 export async function listGmailMailbox(
   userId: string,
   box: Mailbox,
-): Promise<MailboxItemWire[] | null> {
+  pageToken?: string,
+): Promise<MailboxPage | null> {
   const auth = await getAuthedClient(userId);
   if (!auth) return null;
 
@@ -75,6 +85,7 @@ export async function listGmailMailbox(
     userId: "me",
     maxResults: PAGE_SIZE,
     q: buildMailboxQuery(box),
+    ...(pageToken ? { pageToken } : {}),
   });
   const ids = (res.data.messages ?? []).map((m) => m.id).filter((id): id is string => Boolean(id));
 
@@ -108,7 +119,10 @@ export async function listGmailMailbox(
       }
     }),
   );
-  return rows.filter((r): r is MailboxItemWire => r !== null);
+  return {
+    items: rows.filter((r): r is MailboxItemWire => r !== null),
+    nextPageToken: res.data.nextPageToken ?? null,
+  };
 }
 
 /**

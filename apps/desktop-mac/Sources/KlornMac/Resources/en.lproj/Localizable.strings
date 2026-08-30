@@ -526,3 +526,4 @@
 "appearance.toLight" = "Switch to light mode";
 "appearance.toDark" = "Switch to dark mode";
 "compose.editDraft" = "Edit draft";
+"mailbox.loadMore" = "Load more";

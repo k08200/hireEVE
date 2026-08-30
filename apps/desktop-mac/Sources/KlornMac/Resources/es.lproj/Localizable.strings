@@ -526,3 +526,4 @@
 "appearance.toLight" = "Cambiar a modo claro";
 "appearance.toDark" = "Cambiar a modo oscuro";
 "compose.editDraft" = "Editar borrador";
+"mailbox.loadMore" = "Cargar más";

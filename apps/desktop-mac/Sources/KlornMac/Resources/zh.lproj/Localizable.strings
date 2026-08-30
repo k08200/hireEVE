@@ -526,3 +526,4 @@
 "appearance.toLight" = "切换到浅色模式";
 "appearance.toDark" = "切换到深色模式";
 "compose.editDraft" = "编辑草稿";
+"mailbox.loadMore" = "加载更多";

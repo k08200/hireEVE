@@ -526,3 +526,4 @@
 "appearance.toLight" = "라이트 모드로 전환";
 "appearance.toDark" = "다크 모드로 전환";
 "compose.editDraft" = "임시보관 메일 편집";
+"mailbox.loadMore" = "더 보기";

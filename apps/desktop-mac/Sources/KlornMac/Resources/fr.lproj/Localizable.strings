@@ -526,3 +526,4 @@
 "appearance.toLight" = "Passer en mode clair";
 "appearance.toDark" = "Passer en mode sombre";
 "compose.editDraft" = "Modifier le brouillon";
+"mailbox.loadMore" = "Charger plus";
