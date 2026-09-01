@@ -528,3 +528,13 @@
 "compose.editDraft" = "임시보관 메일 편집";
 "mailbox.loadMore" = "더 보기";
 "chip.billing" = "청구·영수증";
+
+// Inbox purpose — the connect-time question (2026-09-01).
+"purpose.title" = "이 메일함은 어떤 용도인가요?";
+"purpose.detail" = "용도에 맞춰 분석을 조정합니다 — 개인 메일함과 업무 메일함은 다르게 읽어야 하니까요. 계정 섹션에서 언제든 바꿀 수 있습니다.";
+"purpose.work" = "업무";
+"purpose.personal" = "개인";
+"purpose.mixed" = "둘 다";
+"purpose.later" = "나중에";
+"purpose.unset" = "용도 설정";
+"purpose.primaryFallback" = "기본 계정";

@@ -132,3 +132,45 @@ enum GuideSeen {
         !seen && signedIn
     }
 }
+
+/// The connect-time question (founder 2026-08-30): what is this mailbox FOR?
+/// One question, three buttons — the answer feeds the analysis prompts, so
+/// asking it early is what makes the labeling accurate from day one. "나중에"
+/// dismisses permanently; the account section can always set it later.
+struct PurposePrompt: View {
+    @Environment(AppModel.self) private var model
+
+    private func choice(_ purpose: String, _ title: String) -> some View {
+        Button(title) {
+            model.dismissPurposePrompt()
+            Task { await model.setInboxPurpose(inboxId: nil, purpose: purpose) }
+        }
+        .buttonStyle(PrimaryButtonStyle())
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.s3) {
+            Text(L("purpose.title"))
+                .font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
+            Text(L("purpose.detail"))
+                .font(.callout).foregroundStyle(Theme.textDim)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: Theme.s2) {
+                choice("work", L("purpose.work"))
+                choice("personal", L("purpose.personal"))
+                choice("mixed", L("purpose.mixed"))
+            }
+            .padding(.top, Theme.s1)
+            Button(L("purpose.later")) { model.dismissPurposePrompt() }
+                .buttonStyle(.plain).font(Theme.Typo.label)
+                .foregroundStyle(Theme.textDim)
+        }
+        .padding(22)
+        .frame(width: 430)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
+        .shadow(color: Theme.panelShadow, radius: 24, y: 8)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(L("purpose.title"))
+    }
+}

@@ -939,6 +939,47 @@ final class AppModel {
     /// shows an honest error instead of an infinite spinner.
     private(set) var commitmentsFailed = false
 
+    // MARK: Inbox purpose (2026-09-01)
+
+    /// The connect-time question: what is this mailbox FOR? Shown once after
+    /// sign-in while the primary account has no answer; "나중에" dismisses it
+    /// permanently (the account section can always set it later).
+    var showPurposePrompt = false
+    private static let purposePromptDismissedKey = "klorn.purposePromptDismissed"
+
+    func presentPurposePromptIfNeeded() {
+        guard !Theme.isRenderingOffscreen, phase == .signedIn, !showTierGuide,
+              !UserDefaults.standard.bool(forKey: Self.purposePromptDismissedKey),
+              let primary = inboxes.first(where: { $0.kind == "primary" }),
+              primary.purpose == nil
+        else { return }
+        showPurposePrompt = true
+    }
+
+    func dismissPurposePrompt() {
+        showPurposePrompt = false
+        UserDefaults.standard.set(true, forKey: Self.purposePromptDismissedKey)
+    }
+
+    /// Write one mailbox's purpose ("primary" or a linked id; nil clears).
+    /// Optimistic close on the prompt path; the inboxes refresh reconciles.
+    func setInboxPurpose(inboxId: String?, purpose: String?) async {
+        struct Body: Encodable {
+            let inbox: String
+            let purpose: String?
+        }
+        do {
+            try await api.patch(
+                "/api/email/inboxes/purpose",
+                encodable: Body(inbox: inboxId ?? "primary", purpose: purpose))
+            await refreshInboxes()
+        } catch APIError.unauthorized {
+            signOut()
+        } catch {
+            Log.app.warning("purpose update failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
     // MARK: Calendar range (real calendar views, 2026-08-26)
 
     /// Events for the calendar screen's visible range, keyed by the ISO range

@@ -528,3 +528,13 @@
 "compose.editDraft" = "下書きを編集";
 "mailbox.loadMore" = "さらに読み込む";
 "chip.billing" = "請求・領収書";
+
+// Inbox purpose — the connect-time question (2026-09-01).
+"purpose.title" = "このメールボックスの用途は？";
+"purpose.detail" = "用途に合わせて分析を調整します — 個人用と仕事用では読み方が違うからです。アカウント欄でいつでも変更できます。";
+"purpose.work" = "仕事";
+"purpose.personal" = "個人";
+"purpose.mixed" = "両方";
+"purpose.later" = "あとで";
+"purpose.unset" = "用途を設定";
+"purpose.primaryFallback" = "メインアカウント";

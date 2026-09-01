@@ -528,3 +528,13 @@
 "compose.editDraft" = "Entwurf bearbeiten";
 "mailbox.loadMore" = "Mehr laden";
 "chip.billing" = "Rechnungen";
+
+// Inbox purpose — the connect-time question (2026-09-01).
+"purpose.title" = "Wofür ist dieses Postfach?";
+"purpose.detail" = "Klorn stimmt die Analyse auf die Nutzung ab — ein privates Postfach liest sich anders als ein berufliches. Jederzeit im Kontobereich änderbar.";
+"purpose.work" = "Arbeit";
+"purpose.personal" = "Privat";
+"purpose.mixed" = "Beides";
+"purpose.later" = "Später";
+"purpose.unset" = "Zweck festlegen";
+"purpose.primaryFallback" = "Hauptkonto";
