@@ -17,7 +17,13 @@ vi.mock("../providers/index.js", () => ({ getProviderChain }));
 vi.mock("../resolve-user-email.js", () => ({ resolveUserEmail: vi.fn(async () => "me@k.co") }));
 vi.mock("../sentry.js", () => ({ captureError: vi.fn() }));
 vi.mock("../db.js", () => {
-  const prisma = { emailMessage: { update: emailUpdate, findMany: vi.fn(async () => []) } };
+  const prisma = {
+    // Inbox-purpose lookups (resolveInboxPurpose) — null = unset, keeps
+    // the legacy preamble.
+    user: { findUnique: vi.fn(async () => null) },
+    linkedInboxAccount: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []) },
+    emailMessage: { update: emailUpdate, findMany: vi.fn(async () => []) },
+  };
   return { prisma, db: prisma };
 });
 

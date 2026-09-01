@@ -270,6 +270,7 @@ describe("email routes (demo mode)", () => {
           id: null,
           email: "primary@example.com",
           kind: "primary",
+          purpose: null,
           needsReconnect: false,
           provider: "GOOGLE",
         },
@@ -277,6 +278,7 @@ describe("email routes (demo mode)", () => {
           id: "linked-1",
           email: "second@school.edu",
           kind: "linked",
+          purpose: null,
           needsReconnect: false,
           provider: "GOOGLE",
         },
@@ -337,7 +339,7 @@ describe("email routes (demo mode)", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().inboxes[0]).toMatchObject({ kind: "primary", needsReconnect: true });
-    await app.close();
+    purpose: null, await app.close();
   });
 
   it("GET /inboxes includes non-Google inboxes with their provider when the selector flag is on", async () => {
@@ -371,6 +373,7 @@ describe("email routes (demo mode)", () => {
           id: null,
           email: "primary@example.com",
           kind: "primary",
+          purpose: null,
           needsReconnect: false,
           provider: "GOOGLE",
         },
@@ -378,6 +381,7 @@ describe("email routes (demo mode)", () => {
           id: "linked-1",
           email: "second@school.edu",
           kind: "linked",
+          purpose: null,
           needsReconnect: false,
           provider: "GOOGLE",
         },
@@ -385,6 +389,7 @@ describe("email routes (demo mode)", () => {
           id: "linked-2",
           email: "me@naver.com",
           kind: "linked",
+          purpose: null,
           needsReconnect: false,
           provider: "NAVER",
         },
