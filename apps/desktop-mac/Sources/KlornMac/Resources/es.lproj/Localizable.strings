@@ -528,3 +528,13 @@
 "compose.editDraft" = "Editar borrador";
 "mailbox.loadMore" = "Cargar más";
 "chip.billing" = "Facturación";
+
+// Inbox purpose — the connect-time question (2026-09-01).
+"purpose.title" = "¿Para qué es este buzón?";
+"purpose.detail" = "Klorn ajusta su análisis al uso de esta cuenta — un buzón personal se lee distinto a uno de trabajo. Puedes cambiarlo cuando quieras en la sección de cuenta.";
+"purpose.work" = "Trabajo";
+"purpose.personal" = "Personal";
+"purpose.mixed" = "Ambos";
+"purpose.later" = "Después";
+"purpose.unset" = "Definir uso";
+"purpose.primaryFallback" = "Cuenta principal";

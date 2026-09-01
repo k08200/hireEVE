@@ -528,3 +528,13 @@
 "compose.editDraft" = "Edit draft";
 "mailbox.loadMore" = "Load more";
 "chip.billing" = "Billing";
+
+// Inbox purpose — the connect-time question (2026-09-01).
+"purpose.title" = "What is this mailbox for?";
+"purpose.detail" = "Klorn tunes its analysis to how you use this account — a personal inbox is read differently from a work one. You can change this anytime under 계정.";
+"purpose.work" = "Work";
+"purpose.personal" = "Personal";
+"purpose.mixed" = "Both";
+"purpose.later" = "Later";
+"purpose.unset" = "Set purpose";
+"purpose.primaryFallback" = "Primary account";

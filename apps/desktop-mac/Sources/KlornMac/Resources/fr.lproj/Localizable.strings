@@ -528,3 +528,13 @@
 "compose.editDraft" = "Modifier le brouillon";
 "mailbox.loadMore" = "Charger plus";
 "chip.billing" = "Facturation";
+
+// Inbox purpose — the connect-time question (2026-09-01).
+"purpose.title" = "À quoi sert cette boîte ?";
+"purpose.detail" = "Klorn ajuste son analyse à l'usage de ce compte — une boîte personnelle ne se lit pas comme une boîte pro. Modifiable à tout moment dans la section compte.";
+"purpose.work" = "Travail";
+"purpose.personal" = "Personnel";
+"purpose.mixed" = "Les deux";
+"purpose.later" = "Plus tard";
+"purpose.unset" = "Définir l'usage";
+"purpose.primaryFallback" = "Compte principal";

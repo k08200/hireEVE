@@ -116,6 +116,13 @@ struct APIClient: Sendable {
         _ = try await data(path, method: "DELETE", authed: authed)
     }
 
+    /// PATCH an Encodable body; discard the response. For payloads a
+    /// [String: String] can't express (optional fields must serialize null).
+    func patch(_ path: String, encodable: some Encodable, authed: Bool = true) async throws {
+        let body = try JSONEncoder().encode(encodable)
+        _ = try await data(path, method: "PATCH", body: body, contentType: "application/json", authed: authed)
+    }
+
     /// PATCH a JSON object; discard the response body (e.g. commitment status).
     func patch(_ path: String, json: [String: String], authed: Bool = true) async throws {
         let body = try JSONEncoder().encode(json)

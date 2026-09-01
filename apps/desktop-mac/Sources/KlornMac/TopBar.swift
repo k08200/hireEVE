@@ -1741,7 +1741,10 @@ struct FullView: View {
             // VoiceOver traversal follows the view tree — disable the
             // background so keyboard focus can't wander behind the modal.
             .disabled(model.showCompose || model.showPreferences || model.showTierGuide)
-            .onAppear { model.presentTierGuideIfFirstRun() }
+            .onAppear {
+                model.presentTierGuideIfFirstRun()
+                model.presentPurposePromptIfNeeded()
+            }
             // The dock rides above the columns but BELOW the modal overlays:
             // a modal is something the user just asked for.
             if model.phase == .signedIn
@@ -1766,6 +1769,17 @@ struct FullView: View {
             }
             // Preferences wins if both are up: the guide is ambient explanation,
             // a settings panel is something the user just asked for.
+            // The connect-time purpose question — below the guide and
+            // Preferences in priority (both are things the user asked for or
+            // must read first).
+            if model.showPurposePrompt && !model.showPreferences && !model.showTierGuide
+                && !model.showCompose
+            {
+                Theme.text.opacity(0.45)
+                    .onTapGesture { model.dismissPurposePrompt() }
+                    .accessibilityHidden(true)
+                PurposePrompt()
+            }
             if model.showTierGuide && !model.showPreferences {
                 Theme.text.opacity(0.45)
                     .onTapGesture { model.dismissTierGuide() }
@@ -1991,6 +2005,19 @@ private struct FullSidebar: View {
     @State private var accountContentHeight: CGFloat = 0
 
     private func tierCount(_ tier: Tier) -> Int { model.queue?.summary.count(for: tier) ?? 0 }
+
+    private func purposeLabel(_ purpose: String?) -> String {
+        switch purpose {
+        case "work": L("purpose.work")
+        case "personal": L("purpose.personal")
+        case "mixed": L("purpose.mixed")
+        default: L("purpose.unset")
+        }
+    }
+
+    private func setPurpose(_ inbox: InboxOption, _ purpose: String) {
+        Task { await model.setInboxPurpose(inboxId: inbox.id, purpose: purpose) }
+    }
 
     /// One tier row — shared by the primary lanes and the filed group
     /// (indented so the hierarchy reads at a glance).
@@ -2466,6 +2493,36 @@ private struct FullSidebar: View {
                     Task { await model.reconnectPrimary() }
                 }
                 sidebarAction(L("account.add"), dim: true) { Task { await model.addAccount() } }
+                // What each mailbox is FOR — feeds the analysis prompts. One
+                // row per connected inbox; the menu writes immediately.
+                ForEach(model.inboxes) { inbox in
+                    HStack(spacing: 6) {
+                        Text(inbox.email ?? L("purpose.primaryFallback"))
+                            .font(.caption).foregroundStyle(Theme.textDim)
+                            .lineLimit(1).truncationMode(.middle)
+                        Spacer()
+                        if Theme.isRenderingOffscreen {
+                            Text(purposeLabel(inbox.purpose))
+                                .font(Theme.Typo.label).foregroundStyle(Theme.text)
+                        } else {
+                            Menu {
+                                Button(L("purpose.work")) { setPurpose(inbox, "work") }
+                                Button(L("purpose.personal")) { setPurpose(inbox, "personal") }
+                                Button(L("purpose.mixed")) { setPurpose(inbox, "mixed") }
+                            } label: {
+                                Text(purposeLabel(inbox.purpose))
+                                    + Text(Image(systemName: "chevron.down"))
+                                    .font(.caption2.weight(.semibold))
+                            }
+                            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                            .font(Theme.Typo.label).foregroundStyle(Theme.text)
+                        }
+                    }
+                    .padding(.horizontal, 20).padding(.vertical, 3)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(
+                        "\(inbox.email ?? ""). \(purposeLabel(inbox.purpose))")
+                }
                 Divider().padding(.horizontal, 16).padding(.vertical, 4)
                 maintenanceDisclosureRow
                 if showMaintenance {

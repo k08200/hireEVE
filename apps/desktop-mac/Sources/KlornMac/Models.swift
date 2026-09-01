@@ -700,6 +700,10 @@ struct InboxOption: Codable, Sendable, Identifiable, Hashable {
     /// "GOOGLE" | "NAVER" | … — the server sends it, older builds ignored it.
     /// Optional so a response without the field still decodes.
     let provider: String?
+    /// "work" | "personal" | "mixed" — what this mailbox is FOR, declared by
+    /// the user (feeds the analysis prompts). Nil = never answered, or an
+    /// older server. Optional decode keeps both directions compatible.
+    let purpose: String?
 
     /// Selector value ("primary" for the nil-id primary row) — matches the
     /// web InboxSelector's value scheme and the API's `inbox=` param.

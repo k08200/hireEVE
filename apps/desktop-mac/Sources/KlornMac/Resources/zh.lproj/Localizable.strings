@@ -528,3 +528,13 @@
 "compose.editDraft" = "编辑草稿";
 "mailbox.loadMore" = "加载更多";
 "chip.billing" = "账单·收据";
+
+// Inbox purpose — the connect-time question (2026-09-01).
+"purpose.title" = "这个邮箱是做什么用的？";
+"purpose.detail" = "Klorn 会根据用途调整分析 — 个人邮箱和工作邮箱的读法不同。可随时在账户栏更改。";
+"purpose.work" = "工作";
+"purpose.personal" = "个人";
+"purpose.mixed" = "两者";
+"purpose.later" = "稍后";
+"purpose.unset" = "设置用途";
+"purpose.primaryFallback" = "主账户";
