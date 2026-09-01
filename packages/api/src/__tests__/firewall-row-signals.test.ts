@@ -19,6 +19,17 @@ describe("judgeSignalOf", () => {
     expect(judgeSignalOf("system")).toBe("system");
   });
 
+  it("maps the vocabulary the summarize pass ACTUALLY stores", () => {
+    // EmailMessage.category is written by email-summarize (billing | meeting |
+    // engineering | conversation | automated | newsletter | personal |
+    // business | other) — the classifier's 8-word vocabulary reaches the DB
+    // only via the agent tool. The first mapping shipped against the wrong
+    // list, so 회사/고객/투자자 chips could never appear on real rows.
+    expect(judgeSignalOf("billing")).toBe("billing");
+    expect(judgeSignalOf("engineering")).toBe("system");
+    expect(judgeSignalOf("newsletter")).toBe("promotions");
+  });
+
   it("folds automated into promotions — one bulk-mail category, not two", () => {
     expect(judgeSignalOf("automated")).toBe("promotions");
   });
@@ -27,6 +38,10 @@ describe("judgeSignalOf", () => {
     expect(judgeSignalOf("meeting")).toBeNull();
     expect(judgeSignalOf("conversation")).toBeNull();
     expect(judgeSignalOf("other")).toBeNull();
+    // personal/business stay unclaimed: the summarize pass can't tell 회사
+    // from 고객, and a wrong claim is worse than none.
+    expect(judgeSignalOf("personal")).toBeNull();
+    expect(judgeSignalOf("business")).toBeNull();
     expect(judgeSignalOf(null)).toBeNull();
     expect(judgeSignalOf("garbage-from-old-rows")).toBeNull();
   });

@@ -115,6 +115,8 @@ enum Theme {
         case .customer: dyn(light: (0.68, 0.14, 0.34, 1), dark: (1.0, 0.58, 0.68, 1))
         case .investor: dyn(light: (0.56, 0.42, 0.0, 1), dark: (0.90, 0.74, 0.30, 1))
         case .system: dyn(light: (0.32, 0.38, 0.52, 1), dark: (0.66, 0.72, 0.84, 1))
+        // Money-adjacent — a warm bronze apart from investor's gold.
+        case .billing: dyn(light: (0.52, 0.30, 0.08, 1), dark: (0.88, 0.62, 0.38, 1))
         case .promotions: dyn(light: (0.03, 0.42, 0.20, 1), dark: (0.38, 0.80, 0.50, 1))
         case .social: dyn(light: (0.12, 0.34, 0.78, 1), dark: (0.52, 0.70, 1.0, 1))
         case .updates: dyn(light: (0.55, 0.38, 0.0, 1), dark: (0.95, 0.76, 0.28, 1))

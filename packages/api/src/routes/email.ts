@@ -13,6 +13,7 @@ import type {
   EmailListResponse,
   EmailThreadListResponse,
   InboxesResponse,
+  InboxPurpose,
   TrustWire,
 } from "@klorn/contract";
 import type { EmailMessage, FeedbackSignal, Prisma } from "@prisma/client";
@@ -1394,11 +1395,16 @@ export async function emailRoutes(app: FastifyInstance) {
   // the primary Google account + every linked secondary inbox. Read-only,
   // self-scoped (userId from the JWT), and NO tokens are returned. Built entirely
   // from the user's own rows — nothing about any specific address is hardcoded.
+  // DB stores purpose as a free string column; the wire narrows it — any
+  // unknown value (a rollback, a manual edit) reads as unset, never a crash.
+  const asPurpose = (value: string | null | undefined): InboxPurpose | null =>
+    value === "work" || value === "personal" || value === "mixed" ? value : null;
+
   app.get("/inboxes", async (request): Promise<InboxesResponse> => {
     const uid = getUserId(request);
     const user = await prisma.user.findUnique({
       where: { id: uid },
-      select: { email: true },
+      select: { email: true, primaryInboxPurpose: true },
     });
     // Primary reconnect state: an invalidated token keeps its row but loses
     // the refresh token — that IS "needs reconnect" for the primary account.
@@ -1412,7 +1418,7 @@ export async function emailRoutes(app: FastifyInstance) {
       // unsupported ones refusing loudly as 501) surfaces every connected
       // mailbox — NAVER rows have been in this table since Phase 0b.
       where: providerInboxSelectorEnabled() ? { userId: uid } : { userId: uid, provider: "GOOGLE" },
-      select: { id: true, email: true, needsReconnect: true, provider: true },
+      select: { id: true, email: true, needsReconnect: true, provider: true, purpose: true },
       orderBy: { email: "asc" },
     });
     // A pre-guard row that mirrors the primary address (user OAuth-linked
@@ -1430,12 +1436,14 @@ export async function emailRoutes(app: FastifyInstance) {
           // client that renders this field (2026-08-07 desktop diagnosis).
           needsReconnect: Boolean(googleToken) && !googleToken?.refreshToken,
           provider: "GOOGLE" as const,
+          purpose: asPurpose(user?.primaryInboxPurpose),
         },
         ...distinctLinked.map((l) => ({
           id: l.id,
           email: l.email,
           kind: "linked" as const,
           needsReconnect: l.needsReconnect,
+          purpose: asPurpose(l.purpose),
           // No cast on purpose: the Prisma enum and the contract union are the
           // same five values today, and this assignment is what fails the
           // build the day a migration adds a provider the contract lacks.
@@ -1447,6 +1455,41 @@ export async function emailRoutes(app: FastifyInstance) {
 
   // ─── Reconcile (remove stale emails from DB) ──────────────────────────
   // POST /api/email/reconcile
+  // What a mailbox is FOR — feeds the analysis prompts (a personal inbox
+  // must not be scored as a work inbox). Declared by the user, never
+  // inferred; null clears the answer.
+  app.patch("/inboxes/purpose", async (request, reply) => {
+    const uid = getUserId(request);
+    const { inbox, purpose } = (request.body ?? {}) as {
+      inbox?: string;
+      purpose?: string | null;
+    };
+    const VALID = ["work", "personal", "mixed"];
+    if (purpose != null && !VALID.includes(purpose)) {
+      return reply.code(400).send({ success: false, error: "Invalid purpose" });
+    }
+    if (!inbox) {
+      return reply.code(400).send({ success: false, error: "inbox is required" });
+    }
+    if (inbox === "primary") {
+      await prisma.user.update({
+        where: { id: uid },
+        data: { primaryInboxPurpose: purpose ?? null },
+      });
+      return { success: true };
+    }
+    // userId in the filter, not just the id — a foreign id must 404, never
+    // write across users.
+    const updated = await prisma.linkedInboxAccount.updateMany({
+      where: { id: inbox, userId: uid },
+      data: { purpose: purpose ?? null },
+    });
+    if (updated.count === 0) {
+      return reply.code(404).send({ success: false, error: "Unknown inbox" });
+    }
+    return { success: true };
+  });
+
   app.post("/reconcile", async (request, reply) => {
     const uid = getUserId(request);
     try {

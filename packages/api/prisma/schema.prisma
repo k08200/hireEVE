@@ -12,6 +12,9 @@ datasource db {
 model User {
   id                        String                     @id @default(uuid())
   email                     String                     @unique
+  // Purpose of the PRIMARY inbox (the account the user signed in with) —
+  // same vocabulary as LinkedInboxAccount.purpose. Null = never asked.
+  primaryInboxPurpose       String?
   passwordHash              String?
   name                      String?
   role                      UserRole                   @default(USER)
@@ -328,6 +331,10 @@ model LinkedInboxAccount {
   user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider            InboxProvider @default(GOOGLE)
   email               String // the linked account address — label + dedup key
+  // What this mailbox is FOR — "work" | "personal" | "mixed" | null (unset).
+  // Feeds the analysis prompts: a personal inbox must not be scored as a
+  // work inbox (founder 2026-08-30). Never inferred; the user says so.
+  purpose             String?
   // OAuth providers (GOOGLE, OUTLOOK): encrypted token pair. Nullable because
   // IMAP rows never have one; Google reads already guard `row.accessToken ?`.
   accessToken         String?

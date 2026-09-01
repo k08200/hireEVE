@@ -135,12 +135,18 @@ export type InboxProvider = "GOOGLE" | "NAVER" | "ICLOUD" | "OUTLOOK" | "IMAP";
  * A mailbox the user can scope the list to. `id === null` is the primary
  * Google inbox; a string id is a linked secondary inbox.
  */
+/** What a mailbox is FOR — declared by the user, never inferred. Feeds the
+ *  analysis prompts (a personal inbox must not be scored as a work inbox). */
+export type InboxPurpose = "work" | "personal" | "mixed";
+
 export interface InboxOption {
   id: string | null;
   email: string | null;
   kind: "primary" | "linked";
   needsReconnect: boolean;
   provider: InboxProvider;
+  /** Null until the user answers. */
+  purpose: InboxPurpose | null;
 }
 
 /** `GET /api/email/inboxes` — the caller's mailboxes for the inbox selector. */

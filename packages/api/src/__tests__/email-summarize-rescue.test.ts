@@ -8,6 +8,10 @@ const findMany = vi.fn(async (): Promise<unknown[]> => []);
 const update = vi.fn(async () => ({}));
 vi.mock("../db.js", () => {
   const prisma = {
+    // Inbox-purpose lookups (resolveInboxPurpose) — null = unset, keeps
+    // the legacy preamble.
+    user: { findUnique: vi.fn(async () => null) },
+    linkedInboxAccount: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []) },
     emailMessage: {
       findMany: (...a: unknown[]) => findMany(...a),
       update: (...a: unknown[]) => update(...a),

@@ -1175,6 +1175,8 @@ enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
     case customer
     case investor
     case system
+    /// Receipts / invoices / payment notices (the summarize pass's billing).
+    case billing
     // Gmail's tabs.
     case promotions
     case social
@@ -1192,6 +1194,7 @@ enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
         case .customer: L("chip.customer")
         case .investor: L("chip.investor")
         case .system: L("chip.system")
+        case .billing: L("chip.billing")
         case .promotions: L("chip.promotions")
         case .social: L("chip.social")
         case .updates: L("chip.updates")
@@ -1207,6 +1210,7 @@ enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
         case .customer: "person.crop.circle.badge.checkmark"
         case .investor: "chart.line.uptrend.xyaxis"
         case .system: "gearshape"
+        case .billing: "creditcard"
         case .promotions: "tag"
         case .social: "person.2"
         case .updates: "bell"
@@ -1225,7 +1229,7 @@ enum LabelFilter: String, CaseIterable, Sendable, Identifiable {
             // Anything without a category claim (judge or Gmail).
             if case .category = signal { return false }
             return true
-        case .company, .customer, .investor, .system,
+        case .company, .customer, .investor, .system, .billing,
              .promotions, .social, .updates, .forums:
             return signal == .category(rawValue)
         case .firstContact: return signal == .first

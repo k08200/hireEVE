@@ -74,7 +74,8 @@ export type RowSignalWire =
         | "internal"
         | "customer"
         | "investor"
-        | "system";
+        | "system"
+        | "billing";
     }
   | { kind: "replied"; count: number }
   | { kind: "first" }

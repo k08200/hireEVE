@@ -527,3 +527,4 @@
 "appearance.toDark" = "Switch to dark mode";
 "compose.editDraft" = "Edit draft";
 "mailbox.loadMore" = "Load more";
+"chip.billing" = "Billing";
