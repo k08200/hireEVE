@@ -538,3 +538,9 @@
 "purpose.later" = "Plus tard";
 "purpose.unset" = "Définir l'usage";
 "purpose.primaryFallback" = "Compte principal";
+
+// Body-first reading pane + pre-login purpose pick (2026-09-01).
+"reading.analysis" = "Analyse Klorn";
+"reading.analysis.expand" = "Afficher l'analyse";
+"reading.analysis.collapse" = "Masquer l'analyse";
+"purpose.loginPick" = "CE COMPTE SERT À";

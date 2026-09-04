@@ -538,3 +538,9 @@
 "purpose.later" = "稍后";
 "purpose.unset" = "设置用途";
 "purpose.primaryFallback" = "主账户";
+
+// Body-first reading pane + pre-login purpose pick (2026-09-01).
+"reading.analysis" = "Klorn 分析";
+"reading.analysis.expand" = "展开分析";
+"reading.analysis.collapse" = "收起分析";
+"purpose.loginPick" = "此账户的用途";

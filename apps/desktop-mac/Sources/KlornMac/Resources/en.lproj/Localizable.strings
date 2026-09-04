@@ -538,3 +538,9 @@
 "purpose.later" = "Later";
 "purpose.unset" = "Set purpose";
 "purpose.primaryFallback" = "Primary account";
+
+// Body-first reading pane + pre-login purpose pick (2026-09-01).
+"reading.analysis" = "Klorn's read";
+"reading.analysis.expand" = "Show the analysis";
+"reading.analysis.collapse" = "Hide the analysis";
+"purpose.loginPick" = "THIS ACCOUNT IS FOR";
