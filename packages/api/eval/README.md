@@ -54,6 +54,8 @@ never lower it to make a PR pass.
 
 ## Model bake-off re-run (2026-08-26 — current model generation)
 
+> **Superseded 2026-09-04** by the three-run measurement at the end of this file. The table below is a single run per model and ranks a one-email gap; keep it as history, cite the 09-04 tiers instead.
+
 The bake-off the README quotes had gone stale on three axes at once: the set
 had grown 50 → 56 and gained two lanes, and the comparison models (`gpt-4o`,
 `gemini-2.5-pro`) were a generation behind the ones the product now offers.
@@ -342,3 +344,52 @@ probe set (`src/llm/model-canary-probes.ts`) mixes:
 Any answer flip on an identical probe fails the workflow (same
 `scripts/canary-compare.ts`, same baseline lifecycle and
 `accept-baseline=true` procedure as the judge canary).
+
+## Bake-off re-measured with variance (2026-09-04 — 10 models × 3 runs)
+
+The 2026-08-26 table above ranked six models on one run each. A reader
+objected that on 56 items every 1.8pt is a single email, so single-run
+ordering is noise; re-measuring confirmed that for the middle of the table
+and refuted it for the ends. Two further defects were found in the 08-26 run
+while doing so: it benchmarked the product's chat catalog (pinned 2026-07-04)
+and so missed `gemini-3.7-flash`, `grok-4.6` and the `gpt-5.6` family, all of
+which predated it; and it described itself as temperature-0 when the judge
+sets no temperature at all (provider default — which is what production runs,
+so that is what is measured here).
+
+Configuration: `--context=fixture`, `JUDGE_INCLUDE_BODY=true`, concurrency 1,
+3s pacing. **Any run in which an item fell back to the keyword path was
+discarded**, not averaged — a fallback verdict measures the fallback, not the
+model. 23 of 30 planned runs survived; the sweep also shared an API key with
+production and briefly rate-limited it (see klorn-ops `incidents/`), which is
+why eval now requires a dedicated key.
+
+| model | runs | correct / 56 | range | urgent / 13 | gate | PUSH→SILENT |
+|---|---|---|---|---|---|---|
+| `openai/gpt-5.4` | 3 | 56 · 56 · 56 | 100.0 | 13 · 13 · 13 | 3/3 | 0 |
+| `google/gemini-3.5-flash` | 3 | 55 · 55 · 55 | 98.2 | 13 · 13 · 13 | 3/3 | 0 |
+| `openai/gpt-5.6-terra` | 2 | 55 · 55 | 98.2 | 13 · 13 | 2/2 | 0 |
+| `x-ai/grok-4.6` | 1 | 55 | 98.2 | 12 | 1/1 | 0 |
+| `google/gemini-3.7-flash` | 3 | 55 · 55 · 54 | 96.4–98.2 | 13 · 13 · 12 | 3/3 | 0 |
+| `openai/gpt-5.6-luna` | 2 | 53 · 55 | 94.6–98.2 | 12 · 12 | 2/2 | 0 |
+| `google/gemini-2.5-flash` *(default pin)* | 3 | 54 · 54 · 54 | 96.4 | 13 · 13 · 13 | 3/3 | 0 |
+| `x-ai/grok-4.3` | 2 | 54 · 54 | 96.4 | 12 · 12 | 2/2 | 0 |
+| `anthropic/claude-opus-4.8` | 2 | 50 · 49 | 87.5–89.3 | 9 · 8 | 0/2 | 0 |
+| `anthropic/claude-sonnet-5` | 2 | 48 · 45 | 80.4–85.7 | 7 · 5 | 0/2 | 0 |
+
+`grok-4.6` lost two runs to upstream timeouts exceeding 90 minutes each; that
+is an availability finding about the provider, recorded here rather than
+smoothed over, and it disqualifies the model as a judge pin regardless of its
+one clean score.
+
+Findings that survive three runs: (1) the 98.2 cluster is a tie and must be
+reported as a tier; (2) gpt-5.4 at 56/56 and both Anthropic models below the
+urgent floor are stable, so the ends of the table are real; (3) price still
+does not order the table — the $0.20 model reaches the top tier and the $5.00
+model never passes; (4) at provider-default temperature 8 of 10 models moved
+≤1 email between runs and the two that moved 2–3 are the two failing the gate,
+so run-to-run stability is itself a selection criterion for a per-email judge;
+(5) safety invariant 1 held in all 23 runs. The sonnet-5 confidence-vs-urgency
+mechanism reproduced across runs (urgent 5–7/13) with the same shape.
+
+> ⚠️ The canary sections above describe the judge as temperature-0. It is not — `createCompletion` passes no `temperature`, so the judge runs at each provider's default. The 09-04 measurement shows most models are still stable run-to-run at that default, but the canary's flip-alarm reasoning assumes determinism it does not have. Tracked in #1297.
