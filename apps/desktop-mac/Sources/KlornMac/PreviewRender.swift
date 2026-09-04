@@ -119,6 +119,11 @@ enum PreviewRender {
             briefingJSON: briefingJSON)
         GuideSeen.value = true
         model.showAssistantDock = true
+        // The reading shot sells the analysis band — shoot it expanded (the
+        // in-app default is collapsed so the mail stays the star).
+        // `-klorn.readingBand collapsed` shoots the in-app default instead.
+        model.settings.readingBandExpanded =
+            UserDefaults.standard.string(forKey: "klorn.readingBand") != "collapsed"
         // JSON like every other fixture — the L10n guard treats Swift string
         // literals as UI copy, and these are demo DATA, not copy.
         if let seed = try? JSONDecoder().decode(

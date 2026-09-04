@@ -263,6 +263,9 @@ final class AppModel {
         do {
             let resp = try await api.fetchInboxes()
             inboxes = resp.inboxes
+            // A purpose chosen on the signed-out screen lands here, the first
+            // moment the primary inbox is confirmed to exist.
+            applyPendingPurposeIfNeeded()
             if let value = inboxQueryParam(selected: selectedInbox), value != "primary",
                !resp.inboxes.contains(where: { $0.id == value })
             {
@@ -946,6 +949,20 @@ final class AppModel {
     /// permanently (the account section can always set it later).
     var showPurposePrompt = false
     private static let purposePromptDismissedKey = "klorn.purposePromptDismissed"
+
+    /// Chosen on the SIGNED-OUT screen, before OAuth (founder 2026-09-01:
+    /// "로그인 하면서 고르게"). Applied to the primary inbox as soon as the
+    /// sign-in lands and the inbox list confirms it; then cleared. Selecting
+    /// nothing falls back to the post-login prompt card.
+    var pendingPurpose: String?
+
+    func applyPendingPurposeIfNeeded() {
+        guard let purpose = pendingPurpose, phase == .signedIn,
+              inboxes.contains(where: { $0.kind == "primary" })
+        else { return }
+        pendingPurpose = nil
+        Task { await setInboxPurpose(inboxId: nil, purpose: purpose) }
+    }
 
     func presentPurposePromptIfNeeded() {
         guard !Theme.isRenderingOffscreen, phase == .signedIn, !showTierGuide,

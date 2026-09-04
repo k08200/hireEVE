@@ -16,6 +16,7 @@ final class AppSettings {
     static let expandedWindowSizeKey = "klorn.expandedWindowSize"
     static let hasLaunchedKey = "klorn.hasLaunchedBefore"
     static let loadRemoteImagesKey = "klorn.mail.loadRemoteImages"
+    static let readingBandExpandedKey = "klorn.reading.bandExpanded"
     static let appearanceKey = "klorn.appearance"
     static let inboxSectionHeightKey = "klorn.inboxSectionHeight"
     static let upcomingSectionHeightKey = "klorn.upcomingSectionHeight"
@@ -51,6 +52,15 @@ final class AppSettings {
     /// pixels, CSS beacons); data:-inline images keep working.
     var loadRemoteImages: Bool {
         didSet { defaults.set(loadRemoteImages, forKey: Self.loadRemoteImagesKey) }
+    }
+
+    /// Whether the reading pane's analysis band (왜 이 분류인지, AI 요약,
+    /// 스레드 브리프…) is expanded. COLLAPSED by default (founder 2026-09-01:
+    /// the band was eating the pane and the actual mail was barely visible) —
+    /// the one-line reason stays visible either way, and the choice persists
+    /// so a reader who wants the full analysis open keeps it open.
+    var readingBandExpanded: Bool {
+        didSet { defaults.set(readingBandExpanded, forKey: Self.readingBandExpandedKey) }
     }
 
     /// App appearance: follow the OS, or force light/dark. Applied via
@@ -186,6 +196,7 @@ final class AppSettings {
         self.defaults = defaults
         self.notificationsEnabled = Self.resolveNotifications(defaults.object(forKey: Self.notificationsKey))
         self.loadRemoteImages = Self.resolveLoadRemoteImages(defaults.object(forKey: Self.loadRemoteImagesKey))
+        self.readingBandExpanded = defaults.object(forKey: Self.readingBandExpandedKey) as? Bool ?? false
         self.appearance = Self.resolveAppearance(defaults.object(forKey: Self.appearanceKey))
         self.accountSectionHeight = Self.resolveAccountSectionHeight(
             defaults.object(forKey: Self.accountSectionHeightKey))

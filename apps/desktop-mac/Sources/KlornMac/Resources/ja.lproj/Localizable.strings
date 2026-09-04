@@ -538,3 +538,9 @@
 "purpose.later" = "あとで";
 "purpose.unset" = "用途を設定";
 "purpose.primaryFallback" = "メインアカウント";
+
+// Body-first reading pane + pre-login purpose pick (2026-09-01).
+"reading.analysis" = "Klornの分析";
+"reading.analysis.expand" = "分析を表示";
+"reading.analysis.collapse" = "分析を隠す";
+"purpose.loginPick" = "このアカウントの用途";

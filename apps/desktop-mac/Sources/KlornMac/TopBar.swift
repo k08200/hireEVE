@@ -2015,6 +2015,14 @@ private struct FullSidebar: View {
         }
     }
 
+    private func purposeChoiceLabel(_ choice: String) -> String {
+        switch choice {
+        case "work": L("purpose.work")
+        case "personal": L("purpose.personal")
+        default: L("purpose.mixed")
+        }
+    }
+
     private func setPurpose(_ inbox: InboxOption, _ purpose: String) {
         Task { await model.setInboxPurpose(inboxId: inbox.id, purpose: purpose) }
     }
@@ -2551,6 +2559,33 @@ private struct FullSidebar: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
+                // Pick the mailbox's purpose BEFORE OAuth (founder: "로그인
+                // 하면서 고르게") — the answer is applied the moment sign-in
+                // lands. Optional: skipping it falls back to the one-question
+                // card after login.
+                Text(L("purpose.loginPick"))
+                    .font(Theme.Typo.micro).foregroundStyle(Theme.textDim)
+                    .padding(.horizontal, 20).padding(.top, 4)
+                HStack(spacing: 6) {
+                    ForEach(["work", "personal", "mixed"], id: \.self) { choice in
+                        let selected = model.pendingPurpose == choice
+                        Button {
+                            model.pendingPurpose = selected ? nil : choice
+                        } label: {
+                            Text(purposeChoiceLabel(choice))
+                                .font(Theme.Typo.label)
+                                .foregroundStyle(selected ? Theme.text : Theme.textDim)
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(
+                                    selected ? Theme.surfaceSelected : Theme.surfaceRaised,
+                                    in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(purposeChoiceLabel(choice))
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                    }
+                }
+                .padding(.horizontal, 20).padding(.bottom, 4)
                 sidebarAction(L("auth.signInGoogle")) { actions.onSignIn() }
                 ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
                     sidebarAction(loginProviderLabel(provider)) {
@@ -3799,13 +3834,39 @@ struct ReadingPane: View {
     @ViewBuilder
     private func klornBand(_ email: EmailDetail) -> some View {
         let reason = item?.tierReason
+        // COLLAPSED by default (founder 2026-09-01): the analysis was eating
+        // the pane and the mail itself was barely visible. The one-line WHY
+        // stays always; everything deeper sits behind the chevron, and the
+        // choice persists (a reader who wants the full analysis keeps it).
+        let expanded = model.settings.readingBandExpanded
         VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    if let item, let reason, !reason.isEmpty {
-                        Circle().fill(Theme.tint(item.tier)).frame(width: 7, height: 7)
-                        Text(L("mail.whyTier", item.tier.label, reason))
-                            .font(.caption).foregroundStyle(Theme.textDim).lineLimit(2)
+                    Button {
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            model.settings.readingBandExpanded.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if let item, let reason, !reason.isEmpty {
+                                Circle().fill(Theme.tint(item.tier)).frame(width: 7, height: 7)
+                                Text(L("mail.whyTier", item.tier.label, reason))
+                                    .font(.caption).foregroundStyle(Theme.textDim)
+                                    .lineLimit(expanded ? 2 : 1)
+                            } else {
+                                Text(L("reading.analysis"))
+                                    .font(.caption).foregroundStyle(Theme.textDim)
+                            }
+                            Image(systemName: "chevron.down").font(.caption2)
+                                .foregroundStyle(Theme.textDim)
+                                .rotationEffect(expanded ? .zero : .degrees(-90))
+                                .accessibilityHidden(true)
+                        }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .help(expanded ? L("reading.analysis.collapse") : L("reading.analysis.expand"))
+                    .accessibilityLabel(L("reading.analysis"))
+                    .accessibilityValue(expanded ? L("a11y.expanded") : L("a11y.collapsed"))
                     Spacer(minLength: 12)
                     // Deep re-read of THIS mail: longer summary, up to 6 key
                     // points, deadlines kept — in the UI language.
@@ -3817,6 +3878,7 @@ struct ReadingPane: View {
                     .foregroundStyle(model.isSummarizing ? Theme.textDim : Theme.accent)
                     .disabled(model.isSummarizing)
                 }
+                if expanded {
                 if model.summarizeFailed {
                     Text(L("mail.summarizeFailed"))
                         .font(.caption).foregroundStyle(Theme.textDim)
@@ -3933,6 +3995,7 @@ struct ReadingPane: View {
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel(engagement.accessibilityLabel)
+                }
                 }
             }
         // Same measure as the mail body below: intelligence about a document
