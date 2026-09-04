@@ -544,3 +544,5 @@
 "reading.analysis.expand" = "展开分析";
 "reading.analysis.collapse" = "收起分析";
 "purpose.loginPick" = "此账户的用途";
+// Linked-account purpose question (2026-09-03).
+"purpose.title.linked" = "%@ 的用途是什么？";

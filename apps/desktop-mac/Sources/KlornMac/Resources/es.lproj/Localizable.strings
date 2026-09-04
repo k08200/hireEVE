@@ -544,3 +544,5 @@
 "reading.analysis.expand" = "Mostrar análisis";
 "reading.analysis.collapse" = "Ocultar análisis";
 "purpose.loginPick" = "ESTA CUENTA ES PARA";
+// Linked-account purpose question (2026-09-03).
+"purpose.title.linked" = "¿Para qué es %@?";
