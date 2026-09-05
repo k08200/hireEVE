@@ -1477,6 +1477,9 @@ private struct AccountColumn: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
+                // Same pre-OAuth purpose pick as the full sidebar — the
+                // expanded panel is the other place a sign-in starts.
+                PurposePickRow(horizontalPadding: 0)
                 SubtleTextButton(title: L("auth.signInGoogle"), dim: false) { actions.onSignIn() }
                 ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
                     SubtleTextButton(title: loginProviderLabel(provider), dim: false) {
@@ -2012,14 +2015,6 @@ private struct FullSidebar: View {
         case "personal": L("purpose.personal")
         case "mixed": L("purpose.mixed")
         default: L("purpose.unset")
-        }
-    }
-
-    private func purposeChoiceLabel(_ choice: String) -> String {
-        switch choice {
-        case "work": L("purpose.work")
-        case "personal": L("purpose.personal")
-        default: L("purpose.mixed")
         }
     }
 
@@ -2563,29 +2558,7 @@ private struct FullSidebar: View {
                 // 하면서 고르게") — the answer is applied the moment sign-in
                 // lands. Optional: skipping it falls back to the one-question
                 // card after login.
-                Text(L("purpose.loginPick"))
-                    .font(Theme.Typo.micro).foregroundStyle(Theme.textDim)
-                    .padding(.horizontal, 20).padding(.top, 4)
-                HStack(spacing: 6) {
-                    ForEach(["work", "personal", "mixed"], id: \.self) { choice in
-                        let selected = model.pendingPurpose == choice
-                        Button {
-                            model.pendingPurpose = selected ? nil : choice
-                        } label: {
-                            Text(purposeChoiceLabel(choice))
-                                .font(Theme.Typo.label)
-                                .foregroundStyle(selected ? Theme.text : Theme.textDim)
-                                .padding(.horizontal, 10).padding(.vertical, 5)
-                                .background(
-                                    selected ? Theme.surfaceSelected : Theme.surfaceRaised,
-                                    in: Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(purposeChoiceLabel(choice))
-                        .accessibilityAddTraits(selected ? .isSelected : [])
-                    }
-                }
-                .padding(.horizontal, 20).padding(.bottom, 4)
+                PurposePickRow(horizontalPadding: 20)
                 sidebarAction(L("auth.signInGoogle")) { actions.onSignIn() }
                 ForEach(model.loginProviders.filter { $0 != "google" }, id: \.self) { provider in
                     sidebarAction(loginProviderLabel(provider)) {

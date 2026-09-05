@@ -544,3 +544,5 @@
 "reading.analysis.expand" = "分析を表示";
 "reading.analysis.collapse" = "分析を隠す";
 "purpose.loginPick" = "このアカウントの用途";
+// Linked-account purpose question (2026-09-03).
+"purpose.title.linked" = "%@ の用途は？";

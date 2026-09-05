@@ -142,15 +142,25 @@ struct PurposePrompt: View {
 
     private func choice(_ purpose: String, _ title: String) -> some View {
         Button(title) {
+            let target = model.purposePromptTarget?.id
             model.dismissPurposePrompt()
-            Task { await model.setInboxPurpose(inboxId: nil, purpose: purpose) }
+            Task { await model.setInboxPurpose(inboxId: target, purpose: purpose) }
         }
         .buttonStyle(PrimaryButtonStyle())
     }
 
+    /// Names the linked account when the question is about one — "this
+    /// mailbox" is ambiguous the moment there are two.
+    private var title: String {
+        if let email = model.purposePromptTarget?.email {
+            return L("purpose.title.linked", email)
+        }
+        return L("purpose.title")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.s3) {
-            Text(L("purpose.title"))
+            Text(title)
                 .font(.title3.weight(.semibold)).foregroundStyle(Theme.text)
             Text(L("purpose.detail"))
                 .font(.callout).foregroundStyle(Theme.textDim)
@@ -171,6 +181,53 @@ struct PurposePrompt: View {
         .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Theme.line))
         .shadow(color: Theme.panelShadow, radius: 24, y: 8)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(L("purpose.title"))
+        .accessibilityLabel(title)
+    }
+}
+
+/// The user-facing word for a purpose value (the wire vocabulary is fixed:
+/// work | personal | mixed).
+func purposeLabel(_ purpose: String) -> String {
+    switch purpose {
+    case "work": L("purpose.work")
+    case "personal": L("purpose.personal")
+    default: L("purpose.mixed")
+    }
+}
+
+/// The pre-OAuth pick (founder 2026-09-01: "로그인 하면서 고르게"): a caption
+/// and three capsules bound to `AppModel.pendingPurpose`, applied the moment
+/// sign-in lands. Shared by the full sidebar and the expanded panel so the
+/// two sign-in entrances ask the same question the same way.
+struct PurposePickRow: View {
+    @Environment(AppModel.self) private var model
+    let horizontalPadding: CGFloat
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(L("purpose.loginPick"))
+                .font(Theme.Typo.micro).foregroundStyle(Theme.textDim)
+            HStack(spacing: 6) {
+                ForEach(["work", "personal", "mixed"], id: \.self) { choice in
+                    let selected = model.pendingPurpose == choice
+                    Button {
+                        model.pendingPurpose = selected ? nil : choice
+                    } label: {
+                        Text(purposeLabel(choice))
+                            .font(Theme.Typo.label)
+                            .foregroundStyle(selected ? Theme.text : Theme.textDim)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(
+                                selected ? Theme.surfaceSelected : Theme.surfaceRaised,
+                                in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(purposeLabel(choice))
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+        }
+        .padding(.horizontal, horizontalPadding)
+        .padding(.vertical, 4)
     }
 }

@@ -544,3 +544,5 @@
 "reading.analysis.expand" = "Afficher l'analyse";
 "reading.analysis.collapse" = "Masquer l'analyse";
 "purpose.loginPick" = "CE COMPTE SERT À";
+// Linked-account purpose question (2026-09-03).
+"purpose.title.linked" = "À quoi sert %@ ?";

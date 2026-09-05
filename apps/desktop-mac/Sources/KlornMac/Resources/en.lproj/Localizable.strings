@@ -531,7 +531,7 @@
 
 // Inbox purpose — the connect-time question (2026-09-01).
 "purpose.title" = "What is this mailbox for?";
-"purpose.detail" = "Klorn tunes its analysis to how you use this account — a personal inbox is read differently from a work one. You can change this anytime under 계정.";
+"purpose.detail" = "Klorn tunes its analysis to how you use this account — a personal inbox is read differently from a work one. You can change this anytime under Accounts.";
 "purpose.work" = "Work";
 "purpose.personal" = "Personal";
 "purpose.mixed" = "Both";
@@ -544,3 +544,5 @@
 "reading.analysis.expand" = "Show the analysis";
 "reading.analysis.collapse" = "Hide the analysis";
 "purpose.loginPick" = "THIS ACCOUNT IS FOR";
+// Linked-account purpose question (2026-09-03).
+"purpose.title.linked" = "What is %@ for?";

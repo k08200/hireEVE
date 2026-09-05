@@ -544,3 +544,5 @@
 "reading.analysis.expand" = "분석 펼치기";
 "reading.analysis.collapse" = "분석 접기";
 "purpose.loginPick" = "이 계정의 용도";
+// Linked-account purpose question (2026-09-03).
+"purpose.title.linked" = "%@ 계정은 어떤 용도인가요?";

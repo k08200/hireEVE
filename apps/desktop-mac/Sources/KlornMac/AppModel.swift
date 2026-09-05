@@ -396,18 +396,30 @@ final class AppModel {
     /// then pull the merged queue right away. Cancelled on sign-out.
     private func startLinkWatch() {
         linkWatchTask?.cancel()
-        let baseline = inboxes.count
+        let baseline = Set(inboxes.compactMap(\.id))
         linkWatchTask = Task { [weak self] in
             for _ in 0..<36 {
                 try? await Task.sleep(for: .seconds(5))
                 guard let self, !Task.isCancelled else { return }
                 await self.refreshInboxes()
-                if self.inboxes.count > baseline {
+                if let linked = Self.newlyLinkedInbox(baseline: baseline, now: self.inboxes) {
                     await self.loadQueue()
+                    // Ask what the NEW mailbox is for, right as it lands —
+                    // the same connect-time question the primary gets.
+                    self.presentPurposePrompt(forLinked: linked)
                     return
                 }
             }
         }
+    }
+
+    /// The linked inbox that appeared since the link flow started, if any.
+    /// Id-based (not a count): a concurrent unlink + link would leave the
+    /// count equal and the new account unnoticed.
+    nonisolated static func newlyLinkedInbox(
+        baseline: Set<String>, now: [InboxOption]
+    ) -> InboxOption? {
+        now.first { $0.kind == "linked" && $0.id.map { !baseline.contains($0) } == true }
     }
 
     /// Populate the model from fixture JSON for the offscreen preview renderer
@@ -964,18 +976,39 @@ final class AppModel {
         Task { await setInboxPurpose(inboxId: nil, purpose: purpose) }
     }
 
+    /// Which mailbox the open prompt is asking about. Nil = the primary
+    /// account (the first-run question); a linked inbox when "Add account"
+    /// just landed one. The card reads the target for its title and PATCH.
+    private(set) var purposePromptTarget: InboxOption?
+
     func presentPurposePromptIfNeeded() {
         guard !Theme.isRenderingOffscreen, phase == .signedIn, !showTierGuide,
               !UserDefaults.standard.bool(forKey: Self.purposePromptDismissedKey),
               let primary = inboxes.first(where: { $0.kind == "primary" }),
               primary.purpose == nil
         else { return }
+        purposePromptTarget = nil
         showPurposePrompt = true
     }
 
+    /// A second account just linked: ask what IT is for. Not gated by the
+    /// primary's "later" — that dismissal was about a different mailbox.
+    func presentPurposePrompt(forLinked inbox: InboxOption) {
+        guard !Theme.isRenderingOffscreen, phase == .signedIn, inbox.purpose == nil
+        else { return }
+        purposePromptTarget = inbox
+        showPurposePrompt = true
+    }
+
+    /// "Later" on the primary question is permanent (the account section is
+    /// the fallback); on a linked account's question it just closes — the
+    /// primary's first-run card must not be silenced by it.
     func dismissPurposePrompt() {
         showPurposePrompt = false
-        UserDefaults.standard.set(true, forKey: Self.purposePromptDismissedKey)
+        if purposePromptTarget == nil {
+            UserDefaults.standard.set(true, forKey: Self.purposePromptDismissedKey)
+        }
+        purposePromptTarget = nil
     }
 
     /// Write one mailbox's purpose ("primary" or a linked id; nil clears).

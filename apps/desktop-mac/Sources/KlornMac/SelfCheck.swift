@@ -1545,13 +1545,36 @@ func runSelfChecks() async -> Bool {
         L("prefs.shortcut.change.a11y", "x"), L("prefs.infoRow.a11y", "x", "y"),
         L("engagement.combined.a11y", "x", "y"), L("proposals.row.a11y", "x", "y"),
         L("mail.needsReconnect", "x"), L("calendar.eventRow.a11y", "x", "y"),
-        L("mail.noMatches", "x", "y"),
+        L("mail.noMatches", "x", "y"), L("purpose.title.linked", "x"),
     ].allSatisfy { $0.contains("x") && !$0.contains("%") })
     // Mixed string+integer formats: the argument ORDER must survive too, since
     // a "%1$@ %2$d" fed the wrong way round is the same pointer-read crash.
     check("mixed formats render", [
         L("tier.row.a11y", "x", 3, "y"), L("proposals.a11y", 2),
     ].allSatisfy { !$0.contains("%") })
+
+    // "Add account" → the purpose question for the NEW mailbox. Id-based
+    // detection: a count would miss a concurrent unlink + link, and must
+    // never pick the primary (id nil) or an account that was already there.
+    do {
+        func inbox(_ id: String?, _ kind: String) -> InboxOption {
+            InboxOption(
+                id: id, email: id.map { "\($0)@x.test" }, kind: kind, needsReconnect: false,
+                provider: "GOOGLE", purpose: nil)
+        }
+        let before = [inbox(nil, "primary"), inbox("l1", "linked")]
+        let baseline = Set(before.compactMap(\.id))
+        check("link watch — nothing new yet",
+              AppModel.newlyLinkedInbox(baseline: baseline, now: before) == nil)
+        check("link watch — the new linked id is the target",
+              AppModel.newlyLinkedInbox(
+                baseline: baseline, now: before + [inbox("l2", "linked")])?.id == "l2")
+        check("link watch — unlink + link (same count) still finds the new one",
+              AppModel.newlyLinkedInbox(
+                baseline: baseline, now: [inbox(nil, "primary"), inbox("l3", "linked")])?.id == "l3")
+        check("link watch — primary is never 'new'",
+              AppModel.newlyLinkedInbox(baseline: [], now: [inbox(nil, "primary")]) == nil)
+    }
 
     // Three separate passes each missed strings here, because the misses were
     // never in `Text("…")` — they were in helpers that take a plain String
